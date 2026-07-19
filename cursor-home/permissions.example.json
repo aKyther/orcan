@@ -1,0 +1,28 @@
+{
+  "_comment": "Example permissions block for Cursor CLI. The active global file is cli-config.json (see Cursor docs). This example is not loaded automatically.",
+  "permissions": {
+    "allow": [
+      "Shell(ls)",
+      "Shell(git)",
+      "Shell(docker)",
+      "Shell(make)",
+      "Shell(pwd)",
+      "Shell(rg)",
+      "Shell(fd)"
+    ],
+    "deny": [
+      "Shell(rm)",
+      "Shell(sudo)",
+      "Shell(su)",
+      "Shell(chmod)",
+      "Shell(chown)",
+      "Shell(git:reset)",
+      "Shell(git:clean)",
+      "Shell(docker:system)",
+      "Shell(docker:volume)",
+      "Read(.env*)",
+      "Write(**/*.key)",
+      "Write(**/*.pem)"
+    ]
+  }
+}

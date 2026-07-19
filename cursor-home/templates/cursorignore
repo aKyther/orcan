@@ -1,0 +1,35 @@
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/id_rsa
+**/id_ed25519
+**/secrets/
+**/credentials.json
+
+# Dependencies and virtualenvs
+**/node_modules/
+**/.venv/
+**/venv/
+**/__pycache__/
+
+# Build outputs
+**/dist/
+**/build/
+**/target/
+**/coverage/
+**/.next/
+**/site/
+
+# Logs and temp
+**/logs/
+**/*.log
+**/tmp/
+**/temp/
+
+# Databases and large local data
+**/*.sqlite
+**/*.db
+**/data/

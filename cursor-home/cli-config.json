@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "editor": {
+    "vimMode": false
+  },
+  "permissions": {
+    "allow": [
+      "Shell(ls)",
+      "Shell(eza)",
+      "Shell(pwd)",
+      "Shell(cat)",
+      "Shell(bat)",
+      "Shell(head)",
+      "Shell(tail)",
+      "Shell(rg)",
+      "Shell(fd)",
+      "Shell(find)",
+      "Shell(git)",
+      "Shell(docker)",
+      "Shell(make)",
+      "Shell(node)",
+      "Shell(npm)",
+      "Shell(pnpm)",
+      "Shell(python3)",
+      "Shell(uv)",
+      "Shell(go)",
+      "Shell(cargo)",
+      "Shell(rustc)",
+      "Shell(tmux)",
+      "Shell(vim)",
+      "Shell(bash)",
+      "Shell(agent)",
+      "Shell(cursor-init-project)",
+      "Shell(init-cursor-home)"
+    ],
+    "deny": [
+      "Shell(rm)",
+      "Shell(sudo)",
+      "Shell(su)",
+      "Shell(chmod)",
+      "Shell(chown)",
+      "Shell(git:reset)",
+      "Shell(git:clean)",
+      "Shell(docker:system)",
+      "Shell(docker:volume)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Write(**/*.pem)",
+      "Write(**/*.key)",
+      "Write(**/.env)",
+      "Write(**/.env.*)"
+    ]
+  }
+}

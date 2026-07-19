@@ -1,0 +1,16 @@
+---
+description: General quality rules for work inside the container
+alwaysApply: true
+---
+
+# General quality
+
+- Inspect existing files before changing them.
+- Make small and focused changes.
+- Do not rewrite working configuration without a clear reason.
+- Follow the existing project style.
+- Run available checks after changes.
+- Report which checks were actually executed.
+- Do not claim that a build or test passed if it was not run.
+- Keep generated files owned by the current container user.
+- Use simple B2 English in user documentation.

@@ -1,0 +1,13 @@
+---
+description: Keep documentation accurate and simple
+globs: README.md,docs/**/*.md,AGENTS.md
+alwaysApply: false
+---
+
+# Documentation
+
+- Use simple B2 English in user documentation.
+- Update docs when Makefile or Compose commands change.
+- Keep examples copy-paste ready.
+- Do not document commands that do not exist.
+- Mark Docker socket risk with a clear warning.

@@ -1,0 +1,17 @@
+---
+description: Required validation before finishing infrastructure changes
+alwaysApply: true
+---
+
+# Validation
+
+- After changes, run available checks before claiming success.
+- Run `docker compose -f docker-compose.yml config`.
+- Run `docker compose -f docker-compose.yml -f docker-compose.docker.yml config`.
+- Run `make help` and confirm targets match the docs.
+- Check Makefile syntax and file references.
+- Do not claim a successful image build unless `make build` actually ran.
+- In the final report, separate:
+  - tests that ran
+  - tests that did not run
+  - environment limits

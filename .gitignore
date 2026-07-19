@@ -1,0 +1,50 @@
+# Local environment (keep .env.example)
+.env
+.env.local
+.env.*.local
+
+# Local Compose overrides
+docker-compose.override.yml
+compose.override.yml
+
+# Editor and IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+# Keep tracked: .vimrc and .tmux.conf (copied into the image)
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+.tmp/
+.temp/
+
+# Caches and local data
+.cache/
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Build artifacts
+dist/
+build/
+target/
+coverage/
+
+# MkDocs
+site/
+
+# OS junk
+Thumbs.db
