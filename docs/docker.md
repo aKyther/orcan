@@ -58,7 +58,6 @@ Provides:
 * named volumes for caches and Cursor config
 * read-only `~/.gitconfig` and `~/.ssh`
 * resource limits and a `/tmp` tmpfs
-* `no-new-privileges`
 
 Does **not** mount the Docker socket.
 
@@ -76,7 +75,6 @@ Runs OpenSSH for remote access (for example a VPS behind Tailscale):
 * `command: cursor-sshd`
 * publishes `${SSH_HOST_PORT:-22}:22`
 * sets `DEVELOPER_PASSWORD` (default `cursor`)
-* clears `no-new-privileges` so `sudo` can start `sshd`
 * does **not** bind-mount host `~/.ssh` or `~/.gitconfig`
 * `restart: unless-stopped`
 

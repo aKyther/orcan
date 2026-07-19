@@ -1,6 +1,5 @@
 # Optional overlay: run OpenSSH for VPS / Tailscale access.
 # Does not mount host ~/.ssh or ~/.gitconfig (those paths often missing on a VPS).
-# Disables no-new-privileges so sudo can start sshd.
 services:
   cursor:
     command: ["cursor-sshd"]
@@ -9,7 +8,6 @@ services:
       - "${SSH_HOST_PORT:-22}:22"
     environment:
       DEVELOPER_PASSWORD: ${DEVELOPER_PASSWORD:-cursor}
-    security_opt: !override []
     volumes: !override
       - ${PROJECT_DIR:-.}:/workspace
       - cursor-config:/home/developer/.cursor
