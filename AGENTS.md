@@ -12,6 +12,7 @@ A single host project is mounted at `/workspace`. Agents must treat that mount a
 | `Dockerfile` | Image build only (packages, COPY rootfs, user, ENTRYPOINT) |
 | `docker-compose.yml` | Base service (no Docker socket) |
 | `docker-compose.docker.yml` | Optional Docker socket overlay |
+| `docker-compose.ssh.yml` | Optional OpenSSH overlay (VPS / Tailscale) |
 | `Makefile` | Thin host UI; calls Compose and `scripts/repository/` |
 | `docker/rootfs/` | Files installed into the image (source of truth) |
 | `scripts/repository/` | Host-only helpers (`update-env`, `validate`) |
@@ -39,6 +40,8 @@ make shell
 make shell-docker
 make up
 make up-docker
+make up-ssh
+make up-ssh-docker
 make down
 make logs
 make rebuild
@@ -79,6 +82,7 @@ Use `PROJECT_DIR=/absolute/path/to/project` to choose the mounted project.
 
 - Base file must work without `/var/run/docker.sock`.
 - Docker socket and `group_add` belong only in `docker-compose.docker.yml`.
+- OpenSSH publish/password settings belong only in `docker-compose.ssh.yml`.
 - Keep named volumes for caches and Cursor config.
 - Mount only the selected project at `/workspace`.
 - Do not mount `/`, `/home`, or `/etc`.

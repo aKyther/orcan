@@ -42,6 +42,17 @@ make shell-docker
 
     This mounts the host Docker socket and is powerful.
 
+## Can I SSH into the container on a VPS?
+
+Yes, with the SSH overlay (meant for Tailscale or another private network):
+
+```bash
+make up-ssh
+ssh developer@<tailscale-ip>
+```
+
+Default password is `cursor` (`DEVELOPER_PASSWORD` in `.env`). See [Docker](docker.md) and [Security](security.md).
+
 ## Why do new files belong to my user?
 
 `USER_UID` and `USER_GID` are copied from the host into the image user. That keeps ownership aligned on the bind mount.

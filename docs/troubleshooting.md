@@ -96,6 +96,21 @@ Common causes:
 
 The Makefile exits if `/var/run/docker.sock` is missing. Start Docker Engine/Desktop, then retry.
 
+## Cannot bind SSH port 22
+
+The host may already run `sshd` on port 22. Set another port in `.env`:
+
+```bash
+SSH_HOST_PORT=2222
+```
+
+Then:
+
+```bash
+make up-ssh
+ssh -p 2222 developer@<tailscale-ip>
+```
+
 ## Useful diagnostic commands
 
 ```bash
@@ -103,5 +118,6 @@ make help
 make config
 docker compose -f docker-compose.yml config
 docker compose -f docker-compose.yml -f docker-compose.docker.yml config
+docker compose -f docker-compose.yml -f docker-compose.ssh.yml config
 docker images | grep cursor-dev
 ```

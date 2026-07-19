@@ -55,6 +55,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         make \
         nano \
         openssh-client \
+        openssh-server \
         parallel \
         postgresql-client \
         python3 \
@@ -145,6 +146,7 @@ RUN chmod 0755 \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
         /usr/local/bin/cursor-init-project \
+        /usr/local/bin/cursor-sshd \
     && chmod -R a+rX /opt/cursor-defaults \
     && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
     && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \

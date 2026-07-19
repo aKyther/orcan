@@ -63,8 +63,9 @@ The named volume would hide them.
 
 1. Keep the Docker socket out of `docker-compose.yml`.
 2. Put socket + `group_add` only in `docker-compose.docker.yml`.
-3. Preserve named volumes unless you have a migration plan.
-4. Validate both configs:
+3. Put OpenSSH publish/password settings only in `docker-compose.ssh.yml`.
+4. Preserve named volumes unless you have a migration plan.
+5. Validate configs:
 
 ```bash
 make config

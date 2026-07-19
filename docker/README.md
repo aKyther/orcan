@@ -8,10 +8,11 @@ Their paths match the final container layout.
 docker/rootfs/
 ├── etc/
 │   ├── profile.d/cursor-dev-path.sh
-│   └── skel/
-│       ├── .bashrc.d/50-cursor-dev.sh
-│       ├── .tmux.conf
-│       └── .vimrc
+│   ├── skel/
+│   │   ├── .bashrc.d/50-cursor-dev.sh
+│   │   ├── .tmux.conf
+│   │   └── .vimrc
+│   └── ssh/sshd_config.d/cursor.conf
 ├── opt/
 │   └── cursor-defaults/     → /opt/cursor-defaults
 └── usr/
@@ -19,7 +20,8 @@ docker/rootfs/
         └── bin/
             ├── docker-entrypoint
             ├── init-cursor-home
-            └── cursor-init-project
+            ├── cursor-init-project
+            └── cursor-sshd
 ```
 
 ## Rules

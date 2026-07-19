@@ -36,6 +36,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `Dockerfile` | Builds the toolchain and installs Cursor CLI |
 | `docker-compose.yml` | Base service: project mount, caches, no Docker socket |
 | `docker-compose.docker.yml` | Optional overlay: host Docker socket + `DOCKER_GID` |
+| `docker-compose.ssh.yml` | Optional overlay: OpenSSH for VPS / Tailscale access |
 | `Makefile` | Short host commands for build, shell, cleanup |
 | `docker/rootfs/` | Files installed into the image (paths match the container) |
 | `docker/README.md` | Explains the image filesystem layout |
@@ -69,6 +70,8 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `docker/rootfs/usr/local/bin/docker-entrypoint` | `/usr/local/bin/docker-entrypoint` | Container startup |
 | `docker/rootfs/usr/local/bin/init-cursor-home` | `/usr/local/bin/init-cursor-home` | User config initialization |
 | `docker/rootfs/usr/local/bin/cursor-init-project` | `/usr/local/bin/cursor-init-project` | Project template initialization |
+| `docker/rootfs/usr/local/bin/cursor-sshd` | `/usr/local/bin/cursor-sshd` | Foreground OpenSSH for VPS overlay |
+| `docker/rootfs/etc/ssh/sshd_config.d/cursor.conf` | `/etc/ssh/sshd_config.d/cursor.conf` | SSH daemon settings |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
 | `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Aliases, PATH, interactive TMUX |
@@ -138,6 +141,8 @@ agent --version
 | `make shell-docker` | Interactive shell **with** Docker socket |
 | `make up` | Start service in the foreground (no socket) |
 | `make up-docker` | Start service with Docker socket |
+| `make up-ssh` | Start OpenSSH daemon detached (no socket) |
+| `make up-ssh-docker` | Start OpenSSH daemon detached with Docker socket |
 | `make down` | Stop containers; keep named volumes |
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep named volumes |
@@ -223,6 +228,33 @@ These values are taken from the host so files created in `/workspace` stay owned
 | Docker-enabled | `make shell-docker` / `make up-docker` | Yes |
 
 The overlay file is `docker-compose.docker.yml`.
+
+---
+
+## SSH on a VPS (Tailscale)
+
+Use the SSH overlay when the container runs on a remote host and you want `ssh` into it.
+
+```bash
+make build
+make up-ssh PROJECT_DIR=/absolute/path/to/project
+```
+
+| Field | Default |
+| --- | --- |
+| User | `developer` |
+| Password | `cursor` (`DEVELOPER_PASSWORD` in `.env`) |
+| Host port | `22` (`SSH_HOST_PORT`) |
+
+```bash
+ssh developer@<tailscale-ip>
+```
+
+> **Warning:** The default password is weak. Use it only on a Tailscale (or similarly private) network.
+> If the host already runs `sshd` on port 22, set `SSH_HOST_PORT` to a free port or stop the host daemon.
+
+The overlay file is `docker-compose.ssh.yml`. It does not mount host `~/.ssh` or `~/.gitconfig`.
+Details: [docs/docker.md](docs/docker.md) and [docs/security.md](docs/security.md).
 
 ---
 
