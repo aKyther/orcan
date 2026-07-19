@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+# Initialize Cursor project files from ${HOME}/.cursor/templates.
+# Does not run automatically at container startup.
+
+set -Eeuo pipefail
+
+TEMPLATES_DIR="${CURSOR_TEMPLATES_DIR:-${HOME:?HOME is not set}/.cursor/templates}"
+FORCE=0
+DRY_RUN=0
+TARGET=""
+
+CREATED=0
+SKIPPED=0
+BACKED_UP=0
+
+usage() {
+    cat <<'EOF'
+Usage:
+  cursor-init-project [options] [target]
+
+Initialize Cursor files in a project directory.
+
+Default target: /workspace
+
+Options:
+  --dry-run   Show planned actions without writing
+  --force     Overwrite existing files (creates timestamped backups)
+  --help      Show this help
+
+Examples:
+  cursor-init-project
+  cursor-init-project /workspace
+  cursor-init-project --dry-run
+  cursor-init-project --force /workspace
+EOF
+}
+
+reject_dangerous_target() {
+    local path="$1"
+
+    case "${path}" in
+        ""|"/"|"/home"|"/home/"|"/etc"|"/etc/"|"/root"|"/root/"|"/usr"|"/usr/"|"/var"|"/var/"|"/opt"|"/opt/")
+            printf 'Error: refusing dangerous target: %s\n' "${path}" >&2
+            return 1
+            ;;
+    esac
+}
+
+resolve_target() {
+    local raw="$1"
+    local resolved
+
+    if [[ -z "${raw}" ]]; then
+        printf 'Error: empty target path\n' >&2
+        return 1
+    fi
+
+    if [[ ! -d "${raw}" ]]; then
+        printf 'Error: target directory does not exist: %s\n' "${raw}" >&2
+        return 1
+    fi
+
+    resolved="$(cd -- "${raw}" && pwd -P)"
+    reject_dangerous_target "${resolved}"
+    printf '%s\n' "${resolved}"
+}
+
+backup_file() {
+    local file="$1"
+    local stamp backup
+
+    stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    backup="${file}.bak.${stamp}"
+
+    if (( DRY_RUN )); then
+        printf 'Backup : %s -> %s (dry-run)\n' "${file}" "${backup}"
+    else
+        cp -- "${file}" "${backup}"
+        printf 'Backup : %s -> %s\n' "${file}" "${backup}"
+    fi
+    BACKED_UP=$((BACKED_UP + 1))
+}
+
+copy_one() {
+    local source_file="$1"
+    local target_file="$2"
+
+    if [[ -e "${target_file}" ]]; then
+        if (( FORCE )); then
+            backup_file "${target_file}"
+            if (( DRY_RUN )); then
+                printf 'Replace: %s (dry-run)\n' "${target_file}"
+            else
+                mkdir -p "$(dirname "${target_file}")"
+                cp -- "${source_file}" "${target_file}"
+                printf 'Replaced: %s\n' "${target_file}"
+            fi
+            CREATED=$((CREATED + 1))
+        else
+            printf 'Skipped: %s\n' "${target_file}"
+            SKIPPED=$((SKIPPED + 1))
+        fi
+        return 0
+    fi
+
+    if (( DRY_RUN )); then
+        printf 'Create : %s (dry-run)\n' "${target_file}"
+    else
+        mkdir -p "$(dirname "${target_file}")"
+        cp -- "${source_file}" "${target_file}"
+        printf 'Created: %s\n' "${target_file}"
+    fi
+    CREATED=$((CREATED + 1))
+}
+
+install_templates() {
+    local target="$1"
+    local source_file relative_path dest_name target_file
+
+    if [[ ! -d "${TEMPLATES_DIR}" ]]; then
+        printf 'Error: templates directory not found: %s\n' "${TEMPLATES_DIR}" >&2
+        printf 'Hint: start a container once so init-cursor-home can seed ~/.cursor/templates\n' >&2
+        return 1
+    fi
+
+    # Map template names to project paths.
+    while IFS= read -r -d '' source_file; do
+        relative_path="${source_file#"${TEMPLATES_DIR}"/}"
+
+        case "${relative_path}" in
+            AGENTS.md)
+                dest_name="AGENTS.md"
+                ;;
+            cursorignore)
+                dest_name=".cursorignore"
+                ;;
+            cursorindexingignore)
+                dest_name=".cursorindexingignore"
+                ;;
+            rules/*)
+                dest_name=".cursor/${relative_path}"
+                ;;
+            *)
+                dest_name=".cursor/templates/${relative_path}"
+                ;;
+        esac
+
+        target_file="${target}/${dest_name}"
+        copy_one "${source_file}" "${target_file}"
+    done < <(find "${TEMPLATES_DIR}" -type f -print0 | sort -z)
+}
+
+print_summary() {
+    printf '\n'
+    printf 'Project init summary\n'
+    printf '  templates: %s\n' "${TEMPLATES_DIR}"
+    printf '  target   : %s\n' "${TARGET}"
+    printf '  created  : %s\n' "${CREATED}"
+    printf '  skipped  : %s\n' "${SKIPPED}"
+    printf '  backups  : %s\n' "${BACKED_UP}"
+    if (( DRY_RUN )); then
+        printf '  mode     : dry-run\n'
+    elif (( FORCE )); then
+        printf '  mode     : force\n'
+    else
+        printf '  mode     : missing-only\n'
+    fi
+    printf '\nReview generated files before committing them.\n'
+}
+
+parse_args() {
+    local positional=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --help|-h)
+                usage
+                exit 0
+                ;;
+            --dry-run)
+                DRY_RUN=1
+                shift
+                ;;
+            --force)
+                FORCE=1
+                shift
+                ;;
+            --)
+                shift
+                positional+=("$@")
+                break
+                ;;
+            -*)
+                printf 'Error: unknown option: %s\n' "$1" >&2
+                usage >&2
+                exit 2
+                ;;
+            *)
+                positional+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    if [[ ${#positional[@]} -gt 1 ]]; then
+        printf 'Error: too many positional arguments\n' >&2
+        usage >&2
+        exit 2
+    fi
+
+    if [[ ${#positional[@]} -eq 1 ]]; then
+        TARGET="${positional[0]}"
+    else
+        TARGET="/workspace"
+    fi
+}
+
+main() {
+    parse_args "$@"
+    TARGET="$(resolve_target "${TARGET}")"
+    install_templates "${TARGET}"
+    print_summary
+}
+
+main "$@"

@@ -1,0 +1,16 @@
+---
+description: Basic repository safety for agents
+alwaysApply: true
+---
+
+# Repository safety
+
+- Work only inside this repository.
+- Do not read or modify paths outside the project root.
+- Do not read secrets unless the user explicitly asks.
+- Do not modify `.env` unless the user explicitly asks.
+- Do not run destructive commands without explicit approval.
+- Do not run `docker system prune`.
+- Do not delete Docker volumes without explicit approval.
+- Do not start containers with `--privileged`.
+- Do not mount `/`, `/home`, `/etc`, or other sensitive host paths.

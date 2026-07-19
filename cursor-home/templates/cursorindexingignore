@@ -1,0 +1,38 @@
+# VCS and dependencies
+.git/
+node_modules/
+.venv/
+venv/
+vendor/
+
+# Build and cache
+target/
+dist/
+build/
+out/
+coverage/
+.cache/
+.turbo/
+.next/
+site/
+__pycache__/
+
+# Binaries and archives
+*.exe
+*.so
+*.dylib
+*.o
+*.a
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.wasm
+
+# Logs, DBs, temp
+*.log
+logs/
+*.sqlite
+*.db
+tmp/
+temp/

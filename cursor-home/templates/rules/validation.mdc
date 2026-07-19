@@ -1,0 +1,14 @@
+---
+description: Validate changes before claiming success
+alwaysApply: true
+---
+
+# Validation
+
+- Run available checks after infrastructure or script changes.
+- Prefer project-native commands (`make`, test runners, linters).
+- Do not claim a build or test passed if it was not run.
+- In the final report, separate:
+  - checks that ran
+  - checks that did not run
+  - environment limits

@@ -1,0 +1,18 @@
+---
+description: Safety boundaries for agents working in this repository
+alwaysApply: true
+---
+
+# Repository safety
+
+- Work only inside the current repository mounted at `/workspace`.
+- Do not read or modify host paths outside `/workspace`.
+- Do not try to bypass container limits or security controls.
+- Do not read secrets, private keys, or credential files.
+- Do not modify `.env` unless the user explicitly asks.
+- Do not run destructive commands unless the user clearly requests them.
+- Do not run `docker system prune` or similar cleanup that deletes unrelated resources.
+- Do not delete Docker volumes unless the user explicitly requests `make clean-volumes`.
+- Do not start containers with `--privileged`.
+- Do not mount `/`, `/home`, `/etc`, or other sensitive host paths into containers.
+- Treat `/var/run/docker.sock` as privileged host access; enable it only with `*-docker` Make targets.

@@ -1,0 +1,77 @@
+# ------------------------------------------------------------------------------
+# Version control and dependency trees (low value for search index)
+# ------------------------------------------------------------------------------
+.git/
+node_modules/
+.venv/
+venv/
+vendor/
+
+# ------------------------------------------------------------------------------
+# Build outputs and caches
+# ------------------------------------------------------------------------------
+target/
+dist/
+build/
+out/
+coverage/
+.cache/
+.turbo/
+.next/
+.nuxt/
+.output/
+site/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+
+# ------------------------------------------------------------------------------
+# Binaries and archives
+# ------------------------------------------------------------------------------
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.a
+*.bin
+*.class
+*.jar
+*.war
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.gz
+*.bz2
+*.xz
+*.zst
+*.wasm
+
+# ------------------------------------------------------------------------------
+# Logs, databases, and temporary files
+# ------------------------------------------------------------------------------
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+*.mdb
+*.dump
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ------------------------------------------------------------------------------
+# Generated documentation output (keep docs/*.md indexed)
+# ------------------------------------------------------------------------------
+site/
+
+# Note: infrastructure files (Dockerfile, Compose, Makefile) and docs/*.md
+# remain indexed. .cursorignore restricts agent access; this file mainly
+# reduces indexing noise.

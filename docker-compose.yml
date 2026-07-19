@@ -1,0 +1,49 @@
+services:
+  cursor:
+    build:
+      context: .
+      args:
+        USERNAME: developer
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    image: cursor-dev:latest
+    hostname: cursor-dev
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    init: true
+    cpus: ${CPUS:-8}
+    mem_limit: ${MEMORY:-16g}
+    shm_size: ${SHM_SIZE:-2g}
+    environment:
+      TERM: xterm-256color
+      COLORTERM: truecolor
+      HISTFILE: /command-history/.bash_history
+      PNPM_HOME: /home/developer/.local/share/pnpm
+      UV_CACHE_DIR: /home/developer/.cache/uv
+      DOCKER_BUILDKIT: "1"
+      COMPOSE_DOCKER_CLI_BUILD: "1"
+    volumes:
+      - ${PROJECT_DIR:-.}:/workspace
+      - cursor-config:/home/developer/.cursor
+      - cursor-cache:/home/developer/.cache
+      - npm-cache:/home/developer/.npm
+      - pnpm-cache:/home/developer/.local/share/pnpm
+      - cargo-cache:/home/developer/.cargo
+      - go-cache:/home/developer/go
+      - bash-history:/command-history
+      - ${HOME}/.gitconfig:/home/developer/.gitconfig:ro
+      - ${HOME}/.ssh:/home/developer/.ssh:ro
+    tmpfs:
+      - /tmp:size=${TMPFS_SIZE:-2g},mode=1777
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  cursor-config:
+  cursor-cache:
+  npm-cache:
+  pnpm-cache:
+  cargo-cache:
+  go-cache:
+  bash-history:

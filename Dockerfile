@@ -1,0 +1,286 @@
+# syntax=docker/dockerfile:1.7
+
+# ------------------------------------------------------------------------------
+# Tool stages
+# ------------------------------------------------------------------------------
+
+FROM node:22-bookworm-slim AS node-tools
+
+RUN corepack enable \
+    && corepack prepare pnpm@latest --activate
+
+FROM golang:1.24-bookworm AS go-tools
+
+FROM rust:1-bookworm AS rust-tools
+
+FROM ghcr.io/astral-sh/uv:latest AS uv-tools
+
+# ------------------------------------------------------------------------------
+# Final image
+# ------------------------------------------------------------------------------
+
+FROM debian:bookworm-slim
+
+ARG USERNAME=developer
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# ------------------------------------------------------------------------------
+# Base packages
+# ------------------------------------------------------------------------------
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        bat \
+        build-essential \
+        ca-certificates \
+        curl \
+        fd-find \
+        fzf \
+        git \
+        git-lfs \
+        gnupg \
+        hyperfine \
+        jq \
+        less \
+        make \
+        nano \
+        openssh-client \
+        parallel \
+        postgresql-client \
+        python3 \
+        python3-pip \
+        python3-venv \
+        redis-tools \
+        ripgrep \
+        shellcheck \
+        sudo \
+        tmux \
+        unzip \
+        vim \
+        wget \
+        zip \
+        zstd \
+    && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+    && ln -sf /usr/bin/batcat /usr/local/bin/bat \
+    && rm -rf /var/lib/apt/lists/*
+
+# ------------------------------------------------------------------------------
+# Node.js + npm + pnpm
+# ------------------------------------------------------------------------------
+# Copy the Node binary and node_modules tree, then recreate shims.
+# Copying symlink targets into /usr/local/bin breaks relative requires.
+
+COPY --from=node-tools /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-tools /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+RUN ln -sf node /usr/local/bin/nodejs \
+    && ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack \
+    && corepack enable \
+    && corepack prepare pnpm@latest --activate \
+    && node --version \
+    && npm --version \
+    && pnpm --version
+
+# ------------------------------------------------------------------------------
+# Go
+# ------------------------------------------------------------------------------
+
+COPY --from=go-tools /usr/local/go /usr/local/go
+
+# ------------------------------------------------------------------------------
+# Rust
+# ------------------------------------------------------------------------------
+
+COPY --from=rust-tools /usr/local/cargo /usr/local/cargo
+COPY --from=rust-tools /usr/local/rustup /usr/local/rustup
+
+# ------------------------------------------------------------------------------
+# uv
+# ------------------------------------------------------------------------------
+
+COPY --from=uv-tools /uv /usr/local/bin/uv
+COPY --from=uv-tools /uvx /usr/local/bin/uvx
+
+# ------------------------------------------------------------------------------
+# Docker CLI + Compose + Buildx
+# ------------------------------------------------------------------------------
+
+RUN install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg \
+        -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" \
+        > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        docker-ce-cli \
+        docker-buildx-plugin \
+        docker-compose-plugin \
+    && rm -rf /var/lib/apt/lists/*
+
+# ------------------------------------------------------------------------------
+# eza
+# ------------------------------------------------------------------------------
+
+RUN install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
+        | gpg --dearmor -o /etc/apt/keyrings/eza.gpg \
+    && chmod 0644 /etc/apt/keyrings/eza.gpg \
+    && echo \
+        "deb [signed-by=/etc/apt/keyrings/eza.gpg] http://deb.gierens.de stable main" \
+        > /etc/apt/sources.list.d/eza.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends eza \
+    && rm -rf /var/lib/apt/lists/* \
+    && eza --version
+
+# ------------------------------------------------------------------------------
+# User
+# ------------------------------------------------------------------------------
+
+RUN set -eux; \
+    existing_user="$(getent passwd "${USER_UID}" | cut -d: -f1 || true)"; \
+    existing_group="$(getent group "${USER_GID}" | cut -d: -f1 || true)"; \
+    \
+    if [ -z "${existing_group}" ]; then \
+        groupadd --gid "${USER_GID}" "${USERNAME}"; \
+        existing_group="${USERNAME}"; \
+    fi; \
+    \
+    if [ -n "${existing_user}" ]; then \
+        usermod \
+            --login "${USERNAME}" \
+            --home "/home/${USERNAME}" \
+            --move-home \
+            --shell /bin/bash \
+            --gid "${existing_group}" \
+            "${existing_user}"; \
+    else \
+        useradd \
+            --uid "${USER_UID}" \
+            --gid "${existing_group}" \
+            --create-home \
+            --shell /bin/bash \
+            "${USERNAME}"; \
+    fi; \
+    \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" \
+        > "/etc/sudoers.d/${USERNAME}"; \
+    chmod 0440 "/etc/sudoers.d/${USERNAME}"; \
+    \
+    mkdir -p \
+        /workspace \
+        /command-history \
+        "/home/${USERNAME}/.cache" \
+        "/home/${USERNAME}/.config" \
+        "/home/${USERNAME}/.local/bin" \
+        "/home/${USERNAME}/.local/share/pnpm" \
+        "/home/${USERNAME}/.cargo" \
+        "/home/${USERNAME}/go"; \
+    \
+    chown -R "${USER_UID}:${USER_GID}" \
+        /workspace \
+        /command-history \
+        "/home/${USERNAME}"
+
+# ------------------------------------------------------------------------------
+# Environment
+# ------------------------------------------------------------------------------
+
+ENV HOME=/home/${USERNAME}
+ENV PNPM_HOME=/home/${USERNAME}/.local/share/pnpm
+ENV CARGO_HOME=/home/${USERNAME}/.cargo
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV GOPATH=/home/${USERNAME}/go
+ENV GOCACHE=/home/${USERNAME}/.cache/go-build
+ENV GOMODCACHE=/home/${USERNAME}/go/pkg/mod
+ENV UV_CACHE_DIR=/home/${USERNAME}/.cache/uv
+
+ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
+
+# Login shells reset PATH via /etc/profile. Keep toolchain paths available there too.
+RUN cat > /etc/profile.d/cursor-dev-path.sh <<EOF
+export PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:\${PATH}"
+EOF
+
+USER ${USERNAME}
+WORKDIR /workspace
+
+# ------------------------------------------------------------------------------
+# Cursor CLI
+# ------------------------------------------------------------------------------
+
+RUN curl -fsSL https://cursor.com/install | bash \
+    && agent --version \
+    && rm -rf "${HOME}/.cursor" \
+    && mkdir -p "${HOME}/.cursor"
+# Keep an empty developer-owned ~/.cursor in the image so the first named-volume
+# mount inherits writable ownership, then entrypoint seeds from /opt/cursor-defaults.
+
+# ------------------------------------------------------------------------------
+# Bash + tmux + vim
+# ------------------------------------------------------------------------------
+
+RUN cat >> "${HOME}/.bashrc" <<'EOF'
+
+# Toolchain PATH (also set in /etc/profile.d for login shells)
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:$HOME/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:$PATH"
+
+alias ls='eza'
+alias ll='eza -lah --git'
+alias la='eza -la'
+alias cat='bat --paging=never'
+alias dc='docker compose'
+
+if command -v tmux >/dev/null 2>&1 \
+    && [ -z "${TMUX:-}" ] \
+    && [ -t 0 ]; then
+    exec tmux new-session -A -s cursor
+fi
+EOF
+
+RUN cat >> "${HOME}/.profile" <<'EOF'
+
+# Ensure toolchain PATH for login shells even when .bashrc returns early
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:$HOME/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:$PATH"
+EOF
+
+COPY --chown=${USERNAME}:${USERNAME} .tmux.conf /home/${USERNAME}/.tmux.conf
+COPY --chown=${USERNAME}:${USERNAME} .vimrc /home/${USERNAME}/.vimrc
+
+# ------------------------------------------------------------------------------
+# Cursor defaults + entrypoint (immutable source in /opt)
+# ------------------------------------------------------------------------------
+
+USER root
+
+COPY cursor-home/ /opt/cursor-defaults/
+COPY scripts/init-cursor-home.sh /usr/local/bin/init-cursor-home
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+COPY scripts/init-project.sh /usr/local/bin/cursor-init-project
+
+RUN chmod -R a+rX /opt/cursor-defaults \
+    && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
+    && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \
+    && chmod 0755 \
+        /usr/local/bin/init-cursor-home \
+        /usr/local/bin/docker-entrypoint \
+        /usr/local/bin/cursor-init-project
+
+USER ${USERNAME}
+
+ENTRYPOINT ["docker-entrypoint"]
+CMD ["bash"]

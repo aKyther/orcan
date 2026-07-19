@@ -1,0 +1,21 @@
+---
+description: Safety rules for Cursor running inside the development container
+alwaysApply: true
+---
+
+# Container safety
+
+- Treat `/workspace` as the only project directory.
+- Do not inspect host paths outside `/workspace`.
+- Do not search for host files through mounted services.
+- Do not read secret files unless the user explicitly asks.
+- Do not modify `.env` files unless the user explicitly asks.
+- Do not run destructive commands without explicit approval.
+- Do not run `docker system prune`.
+- Do not remove Docker volumes without explicit approval.
+- Do not start privileged containers.
+- Do not mount `/`, `/home`, `/etc`, or other sensitive host paths.
+- Treat `/var/run/docker.sock` as privileged access to the host.
+- Explain commands that may delete, overwrite, or expose data.
+
+These rules are guidance for the agent. They are not a security sandbox.

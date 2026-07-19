@@ -1,0 +1,86 @@
+# ------------------------------------------------------------------------------
+# Secrets and credentials — never expose to the agent
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/id_rsa
+**/id_ed25519
+**/id_ecdsa
+**/*_rsa
+**/*_ed25519
+**/secrets/
+**/credentials/
+**/credentials.json
+**/.aws/
+**/.gnupg/
+**/.docker/config.json
+**/auth.json
+**/.npmrc
+**/.pypirc
+**/kubeconfig
+**/.kube/
+
+# ------------------------------------------------------------------------------
+# Large local data and databases
+# ------------------------------------------------------------------------------
+**/data/
+**/datasets/
+**/*.sql
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.mdb
+**/*.dump
+
+# ------------------------------------------------------------------------------
+# Logs and temporary files
+# ------------------------------------------------------------------------------
+**/logs/
+**/*.log
+**/tmp/
+**/temp/
+**/.tmp/
+**/.temp/
+
+# ------------------------------------------------------------------------------
+# Build artifacts and generated output
+# ------------------------------------------------------------------------------
+**/dist/
+**/build/
+**/out/
+**/target/
+**/coverage/
+**/.next/
+**/.nuxt/
+**/.output/
+**/site/
+**/*.min.js
+**/*.min.css
+**/*.map
+
+# ------------------------------------------------------------------------------
+# Dependency directories
+# ------------------------------------------------------------------------------
+**/node_modules/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.tox/
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.turbo/
+**/.cache/
+
+# ------------------------------------------------------------------------------
+# Package manager lock caches (keep lockfiles editable; ignore local stores)
+# ------------------------------------------------------------------------------
+**/.pnpm-store/
+**/.yarn/cache/
+**/.yarn/unplugged/
+
+# Note: Dockerfile, docker-compose*.yml, Makefile, README.md, AGENTS.md,
+# .cursor/rules/*, and other repo config files stay accessible.

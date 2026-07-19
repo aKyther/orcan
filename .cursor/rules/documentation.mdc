@@ -1,0 +1,15 @@
+---
+description: Documentation update rules for this repository
+globs: README.md,docs/**/*.md,mkdocs.yml,AGENTS.md,Makefile
+alwaysApply: false
+---
+
+# Documentation
+
+- Write all user documentation in simple B2 English.
+- Reflect every Makefile or Compose interface change in `README.md` and `docs/`.
+- Keep examples copy-paste ready.
+- Do not document commands that do not exist.
+- Clearly mark Docker socket risk with a warning.
+- Prefer MkDocs Material admonitions (`note`, `tip`, `warning`, `info`).
+- Avoid duplicating the same long explanation across many pages; link instead.
