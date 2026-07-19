@@ -32,9 +32,9 @@ A ready-to-run container image and Compose setup where:
 | [Installation](installation.md) | Requirements and setup |
 | [Docker](docker.md) | Image, Compose, volumes, users |
 | [Makefile](makefile.md) | Every Make command |
-| [Cursor](cursor.md) | Rules, ignore files, AGENTS.md |
+| [Cursor](cursor.md) | Image defaults vs repo rules, init, templates |
 | [Security](security.md) | What is and is not isolated |
-| [Development](development.md) | How to change this repo |
+| [Development](development.md) | Repository vs container layout |
 | [FAQ](faq.md) | Common questions |
 | [Troubleshooting](troubleshooting.md) | Fixes for common failures |
 

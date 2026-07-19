@@ -14,7 +14,6 @@ compose.override.yml
 *.swo
 *~
 .DS_Store
-# Keep tracked: .vimrc and .tmux.conf (copied into the image)
 
 # Logs and temporary files
 *.log
@@ -32,6 +31,7 @@ temp/
 __pycache__/
 *.py[cod]
 .venv/
+.venv-docs/
 venv/
 
 # Node

@@ -27,7 +27,8 @@ Each command mounts one project at `/workspace`.
 
 TMUX starts only for interactive TTY shells. Non-interactive commands skip it.
 
-To disable it permanently, remove the TMUX block from the image `.bashrc` and rebuild.
+To disable it permanently, remove the TMUX block from
+`docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` and rebuild.
 
 ## Can I use Docker inside the container?
 

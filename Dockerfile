@@ -77,8 +77,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # ------------------------------------------------------------------------------
 # Node.js + npm + pnpm
 # ------------------------------------------------------------------------------
-# Copy the Node binary and node_modules tree, then recreate shims.
-# Copying symlink targets into /usr/local/bin breaks relative requires.
 
 COPY --from=node-tools /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-tools /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -94,22 +92,12 @@ RUN ln -sf node /usr/local/bin/nodejs \
     && pnpm --version
 
 # ------------------------------------------------------------------------------
-# Go
+# Go / Rust / uv
 # ------------------------------------------------------------------------------
 
 COPY --from=go-tools /usr/local/go /usr/local/go
-
-# ------------------------------------------------------------------------------
-# Rust
-# ------------------------------------------------------------------------------
-
 COPY --from=rust-tools /usr/local/cargo /usr/local/cargo
 COPY --from=rust-tools /usr/local/rustup /usr/local/rustup
-
-# ------------------------------------------------------------------------------
-# uv
-# ------------------------------------------------------------------------------
-
 COPY --from=uv-tools /uv /usr/local/bin/uv
 COPY --from=uv-tools /uvx /usr/local/bin/uvx
 
@@ -146,6 +134,22 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && apt-get install -y --no-install-recommends eza \
     && rm -rf /var/lib/apt/lists/* \
     && eza --version
+
+# ------------------------------------------------------------------------------
+# Container filesystem (scripts, defaults, shell configs)
+# ------------------------------------------------------------------------------
+
+COPY docker/rootfs/ /
+
+RUN chmod 0755 \
+        /usr/local/bin/docker-entrypoint \
+        /usr/local/bin/init-cursor-home \
+        /usr/local/bin/cursor-init-project \
+    && chmod -R a+rX /opt/cursor-defaults \
+    && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
+    && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \
+    && chmod 0644 /etc/profile.d/cursor-dev-path.sh \
+    && chmod -R a+rX /etc/skel
 
 # ------------------------------------------------------------------------------
 # User
@@ -189,7 +193,24 @@ RUN set -eux; \
         "/home/${USERNAME}/.local/bin" \
         "/home/${USERNAME}/.local/share/pnpm" \
         "/home/${USERNAME}/.cargo" \
-        "/home/${USERNAME}/go"; \
+        "/home/${USERNAME}/go" \
+        "/home/${USERNAME}/.bashrc.d" \
+        "/home/${USERNAME}/.cursor"; \
+    \
+    # Install shell configs from skel (safe if useradd already copied them).
+    cp -a /etc/skel/.bashrc.d/. "/home/${USERNAME}/.bashrc.d/"; \
+    cp -a /etc/skel/.tmux.conf "/home/${USERNAME}/.tmux.conf"; \
+    cp -a /etc/skel/.vimrc "/home/${USERNAME}/.vimrc"; \
+    \
+    if ! grep -q 'bashrc.d' "/home/${USERNAME}/.bashrc"; then \
+        printf '\n# Container shell snippets\nfor f in "$HOME"/.bashrc.d/*.sh; do\n  [ -r "$f" ] && . "$f"\ndone\n' \
+            >> "/home/${USERNAME}/.bashrc"; \
+    fi; \
+    \
+    if ! grep -q 'cursor-dev-path\|/usr/local/go/bin' "/home/${USERNAME}/.profile"; then \
+        printf '\n# Toolchain PATH for login shells\n. /etc/profile.d/cursor-dev-path.sh\n' \
+            >> "/home/${USERNAME}/.profile"; \
+    fi; \
     \
     chown -R "${USER_UID}:${USER_GID}" \
         /workspace \
@@ -208,13 +229,7 @@ ENV GOPATH=/home/${USERNAME}/go
 ENV GOCACHE=/home/${USERNAME}/.cache/go-build
 ENV GOMODCACHE=/home/${USERNAME}/go/pkg/mod
 ENV UV_CACHE_DIR=/home/${USERNAME}/.cache/uv
-
 ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
-
-# Login shells reset PATH via /etc/profile. Keep toolchain paths available there too.
-RUN cat > /etc/profile.d/cursor-dev-path.sh <<EOF
-export PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:\${PATH}"
-EOF
 
 USER ${USERNAME}
 WORKDIR /workspace
@@ -227,60 +242,8 @@ RUN curl -fsSL https://cursor.com/install | bash \
     && agent --version \
     && rm -rf "${HOME}/.cursor" \
     && mkdir -p "${HOME}/.cursor"
-# Keep an empty developer-owned ~/.cursor in the image so the first named-volume
-# mount inherits writable ownership, then entrypoint seeds from /opt/cursor-defaults.
-
-# ------------------------------------------------------------------------------
-# Bash + tmux + vim
-# ------------------------------------------------------------------------------
-
-RUN cat >> "${HOME}/.bashrc" <<'EOF'
-
-# Toolchain PATH (also set in /etc/profile.d for login shells)
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:$HOME/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:$PATH"
-
-alias ls='eza'
-alias ll='eza -lah --git'
-alias la='eza -la'
-alias cat='bat --paging=never'
-alias dc='docker compose'
-
-if command -v tmux >/dev/null 2>&1 \
-    && [ -z "${TMUX:-}" ] \
-    && [ -t 0 ]; then
-    exec tmux new-session -A -s cursor
-fi
-EOF
-
-RUN cat >> "${HOME}/.profile" <<'EOF'
-
-# Ensure toolchain PATH for login shells even when .bashrc returns early
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:$HOME/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:$PATH"
-EOF
-
-COPY --chown=${USERNAME}:${USERNAME} .tmux.conf /home/${USERNAME}/.tmux.conf
-COPY --chown=${USERNAME}:${USERNAME} .vimrc /home/${USERNAME}/.vimrc
-
-# ------------------------------------------------------------------------------
-# Cursor defaults + entrypoint (immutable source in /opt)
-# ------------------------------------------------------------------------------
-
-USER root
-
-COPY cursor-home/ /opt/cursor-defaults/
-COPY scripts/init-cursor-home.sh /usr/local/bin/init-cursor-home
-COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
-COPY scripts/init-project.sh /usr/local/bin/cursor-init-project
-
-RUN chmod -R a+rX /opt/cursor-defaults \
-    && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
-    && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \
-    && chmod 0755 \
-        /usr/local/bin/init-cursor-home \
-        /usr/local/bin/docker-entrypoint \
-        /usr/local/bin/cursor-init-project
-
-USER ${USERNAME}
+# Empty developer-owned ~/.cursor so the first named-volume mount stays writable.
+# Runtime seeding comes from /opt/cursor-defaults via init-cursor-home.
 
 ENTRYPOINT ["docker-entrypoint"]
 CMD ["bash"]

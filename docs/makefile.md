@@ -2,6 +2,8 @@
 
 The Makefile is the main user interface. Prefer it over raw `docker compose` commands.
 
+Complex host logic lives in `scripts/repository/`. The Makefile stays thin.
+
 ## Command table
 
 | Command | Description |
@@ -9,18 +11,22 @@ The Makefile is the main user interface. Prefer it over raw `docker compose` com
 | `make help` | Show targets |
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
+| `make rebuild` | Rebuild with `--no-cache` |
 | `make shell` | Interactive shell without Docker socket |
 | `make shell-docker` | Interactive shell with Docker socket |
 | `make up` | Foreground service without Docker socket |
 | `make up-docker` | Foreground service with Docker socket |
 | `make down` | Stop containers; keep volumes |
 | `make logs` | Follow logs |
-| `make rebuild` | Rebuild with `--no-cache` |
 | `make clean` | Stop containers; keep named volumes |
 | `make clean-volumes` | Delete named volumes after confirmation |
 | `make config` | Validate base and docker-enabled Compose configs |
 | `make init-project` | Create missing Cursor project files in `/workspace` |
 | `make init-project-dry-run` | Dry-run project Cursor scaffolding |
+| `make validate` | Check layout, script syntax, Compose config |
+| `make test` | Run container smoke tests |
+| `make docs` | Build MkDocs site |
+| `make docs-serve` | Serve MkDocs locally |
 
 ## Examples
 
@@ -38,9 +44,10 @@ make build
 make shell-docker PROJECT_DIR=$HOME/projects/my-app
 ```
 
-Validate Compose without starting anything:
+Validate the repository and Compose files:
 
 ```bash
+make validate
 make config
 ```
 
@@ -65,7 +72,7 @@ make rebuild
 
 ## How UID and socket detection work
 
-On each `env` run the Makefile sets:
+`make env` calls `scripts/repository/update-env.sh`, which sets:
 
 * `USER_UID` from `id -u`
 * `USER_GID` from `id -g`

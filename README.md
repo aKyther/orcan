@@ -36,21 +36,42 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `Dockerfile` | Builds the toolchain and installs Cursor CLI |
 | `docker-compose.yml` | Base service: project mount, caches, no Docker socket |
 | `docker-compose.docker.yml` | Optional overlay: host Docker socket + `DOCKER_GID` |
-| `Makefile` | Short commands for build, shell, cleanup |
-| `cursor-home/` | Immutable Cursor defaults copied to `/opt/cursor-defaults` |
-| `scripts/` | Entrypoint, Cursor home init, project init |
-| `.tmux.conf` | TMUX config baked into the image |
-| `.vimrc` | Vim config baked into the image |
+| `Makefile` | Short host commands for build, shell, cleanup |
+| `docker/rootfs/` | Files installed into the image (paths match the container) |
+| `docker/README.md` | Explains the image filesystem layout |
+| `scripts/repository/` | Host-only maintenance helpers |
+| `tests/smoke/` | Container smoke tests |
 | `.env.example` | Safe template for UID/GID and `PROJECT_DIR` |
 | `.dockerignore` | Keeps the build context small and free of secrets |
-| `.cursorignore` | Limits what Cursor agents can read |
+| `.cursorignore` | Limits what Cursor agents can read **in this repo** |
 | `.cursorindexingignore` | Keeps large/noise files out of the index |
-| `.cursor/rules/` | Short Cursor rules for safety and Docker work |
-| `AGENTS.md` | Shared instructions for coding agents |
+| `.cursor/rules/` | Cursor rules **for developing this repository** |
+| `AGENTS.md` | Shared agent instructions for this repository |
 | `docs/` | Full MkDocs Material documentation |
 | `mkdocs.yml` | Docs site configuration |
 | `ROADMAP.md` | Optional future hardening ideas |
 | `LICENSE` | MIT license |
+
+### Repository files vs container files
+
+| Kind | Location | Audience |
+| --- | --- | --- |
+| Repository control | root (`Dockerfile`, Compose, `Makefile`, docs) | Humans and host tooling |
+| Image filesystem | `docker/rootfs/` | Copied into the container image |
+| Host helpers | `scripts/repository/` | Run on the host only |
+| Repo Cursor config | `.cursor/`, `AGENTS.md`, ignore files | Agents working on **this** repo |
+| Image Cursor defaults | `docker/rootfs/opt/cursor-defaults/` | Seeded into `${HOME}/.cursor` at startup |
+| Project templates | `…/opt/cursor-defaults/templates/` | Applied only by `cursor-init-project` |
+
+| Repository path | Container path | Purpose |
+| --- | --- | --- |
+| `docker/rootfs/opt/cursor-defaults` | `/opt/cursor-defaults` | Image-provided Cursor defaults |
+| `docker/rootfs/usr/local/bin/docker-entrypoint` | `/usr/local/bin/docker-entrypoint` | Container startup |
+| `docker/rootfs/usr/local/bin/init-cursor-home` | `/usr/local/bin/init-cursor-home` | User config initialization |
+| `docker/rootfs/usr/local/bin/cursor-init-project` | `/usr/local/bin/cursor-init-project` | Project template initialization |
+| `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
+| `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
+| `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Aliases, PATH, interactive TMUX |
 
 ---
 
@@ -112,18 +133,22 @@ agent --version
 | `make help` | List targets |
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
+| `make rebuild` | Rebuild with `--no-cache` |
 | `make shell` | Interactive shell **without** Docker socket |
 | `make shell-docker` | Interactive shell **with** Docker socket |
 | `make up` | Start service in the foreground (no socket) |
 | `make up-docker` | Start service with Docker socket |
 | `make down` | Stop containers; keep named volumes |
 | `make logs` | Follow logs |
-| `make rebuild` | Rebuild with `--no-cache` |
 | `make clean` | Stop containers; keep named volumes |
 | `make clean-volumes` | Stop containers and **delete** named volumes |
 | `make config` | Validate and print Compose configs |
 | `make init-project` | Create missing Cursor files in mounted `/workspace` |
 | `make init-project-dry-run` | Show project Cursor files without writing |
+| `make validate` | Check layout, script syntax, Compose config |
+| `make test` | Build (if needed) and run smoke tests |
+| `make docs` | Build MkDocs site |
+| `make docs-serve` | Serve MkDocs locally |
 
 ### Choose a project
 
@@ -222,10 +247,11 @@ The overlay file is `docker-compose.docker.yml`.
 
 ## TMUX and Vim
 
-Config files in the repo are copied into the image:
+Shell and editor configs live in the image filesystem:
 
-* `.tmux.conf` → `/home/developer/.tmux.conf`
-* `.vimrc` → `/home/developer/.vimrc`
+* `docker/rootfs/etc/skel/.tmux.conf` → `/home/developer/.tmux.conf`
+* `docker/rootfs/etc/skel/.vimrc` → `/home/developer/.vimrc`
+* `docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` → sourced from `~/.bashrc`
 
 TMUX starts automatically in interactive sessions (`exec tmux new-session -A -s cursor`).
 
@@ -296,7 +322,8 @@ You can. This repo adds a full isolated toolbox and clearer project boundaries.
 Yes. Start a new shell with a different `PROJECT_DIR`.
 
 **Can I disable TMUX?**  
-Yes. Start a non-interactive command, or remove the TMUX block from `~/.bashrc` in a running container (image change needed for permanence).
+Yes. Start a non-interactive command, or remove the TMUX block from
+`docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` and rebuild.
 
 **Can I use Docker inside the container?**  
 Yes, with `make shell-docker` when the host socket is available.

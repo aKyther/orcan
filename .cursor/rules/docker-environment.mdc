@@ -1,6 +1,6 @@
 ---
 description: Dockerfile and Compose conventions for this image
-globs: Dockerfile,docker-compose*.yml,.dockerignore
+globs: Dockerfile,docker-compose*.yml,.dockerignore,docker/**/*
 alwaysApply: false
 ---
 
@@ -9,11 +9,12 @@ alwaysApply: false
 - Stay on Debian Bookworm Slim as the final base image.
 - Keep the multi-stage build (Node, Go, Rust, uv tool stages).
 - Keep a non-root runtime user (`developer`).
+- Put container files under `docker/rootfs/` (paths match the image).
 - Never copy SSH keys or tokens into the image.
 - Preserve BuildKit cache mounts for APT where used.
 - Install APT packages with `--no-install-recommends`.
 - Clean APT lists after installs (`rm -rf /var/lib/apt/lists/*`).
 - Prefer changes that work on both `amd64` and `arm64`.
 - Do not grow the image without a clear need.
-- After Dockerfile or Compose edits, validate with `docker compose config` and a real `make build` when Docker is available.
 - Keep Docker socket out of the base Compose file; add it only via `docker-compose.docker.yml`.
+- After Dockerfile or Compose edits, validate with `make validate` and `make build` when Docker is available.
