@@ -13,8 +13,11 @@ AGENTS.md
 .cursor/
 .cursorignore
 .cursorindexingignore
+scripts/repository/
+tests/
 node_modules/
 .venv/
+.venv-docs/
 venv/
 dist/
 build/

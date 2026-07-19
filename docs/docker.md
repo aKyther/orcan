@@ -6,6 +6,21 @@ This page explains the image, Compose files, volumes, and runtime user.
 
 Docker keeps the toolchain inside an image. Your host package manager stays clean. Every machine that builds this image gets the same tools.
 
+## Repository files vs container files
+
+| Repository path | Container path | Purpose |
+| --- | --- | --- |
+| `docker/rootfs/opt/cursor-defaults` | `/opt/cursor-defaults` | Image-provided Cursor defaults |
+| `docker/rootfs/usr/local/bin/docker-entrypoint` | `/usr/local/bin/docker-entrypoint` | Container startup |
+| `docker/rootfs/usr/local/bin/init-cursor-home` | `/usr/local/bin/init-cursor-home` | User config initialization |
+| `docker/rootfs/usr/local/bin/cursor-init-project` | `/usr/local/bin/cursor-init-project` | Project template initialization |
+| `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
+| `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
+| `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Interactive shell setup |
+| `scripts/repository/` | *(not in image)* | Host-only helpers |
+
+See also `docker/README.md` in the repository.
+
 ## Dockerfile
 
 The image is multi-stage:
@@ -18,7 +33,13 @@ The image is multi-stage:
 | `uv-tools` | `ghcr.io/astral-sh/uv:latest` | `uv` / `uvx` |
 | final | `debian:bookworm-slim` | Runtime image |
 
-The final stage installs base packages, copies toolchains, installs Docker CLI plugins, creates user `developer`, then installs Cursor CLI.
+Build flow:
+
+1. Install packages and copy toolchains.
+2. `COPY docker/rootfs/ /` (scripts, defaults, shell configs).
+3. Create the non-root user and install skel configs.
+4. Install Cursor CLI as that user.
+5. Set `ENTRYPOINT` / `CMD`.
 
 !!! note
 
@@ -45,8 +66,6 @@ Adds:
 * `/var/run/docker.sock`
 * `group_add: DOCKER_GID`
 
-Makefile targets with the `-docker` suffix apply both files.
-
 ## Layout
 
 ```text
@@ -56,6 +75,7 @@ Host
      ▼
 Container
 ├── /workspace
+├── /opt/cursor-defaults
 ├── /home/developer/.cursor      (volume)
 ├── /home/developer/.cache       (volume)
 ├── /home/developer/.npm         (volume)
@@ -70,7 +90,7 @@ Container
 | Volume | Path | Why |
 | --- | --- | --- |
 | `cursor-config` | `/home/developer/.cursor` | Persist Cursor CLI config/login |
-| `cursor-cache` | `/home/developer/.cache` | General caches (includes uv/go build cache paths) |
+| `cursor-cache` | `/home/developer/.cache` | General caches |
 | `npm-cache` | `/home/developer/.npm` | npm cache |
 | `pnpm-cache` | `/home/developer/.local/share/pnpm` | pnpm store/home |
 | `cargo-cache` | `/home/developer/.cargo` | Cargo registry and binaries |
@@ -92,7 +112,7 @@ Matching host UID/GID prevents root-owned files in your project tree.
 
 ## TMUX and Vim
 
-`.bashrc` starts TMUX when:
+Interactive shells source `~/.bashrc.d/50-cursor-dev.sh`, which may start TMUX when:
 
 * `tmux` exists
 * `TMUX` is unset
@@ -100,14 +120,19 @@ Matching host UID/GID prevents root-owned files in your project tree.
 
 Session name: `cursor`.
 
-The image copies tracked config files from the repo:
+Config sources:
 
 | Repo file | Container path |
 | --- | --- |
-| `.tmux.conf` | `/home/developer/.tmux.conf` |
-| `.vimrc` | `/home/developer/.vimrc` |
+| `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` |
+| `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` |
 
-Edit those files in the repository, then rebuild the image to apply changes.
+## Cursor defaults volume
+
+`cursor-config` mounts at `/home/developer/.cursor`.
+
+Defaults live in `/opt/cursor-defaults` and are copied in at startup when missing.
+See [Cursor](cursor.md).
 
 ## Environment variables
 
@@ -117,13 +142,6 @@ Edit those files in the repository, then rebuild the image to apply changes.
 | `USER_UID` / `USER_GID` | Container user identity |
 | `DOCKER_GID` | Socket group for `*-docker` targets |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits |
-
-## Cursor defaults volume
-
-`cursor-config` mounts at `/home/developer/.cursor`.
-
-Defaults live in `/opt/cursor-defaults` and are copied in at startup when missing.
-See [Cursor](cursor.md).
 
 ## Network
 

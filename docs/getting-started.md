@@ -65,7 +65,7 @@ Review the files before you commit them.
 ## 7. Use TMUX
 
 Interactive shells start TMUX automatically (session name: `cursor`).
-Config comes from the repo file `.tmux.conf` (prefix: `Ctrl-Space`).
+Config comes from `docker/rootfs/etc/skel/.tmux.conf` (prefix: `Ctrl-Space`).
 
 | Action | Keys |
 | --- | --- |
@@ -77,4 +77,5 @@ Config comes from the repo file `.tmux.conf` (prefix: `Ctrl-Space`).
 
 * Read [Docker](docker.md) to understand mounts and volumes
 * Read [Security](security.md) before enabling the Docker socket
-* Read [Cursor](cursor.md) for agent rules and ignore files
+* Read [Cursor](cursor.md) for agent rules, image defaults, and ignore files
+* Read [Development](development.md) for repository vs container file layout

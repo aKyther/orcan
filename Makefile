@@ -7,29 +7,23 @@ COMPOSE_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_DOCKER_FILE)
 
 PROJECT_DIR ?= $(CURDIR)
 
-USER_UID := $(shell id -u)
-USER_GID := $(shell id -g)
-DOCKER_GID := $(shell if [ -S /var/run/docker.sock ]; then stat -c '%g' /var/run/docker.sock; else echo 999; fi)
-
 .DEFAULT_GOAL := help
 
-.PHONY: help env build shell shell-docker up up-docker down logs rebuild clean clean-volumes config init-project init-project-dry-run
+.PHONY: help env build rebuild shell shell-docker up up-docker down logs config \
+	init-project init-project-dry-run clean clean-volumes docs docs-serve test validate
 
 help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 env: ## Create or refresh .env from host UID/GID and PROJECT_DIR
-	@if [ ! -f .env ]; then cp .env.example .env; fi
-	@sed -i "s|^USER_UID=.*|USER_UID=$(USER_UID)|" .env
-	@sed -i "s|^USER_GID=.*|USER_GID=$(USER_GID)|" .env
-	@sed -i "s|^DOCKER_GID=.*|DOCKER_GID=$(DOCKER_GID)|" .env
-	@sed -i "s|^PROJECT_DIR=.*|PROJECT_DIR=$(PROJECT_DIR)|" .env
-	@echo ".env updated (USER_UID=$(USER_UID) USER_GID=$(USER_GID) DOCKER_GID=$(DOCKER_GID))"
-	@echo "PROJECT_DIR=$(PROJECT_DIR)"
+	@PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
 
 build: env ## Build the container image
 	$(COMPOSE) build
+
+rebuild: env ## Rebuild the image without cache
+	$(COMPOSE) build --no-cache
 
 shell: env ## Open an interactive shell (no Docker socket)
 	$(COMPOSE) run --rm --name cursor-dev-shell cursor
@@ -58,8 +52,18 @@ down: ## Stop containers without removing volumes
 logs: ## Follow container logs
 	$(COMPOSE) logs -f
 
-rebuild: env ## Rebuild the image without cache
-	$(COMPOSE) build --no-cache
+config: env ## Validate and print the resolved Compose config
+	@echo "=== Base compose ==="
+	$(COMPOSE) config
+	@echo ""
+	@echo "=== Docker-enabled compose ==="
+	$(COMPOSE_DOCKER) config
+
+init-project: env ## Create missing Cursor project files in the mounted PROJECT_DIR
+	$(COMPOSE) run --rm --name cursor-dev-init-project cursor cursor-init-project /workspace
+
+init-project-dry-run: env ## Show Cursor project files that would be created
+	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run /workspace
 
 clean: ## Stop containers and remove anonymous resources (keeps named volumes)
 	-$(COMPOSE) down --remove-orphans
@@ -77,15 +81,27 @@ clean-volumes: ## Stop containers and DELETE named volumes (destructive)
 		exit 1; \
 	fi
 
-config: env ## Validate and print the resolved Compose config
-	@echo "=== Base compose ==="
-	$(COMPOSE) config
-	@echo ""
-	@echo "=== Docker-enabled compose ==="
-	$(COMPOSE_DOCKER) config
+docs: ## Build the MkDocs site into ./site
+	@if command -v mkdocs >/dev/null 2>&1; then \
+		mkdocs build; \
+	else \
+		python3 -m venv .venv-docs && \
+		.venv-docs/bin/pip install -q mkdocs-material && \
+		.venv-docs/bin/mkdocs build && \
+		echo "Built with temporary .venv-docs (gitignored)."; \
+	fi
 
-init-project: env ## Create missing Cursor project files in the mounted PROJECT_DIR
-	$(COMPOSE) run --rm --name cursor-dev-init-project cursor cursor-init-project /workspace
+docs-serve: ## Serve the MkDocs site locally
+	@if command -v mkdocs >/dev/null 2>&1; then \
+		mkdocs serve; \
+	else \
+		python3 -m venv .venv-docs && \
+		.venv-docs/bin/pip install -q mkdocs-material && \
+		.venv-docs/bin/mkdocs serve; \
+	fi
 
-init-project-dry-run: env ## Show Cursor project files that would be created
-	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run /workspace
+validate: ## Validate repository layout and script syntax
+	@./scripts/repository/validate.sh
+
+test: build ## Run container smoke tests
+	@./tests/smoke/test-container.sh
