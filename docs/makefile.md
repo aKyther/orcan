@@ -16,6 +16,8 @@ Complex host logic lives in `scripts/repository/`. The Makefile stays thin.
 | `make shell-docker` | Interactive shell with Docker socket |
 | `make up` | Foreground service without Docker socket |
 | `make up-docker` | Foreground service with Docker socket |
+| `make up-ssh` | Detached OpenSSH daemon without Docker socket |
+| `make up-ssh-docker` | Detached OpenSSH daemon with Docker socket |
 | `make down` | Stop containers; keep volumes |
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep named volumes |
@@ -86,3 +88,15 @@ make rebuild
 | --- | --- |
 | Default | `docker-compose.yml` |
 | `*-docker` | `docker-compose.yml` + `docker-compose.docker.yml` |
+| `up-ssh` | `docker-compose.yml` + `docker-compose.ssh.yml` |
+| `up-ssh-docker` | `docker-compose.yml` + `docker-compose.ssh.yml` + `docker-compose.docker.yml` |
+
+SSH on a VPS (Tailscale):
+
+```bash
+make build
+make up-ssh PROJECT_DIR=/absolute/path/to/project
+ssh developer@<tailscale-ip>
+```
+
+Default password is `cursor` (`DEVELOPER_PASSWORD`). Change it in `.env` before production use.
