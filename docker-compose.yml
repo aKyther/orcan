@@ -36,8 +36,6 @@ services:
       - ${HOME}/.ssh:/home/developer/.ssh:ro
     tmpfs:
       - /tmp:size=${TMPFS_SIZE:-2g},mode=1777
-    security_opt:
-      - no-new-privileges:true
 
 volumes:
   cursor-config:

@@ -87,7 +87,6 @@ Safer long-term option (see `ROADMAP.md`): SSH agent forwarding instead of mount
 * Default password: `cursor` (`DEVELOPER_PASSWORD`)
 * Default host port: `22` (`SSH_HOST_PORT`)
 * Does not mount host `~/.ssh` or `~/.gitconfig`
-* Disables `no-new-privileges` so `sudo` can run `sshd`
 
 !!! warning
 
