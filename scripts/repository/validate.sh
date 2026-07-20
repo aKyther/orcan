@@ -22,6 +22,7 @@ require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
 require_file "docker-compose.ssh.yml"
 require_file "Makefile"
+require_file "scripts/repository/validate-project-dir.sh"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
 require_file "docker/rootfs/opt/cursor-defaults/rules/operating-principles.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/planning-and-execution.mdc"
@@ -47,8 +48,10 @@ for script in \
     docker/rootfs/usr/local/bin/cursor-init-project \
     docker/rootfs/usr/local/bin/cursor-sshd \
     scripts/repository/update-env.sh \
+    scripts/repository/validate-project-dir.sh \
     scripts/repository/validate.sh \
-    tests/smoke/test-container.sh
+    tests/smoke/test-container.sh \
+    tests/integration/test-path-parity.sh
 do
     if [[ -f "${script}" ]]; then
         bash -n "${script}"
@@ -57,6 +60,7 @@ do
 done
 
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null
     docker compose -f docker-compose.yml config --quiet
     docker compose -f docker-compose.yml -f docker-compose.docker.yml config --quiet
     docker compose -f docker-compose.yml -f docker-compose.ssh.yml config --quiet

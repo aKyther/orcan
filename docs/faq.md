@@ -23,7 +23,7 @@ make down
 make shell PROJECT_DIR=$HOME/projects/app-b
 ```
 
-Each command mounts one project at `/workspace`.
+Each command mounts one project at the same absolute path on host and container (`PROJECT_DIR`). See [Path parity](path-parity.md).
 
 ## Can I disable TMUX?
 

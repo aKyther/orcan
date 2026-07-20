@@ -5,8 +5,8 @@ alwaysApply: true
 
 # Container safety
 
-- Treat `/workspace` as the only project directory.
-- Do not inspect host paths outside `/workspace`.
+- Treat `${PROJECT_DIR}` (the mounted project directory) as the only project scope.
+- Do not inspect host paths outside the mounted project.
 - Do not read secret files unless the user explicitly asks.
 - Do not modify `.env` files unless the user explicitly asks.
 - Do not run destructive commands without explicit approval.

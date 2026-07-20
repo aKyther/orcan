@@ -19,10 +19,12 @@ Complex host logic lives in `scripts/repository/`. The Makefile stays thin.
 | `make clean` | Stop containers; keep named volumes |
 | `make clean-volumes` | Delete named volumes after confirmation |
 | `make config` | Validate SSH and SSH+Docker Compose configs |
-| `make init-project` | Create missing Cursor project files in `/workspace` |
+| `make path-check` | Show host/container project path parity |
+| `make init-project` | Create missing Cursor project files in `PROJECT_DIR` |
 | `make init-project-dry-run` | Dry-run project Cursor scaffolding |
 | `make validate` | Check layout, script syntax, Compose config |
 | `make test` | Run container smoke tests |
+| `make test-path-parity` | Integration test for path parity + Docker socket |
 | `make docs` | Build MkDocs site |
 | `make docs-serve` | Serve MkDocs locally |
 

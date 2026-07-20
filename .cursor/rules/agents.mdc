@@ -6,7 +6,7 @@ alwaysApply: true
 # Agent guide
 
 This repository builds and runs an isolated Docker environment for Cursor CLI.
-A single host project is mounted at `/workspace`. Treat that mount as the only writable project scope.
+A host project is mounted at `${PROJECT_DIR}` with path parity (same absolute path on host and container). Treat that mount as the only writable project scope.
 
 ## File map
 
@@ -18,8 +18,9 @@ A single host project is mounted at `/workspace`. Treat that mount as the only w
 | `docker-compose.ssh.yml` | Optional OpenSSH overlay (VPS / Tailscale) |
 | `Makefile` | Thin host UI; calls Compose and `scripts/repository/` |
 | `docker/rootfs/` | Files installed into the image (source of truth) |
-| `scripts/repository/` | Host-only helpers (`update-env`, `validate`) |
+| `scripts/repository/` | Host-only helpers (`update-env`, `validate`, `validate-project-dir`) |
 | `tests/smoke/` | Container smoke tests |
+| `tests/integration/` | Path parity integration tests |
 | `.env.example` | Safe defaults for UID/GID and `PROJECT_DIR` |
 | `.cursorignore` | Blocks agent access to secrets and junk **in this repo** |
 | `.cursorindexingignore` | Reduces indexing noise |
@@ -38,6 +39,7 @@ A single host project is mounted at `/workspace`. Treat that mount as the only w
 
 ```bash
 make env
+make path-check
 make build
 make shell
 make shell-docker
@@ -51,6 +53,7 @@ make init-project
 make init-project-dry-run
 make validate
 make test
+make test-path-parity
 make docs
 make docs-serve
 make help
@@ -63,20 +66,20 @@ Use `PROJECT_DIR=/absolute/path/to/project` to choose the mounted project.
 - Source of truth: `docker/rootfs/opt/cursor-defaults/` → `/opt/cursor-defaults`.
 - Seed `${HOME}/.cursor` at startup via `init-cursor-home` (missing files only).
 - Do not write defaults only into `/home/.../.cursor` during `docker build` (volume hides them).
-- Do not auto-modify `/workspace` on startup; use `cursor-init-project` explicitly.
+- Do not auto-modify `${PROJECT_DIR}` on startup; use `cursor-init-project` explicitly.
 - Active CLI permissions file is `cli-config.json`.
 
 ## Agent boundaries
 
 Allowed:
 
-- Edit files under `/workspace` for this repository.
+- Edit files under `${PROJECT_DIR}` for this repository.
 - Run Make, Compose config checks, and image builds.
 - Update docs when the user-facing interface changes.
 
 Not allowed:
 
-- Read or edit host paths outside `/workspace`.
+- Read or edit host paths outside `${PROJECT_DIR}`.
 - Modify `.env` unless asked.
 - Run `docker system prune`.
 - Delete volumes except via an explicit user request for `make clean-volumes`.

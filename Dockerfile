@@ -199,7 +199,6 @@ RUN set -eux; \
     usermod -aG "${docker_group}" "${USERNAME}"; \
     \
     mkdir -p \
-        /workspace \
         /command-history \
         "/home/${USERNAME}/.cache" \
         "/home/${USERNAME}/.config" \
@@ -227,7 +226,6 @@ RUN set -eux; \
     fi; \
     \
     chown -R "${USER_UID}:${USER_GID}" \
-        /workspace \
         /command-history \
         "/home/${USERNAME}"
 
@@ -246,7 +244,7 @@ ENV UV_CACHE_DIR=/home/${USERNAME}/.cache/uv
 ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
 
 USER ${USERNAME}
-WORKDIR /workspace
+WORKDIR /home/${USERNAME}
 
 # ------------------------------------------------------------------------------
 # Cursor CLI

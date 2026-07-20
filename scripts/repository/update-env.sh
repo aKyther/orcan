@@ -7,6 +7,9 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
+# shellcheck source=validate-project-dir.sh
+source "${ROOT_DIR}/scripts/repository/validate-project-dir.sh"
+
 PROJECT_DIR="${PROJECT_DIR:-${ROOT_DIR}}"
 USER_UID="$(id -u)"
 USER_GID="$(id -g)"
@@ -19,6 +22,9 @@ fi
 if [[ ! -f .env ]]; then
     cp .env.example .env
 fi
+
+validate_project_dir "${PROJECT_DIR}"
+PROJECT_DIR="${PROJECT_DIR}"
 
 sed -i "s|^USER_UID=.*|USER_UID=${USER_UID}|" .env
 sed -i "s|^USER_GID=.*|USER_GID=${USER_GID}|" .env

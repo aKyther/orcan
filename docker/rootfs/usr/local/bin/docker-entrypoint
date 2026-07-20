@@ -7,7 +7,7 @@ INIT_SCRIPT="${INIT_CURSOR_HOME_SCRIPT:-/usr/local/bin/init-cursor-home}"
 
 fix_named_volume_permissions() {
     # Named volumes mounted below image paths can be created root-owned on first use.
-    local dir owner uid gid
+    local dir uid gid
 
     uid="$(id -u)"
     gid="$(id -g)"
@@ -17,11 +17,27 @@ fix_named_volume_permissions() {
         "${HOME}/.cursor"
     do
         [[ -e "${dir}" ]] || continue
-        owner="$(stat -c '%u' "${dir}" 2>/dev/null || true)"
-        if [[ -n "${owner}" && "${owner}" != "${uid}" ]]; then
+        if [[ "$(stat -c '%u' "${dir}")" != "${uid}" ]] \
+            || [[ ! -w "${dir}" ]] \
+            || find "${dir}" ! -user "${uid}" -print -quit 2>/dev/null | grep -q .; then
             sudo chown -R "${uid}:${gid}" "${dir}"
         fi
     done
+}
+
+enter_project_dir() {
+    if [[ -z "${PROJECT_DIR:-}" ]]; then
+        printf 'Error: PROJECT_DIR is not set inside the container\n' >&2
+        printf 'Hint: run make env on the host and restart the container\n' >&2
+        exit 1
+    fi
+
+    if [[ ! -d "${PROJECT_DIR}" ]]; then
+        printf 'Error: PROJECT_DIR does not exist in the container: %s\n' "${PROJECT_DIR}" >&2
+        exit 1
+    fi
+
+    cd "${PROJECT_DIR}"
 }
 
 run_init() {
@@ -37,6 +53,7 @@ run_init() {
 main() {
     fix_named_volume_permissions
     run_init
+    enter_project_dir
 
     if [[ "$#" -eq 0 ]]; then
         set -- bash

@@ -1,6 +1,6 @@
 # Cursor
 
-This repository prepares Cursor CLI with **global defaults inside the container** and optional **project scaffolding** for `/workspace`.
+This repository prepares Cursor CLI with **global defaults inside the container** and optional **project scaffolding** for `${PROJECT_DIR}`.
 
 ## Repository Cursor config vs image defaults
 
@@ -9,7 +9,7 @@ This repository prepares Cursor CLI with **global defaults inside the container*
 | Root `.cursor/rules/`, ignore files | Developing **this** repository |
 | `docker/rootfs/opt/cursor-defaults/` | Product defaults copied into the **image** |
 | `${HOME}/.cursor` in the container | Writable user state (named volume) |
-| `/workspace/.cursor` | Settings for the **mounted project** |
+| `${PROJECT_DIR}/.cursor` | Settings for the **mounted project** |
 
 Do not mix these layers.
 
@@ -28,8 +28,8 @@ Persistent container user settings
 
 Project-specific settings
     ↓
-/workspace/.cursor
-/workspace/AGENTS.md
+${PROJECT_DIR}/.cursor
+${PROJECT_DIR}/AGENTS.md
 
 Technical isolation
     ↓
@@ -121,7 +121,7 @@ Existing files in the volume are never overwritten.
 | `planning-and-execution.mdc` | Practical planning, scope control, validation, short completion reports |
 | `code-quality.mdc` | Readable code, no unnecessary abstraction |
 | `documentation-discipline.mdc` | Update existing docs, avoid duplicate or stray Markdown |
-| `container-safety.mdc` | `/workspace` scope, secrets, Docker socket, destructive commands |
+| `container-safety.mdc` | `${PROJECT_DIR}` scope, secrets, Docker socket, destructive commands |
 
 Rules stay **generic**. They do not prescribe a language, framework, or architecture.
 Stack-specific guidance belongs in the **mounted project**, not here.
@@ -142,9 +142,9 @@ Skills do not replace rules. Rules apply every session; skills guide specific wo
 
 | Location | Purpose |
 | --- | --- |
-| `/workspace/.cursor/rules/` | Rules for **this** repository only |
-| `/workspace/AGENTS.md` | Project goals, setup, and checks |
-| `/workspace/.cursorignore` | Files the agent should not read |
+| `${PROJECT_DIR}/.cursor/rules/` | Rules for **this** repository only |
+| `${PROJECT_DIR}/AGENTS.md` | Project goals, setup, and checks |
+| `${PROJECT_DIR}/.cursorignore` | Files the agent should not read |
 
 Create project files with `cursor-init-project` when needed.
 Templates under `templates/` are starting points — customize them per project.
@@ -155,7 +155,7 @@ Templates under `templates/` are starting points — customize them per project.
 | --- | --- | --- |
 | Image defaults (`/opt/cursor-defaults`) | Every session, every project | You rebuild the devcontainer image |
 | User Cursor home (`~/.cursor`) | Persistent per developer in the container | First start seeds defaults; later edits persist |
-| Mounted project (`/workspace/.cursor`) | One repository | You work on that repo |
+| Mounted project (`${PROJECT_DIR}/.cursor`) | One repository | You work on that repo |
 
 This keeps agent behavior consistent in the container while letting each project define its own stack and conventions.
 
@@ -166,7 +166,7 @@ This keeps agent behavior consistent in the container while letting each project
 
 ## Project bootstrap
 
-Templates are **not** copied into `/workspace` at startup.
+Templates are **not** copied into `${PROJECT_DIR}` at startup.
 
 ```bash
 make shell

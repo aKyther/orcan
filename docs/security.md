@@ -39,7 +39,7 @@ make shell
 
 | Mount | Risk |
 | --- | --- |
-| `PROJECT_DIR -> /workspace` | Agent can edit that project on the host |
+| `PROJECT_DIR` (path parity) | Agent can edit that project on the host |
 | `~/.ssh` (read-only) | Private keys are visible inside the container |
 | `~/.gitconfig` (read-only) | Git identity is shared |
 
