@@ -24,6 +24,7 @@ FROM debian:bookworm-slim
 ARG USERNAME=developer
 ARG USER_UID=1000
 ARG USER_GID=1000
+ARG DOCKER_GID=999
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
@@ -187,11 +188,22 @@ RUN set -eux; \
         > "/etc/sudoers.d/${USERNAME}"; \
     chmod 0440 "/etc/sudoers.d/${USERNAME}"; \
     \
+    docker_group="docker"; \
+    if getent group docker >/dev/null; then \
+        :; \
+    elif getent group "${DOCKER_GID}" >/dev/null; then \
+        docker_group="$(getent group "${DOCKER_GID}" | cut -d: -f1)"; \
+    else \
+        groupadd --gid "${DOCKER_GID}" docker; \
+    fi; \
+    usermod -aG "${docker_group}" "${USERNAME}"; \
+    \
     mkdir -p \
         /workspace \
         /command-history \
         "/home/${USERNAME}/.cache" \
         "/home/${USERNAME}/.config" \
+        "/home/${USERNAME}/.config/cursor" \
         "/home/${USERNAME}/.local/bin" \
         "/home/${USERNAME}/.local/share/pnpm" \
         "/home/${USERNAME}/.cargo" \

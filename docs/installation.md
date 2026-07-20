@@ -62,12 +62,14 @@ Without Docker socket:
 
 ```bash
 make shell PROJECT_DIR=/absolute/path/to/project
+ssh developer@localhost
 ```
 
 With Docker socket:
 
 ```bash
 make shell-docker PROJECT_DIR=/absolute/path/to/project
+ssh developer@localhost
 ```
 
 ## Optional: documentation site

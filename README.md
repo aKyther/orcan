@@ -117,11 +117,13 @@ cp .env.example .env
 make env
 make build
 make shell PROJECT_DIR=$HOME/projects/my-app
+ssh developer@localhost
 ```
 
 > Tip: `make env` writes your host `USER_UID`, `USER_GID`, and `DOCKER_GID` into `.env`.
+> Default SSH password is `cursor` (`DEVELOPER_PASSWORD` in `.env`).
 
-Inside the container, TMUX starts for interactive terminals. Use Cursor CLI as usual, for example:
+After SSH, TMUX starts for interactive terminals. Use Cursor CLI as usual, for example:
 
 ```bash
 agent --version
@@ -137,12 +139,8 @@ agent --version
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
 | `make rebuild` | Rebuild with `--no-cache` |
-| `make shell` | Interactive shell **without** Docker socket |
-| `make shell-docker` | Interactive shell **with** Docker socket |
-| `make up` | Start service in the foreground (no socket) |
-| `make up-docker` | Start service with Docker socket |
-| `make up-ssh` | Start OpenSSH daemon detached (no socket) |
-| `make up-ssh-docker` | Start OpenSSH daemon detached with Docker socket |
+| `make shell` | Start container with **SSH** (no Docker socket) |
+| `make shell-docker` | Start container with **SSH** and Docker socket |
 | `make down` | Stop containers; keep named volumes |
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep named volumes |
@@ -159,6 +157,7 @@ agent --version
 
 ```bash
 make shell PROJECT_DIR=$HOME/projects/my-app
+ssh developer@localhost
 ```
 
 `PROJECT_DIR` must be an absolute path on the host. It is mounted at `/workspace`.
@@ -176,10 +175,11 @@ Project Cursor files    →  /workspace/.cursor, AGENTS.md
 On every container start, missing files are copied from `/opt/cursor-defaults` into `${HOME}/.cursor`.
 Existing files are never overwritten.
 
-Scaffold a mounted project explicitly:
+Scaffold a mounted project explicitly (after SSH):
 
 ```bash
 make shell
+ssh developer@localhost
 cursor-init-project --dry-run
 cursor-init-project
 ```
@@ -224,20 +224,21 @@ These values are taken from the host so files created in `/workspace` stay owned
 
 | Mode | Command | Socket |
 | --- | --- | --- |
-| Default | `make shell` / `make up` | No |
-| Docker-enabled | `make shell-docker` / `make up-docker` | Yes |
+| Default | `make shell` | No |
+| Docker-enabled | `make shell-docker` | Yes |
 
-The overlay file is `docker-compose.docker.yml`.
+The overlay file is `docker-compose.docker.yml`. Both modes include OpenSSH via `docker-compose.ssh.yml`.
 
 ---
 
-## SSH on a VPS (Tailscale)
+## SSH access
 
-Use the SSH overlay when the container runs on a remote host and you want `ssh` into it.
+`make shell` and `make shell-docker` start the container with OpenSSH in the background.
 
 ```bash
 make build
-make up-ssh PROJECT_DIR=/absolute/path/to/project
+make shell PROJECT_DIR=/absolute/path/to/project
+ssh developer@localhost
 ```
 
 | Field | Default |
@@ -245,6 +246,8 @@ make up-ssh PROJECT_DIR=/absolute/path/to/project
 | User | `developer` |
 | Password | `cursor` (`DEVELOPER_PASSWORD` in `.env`) |
 | Host port | `22` (`SSH_HOST_PORT`) |
+
+On a VPS behind Tailscale, use the machine's Tailscale IP instead of `localhost`.
 
 ```bash
 ssh developer@<tailscale-ip>
@@ -323,7 +326,7 @@ make rebuild
 | No TTY / odd terminal | Run from a real terminal; ensure `stdin_open`/`tty` stay enabled |
 | TMUX did not start | Non-interactive commands skip TMUX; check `[ -t 0 ]` |
 | Stale image | `make rebuild` |
-| Cursor CLI not logged in | Run the Cursor login flow inside the container; config persists in the `cursor-config` volume |
+| Cursor CLI not logged in | Log in once inside the container; auth persists in `cursor-app-config` (`~/.config/cursor`) |
 
 More detail: [docs/troubleshooting.md](docs/troubleshooting.md).
 
@@ -350,8 +353,7 @@ So the toolchain is repeatable and does not pollute the host.
 **Why not install Cursor only on the host?**  
 You can. This repo adds a full isolated toolbox and clearer project boundaries.
 
-**Can I use multiple projects?**  
-Yes. Start a new shell with a different `PROJECT_DIR`.
+**Yes. Start a new session with another `PROJECT_DIR` (run `make down` first if a container is already running).**
 
 **Can I disable TMUX?**  
 Yes. Start a non-interactive command, or remove the TMUX block from

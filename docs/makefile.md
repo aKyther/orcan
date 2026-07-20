@@ -12,17 +12,13 @@ Complex host logic lives in `scripts/repository/`. The Makefile stays thin.
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
 | `make rebuild` | Rebuild with `--no-cache` |
-| `make shell` | Interactive shell without Docker socket |
-| `make shell-docker` | Interactive shell with Docker socket |
-| `make up` | Foreground service without Docker socket |
-| `make up-docker` | Foreground service with Docker socket |
-| `make up-ssh` | Detached OpenSSH daemon without Docker socket |
-| `make up-ssh-docker` | Detached OpenSSH daemon with Docker socket |
+| `make shell` | Start container with SSH (no Docker socket) |
+| `make shell-docker` | Start container with SSH and Docker socket |
 | `make down` | Stop containers; keep volumes |
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep named volumes |
 | `make clean-volumes` | Delete named volumes after confirmation |
-| `make config` | Validate base and docker-enabled Compose configs |
+| `make config` | Validate SSH and SSH+Docker Compose configs |
 | `make init-project` | Create missing Cursor project files in `/workspace` |
 | `make init-project-dry-run` | Dry-run project Cursor scaffolding |
 | `make validate` | Check layout, script syntax, Compose config |
@@ -32,11 +28,12 @@ Complex host logic lives in `scripts/repository/`. The Makefile stays thin.
 
 ## Examples
 
-Refresh `.env` and open a project:
+Refresh `.env`, start the container, and connect over SSH:
 
 ```bash
 make env PROJECT_DIR=$HOME/projects/my-app
 make shell PROJECT_DIR=$HOME/projects/my-app
+ssh developer@localhost
 ```
 
 Build once, then use Docker-from-Docker:
@@ -44,6 +41,7 @@ Build once, then use Docker-from-Docker:
 ```bash
 make build
 make shell-docker PROJECT_DIR=$HOME/projects/my-app
+ssh developer@localhost
 ```
 
 Validate the repository and Compose files:
@@ -69,7 +67,7 @@ make rebuild
 
 !!! warning
 
-    `make clean-volumes` deletes Cursor config, bash history, and language caches.
+    `make clean-volumes` deletes Cursor config, login state, bash history, and language caches.
     It asks you to type `yes` before it continues.
 
 ## How UID and socket detection work
@@ -80,23 +78,21 @@ make rebuild
 * `USER_GID` from `id -g`
 * `DOCKER_GID` from `stat` on `/var/run/docker.sock`, or `999` if the socket is missing
 
-`shell-docker` and `up-docker` fail early if the socket file is absent.
+`make shell-docker` fails early if the socket file is absent.
 
 ## Compose invocation
 
-| Target family | Files |
+| Target | Files |
 | --- | --- |
-| Default | `docker-compose.yml` |
-| `*-docker` | `docker-compose.yml` + `docker-compose.docker.yml` |
-| `up-ssh` | `docker-compose.yml` + `docker-compose.ssh.yml` |
-| `up-ssh-docker` | `docker-compose.yml` + `docker-compose.ssh.yml` + `docker-compose.docker.yml` |
+| `make shell` | `docker-compose.yml` + `docker-compose.ssh.yml` |
+| `make shell-docker` | `docker-compose.yml` + `docker-compose.ssh.yml` + `docker-compose.docker.yml` |
 
-SSH on a VPS (Tailscale):
+Both targets start the container detached with OpenSSH. Connect with:
 
 ```bash
-make build
-make up-ssh PROJECT_DIR=/absolute/path/to/project
-ssh developer@<tailscale-ip>
+ssh developer@localhost
 ```
+
+On a VPS behind Tailscale, replace `localhost` with the machine's Tailscale IP.
 
 Default password is `cursor` (`DEVELOPER_PASSWORD`). Change it in `.env` before production use.

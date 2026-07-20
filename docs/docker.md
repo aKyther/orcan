@@ -70,7 +70,7 @@ Adds:
 
 ### `docker-compose.ssh.yml` (overlay)
 
-Runs OpenSSH for remote access (for example a VPS behind Tailscale):
+Used by both `make shell` and `make shell-docker`. Adds:
 
 * `command: cursor-sshd`
 * publishes `${SSH_HOST_PORT:-22}:22`
@@ -79,8 +79,8 @@ Runs OpenSSH for remote access (for example a VPS behind Tailscale):
 * `restart: unless-stopped`
 
 ```bash
-make up-ssh
-ssh developer@<tailscale-ip>
+make shell
+ssh developer@localhost
 ```
 
 Default login: user `developer`, password `cursor`.
@@ -113,7 +113,8 @@ Container
 
 | Volume | Path | Why |
 | --- | --- | --- |
-| `cursor-config` | `/home/developer/.cursor` | Persist Cursor CLI config/login |
+| `cursor-config` | `/home/developer/.cursor` | Cursor CLI config, chats, rules, skills |
+| `cursor-app-config` | `/home/developer/.config/cursor` | Cursor login (`auth.json`) |
 | `cursor-cache` | `/home/developer/.cache` | General caches |
 | `npm-cache` | `/home/developer/.npm` | npm cache |
 | `pnpm-cache` | `/home/developer/.local/share/pnpm` | pnpm store/home |
@@ -131,8 +132,11 @@ Build args:
 * `USERNAME` (default `developer`)
 * `USER_UID`
 * `USER_GID`
+* `DOCKER_GID` (default `999`) — GID of the `docker` group; `developer` is added to this group at build time
 
 Matching host UID/GID prevents root-owned files in your project tree.
+
+For host Docker socket access, use `make env` (sets `DOCKER_GID` from `/var/run/docker.sock`) and a `*-docker` target. The Docker overlay also adds `group_add: DOCKER_GID` at runtime so socket access works even if the host GID changed since the last build.
 
 ## TMUX and Vim
 

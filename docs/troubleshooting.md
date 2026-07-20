@@ -22,13 +22,48 @@ grep USER_ /.env
 
 ## Cannot access Docker socket
 
-**Symptom:** `permission denied while trying to connect to the Docker daemon socket`.
+**Symptom:** `permission denied while trying to connect to the Docker daemon socket`, or `no such file or directory` for `/var/run/docker.sock` inside the container.
 
 **Fix:**
 
-1. Confirm the socket exists: `ls -l /var/run/docker.sock`
+1. Confirm the socket exists on the host: `ls -l /var/run/docker.sock`
 2. Refresh group id: `make env`
-3. Use the docker-enabled target: `make shell-docker`
+3. Use the docker-enabled target: `make shell-docker` (not `make shell`)
+4. If you previously ran `make shell`, run `make shell-docker` again — it stops the SSH-only container and recreates with the socket.
+
+Inside the container, check:
+
+```bash
+id
+ls -l /var/run/docker.sock
+docker ps
+```
+
+You should see group `docker` (or your host `DOCKER_GID`) and the socket file present.
+
+## Cursor login fails with `EPERM` on `~/.config/cursor`
+
+**Symptom:** `Failed to store authentication tokens: EPERM: operation not permitted, chmod '/home/developer/.config/cursor'`.
+
+**Cause:** the `cursor-app-config` named volume was created with `root` ownership (common on first mount).
+
+**Fix:**
+
+Restart the container so the entrypoint can repair ownership:
+
+```bash
+make down
+make shell-docker   # or make shell
+```
+
+If login still fails:
+
+```bash
+make clean-volumes
+make shell-docker
+```
+
+Then log in again inside the container.
 
 ## No TTY / broken interactive session
 
@@ -37,8 +72,8 @@ grep USER_ /.env
 **Fix:**
 
 * Run from a real terminal, not a non-interactive pipe
-* Keep `stdin_open: true` and `tty: true` in Compose
-* Prefer `make shell` over detached workflows when you need a TTY
+* Connect over SSH after `make shell` (`ssh developer@localhost`)
+* TMUX starts automatically inside the SSH session
 
 ## TMUX did not start
 
@@ -69,13 +104,14 @@ make rebuild
 
 ## Cursor CLI not logged in
 
-Run the login flow inside the container. Config persists in the `cursor-config` volume across restarts.
+Run the login flow inside the container once. Auth persists in the `cursor-app-config` volume (`~/.config/cursor/auth.json`) across restarts.
 
 If login state is broken:
 
 ```bash
 make clean-volumes
 make shell
+ssh developer@localhost
 ```
 
 Then log in again.
@@ -107,8 +143,8 @@ SSH_HOST_PORT=2222
 Then:
 
 ```bash
-make up-ssh
-ssh -p 2222 developer@<tailscale-ip>
+make shell
+ssh -p 2222 developer@localhost
 ```
 
 ## Useful diagnostic commands

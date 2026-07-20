@@ -23,7 +23,8 @@ Image defaults
 
 Persistent container user settings
     ↓
-/home/developer/.cursor   (named volume: cursor-config)
+/home/developer/.cursor           (named volume: cursor-config)
+/home/developer/.config/cursor    (named volume: cursor-app-config; login)
 
 Project-specific settings
     ↓
@@ -72,7 +73,25 @@ named-volume mount stays writable. Defaults still come only from `/opt/cursor-de
 ```bash
 make clean-volumes
 make shell
+ssh developer@localhost
 ```
+
+### Login persistence
+
+Cursor CLI stores different data in two volumes:
+
+| Path | Volume | Contents |
+| --- | --- | --- |
+| `~/.cursor` | `cursor-config` | `cli-config.json`, chats, rules, skills |
+| `~/.config/cursor` | `cursor-app-config` | `auth.json` (login tokens) |
+
+Log in once after SSH (`agent login` or the interactive flow). Restarts and `make down` keep both volumes.
+
+!!! warning
+
+    `make clean-volumes` deletes login state along with caches and CLI config.
+
+For scripts/CI, set `CURSOR_API_KEY` instead of interactive login.
 
 ## What ships in the defaults
 
@@ -97,6 +116,7 @@ Templates are **not** copied into `/workspace` at startup.
 
 ```bash
 make shell
+ssh developer@localhost
 cursor-init-project --dry-run
 cursor-init-project
 ```
