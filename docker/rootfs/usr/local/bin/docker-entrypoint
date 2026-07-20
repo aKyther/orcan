@@ -25,6 +25,25 @@ fix_named_volume_permissions() {
     done
 }
 
+create_project_symlinks() {
+    if [[ -z "${PROJECT_DIR:-}" ]]; then
+        return 0
+    fi
+
+    # Create convenience links in developer home directory.
+    local home_link current
+    for home_link in "${HOME}/project" "${HOME}/workspace"; do
+        if [[ -L "${home_link}" ]]; then
+            current="$(readlink "${home_link}")"
+            if [[ "${current}" != "${PROJECT_DIR}" ]]; then
+                ln -sfn "${PROJECT_DIR}" "${home_link}"
+            fi
+        elif [[ ! -e "${home_link}" ]]; then
+            ln -sfn "${PROJECT_DIR}" "${home_link}"
+        fi
+    done
+}
+
 enter_project_dir() {
     if [[ -z "${PROJECT_DIR:-}" ]]; then
         printf 'Error: PROJECT_DIR is not set inside the container\n' >&2
@@ -37,6 +56,7 @@ enter_project_dir() {
         exit 1
     fi
 
+    create_project_symlinks
     cd "${PROJECT_DIR}"
 }
 
