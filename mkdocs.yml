@@ -65,6 +65,7 @@ nav:
   - Getting started: getting-started.md
   - Installation: installation.md
   - Docker: docker.md
+  - Path parity: path-parity.md
   - Makefile: makefile.md
   - Cursor: cursor.md
   - Security: security.md

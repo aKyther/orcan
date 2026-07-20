@@ -32,7 +32,7 @@ That file is always applied in Cursor.
 
 Key points:
 
-* Work only inside `/workspace` (the mounted project for end users; this repo when you develop it).
+* Work only inside `PROJECT_DIR` (the mounted project for end users; this repo when you develop it).
 * Repository rules (`.cursor/`) are separate from image defaults (`docker/rootfs/opt/cursor-defaults/`).
 * After infrastructure changes, run `make validate` and `make build` / `make test` when Docker is available.
 * Update `README.md` and the matching `docs/` page when Make or Compose commands change.

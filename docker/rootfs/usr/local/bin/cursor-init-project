@@ -20,7 +20,7 @@ Usage:
 
 Initialize Cursor files in a project directory.
 
-Default target: /workspace
+Default target: $PROJECT_DIR when set, otherwise the current working directory
 
 Options:
   --dry-run   Show planned actions without writing
@@ -29,9 +29,9 @@ Options:
 
 Examples:
   cursor-init-project
-  cursor-init-project /workspace
+  cursor-init-project "${PROJECT_DIR}"
   cursor-init-project --dry-run
-  cursor-init-project --force /workspace
+  cursor-init-project --force .
 EOF
 }
 
@@ -210,8 +210,10 @@ parse_args() {
 
     if [[ ${#positional[@]} -eq 1 ]]; then
         TARGET="${positional[0]}"
+    elif [[ -n "${PROJECT_DIR:-}" ]]; then
+        TARGET="${PROJECT_DIR}"
     else
-        TARGET="/workspace"
+        TARGET="$(pwd)"
     fi
 }
 

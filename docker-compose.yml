@@ -9,7 +9,7 @@ services:
         DOCKER_GID: ${DOCKER_GID:-999}
     image: cursor-dev:latest
     hostname: cursor-dev
-    working_dir: /workspace
+    working_dir: ${PROJECT_DIR}
     stdin_open: true
     tty: true
     init: true
@@ -24,8 +24,9 @@ services:
       UV_CACHE_DIR: /home/developer/.cache/uv
       DOCKER_BUILDKIT: "1"
       COMPOSE_DOCKER_CLI_BUILD: "1"
+      PROJECT_DIR: ${PROJECT_DIR}
     volumes:
-      - ${PROJECT_DIR:-.}:/workspace
+      - ${PROJECT_DIR}:${PROJECT_DIR}
       - cursor-config:/home/developer/.cursor
       - cursor-app-config:/home/developer/.config/cursor
       - cursor-cache:/home/developer/.cache

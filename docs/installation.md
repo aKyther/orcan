@@ -38,7 +38,7 @@ Example `.env` values:
 USER_UID=1000
 USER_GID=1000
 DOCKER_GID=999
-PROJECT_DIR=/absolute/path/to/project
+PROJECT_DIR=/absolute/path/to/your/project
 CPUS=8
 MEMORY=16g
 SHM_SIZE=2g
@@ -49,6 +49,11 @@ TMPFS_SIZE=2g
 
     Do not put tokens, passwords, or private keys in `.env`.
     `.env` is gitignored.
+
+!!! note
+
+    `PROJECT_DIR` must be an absolute path. Compose does not expand `~` reliably.
+    Run `make path-check` after `make env`.
 
 ## Build
 
@@ -61,14 +66,16 @@ make build
 Without Docker socket:
 
 ```bash
-make shell PROJECT_DIR=/absolute/path/to/project
+make env PROJECT_DIR=/absolute/path/to/project
+make path-check
+make shell
 ssh developer@localhost
 ```
 
 With Docker socket:
 
 ```bash
-make shell-docker PROJECT_DIR=/absolute/path/to/project
+make shell-docker
 ssh developer@localhost
 ```
 

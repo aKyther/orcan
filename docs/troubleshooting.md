@@ -1,6 +1,18 @@
 # Troubleshooting
 
-## UID/GID conflicts or permission denied in `/workspace`
+## Invalid or missing `PROJECT_DIR`
+
+**Symptom:** `make shell` or `make build` fails with a `PROJECT_DIR` validation error.
+
+**Fix:**
+
+1. Set an absolute path in `.env` (no `.`, `../`, or `~`).
+2. Run `make env PROJECT_DIR=/absolute/path/to/project`.
+3. Run `make path-check`.
+
+See [Path parity](path-parity.md).
+
+## UID/GID conflicts or permission denied in `PROJECT_DIR`
 
 **Symptom:** cannot write files, or files appear as another user on the host.
 

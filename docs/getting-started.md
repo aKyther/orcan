@@ -20,9 +20,19 @@ make env
 
 * `USER_UID` / `USER_GID` from your host account
 * `DOCKER_GID` from `/var/run/docker.sock` when present
-* `PROJECT_DIR` (defaults to this repository path)
+* `PROJECT_DIR` (absolute path; defaults to this repository path when you run `make env`)
 
-## 3. Build the image
+!!! tip
+
+    Use an absolute path only — not `.`, `../`, or `~/project`. See [Path parity](path-parity.md).
+
+## 3. Check path parity
+
+```bash
+make path-check
+```
+
+## 4. Build the image
 
 ```bash
 make build
@@ -30,10 +40,12 @@ make build
 
 The first build downloads base images and tool stages. Later builds are faster because of Docker layer and BuildKit caches.
 
-## 4. Start the container and connect over SSH
+## 5. Start the container and connect over SSH
 
 ```bash
-make shell PROJECT_DIR=$HOME/projects/my-app
+make env PROJECT_DIR=$HOME/projects/my-app
+make path-check
+make shell
 ssh developer@localhost
 ```
 
@@ -46,7 +58,7 @@ Default SSH password: `cursor` (`DEVELOPER_PASSWORD` in `.env`).
     `make shell` does **not** mount the Docker socket.
     Use `make shell-docker` only when you need Docker-from-Docker.
 
-## 5. Confirm tools
+## 6. Confirm tools
 
 After SSH:
 
@@ -56,7 +68,7 @@ test -d "${HOME}/.cursor"
 cursor-init-project --help
 ```
 
-## 6. Optional: scaffold Cursor files in the mounted project
+## 7. Optional: scaffold Cursor files in the mounted project
 
 ```bash
 cursor-init-project --dry-run
@@ -65,7 +77,7 @@ cursor-init-project
 
 Review the files before you commit them.
 
-## 7. Use TMUX
+## 8. Use TMUX
 
 Interactive shells start TMUX automatically (session name: `cursor`).
 Config comes from `docker/rootfs/etc/skel/.tmux.conf` (prefix: `Ctrl-Space`).
@@ -78,6 +90,7 @@ Config comes from `docker/rootfs/etc/skel/.tmux.conf` (prefix: `Ctrl-Space`).
 
 ## Next steps
 
+* Read [Path parity](path-parity.md) before using `docker compose` inside the container
 * Read [Docker](docker.md) to understand mounts and volumes
 * Read [Security](security.md) before enabling the Docker socket
 * Read [Cursor](cursor.md) for agent rules, image defaults, and ignore files

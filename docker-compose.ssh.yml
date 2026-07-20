@@ -9,7 +9,7 @@ services:
     environment:
       DEVELOPER_PASSWORD: ${DEVELOPER_PASSWORD:-cursor}
     volumes: !override
-      - ${PROJECT_DIR:-.}:/workspace
+      - ${PROJECT_DIR}:${PROJECT_DIR}
       - cursor-config:/home/developer/.cursor
       - cursor-app-config:/home/developer/.config/cursor
       - cursor-cache:/home/developer/.cache

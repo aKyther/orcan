@@ -29,5 +29,5 @@ Documentation is part of implementation, not a separate optional step.
 ## Project vs global docs
 
 - Global container rules guide agent behavior in every session.
-- Project rules (`/workspace/.cursor/`, `AGENTS.md`) belong to the mounted repository.
+- Project rules (`${PROJECT_DIR}/.cursor/`, `AGENTS.md`) belong to the mounted repository.
 - Do not move project-specific stack or architecture rules into global defaults.

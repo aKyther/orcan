@@ -1,12 +1,12 @@
 ---
-description: Safety boundaries for agents working in this repository
+description: Repository safety boundaries for agents working in this repo
 alwaysApply: true
 ---
 
 # Repository safety
 
-- Work only inside the current repository mounted at `/workspace`.
-- Do not read or modify host paths outside `/workspace`.
+- Work only inside the current repository mounted at `${PROJECT_DIR}` (path parity with the host).
+- Do not read or modify host paths outside `${PROJECT_DIR}`.
 - Do not try to bypass container limits or security controls.
 - Do not read secrets, private keys, or credential files.
 - Do not modify `.env` unless the user explicitly asks.

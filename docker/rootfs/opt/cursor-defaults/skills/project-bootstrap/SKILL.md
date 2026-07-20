@@ -3,12 +3,12 @@ name: project-bootstrap
 description: >-
   Prepare a mounted project for Cursor by creating missing AGENTS.md,
   ignore files, and small project rules. Use when the user asks to
-  bootstrap, initialize, or set up Cursor config in /workspace.
+  bootstrap, initialize, or set up Cursor config in the mounted project (PROJECT_DIR).
 ---
 
 # Project bootstrap
 
-Prepare the project at `/workspace` (or another path the user names) for Cursor.
+Prepare the project at `${PROJECT_DIR}` (or another path the user names) for Cursor.
 
 ## Steps
 

@@ -13,28 +13,37 @@ PROJECT_DIR ?= $(CURDIR)
 
 .PHONY: help env build rebuild shell shell-docker \
 	down logs config init-project init-project-dry-run clean clean-volumes \
-	docs docs-serve test validate
+	docs docs-serve test validate path-check validate-project
 
 help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
+validate-project:
+	@./scripts/repository/validate-project-dir.sh
+
+path-check: env validate-project ## Show host/container project path parity
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	printf 'Host project path:      %s\n' "$$PROJECT_DIR"; \
+	printf 'Container project path: %s\n' "$$PROJECT_DIR"; \
+	printf 'Path parity:            enabled\n'
+
 env: ## Create or refresh .env from host UID/GID and PROJECT_DIR
 	@PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
 
-build: env ## Build the container image
+build: env validate-project ## Build the container image
 	$(COMPOSE) build
 
-rebuild: env ## Rebuild the image without cache
+rebuild: env validate-project ## Rebuild the image without cache
 	$(COMPOSE) build --no-cache
 
-shell: env ## Start container with SSH (no Docker socket)
+shell: env validate-project ## Start container with SSH (no Docker socket)
 	-$(COMPOSE_SSH_DOCKER) down
 	$(COMPOSE_SSH) up -d
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nSSH ready. Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}"
+	printf '\nSSH ready. Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n  Project path: %s\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}" "$$PROJECT_DIR"
 
-shell-docker: env ## Start container with SSH and host Docker socket
+shell-docker: env validate-project ## Start container with SSH and host Docker socket
 	@if [ ! -S /var/run/docker.sock ]; then \
 		echo "Error: /var/run/docker.sock not found. Docker Engine is required for shell-docker."; \
 		exit 1; \
@@ -50,7 +59,7 @@ shell-docker: env ## Start container with SSH and host Docker socket
 		fi; \
 	fi
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nSSH ready (Docker socket enabled). Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}"
+	printf '\nSSH ready (Docker socket enabled). Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n  Project path: %s\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}" "$$PROJECT_DIR"
 
 down: ## Stop containers without removing volumes
 	-$(COMPOSE_SSH) down
@@ -66,18 +75,20 @@ logs: ## Follow container logs
 		exit 1; \
 	fi
 
-config: env ## Validate and print the resolved Compose config
+config: env validate-project ## Validate and print the resolved Compose config
 	@echo "=== SSH (make shell) ==="
 	$(COMPOSE_SSH) config
 	@echo ""
 	@echo "=== SSH + Docker (make shell-docker) ==="
 	$(COMPOSE_SSH_DOCKER) config
 
-init-project: env ## Create missing Cursor project files in the mounted PROJECT_DIR
-	$(COMPOSE) run --rm --name cursor-dev-init-project cursor cursor-init-project /workspace
+init-project: env validate-project ## Create missing Cursor project files in the mounted PROJECT_DIR
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	$(COMPOSE) run --rm --name cursor-dev-init-project cursor cursor-init-project "$$PROJECT_DIR"
 
-init-project-dry-run: env ## Show Cursor project files that would be created
-	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run /workspace
+init-project-dry-run: env validate-project ## Show Cursor project files that would be created
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run "$$PROJECT_DIR"
 
 clean: ## Stop containers and remove anonymous resources (keeps named volumes)
 	-$(COMPOSE_SSH) down --remove-orphans
@@ -119,3 +130,6 @@ validate: ## Validate repository layout and script syntax
 
 test: build ## Run container smoke tests
 	@./tests/smoke/test-container.sh
+
+test-path-parity: build ## Run host-container path parity integration test (requires Docker)
+	@./tests/integration/test-path-parity.sh

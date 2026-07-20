@@ -86,7 +86,7 @@ Build flow:
 
 Provides:
 
-* project bind mount at `/workspace`
+* project bind mount at `${PROJECT_DIR}` (same path on host and container)
 * named volumes for caches and Cursor config
 * read-only `~/.gitconfig` and `~/.ssh`
 * resource limits and a `/tmp` tmpfs
@@ -130,7 +130,7 @@ Host
      │
      ▼
 Container
-├── /workspace
+├── ${PROJECT_DIR}                 (bind mount, path parity)
 ├── /opt/cursor-defaults
 ├── /home/developer/.cursor      (volume)
 ├── /home/developer/.cache       (volume)
@@ -198,7 +198,7 @@ See [Cursor](cursor.md).
 
 | Variable | Role |
 | --- | --- |
-| `PROJECT_DIR` | Host path mounted at `/workspace` |
+| `PROJECT_DIR` | Absolute host project path (same path inside the container) |
 | `USER_UID` / `USER_GID` | Container user identity |
 | `DOCKER_GID` | Socket group for `*-docker` targets |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits |

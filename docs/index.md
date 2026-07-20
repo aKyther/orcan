@@ -6,7 +6,7 @@ This project gives you an isolated Docker environment for **Cursor CLI** and a f
 
 A ready-to-run container image and Compose setup where:
 
-* your chosen project is mounted at `/workspace`
+* your chosen project is mounted at the same absolute path as on the host (`PROJECT_DIR`)
 * Cursor CLI and common tools are already installed
 * the host stays free of global language toolchains
 * optional Docker socket access is an explicit choice

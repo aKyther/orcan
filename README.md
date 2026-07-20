@@ -2,7 +2,7 @@
 
 Isolated Docker environment for **Cursor CLI** and common developer tools.
 
-This repository keeps your host system clean. Cursor and the toolchain run inside a container. Only the project you choose is mounted at `/workspace`.
+This repository keeps your host system clean. Cursor and the toolchain run inside a container. The project you choose is mounted at the **same absolute path** on the host and inside the container ([path parity](docs/path-parity.md)).
 
 **Who it is for:** developers who want Cursor CLI with Node, Python, Go, Rust, and optional Docker access — without installing the full toolchain on the host.
 
@@ -79,13 +79,13 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 
 ```text
 Host
-└── your project (PROJECT_DIR)
+└── your project (PROJECT_DIR=/home/user/projects/my-app)
      │
      ▼
 Docker container
-├── /workspace                 ← bind mount of your project
-├── /opt/cursor-defaults       ← immutable image defaults
-├── /home/developer/.cursor    ← named volume (seeded at startup)
+├── /home/user/projects/my-app   ← same path (path parity)
+├── /opt/cursor-defaults         ← immutable image defaults
+├── /home/developer/.cursor      ← named volume (seeded at startup)
 ├── Cursor CLI
 ├── Node / pnpm
 ├── Python / uv
@@ -111,9 +111,11 @@ Docker container
 git clone <repository-url> cursor-cli-devcontainer
 cd cursor-cli-devcontainer
 cp .env.example .env
-make env
+# Edit .env: PROJECT_DIR=/absolute/path/to/your/project
+make env PROJECT_DIR=$HOME/projects/my-app
+make path-check
 make build
-make shell PROJECT_DIR=$HOME/projects/my-app
+make shell
 ssh developer@localhost
 ```
 
@@ -142,22 +144,26 @@ agent --version
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep named volumes |
 | `make clean-volumes` | Stop containers and **delete** named volumes |
+| `make path-check` | Show host/container project path parity |
 | `make config` | Validate and print Compose configs |
-| `make init-project` | Create missing Cursor files in mounted `/workspace` |
+| `make init-project` | Create missing Cursor files in `PROJECT_DIR` |
 | `make init-project-dry-run` | Show project Cursor files without writing |
 | `make validate` | Check layout, script syntax, Compose config |
 | `make test` | Build (if needed) and run smoke tests |
+| `make test-path-parity` | Integration test for path parity + Docker socket |
 | `make docs` | Build MkDocs site |
 | `make docs-serve` | Serve MkDocs locally |
 
 ### Choose a project
 
 ```bash
-make shell PROJECT_DIR=$HOME/projects/my-app
+make env PROJECT_DIR=$HOME/projects/my-app
+make path-check
+make shell
 ssh developer@localhost
 ```
 
-`PROJECT_DIR` must be an absolute path on the host. It is mounted at `/workspace`.
+`PROJECT_DIR` must be an **absolute** host path. The same path is used inside the container so `docker compose` bind mounts resolve correctly on the host daemon. See [docs/path-parity.md](docs/path-parity.md).
 
 ---
 
@@ -166,7 +172,7 @@ ssh developer@localhost
 ```text
 Image defaults          →  /opt/cursor-defaults
 User Cursor home        →  /home/developer/.cursor  (volume)
-Project Cursor files    →  /workspace/.cursor, AGENTS.md
+Project Cursor files    →  ${PROJECT_DIR}/.cursor, AGENTS.md
 ```
 
 On every container start, missing files are copied from `/opt/cursor-defaults` into `${HOME}/.cursor`.
@@ -212,7 +218,7 @@ Details: [docs/cursor.md](docs/cursor.md).
 | `USER_GID` | Host group ID; used as the container group ID |
 | `DOCKER_GID` | Group ID of `/var/run/docker.sock` on the host |
 
-These values are taken from the host so files created in `/workspace` stay owned by you, not by root.
+These values are taken from the host so files created in `PROJECT_DIR` stay owned by you, not by root.
 
 ---
 
@@ -320,7 +326,7 @@ make rebuild
 
 | Problem | What to try |
 | --- | --- |
-| Permission errors in `/workspace` | Run `make env` so UID/GID match the host |
+| Permission errors in `PROJECT_DIR` | Run `make env` so UID/GID match the host |
 | `docker.sock` permission denied | Use `make shell-docker` after `make env` (sets `DOCKER_GID`) |
 | No TTY / odd terminal | Run from a real terminal; ensure `stdin_open`/`tty` stay enabled |
 | TMUX did not start | Non-interactive commands skip TMUX; check `[ -t 0 ]` |
