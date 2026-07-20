@@ -79,9 +79,9 @@ The base Compose file mounts `~/.ssh` read-only for Git over SSH.
 
 Safer long-term option (see `ROADMAP.md`): SSH agent forwarding instead of mounting the whole `.ssh` directory.
 
-## SSH server overlay (VPS)
+## SSH server (always on)
 
-`docker-compose.ssh.yml` starts `sshd` inside the container for remote shell access.
+`make shell` and `make shell-docker` start `sshd` inside the container.
 
 * Default user: `developer`
 * Default password: `cursor` (`DEVELOPER_PASSWORD`)
@@ -94,9 +94,11 @@ Safer long-term option (see `ROADMAP.md`): SSH agent forwarding instead of mount
     Prefer Tailscale (or another private network). Change `DEVELOPER_PASSWORD` in `.env`.
 
 ```bash
-make up-ssh
-ssh developer@<tailscale-ip>
+make shell
+ssh developer@localhost
 ```
+
+On a VPS, use the machine's Tailscale IP instead of `localhost`.
 
 ## Permissions
 

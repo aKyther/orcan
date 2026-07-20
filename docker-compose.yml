@@ -6,6 +6,7 @@ services:
         USERNAME: developer
         USER_UID: ${USER_UID:-1000}
         USER_GID: ${USER_GID:-1000}
+        DOCKER_GID: ${DOCKER_GID:-999}
     image: cursor-dev:latest
     hostname: cursor-dev
     working_dir: /workspace
@@ -26,6 +27,7 @@ services:
     volumes:
       - ${PROJECT_DIR:-.}:/workspace
       - cursor-config:/home/developer/.cursor
+      - cursor-app-config:/home/developer/.config/cursor
       - cursor-cache:/home/developer/.cache
       - npm-cache:/home/developer/.npm
       - pnpm-cache:/home/developer/.local/share/pnpm
@@ -39,6 +41,7 @@ services:
 
 volumes:
   cursor-config:
+  cursor-app-config:
   cursor-cache:
   npm-cache:
   pnpm-cache:

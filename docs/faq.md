@@ -14,10 +14,12 @@ Developers who want Cursor CLI plus Node, Python, Go, Rust, and optional Docker 
 
 ## Can I use multiple projects?
 
-Yes. Start a new session with another `PROJECT_DIR`:
+Yes. Stop the current container (`make down`) and start again with another `PROJECT_DIR`:
 
 ```bash
+make down
 make shell PROJECT_DIR=$HOME/projects/app-a
+make down
 make shell PROJECT_DIR=$HOME/projects/app-b
 ```
 
@@ -42,16 +44,16 @@ make shell-docker
 
     This mounts the host Docker socket and is powerful.
 
-## Can I SSH into the container on a VPS?
+## Can I SSH into the container?
 
-Yes, with the SSH overlay (meant for Tailscale or another private network):
+Yes. Both `make shell` and `make shell-docker` start OpenSSH:
 
 ```bash
-make up-ssh
-ssh developer@<tailscale-ip>
+make shell
+ssh developer@localhost
 ```
 
-Default password is `cursor` (`DEVELOPER_PASSWORD` in `.env`). See [Docker](docker.md) and [Security](security.md).
+On a VPS behind Tailscale, use the machine's Tailscale IP. Default password is `cursor` (`DEVELOPER_PASSWORD` in `.env`). See [Docker](docker.md) and [Security](security.md).
 
 ## Why do new files belong to my user?
 
@@ -59,7 +61,11 @@ Default password is `cursor` (`DEVELOPER_PASSWORD` in `.env`). See [Docker](dock
 
 ## Where is Cursor login stored?
 
-In the `cursor-config` named volume at `/home/developer/.cursor`.
+Login tokens live in the `cursor-app-config` volume at `/home/developer/.config/cursor/auth.json`.
+
+CLI settings, chats, and rules live in the `cursor-config` volume at `/home/developer/.cursor`.
+
+Both survive `make down`. Only `make clean-volumes` deletes them.
 
 ## Does `make down` delete caches?
 

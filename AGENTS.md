@@ -38,10 +38,6 @@ make env
 make build
 make shell
 make shell-docker
-make up
-make up-docker
-make up-ssh
-make up-ssh-docker
 make down
 make logs
 make rebuild

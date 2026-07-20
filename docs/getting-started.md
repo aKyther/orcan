@@ -30,22 +30,25 @@ make build
 
 The first build downloads base images and tool stages. Later builds are faster because of Docker layer and BuildKit caches.
 
-## 4. Open a shell in your project
+## 4. Start the container and connect over SSH
 
 ```bash
 make shell PROJECT_DIR=$HOME/projects/my-app
+ssh developer@localhost
 ```
 
 Replace `$HOME/projects/my-app` with the absolute path of the project you want Cursor to edit.
 
+Default SSH password: `cursor` (`DEVELOPER_PASSWORD` in `.env`).
+
 !!! note
 
-    The default `make shell` does **not** mount the Docker socket.
+    `make shell` does **not** mount the Docker socket.
     Use `make shell-docker` only when you need Docker-from-Docker.
 
 ## 5. Confirm tools
 
-Inside the container:
+After SSH:
 
 ```bash
 agent --version

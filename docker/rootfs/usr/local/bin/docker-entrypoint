@@ -5,6 +5,25 @@ set -Eeuo pipefail
 
 INIT_SCRIPT="${INIT_CURSOR_HOME_SCRIPT:-/usr/local/bin/init-cursor-home}"
 
+fix_named_volume_permissions() {
+    # Named volumes mounted below image paths can be created root-owned on first use.
+    local dir owner uid gid
+
+    uid="$(id -u)"
+    gid="$(id -g)"
+
+    for dir in \
+        "${HOME}/.config/cursor" \
+        "${HOME}/.cursor"
+    do
+        [[ -e "${dir}" ]] || continue
+        owner="$(stat -c '%u' "${dir}" 2>/dev/null || true)"
+        if [[ -n "${owner}" && "${owner}" != "${uid}" ]]; then
+            sudo chown -R "${uid}:${gid}" "${dir}"
+        fi
+    done
+}
+
 run_init() {
     if [[ ! -x "${INIT_SCRIPT}" ]]; then
         printf 'Warning: init script not found or not executable: %s\n' "${INIT_SCRIPT}" >&2
@@ -16,6 +35,7 @@ run_init() {
 }
 
 main() {
+    fix_named_volume_permissions
     run_init
 
     if [[ "$#" -eq 0 ]]; then

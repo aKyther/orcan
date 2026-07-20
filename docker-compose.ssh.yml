@@ -1,4 +1,4 @@
-# Optional overlay: run OpenSSH for VPS / Tailscale access.
+# SSH overlay for make shell and make shell-docker.
 # Does not mount host ~/.ssh or ~/.gitconfig (those paths often missing on a VPS).
 services:
   cursor:
@@ -11,6 +11,7 @@ services:
     volumes: !override
       - ${PROJECT_DIR:-.}:/workspace
       - cursor-config:/home/developer/.cursor
+      - cursor-app-config:/home/developer/.config/cursor
       - cursor-cache:/home/developer/.cache
       - npm-cache:/home/developer/.npm
       - pnpm-cache:/home/developer/.local/share/pnpm

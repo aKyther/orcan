@@ -4,7 +4,6 @@ COMPOSE_FILE := docker-compose.yml
 COMPOSE_DOCKER_FILE := docker-compose.docker.yml
 COMPOSE_SSH_FILE := docker-compose.ssh.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
-COMPOSE_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_DOCKER_FILE)
 COMPOSE_SSH := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_SSH_FILE)
 COMPOSE_SSH_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_SSH_FILE) -f $(COMPOSE_DOCKER_FILE)
 
@@ -12,7 +11,7 @@ PROJECT_DIR ?= $(CURDIR)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env build rebuild shell shell-docker up up-docker up-ssh up-ssh-docker \
+.PHONY: help env build rebuild shell shell-docker \
 	down logs config init-project init-project-dry-run clean clean-volumes \
 	docs docs-serve test validate
 
@@ -29,56 +28,49 @@ build: env ## Build the container image
 rebuild: env ## Rebuild the image without cache
 	$(COMPOSE) build --no-cache
 
-shell: env ## Open an interactive shell (no Docker socket)
-	$(COMPOSE) run --rm --name cursor-dev-shell cursor
+shell: env ## Start container with SSH (no Docker socket)
+	-$(COMPOSE_SSH_DOCKER) down
+	$(COMPOSE_SSH) up -d
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	printf '\nSSH ready. Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}"
 
-shell-docker: env ## Open an interactive shell with host Docker socket
+shell-docker: env ## Start container with SSH and host Docker socket
 	@if [ ! -S /var/run/docker.sock ]; then \
 		echo "Error: /var/run/docker.sock not found. Docker Engine is required for shell-docker."; \
 		exit 1; \
 	fi
-	$(COMPOSE_DOCKER) run --rm --name cursor-dev-shell-docker cursor
-
-up: env ## Start the service in the foreground (no Docker socket)
-	$(COMPOSE) up
-
-up-docker: env ## Start the service with host Docker socket
-	@if [ ! -S /var/run/docker.sock ]; then \
-		echo "Error: /var/run/docker.sock not found. Docker Engine is required for up-docker."; \
-		exit 1; \
-	fi
-	$(COMPOSE_DOCKER) up
-
-up-ssh: env ## Start SSH daemon (no Docker socket); detached
-	$(COMPOSE_SSH) up -d
-
-up-ssh-docker: env ## Start SSH daemon with host Docker socket; detached
-	@if [ ! -S /var/run/docker.sock ]; then \
-		echo "Error: /var/run/docker.sock not found. Docker Engine is required for up-ssh-docker."; \
-		exit 1; \
-	fi
+	-$(COMPOSE_SSH) down
 	$(COMPOSE_SSH_DOCKER) up -d
+	@if ! $(COMPOSE_SSH_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
+		echo "Docker socket missing in container; forcing recreate..."; \
+		$(COMPOSE_SSH_DOCKER) up -d --force-recreate; \
+		if ! $(COMPOSE_SSH_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
+			echo "Error: /var/run/docker.sock is not mounted in the container."; \
+			exit 1; \
+		fi; \
+	fi
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	printf '\nSSH ready (Docker socket enabled). Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}"
 
 down: ## Stop containers without removing volumes
-	-$(COMPOSE) down
-	-$(COMPOSE_DOCKER) down
 	-$(COMPOSE_SSH) down
 	-$(COMPOSE_SSH_DOCKER) down
 
 logs: ## Follow container logs
-	$(COMPOSE) logs -f
+	@if $(COMPOSE_SSH_DOCKER) ps -q cursor 2>/dev/null | grep -q .; then \
+		$(COMPOSE_SSH_DOCKER) logs -f; \
+	elif $(COMPOSE_SSH) ps -q cursor 2>/dev/null | grep -q .; then \
+		$(COMPOSE_SSH) logs -f; \
+	else \
+		echo "No running cursor container. Start with make shell or make shell-docker."; \
+		exit 1; \
+	fi
 
 config: env ## Validate and print the resolved Compose config
-	@echo "=== Base compose ==="
-	$(COMPOSE) config
-	@echo ""
-	@echo "=== Docker-enabled compose ==="
-	$(COMPOSE_DOCKER) config
-	@echo ""
-	@echo "=== SSH compose ==="
+	@echo "=== SSH (make shell) ==="
 	$(COMPOSE_SSH) config
 	@echo ""
-	@echo "=== SSH + Docker compose ==="
+	@echo "=== SSH + Docker (make shell-docker) ==="
 	$(COMPOSE_SSH_DOCKER) config
 
 init-project: env ## Create missing Cursor project files in the mounted PROJECT_DIR
@@ -88,17 +80,13 @@ init-project-dry-run: env ## Show Cursor project files that would be created
 	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run /workspace
 
 clean: ## Stop containers and remove anonymous resources (keeps named volumes)
-	-$(COMPOSE) down --remove-orphans
-	-$(COMPOSE_DOCKER) down --remove-orphans
 	-$(COMPOSE_SSH) down --remove-orphans
 	-$(COMPOSE_SSH_DOCKER) down --remove-orphans
 
 clean-volumes: ## Stop containers and DELETE named volumes (destructive)
-	@echo "WARNING: This deletes named volumes (caches, Cursor config, bash history)."
+	@echo "WARNING: This deletes named volumes (Cursor config/login, caches, bash history)."
 	@read -r -p "Type 'yes' to continue: " answer; \
 	if [ "$$answer" = "yes" ]; then \
-		$(COMPOSE) down -v --remove-orphans; \
-		$(COMPOSE_DOCKER) down -v --remove-orphans; \
 		$(COMPOSE_SSH) down -v --remove-orphans; \
 		$(COMPOSE_SSH_DOCKER) down -v --remove-orphans; \
 		echo "Named volumes removed."; \
