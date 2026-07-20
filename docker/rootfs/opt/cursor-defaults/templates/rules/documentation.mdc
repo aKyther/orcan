@@ -1,13 +1,13 @@
 ---
-description: Keep documentation accurate and simple
+description: Keep project documentation accurate and minimal
 globs: README.md,docs/**/*.md,AGENTS.md
 alwaysApply: false
 ---
 
 # Documentation
 
-- Use simple B2 English in user documentation.
-- Update docs when Makefile or Compose commands change.
+- Use simple B2 English.
+- Update existing docs when commands or paths change.
 - Keep examples copy-paste ready.
-- Do not document commands that do not exist.
-- Mark Docker socket risk with a clear warning.
+- Do not document behavior that does not exist.
+- Do not create extra Markdown files when updating an existing page is enough.

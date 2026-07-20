@@ -1,0 +1,30 @@
+---
+description: Planning discipline, scope control, validation, and completion reporting
+alwaysApply: true
+---
+
+# Planning and execution
+
+## Planning
+
+- Small tasks should not produce large plans.
+- Large tasks deserve a short, practical plan — in reasoning, not in repository files.
+- Do not create temporary Markdown files for planning.
+- Avoid expanding scope. Finish one area before moving to another.
+
+## Validation
+
+- Validate important behavior when checks exist.
+- Prefer project-native commands (`make`, test runners, linters).
+- If a check cannot run, say so. Do not imply success.
+
+## Completion report
+
+At task completion, report only:
+
+- what changed
+- what was verified
+- what was not verified
+- remaining limitations
+
+Keep the report short. Do not repeat planning steps or full implementation details.

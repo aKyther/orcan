@@ -82,5 +82,5 @@
 **/.yarn/cache/
 **/.yarn/unplugged/
 
-# Note: Dockerfile, docker-compose*.yml, Makefile, README.md, AGENTS.md,
+# Note: Dockerfile, docker-compose*.yml, Makefile, README.md,
 # .cursor/rules/*, and other repo config files stay accessible.

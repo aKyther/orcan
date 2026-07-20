@@ -1,6 +1,6 @@
 # Development
 
-Guide for contributors who change this repository.
+Guide for contributors and coding agents who change this repository.
 
 ## Coding style
 
@@ -22,8 +22,23 @@ Guide for contributors who change this repository.
 | Host orchestration | `Makefile` + Compose |
 | Host helpers | `scripts/repository/` |
 | Project templates | `docker/rootfs/opt/cursor-defaults/templates/` |
-| This repo's Cursor rules | `.cursor/rules/`, `AGENTS.md` |
+| This repo's Cursor rules | `.cursor/rules/` (see `agents.mdc`) |
 | Documentation | `README.md`, `docs/` |
+
+## Agent guide
+
+Agents working on **this** repository should follow `.cursor/rules/agents.mdc`.
+That file is always applied in Cursor.
+
+Key points:
+
+* Work only inside `/workspace` (the mounted project for end users; this repo when you develop it).
+* Repository rules (`.cursor/`) are separate from image defaults (`docker/rootfs/opt/cursor-defaults/`).
+* After infrastructure changes, run `make validate` and `make build` / `make test` when Docker is available.
+* Update `README.md` and the matching `docs/` page when Make or Compose commands change.
+
+Mounted projects can still get their own `AGENTS.md` from `cursor-init-project` templates.
+That is for the **user's project**, not for developing this repository.
 
 ## Changing the Dockerfile
 
@@ -52,9 +67,12 @@ Examples:
 ## Changing Cursor defaults
 
 1. Edit files under `docker/rootfs/opt/cursor-defaults/`.
-2. Rebuild the image (`make build`).
-3. New files appear on next container start only if missing in the volume.
-4. To force a full reset of global Cursor home: `make clean-volumes`, then start again.
+2. Global rules (`rules/`) apply to every session — keep them generic (no language or framework specifics).
+3. Global skills (`skills/`) are reusable workflows; avoid duplicating rule content.
+4. Project templates (`templates/`) are copied by `cursor-init-project` — keep them project-scoped.
+5. Rebuild the image (`make build`).
+6. New files appear on next container start only if missing in the volume.
+7. To force a full reset of global Cursor home: `make clean-volumes`, then start again.
 
 Do not write defaults only into `/home/developer/.cursor` during the image build.
 The named volume would hide them.
@@ -82,7 +100,7 @@ make config
 
 * Keep `.mdc` files short
 * One concern per file
-* Use `alwaysApply: true` only for safety/validation rules
+* Use `alwaysApply: true` only for safety/validation rules and the agent guide
 * Do not confuse repo rules with image defaults under `docker/rootfs/opt/cursor-defaults/`
 
 ## Changing documentation
@@ -91,7 +109,7 @@ When you change a user-facing interface or path:
 
 1. Update `README.md`
 2. Update the matching page under `docs/`
-3. Update `AGENTS.md` if agent workflow commands changed
+3. Update `.cursor/rules/agents.mdc` if agent workflow commands changed
 
 ```bash
 make docs-serve
@@ -106,3 +124,19 @@ make docs-serve
 * [ ] Docs match the real Make/Compose/paths interface
 
 Report what ran, what did not run, and any environment limits.
+
+## Roadmap
+
+Optional hardening and publishing ideas. None of these are required to use the project today.
+
+| Idea | Why |
+| --- | --- |
+| Pin tool and base image versions | Reproducible builds over time |
+| Verify SHA256 of downloaded binaries | Stronger supply-chain checks |
+| CI builds for `amd64` and `arm64` | Catch arch-specific breakages early |
+| Scan images with Trivy | Find known CVEs before publish |
+| Publish to GHCR | Share a prebuilt image |
+| Slim language variants | Smaller images for focused stacks |
+| Optional SSH agent forwarding | Safer than mounting `~/.ssh` |
+| Image smoke tests in CI | Fail fast when a tool disappears |
+| Dependabot or Renovate | Keep base images and actions current |

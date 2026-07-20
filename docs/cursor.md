@@ -6,7 +6,7 @@ This repository prepares Cursor CLI with **global defaults inside the container*
 
 | Location | Purpose |
 | --- | --- |
-| Root `.cursor/`, `AGENTS.md`, ignore files | Developing **this** repository |
+| Root `.cursor/rules/`, ignore files | Developing **this** repository |
 | `docker/rootfs/opt/cursor-defaults/` | Product defaults copied into the **image** |
 | `${HOME}/.cursor` in the container | Writable user state (named volume) |
 | `/workspace/.cursor` | Settings for the **mounted project** |
@@ -99,11 +99,65 @@ Source tree: `docker/rootfs/opt/cursor-defaults/`.
 
 | Path | Role |
 | --- | --- |
-| `rules/` | Global always-on rules |
-| `skills/` | Reusable skills |
+| `rules/` | Global always-on rules (agent behavior in every session) |
+| `skills/` | Reusable skills the agent can apply on demand |
 | `templates/` | Project templates for `cursor-init-project` |
 | `cli-config.json` | Cursor CLI global config |
 | `permissions.example.json` | Example permissions block (not auto-loaded) |
+
+## Global profile (rules and skills)
+
+Every new Cursor CLI session in the container starts with the same **global profile**.
+This shapes how the agent thinks and works. It is **not** tied to the mounted project.
+
+On container start, `init-cursor-home` copies missing files from `/opt/cursor-defaults` into `~/.cursor`.
+Existing files in the volume are never overwritten.
+
+### Global rules (always active)
+
+| Rule | Purpose |
+| --- | --- |
+| `operating-principles.mdc` | Understand the repo, stay focused, avoid clutter, report honestly |
+| `planning-and-execution.mdc` | Practical planning, scope control, validation, short completion reports |
+| `code-quality.mdc` | Readable code, no unnecessary abstraction |
+| `documentation-discipline.mdc` | Update existing docs, avoid duplicate or stray Markdown |
+| `container-safety.mdc` | `/workspace` scope, secrets, Docker socket, destructive commands |
+
+Rules stay **generic**. They do not prescribe a language, framework, or architecture.
+Stack-specific guidance belongs in the **mounted project**, not here.
+
+### Global skills (on demand)
+
+| Skill | Purpose |
+| --- | --- |
+| `repository-analysis` | Understand a repo before large changes |
+| `focused-implementation` | Smallest complete implementation |
+| `final-review` | Review diff and report validation honestly |
+| `docker-review` | Review Docker/Compose/Makefile setup |
+| `project-bootstrap` | Scaffold missing project Cursor files |
+
+Skills do not replace rules. Rules apply every session; skills guide specific workflows.
+
+### What belongs in the mounted project
+
+| Location | Purpose |
+| --- | --- |
+| `/workspace/.cursor/rules/` | Rules for **this** repository only |
+| `/workspace/AGENTS.md` | Project goals, setup, and checks |
+| `/workspace/.cursorignore` | Files the agent should not read |
+
+Create project files with `cursor-init-project` when needed.
+Templates under `templates/` are starting points — customize them per project.
+
+### Why the separation exists
+
+| Layer | Scope | Changes when |
+| --- | --- | --- |
+| Image defaults (`/opt/cursor-defaults`) | Every session, every project | You rebuild the devcontainer image |
+| User Cursor home (`~/.cursor`) | Persistent per developer in the container | First start seeds defaults; later edits persist |
+| Mounted project (`/workspace/.cursor`) | One repository | You work on that repo |
+
+This keeps agent behavior consistent in the container while letting each project define its own stack and conventions.
 
 !!! note
 

@@ -1,0 +1,35 @@
+---
+description: General behavior for understanding work and making focused changes
+alwaysApply: true
+---
+
+# Operating principles
+
+Optimize for correctness, readability, maintainability, simplicity, and explicit behavior.
+The best solution is usually the smallest complete solution.
+
+## Before changing anything
+
+- Understand the repository and the real goal before editing.
+- Read relevant files first. Do not guess from names alone.
+- Preserve working behavior unless the task requires a change.
+- Distinguish facts from assumptions. State assumptions clearly.
+
+## While working
+
+- Make focused changes. Avoid unrelated cleanup or drive-by refactors.
+- Prefer explicit solutions over clever code.
+- Before creating a new file, check whether an existing file should be updated instead.
+- New repository files need a clear long-term purpose.
+
+## Repository clutter
+
+Do not create Markdown files for temporary notes, planning, or progress tracking unless the user explicitly asks.
+
+Never create: `PLAN.md`, `TODO.md`, `IMPLEMENTATION.md`, `SUMMARY.md`, `ANALYSIS.md`, or similar report files.
+
+## Honesty
+
+- Never claim something was verified unless it actually was.
+- Never state that tests passed, builds succeeded, lint passed, or configuration was validated unless the command ran.
+- Label conclusions as **Verified**, **Assumed**, or **Not checked**.
