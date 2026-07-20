@@ -39,7 +39,6 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `docker-compose.ssh.yml` | Optional overlay: OpenSSH for VPS / Tailscale access |
 | `Makefile` | Short host commands for build, shell, cleanup |
 | `docker/rootfs/` | Files installed into the image (paths match the container) |
-| `docker/README.md` | Explains the image filesystem layout |
 | `scripts/repository/` | Host-only maintenance helpers |
 | `tests/smoke/` | Container smoke tests |
 | `.env.example` | Safe template for UID/GID and `PROJECT_DIR` |
@@ -47,10 +46,8 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `.cursorignore` | Limits what Cursor agents can read **in this repo** |
 | `.cursorindexingignore` | Keeps large/noise files out of the index |
 | `.cursor/rules/` | Cursor rules **for developing this repository** |
-| `AGENTS.md` | Shared agent instructions for this repository |
 | `docs/` | Full MkDocs Material documentation |
 | `mkdocs.yml` | Docs site configuration |
-| `ROADMAP.md` | Optional future hardening ideas |
 | `LICENSE` | MIT license |
 
 ### Repository files vs container files
@@ -60,7 +57,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | Repository control | root (`Dockerfile`, Compose, `Makefile`, docs) | Humans and host tooling |
 | Image filesystem | `docker/rootfs/` | Copied into the container image |
 | Host helpers | `scripts/repository/` | Run on the host only |
-| Repo Cursor config | `.cursor/`, `AGENTS.md`, ignore files | Agents working on **this** repo |
+| Repo Cursor config | `.cursor/rules/`, ignore files | Agents working on **this** repo |
 | Image Cursor defaults | `docker/rootfs/opt/cursor-defaults/` | Seeded into `${HOME}/.cursor` at startup |
 | Project templates | `…/opt/cursor-defaults/templates/` | Applied only by `cursor-init-project` |
 
@@ -174,6 +171,8 @@ Project Cursor files    →  /workspace/.cursor, AGENTS.md
 
 On every container start, missing files are copied from `/opt/cursor-defaults` into `${HOME}/.cursor`.
 Existing files are never overwritten.
+
+**Global profile:** five always-on rules and five reusable skills shape every session (understanding repos, focused changes, honest validation, minimal docs). Project-specific rules live only in the mounted repo. Details: [docs/cursor.md](docs/cursor.md#global-profile-rules-and-skills).
 
 Scaffold a mounted project explicitly (after SSH):
 
@@ -353,7 +352,8 @@ So the toolchain is repeatable and does not pollute the host.
 **Why not install Cursor only on the host?**  
 You can. This repo adds a full isolated toolbox and clearer project boundaries.
 
-**Yes. Start a new session with another `PROJECT_DIR` (run `make down` first if a container is already running).**
+**Can I switch projects?**  
+Yes. Start a new session with another `PROJECT_DIR` (run `make down` first if a container is already running).
 
 **Can I disable TMUX?**  
 Yes. Start a non-interactive command, or remove the TMUX block from
@@ -371,7 +371,8 @@ More questions: [docs/faq.md](docs/faq.md).
 
 ## Documentation
 
-Full docs live in `docs/` and are built with MkDocs Material:
+Full docs live in `docs/` and are built with MkDocs Material.
+For contributors and agents, see [docs/development.md](docs/development.md).
 
 ```bash
 pip install mkdocs-material

@@ -14,18 +14,11 @@ Prepare the project at `/workspace` (or another path the user names) for Cursor.
 
 1. Inspect the repository structure and key config files.
 2. Detect the main language and tools from existing files only.
-3. Check for existing Cursor files:
-   - `AGENTS.md`
-   - `.cursorignore`
-   - `.cursorindexingignore`
-   - `.cursor/rules/`
-4. Create **missing** files only.
-5. Prefer templates from `${HOME}/.cursor/templates/` when present.
-6. Keep project rules specific to this repository.
-7. Never overwrite existing files without explicit user approval.
-8. Summarize created and skipped files.
-9. Validate the generated configuration (paths exist, rules have frontmatter).
-10. Keep user-facing text in simple B2 English.
+3. Check for existing Cursor files (`AGENTS.md`, `.cursorignore`, `.cursorindexingignore`, `.cursor/rules/`).
+4. Create **missing** files only. Use templates from `${HOME}/.cursor/templates/` when present.
+5. Keep project rules specific to this repository — not language/framework globals.
+6. Never overwrite existing files without explicit user approval.
+7. Summarize created and skipped files. Do not add analysis or progress Markdown.
 
 ## Suggested outputs
 

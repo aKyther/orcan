@@ -38,13 +38,8 @@ Inspect when present:
 
 ## Report format
 
-Separate findings clearly:
-
-| Category | Meaning |
-| --- | --- |
-| Verified | Confirmed by reading files or running a check |
-| Assumption | Likely true, not proven in this session |
-| Not run | Check that was not executed |
+Use the **final-review** skill for the closing report.
+Label findings as **Verified**, **Assumption**, or **Not checked** when reviewing Docker files.
 
 ## Rules
 

@@ -1,6 +1,6 @@
 ---
 description: Documentation update rules for this repository
-globs: README.md,docs/**/*.md,mkdocs.yml,AGENTS.md,Makefile
+globs: README.md,docs/**/*.md,mkdocs.yml,.cursor/rules/agents.mdc,Makefile
 alwaysApply: false
 ---
 

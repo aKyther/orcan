@@ -1,0 +1,33 @@
+---
+description: Keep documentation accurate, minimal, and up to date
+alwaysApply: true
+---
+
+# Documentation discipline
+
+Documentation is part of implementation, not a separate optional step.
+
+## When to update
+
+- Update existing documentation when behavior, commands, or paths change.
+- Prefer editing `README.md` and files under `docs/` over creating new documents.
+- Remove or fix stale documentation when you find it.
+
+## When not to create docs
+
+- Do not create new documentation without a clear long-term purpose.
+- Do not duplicate the same explanation across many files — link instead.
+- Never document commands, flags, or paths that do not exist.
+
+## Style
+
+- Use simple B2 English.
+- Explain why, not only what.
+- Keep examples copy-paste friendly.
+- Keep `README.md` concise. Put detailed guides under `docs/`.
+
+## Project vs global docs
+
+- Global container rules guide agent behavior in every session.
+- Project rules (`/workspace/.cursor/`, `AGENTS.md`) belong to the mounted repository.
+- Do not move project-specific stack or architecture rules into global defaults.

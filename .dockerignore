@@ -7,9 +7,7 @@ docs/
 site/
 mkdocs.yml
 LICENSE
-ROADMAP.md
 README.md
-AGENTS.md
 .cursor/
 .cursorignore
 .cursorindexingignore

@@ -1,9 +1,12 @@
-# AGENTS.md
+---
+description: Agent instructions for this repository
+alwaysApply: true
+---
 
-## Purpose
+# Agent guide
 
 This repository builds and runs an isolated Docker environment for Cursor CLI.
-A single host project is mounted at `/workspace`. Agents must treat that mount as the only writable project scope.
+A single host project is mounted at `/workspace`. Treat that mount as the only writable project scope.
 
 ## File map
 
@@ -26,7 +29,7 @@ A single host project is mounted at `/workspace`. Agents must treat that mount a
 
 ## Separation rules
 
-- Repository docs/rules (root `.cursor/`, `AGENTS.md`) ≠ image defaults (`docker/rootfs/opt/cursor-defaults/`).
+- Repository rules (root `.cursor/`) are not image defaults (`docker/rootfs/opt/cursor-defaults/`).
 - Container scripts live only under `docker/rootfs/usr/local/bin/`.
 - Host scripts live only under `scripts/repository/`.
 - Do not embed large heredoc programs in the Dockerfile.
@@ -63,50 +66,6 @@ Use `PROJECT_DIR=/absolute/path/to/project` to choose the mounted project.
 - Do not auto-modify `/workspace` on startup; use `cursor-init-project` explicitly.
 - Active CLI permissions file is `cli-config.json`.
 
-## Dockerfile rules
-
-- Keep Debian Bookworm Slim as the final base.
-- Keep multi-stage copies for Node, Go, Rust, and uv.
-- Keep non-root user `developer`.
-- Copy container files from `docker/rootfs/`.
-- Never bake secrets, tokens, or SSH keys into the image.
-- Prefer `--no-install-recommends` and clean APT lists.
-- Support `amd64` and `arm64` when practical.
-- Do not grow the image without a clear reason.
-
-## Compose rules
-
-- Base file must work without `/var/run/docker.sock`.
-- Docker socket and `group_add` belong only in `docker-compose.docker.yml`.
-- OpenSSH publish/password settings belong only in `docker-compose.ssh.yml`.
-- Keep named volumes for caches and Cursor config.
-- Mount only the selected project at `/workspace`.
-- Do not mount `/`, `/home`, or `/etc`.
-
-## Makefile rules
-
-- Use `docker compose` (v2 plugin).
-- Keep the Makefile thin; put host logic in `scripts/repository/`.
-- `down` and `clean` must not delete named volumes.
-- `clean-volumes` is destructive and must stay explicit.
-- Keep `help` accurate when targets change.
-
-## Security model
-
-- Isolation is best-effort. The bind-mounted project is writable on the host.
-- Docker socket access is host-level privilege. Use only `*-docker` targets when needed.
-- `sudo` inside the container is root in the container, not a full host escape by itself.
-- Secrets stay out of the image and out of git (`.env` is ignored).
-
-## Required validation
-
-After infrastructure changes:
-
-1. `make validate`
-2. `make build` when Docker is available
-3. `make test` when Docker is available
-4. Smoke-check key tools in a running container when a build succeeds
-
 ## Agent boundaries
 
 Allowed:
@@ -133,3 +92,5 @@ Not allowed:
 - [ ] Docs/README updated for interface/path changes
 - [ ] No secrets added to the image or repo
 - [ ] Final report lists ran tests, skipped tests, and limits
+
+More detail: `docs/development.md`.

@@ -18,7 +18,7 @@ command -v docker-entrypoint >/dev/null
 command -v init-cursor-home >/dev/null
 command -v cursor-init-project >/dev/null
 command -v cursor-sshd >/dev/null
-command -v sshd >/dev/null
+test -x /usr/sbin/sshd
 test -f /etc/ssh/sshd_config.d/cursor.conf
 test -d /opt/cursor-defaults
 test -d "${HOME}/.cursor"
@@ -27,6 +27,9 @@ test -f "${HOME}/.tmux.conf"
 test -f "${HOME}/.vimrc"
 test -r /opt/cursor-defaults/cli-config.json
 test ! -w /opt/cursor-defaults/cli-config.json
+test -f /opt/cursor-defaults/rules/operating-principles.mdc
+test -f "${HOME}/.cursor/rules/operating-principles.mdc"
+test -f "${HOME}/.cursor/skills/repository-analysis/SKILL.md"
 
 # Idempotent home init
 init-cursor-home | tee /tmp/init1.txt

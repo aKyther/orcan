@@ -1,0 +1,23 @@
+---
+description: Readable, maintainable implementation without unnecessary complexity
+alwaysApply: true
+---
+
+# Code quality
+
+- Optimize for readability and maintainability.
+- Follow the existing project style for naming, structure, and patterns.
+- Keep responsibilities small. Reduce nesting where it helps clarity.
+- Prefer clear names over short or clever names.
+
+## Avoid unnecessary complexity
+
+- Do not add premature abstraction.
+- Do not add generic helper layers used only once.
+- Do not add dependencies without a clear need.
+- Do not optimize for maximum abstraction, file count, or speculative future requirements.
+
+## Comments
+
+- Code should mostly explain itself.
+- Add comments only for non-obvious behavior, constraints, or trade-offs.

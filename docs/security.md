@@ -77,7 +77,7 @@ They do **not** replace Docker isolation or OS permissions.
 
 The base Compose file mounts `~/.ssh` read-only for Git over SSH.
 
-Safer long-term option (see `ROADMAP.md`): SSH agent forwarding instead of mounting the whole `.ssh` directory.
+Safer long-term option (see [Development — Roadmap](development.md#roadmap)): SSH agent forwarding instead of mounting the whole `.ssh` directory.
 
 ## SSH server (always on)
 
