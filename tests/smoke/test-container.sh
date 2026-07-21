@@ -23,9 +23,9 @@ set -euo pipefail
 command -v docker-entrypoint >/dev/null
 command -v init-cursor-home >/dev/null
 command -v cursor-init-project >/dev/null
-command -v cursor-sshd >/dev/null
-test -x /usr/sbin/sshd
-test -f /etc/ssh/sshd_config.d/cursor.conf
+command -v cursor-ttyd >/dev/null
+command -v ttyd >/dev/null
+test -x /usr/local/bin/ttyd
 test -d /opt/cursor-defaults
 test -d \"\${HOME}/.cursor\"
 test -f \"\${HOME}/.cursor/cli-config.json\"

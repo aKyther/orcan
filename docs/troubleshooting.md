@@ -41,7 +41,7 @@ grep USER_ /.env
 1. Confirm the socket exists on the host: `ls -l /var/run/docker.sock`
 2. Refresh group id: `make env`
 3. Use the docker-enabled target: `make shell-docker` (not `make shell`)
-4. If you previously ran `make shell`, run `make shell-docker` again — it stops the SSH-only container and recreates with the socket.
+4. If you previously ran `make shell`, run `make shell-docker` again — it stops the ttyd-only container and recreates with the socket.
 
 Inside the container, check:
 
@@ -75,7 +75,7 @@ make clean-volumes
 make shell-docker
 ```
 
-Then log in again inside the container.
+Then log in again inside the browser terminal.
 
 ## No TTY / broken interactive session
 
@@ -83,22 +83,22 @@ Then log in again inside the container.
 
 **Fix:**
 
-* Run from a real terminal, not a non-interactive pipe
-* Connect over SSH after `make shell` (`ssh developer@localhost`)
-* TMUX starts automatically inside the SSH session
+* Open the browser terminal at `http://localhost:7681` after `make shell`
+* TMUX starts automatically inside the ttyd session (session name: `workspace`)
+* Run `make terminal` if you forgot the URL
 
 ## TMUX did not start
 
 **Checks:**
 
-* Are you in an interactive terminal? (`[ -t 0 ]` must be true)
-* Is `TMUX` already set?
+* Did you open the browser terminal URL (not a raw `docker exec`)?
+* Is the container healthy? (`docker compose ps`)
 * Is `tmux` on `PATH`?
 
-Manual start:
+Manual start (inside the container):
 
 ```bash
-tmux new-session -A -s cursor
+tmux new-session -A -s workspace
 ```
 
 ## Stale image or missing new tools
@@ -116,17 +116,16 @@ make rebuild
 
 ## Cursor CLI not logged in
 
-Run the login flow inside the container once. Auth persists in the `cursor-app-config` volume (`~/.config/cursor/auth.json`) across restarts.
+Run the login flow inside the browser terminal once. Auth persists in the `cursor-app-config` volume (`~/.config/cursor/auth.json`) across restarts.
 
 If login state is broken:
 
 ```bash
 make clean-volumes
 make shell
-ssh developer@localhost
 ```
 
-Then log in again.
+Open `http://localhost:7681` and log in again.
 
 ## Compose config errors
 
@@ -144,28 +143,30 @@ Common causes:
 
 The Makefile exits if `/var/run/docker.sock` is missing. Start Docker Engine/Desktop, then retry.
 
-## Cannot bind SSH port 22
+## Cannot bind ttyd port 7681
 
-The host may already run `sshd` on port 22. Set another port in `.env`:
+Another process may already use port `7681` on the host. Set another port in `.env`:
 
 ```bash
-SSH_HOST_PORT=2222
+TTYD_HOST_PORT=8765
 ```
 
 Then:
 
 ```bash
 make shell
-ssh -p 2222 developer@localhost
 ```
+
+Open `http://localhost:8765` (or run `make terminal`).
 
 ## Useful diagnostic commands
 
 ```bash
 make help
+make terminal
 make config
 docker compose -f docker-compose.yml config
 docker compose -f docker-compose.yml -f docker-compose.docker.yml config
-docker compose -f docker-compose.yml -f docker-compose.ssh.yml config
+docker compose -f docker-compose.yml -f docker-compose.ttyd.yml config
 docker images | grep cursor-dev
 ```

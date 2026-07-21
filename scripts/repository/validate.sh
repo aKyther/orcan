@@ -20,7 +20,7 @@ require_file() {
 require_file "Dockerfile"
 require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
-require_file "docker-compose.ssh.yml"
+require_file "docker-compose.ttyd.yml"
 require_file "Makefile"
 require_file "scripts/repository/validate-project-dir.sh"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
@@ -35,8 +35,7 @@ require_file "docker/rootfs/opt/cursor-defaults/skills/final-review/SKILL.md"
 require_file "docker/rootfs/usr/local/bin/docker-entrypoint"
 require_file "docker/rootfs/usr/local/bin/init-cursor-home"
 require_file "docker/rootfs/usr/local/bin/cursor-init-project"
-require_file "docker/rootfs/usr/local/bin/cursor-sshd"
-require_file "docker/rootfs/etc/ssh/sshd_config.d/cursor.conf"
+require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/etc/skel/.tmux.conf"
 require_file "docker/rootfs/etc/skel/.vimrc"
 require_file "docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh"
@@ -46,7 +45,7 @@ for script in \
     docker/rootfs/usr/local/bin/docker-entrypoint \
     docker/rootfs/usr/local/bin/init-cursor-home \
     docker/rootfs/usr/local/bin/cursor-init-project \
-    docker/rootfs/usr/local/bin/cursor-sshd \
+    docker/rootfs/usr/local/bin/cursor-ttyd \
     scripts/repository/update-env.sh \
     scripts/repository/validate-project-dir.sh \
     scripts/repository/validate.sh \
@@ -63,8 +62,8 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null
     docker compose -f docker-compose.yml config --quiet
     docker compose -f docker-compose.yml -f docker-compose.docker.yml config --quiet
-    docker compose -f docker-compose.yml -f docker-compose.ssh.yml config --quiet
-    docker compose -f docker-compose.yml -f docker-compose.ssh.yml -f docker-compose.docker.yml config --quiet
+    docker compose -f docker-compose.yml -f docker-compose.ttyd.yml config --quiet
+    docker compose -f docker-compose.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
     printf 'Compose config OK\n'
 else
     printf 'Skip: Docker daemon not available for compose config\n'
@@ -72,7 +71,7 @@ fi
 
 # Stale path check (ignore this script's own pattern list)
 stale=0
-for pattern in 'scripts/init-cursor-home.sh' 'scripts/docker-entrypoint.sh' 'scripts/init-project.sh' 'cursor-home/'; do
+for pattern in 'scripts/init-cursor-home.sh' 'scripts/docker-entrypoint.sh' 'scripts/init-project.sh' 'cursor-home/' 'cursor-sshd' 'docker-compose.ssh.yml'; do
     if grep -R --exclude-dir=.git --exclude-dir=site --exclude='validate.sh' -n "${pattern}" . \
         > /tmp/stale-hits.txt 2>/dev/null; then
         if [[ -s /tmp/stale-hits.txt ]]; then

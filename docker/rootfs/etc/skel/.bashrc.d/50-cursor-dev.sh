@@ -14,13 +14,4 @@ if [[ -n "${PROJECT_DIR:-}" && -d "${PROJECT_DIR}" ]]; then
     cd "${PROJECT_DIR}" || printf 'Warning: could not cd to PROJECT_DIR=%s\n' "${PROJECT_DIR}" >&2
 fi
 
-# Start TMUX only for interactive TTY sessions.
-if command -v tmux >/dev/null 2>&1 \
-    && [[ -z "${TMUX:-}" ]] \
-    && [[ -t 0 ]]; then
-    tmux_start_dir="${PROJECT_DIR:-$HOME}"
-    if [[ ! -d "${tmux_start_dir}" ]]; then
-        tmux_start_dir="${HOME}"
-    fi
-    exec tmux new-session -A -s cursor -c "${tmux_start_dir}"
-fi
+# tmux is started by cursor-ttyd (browser terminal), not here.

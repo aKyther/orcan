@@ -15,7 +15,7 @@ A host project is mounted at `${PROJECT_DIR}` with path parity (same absolute pa
 | `Dockerfile` | Image build only (packages, COPY rootfs, user, ENTRYPOINT) |
 | `docker-compose.yml` | Base service (no Docker socket) |
 | `docker-compose.docker.yml` | Optional Docker socket overlay |
-| `docker-compose.ssh.yml` | Optional OpenSSH overlay (VPS / Tailscale) |
+| `docker-compose.ttyd.yml` | Optional ttyd overlay (browser terminal) |
 | `Makefile` | Thin host UI; calls Compose and `scripts/repository/` |
 | `docker/rootfs/` | Files installed into the image (source of truth) |
 | `scripts/repository/` | Host-only helpers (`update-env`, `validate`, `validate-project-dir`) |
@@ -43,6 +43,7 @@ make path-check
 make build
 make shell
 make shell-docker
+make terminal
 make down
 make logs
 make rebuild
@@ -90,7 +91,7 @@ Not allowed:
 ## Done checklist
 
 - [ ] `make validate` passes
-- [ ] Compose config validates (base and docker overlay)
+- [ ] Compose config validates (base, ttyd, and docker overlays)
 - [ ] Makefile help matches real targets
 - [ ] Docs/README updated for interface/path changes
 - [ ] No secrets added to the image or repo

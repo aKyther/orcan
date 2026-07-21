@@ -44,16 +44,17 @@ make shell-docker
 
     This mounts the host Docker socket and is powerful.
 
-## Can I SSH into the container?
+## How do I access the container terminal?
 
-Yes. Both `make shell` and `make shell-docker` start OpenSSH:
+Both `make shell` and `make shell-docker` start ttyd — a browser-based terminal on port `7681`:
 
 ```bash
 make shell
-ssh developer@localhost
 ```
 
-On a VPS behind Tailscale, use the machine's Tailscale IP. Default password is `cursor` (`DEVELOPER_PASSWORD` in `.env`). See [Docker](docker.md) and [Security](security.md).
+Open `http://localhost:7681` (or run `make terminal` to print the URL).
+
+On a VPS behind Tailscale, use `http://<tailscale-ip>:7681`. ttyd has no authentication — use only on localhost or a private network. See [Docker](docker.md) and [Security](security.md).
 
 ## Why do new files belong to my user?
 

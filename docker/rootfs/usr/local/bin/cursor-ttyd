@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Start ttyd with a persistent tmux session for browser terminal access.
+# Runs after docker-entrypoint (init-cursor-home). No authentication — local/Tailscale only.
+
+set -Eeuo pipefail
+
+TTYD_PORT="${TTYD_PORT:-7681}"
+TMUX_SESSION_NAME="${TMUX_SESSION_NAME:-workspace}"
+TMUX_START_DIR="${PROJECT_DIR:-${HOME}}"
+
+if [[ ! -d "${TMUX_START_DIR}" ]]; then
+    printf 'Error: tmux start directory does not exist: %s\n' "${TMUX_START_DIR}" >&2
+    exit 1
+fi
+
+printf 'ttyd ready: http://0.0.0.0:%s (tmux session: %s, dir: %s)\n' \
+    "${TTYD_PORT}" "${TMUX_SESSION_NAME}" "${TMUX_START_DIR}" >&2
+printf 'WARNING: Do not expose this port to the public Internet without authentication and TLS.\n' >&2
+
+exec ttyd \
+    --writable \
+    --interface 0.0.0.0 \
+    --port "${TTYD_PORT}" \
+    tmux new-session -A -s "${TMUX_SESSION_NAME}" -c "${TMUX_START_DIR}"

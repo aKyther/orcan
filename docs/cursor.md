@@ -54,7 +54,7 @@ At startup, the entrypoint copies **missing** files into `${HOME}/.cursor`.
 3. Existing files are skipped (user changes are kept).
 4. The original command runs (`bash`, `cursor-init-project`, …).
 
-TMUX still starts only from `~/.bashrc.d/50-cursor-dev.sh` for interactive terminals.
+TMUX starts from `cursor-ttyd` when you open the browser terminal.
 The entrypoint does not start TMUX.
 
 ### Idempotency
@@ -73,8 +73,9 @@ named-volume mount stays writable. Defaults still come only from `/opt/cursor-de
 ```bash
 make clean-volumes
 make shell
-ssh developer@localhost
 ```
+
+Open `http://localhost:7681` to continue.
 
 ### Login persistence
 
@@ -85,7 +86,7 @@ Cursor CLI stores different data in two volumes:
 | `~/.cursor` | `cursor-config` | `cli-config.json`, chats, rules, skills |
 | `~/.config/cursor` | `cursor-app-config` | `auth.json` (login tokens) |
 
-Log in once after SSH (`agent login` or the interactive flow). Restarts and `make down` keep both volumes.
+Log in once from the browser terminal (`agent login` or the interactive flow). Restarts and `make down` keep both volumes.
 
 !!! warning
 
@@ -170,7 +171,11 @@ Templates are **not** copied into `${PROJECT_DIR}` at startup.
 
 ```bash
 make shell
-ssh developer@localhost
+```
+
+Open `http://localhost:7681`, then:
+
+```bash
 cursor-init-project --dry-run
 cursor-init-project
 ```

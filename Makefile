@@ -2,16 +2,16 @@ SHELL := /bin/bash
 
 COMPOSE_FILE := docker-compose.yml
 COMPOSE_DOCKER_FILE := docker-compose.docker.yml
-COMPOSE_SSH_FILE := docker-compose.ssh.yml
+COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
-COMPOSE_SSH := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_SSH_FILE)
-COMPOSE_SSH_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_SSH_FILE) -f $(COMPOSE_DOCKER_FILE)
+COMPOSE_TTYD := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_TTYD_FILE)
+COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_TTYD_FILE) -f $(COMPOSE_DOCKER_FILE)
 
 PROJECT_DIR ?= $(CURDIR)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env build rebuild shell shell-docker \
+.PHONY: help env build rebuild shell shell-docker terminal \
 	down logs config init-project init-project-dry-run clean clean-volumes \
 	docs docs-serve test validate path-check validate-project
 
@@ -37,50 +37,54 @@ build: env validate-project ## Build the container image
 rebuild: env validate-project ## Rebuild the image without cache
 	$(COMPOSE) build --no-cache
 
-shell: env validate-project ## Start container with SSH (no Docker socket)
-	-$(COMPOSE_SSH_DOCKER) down
-	$(COMPOSE_SSH) up -d
+shell: env validate-project ## Start container with browser terminal (no Docker socket)
+	-$(COMPOSE_TTYD_DOCKER) down
+	$(COMPOSE_TTYD) up -d
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nSSH ready. Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n  Project path: %s\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}" "$$PROJECT_DIR"
+	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n  tmux session: %s\n  Project path: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$${TMUX_SESSION_NAME:-workspace}" "$$PROJECT_DIR"
 
-shell-docker: env validate-project ## Start container with SSH and host Docker socket
+shell-docker: env validate-project ## Start container with browser terminal and host Docker socket
 	@if [ ! -S /var/run/docker.sock ]; then \
 		echo "Error: /var/run/docker.sock not found. Docker Engine is required for shell-docker."; \
 		exit 1; \
 	fi
-	-$(COMPOSE_SSH) down
-	$(COMPOSE_SSH_DOCKER) up -d
-	@if ! $(COMPOSE_SSH_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
+	-$(COMPOSE_TTYD) down
+	$(COMPOSE_TTYD_DOCKER) up -d
+	@if ! $(COMPOSE_TTYD_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
 		echo "Docker socket missing in container; forcing recreate..."; \
-		$(COMPOSE_SSH_DOCKER) up -d --force-recreate; \
-		if ! $(COMPOSE_SSH_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
+		$(COMPOSE_TTYD_DOCKER) up -d --force-recreate; \
+		if ! $(COMPOSE_TTYD_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
 			echo "Error: /var/run/docker.sock is not mounted in the container."; \
 			exit 1; \
 		fi; \
 	fi
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nSSH ready (Docker socket enabled). Connect with:\n  ssh -p %s developer@localhost\n  Password: see DEVELOPER_PASSWORD in .env (default: cursor)\n  Project path: %s\n\nStop with: make down\n' "$${SSH_HOST_PORT:-22}" "$$PROJECT_DIR"
+	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n  tmux session: %s\n  Project path: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$${TMUX_SESSION_NAME:-workspace}" "$$PROJECT_DIR"
+
+terminal: ## Print the browser terminal URL
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	printf 'http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"
 
 down: ## Stop containers without removing volumes
-	-$(COMPOSE_SSH) down
-	-$(COMPOSE_SSH_DOCKER) down
+	-$(COMPOSE_TTYD) down
+	-$(COMPOSE_TTYD_DOCKER) down
 
 logs: ## Follow container logs
-	@if $(COMPOSE_SSH_DOCKER) ps -q cursor 2>/dev/null | grep -q .; then \
-		$(COMPOSE_SSH_DOCKER) logs -f; \
-	elif $(COMPOSE_SSH) ps -q cursor 2>/dev/null | grep -q .; then \
-		$(COMPOSE_SSH) logs -f; \
+	@if $(COMPOSE_TTYD_DOCKER) ps -q cursor 2>/dev/null | grep -q .; then \
+		$(COMPOSE_TTYD_DOCKER) logs -f; \
+	elif $(COMPOSE_TTYD) ps -q cursor 2>/dev/null | grep -q .; then \
+		$(COMPOSE_TTYD) logs -f; \
 	else \
 		echo "No running cursor container. Start with make shell or make shell-docker."; \
 		exit 1; \
 	fi
 
 config: env validate-project ## Validate and print the resolved Compose config
-	@echo "=== SSH (make shell) ==="
-	$(COMPOSE_SSH) config
+	@echo "=== ttyd (make shell) ==="
+	$(COMPOSE_TTYD) config
 	@echo ""
-	@echo "=== SSH + Docker (make shell-docker) ==="
-	$(COMPOSE_SSH_DOCKER) config
+	@echo "=== ttyd + Docker (make shell-docker) ==="
+	$(COMPOSE_TTYD_DOCKER) config
 
 init-project: env validate-project ## Create missing Cursor project files in the mounted PROJECT_DIR
 	@set -a; [ -f .env ] && . ./.env; set +a; \
@@ -91,15 +95,15 @@ init-project-dry-run: env validate-project ## Show Cursor project files that wou
 	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run "$$PROJECT_DIR"
 
 clean: ## Stop containers and remove anonymous resources (keeps named volumes)
-	-$(COMPOSE_SSH) down --remove-orphans
-	-$(COMPOSE_SSH_DOCKER) down --remove-orphans
+	-$(COMPOSE_TTYD) down --remove-orphans
+	-$(COMPOSE_TTYD_DOCKER) down --remove-orphans
 
 clean-volumes: ## Stop containers and DELETE named volumes (destructive)
 	@echo "WARNING: This deletes named volumes (Cursor config/login, caches, bash history)."
 	@read -r -p "Type 'yes' to continue: " answer; \
 	if [ "$$answer" = "yes" ]; then \
-		$(COMPOSE_SSH) down -v --remove-orphans; \
-		$(COMPOSE_SSH_DOCKER) down -v --remove-orphans; \
+		$(COMPOSE_TTYD) down -v --remove-orphans; \
+		$(COMPOSE_TTYD_DOCKER) down -v --remove-orphans; \
 		echo "Named volumes removed."; \
 	else \
 		echo "Aborted."; \

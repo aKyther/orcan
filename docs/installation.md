@@ -9,6 +9,7 @@
 | GNU Make | Runs the project commands |
 | Linux or compatible environment (WSL2 works) | UID/GID and socket paths match the Makefile |
 | Host Docker socket | Only for `*-docker` targets |
+| Web browser | Opens the ttyd terminal at `http://localhost:7681` |
 
 Check versions:
 
@@ -43,6 +44,9 @@ CPUS=8
 MEMORY=16g
 SHM_SIZE=2g
 TMPFS_SIZE=2g
+TTYD_PORT=7681
+TTYD_HOST_PORT=7681
+TMUX_SESSION_NAME=workspace
 ```
 
 !!! warning
@@ -69,15 +73,17 @@ Without Docker socket:
 make env PROJECT_DIR=/absolute/path/to/project
 make path-check
 make shell
-ssh developer@localhost
 ```
+
+Open `http://localhost:7681` in your browser (or run `make terminal`).
 
 With Docker socket:
 
 ```bash
 make shell-docker
-ssh developer@localhost
 ```
+
+Then open the URL printed by the Makefile (default `http://localhost:7681`).
 
 ## Optional: documentation site
 
