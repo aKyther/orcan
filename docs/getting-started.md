@@ -40,27 +40,30 @@ make build
 
 The first build downloads base images and tool stages. Later builds are faster because of Docker layer and BuildKit caches.
 
-## 5. Start the container and connect over SSH
+## 5. Start the container and open the browser terminal
 
 ```bash
 make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
 make shell
-ssh developer@localhost
 ```
 
 Replace `$HOME/projects/my-app` with the absolute path of the project you want Cursor to edit.
 
-Default SSH password: `cursor` (`DEVELOPER_PASSWORD` in `.env`).
+Open the URL printed by `make shell` (default: `http://localhost:7681`).
 
 !!! note
 
     `make shell` does **not** mount the Docker socket.
     Use `make shell-docker` only when you need Docker-from-Docker.
 
+!!! warning
+
+    ttyd has no authentication. Use only on localhost or a private network (Tailscale).
+
 ## 6. Confirm tools
 
-After SSH:
+In the browser terminal:
 
 ```bash
 agent --version
@@ -79,13 +82,13 @@ Review the files before you commit them.
 
 ## 8. Use TMUX
 
-Interactive shells start TMUX automatically (session name: `cursor`).
+The browser terminal starts TMUX automatically (session name: `workspace`).
 Config comes from `docker/rootfs/etc/skel/.tmux.conf` (prefix: `Ctrl-Space`).
 
 | Action | Keys |
 | --- | --- |
 | Detach | `Ctrl-Space` `d` |
-| Reattach | `tmux attach -t cursor` |
+| Reattach | `tmux attach -t workspace` |
 | New window | `Alt-c` |
 
 ## Next steps

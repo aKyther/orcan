@@ -81,7 +81,7 @@ The named volume would hide them.
 
 1. Keep the Docker socket out of `docker-compose.yml`.
 2. Put socket + `group_add` only in `docker-compose.docker.yml`.
-3. Put OpenSSH publish/password settings only in `docker-compose.ssh.yml`.
+3. Put ttyd port and TMUX settings only in `docker-compose.ttyd.yml`.
 4. Preserve named volumes unless you have a migration plan.
 5. Validate configs:
 

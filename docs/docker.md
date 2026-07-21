@@ -14,8 +14,7 @@ Docker keeps the toolchain inside an image. Your host package manager stays clea
 | `docker/rootfs/usr/local/bin/docker-entrypoint` | `/usr/local/bin/docker-entrypoint` | Container startup |
 | `docker/rootfs/usr/local/bin/init-cursor-home` | `/usr/local/bin/init-cursor-home` | User config initialization |
 | `docker/rootfs/usr/local/bin/cursor-init-project` | `/usr/local/bin/cursor-init-project` | Project template initialization |
-| `docker/rootfs/usr/local/bin/cursor-sshd` | `/usr/local/bin/cursor-sshd` | Foreground OpenSSH (SSH overlay) |
-| `docker/rootfs/etc/ssh/sshd_config.d/cursor.conf` | `/etc/ssh/sshd_config.d/cursor.conf` | SSH daemon settings |
+| `docker/rootfs/usr/local/bin/cursor-ttyd` | `/usr/local/bin/cursor-ttyd` | Browser terminal (ttyd + tmux) |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
 | `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Interactive shell setup |
@@ -31,11 +30,10 @@ Their paths match the final container layout.
 docker/rootfs/
 ├── etc/
 │   ├── profile.d/cursor-dev-path.sh
-│   ├── skel/
-│   │   ├── .bashrc.d/50-cursor-dev.sh
-│   │   ├── .tmux.conf
-│   │   └── .vimrc
-│   └── ssh/sshd_config.d/cursor.conf
+│   └── skel/
+│       ├── .bashrc.d/50-cursor-dev.sh
+│       ├── .tmux.conf
+│       └── .vimrc
 ├── opt/
 │   └── cursor-defaults/     → /opt/cursor-defaults
 └── usr/
@@ -44,7 +42,7 @@ docker/rootfs/
             ├── docker-entrypoint
             ├── init-cursor-home
             ├── cursor-init-project
-            └── cursor-sshd
+            └── cursor-ttyd
 ```
 
 ### Rules for container files
@@ -73,8 +71,10 @@ Build flow:
 1. Install packages and copy toolchains.
 2. `COPY docker/rootfs/ /` (scripts, defaults, shell configs).
 3. Create the non-root user and install skel configs.
-4. Install Cursor CLI as that user.
+4. Install Cursor CLI and ttyd as that user.
 5. Set `ENTRYPOINT` / `CMD`.
+
+The image includes `openssh-client` for Git over SSH. There is no SSH server.
 
 !!! note
 
@@ -100,27 +100,26 @@ Adds:
 * `/var/run/docker.sock`
 * `group_add: DOCKER_GID`
 
-### `docker-compose.ssh.yml` (overlay)
+### `docker-compose.ttyd.yml` (overlay)
 
 Used by both `make shell` and `make shell-docker`. Adds:
 
-* `command: cursor-sshd`
-* publishes `${SSH_HOST_PORT:-22}:22`
-* sets `DEVELOPER_PASSWORD` (default `cursor`)
-* does **not** bind-mount host `~/.ssh` or `~/.gitconfig`
+* `command: cursor-ttyd`
+* publishes `${TTYD_HOST_PORT:-7681}:7681`
+* sets `TTYD_PORT` and `TMUX_SESSION_NAME` (default `workspace`)
+* does **not** bind-mount host `~/.ssh` or `~/.gitconfig` (volume override)
 * `restart: unless-stopped`
 
 ```bash
 make shell
-ssh developer@localhost
 ```
 
-Default login: user `developer`, password `cursor`.
+Open `http://localhost:7681` in your browser (or run `make terminal` to print the URL).
 
 !!! warning
 
-    Use password auth only on a private network (Tailscale).
-    Host port 22 conflicts with a host `sshd` — change `SSH_HOST_PORT` or stop the host daemon.
+    ttyd has no built-in authentication. Use only on localhost or a private network (Tailscale).
+    Do not expose port `7681` to the public Internet without auth and TLS.
 
 ## Layout
 
@@ -172,13 +171,10 @@ For host Docker socket access, use `make env` (sets `DOCKER_GID` from `/var/run/
 
 ## TMUX and Vim
 
-Interactive shells source `~/.bashrc.d/50-cursor-dev.sh`, which may start TMUX when:
+`cursor-ttyd` starts a persistent TMUX session when you open the browser terminal:
 
-* `tmux` exists
-* `TMUX` is unset
-* stdin is a TTY
-
-Session name: `cursor`.
+* session name: `workspace` (`TMUX_SESSION_NAME`)
+* working directory: `${PROJECT_DIR}`
 
 Config sources:
 
@@ -186,6 +182,8 @@ Config sources:
 | --- | --- |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` |
+
+Interactive shells inside TMUX source `~/.bashrc.d/50-cursor-dev.sh` (aliases, PATH, `cd` to `PROJECT_DIR`).
 
 ## Cursor defaults volume
 
@@ -202,11 +200,13 @@ See [Cursor](cursor.md).
 | `USER_UID` / `USER_GID` | Container user identity |
 | `DOCKER_GID` | Socket group for `*-docker` targets |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits |
-| `SSH_HOST_PORT` | Host port published for SSH overlay (default `22`) |
-| `DEVELOPER_PASSWORD` | Password for user `developer` in SSH overlay (default `cursor`) |
+| `TTYD_PORT` | Container port for ttyd (default `7681`) |
+| `TTYD_HOST_PORT` | Host port published for the browser terminal (default `7681`) |
+| `TMUX_SESSION_NAME` | TMUX session name in the browser terminal (default `workspace`) |
 
 ## Network
 
-Compose uses the default project network. No extra published ports are required for a shell workflow.
+Compose uses the default project network.
 
-The SSH overlay publishes host port `SSH_HOST_PORT` (default `22`) to container port `22`.
+The ttyd overlay publishes host port `TTYD_HOST_PORT` (default `7681`) to container port `7681`.
+Open `http://localhost:7681` after `make shell` or `make shell-docker`.

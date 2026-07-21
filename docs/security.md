@@ -73,32 +73,35 @@ make clean-volumes
 Text rules in `${HOME}/.cursor/rules` and project `.cursor/rules` guide the agent.
 They do **not** replace Docker isolation or OS permissions.
 
-## SSH keys
+## SSH keys (Git)
 
 The base Compose file mounts `~/.ssh` read-only for Git over SSH.
+The ttyd overlay does **not** mount `~/.ssh` or `~/.gitconfig` (common on VPS hosts without those paths).
 
 Safer long-term option (see [Development — Roadmap](development.md#roadmap)): SSH agent forwarding instead of mounting the whole `.ssh` directory.
 
-## SSH server (always on)
+## Browser terminal (ttyd)
 
-`make shell` and `make shell-docker` start `sshd` inside the container.
+`make shell` and `make shell-docker` start ttyd inside the container.
 
-* Default user: `developer`
-* Default password: `cursor` (`DEVELOPER_PASSWORD`)
-* Default host port: `22` (`SSH_HOST_PORT`)
+* Default URL: `http://localhost:7681`
+* Host port: `7681` (`TTYD_HOST_PORT`)
+* TMUX session: `workspace` (`TMUX_SESSION_NAME`)
 * Does not mount host `~/.ssh` or `~/.gitconfig`
 
 !!! warning
 
-    Password login is intentional for a simple Tailscale setup. Do not expose this port on the public internet.
-    Prefer Tailscale (or another private network). Change `DEVELOPER_PASSWORD` in `.env`.
+    ttyd has **no authentication**. Anyone who can reach the port gets a shell as the `developer` user.
+    Use only on localhost or a private network (Tailscale).
+    Do not expose port `7681` to the public Internet without auth and TLS.
 
 ```bash
 make shell
-ssh developer@localhost
 ```
 
-On a VPS, use the machine's Tailscale IP instead of `localhost`.
+Open `http://localhost:7681` in your browser.
+
+On a VPS, use `http://<tailscale-ip>:7681` instead of `localhost`.
 
 ## Permissions
 

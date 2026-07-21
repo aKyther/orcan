@@ -36,7 +36,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `Dockerfile` | Builds the toolchain and installs Cursor CLI |
 | `docker-compose.yml` | Base service: project mount, caches, no Docker socket |
 | `docker-compose.docker.yml` | Optional overlay: host Docker socket + `DOCKER_GID` |
-| `docker-compose.ssh.yml` | Optional overlay: OpenSSH for VPS / Tailscale access |
+| `docker-compose.ttyd.yml` | Optional overlay: browser terminal (ttyd) for local / Tailscale access |
 | `Makefile` | Short host commands for build, shell, cleanup |
 | `docker/rootfs/` | Files installed into the image (paths match the container) |
 | `scripts/repository/` | Host-only maintenance helpers |
@@ -67,8 +67,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `docker/rootfs/usr/local/bin/docker-entrypoint` | `/usr/local/bin/docker-entrypoint` | Container startup |
 | `docker/rootfs/usr/local/bin/init-cursor-home` | `/usr/local/bin/init-cursor-home` | User config initialization |
 | `docker/rootfs/usr/local/bin/cursor-init-project` | `/usr/local/bin/cursor-init-project` | Project template initialization |
-| `docker/rootfs/usr/local/bin/cursor-sshd` | `/usr/local/bin/cursor-sshd` | Foreground OpenSSH for VPS overlay |
-| `docker/rootfs/etc/ssh/sshd_config.d/cursor.conf` | `/etc/ssh/sshd_config.d/cursor.conf` | SSH daemon settings |
+| `docker/rootfs/usr/local/bin/cursor-ttyd` | `/usr/local/bin/cursor-ttyd` | Browser terminal (ttyd + tmux) |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
 | `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Aliases, PATH, interactive TMUX |
@@ -116,13 +115,14 @@ make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
 make build
 make shell
-ssh developer@localhost
 ```
 
-> Tip: `make env` writes your host `USER_UID`, `USER_GID`, and `DOCKER_GID` into `.env`.
-> Default SSH password is `cursor` (`DEVELOPER_PASSWORD` in `.env`).
+Open the browser terminal URL printed by `make shell` (default: `http://localhost:7681`).
 
-After SSH, TMUX starts for interactive terminals. Use Cursor CLI as usual, for example:
+> Tip: `make env` writes your host `USER_UID`, `USER_GID`, and `DOCKER_GID` into `.env`.
+> Run `make terminal` anytime to print the URL again.
+
+TMUX starts automatically in the browser terminal (session name: `workspace`). Use Cursor CLI as usual, for example:
 
 ```bash
 agent --version
@@ -138,8 +138,9 @@ agent --version
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
 | `make rebuild` | Rebuild with `--no-cache` |
-| `make shell` | Start container with **SSH** (no Docker socket) |
-| `make shell-docker` | Start container with **SSH** and Docker socket |
+| `make shell` | Start container with **browser terminal** (no Docker socket) |
+| `make shell-docker` | Start container with **browser terminal** and Docker socket |
+| `make terminal` | Print the browser terminal URL |
 | `make down` | Stop containers; keep named volumes |
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep named volumes |
@@ -160,8 +161,9 @@ agent --version
 make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
 make shell
-ssh developer@localhost
 ```
+
+Then open `http://localhost:7681` (or the URL printed by `make shell`).
 
 `PROJECT_DIR` must be an **absolute** host path. The same path is used inside the container so `docker compose` bind mounts resolve correctly on the host daemon. See [docs/path-parity.md](docs/path-parity.md).
 
@@ -180,11 +182,9 @@ Existing files are never overwritten.
 
 **Global profile:** five always-on rules and five reusable skills shape every session (understanding repos, focused changes, honest validation, minimal docs). Project-specific rules live only in the mounted repo. Details: [docs/cursor.md](docs/cursor.md#global-profile-rules-and-skills).
 
-Scaffold a mounted project explicitly (after SSH):
+Scaffold a mounted project explicitly (from the browser terminal):
 
 ```bash
-make shell
-ssh developer@localhost
 cursor-init-project --dry-run
 cursor-init-project
 ```
@@ -232,36 +232,42 @@ These values are taken from the host so files created in `PROJECT_DIR` stay owne
 | Default | `make shell` | No |
 | Docker-enabled | `make shell-docker` | Yes |
 
-The overlay file is `docker-compose.docker.yml`. Both modes include OpenSSH via `docker-compose.ssh.yml`.
+The overlay file is `docker-compose.docker.yml`. Both modes include the browser terminal via `docker-compose.ttyd.yml`.
 
 ---
 
-## SSH access
+## Browser terminal
 
-`make shell` and `make shell-docker` start the container with OpenSSH in the background.
+`make shell` and `make shell-docker` start the container with **ttyd** — a web-based terminal on port `7681`.
 
 ```bash
 make build
 make shell PROJECT_DIR=/absolute/path/to/project
-ssh developer@localhost
+```
+
+Open in your browser:
+
+```text
+http://localhost:7681
 ```
 
 | Field | Default |
 | --- | --- |
-| User | `developer` |
-| Password | `cursor` (`DEVELOPER_PASSWORD` in `.env`) |
-| Host port | `22` (`SSH_HOST_PORT`) |
+| URL | `http://localhost:7681` |
+| Host port | `7681` (`TTYD_HOST_PORT`) |
+| TMUX session | `workspace` (`TMUX_SESSION_NAME`) |
 
-On a VPS behind Tailscale, use the machine's Tailscale IP instead of `localhost`.
+On a VPS behind Tailscale, use the machine's Tailscale IP instead of `localhost`:
 
-```bash
-ssh developer@<tailscale-ip>
+```text
+http://<tailscale-ip>:7681
 ```
 
-> **Warning:** The default password is weak. Use it only on a Tailscale (or similarly private) network.
-> If the host already runs `sshd` on port 22, set `SSH_HOST_PORT` to a free port or stop the host daemon.
+> **Warning:** ttyd has **no authentication**. Use it only on localhost or a private network (Tailscale).
+> Do not expose port `7681` to the public Internet without auth and TLS.
 
-The overlay file is `docker-compose.ssh.yml`. It does not mount host `~/.ssh` or `~/.gitconfig`.
+The overlay file is `docker-compose.ttyd.yml`. It does not mount host `~/.ssh` or `~/.gitconfig`.
+The image still includes `openssh-client` for Git over SSH from inside the container.
 Details: [docs/docker.md](docs/docker.md) and [docs/security.md](docs/security.md).
 
 ---
@@ -279,7 +285,7 @@ Details: [docs/docker.md](docs/docker.md) and [docs/security.md](docs/security.m
 * The mounted project is writable on the host
 * Docker socket mode can manage host containers and images
 * `sudo` inside the container is root **in the container**
-* Read-only mounts of `~/.gitconfig` and `~/.ssh` share host identity with the container
+* The base Compose file mounts `~/.gitconfig` and `~/.ssh` read-only; the ttyd overlay does not (common on VPS hosts)
 
 > **Warning:** Do not mount your whole home directory or the host root filesystem.
 
@@ -293,7 +299,7 @@ Shell and editor configs live in the image filesystem:
 * `docker/rootfs/etc/skel/.vimrc` → `/home/developer/.vimrc`
 * `docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` → sourced from `~/.bashrc`
 
-TMUX starts automatically in interactive sessions (`exec tmux new-session -A -s cursor`).
+TMUX starts automatically in the browser terminal (`cursor-ttyd` runs `tmux new-session -A -s workspace`).
 
 | Action | Keys |
 | --- | --- |
@@ -303,7 +309,7 @@ TMUX starts automatically in interactive sessions (`exec tmux new-session -A -s 
 | Split vertical | `Ctrl-Right` |
 | Zoom pane | `Alt-Enter` |
 | Detach | `Ctrl-Space` `d` |
-| Reattach | `tmux attach -t cursor` |
+| Reattach | `tmux attach -t workspace` |
 
 ---
 

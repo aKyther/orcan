@@ -56,7 +56,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         make \
         nano \
         openssh-client \
-        openssh-server \
         parallel \
         postgresql-client \
         python3 \
@@ -138,6 +137,22 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && eza --version
 
 # ------------------------------------------------------------------------------
+# ttyd (browser terminal)
+# ------------------------------------------------------------------------------
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) ttyd_arch="x86_64" ;; \
+        arm64) ttyd_arch="aarch64" ;; \
+        *) echo "unsupported architecture for ttyd: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.${ttyd_arch}" \
+        -o /usr/local/bin/ttyd; \
+    chmod 0755 /usr/local/bin/ttyd; \
+    ttyd --version
+
+# ------------------------------------------------------------------------------
 # Container filesystem (scripts, defaults, shell configs)
 # ------------------------------------------------------------------------------
 
@@ -147,7 +162,7 @@ RUN chmod 0755 \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
         /usr/local/bin/cursor-init-project \
-        /usr/local/bin/cursor-sshd \
+        /usr/local/bin/cursor-ttyd \
     && chmod -R a+rX /opt/cursor-defaults \
     && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
     && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \

@@ -46,15 +46,15 @@ EOF
 
 printf '%s\n' "${MARKER}" > "${TEST_DIR}/${MARKER}"
 
-COMPOSE_SSH_DOCKER=(
+COMPOSE_TTYD_DOCKER=(
     env "PROJECT_DIR=${TEST_DIR}"
     docker compose
     -f docker-compose.yml
-    -f docker-compose.ssh.yml
+    -f docker-compose.ttyd.yml
     -f docker-compose.docker.yml
 )
 
-"${COMPOSE_SSH_DOCKER[@]}" run --rm --no-TTY cursor bash -lc "
+"${COMPOSE_TTYD_DOCKER[@]}" run --rm --no-TTY cursor bash -lc "
 set -euo pipefail
 test \"\$(pwd -P)\" = \"${TEST_DIR}\"
 test \"\${PROJECT_DIR}\" = \"${TEST_DIR}\"
