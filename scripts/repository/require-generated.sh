@@ -45,6 +45,22 @@ if (( ${#missing[@]} > 0 )); then
     exit 1
 fi
 
+config_file="${CONFIG:-}"
+if [[ -z "${config_file}" && -f "${ROOT_DIR}/cind.config.json" ]]; then
+    config_file="${ROOT_DIR}/cind.config.json"
+fi
+if [[ -n "${config_file}" && -f "${config_file}" ]]; then
+    if [[ "${config_file}" -nt "${runtime_file}" || "${config_file}" -nt "${compose_file}" ]]; then
+        printf 'Error: cind.config.json is newer than generated runtime files.\n' >&2
+        printf '  config:  %s\n' "${config_file}" >&2
+        printf '  runtime: %s\n' "${runtime_file}" >&2
+        printf '  mounts:  %s\n' "${compose_file}" >&2
+        printf 'Run:  make env && make down && make terminal-docker\n' >&2
+        printf 'Otherwise the launcher can show new workspace names while Docker still has old mounts.\n' >&2
+        exit 1
+    fi
+fi
+
 validate_project_dir || exit 1
 
 # Ensure host data tree exists (default ~/.config/cind — like poetry under ~/.config).

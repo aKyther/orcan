@@ -180,6 +180,21 @@ make rebuild
 
 For image-only rebuilds, `.env` is enough. Generated mounts are required for `make terminal*`, not for `make rebuild`.
 
+### Wrong workspace name vs mounts (or only one of two workspaces)
+
+**Symptom:** after adding a second workspace, the launcher shows the new name but the directory/mounts look like the previous workspace — or only one session appears.
+
+**Cause:** `cind.config.json` was edited without regenerating mounts and recreating the container. The runtime JSON is bind-mounted (names update live); Docker bind mounts do not (need recreate).
+
+**Fix:**
+
+```bash
+make env
+make down && make terminal-docker
+```
+
+Then pick the workspace by number in the launcher. Confirm with `make config-show`.
+
 ### Out of disk during `--no-cache`
 
 **Symptom:** build fails mid-way with `no space left on device`.

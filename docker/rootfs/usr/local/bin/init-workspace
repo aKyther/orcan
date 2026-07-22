@@ -37,8 +37,9 @@ for ws in workspaces:
     if ws.get("enabled") is False:
         continue
 
+    # Container path only — never use host meta_path here (parity mounts can
+    # make the host path look valid and write into the wrong tree).
     root = Path(ws["root"])
-    meta = Path(ws.get("meta_path") or root)
     root.mkdir(parents=True, exist_ok=True)
 
     projects = ws.get("projects") or []
@@ -46,8 +47,7 @@ for ws in workspaces:
         "workspace": {
             "name": ws.get("name"),
             "root": ws.get("root"),
-            "meta_path": ws.get("meta_path"),
-            "tmux_session": ws.get("tmux_session"),
+            "tmux_session": ws.get("tmux_session") or ws.get("name"),
         },
         "projects": projects,
     }
@@ -62,6 +62,9 @@ for ws in workspaces:
         if not name or not host_path:
             continue
         target = Path(workspace_path) if workspace_path else root / name
+        # Symlink must live under this workspace root (never under a host path).
+        if not str(target).startswith(str(root) + "/") and target != root:
+            target = root / name
         src = Path(host_path)
         if not src.is_dir():
             print(f"skip missing repo mount: {host_path}", file=sys.stderr)
@@ -70,7 +73,7 @@ for ws in workspaces:
             target.unlink()
         target.symlink_to(src, target_is_directory=True)
 
-    rules_dst = meta / ".cursor" / "rules"
+    rules_dst = root / ".cursor" / "rules"
     dest = rules_dst / "workspace-context.mdc"
     if template.is_file() and not dest.exists():
         rules_dst.mkdir(parents=True, exist_ok=True)
@@ -94,7 +97,7 @@ for ws in workspaces:
                 "Host copy: `.cind/workspaces/<name>/` in the cind repo.",
                 "",
                 "| Name | Host path | Symlink |",
-                "| --- | --- | --- | --- |",
+                "| --- | --- | --- |",
                 *project_lines,
                 "",
             ]
@@ -105,7 +108,7 @@ for ws in workspaces:
     count = len(projects)
     total_repos += count
     print(
-        f"workspace ready: {root} ({count} repo(s), tmux={ws.get('tmux_session')})"
+        f"workspace ready: {root} ({count} repo(s), tmux={ws.get('tmux_session') or ws.get('name')})"
     )
 
 print(f"workspaces initialized: {len(workspaces)} ({total_repos} repo mount(s) total)")
