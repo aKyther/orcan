@@ -66,6 +66,7 @@ for script in \
     docker/rootfs/etc/tmux/scripts/session-switch.sh \
     scripts/repository/update-env.sh \
     scripts/repository/validate-project-dir.sh \
+    scripts/repository/require-generated.sh \
     scripts/repository/validate.sh \
     tests/smoke/test-container.sh \
     tests/integration/test-path-parity.sh

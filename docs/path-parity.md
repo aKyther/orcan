@@ -80,7 +80,7 @@ These are separate:
 
 `make path-check` prints the effective paths and confirms parity is enabled.
 
-Host-side validation (`scripts/repository/validate-project-dir.sh`) runs before `make terminal`, `make terminal-docker`, `make build`, and related targets.
+Host-side validation (`scripts/repository/validate-project-dir.sh`) runs before `make terminal`, `make terminal-docker`, and `make build` via `require-generated.sh` (reads existing `.env` only — no regeneration).
 
 It checks that `PROJECT_DIR`:
 

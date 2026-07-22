@@ -87,6 +87,20 @@ Then log in again inside the browser terminal.
 * TMUX starts automatically inside the ttyd session (session name: `workspace`)
 * Run `make terminal` if you forgot the URL
 
+## `/etc/tmux/options.conf: invalid environment variable`
+
+**Symptom:** ttyd opens but tmux fails immediately with `invalid environment variable` on line 3 of `options.conf`. You may need to click or refresh several times before a session appears.
+
+**Cause:** tmux config does not support bash-style defaults such as `${SHELL:-/bin/bash}`.
+
+**Fix:** rebuild the image so the fixed config is baked in:
+
+```bash
+make rebuild
+make down
+make terminal-docker   # or make terminal
+```
+
 ## TMUX did not start
 
 **Checks:**

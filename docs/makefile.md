@@ -12,11 +12,11 @@ Everyday commands for building and running the cind container.
 | `make config-init` | Create `cind.config.json` from example (skip if exists) |
 | `make config-scaffold` | Add workspace/project from `PROJECT_DIR` into `cind.config.json` |
 | `make config-show` | List workspaces (config + runtime manifest) |
-| `make path-check` | Show mounts and workspace layout after `make env` |
+| `make path-check` | Show mounts and workspace layout (read-only) |
 | `make build` | Build the container image |
 | `make rebuild` | Rebuild without cache |
-| `make terminal` | Start browser terminal (no Docker socket) |
-| `make terminal-docker` | Start browser terminal with host Docker socket |
+| `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
+| `make terminal-docker` | Start browser terminal with host Docker socket (does not run `make env`) |
 | `make terminal-url` | Print browser terminal URL |
 | `make down` | Stop containers |
 | `make logs` | Follow container logs |
@@ -25,24 +25,44 @@ Everyday commands for building and running the cind container.
 
 ## Starting the terminal
 
+`make terminal` and `make terminal-docker` **only start containers**. They do not run `make env`, regenerate `.cind/*`, or overwrite `.env`.
+
 ```bash
 make terminal
 # or with Docker-from-Docker:
 make terminal-docker
 ```
 
-`make terminal` prints the URL (default `http://localhost:7681`). Run `make terminal-url` to print it again.
+Run **`make env`** when you change `cind.config.json`, add a project, or need fresh generated mounts — then `make terminal-docker` again.
 
-### With a specific default project (no JSON config)
+First time (or missing `.env`):
 
 ```bash
-make terminal PROJECT_DIR=$HOME/projects/my-app
+make setup PROJECT_DIR=/absolute/path/to/repo
+make build
+make terminal-docker
+```
+
+Daily use:
+
+```bash
+make terminal-docker
+```
+
+`make terminal` prints the URL (default `http://localhost:7681`). Run `make terminal-url` to print it again.
+
+### After config changes
+
+```bash
+make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibooks
+make env
+make down && make terminal-docker
 ```
 
 ### With JSON config
 
 ```bash
-make env CONFIG=./cind.config.json
+make env
 make terminal-docker
 ```
 

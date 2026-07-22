@@ -93,7 +93,9 @@ CPUS=4
 MEMORY=8g
 ```
 
-`make env` and `make terminal-docker` **do not overwrite** these once set.
+`make env` and `make terminal-docker` **do not overwrite** host limits in `.env` once set (`CPUS`, `MEMORY`, `TTYD_*`, …).
+
+`make terminal` / `make terminal-docker` **never** call `make env` — run `make env` explicitly after config edits.
 
 ### Legacy single-workspace shape
 

@@ -18,7 +18,7 @@ A host project is mounted at `${PROJECT_DIR}` with path parity (same absolute pa
 | `docker-compose.ttyd.yml` | Optional ttyd overlay (browser terminal) |
 | `Makefile` | Thin host UI; calls Compose and `scripts/repository/` |
 | `docker/rootfs/` | Files installed into the image (source of truth) |
-| `scripts/repository/` | Host-only helpers (`update-env`, `validate`, `validate-project-dir`) |
+| `scripts/repository/` | Host-only helpers (`update-env`, `require-generated`, `validate`, …) |
 | `tests/smoke/` | Container smoke tests |
 | `tests/integration/` | Path parity integration tests |
 | `.env.example` | Safe defaults for UID/GID and `PROJECT_DIR` |
@@ -37,9 +37,17 @@ A host project is mounted at `${PROJECT_DIR}` with path parity (same absolute pa
 
 ## Commands
 
+**Configure** (writes `.env` and `.cind/*` — run after editing `cind.config.json`):
+
 ```bash
+make setup
 make env
-make path-check
+make config-scaffold PROJECT_DIR=/absolute/path/to/repo WORKSPACE=name
+```
+
+**Run** (read-only — does not call `make env`):
+
+```bash
 make build
 make terminal
 make terminal-docker
@@ -52,6 +60,7 @@ make clean-volumes
 make config
 make init-project
 make init-project-dry-run
+make path-check
 make validate
 make test
 make test-path-parity
@@ -60,7 +69,7 @@ make docs-serve
 make help
 ```
 
-Use `cind.config.json` for multiple projects, or `PROJECT_DIR=/absolute/path/to/project` for a single-project fallback.
+Use `cind.config.json` for workspaces; run `make env` after config edits. `make terminal` does not regenerate anything.
 
 ## Cursor defaults
 
