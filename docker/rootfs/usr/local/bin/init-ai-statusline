@@ -1,11 +1,31 @@
 #!/usr/bin/env python3
-"""Ensure Claude / Cursor statusLine hooks point at cind-ai-statusline (missing only)."""
+"""Ensure Claude / Cursor statusLine hooks and secret deny rules (additive)."""
 from __future__ import annotations
 
 import json
 import os
 import sys
 from pathlib import Path
+
+# Merged into ~/.claude/settings.json permissions.deny when missing.
+SECRET_DENY = [
+    "Read(**/.env)",
+    "Read(**/.env.*)",
+    "Read(**/*.pem)",
+    "Read(**/*.key)",
+    "Read(**/id_rsa)",
+    "Read(**/id_ed25519)",
+    "Read(**/secrets/**)",
+    "Read(**/credentials.json)",
+    "Edit(**/.env)",
+    "Edit(**/.env.*)",
+    "Edit(**/*.pem)",
+    "Edit(**/*.key)",
+    "Write(**/.env)",
+    "Write(**/.env.*)",
+    "Write(**/*.pem)",
+    "Write(**/*.key)",
+]
 
 
 def load_json(path: Path) -> dict:
@@ -18,17 +38,45 @@ def load_json(path: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def ensure_statusline(path: Path, status_block: dict, *, create_if_missing: bool) -> str:
+def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def ensure_statusline(path: Path, status_block: dict, *, create_if_missing: bool) -> str:
     if not path.exists() and not create_if_missing:
         return f"skipped (missing): {path}"
     data = load_json(path)
     existing = data.get("statusLine")
     if isinstance(existing, dict) and str(existing.get("command") or "").strip():
-        return f"kept: {path}"
+        return f"kept statusLine: {path}"
     data["statusLine"] = status_block
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    return f"set: {path}"
+    write_json(path, data)
+    return f"set statusLine: {path}"
+
+
+def ensure_secret_denies(path: Path) -> str:
+    """Add secret deny rules without removing user entries."""
+    data = load_json(path) if path.exists() else {}
+    perms = data.get("permissions")
+    if not isinstance(perms, dict):
+        perms = {}
+    deny = perms.get("deny")
+    if not isinstance(deny, list):
+        deny = []
+    existing = {str(x) for x in deny}
+    added = 0
+    for rule in SECRET_DENY:
+        if rule not in existing:
+            deny.append(rule)
+            existing.add(rule)
+            added += 1
+    perms["deny"] = deny
+    data["permissions"] = perms
+    write_json(path, data)
+    if added:
+        return f"added {added} secret deny rule(s): {path}"
+    return f"secret denies ok: {path}"
 
 
 def main() -> int:
@@ -39,14 +87,16 @@ def main() -> int:
 
     cmd = os.environ.get("CIND_AI_STATUSLINE", "/usr/local/bin/cind-ai-statusline")
     status_block = {"type": "command", "command": cmd, "padding": 0}
+    claude_settings = home / ".claude" / "settings.json"
 
     print(
         ensure_statusline(
-            home / ".claude" / "settings.json",
+            claude_settings,
             status_block,
             create_if_missing=True,
         )
     )
+    print(ensure_secret_denies(claude_settings))
     print(
         ensure_statusline(
             home / ".cursor" / "cli-config.json",

@@ -67,6 +67,7 @@
 **/node_modules/
 **/.venv/
 **/venv/
+**/.porg/
 **/__pycache__/
 **/.tox/
 **/.mypy_cache/

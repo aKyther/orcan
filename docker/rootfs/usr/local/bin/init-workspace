@@ -31,8 +31,34 @@ if not workspaces:
     sys.exit(0)
 
 defaults_root = Path(defaults_root)
+# templates/workspace → …; parent is templates/
+templates_root = defaults_root.parent
 rule_template = defaults_root / ".cursor" / "rules" / "workspace-context.mdc"
 total_repos = 0
+
+
+def copy_missing(src: Path, dst: Path) -> None:
+    if not src.is_file() or dst.exists():
+        return
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
+
+
+def seed_agent_ignores(root: Path) -> None:
+    """Cursor + Claude ignore files at workspace root (missing-only).
+
+    Protects discovery when the agent cwd is the workspace. Per-repo
+    coverage still needs cursor-init-project inside each checkout.
+    """
+    copy_missing(templates_root / "cursorignore", root / ".cursorignore")
+    copy_missing(
+        templates_root / "cursorindexingignore", root / ".cursorindexingignore"
+    )
+    copy_missing(templates_root / "claudeignore", root / ".claudeignore")
+    copy_missing(
+        templates_root / "claude" / "settings.json",
+        root / ".claude" / "settings.json",
+    )
 
 
 def write_agents_md(root: Path, ws: dict, projects: list) -> None:
@@ -66,6 +92,7 @@ def write_agents_md(root: Path, ws: dict, projects: list) -> None:
             "1. **This file** — how to behave in this workspace.",
             "2. **`.manifest.json`** — projects, paths, symlinks (source of truth).",
             "3. After `cd <project>/` — that repo's `AGENTS.md` / `.cursor/rules/` if present.",
+            "4. Respect `.cursorignore` / `.claudeignore` (and Claude `.claude/settings.json` denies).",
             "",
             "## How to work",
             "",
@@ -75,6 +102,12 @@ def write_agents_md(root: Path, ws: dict, projects: list) -> None:
             "- Do not invent tools; use what is in the environment (`rg`, `jq`, `uv`, `make`, …).",
             "- Python deps: prefer `uv` / `uvx` — do not `pip install` into system Python.",
             "- Run available checks before claiming success; label what you did not run.",
+            "",
+            "## Secrets",
+            "",
+            "- Do **not** read, search, or edit `.env`, `.env.*`, keys, or `secrets/`.",
+            "- Workspace root has `.cursorignore`, `.cursorindexingignore`, `.claudeignore`.",
+            "- For stronger per-repo coverage: `cursor-init-project` inside each project.",
             "",
             "## Behavioral guidelines",
             "",
@@ -183,6 +216,7 @@ for ws in workspaces:
             print(f"removed orphan symlink: {child}", file=sys.stderr)
 
     write_agents_md(root, ws, projects)
+    seed_agent_ignores(root)
 
     rules_dst = root / ".cursor" / "rules"
     dest = rules_dst / "workspace-context.mdc"
@@ -206,7 +240,8 @@ for ws in workspaces:
                 "| --- | --- | --- |",
                 *project_lines,
                 "",
-                "Also: `.manifest.json`, `.cursor/rules/`, `CLAUDE.md` (same as `AGENTS.md`).",
+                "Also: `.manifest.json`, `.cursor/rules/`, `CLAUDE.md`,",
+                "`.cursorignore`, `.claudeignore`, `.claude/settings.json`.",
                 "",
             ]
         ),

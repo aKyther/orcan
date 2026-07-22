@@ -32,5 +32,6 @@ Full text: global `karpathy-guidelines` rule + this workspace’s `AGENTS.md`.
 - Cross-repo rules: this workspace’s `.cursor/rules/`.
 - Per-repo rules stay inside each project checkout.
 - Workspace root is not a git repository.
+- Respect `.cursorignore` / `.claudeignore` and Claude `.claude/settings.json` denies — do not read `.env` or secrets.
 - Prefer `uv` / `uvx` for Python — not system `pip install`.
 - Do not create planning/summary Markdown files unless asked.

@@ -85,13 +85,21 @@ On container start, `init-workspace` writes at the workspace root:
 | `.manifest.json` | Machine-readable projects / paths |
 | `AGENTS.md` | Agent instructions (regenerated each start) |
 | `CLAUDE.md` | Same content for Claude Code |
+| `.cursorignore` | Cursor agent exclusions (missing-only) |
+| `.cursorindexingignore` | Cursor index exclusions (missing-only) |
+| `.claudeignore` | Claude discovery exclusions (missing-only) |
+| `.claude/settings.json` | Claude `permissions.deny` for secrets (missing-only) |
 | `.cursor/rules/workspace-context.mdc` | Cursor rule seed (missing-only) |
 | `README.workspace.md` | Short human map |
 
 Agents should read **`AGENTS.md` → `.manifest.json` → project `AGENTS.md`**.
 
+Ignore files at the workspace root help when the agent starts there. They do **not** rewrite files inside each project checkout (cind does not auto-modify mounted repos). For per-repo `.env` protection, run `cursor-init-project` inside that project (or `make init-project` from the host for the primary `PROJECT_DIR`).
+
+Global layers: Cursor `~/.cursor/cli-config.json` deny rules; Claude `~/.claude/settings.json` deny rules (seeded additively by `init-ai-statusline`).
+
 Do not treat workspace root as a git root.
 
-Custom lasting rules: edit `.cursor/rules/` under `<cind-repo>/.cind/workspaces/<name>/` (not the generated `AGENTS.md`).
+Custom lasting rules: edit `.cursor/rules/` under `<cind-repo>/.cind/workspaces/<name>/` (not the generated `AGENTS.md`). Customize ignore files in the same tree — they are missing-only and will not be overwritten on restart.
 
-See also: [Path parity](../path-parity.md).
+See also: [Path parity](../path-parity.md), [Cursor](../cursor.md#what-belongs-in-the-mounted-project).

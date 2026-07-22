@@ -147,12 +147,22 @@ Skills do not replace rules. Rules apply every session; skills guide specific wo
 | --- | --- |
 | `${PROJECT_DIR}/.cursor/rules/` | Rules for **this** repository only |
 | `${PROJECT_DIR}/AGENTS.md` | Project goals, setup, and checks |
+| `${PROJECT_DIR}/.cursorignore` | Files Cursor agents should not read |
+| `${PROJECT_DIR}/.cursorindexingignore` | Keep large/secret files out of the Cursor index |
+| `${PROJECT_DIR}/.claudeignore` | Claude Code discovery exclusions (same idea) |
+| `${PROJECT_DIR}/.claude/settings.json` | Claude `permissions.deny` for `.env` / keys |
 
-Workspace roots (under `/home/developer/workspaces/<name>/`) also get a generated **`AGENTS.md`** / **`CLAUDE.md`** plus `.manifest.json` on every container start — see [Workspace architecture](architecture/workspace.md#agents).
-| `${PROJECT_DIR}/.cursorignore` | Files the agent should not read |
+Workspace roots (under `/home/developer/workspaces/<name>/`) also get a generated **`AGENTS.md`** / **`CLAUDE.md`**, ignore files, and `.manifest.json` on container start — see [Workspace architecture](architecture/workspace.md#agents).
 
 Create project files with `cursor-init-project` when needed.
 Templates under `templates/` are starting points — customize them per project.
+
+!!! tip
+
+    Workspace-level `.cursorignore` / `.claudeignore` cover the workspace root.
+    When you `cd` into a project symlink, prefer the same files **inside that repo**
+    (`cursor-init-project`). Global denies in `cli-config.json` / `~/.claude/settings.json`
+    still apply. Ignore files reduce accidental discovery; they are not a hard security boundary.
 
 ### Why the separation exists
 
