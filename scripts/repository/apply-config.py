@@ -78,6 +78,20 @@ def ensure_env_key(env_path: Path, key: str, value: str) -> None:
     env_path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
+def env_has_key(env_path: Path, key: str) -> bool:
+    if not env_path.exists():
+        return False
+    pattern = re.compile(rf"^{re.escape(key)}=")
+    return any(pattern.match(line) for line in env_path.read_text(encoding="utf-8").splitlines())
+
+
+def ensure_env_key_unless_set(env_path: Path, key: str, value: str) -> None:
+    """Set key only when missing — preserves host-specific .env overrides (e.g. CPUS)."""
+    if env_has_key(env_path, key):
+        return
+    ensure_env_key(env_path, key, value)
+
+
 def remove_env_key(env_path: Path, key: str) -> None:
     if not env_path.exists():
         return
@@ -560,13 +574,13 @@ def main() -> None:
 
     ttyd = built["runtime"]["ttyd"]
     resources = built["runtime"]["resources"]
-    ensure_env_key(env_path, "TTYD_PORT", str(ttyd["port"]))
-    ensure_env_key(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
-    ensure_env_key(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
-    ensure_env_key(env_path, "CPUS", str(resources["cpus"]))
-    ensure_env_key(env_path, "MEMORY", str(resources["memory"]))
-    ensure_env_key(env_path, "SHM_SIZE", str(resources["shm_size"]))
-    ensure_env_key(env_path, "TMPFS_SIZE", str(resources["tmpfs_size"]))
+    ensure_env_key_unless_set(env_path, "TTYD_PORT", str(ttyd["port"]))
+    ensure_env_key_unless_set(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
+    ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
+    ensure_env_key_unless_set(env_path, "CPUS", str(resources["cpus"]))
+    ensure_env_key_unless_set(env_path, "MEMORY", str(resources["memory"]))
+    ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))
+    ensure_env_key_unless_set(env_path, "TMPFS_SIZE", str(resources["tmpfs_size"]))
 
     print(f"PROJECT_DIR={built['project_dir']} (cind repo on host)")
     print(f"CONTAINER_PROJECT_DIR={built['container_project_dir']} (first workspace root)")

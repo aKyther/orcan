@@ -74,7 +74,8 @@ Build flow:
 4. Install Cursor CLI and ttyd as that user.
 5. Set `ENTRYPOINT` / `CMD`.
 
-The image includes `openssh-client` for Git over SSH. There is no SSH server.
+There is **no SSH server** and no `openssh-client` in the image. Use Git over HTTPS.
+Shell access is **browser-only**: ttyd → workspace picker → tmux (see [Security — Tailscale](security.md#remote-access-tailscale)).
 
 !!! note
 
@@ -86,12 +87,12 @@ The image includes `openssh-client` for Git over SSH. There is no SSH server.
 
 Provides:
 
-* project bind mount at `${PROJECT_DIR}` (same path on host and container)
+* project bind mounts from `cind.config.json` (path parity + workspace roots)
 * named volumes for caches and Cursor config
-* read-only `~/.gitconfig` and `~/.ssh`
+* optional read-only `~/.gitconfig` when the file exists on the host
 * resource limits and a `/tmp` tmpfs
 
-Does **not** mount the Docker socket.
+Does **not** mount the Docker socket or host `~/.ssh`.
 
 ### `docker-compose.docker.yml` (overlay)
 
@@ -104,11 +105,12 @@ Adds:
 
 Used by both `make terminal` and `make terminal-docker`. Adds:
 
-* `command: cursor-ttyd`
+* `command: cursor-ttyd` (browser terminal — no SSH)
 * publishes `${TTYD_HOST_PORT:-7681}:7681`
-* sets `TTYD_PORT` and `TMUX_SESSION_NAME` (default `workspace`)
-* does **not** bind-mount host `~/.ssh` or `~/.gitconfig` (volume override)
+* sets `TTYD_PORT`, `TTYD_FONT_SIZE`, workspace env vars
 * `restart: unless-stopped`
+
+Remote access: use **Tailscale** (or localhost). Open `http://<tailscale-ip>:7681`.
 
 ```bash
 make terminal

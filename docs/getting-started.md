@@ -1,104 +1,59 @@
 # Getting started
 
-This page walks through the first run from an empty clone to a working browser terminal.
+First run uses **Make only** — no manual copying of `.env.example` or config templates.
 
-## 1. Clone the repository
+## 1. Clone
 
 ```bash
 git clone <repository-url> cursor-cli-devcontainer
 cd cursor-cli-devcontainer
 ```
 
-## 2. Configure projects
-
-### Option A — multi-project (recommended)
-
-Copy the JSON template and list every project you want to mount:
+## 2. Setup
 
 ```bash
-cp .env.example .env
-cp cind.config.example.json cind.config.json
+make setup PROJECT_DIR=/absolute/path/to/your/repo
 ```
 
-Edit `cind.config.json`:
+`make setup`:
 
-```json
-{
-  "default_project": "my-app",
-  "projects": [
-    {
-      "name": "my-app",
-      "path": "/home/you/projects/my-app",
-      "tmux": "my-app"
-    }
-  ]
-}
-```
+1. Creates `cind.config.json` from `PROJECT_DIR` if the file is missing (one workspace, one project)
+2. Runs `make env` — creates `.env`, generated Compose mounts, runtime config
+3. Prints workspace layout (`make config-show`) and next steps
 
-Rules:
-
-* `projects` must contain **at least one** project
-* each `path` must be an **absolute** host path (no `~` or relative paths)
-* each project is mounted into the container and shown in the launcher menu
-* `default_project` sets the container `working_dir` (defaults to the first project)
-
-See [JSON config](config.md) for `windows[]`, ttyd, and resources.
-
-### Option B — single project (no JSON)
-
-Skip `cind.config.json`. `make env` will create a one-project runtime from `PROJECT_DIR`:
+Developing **this** cind repo (defaults `PROJECT_DIR` to the clone):
 
 ```bash
-cp .env.example .env
+make setup
 ```
 
-## 3. Generate `.env` and project mounts
+### Add more repos later
 
 ```bash
+make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibooks
 make env
+make down && make terminal-docker
 ```
 
-`make env` fills:
+Optional: `make config-init` copies the full multi-workspace **example** when you prefer editing a template by hand.
 
-* `USER_UID` / `USER_GID` from your host account
-* `DOCKER_GID` from `/var/run/docker.sock` when present
-* `PROJECT_DIR` (default project path)
-* `.cind/compose-projects.generated.yml` (one Docker volume per project)
-* `.cind/runtime-config.json` (launcher + tmux)
+See [JSON config](config.md) for `mount_mode`, `windows[]`, ttyd, and resources.
 
-If `./cind.config.json` exists, it is used automatically. Override with:
-
-```bash
-make env CONFIG=/path/to/other.config.json
-```
-
-For single-project mode without JSON:
-
-```bash
-make env PROJECT_DIR=$HOME/projects/my-app
-```
-
-!!! tip
-
-    Use absolute paths only — not `.`, `../`, or `~/project`. See [Path parity](path-parity.md).
-
-## 4. Check path parity
+## 3. Check mounts (optional)
 
 ```bash
 make path-check
 ```
 
-Shows the default project and every mounted project path.
-
-## 5. Build the image
+## 4. Build
 
 ```bash
 make build
 ```
 
-The first build downloads base images and tool stages. Later builds are faster because of Docker layer and BuildKit caches.
+The first build downloads base images. Later builds reuse Docker layer caches.
 
-## 6. Start the terminal
+## 5. Start the terminal
 
 ```bash
 make terminal-docker
@@ -106,60 +61,37 @@ make terminal-docker
 
 Use `make terminal` if you do **not** need the host Docker socket.
 
-Open the URL (default `http://localhost:7681`) or run:
+Open `http://localhost:7681` or run `make terminal-url`.
 
-```bash
-make terminal-url
-```
+Remote host on **Tailscale**: `http://<tailscale-ip>:7681`.
 
-In the browser you see the **project launcher** — pick a project by number. Each choice attaches to a dedicated tmux session for that project.
-
-Two browser tabs → two projects at once.
-
-!!! note
-
-    `make terminal` does **not** mount the Docker socket.
-    Use `make terminal-docker` when you need `docker compose` against the host daemon.
+In the browser: **workspace picker** → one tmux session per workspace (one window per project).
 
 !!! warning
 
-    ttyd has no authentication. Use only on localhost or a private network (Tailscale).
+    ttyd has no authentication. Use only on localhost or a Tailscale tailnet.
 
-## 7. Confirm tools
+## 6. Confirm tools
 
-In the browser terminal (after picking a project):
+After picking a workspace in the browser:
 
 ```bash
 agent --version
 test -d "${HOME}/.cursor"
-cursor-init-project --help
 ```
 
-## 8. Optional: scaffold Cursor files in the mounted project
+## 7. Optional: scaffold Cursor files in a project
+
+From the host (pass the repo path explicitly):
 
 ```bash
-cursor-init-project --dry-run
-cursor-init-project
+make init-project PROJECT_DIR=/absolute/path/to/repo
 ```
-
-Or from the host:
-
-```bash
-make init-project-dry-run
-make init-project
-```
-
-## Adding another project later
-
-1. Add an entry to `projects[]` in `cind.config.json`
-2. `make env`
-3. `make down && make terminal-docker`
-4. Open the browser — the new project appears in the menu
 
 ## Next steps
 
-* [JSON config](config.md) — full schema
-* [Project launcher](launcher.md) — multi-project workflow
-* [tmux](tmux.md) — sessions, windows, keybindings
-* [Path parity](path-parity.md) — why absolute paths matter
-* [Makefile](makefile.md) — all Make targets
+* [Makefile](makefile.md) — all targets (`setup`, `config-scaffold`, …)
+* [JSON config](config.md)
+* [Project launcher](launcher.md)
+* [Path parity](path-parity.md)
+* [Security — Tailscale](security.md#remote-access-tailscale)

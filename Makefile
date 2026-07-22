@@ -14,7 +14,7 @@ CONFIG ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env build rebuild terminal terminal-docker terminal-url \
+.PHONY: help setup env build rebuild terminal terminal-docker terminal-url \
 	down logs config init-project init-project-dry-run clean clean-volumes \
 	docs docs-serve test validate path-check validate-project \
 	config-init config-scaffold config-show
@@ -22,6 +22,22 @@ CONFIG ?=
 help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '\nFirst run: make setup PROJECT_DIR=/absolute/path/to/repo\n'
+
+setup: validate-project ## First run: create config if missing, refresh .env, show layout
+	@if [ ! -f cind.config.json ]; then \
+		printf 'Creating cind.config.json (workspace=%s)...\n' \
+			"$${WORKSPACE:-$$(basename "$(PROJECT_DIR)")}"; \
+		python3 ./scripts/repository/config-scaffold.py \
+			--project-dir "$(PROJECT_DIR)" \
+			--workspace "$${WORKSPACE:-$$(basename "$(PROJECT_DIR)")}"; \
+	else \
+		printf 'Using existing cind.config.json\n'; \
+	fi
+	@$(MAKE) env
+	@$(MAKE) config-show
+	@printf '\nNext:\n  make build\n  make terminal-docker    # browser terminal + Docker socket\n  make terminal           # browser terminal only\n  make path-check         # verify mounts\n'
+	@printf '\nAdd another repo: make config-scaffold PROJECT_DIR=/path/to/repo WORKSPACE=name\n'
 
 validate-project:
 	@./scripts/repository/validate-project-dir.sh
@@ -54,7 +70,7 @@ PY \
 env: ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
 	@CONFIG="$(CONFIG)" PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
 
-config-init: ## Create cind.config.json from example (skip if it already exists)
+config-init: ## Copy full example cind.config.json (optional; prefer make setup)
 	@if [ -f cind.config.json ]; then \
 		printf 'cind.config.json already exists\n'; \
 		printf '  edit:  $$EDITOR cind.config.json\n'; \

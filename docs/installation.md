@@ -29,9 +29,10 @@ cd cursor-cli-devcontainer
 ## Configure environment
 
 ```bash
-cp .env.example .env
-make env
+make setup PROJECT_DIR=/absolute/path/to/your/project
 ```
+
+`make setup` / `make env` create `.env` automatically when missing (from `.env.example` + host UID/GID).
 
 Example `.env` values:
 

@@ -8,13 +8,34 @@ This page is intentionally direct. Containers help, but they are not a full secu
 * Language tools live in the image
 * Caches and Cursor config live in named volumes
 * Base Compose does not mount the Docker socket
+* **No SSH server** — shell access is browser-only (ttyd + tmux)
 
 ## What is not isolated
 
 * The bind-mounted project is writable on the host
-* Read-only `~/.ssh` and `~/.gitconfig` share host identity with the container
+* Read-only `~/.gitconfig` (when present on the host) shares Git identity with the container
 * `sudo` inside the container is root in the container
 * Docker socket mode can control the host Docker Engine
+
+## Remote access (Tailscale)
+
+There is **no SSH** into cind. The supported remote path is:
+
+```text
+Tailscale (or localhost) → http://<host>:7681 → workspace picker → tmux
+```
+
+1. Install [Tailscale](https://tailscale.com/) on the host (or use localhost only).
+2. Run `make terminal` or `make terminal-docker`.
+3. Open `http://<tailscale-ip>:7681` from a device on the same tailnet.
+
+!!! warning
+
+    ttyd has **no authentication**. Anyone who can reach port `7681` gets a shell as the `developer` user.
+    **Do not** port-forward `7681` to the public Internet without auth and TLS.
+    Tailscale provides network-layer access control — keep the tailnet trusted.
+
+Use Git over **HTTPS** inside the container (no host `~/.ssh` mount, no `openssh-client` in the image).
 
 ## Docker socket
 
@@ -39,15 +60,15 @@ make terminal
 
 | Mount | Risk |
 | --- | --- |
-| `PROJECT_DIR` (path parity) | Agent can edit that project on the host |
-| `~/.ssh` (read-only) | Private keys are visible inside the container |
-| `~/.gitconfig` (read-only) | Git identity is shared |
+| Project paths (path parity) | Agent can edit those repos on the host |
+| `~/.gitconfig` (read-only, optional) | Git identity is shared |
 
 Do **not** mount:
 
 * `/`
 * `/home`
 * `/etc`
+* `~/.ssh` or other credential directories
 * unrelated disks or backup trees
 
 ## Volumes
@@ -64,44 +85,27 @@ make clean-volumes
 
 * Keep `.env` out of git (already gitignored)
 * Do not bake tokens into the Dockerfile
-* Do not copy SSH keys into the image layers
+* Do not mount SSH keys or the host `~/.cursor` directory into the container
 * Prefer environment injection or short-lived credentials when possible
-* Do not mount the host `~/.cursor` directory into the container
 
 ## Agent rules vs isolation
 
 Text rules in `${HOME}/.cursor/rules` and project `.cursor/rules` guide the agent.
 They do **not** replace Docker isolation or OS permissions.
 
-## SSH keys (Git)
-
-The base Compose file mounts `~/.ssh` read-only for Git over SSH.
-The ttyd overlay does **not** mount `~/.ssh` or `~/.gitconfig` (common on VPS hosts without those paths).
-
-Safer long-term option (see [Development — Roadmap](development.md#roadmap)): SSH agent forwarding instead of mounting the whole `.ssh` directory.
-
-## Browser terminal (ttyd)
+## Browser terminal (ttyd + tmux)
 
 `make terminal` and `make terminal-docker` start ttyd inside the container.
 
 * Default URL: `http://localhost:7681`
 * Host port: `7681` (`TTYD_HOST_PORT`)
-* TMUX session: `workspace` (`TMUX_SESSION_NAME`)
-* Does not mount host `~/.ssh` or `~/.gitconfig`
-
-!!! warning
-
-    ttyd has **no authentication**. Anyone who can reach the port gets a shell as the `developer` user.
-    Use only on localhost or a private network (Tailscale).
-    Do not expose port `7681` to the public Internet without auth and TLS.
+* Flow: browser → workspace picker → one tmux session per workspace
 
 ```bash
-make terminal
+make terminal-docker
 ```
 
-Open `http://localhost:7681` in your browser.
-
-On a VPS, use `http://<tailscale-ip>:7681` instead of `localhost`.
+Open `http://localhost:7681` locally, or `http://<tailscale-ip>:7681` on a remote host in your tailnet.
 
 ## Permissions
 
@@ -109,8 +113,8 @@ Matching `USER_UID` / `USER_GID` avoids root-owned files in your project. It doe
 
 ## Good practices
 
-1. Use `make terminal` by default.
-2. Mount the smallest project directory that works.
+1. Use `make terminal` by default; add Tailscale for remote access instead of SSH.
+2. Mount the smallest project directories that work.
 3. Keep production secrets off developer laptops when you can.
 4. Review `.cursorignore` when you add credential paths.
 5. Do not run `--privileged` containers from this project.

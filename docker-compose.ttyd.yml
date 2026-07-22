@@ -1,7 +1,6 @@
 # ttyd overlay for make terminal and make terminal-docker.
-# WARNING: ttyd has no built-in authentication. Use only on localhost or a private
-# network (Tailscale). Do not expose this port to the public Internet without auth and TLS.
-# Does not mount host ~/.ssh or ~/.gitconfig (those paths often missing on a VPS).
+# Remote access: browser only (ttyd → workspace picker → tmux). No SSH server.
+# Recommended: Tailscale (or localhost). Do not expose port 7681 on the public Internet.
 services:
   cursor:
     command: ["cursor-ttyd"]

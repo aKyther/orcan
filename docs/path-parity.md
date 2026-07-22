@@ -49,18 +49,7 @@ Path parity removes that mismatch.
 ## Configure the project
 
 ```bash
-cp .env.example .env
-```
-
-Set an absolute path (no `.`, no `../`, no `~`):
-
-```dotenv
-PROJECT_DIR=/home/user/projects/example
-```
-
-Then:
-
-```bash
+make setup PROJECT_DIR=/home/user/projects/example
 make path-check
 make terminal-docker
 ```
