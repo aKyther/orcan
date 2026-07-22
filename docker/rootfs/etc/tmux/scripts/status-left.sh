@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
-# Left status segment: prefix indicator, project, session.
+# Left status: prefix · workspace · session (colourful, readable in ttyd).
 set -Eeuo pipefail
 
-prefix='○ '
+prefix='#[fg=colour240]○ '
 if [[ "$(tmux display -p '#{client_prefix}' 2>/dev/null || echo 0)" == "1" ]]; then
-    prefix='◉ '
+    prefix='#[fg=colour208,bold]◉ '
 fi
 
-project="$(tmux show-environment -g CIND_PROJECT_NAME 2>/dev/null | cut -d= -f2- || true)"
+workspace="$(tmux show-environment -g CIND_WORKSPACE_NAME 2>/dev/null | cut -d= -f2- || true)"
 session="$(tmux display -p '#{session_name}' 2>/dev/null || echo session)"
 
-if [[ -n "${project}" && "${project}" != "${session}" ]]; then
-    printf '#[fg=colour208,bold]%s#[fg=colour81]%s#[fg=colour245] · %s' "${prefix}" "${project}" "${session}"
+if [[ -n "${workspace}" ]]; then
+    printf '%s#[fg=colour81,bold] %s #[fg=colour240]│ #[fg=colour117,bold]%s' \
+        "${prefix}" "${workspace}" "${session}"
 else
-    printf '#[fg=colour208,bold]%s#[fg=colour81]%s' "${prefix}" "${session}"
+    project="$(tmux show-environment -g CIND_PROJECT_NAME 2>/dev/null | cut -d= -f2- || true)"
+    if [[ -n "${project}" && "${project}" != "${session}" ]]; then
+        printf '%s#[fg=colour81,bold] %s #[fg=colour240]│ #[fg=colour117,bold]%s' \
+            "${prefix}" "${project}" "${session}"
+    else
+        printf '%s#[fg=colour117,bold]%s' "${prefix}" "${session}"
+    fi
 fi

@@ -87,6 +87,24 @@ Then log in again inside the browser terminal.
 * TMUX starts automatically inside the ttyd session (session name: `workspace`)
 * Run `make terminal` if you forgot the URL
 
+## tmux keys do not work in the browser
+
+**Symptom:** `Alt+c`, `Ctrl+arrow`, or your usual tmux splits do nothing in ttyd.
+
+**Cause:**
+
+1. cind tmux is **`/etc/tmux/`** (aligned with typical `~/.tmux.conf`) — not your host file unless you copy binds into the container.
+2. Browsers often capture **`Alt+*`** and **`Ctrl+arrow`** before ttyd receives them (bindings exist but never arrive).
+
+**Fix — try in order:**
+
+1. Click inside the terminal.
+2. **`Alt+a`** — turn mouse on; click panes, drag borders to split/resize.
+3. Prefix: **`Ctrl+Space`** then **`-`** or **`|`**.
+4. On desktop browser where keys do get through: **`Ctrl+arrow`** splits, **`Alt+arrow`** moves panes (same as local tmux).
+
+**After image tmux changes:** `make rebuild`, new tmux session, or `Ctrl+Space` `r` inside tmux.
+
 ## Legacy: host `~/.gitconfig` became a directory
 
 **Symptom:** on the host, `~/.gitconfig` is a **directory** (often root-owned) after an older cind version.
