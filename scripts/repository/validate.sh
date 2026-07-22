@@ -42,7 +42,6 @@ require_file "docker/rootfs/usr/local/bin/cind-ai-statusline"
 require_file "docker/rootfs/usr/local/bin/cursor-init-project"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
-require_file "docker/rootfs/usr/local/bin/cursor-tmux-attach"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces"
 require_file "docker/rootfs/usr/local/bin/init-workspace"
@@ -63,7 +62,6 @@ for script in \
     docker/rootfs/usr/local/bin/cursor-init-project \
     docker/rootfs/usr/local/bin/cursor-ttyd \
     docker/rootfs/usr/local/bin/cursor-launcher \
-    docker/rootfs/usr/local/bin/cursor-tmux-attach \
     docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
     docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces \
     docker/rootfs/usr/local/bin/init-workspace \
@@ -114,7 +112,20 @@ fi
 
 # Stale path check (ignore this script's own pattern list)
 stale=0
-for pattern in 'scripts/init-cursor-home.sh' 'scripts/docker-entrypoint.sh' 'scripts/init-project.sh' 'cursor-home/' 'cursor-sshd' 'docker-compose.ssh.yml'; do
+for pattern in \
+    'scripts/init-cursor-home.sh' \
+    'scripts/docker-entrypoint.sh' \
+    'scripts/init-project.sh' \
+    'cursor-home/' \
+    'cursor-sshd' \
+    'docker-compose.ssh.yml' \
+    'cursor-tmux-attach' \
+    'Named volumes' \
+    'cursor-cli-devcontainer' \
+    'TMUX_SESSION_NAME' \
+    'make terminal PROJECT_DIR=' \
+    'cursor-app-config'
+do
     if grep -R --exclude-dir=.git --exclude-dir=site --exclude='validate.sh' -n "${pattern}" . \
         > /tmp/stale-hits.txt 2>/dev/null; then
         if [[ -s /tmp/stale-hits.txt ]]; then

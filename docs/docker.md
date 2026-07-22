@@ -203,10 +203,7 @@ For host Docker socket access, use `make env` (sets `DOCKER_GID` from `/var/run/
 
 ## TMUX and Vim
 
-`cursor-ttyd` starts a persistent TMUX session when you open the browser terminal:
-
-* session name: `workspace` (`TMUX_SESSION_NAME`)
-* working directory: `${PROJECT_DIR}`
+The browser launcher (`cursor-ttyd` → `cursor-launcher`) creates **one tmux session per workspace** (`workspaces[].name`). Working directory is `/home/developer/workspaces/<name>/`.
 
 Config sources:
 
@@ -216,6 +213,8 @@ Config sources:
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` |
 
 Interactive shells inside TMUX source `~/.bashrc.d/50-cind-shell.sh` (PATH, `cd` to workspace) and `60-cind-aliases.sh` (aliases from `/etc/cind/shell/aliases.sh`).
+
+Switch sessions: `Ctrl+Space w`. Details: [tmux](tmux.md).
 
 ## Cursor defaults on host data
 
@@ -236,7 +235,6 @@ See [Cursor](cursor.md).
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits |
 | `TTYD_PORT` | Container port for ttyd (default `7681`) |
 | `TTYD_HOST_PORT` | Host port published for the browser terminal (default `7681`) |
-| `TMUX_SESSION_NAME` | TMUX session name in the browser terminal (default `workspace`) |
 | `IMAGE_REGISTRY` | Registry host for publish/pull (default `registry.gitlab.com`) |
 | `IMAGE_REPOSITORY` | Path under registry, e.g. `mygroup/cind` |
 | `IMAGE_TAG` | Remote tag (default `latest`) |

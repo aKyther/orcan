@@ -13,5 +13,5 @@ fi
 current="$(tmux display -p -t "${wid}" '#{window_name}' 2>/dev/null || true)"
 [[ -n "${current}" ]] || exit 0
 
-# Leave names as-is; users can rename with prefix , or set icon in projects[].windows[].
+# Leave names as-is; users can rename with prefix ,.
 exit 0

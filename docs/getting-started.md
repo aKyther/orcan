@@ -5,8 +5,8 @@ First run uses **Make only** — no manual copying of `.env.example` or config t
 ## 1. Clone
 
 ```bash
-git clone <repository-url> cursor-cli-devcontainer
-cd cursor-cli-devcontainer
+git clone <repository-url> cind
+cd cind
 ```
 
 ## 2. Setup

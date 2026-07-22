@@ -238,8 +238,11 @@ for parent in parents:
             continue
         if child.name in active_names:
             continue
+        print(
+            f"warning: removing stale workspace dir (no longer in config): {child}",
+            file=sys.stderr,
+        )
         shutil.rmtree(child)
-        print(f"removed stale workspace dir: {child}", file=sys.stderr)
 
 print(f"workspaces initialized: {len(workspaces)} ({total_repos} repo mount(s) total)")
 PY

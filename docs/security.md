@@ -93,6 +93,8 @@ make clean-data
 Text rules in `${HOME}/.cursor/rules` and project `.cursor/rules` guide the agent.
 They do **not** replace Docker isolation or OS permissions.
 
+Shell aliases `agy` (`agent --yolo`) and `ccy` (`claude --dangerously-skip-permissions`) skip approval prompts. Use only when you accept full tool autonomy in that session.
+
 ## Browser terminal (ttyd + tmux)
 
 `make terminal` and `make terminal-docker` start ttyd inside the container.

@@ -79,7 +79,10 @@ detect_host_tz() {
     fi
     printf '%s\n' "${tz}"
 }
-ensure_env_key "TZ" "$(detect_host_tz)"
+# Set TZ from the host only when missing/empty — keep an explicit .env override.
+if ! grep -qE '^TZ=.' .env; then
+    ensure_env_key "TZ" "$(detect_host_tz)"
+fi
 
 # Host data root — always on (like poetry/pip under ~/.config).
 # Default: $HOME/.config/cind. Override in .env only for a custom path.

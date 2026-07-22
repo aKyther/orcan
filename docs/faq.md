@@ -14,16 +14,16 @@ Developers who want Cursor CLI plus Node, Python, Go, Rust, and optional Docker 
 
 ## Can I use multiple projects?
 
-Yes. Stop the current container (`make down`) and start again with another `PROJECT_DIR`:
+Yes. List them under `workspaces[].projects` in `cind.config.json`, then:
 
 ```bash
-make down
-make terminal PROJECT_DIR=$HOME/projects/app-a
-make down
-make terminal PROJECT_DIR=$HOME/projects/app-b
+make env
+make down && make terminal-docker
 ```
 
-Each command mounts one project at the same absolute path on host and container (`PROJECT_DIR`). See [Path parity](path-parity.md).
+Each workspace is one tmux session with only its listed projects. To switch focus between host repos without editing config, add both paths to the same workspace (or separate workspaces and use `Ctrl+Space w`). See [Config](config.md) and [Path parity](path-parity.md).
+
+Do **not** pass `PROJECT_DIR=` on `make terminal` — that only affects scaffolding/`make setup`. Runtime mounts come from generated compose after `make env`.
 
 ## Can I disable TMUX?
 

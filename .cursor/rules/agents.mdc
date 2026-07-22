@@ -5,17 +5,18 @@ alwaysApply: true
 
 # Agent guide
 
-This repository builds and runs an isolated Docker environment for Cursor CLI.
-A host project is mounted at `${PROJECT_DIR}` with path parity (same absolute path on host and container). Treat that mount as the only writable project scope.
+This repository builds and runs an isolated Docker environment for Cursor CLI and Claude Code (**cind**).
+Host projects are mounted with path parity. Workspaces come from `cind.config.json`. Treat mounts under `${PROJECT_DIR}` / configured project paths as the writable project scope.
 
 ## File map
 
 | Path | Role |
 | --- | --- |
 | `Dockerfile` | Image build only (packages, COPY rootfs, user, ENTRYPOINT) |
-| `docker-compose.yml` | Base service (no Docker socket) |
+| `docker-compose.yml` | Base service (no Docker socket); uses generated project mounts |
 | `docker-compose.docker.yml` | Optional Docker socket overlay |
 | `docker-compose.ttyd.yml` | Optional ttyd overlay (browser terminal) |
+| `.cind/compose-projects.generated.yml` | Generated path-parity + workspace binds (`make env`) |
 | `Makefile` | Thin host UI; calls Compose and `scripts/repository/` |
 | `docker/rootfs/` | Files installed into the image (source of truth) |
 | `scripts/repository/` | Host-only helpers (`update-env`, `require-generated`, `validate`, …) |
@@ -101,7 +102,7 @@ Not allowed:
 ## Done checklist
 
 - [ ] `make validate` passes
-- [ ] Compose config validates (base, ttyd, and docker overlays)
+- [ ] Compose config validates (base + generated mounts, ttyd, and docker overlays)
 - [ ] Makefile help matches real targets
 - [ ] Docs/README updated for interface/path changes
 - [ ] No secrets added to the image or repo
