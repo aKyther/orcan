@@ -137,8 +137,18 @@ install_templates() {
             cursorindexingignore)
                 dest_name=".cursorindexingignore"
                 ;;
+            claudeignore)
+                dest_name=".claudeignore"
+                ;;
+            claude/settings.json)
+                dest_name=".claude/settings.json"
+                ;;
             rules/*)
                 dest_name=".cursor/${relative_path}"
+                ;;
+            workspace/*|claude/*)
+                # Workspace-only / already handled above — skip dumping into project.
+                continue
                 ;;
             *)
                 dest_name=".cursor/templates/${relative_path}"

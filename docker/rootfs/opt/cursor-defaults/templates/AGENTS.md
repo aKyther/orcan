@@ -54,6 +54,7 @@ uvx ruff check .
 
 - Work only inside this repository.
 - Do not commit secrets or `.env` files.
+- Respect `.cursorignore` / `.claudeignore` when present; do not read secrets.
 - Run available checks before claiming success; label what you did not run.
 
 ## Do not

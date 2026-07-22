@@ -54,7 +54,10 @@ require_file "docker/rootfs/etc/skel/.vimrc"
 require_file "docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh"
 require_file "docker/rootfs/etc/skel/.bashrc.d/60-cind-aliases.sh"
 require_file "docker/rootfs/etc/cind/shell/aliases.sh"
-require_file "docker/rootfs/etc/profile.d/cind-path.sh"
+require_file "docker/rootfs/opt/cursor-defaults/templates/cursorignore"
+require_file "docker/rootfs/opt/cursor-defaults/templates/cursorindexingignore"
+require_file "docker/rootfs/opt/cursor-defaults/templates/claudeignore"
+require_file "docker/rootfs/opt/cursor-defaults/templates/claude/settings.json"
 
 for script in \
     docker/rootfs/usr/local/bin/docker-entrypoint \

@@ -1,5 +1,6 @@
-# Secrets and credentials
-# Cursor agent read + index exclusions. Pair with cli-config.json deny rules.
+# Secrets and credentials — Claude Code discovery / context
+# Same patterns as .cursorignore. Not a hard security boundary;
+# also use .claude/settings.json permissions.deny (seeded by cind).
 .env
 .env.*
 !.env.example

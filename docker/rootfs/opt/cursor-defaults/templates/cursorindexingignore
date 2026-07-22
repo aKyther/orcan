@@ -1,9 +1,20 @@
-# VCS and dependencies
+# VCS and dependencies (Cursor indexing)
+# Keep secrets in .cursorignore; this file reduces index noise.
 .git/
 node_modules/
 .venv/
 venv/
+.porg/
 vendor/
+
+# Secrets (also in .cursorignore — belt and suspenders for indexing)
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/secrets/
+**/credentials.json
 
 # Build and cache
 target/
