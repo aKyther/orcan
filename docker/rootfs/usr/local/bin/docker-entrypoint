@@ -4,6 +4,7 @@
 set -Eeuo pipefail
 
 INIT_SCRIPT="${INIT_CURSOR_HOME_SCRIPT:-/usr/local/bin/init-cursor-home}"
+AI_STATUSLINE_SCRIPT="${INIT_AI_STATUSLINE_SCRIPT:-/usr/local/bin/init-ai-statusline}"
 WORKSPACE_SCRIPT="${INIT_WORKSPACE_SCRIPT:-/usr/local/bin/init-workspace}"
 
 fix_named_volume_permissions() {
@@ -85,9 +86,36 @@ run_init() {
     "${INIT_SCRIPT}"
 }
 
+run_init_ai_statusline() {
+    if [[ ! -x "${AI_STATUSLINE_SCRIPT}" ]]; then
+        return 0
+    fi
+    "${AI_STATUSLINE_SCRIPT}" || true
+}
+
+ensure_shell_aliases() {
+    # Seed missing bashrc.d snippets from skel; drop legacy cursor-dev names.
+    local src dst
+    mkdir -p "${HOME}/.bashrc.d"
+    rm -f "${HOME}/.bashrc.d/50-cursor-dev.sh"
+    for src in /etc/skel/.bashrc.d/*.sh; do
+        [[ -f "${src}" ]] || continue
+        dst="${HOME}/.bashrc.d/$(basename "${src}")"
+        if [[ ! -e "${dst}" ]]; then
+            cp -- "${src}" "${dst}"
+        fi
+    done
+    # Prefer /etc/profile.d/cind-path.sh if an old .profile still points at the legacy name.
+    if [[ -f "${HOME}/.profile" ]] && grep -q 'cursor-dev-path' "${HOME}/.profile" 2>/dev/null; then
+        sed -i 's|/etc/profile.d/cursor-dev-path.sh|/etc/profile.d/cind-path.sh|g' "${HOME}/.profile" || true
+    fi
+}
+
 main() {
     fix_named_volume_permissions
     run_init
+    run_init_ai_statusline
+    ensure_shell_aliases
     run_init_workspace
     enter_project_dir
 

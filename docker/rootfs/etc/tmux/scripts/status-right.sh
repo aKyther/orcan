@@ -54,6 +54,17 @@ fi
 if [[ -n "${mem}" ]]; then
     parts+=("#[fg=colour109]mem ${mem}")
 fi
+
+ai_usage=""
+if [[ -x /etc/tmux/scripts/ai-usage.sh ]]; then
+    ai_usage="$(timeout 0.3 /etc/tmux/scripts/ai-usage.sh 2>/dev/null || true)"
+elif [[ -f /etc/tmux/scripts/ai-usage.sh ]]; then
+    ai_usage="$(timeout 0.3 python3 /etc/tmux/scripts/ai-usage.sh 2>/dev/null || true)"
+fi
+if [[ -n "${ai_usage}" ]]; then
+    parts+=("${ai_usage}")
+fi
+
 if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
     bat_colour='109'
     if (( battery < 20 )); then

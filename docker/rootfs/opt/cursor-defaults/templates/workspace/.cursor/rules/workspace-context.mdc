@@ -5,21 +5,32 @@ alwaysApply: true
 
 # Workspace context
 
-You are working inside a **cind workspace** — one tmux session, one directory, one or more project checkouts underneath.
+You are in a **cind workspace** (one tmux session, one root, one or more project checkouts).
 
-## Layout
+## Read first
 
-- Workspace root is **not** a git repository — start here, then `cd` into projects.
-- Each project subdirectory matches `projects[].name` in `.manifest.json`.
-- Cross-repo rules live in `.cursor/rules/` at the workspace root.
+1. `AGENTS.md` (or `CLAUDE.md`) at the workspace root — behaviour and project table.
+2. `.manifest.json` — canonical paths and symlink layout.
+3. After `cd <project>/` — that repo’s own `AGENTS.md` / `.cursor/rules/`.
 
-## Path parity + symlinks
+## Behaviour (Karpathy-inspired)
 
-- Each `projects[].path` in `.manifest.json` is the **canonical path** on host and in the container (path parity).
-- Subdirectories under this workspace root are **symlinks** to those paths — use them for navigation (`cd backend`).
-- Host Docker socket bind mounts must use the canonical `path`, not the symlink under the workspace root.
+1. Think before coding — assumptions, tradeoffs, ask when unclear.
+2. Simplicity first — smallest complete solution; nothing speculative.
+3. Surgical changes — only lines that serve the request.
+4. Goal-driven execution — verifiable checks; loop until they pass.
+
+Full text: global `karpathy-guidelines` rule + this workspace’s `AGENTS.md`.
+
+## Path parity
+
+- Canonical path = `projects[].path` in `.manifest.json` (same on host and in container).
+- Workspace subdirectories are navigation **symlinks**; use the canonical path for Docker bind mounts.
 
 ## Scope
 
-- Read `.manifest.json` before cross-repo edits.
-- Repo rules stay in each project's own `.cursor/`.
+- Cross-repo rules: this workspace’s `.cursor/rules/`.
+- Per-repo rules stay inside each project checkout.
+- Workspace root is not a git repository.
+- Prefer `uv` / `uvx` for Python — not system `pip install`.
+- Do not create planning/summary Markdown files unless asked.

@@ -8,6 +8,9 @@ alwaysApply: true
 Optimize for correctness, readability, maintainability, simplicity, and explicit behavior.
 The best solution is usually the smallest complete solution.
 
+Behavioral defaults (think → simplify → surgical edit → verify) live in
+`karpathy-guidelines.mdc` — follow those on every non-trivial coding task.
+
 ## Before changing anything
 
 - Understand the repository and the real goal before editing.
@@ -21,6 +24,7 @@ The best solution is usually the smallest complete solution.
 - Prefer explicit solutions over clever code.
 - Before creating a new file, check whether an existing file should be updated instead.
 - New repository files need a clear long-term purpose.
+- For Python helpers in this container, prefer `uv` / `uvx` over system `pip install`.
 
 ## Repository clutter
 

@@ -50,9 +50,25 @@ Most navigation/splits work **without prefix** (see below).
 | --- | --- |
 | Status bar | Dark (`colour234`) with cyan workspace, mint session, gold prefix active |
 | Window tabs | Inactive grey; **active tab** cyan background (`colour81`) |
-| Right status | Git branch, cwd, CPU load, memory %, battery, time |
+| Right status | Git branch, cwd, CPU load, memory %, **AI usage** (ctx / 5h / 7d when Claude or Cursor is active), battery, time |
 | Browser font | `TTYD_FONT_SIZE` (default **22** in `.env` / `cind.config.json`) |
 | Pane borders | Active pane highlighted cyan |
+
+### AI usage in the status bar
+
+While `claude` or `agent` (Cursor CLI) is running, the right status can show live meters from the CLI `statusLine` hook — same idea as `/usage`, without polling the network from tmux:
+
+```text
+claude ctx 42% · 5h 18% · 7d 4%
+```
+
+How it works:
+
+1. On container start, `init-ai-statusline` sets `statusLine` in `~/.claude/settings.json` (and in `~/.cursor/cli-config.json` if that file exists and has no `statusLine` yet).
+2. Each turn, `/usr/local/bin/cind-ai-statusline` writes `~/.cache/cind/ai-usage-*.json`.
+3. tmux `status-right` reads the cache (stale after 30 minutes → hidden).
+
+Requires image rebuild (`make rebuild`) so the new scripts are in the image. Existing custom `statusLine` commands are left alone.
 
 Set font size in `.env`:
 

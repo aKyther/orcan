@@ -3,6 +3,11 @@
   "editor": {
     "vimMode": false
   },
+  "statusLine": {
+    "type": "command",
+    "command": "/usr/local/bin/cind-ai-statusline",
+    "padding": 0
+  },
   "permissions": {
     "allow": [
       "Shell(ls)",
@@ -22,7 +27,9 @@
       "Shell(npm)",
       "Shell(pnpm)",
       "Shell(python3)",
+      "Shell(python)",
       "Shell(uv)",
+      "Shell(uvx)",
       "Shell(go)",
       "Shell(cargo)",
       "Shell(rustc)",

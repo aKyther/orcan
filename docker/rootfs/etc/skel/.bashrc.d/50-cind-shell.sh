@@ -1,13 +1,9 @@
-# Cursor CLI Dev Container shell setup
-# Sourced from ~/.bashrc for interactive shells.
+# cind interactive shell setup (PATH + default cwd).
+# Sourced from ~/.bashrc via ~/.bashrc.d/.
 
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:$HOME/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH:-}"
 
-alias ls='eza'
-alias ll='eza -lah --git'
-alias la='eza -la'
-alias cat='bat --paging=never'
-alias dc='docker compose'
+# Aliases: /etc/cind/shell/aliases.sh (via 60-cind-aliases.sh).
 
 # Enter the default workspace root inside the container.
 if [[ -n "${CONTAINER_PROJECT_DIR:-}" && -d "${CONTAINER_PROJECT_DIR}" ]]; then
