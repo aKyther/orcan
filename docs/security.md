@@ -13,9 +13,10 @@ This page is intentionally direct. Containers help, but they are not a full secu
 ## What is not isolated
 
 * The bind-mounted project is writable on the host
-* Read-only `~/.gitconfig` (when present on the host) shares Git identity with the container
 * `sudo` inside the container is root in the container
 * Docker socket mode can control the host Docker Engine
+
+Git config and credentials are **not** mounted from the host — configure Git inside the container when needed.
 
 ## Remote access (Tailscale)
 
@@ -61,7 +62,6 @@ make terminal
 | Mount | Risk |
 | --- | --- |
 | Project paths (path parity) | Agent can edit those repos on the host |
-| `~/.gitconfig` (read-only, optional) | Git identity is shared |
 
 Do **not** mount:
 

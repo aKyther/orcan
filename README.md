@@ -360,7 +360,7 @@ Details: [docs/docker.md](docs/docker.md) and [docs/security.md](docs/security.m
 * The mounted project is writable on the host
 * Docker socket mode can manage host containers and images
 * `sudo` inside the container is root **in the container**
-* Optional read-only `~/.gitconfig` shares Git identity with the container
+* Git identity is **not** shared with the host — configure inside the container if needed
 
 > **Warning:** Do not mount your whole home directory or the host root filesystem.
 
