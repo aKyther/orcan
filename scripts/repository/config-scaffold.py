@@ -50,11 +50,8 @@ def find_workspace(cfg: dict, name: str) -> dict | None:
     return None
 
 
-def project_entry(name: str, path: str, mount_mode: str) -> dict:
-    entry: dict = {"name": name, "path": path}
-    if mount_mode == "workspace":
-        entry["mount"] = "workspace"
-    return entry
+def project_entry(name: str, path: str) -> dict:
+    return {"name": name, "path": path}
 
 
 def main() -> None:
@@ -65,12 +62,6 @@ def main() -> None:
         "--workspace",
         default="",
         help="Workspace name (default: basename of PROJECT_DIR)",
-    )
-    parser.add_argument(
-        "--mount-mode",
-        choices=("parity", "workspace"),
-        default="parity",
-        help="Mount mode for the project (default: parity)",
     )
     parser.add_argument(
         "--force",
@@ -90,7 +81,7 @@ def main() -> None:
 
     cfg = load_config(config_path)
     ws = find_workspace(cfg, ws_name)
-    proj = project_entry(project.name, str(project), args.mount_mode)
+    proj = project_entry(project.name, str(project))
 
     if ws is None:
         ws = {
@@ -98,8 +89,6 @@ def main() -> None:
             "tmux": ws_name,
             "projects": [proj],
         }
-        if args.mount_mode == "workspace":
-            ws["mount_mode"] = "workspace"
         cfg["workspaces"].append(ws)
         action = "added workspace"
     else:

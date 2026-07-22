@@ -99,7 +99,7 @@ make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibook
 make env
 ```
 
-Optional: `MOUNT_MODE=workspace`, `WORKSPACE=my-name`, `FORCE=1`.
+Optional: `WORKSPACE=my-name`, `FORCE=1`.
 
 Note: `make config` prints **Docker Compose** config, not `cind.config.json`.
 

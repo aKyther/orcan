@@ -59,17 +59,12 @@ for ws in workspaces:
         workspace_path = (
             item.get("workspace_path") or item.get("container_path") or ""
         ).strip()
-        mount = (item.get("mount") or "parity").strip()
         if not name or not host_path:
             continue
         target = Path(workspace_path) if workspace_path else root / name
         src = Path(host_path)
         if not src.is_dir():
             print(f"skip missing repo mount: {host_path}", file=sys.stderr)
-            continue
-        if mount == "workspace":
-            if not target.is_dir():
-                print(f"skip workspace bind (not mounted yet): {target}", file=sys.stderr)
             continue
         if target.exists() or target.is_symlink():
             target.unlink()
@@ -82,7 +77,7 @@ for ws in workspaces:
         shutil.copy2(template, dest)
 
     project_lines = [
-        f"| `{item.get('name')}` | `{item.get('path')}` | `{item.get('mount', 'parity')}` | `{item.get('workspace_path', item.get('container_path', ''))}` |"
+        f"| `{item.get('name')}` | `{item.get('path')}` | `{item.get('workspace_path', item.get('container_path', ''))}` |"
         for item in projects
     ]
     readme = root / "README.workspace.md"
@@ -93,12 +88,12 @@ for ws in workspaces:
                 "",
                 "One tmux session per workspace. Project repos appear as subdirectories.",
                 "",
-                "Put cross-repo Cursor rules in `.cursor/rules/` here (workspace meta),",
+                "Put cross-repo Cursor rules in `.cursor/rules/` here (workspace root),",
                 "not inside a single project repo.",
                 "",
-                f"Meta path on host: `{ws.get('meta_path', '')}`",
+                "Host copy: `.cind/workspaces/<name>/` in the cind repo.",
                 "",
-                "| Name | Host path | Mount | Workspace path |",
+                "| Name | Host path | Symlink |",
                 "| --- | --- | --- | --- |",
                 *project_lines,
                 "",

@@ -98,11 +98,11 @@ PY
 
 default_windows() {
     local project_path="$1"
-    printf '%s\t%s\t\n' "🖥 shell" "."
-    printf '%s\t%s\t\n' "📝 editor" "."
-    printf '%s\t%s\t\n' "⚙ logs" "."
+    printf '%s\t%s\t\n' "shell" "."
+    printf '%s\t%s\t\n' "editor" "."
+    printf '%s\t%s\t\n' "logs" "."
     if [[ -d "${project_path}/tests" || -d "${project_path}/test" ]]; then
-        printf '%s\t%s\t\n' "🧪 tests" "tests"
+        printf '%s\t%s\t\n' "tests" "tests"
     fi
 }
 
@@ -143,7 +143,7 @@ bootstrap_session() {
     local line title dir command index=1
     local had_config=0
 
-    tmux_cmd new-session -d -s "${SESSION}" -c "${PROJECT_PATH}" -n "🖥 shell"
+    tmux_cmd new-session -d -s "${SESSION}" -c "${PROJECT_PATH}" -n "shell"
     set_session_env
 
     if fetch_windows_from_config "${SESSION}" "${PROJECT_PATH}" >"${HOME}/.cache/tmux/bootstrap.${SESSION}.lst" 2>/dev/null; then
