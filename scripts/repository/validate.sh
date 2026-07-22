@@ -44,6 +44,7 @@ require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-attach"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
+require_file "docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces"
 require_file "docker/rootfs/usr/local/bin/init-workspace"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
@@ -64,6 +65,7 @@ for script in \
     docker/rootfs/usr/local/bin/cursor-launcher \
     docker/rootfs/usr/local/bin/cursor-tmux-attach \
     docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
+    docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces \
     docker/rootfs/usr/local/bin/init-workspace \
     docker/rootfs/etc/tmux/scripts/status-left.sh \
     docker/rootfs/etc/tmux/scripts/status-right.sh \

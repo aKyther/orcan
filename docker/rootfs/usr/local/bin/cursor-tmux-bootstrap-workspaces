@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Create detached tmux sessions for every cind workspace (idempotent).
+# So Ctrl+Space w/s can switch between them without visiting the launcher first.
+set -Eeuo pipefail
+
+CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
+
+[[ -f "${CIND_CONFIG}" ]] || exit 0
+
+while IFS=$'\t' read -r name root session; do
+    [[ -n "${name}" && -n "${root}" && -n "${session}" ]] || continue
+    [[ -d "${root}" ]] || continue
+    CIND_TMUX_ATTACH=0 cursor-tmux-workspace-attach "${session}" "${root}" "${name}" >/dev/null 2>&1 || true
+done < <(python3 - "${CIND_CONFIG}" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as fh:
+    cfg = json.load(fh)
+
+workspaces = cfg.get("workspaces") or []
+if not workspaces:
+    legacy = cfg.get("workspace") or {}
+    projects = cfg.get("projects") or []
+    if legacy or projects:
+        merged = dict(legacy)
+        merged.setdefault("projects", projects)
+        workspaces = [merged]
+
+for ws in workspaces:
+    if ws.get("enabled") is False:
+        continue
+    name = (ws.get("name") or "workspace").strip()
+    root = (ws.get("root") or "").strip()
+    session = (ws.get("tmux_session") or ws.get("tmux") or name).strip()
+    if not name or not root:
+        continue
+    print(f"{name}\t{root}\t{session}")
+PY
+)

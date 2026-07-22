@@ -4,13 +4,18 @@ Browser terminal (`ttyd`) starts a **workspace picker**, not a single tmux sessi
 
 ## How it works
 
-1. Open `http://localhost:7681` (main page — **workspaces**, good on Android)
-2. Choose a workspace by number
-3. Enter that workspace’s **tmux session** with default tabs: `workspace-1`, `workspace-2`, `workspace-3` (all start in workspace root).
-4. Work in tmux as usual — rename tabs (`prefix ,`), add windows (`Alt+c`), `cd` into project subdirs. Run `agent` or `claude` when ready.
-5. Refresh browser → launcher again → same workspace session if still alive
+1. Open `http://localhost:7681`
+2. Choose a workspace by number — each choice is its own **tmux session**
+3. Land in that session with tabs `tab-1` … `tab-3` (all in that workspace root)
+4. Work as usual — `cd` into project subdirs, run `agent` / `claude`
+5. **Detach** (`Ctrl+Space` then `d`) → back to the launcher → pick another workspace
+6. Switch between workspaces **without leaving tmux**: `Ctrl+Space` then `w` (or `s`) — all sessions are created when the launcher opens
 
-Each workspace lives under `/home/developer/workspaces/<name>` with 1+ mounted projects.
+| Concept | Meaning |
+| --- | --- |
+| Workspace (`cind.config.json`) | One session + one directory under `/home/developer/workspaces/<name>` |
+| tmux **session** | That workspace (name = `workspaces[].name`) — all bootstrapped in the background |
+| tmux **tab** (`tab-1` …) | Extra shell in the **same** workspace — not another workspace |
 
 ## Configure workspaces
 
@@ -23,11 +28,17 @@ Each workspace lives under `/home/developer/workspaces/<name>` with 1+ mounted p
         {"name": "backend", "path": "/home/you/gotibooks/backend"},
         {"name": "frontend", "path": "/home/you/gotibooks/frontend"}
       ]
+    },
+    {
+      "name": "cind",
+      "projects": [
+        {"name": "cind", "path": "/home/you/workspace/kyther/cind"}
+      ]
     }
   ]
 }
 ```
 
-Default tmux tabs are plain names: `workspace-1`, `workspace-2`, `workspace-3`. Rename with `prefix ,` or add windows with `Alt+c`. Optional `projects[].windows[]` (with optional `icon`) exists for legacy per-project attach only — not used by the workspace launcher.
+After editing config: `make env && make down && make terminal-docker`.
 
 See [JSON config](config.md) and [Virtual workspace](architecture/workspace.md).

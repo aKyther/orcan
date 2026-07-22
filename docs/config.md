@@ -119,11 +119,13 @@ Root-level `tmux` configures **window defaults** (not the session name):
 ```json
 "tmux": {
   "initial_windows": 3,
-  "window_prefix": "workspace"
+  "window_prefix": "tab"
 }
 ```
 
-Creates `workspace-1`, `workspace-2`, `workspace-3` in the workspace root. Session name is always `workspaces[].name`. Developers rename tabs with tmux (`prefix ,`) or add windows (`Alt+c`).
+Creates `tab-1`, `tab-2`, `tab-3` in the workspace root. Session name is always `workspaces[].name`. Developers rename tabs with tmux (`prefix ,`) or add windows (`Alt+c`).
+
+Do not confuse tabs with workspaces: **one config workspace → one tmux session**; tabs are only extra shells inside that session.
 
 Generated files (per workspace):
 
