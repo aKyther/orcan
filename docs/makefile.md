@@ -13,8 +13,8 @@ Everyday commands for building and running the cind container.
 | `make config-scaffold` | Add workspace/project from `PROJECT_DIR` into `cind.config.json` |
 | `make config-show` | List workspaces (config + runtime manifest) |
 | `make path-check` | Show mounts and workspace layout (read-only) |
-| `make build` | Build the container image |
-| `make rebuild` | Rebuild without cache |
+| `make build` | Build the container image (needs `.env` only) |
+| `make rebuild` | Rebuild without cache (needs `.env` only) |
 | `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
 | `make terminal-docker` | Start browser terminal with host Docker socket (does not run `make env`) |
 | `make terminal-url` | Print browser terminal URL |

@@ -6,8 +6,7 @@
 
 FROM node:22-bookworm-slim AS node-tools
 
-RUN corepack enable \
-    && corepack prepare pnpm@latest --activate
+# No network fetch here — final stage installs pnpm with a pinned version.
 
 FROM golang:1.24-bookworm AS go-tools
 
@@ -79,18 +78,35 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Node.js + npm + pnpm
 # ------------------------------------------------------------------------------
 
+ARG PNPM_VERSION=10.12.1
+
 COPY --from=node-tools /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-tools /usr/local/lib/node_modules /usr/local/lib/node_modules
 
-RUN ln -sf node /usr/local/bin/nodejs \
-    && ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
-    && ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack \
-    && corepack enable \
-    && corepack prepare pnpm@latest --activate \
-    && node --version \
-    && npm --version \
-    && pnpm --version
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) pnpm_arch="x64" ;; \
+        arm64) pnpm_arch="arm64" ;; \
+        *) echo "unsupported architecture for pnpm: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    ln -sf node /usr/local/bin/nodejs; \
+    ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm; \
+    ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx; \
+    for attempt in 1 2 3; do \
+        if curl -fsSL \
+            "https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linuxstatic-${pnpm_arch}" \
+            -o /usr/local/bin/pnpm; then \
+            break; \
+        fi; \
+        echo "pnpm download attempt ${attempt} failed, retrying..." >&2; \
+        sleep 5; \
+    done; \
+    test -s /usr/local/bin/pnpm; \
+    chmod 0755 /usr/local/bin/pnpm; \
+    node --version; \
+    npm --version; \
+    pnpm --version
 
 # ------------------------------------------------------------------------------
 # Go / Rust / uv
@@ -288,15 +304,25 @@ WORKDIR /home/${USERNAME}
 # AI CLIs: Cursor (agent) + Claude Code (claude)
 # ------------------------------------------------------------------------------
 
-RUN curl -fsSL https://cursor.com/install | bash \
-    && agent --version \
-    && rm -rf "${HOME}/.cursor" \
-    && mkdir -p "${HOME}/.cursor"
+RUN set -eux; \
+    for attempt in 1 2 3; do \
+        if curl -fsSL https://cursor.com/install | bash; then break; fi; \
+        echo "Cursor install attempt ${attempt} failed, retrying..." >&2; \
+        sleep 10; \
+    done; \
+    agent --version; \
+    rm -rf "${HOME}/.cursor"; \
+    mkdir -p "${HOME}/.cursor"
 # Empty developer-owned ~/.cursor so the first named-volume mount stays writable.
 # Runtime seeding comes from /opt/cursor-defaults via init-cursor-home.
 
-RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && claude --version
+RUN set -eux; \
+    for attempt in 1 2 3; do \
+        if curl -fsSL https://claude.ai/install.sh | bash; then break; fi; \
+        echo "Claude install attempt ${attempt} failed, retrying..." >&2; \
+        sleep 10; \
+    done; \
+    claude --version
 # Claude config lives under ~/.claude (container-local unless you add a volume later).
 
 ENTRYPOINT ["docker-entrypoint"]

@@ -153,6 +153,39 @@ tmux new-session -A -s workspace
 make rebuild
 ```
 
+`make rebuild` only needs `.env` (for `USER_UID` / `USER_GID` build args). It does **not** re-run `make env`.
+
+### `make rebuild` fails during pnpm / Node step
+
+**Symptom:** `corepack prepare pnpm@latest` or `npm install -g pnpm` fails with `TypeError: terminated` or network errors.
+
+**Cause:** flaky download from npm/corepack on VPS.
+
+**Fix:** pull latest cind — pnpm is installed from a pinned GitHub release binary with retries. Then:
+
+```bash
+make rebuild
+```
+
+### `make rebuild` fails before Docker starts
+
+**Symptom:** `Error: .env is missing` or `generated runtime files are missing`.
+
+**Fix:**
+
+```bash
+make env
+make rebuild
+```
+
+For image-only rebuilds, `.env` is enough. Generated mounts are required for `make terminal*`, not for `make rebuild`.
+
+### Out of disk during `--no-cache`
+
+**Symptom:** build fails mid-way with `no space left on device`.
+
+**Fix:** `docker system df`, prune unused images, then retry `make rebuild`. Full no-cache rebuild needs several GB free.
+
 If caches look corrupt:
 
 ```bash
