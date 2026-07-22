@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Right status segment: git, host, cwd, load, memory, battery, time.
-# Keep fast — runs every status-interval (5s).
+# Right status: git · path · load · mem · battery · time (fast; colourful segments).
 set -Eeuo pipefail
 
-parts=()
-
-# Git branch (pane cwd, 200ms cap)
 pane_path="$(tmux display -p '#{pane_current_path}' 2>/dev/null || pwd)"
+home="${HOME:-/home/developer}"
+
 branch=""
 if command -v git >/dev/null 2>&1; then
     branch="$(timeout 0.2 git -C "${pane_path}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
@@ -14,38 +12,25 @@ if command -v git >/dev/null 2>&1; then
         branch="$(timeout 0.2 git -C "${pane_path}" rev-parse --short HEAD 2>/dev/null || true)"
     fi
 fi
-if [[ -n "${branch}" ]]; then
-    parts+=("⎇ ${branch}")
-fi
 
-# Hostname (short)
-host="$(hostname -s 2>/dev/null || hostname)"
-parts+=("${host}")
-
-# Current directory (basename or ~)
 cwd="${pane_path}"
-home="${HOME:-/home/developer}"
 if [[ "${cwd}" == "${home}"* ]]; then
     cwd="~${cwd#"${home}"}"
 fi
-if ((${#cwd} > 28)); then
-    cwd="…${cwd: -27}"
+if ((${#cwd} > 32)); then
+    cwd="…${cwd: -31}"
 fi
-parts+=("${cwd}")
 
-# CPU load (1m average — lightweight proxy)
+load=""
 if [[ -r /proc/loadavg ]]; then
     load="$(awk '{printf "%.1f", $1}' /proc/loadavg 2>/dev/null || true)"
-    [[ -n "${load}" ]] && parts+=("cpu ${load}")
 fi
 
-# Memory usage percent
+mem=""
 if command -v free >/dev/null 2>&1; then
     mem="$(free -m 2>/dev/null | awk '/^Mem:/ { if ($2>0) printf "%.0f%%", ($3/$2)*100 }')"
-    [[ -n "${mem}" ]] && parts+=("mem ${mem}")
 fi
 
-# Battery (Linux / WSL when exposed)
 battery=""
 for cap in /sys/class/power_supply/BAT*/capacity; do
     if [[ -r "${cap}" ]]; then
@@ -53,11 +38,44 @@ for cap in /sys/class/power_supply/BAT*/capacity; do
         break
     fi
 done
-if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
-    parts+=("🔋${battery}%")
+
+time_str="$(date +%H:%M)"
+
+parts=()
+
+if [[ -n "${branch}" ]]; then
+    parts+=("#[fg=colour141,bold]⎇ ${branch}")
 fi
+parts+=("#[fg=colour252]${cwd}")
 
-# Time
-parts+=("$(date +%H:%M)")
+if [[ -n "${load}" ]]; then
+    parts+=("#[fg=colour109]cpu ${load}")
+fi
+if [[ -n "${mem}" ]]; then
+    parts+=("#[fg=colour109]mem ${mem}")
+fi
+if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
+    bat_colour='109'
+    if (( battery < 20 )); then
+        bat_colour='203'
+    elif (( battery < 50 )); then
+        bat_colour='208'
+    fi
+    parts+=("#[fg=colour${bat_colour}]🔋${battery}%")
+fi
+parts+=("#[fg=colour228,bold]${time_str}")
 
-printf '%s' "$(IFS=' · '; echo "${parts[*]}")"
+out="#[fg=colour235,bg=colour234] "
+sep='#[fg=colour240] · #[default]'
+first=1
+for segment in "${parts[@]}"; do
+    if (( first )); then
+        out+="${segment}"
+        first=0
+    else
+        out+="${sep}${segment}"
+    fi
+done
+out+=' #[default]'
+
+printf '%s' "${out}"
