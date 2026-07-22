@@ -102,7 +102,7 @@ Adds:
 
 ### `docker-compose.ttyd.yml` (overlay)
 
-Used by both `make shell` and `make shell-docker`. Adds:
+Used by both `make terminal` and `make terminal-docker`. Adds:
 
 * `command: cursor-ttyd`
 * publishes `${TTYD_HOST_PORT:-7681}:7681`
@@ -111,7 +111,7 @@ Used by both `make shell` and `make shell-docker`. Adds:
 * `restart: unless-stopped`
 
 ```bash
-make shell
+make terminal
 ```
 
 Open `http://localhost:7681` in your browser (or run `make terminal` to print the URL).
@@ -209,4 +209,4 @@ See [Cursor](cursor.md).
 Compose uses the default project network.
 
 The ttyd overlay publishes host port `TTYD_HOST_PORT` (default `7681`) to container port `7681`.
-Open `http://localhost:7681` after `make shell` or `make shell-docker`.
+Open `http://localhost:7681` after `make terminal` or `make terminal-docker`.

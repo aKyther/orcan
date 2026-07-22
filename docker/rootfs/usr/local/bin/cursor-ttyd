@@ -1,24 +1,20 @@
 #!/usr/bin/env bash
-# Start ttyd with a persistent tmux session for browser terminal access.
+# Start ttyd with the project launcher (tmux session per project).
 # Runs after docker-entrypoint (init-cursor-home). No authentication — local/Tailscale only.
 
 set -Eeuo pipefail
 
 TTYD_PORT="${TTYD_PORT:-7681}"
-TMUX_SESSION_NAME="${TMUX_SESSION_NAME:-workspace}"
-TMUX_START_DIR="${PROJECT_DIR:-${HOME}}"
+# xterm.js default is ~15px; 22 reads better on phone browsers.
+TTYD_FONT_SIZE="${TTYD_FONT_SIZE:-22}"
 
-if [[ ! -d "${TMUX_START_DIR}" ]]; then
-    printf 'Error: tmux start directory does not exist: %s\n' "${TMUX_START_DIR}" >&2
-    exit 1
-fi
-
-printf 'ttyd ready: http://0.0.0.0:%s (tmux session: %s, dir: %s)\n' \
-    "${TTYD_PORT}" "${TMUX_SESSION_NAME}" "${TMUX_START_DIR}" >&2
+printf 'ttyd ready: http://0.0.0.0:%s (project launcher + tmux, fontSize=%s)\n' \
+    "${TTYD_PORT}" "${TTYD_FONT_SIZE}" >&2
 printf 'WARNING: Do not expose this port to the public Internet without authentication and TLS.\n' >&2
 
 exec ttyd \
     --writable \
     --interface 0.0.0.0 \
     --port "${TTYD_PORT}" \
-    tmux new-session -A -s "${TMUX_SESSION_NAME}" -c "${TMUX_START_DIR}"
+    --client-option "fontSize=${TTYD_FONT_SIZE}" \
+    cursor-launcher

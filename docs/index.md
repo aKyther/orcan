@@ -21,7 +21,7 @@ A ready-to-run container image and Compose setup where:
 
 1. Keep the host clean.
 2. Give Cursor a complete toolbox.
-3. Make everyday commands short (`make build`, `make shell`).
+3. Make everyday commands short (`make build`, `make terminal`).
 4. Be honest about security limits.
 
 ## Start here

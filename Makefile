@@ -1,17 +1,20 @@
 SHELL := /bin/bash
 
 COMPOSE_FILE := docker-compose.yml
+COMPOSE_PROJECTS_FILE := .cind/compose-projects.generated.yml
 COMPOSE_DOCKER_FILE := docker-compose.docker.yml
 COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
-COMPOSE := docker compose -f $(COMPOSE_FILE)
-COMPOSE_TTYD := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_TTYD_FILE)
-COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_TTYD_FILE) -f $(COMPOSE_DOCKER_FILE)
+COMPOSE := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE)
+COMPOSE_TTYD := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE)
+COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE) -f $(COMPOSE_DOCKER_FILE)
 
 PROJECT_DIR ?= $(CURDIR)
+# Optional JSON profile. If empty and ./cind.config.json exists, update-env uses it.
+CONFIG ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env build rebuild shell shell-docker terminal \
+.PHONY: help env build rebuild terminal terminal-docker terminal-url \
 	down logs config init-project init-project-dry-run clean clean-volumes \
 	docs docs-serve test validate path-check validate-project
 
@@ -24,12 +27,16 @@ validate-project:
 
 path-check: env validate-project ## Show host/container project path parity
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf 'Host project path:      %s\n' "$$PROJECT_DIR"; \
-	printf 'Container project path: %s\n' "$$PROJECT_DIR"; \
+	printf 'Default project path:   %s\n' "$$PROJECT_DIR"; \
+	printf 'Runtime config:         %s\n' "$${CIND_CONFIG_HOST:-none}"; \
+	printf 'Compose project mounts: %s\n' "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}"; \
+	if [ -f "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" ]; then \
+		grep -E '^[[:space:]]+- ' "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" | sed 's/^/  /'; \
+	fi; \
 	printf 'Path parity:            enabled\n'
 
-env: ## Create or refresh .env from host UID/GID and PROJECT_DIR
-	@PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
+env: ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
+	@CONFIG="$(CONFIG)" PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
 
 build: env validate-project ## Build the container image
 	$(COMPOSE) build
@@ -37,15 +44,15 @@ build: env validate-project ## Build the container image
 rebuild: env validate-project ## Rebuild the image without cache
 	$(COMPOSE) build --no-cache
 
-shell: env validate-project ## Start container with browser terminal (no Docker socket)
+terminal: env validate-project ## Start container with browser terminal (no Docker socket)
 	-$(COMPOSE_TTYD_DOCKER) down
 	$(COMPOSE_TTYD) up -d
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n  tmux session: %s\n  Project path: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$${TMUX_SESSION_NAME:-workspace}" "$$PROJECT_DIR"
+	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n  Launcher: pick a project by number (tmux session per project)\n  Default project: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
 
-shell-docker: env validate-project ## Start container with browser terminal and host Docker socket
+terminal-docker: env validate-project ## Start container with browser terminal and host Docker socket
 	@if [ ! -S /var/run/docker.sock ]; then \
-		echo "Error: /var/run/docker.sock not found. Docker Engine is required for shell-docker."; \
+		echo "Error: /var/run/docker.sock not found. Docker Engine is required for terminal-docker."; \
 		exit 1; \
 	fi
 	-$(COMPOSE_TTYD) down
@@ -59,9 +66,9 @@ shell-docker: env validate-project ## Start container with browser terminal and 
 		fi; \
 	fi
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n  tmux session: %s\n  Project path: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$${TMUX_SESSION_NAME:-workspace}" "$$PROJECT_DIR"
+	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n  Launcher: pick a project by number (tmux session per project)\n  Default project: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
 
-terminal: ## Print the browser terminal URL
+terminal-url: ## Print the browser terminal URL
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	printf 'http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"
 
@@ -75,15 +82,15 @@ logs: ## Follow container logs
 	elif $(COMPOSE_TTYD) ps -q cursor 2>/dev/null | grep -q .; then \
 		$(COMPOSE_TTYD) logs -f; \
 	else \
-		echo "No running cursor container. Start with make shell or make shell-docker."; \
+		echo "No running cursor container. Start with make terminal or make terminal-docker."; \
 		exit 1; \
 	fi
 
 config: env validate-project ## Validate and print the resolved Compose config
-	@echo "=== ttyd (make shell) ==="
+	@echo "=== terminal (make terminal) ==="
 	$(COMPOSE_TTYD) config
 	@echo ""
-	@echo "=== ttyd + Docker (make shell-docker) ==="
+	@echo "=== terminal-docker (make terminal-docker) ==="
 	$(COMPOSE_TTYD_DOCKER) config
 
 init-project: env validate-project ## Create missing Cursor project files in the mounted PROJECT_DIR

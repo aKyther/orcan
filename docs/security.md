@@ -26,13 +26,13 @@ This page is intentionally direct. Containers help, but they are not a full secu
 Use socket mode only when needed:
 
 ```bash
-make shell-docker
+make terminal-docker
 ```
 
 Default mode:
 
 ```bash
-make shell
+make terminal
 ```
 
 ## Bind mounts
@@ -82,7 +82,7 @@ Safer long-term option (see [Development — Roadmap](development.md#roadmap)): 
 
 ## Browser terminal (ttyd)
 
-`make shell` and `make shell-docker` start ttyd inside the container.
+`make terminal` and `make terminal-docker` start ttyd inside the container.
 
 * Default URL: `http://localhost:7681`
 * Host port: `7681` (`TTYD_HOST_PORT`)
@@ -96,7 +96,7 @@ Safer long-term option (see [Development — Roadmap](development.md#roadmap)): 
     Do not expose port `7681` to the public Internet without auth and TLS.
 
 ```bash
-make shell
+make terminal
 ```
 
 Open `http://localhost:7681` in your browser.
@@ -109,7 +109,7 @@ Matching `USER_UID` / `USER_GID` avoids root-owned files in your project. It doe
 
 ## Good practices
 
-1. Use `make shell` by default.
+1. Use `make terminal` by default.
 2. Mount the smallest project directory that works.
 3. Keep production secrets off developer laptops when you can.
 4. Review `.cursorignore` when you add credential paths.

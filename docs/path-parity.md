@@ -62,7 +62,7 @@ Then:
 
 ```bash
 make path-check
-make shell-docker
+make terminal-docker
 ```
 
 Inside the container:
@@ -91,7 +91,7 @@ These are separate:
 
 `make path-check` prints the effective paths and confirms parity is enabled.
 
-Host-side validation (`scripts/repository/validate-project-dir.sh`) runs before `make shell`, `make shell-docker`, `make build`, and related targets.
+Host-side validation (`scripts/repository/validate-project-dir.sh`) runs before `make terminal`, `make terminal-docker`, `make build`, and related targets.
 
 It checks that `PROJECT_DIR`:
 
@@ -106,8 +106,8 @@ Path parity fixes Compose bind mounts.
 It does **not** make Docker socket mode safe.
 
 Mounting `/var/run/docker.sock` gives the container control over the host Docker Engine.
-Use `make shell-docker` only when you need it.
-Use `make shell` for the safer mode without the socket.
+Use `make terminal-docker` only when you need it.
+Use `make terminal` for the safer mode without the socket.
 
 See [Security](security.md).
 
@@ -118,7 +118,7 @@ If you used the old `/workspace` mount:
 1. Set `PROJECT_DIR` to the real absolute host path of your project.
 2. Run `make env PROJECT_DIR=/absolute/path/to/project`.
 3. Run `make path-check`.
-4. Restart with `make down` then `make shell` or `make shell-docker`.
+4. Restart with `make down` then `make terminal` or `make terminal-docker`.
 5. Inside the container, run commands from `${PROJECT_DIR}` (the shell and entrypoint do this automatically).
 
 Update scripts or docs that hard-coded `/workspace`.

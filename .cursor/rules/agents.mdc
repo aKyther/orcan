@@ -41,9 +41,9 @@ A host project is mounted at `${PROJECT_DIR}` with path parity (same absolute pa
 make env
 make path-check
 make build
-make shell
-make shell-docker
 make terminal
+make terminal-docker
+make terminal-url
 make down
 make logs
 make rebuild
@@ -60,7 +60,7 @@ make docs-serve
 make help
 ```
 
-Use `PROJECT_DIR=/absolute/path/to/project` to choose the mounted project.
+Use `cind.config.json` for multiple projects, or `PROJECT_DIR=/absolute/path/to/project` for a single-project fallback.
 
 ## Cursor defaults
 

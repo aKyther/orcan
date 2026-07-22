@@ -20,7 +20,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 * Python 3, uv
 * Go, Rust (rustc, cargo)
 * Docker CLI, Compose, Buildx (optional host socket)
-* Git, ripgrep, fd, fzf, bat, eza, jq, shellcheck, hyperfine
+* Git, ripgrep, fd, fzf, bat, eza, jq, yq, tree, curl, shellcheck, hyperfine
 * PostgreSQL client, Redis client
 * Persistent named volumes for caches and Cursor config
 * Global Cursor defaults seeded at container startup
@@ -114,10 +114,10 @@ cp .env.example .env
 make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
 make build
-make shell
+make terminal
 ```
 
-Open the browser terminal URL printed by `make shell` (default: `http://localhost:7681`).
+Open the browser terminal URL printed by `make terminal` (default: `http://localhost:7681`).
 
 > Tip: `make env` writes your host `USER_UID`, `USER_GID`, and `DOCKER_GID` into `.env`.
 > Run `make terminal` anytime to print the URL again.
@@ -138,8 +138,8 @@ agent --version
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
 | `make rebuild` | Rebuild with `--no-cache` |
-| `make shell` | Start container with **browser terminal** (no Docker socket) |
-| `make shell-docker` | Start container with **browser terminal** and Docker socket |
+| `make terminal` | Start container with **browser terminal** (no Docker socket) |
+| `make terminal-docker` | Start container with **browser terminal** and Docker socket |
 | `make terminal` | Print the browser terminal URL |
 | `make down` | Stop containers; keep named volumes |
 | `make logs` | Follow logs |
@@ -160,10 +160,10 @@ agent --version
 ```bash
 make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
-make shell
+make terminal
 ```
 
-Then open `http://localhost:7681` (or the URL printed by `make shell`).
+Then open `http://localhost:7681` (or the URL printed by `make terminal`).
 
 `PROJECT_DIR` must be an **absolute** host path. The same path is used inside the container so `docker compose` bind mounts resolve correctly on the host daemon. See [docs/path-parity.md](docs/path-parity.md).
 
@@ -229,8 +229,8 @@ These values are taken from the host so files created in `PROJECT_DIR` stay owne
 
 | Mode | Command | Socket |
 | --- | --- | --- |
-| Default | `make shell` | No |
-| Docker-enabled | `make shell-docker` | Yes |
+| Default | `make terminal` | No |
+| Docker-enabled | `make terminal-docker` | Yes |
 
 The overlay file is `docker-compose.docker.yml`. Both modes include the browser terminal via `docker-compose.ttyd.yml`.
 
@@ -238,11 +238,11 @@ The overlay file is `docker-compose.docker.yml`. Both modes include the browser 
 
 ## Browser terminal
 
-`make shell` and `make shell-docker` start the container with **ttyd** — a web-based terminal on port `7681`.
+`make terminal` and `make terminal-docker` start the container with **ttyd** — a web-based terminal on port `7681`.
 
 ```bash
 make build
-make shell PROJECT_DIR=/absolute/path/to/project
+make terminal PROJECT_DIR=/absolute/path/to/project
 ```
 
 Open in your browser:
@@ -333,7 +333,7 @@ make rebuild
 | Problem | What to try |
 | --- | --- |
 | Permission errors in `PROJECT_DIR` | Run `make env` so UID/GID match the host |
-| `docker.sock` permission denied | Use `make shell-docker` after `make env` (sets `DOCKER_GID`) |
+| `docker.sock` permission denied | Use `make terminal-docker` after `make env` (sets `DOCKER_GID`) |
 | No TTY / odd terminal | Run from a real terminal; ensure `stdin_open`/`tty` stay enabled |
 | TMUX did not start | Non-interactive commands skip TMUX; check `[ -t 0 ]` |
 | Stale image | `make rebuild` |
@@ -345,7 +345,7 @@ More detail: [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Security
 
-* Prefer `make shell` unless you need Docker-from-Docker
+* Prefer `make terminal` unless you need Docker-from-Docker
 * Keep secrets out of the image and out of git
 * Do not commit `.env`
 * Do not mount sensitive host paths
@@ -372,7 +372,7 @@ Yes. Start a non-interactive command, or remove the TMUX block from
 `docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` and rebuild.
 
 **Can I use Docker inside the container?**  
-Yes, with `make shell-docker` when the host socket is available.
+Yes, with `make terminal-docker` when the host socket is available.
 
 **Why do files belong to my user?**  
 Because `USER_UID` / `USER_GID` match your host account.

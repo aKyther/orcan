@@ -66,6 +66,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         shellcheck \
         sudo \
         tmux \
+        tree \
         unzip \
         vim \
         wget \
@@ -153,6 +154,22 @@ RUN set -eux; \
     ttyd --version
 
 # ------------------------------------------------------------------------------
+# yq (YAML processor; mikefarah/yq)
+# ------------------------------------------------------------------------------
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) yq_arch="amd64" ;; \
+        arm64) yq_arch="arm64" ;; \
+        *) echo "unsupported architecture for yq: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_${yq_arch}" \
+        -o /usr/local/bin/yq; \
+    chmod 0755 /usr/local/bin/yq; \
+    yq --version
+
+# ------------------------------------------------------------------------------
 # Container filesystem (scripts, defaults, shell configs)
 # ------------------------------------------------------------------------------
 
@@ -163,6 +180,9 @@ RUN chmod 0755 \
         /usr/local/bin/init-cursor-home \
         /usr/local/bin/cursor-init-project \
         /usr/local/bin/cursor-ttyd \
+        /usr/local/bin/cursor-launcher \
+        /usr/local/bin/cursor-tmux-attach \
+        /etc/tmux/scripts/*.sh \
     && chmod -R a+rX /opt/cursor-defaults \
     && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
     && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \
@@ -229,6 +249,8 @@ RUN set -eux; \
     cp -a /etc/skel/.bashrc.d/. "/home/${USERNAME}/.bashrc.d/"; \
     cp -a /etc/skel/.tmux.conf "/home/${USERNAME}/.tmux.conf"; \
     cp -a /etc/skel/.vimrc "/home/${USERNAME}/.vimrc"; \
+    ln -sfn /etc/tmux "/home/${USERNAME}/.config/tmux"; \
+    mkdir -p "/home/${USERNAME}/.cache/tmux"; \
     \
     if ! grep -q 'bashrc.d' "/home/${USERNAME}/.bashrc"; then \
         printf '\n# Container shell snippets\nfor f in "$HOME"/.bashrc.d/*.sh; do\n  [ -r "$f" ] && . "$f"\ndone\n' \

@@ -46,10 +46,18 @@ EOF
 
 printf '%s\n' "${MARKER}" > "${TEST_DIR}/${MARKER}"
 
+cat > "${TEST_DIR}/compose-mount.yml" <<EOF
+services:
+  cursor:
+    volumes:
+      - ${TEST_DIR}:${TEST_DIR}
+EOF
+
 COMPOSE_TTYD_DOCKER=(
     env "PROJECT_DIR=${TEST_DIR}"
     docker compose
     -f docker-compose.yml
+    -f "${TEST_DIR}/compose-mount.yml"
     -f docker-compose.ttyd.yml
     -f docker-compose.docker.yml
 )

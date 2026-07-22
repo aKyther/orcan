@@ -1,0 +1,43 @@
+{
+  "default_project": "app-a",
+  "projects": [
+    {
+      "name": "app-a",
+      "path": "/absolute/path/to/projects/app-a",
+      "tmux": "app-a",
+      "windows": [
+        {"name": "editor", "icon": "📝", "dir": "."},
+        {"name": "server", "icon": "🐍", "dir": ".", "command": "bash"},
+        {"name": "logs", "icon": "⚙", "dir": "."},
+        {"name": "shell", "icon": "🖥", "dir": "."}
+      ]
+    },
+    {
+      "name": "app-b",
+      "path": "/absolute/path/to/projects/app-b",
+      "tmux": "app-b",
+      "windows": [
+        {"name": "editor", "icon": "📝", "dir": "."},
+        {"name": "dev server", "icon": "🌐", "dir": ".", "command": "bash"},
+        {"name": "tests", "icon": "🧪", "dir": ".", "command": "bash"},
+        {"name": "shell", "icon": "🖥", "dir": "."}
+      ]
+    },
+    {
+      "name": "cind",
+      "path": "/absolute/path/to/cind",
+      "tmux": "cind"
+    }
+  ],
+  "ttyd": {
+    "port": 7681,
+    "host_port": 7681,
+    "font_size": 22
+  },
+  "resources": {
+    "cpus": 8,
+    "memory": "16g",
+    "shm_size": "2g",
+    "tmpfs_size": "2g"
+  }
+}

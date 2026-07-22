@@ -1,103 +1,79 @@
-# Makefile
+# Makefile reference
 
-The Makefile is the main user interface. Prefer it over raw `docker compose` commands.
+Everyday commands for building and running the cind container.
 
-Complex host logic lives in `scripts/repository/`. The Makefile stays thin.
+## Core targets
 
-## Command table
-
-| Command | Description |
+| Target | Description |
 | --- | --- |
-| `make help` | Show targets |
-| `make env` | Create/update `.env` from the host |
-| `make build` | Build the image |
-| `make rebuild` | Rebuild with `--no-cache` |
-| `make shell` | Start container with browser terminal (no Docker socket) |
-| `make shell-docker` | Start container with browser terminal and Docker socket |
-| `make terminal` | Print the browser terminal URL |
-| `make down` | Stop containers; keep volumes |
-| `make logs` | Follow logs |
-| `make clean` | Stop containers; keep named volumes |
-| `make clean-volumes` | Delete named volumes after confirmation |
-| `make config` | Validate ttyd and ttyd+Docker Compose configs |
-| `make path-check` | Show host/container project path parity |
-| `make init-project` | Create missing Cursor project files in `PROJECT_DIR` |
-| `make init-project-dry-run` | Dry-run project Cursor scaffolding |
-| `make validate` | Check layout, script syntax, Compose config |
-| `make test` | Run container smoke tests |
+| `make help` | List all targets |
+| `make env` | Refresh `.env`, runtime config, and project mounts from `cind.config.json` |
+| `make path-check` | Show default project path and mounted projects |
+| `make build` | Build the container image |
+| `make rebuild` | Rebuild without cache |
+| `make terminal` | Start browser terminal (no Docker socket) |
+| `make terminal-docker` | Start browser terminal with host Docker socket |
+| `make terminal-url` | Print browser terminal URL |
+| `make down` | Stop containers |
+| `make logs` | Follow container logs |
+| `make validate` | Validate repository layout and scripts |
+| `make test` | Run smoke tests |
+
+## Starting the terminal
+
+```bash
+make terminal
+# or with Docker-from-Docker:
+make terminal-docker
+```
+
+`make terminal` prints the URL (default `http://localhost:7681`). Run `make terminal-url` to print it again.
+
+### With a specific default project (no JSON config)
+
+```bash
+make terminal PROJECT_DIR=$HOME/projects/my-app
+```
+
+### With JSON config
+
+```bash
+make env CONFIG=./cind.config.json
+make terminal-docker
+```
+
+## Compose stacks
+
+| Target | Compose files |
+| --- | --- |
+| `make terminal` | `docker-compose.yml` + `.cind/compose-projects.generated.yml` + `docker-compose.ttyd.yml` |
+| `make terminal-docker` | above + `docker-compose.docker.yml` |
+
+Project paths come from `cind.config.json` → `.cind/compose-projects.generated.yml`.
+Run `make env` after changing projects.
+
+## Docker socket
+
+`make terminal-docker` fails early if `/var/run/docker.sock` is absent.
+
+Use it only when you need `docker compose` or `docker build` inside the container with host path parity.
+
+## Other targets
+
+| Target | Description |
+| --- | --- |
+| `make config` | Print resolved Compose config |
+| `make init-project` | Bootstrap Cursor files in `PROJECT_DIR` |
+| `make init-project-dry-run` | Preview bootstrap |
+| `make clean` | Stop containers, keep volumes |
+| `make clean-volumes` | Stop and delete named volumes (destructive) |
+| `make docs` | Build documentation site |
 | `make test-path-parity` | Integration test for path parity + Docker socket |
-| `make docs` | Build MkDocs site |
-| `make docs-serve` | Serve MkDocs locally |
 
-## Examples
+## Renamed targets (migration)
 
-Refresh `.env`, start the container, and open the browser terminal:
-
-```bash
-make env PROJECT_DIR=$HOME/projects/my-app
-make shell PROJECT_DIR=$HOME/projects/my-app
-```
-
-`make shell` prints the URL (default `http://localhost:7681`). Run `make terminal` to print it again.
-
-Build once, then use Docker-from-Docker:
-
-```bash
-make build
-make shell-docker PROJECT_DIR=$HOME/projects/my-app
-```
-
-Validate the repository and Compose files:
-
-```bash
-make validate
-make config
-```
-
-Scaffold Cursor files in the mounted project:
-
-```bash
-make init-project-dry-run
-make init-project
-```
-
-Reset caches after a broken toolchain state:
-
-```bash
-make clean-volumes
-make rebuild
-```
-
-!!! warning
-
-    `make clean-volumes` deletes Cursor config, login state, bash history, and language caches.
-    It asks you to type `yes` before it continues.
-
-## How UID and socket detection work
-
-`make env` calls `scripts/repository/update-env.sh`, which sets:
-
-* `USER_UID` from `id -u`
-* `USER_GID` from `id -g`
-* `DOCKER_GID` from `stat` on `/var/run/docker.sock`, or `999` if the socket is missing
-
-`make shell-docker` fails early if the socket file is absent.
-
-## Compose invocation
-
-| Target | Files |
+| Old | New |
 | --- | --- |
-| `make shell` | `docker-compose.yml` + `docker-compose.ttyd.yml` |
-| `make shell-docker` | `docker-compose.yml` + `docker-compose.ttyd.yml` + `docker-compose.docker.yml` |
-
-Both targets start the container detached with ttyd. Open the URL printed at the end:
-
-```text
-http://localhost:7681
-```
-
-On a VPS behind Tailscale, replace `localhost` with the machine's Tailscale IP.
-
-!!! warning
-
-    ttyd has no authentication. Use only on localhost or a private network (Tailscale).
+| `make shell` | `make terminal` |
+| `make shell-docker` | `make terminal-docker` |
+| `make terminal` (URL only) | `make terminal-url` |

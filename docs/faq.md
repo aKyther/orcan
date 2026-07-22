@@ -18,9 +18,9 @@ Yes. Stop the current container (`make down`) and start again with another `PROJ
 
 ```bash
 make down
-make shell PROJECT_DIR=$HOME/projects/app-a
+make terminal PROJECT_DIR=$HOME/projects/app-a
 make down
-make shell PROJECT_DIR=$HOME/projects/app-b
+make terminal PROJECT_DIR=$HOME/projects/app-b
 ```
 
 Each command mounts one project at the same absolute path on host and container (`PROJECT_DIR`). See [Path parity](path-parity.md).
@@ -37,7 +37,7 @@ To disable it permanently, remove the TMUX block from
 Yes:
 
 ```bash
-make shell-docker
+make terminal-docker
 ```
 
 !!! warning
@@ -46,10 +46,10 @@ make shell-docker
 
 ## How do I access the container terminal?
 
-Both `make shell` and `make shell-docker` start ttyd — a browser-based terminal on port `7681`:
+Both `make terminal` and `make terminal-docker` start ttyd — a browser-based terminal on port `7681`:
 
 ```bash
-make shell
+make terminal
 ```
 
 Open `http://localhost:7681` (or run `make terminal` to print the URL).

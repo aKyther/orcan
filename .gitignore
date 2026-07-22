@@ -3,6 +3,10 @@
 .env.local
 .env.*.local
 
+# Local cind profile (keep cind.config.example.json)
+cind.config.json
+.cind/
+
 # Local Compose overrides
 docker-compose.override.yml
 compose.override.yml
