@@ -232,6 +232,7 @@ See [Cursor](cursor.md).
 | `CIND_DATA` | Host data root (default `$HOME/.config/cind`) |
 | `USER_UID` / `USER_GID` | Container user identity |
 | `DOCKER_GID` | Socket group for `*-docker` targets |
+| `TZ` | Timezone (`make env` copies host zone, e.g. `Europe/Warsaw`); `/etc/localtime` is bind-mounted read-only |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits |
 | `TTYD_PORT` | Container port for ttyd (default `7681`) |
 | `TTYD_HOST_PORT` | Host port published for the browser terminal (default `7681`) |

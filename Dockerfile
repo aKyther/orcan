@@ -67,6 +67,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         sudo \
         tmux \
         tree \
+        tzdata \
         unzip \
         vim \
         wget \
