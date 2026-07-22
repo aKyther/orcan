@@ -2,7 +2,7 @@
 
 ## Invalid or missing `PROJECT_DIR`
 
-**Symptom:** `make shell` or `make build` fails with a `PROJECT_DIR` validation error.
+**Symptom:** `make terminal` or `make build` fails with a `PROJECT_DIR` validation error.
 
 **Fix:**
 
@@ -21,7 +21,7 @@ See [Path parity](path-parity.md).
 ```bash
 make env
 make build
-make shell PROJECT_DIR=/absolute/path/to/project
+make terminal PROJECT_DIR=/absolute/path/to/project
 ```
 
 Confirm `.env` has your real host IDs:
@@ -40,8 +40,8 @@ grep USER_ /.env
 
 1. Confirm the socket exists on the host: `ls -l /var/run/docker.sock`
 2. Refresh group id: `make env`
-3. Use the docker-enabled target: `make shell-docker` (not `make shell`)
-4. If you previously ran `make shell`, run `make shell-docker` again — it stops the ttyd-only container and recreates with the socket.
+3. Use the docker-enabled target: `make terminal-docker` (not `make terminal`)
+4. If you previously ran `make terminal`, run `make terminal-docker` again — it stops the ttyd-only container and recreates with the socket.
 
 Inside the container, check:
 
@@ -65,14 +65,14 @@ Restart the container so the entrypoint can repair ownership:
 
 ```bash
 make down
-make shell-docker   # or make shell
+make terminal-docker   # or make terminal
 ```
 
 If login still fails:
 
 ```bash
 make clean-volumes
-make shell-docker
+make terminal-docker
 ```
 
 Then log in again inside the browser terminal.
@@ -83,7 +83,7 @@ Then log in again inside the browser terminal.
 
 **Fix:**
 
-* Open the browser terminal at `http://localhost:7681` after `make shell`
+* Open the browser terminal at `http://localhost:7681` after `make terminal`
 * TMUX starts automatically inside the ttyd session (session name: `workspace`)
 * Run `make terminal` if you forgot the URL
 
@@ -122,7 +122,7 @@ If login state is broken:
 
 ```bash
 make clean-volumes
-make shell
+make terminal
 ```
 
 Open `http://localhost:7681` and log in again.
@@ -139,7 +139,7 @@ Common causes:
 * missing `PROJECT_DIR`
 * edited YAML indentation
 
-## `make shell-docker` fails immediately
+## `make terminal-docker` fails immediately
 
 The Makefile exits if `/var/run/docker.sock` is missing. Start Docker Engine/Desktop, then retry.
 
@@ -154,7 +154,7 @@ TTYD_HOST_PORT=8765
 Then:
 
 ```bash
-make shell
+make terminal
 ```
 
 Open `http://localhost:8765` (or run `make terminal`).

@@ -45,17 +45,17 @@ The first build downloads base images and tool stages. Later builds are faster b
 ```bash
 make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
-make shell
+make terminal
 ```
 
 Replace `$HOME/projects/my-app` with the absolute path of the project you want Cursor to edit.
 
-Open the URL printed by `make shell` (default: `http://localhost:7681`).
+Open the URL printed by `make terminal` (default: `http://localhost:7681`).
 
 !!! note
 
-    `make shell` does **not** mount the Docker socket.
-    Use `make shell-docker` only when you need Docker-from-Docker.
+    `make terminal` does **not** mount the Docker socket.
+    Use `make terminal-docker` only when you need Docker-from-Docker.
 
 !!! warning
 

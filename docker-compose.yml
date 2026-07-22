@@ -25,8 +25,9 @@ services:
       DOCKER_BUILDKIT: "1"
       COMPOSE_DOCKER_CLI_BUILD: "1"
       PROJECT_DIR: ${PROJECT_DIR}
+      CIND_CONFIG: ${CIND_CONFIG:-/etc/cind/config.json}
     volumes:
-      - ${PROJECT_DIR}:${PROJECT_DIR}
+      - ${CIND_CONFIG_HOST:-./.cind/runtime-config.json}:/etc/cind/config.json:ro
       - cursor-config:/home/developer/.cursor
       - cursor-app-config:/home/developer/.config/cursor
       - cursor-cache:/home/developer/.cache

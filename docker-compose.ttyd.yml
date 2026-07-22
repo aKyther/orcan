@@ -1,4 +1,4 @@
-# ttyd overlay for make shell and make shell-docker.
+# ttyd overlay for make terminal and make terminal-docker.
 # WARNING: ttyd has no built-in authentication. Use only on localhost or a private
 # network (Tailscale). Do not expose this port to the public Internet without auth and TLS.
 # Does not mount host ~/.ssh or ~/.gitconfig (those paths often missing on a VPS).
@@ -10,20 +10,12 @@ services:
       - "${TTYD_HOST_PORT:-7681}:7681"
     environment:
       TTYD_PORT: ${TTYD_PORT:-7681}
-      TMUX_SESSION_NAME: ${TMUX_SESSION_NAME:-workspace}
+      TTYD_FONT_SIZE: ${TTYD_FONT_SIZE:-22}
+      PROJECT_DIR: ${PROJECT_DIR}
+      CIND_CONFIG: ${CIND_CONFIG:-/etc/cind/config.json}
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:7681/ >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-    volumes: !override
-      - ${PROJECT_DIR}:${PROJECT_DIR}
-      - cursor-config:/home/developer/.cursor
-      - cursor-app-config:/home/developer/.config/cursor
-      - cursor-cache:/home/developer/.cache
-      - npm-cache:/home/developer/.npm
-      - pnpm-cache:/home/developer/.local/share/pnpm
-      - cargo-cache:/home/developer/.cargo
-      - go-cache:/home/developer/go
-      - bash-history:/command-history

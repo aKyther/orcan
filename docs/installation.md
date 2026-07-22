@@ -72,7 +72,7 @@ Without Docker socket:
 ```bash
 make env PROJECT_DIR=/absolute/path/to/project
 make path-check
-make shell
+make terminal
 ```
 
 Open `http://localhost:7681` in your browser (or run `make terminal`).
@@ -80,7 +80,7 @@ Open `http://localhost:7681` in your browser (or run `make terminal`).
 With Docker socket:
 
 ```bash
-make shell-docker
+make terminal-docker
 ```
 
 Then open the URL printed by the Makefile (default `http://localhost:7681`).

@@ -72,7 +72,7 @@ named-volume mount stays writable. Defaults still come only from `/opt/cursor-de
 
 ```bash
 make clean-volumes
-make shell
+make terminal
 ```
 
 Open `http://localhost:7681` to continue.
@@ -170,7 +170,7 @@ This keeps agent behavior consistent in the container while letting each project
 Templates are **not** copied into `${PROJECT_DIR}` at startup.
 
 ```bash
-make shell
+make terminal
 ```
 
 Open `http://localhost:7681`, then:
@@ -201,6 +201,6 @@ Review generated files before you commit them.
 ## Tips
 
 1. Mount only the project you want edited (`PROJECT_DIR`).
-2. Prefer `make shell` unless Docker-from-Docker is required.
+2. Prefer `make terminal` unless Docker-from-Docker is required.
 3. Use `cursor-init-project` for new mounted apps, not for every shell start.
 4. Keep secrets out of the image and out of git.

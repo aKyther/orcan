@@ -22,7 +22,8 @@ require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
 require_file "docker-compose.ttyd.yml"
 require_file "Makefile"
-require_file "scripts/repository/validate-project-dir.sh"
+require_file "scripts/repository/apply-config.py"
+require_file "cind.config.example.json"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
 require_file "docker/rootfs/opt/cursor-defaults/rules/operating-principles.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/planning-and-execution.mdc"
@@ -36,6 +37,11 @@ require_file "docker/rootfs/usr/local/bin/docker-entrypoint"
 require_file "docker/rootfs/usr/local/bin/init-cursor-home"
 require_file "docker/rootfs/usr/local/bin/cursor-init-project"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
+require_file "docker/rootfs/usr/local/bin/cursor-launcher"
+require_file "docker/rootfs/usr/local/bin/cursor-tmux-attach"
+require_file "docker/rootfs/etc/tmux/tmux.conf"
+require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
+require_file "docker/rootfs/etc/tmux/scripts/status-right.sh"
 require_file "docker/rootfs/etc/skel/.tmux.conf"
 require_file "docker/rootfs/etc/skel/.vimrc"
 require_file "docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh"
@@ -46,6 +52,13 @@ for script in \
     docker/rootfs/usr/local/bin/init-cursor-home \
     docker/rootfs/usr/local/bin/cursor-init-project \
     docker/rootfs/usr/local/bin/cursor-ttyd \
+    docker/rootfs/usr/local/bin/cursor-launcher \
+    docker/rootfs/usr/local/bin/cursor-tmux-attach \
+    docker/rootfs/etc/tmux/scripts/status-left.sh \
+    docker/rootfs/etc/tmux/scripts/status-right.sh \
+    docker/rootfs/etc/tmux/scripts/window-name.sh \
+    docker/rootfs/etc/tmux/scripts/copy-path.sh \
+    docker/rootfs/etc/tmux/scripts/session-switch.sh \
     scripts/repository/update-env.sh \
     scripts/repository/validate-project-dir.sh \
     scripts/repository/validate.sh \
@@ -58,12 +71,17 @@ do
     fi
 done
 
+if [[ -f scripts/repository/apply-config.py ]]; then
+    python3 -m py_compile scripts/repository/apply-config.py
+    printf 'Syntax OK: scripts/repository/apply-config.py\n'
+fi
+
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null
-    docker compose -f docker-compose.yml config --quiet
-    docker compose -f docker-compose.yml -f docker-compose.docker.yml config --quiet
-    docker compose -f docker-compose.yml -f docker-compose.ttyd.yml config --quiet
-    docker compose -f docker-compose.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
+    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml config --quiet
+    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
+    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
+    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
     printf 'Compose config OK\n'
 else
     printf 'Skip: Docker daemon not available for compose config\n'

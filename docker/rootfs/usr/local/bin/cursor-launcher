@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# Interactive project picker for ttyd.
+# Prefers /etc/cind/config.json (from host cind.config.json), else env fallbacks.
+# Phone-friendly: choose by number, no tmux keybindings required.
+
+set -Eeuo pipefail
+
+CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
+PROJECT_DIR="${PROJECT_DIR:-}"
+
+declare -a PROJECT_PATHS=()
+declare -a PROJECT_LABELS=()
+declare -a PROJECT_SESSIONS=()
+
+sanitize_session_name() {
+    local name="$1"
+    name="$(printf '%s' "${name}" | tr -c 'A-Za-z0-9_-' '_')"
+    name="${name##_}"
+    name="${name%%_}"
+    if [[ -z "${name}" ]]; then
+        name="project"
+    fi
+    printf '%s\n' "${name:0:50}"
+}
+
+path_already_listed() {
+    local candidate="$1"
+    local existing
+    for existing in "${PROJECT_PATHS[@]+"${PROJECT_PATHS[@]}"}"; do
+        if [[ "${existing}" == "${candidate}" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+add_project() {
+    local path="$1"
+    local label="${2:-}"
+    local session="${3:-}"
+
+    if [[ ! -d "${path}" ]]; then
+        return 0
+    fi
+
+    path="$(cd -- "${path}" && pwd -P)"
+    if path_already_listed "${path}"; then
+        return 0
+    fi
+
+    if [[ -z "${label}" ]]; then
+        label="$(basename "${path}")"
+    fi
+    if [[ -z "${session}" ]]; then
+        session="$(sanitize_session_name "${label}")"
+    else
+        session="$(sanitize_session_name "${session}")"
+    fi
+
+    PROJECT_PATHS+=("${path}")
+    PROJECT_LABELS+=("${label}")
+    PROJECT_SESSIONS+=("${session}")
+}
+
+collect_from_json() {
+    local config_path="$1"
+    python3 - "${config_path}" <<'PY'
+import json, sys
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    cfg = json.load(fh)
+for item in cfg.get("projects") or []:
+    name = (item.get("name") or "").strip()
+    p = (item.get("path") or "").strip()
+    tmux = (item.get("tmux") or name or "").strip()
+    if name and p:
+        print(f"{p}\t{name}\t{tmux}")
+PY
+}
+
+collect_projects() {
+    PROJECT_PATHS=()
+    PROJECT_LABELS=()
+    PROJECT_SESSIONS=()
+
+    if [[ -f "${CIND_CONFIG}" ]]; then
+        local line path label session
+        while IFS= read -r line; do
+            [[ -n "${line}" ]] || continue
+            IFS=$'\t' read -r path label session <<<"${line}"
+            add_project "${path}" "${label}" "${session}"
+        done < <(collect_from_json "${CIND_CONFIG}")
+        if (( ${#PROJECT_PATHS[@]} > 0 )); then
+            return 0
+        fi
+    fi
+
+    if [[ -n "${PROJECT_DIR}" && -d "${PROJECT_DIR}" ]]; then
+        add_project "${PROJECT_DIR}"
+    fi
+}
+
+print_menu() {
+    local i status session
+    clear 2>/dev/null || true
+    printf 'cind projects\n'
+    printf '────────────────────────────\n'
+    if (( ${#PROJECT_PATHS[@]} == 0 )); then
+        printf '(no projects found)\n'
+        printf 'Add projects to cind.config.json (at least one project required)\n'
+    else
+        for i in "${!PROJECT_PATHS[@]}"; do
+            session="${PROJECT_SESSIONS[$i]}"
+            if tmux has-session -t "=${session}" 2>/dev/null; then
+                status="[tmux live]"
+            else
+                status="[new]"
+            fi
+            printf '%2d) %-20s %s\n   %s\n' \
+                "$((i + 1))" "${PROJECT_LABELS[$i]}" "${status}" "${PROJECT_PATHS[$i]}"
+        done
+    fi
+    printf '────────────────────────────\n'
+    printf 'r) refresh list\n'
+    printf 'q) quit\n'
+    printf '\n'
+}
+
+attach_project() {
+    local index="$1"
+    local path label session
+
+    if (( index < 0 || index >= ${#PROJECT_PATHS[@]} )); then
+        printf 'Invalid choice.\n'
+        sleep 1
+        return 0
+    fi
+
+    path="${PROJECT_PATHS[$index]}"
+    label="${PROJECT_LABELS[$index]}"
+    session="${PROJECT_SESSIONS[$index]}"
+
+    export PROJECT_DIR="${path}"
+    cd "${path}"
+
+    exec cursor-tmux-attach "${session}" "${path}" "${label}"
+}
+
+main() {
+    local choice
+
+    while true; do
+        collect_projects
+        print_menu
+
+        if ! read -r -p 'Choose: ' choice; then
+            printf '\n'
+            exit 0
+        fi
+
+        case "${choice}" in
+            q|Q)
+                exit 0
+                ;;
+            r|R|"")
+                continue
+                ;;
+            *)
+                if [[ "${choice}" =~ ^[0-9]+$ ]]; then
+                    attach_project "$((choice - 1))"
+                else
+                    printf 'Enter a number, r, or q.\n'
+                    sleep 1
+                fi
+                ;;
+        esac
+    done
+}
+
+main "$@"

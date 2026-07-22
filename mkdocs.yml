@@ -66,6 +66,9 @@ nav:
   - Installation: installation.md
   - Docker: docker.md
   - Path parity: path-parity.md
+  - Project launcher: launcher.md
+  - tmux: tmux.md
+  - JSON config: config.md
   - Makefile: makefile.md
   - Cursor: cursor.md
   - Security: security.md
