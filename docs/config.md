@@ -56,7 +56,23 @@ Rules:
 * project `name` = subdirectory under workspace root
 * no `alias`, no `default_project`, no `default_workspace`, no `mount_mode`, no per-workspace `tmux`
 * each project uses **path parity** (same absolute path on host and in container) plus a **symlink** under the workspace root
-* container entrypoint uses the **first** workspace in the list for startup paths
+* container entrypoint uses the **first** workspace in the list for startup paths (`WORKSPACE_*` in `.env`); the launcher still lists **all** workspaces
+
+### After editing workspaces
+
+```bash
+make env
+make down && make terminal-docker
+```
+
+Then in the browser launcher pick the workspace by number. Each entry is a separate tmux session under `/home/developer/workspaces/<name>/`.
+
+Check:
+
+```bash
+make config-show
+make path-check
+```
 
 ### Resource limits (CPUS, memory, …)
 
