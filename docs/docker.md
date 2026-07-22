@@ -89,7 +89,6 @@ Provides:
 
 * project bind mounts from `cind.config.json` (path parity + workspace roots)
 * named volumes for caches and Cursor config
-* optional read-only `~/.gitconfig` when the file exists on the host
 * resource limits and a `/tmp` tmpfs
 
 Does **not** mount the Docker socket or host `~/.ssh`.

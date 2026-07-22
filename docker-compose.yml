@@ -40,7 +40,6 @@ services:
       - cargo-cache:/home/developer/.cargo
       - go-cache:/home/developer/go
       - bash-history:/command-history
-      - ${HOME}/.gitconfig:/home/developer/.gitconfig:ro
     tmpfs:
       - /tmp:size=${TMPFS_SIZE:-2g},mode=1777
 

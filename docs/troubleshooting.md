@@ -87,6 +87,20 @@ Then log in again inside the browser terminal.
 * TMUX starts automatically inside the ttyd session (session name: `workspace`)
 * Run `make terminal` if you forgot the URL
 
+## Legacy: host `~/.gitconfig` became a directory
+
+**Symptom:** on the host, `~/.gitconfig` is a **directory** (often root-owned) after an older cind version.
+
+**Cause:** Docker bind-mounted a missing `~/.gitconfig` file and created a directory.
+
+**Fix:** remove it on the host (cind no longer mounts gitconfig):
+
+```bash
+sudo rm -rf ~/.gitconfig
+```
+
+Configure Git inside the container when you need it — identity is not shared with the host.
+
 ## `/etc/tmux/options.conf: invalid environment variable`
 
 **Symptom:** ttyd opens but tmux fails immediately with `invalid environment variable` on line 3 of `options.conf`. You may need to click or refresh several times before a session appears.
