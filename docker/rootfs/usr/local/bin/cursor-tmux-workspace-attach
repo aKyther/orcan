@@ -47,6 +47,7 @@ set_session_env() {
     tmux_cmd set-environment -t "=${SESSION}" CIND_WORKSPACE_ROOT "${WORKSPACE_ROOT}" 2>/dev/null || true
     tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_NAME "${WORKSPACE_LABEL}" 2>/dev/null || true
     tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_PATH "${WORKSPACE_ROOT}" 2>/dev/null || true
+    tmux_cmd set -g mouse on 2>/dev/null || true
 }
 
 read_tab_defaults() {

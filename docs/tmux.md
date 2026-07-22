@@ -28,7 +28,7 @@ Most navigation/splits work **without prefix** (see below).
 | `Alt+c` | New window |
 | `Ctrl+Shift+←` `→` | Swap window |
 | `Alt+1`–`Alt+9`, `Alt+0` | Jump to window |
-| `Alt+a` | Mouse on |
+| `Alt+a` | Mouse on (already default) |
 | `Alt+q` | Mouse off |
 
 ### With prefix `Ctrl+Space`
@@ -68,9 +68,9 @@ Many browsers **do not forward** `Alt+*` or `Ctrl+arrow` to the terminal — bin
 
 **Workarounds:**
 
-1. `Alt+a` — enable mouse, then click panes and drag borders.
+1. Mouse is **on by default** — click panes and drag borders to split/resize.
 2. Prefix splits: `Ctrl+Space` then `-` or `|`.
-3. On Android: hardware keyboard for the shortcuts above, or mouse mode.
+3. On Android: hardware keyboard for the shortcuts above, or use mouse mode.
 
 Host `~/.tmux.conf` is **not mounted** into the container. To change defaults for everyone using the image, edit `docker/rootfs/etc/tmux/` and `make rebuild`.
 

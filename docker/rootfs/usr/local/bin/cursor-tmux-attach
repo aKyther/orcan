@@ -47,6 +47,7 @@ set_session_env() {
     tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_NAME "${PROJECT_LABEL}" 2>/dev/null || true
     tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_PATH "${PROJECT_PATH}" 2>/dev/null || true
     tmux_cmd set-environment -t "=${SESSION}" PROJECT_DIR "${PROJECT_PATH}" 2>/dev/null || true
+    tmux_cmd set -g mouse on 2>/dev/null || true
 }
 
 resolve_window_dir() {
