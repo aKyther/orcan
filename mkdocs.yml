@@ -1,9 +1,9 @@
-site_name: Cursor CLI Dev Container
-site_description: Isolated Docker environment for Cursor CLI and developer tools
-site_author: Cursor CLI Dev Container contributors
+site_name: cind
+site_description: Isolated Docker environment for Cursor CLI, Claude Code, and developer tools
+site_author: cind contributors
 
-repo_url: https://github.com/example/cursor-cli-devcontainer
-repo_name: example/cursor-cli-devcontainer
+repo_url: https://github.com/example/cind
+repo_name: example/cind
 edit_uri: edit/main/docs/
 
 theme:

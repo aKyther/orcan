@@ -15,13 +15,7 @@ Add repos: `make config-scaffold PROJECT_DIR=... WORKSPACE=name` then `make env`
 
 Optional template: `make config-init` (full example file).
 
-Or pass a config explicitly:
-
-```bash
-make terminal-docker CONFIG=./cind.config.json
-```
-
-If `./cind.config.json` exists, `make env` picks it up automatically.
+If `./cind.config.json` exists, `make env` picks it up automatically. `make terminal` / `make terminal-docker` do **not** regenerate config — run `make env` after edits.
 
 ## Workspaces
 

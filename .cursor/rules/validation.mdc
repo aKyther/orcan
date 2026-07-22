@@ -6,8 +6,12 @@ alwaysApply: true
 # Validation
 
 - After changes, run available checks before claiming success.
-- Run `docker compose -f docker-compose.yml config`.
-- Run `docker compose -f docker-compose.yml -f docker-compose.docker.yml config`.
+- Prefer `make validate` (includes generated mounts when Docker is available).
+- Otherwise run Compose with the generated overlay:
+  - `docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml config`
+  - `docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.docker.yml config`
+  - `docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.ttyd.yml config`
+- If `.cind/compose-projects.generated.yml` is missing, run `make env` first (or note it as a limit).
 - Run `make help` and confirm targets match the docs.
 - Check Makefile syntax and file references.
 - Do not claim a successful image build unless `make build` actually ran.

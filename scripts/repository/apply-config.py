@@ -194,21 +194,10 @@ def parse_projects(
 
         workspace_path = f"{ws_root.rstrip('/')}/{name}"
 
-        windows_raw = item.get("windows") or []
-        if windows_raw and not isinstance(windows_raw, list):
-            die(f"{label}[{i}].windows must be a list")
-        windows: list[dict] = []
-        for j, win in enumerate(windows_raw):
-            if not isinstance(win, dict):
-                die(f"{label}[{i}].windows[{j}] must be an object")
-            win_name = str(win.get("name") or "shell").strip()
-            windows.append(
-                {
-                    "name": win_name,
-                    "icon": str(win.get("icon") or "").strip(),
-                    "dir": str(win.get("dir") or ".").strip(),
-                    "command": str(win.get("command") or "").strip(),
-                }
+        if "windows" in item:
+            die(
+                f"{label}[{i}].windows is no longer supported; "
+                'use root-level "tmux": {{ "initial_windows": … }} and rename tabs in tmux'
             )
 
         projects.append(
@@ -217,7 +206,6 @@ def parse_projects(
                 "path": path_key,
                 "workspace_path": workspace_path,
                 "container_path": path_key,
-                "windows": windows,
             }
         )
 
@@ -339,8 +327,11 @@ def prune_stale_workspace_metas(repo_root: Path, active_names: set[str]) -> None
             continue
         if child.name in active_names:
             continue
+        print(
+            f"warning: removing stale workspace meta (no longer in cind.config.json): {child}",
+            file=sys.stderr,
+        )
         shutil.rmtree(child)
-        print(f"removed stale workspace meta: {child}")
 
 
 def write_compose_projects(workspaces: list[dict], repo_root: Path) -> str:
@@ -498,7 +489,6 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
             "path": str(pd),
             "workspace_path": f"{ws_root}/{pd.name}",
             "container_path": str(pd),
-            "windows": [],
         }
     ]
     workspace = {

@@ -27,7 +27,8 @@ command -v cind-ai-statusline >/dev/null
 command -v cursor-init-project >/dev/null
 command -v cursor-ttyd >/dev/null
 command -v cursor-launcher >/dev/null
-command -v cursor-tmux-attach >/dev/null
+command -v cursor-tmux-workspace-attach >/dev/null
+command -v cursor-tmux-bootstrap-workspaces >/dev/null
 command -v agent >/dev/null
 command -v claude >/dev/null
 command -v python3 >/dev/null
@@ -46,7 +47,8 @@ command -v curl >/dev/null
 test -x /usr/local/bin/ttyd
 test -x /usr/local/bin/yq
 test -x /usr/local/bin/cursor-launcher
-test -x /usr/local/bin/cursor-tmux-attach
+test -x /usr/local/bin/cursor-tmux-workspace-attach
+test -x /usr/local/bin/cursor-tmux-bootstrap-workspaces
 test -x /usr/local/bin/cind-ai-statusline
 test -x /usr/local/bin/init-ai-statusline
 test -f /etc/tmux/tmux.conf

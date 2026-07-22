@@ -1,10 +1,10 @@
-# Cursor CLI Dev Container
+# cind
 
-Isolated Docker environment for **Cursor CLI** and common developer tools.
+Isolated Docker environment for **Cursor CLI** (`agent`), **Claude Code**, and common developer tools.
 
-This repository keeps your host system clean. Cursor and the toolchain run inside a container. The project you choose is mounted at the **same absolute path** on the host and inside the container ([path parity](docs/path-parity.md)).
+This repository keeps your host system clean. Tools run inside a container. Projects use [path parity](docs/path-parity.md). Workspaces are declared in `cind.config.json` (one tmux session per workspace).
 
-**Who it is for:** developers who want Cursor CLI with Node, Python, Go, Rust, and optional Docker access — without installing the full toolchain on the host.
+**Who it is for:** developers who want Cursor/Claude with Node, Python, Go, Rust, and optional Docker access — without installing the full toolchain on the host.
 
 **Problem it solves:** mixed global toolchains, root-owned files from containers, and unclear boundaries between agent work and the host OS.
 
@@ -16,14 +16,12 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 * Claude Code CLI (`claude`)
 * Docker-based environment on Debian Bookworm Slim
 * Multi-stage image build
-* Automatic TMUX in interactive shells
-* Node.js, npm, pnpm
-* Python 3 (`python` / `python3`), pip, venv, **uv** / uvx
-* Go, Rust (rustc, cargo)
+* Multi-workspace launcher → one **tmux session per workspace** (browser ttyd)
+* Node.js, npm, pnpm; Python 3 + **uv**; Go; Rust
 * Docker CLI, Compose, Buildx (optional host socket)
 * Git, ripgrep, fd, fzf, bat, eza, jq, yq, tree, curl, shellcheck, hyperfine
 * PostgreSQL client, Redis client
-* Persistent host data under `~/.config/cind` (Cursor/Claude login, caches)
+* Persistent host data under `~/.config/cind` (`CIND_DATA` binds — not named volumes)
 * Global Cursor defaults seeded at container startup
 * `cursor-init-project` for optional project scaffolding
 * Makefile entrypoints for everyday use
@@ -35,9 +33,10 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | Path | Why it exists |
 | --- | --- |
 | `Dockerfile` | Builds the toolchain and installs Cursor CLI |
-| `docker-compose.yml` | Base service: project mount, caches, no Docker socket |
+| `docker-compose.yml` | Base service: path-parity mounts + `$CIND_DATA` binds, no Docker socket |
 | `docker-compose.docker.yml` | Optional overlay: host Docker socket + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | Optional overlay: browser terminal (ttyd) for local / Tailscale access |
+| `docker-compose.ttyd.yml` | Browser terminal (ttyd) for local / Tailscale access |
+| `cind.config.json` | Workspaces and projects (run `make env` after edits) |
 | `Makefile` | Short host commands for build, shell, cleanup |
 | `docker/rootfs/` | Files installed into the image (paths match the container) |
 | `scripts/repository/` | Host-only maintenance helpers |
@@ -95,12 +94,11 @@ Docker container
 ```
 
 * **Docker** isolates tools from the host package manager.
-* **One project mount** limits the agent to the work you choose.
+* **`cind.config.json` workspaces** isolate project sets (no cross-workspace mixing).
 * **UID/GID mapping** makes new files owned by your host user.
-* **Named volumes** keep npm/pnpm/cargo/go/uv caches between runs.
-* **`/opt/cursor-defaults`** survives the empty `cursor-config` volume mount.
-* **Startup init** copies only missing Cursor files into `${HOME}/.cursor`.
-* **TMUX** starts automatically so long agent sessions survive disconnects.
+* **`$CIND_DATA` host binds** keep npm/pnpm/cargo/go/uv caches and Cursor/Claude login between runs.
+* **`/opt/cursor-defaults`** seeds `${HOME}/.cursor` at startup (missing files only).
+* **tmux** via the browser launcher; switch sessions with `Ctrl+Space w`.
 * **Docker socket** is optional because it grants strong host access.
 * **Non-root user** reduces accidental root-owned files inside the container.
 
@@ -111,8 +109,8 @@ Docker container
 Everything goes through **Make** — no manual `cp` of `.env` or config templates ( `make env` creates `.env` when missing).
 
 ```bash
-git clone <repository-url> cursor-cli-devcontainer
-cd cursor-cli-devcontainer
+git clone <repository-url> cind
+cd cind
 
 make setup PROJECT_DIR=/absolute/path/to/your/repo
 make build
@@ -348,7 +346,7 @@ Project Cursor files    →  ${PROJECT_DIR}/.cursor, AGENTS.md
 On every container start, missing files are copied from `/opt/cursor-defaults` into `${HOME}/.cursor`.
 Existing files are never overwritten.
 
-**Global profile:** five always-on rules and five reusable skills shape every session (understanding repos, focused changes, honest validation, minimal docs). Project-specific rules live only in the mounted repo. Details: [docs/cursor.md](docs/cursor.md#global-profile-rules-and-skills).
+**Global profile:** always-on rules and reusable skills under `/opt/cursor-defaults` (seeded into `~/.cursor`). Project-specific rules live in the mounted repo. Details: [docs/cursor.md](docs/cursor.md#global-profile-rules-and-skills).
 
 Scaffold a mounted project explicitly (from the browser terminal):
 
@@ -410,8 +408,10 @@ The overlay file is `docker-compose.docker.yml`. Both modes include the browser 
 
 ```bash
 make build
-make terminal PROJECT_DIR=/absolute/path/to/project
+make terminal-docker
 ```
+
+Projects come from `cind.config.json` (not `PROJECT_DIR=` on the Make line). After config edits: `make env`, then recreate the container.
 
 Open in your browser:
 
@@ -424,7 +424,7 @@ http://localhost:7681
 | URL | `http://localhost:7681` |
 | Host port | `7681` (`TTYD_HOST_PORT`) |
 | Projects | Listed from `cind.config.json` (workspace launcher) |
-| TMUX | One session per workspace |
+| TMUX | One session per workspace (`Ctrl+Space w` to switch) |
 
 **Remote access:** there is no SSH into this environment. Use the browser terminal only.
 
@@ -475,17 +475,17 @@ Shell and editor configs live in the image filesystem:
 * `docker/rootfs/etc/skel/.vimrc` → `/home/developer/.vimrc`
 * `docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh` → sourced from `~/.bashrc`
 
-TMUX starts automatically in the browser terminal (`cursor-ttyd` runs `tmux new-session -A -s workspace`).
+The browser launcher attaches you to a tmux session named after the workspace (`workspaces[].name`). Tabs are `tab-1`… (not other workspaces).
 
 | Action | Keys |
 | --- | --- |
 | Prefix | `Ctrl-Space` |
+| Switch workspace session | `Ctrl-Space` `w` |
 | New window | `Alt-c` |
 | Split horizontal | `Ctrl-Down` |
 | Split vertical | `Ctrl-Right` |
 | Zoom pane | `Alt-Enter` |
 | Detach | `Ctrl-Space` `d` |
-| Reattach | `tmux attach -t workspace` |
 
 ---
 
@@ -513,7 +513,7 @@ make rebuild
 | No TTY / odd terminal | Run from a real terminal; ensure `stdin_open`/`tty` stay enabled |
 | TMUX did not start | Non-interactive commands skip TMUX; check `[ -t 0 ]` |
 | Stale image | `make rebuild` |
-| Cursor CLI not logged in | Log in once inside the container; auth persists in `cursor-app-config` (`~/.config/cursor`) |
+| Cursor CLI not logged in | Log in once inside the container; auth persists under `$CIND_DATA` (`~/.config/cind`) |
 
 More detail: [docs/troubleshooting.md](docs/troubleshooting.md).
 

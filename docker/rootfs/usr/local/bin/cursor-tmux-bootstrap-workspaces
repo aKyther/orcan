@@ -42,7 +42,8 @@ for ws in workspaces:
 PY
 )
 
-# Drop tmux sessions left over after a workspace was removed from config.
+# Drop only cind-managed sessions left over after a workspace was removed from config.
+# Sessions without CIND_WORKSPACE_NAME are left alone (user or smoke sessions).
 if command -v tmux >/dev/null 2>&1; then
     while IFS= read -r live; do
         [[ -n "${live}" ]] || continue
@@ -53,8 +54,13 @@ if command -v tmux >/dev/null 2>&1; then
                 break
             fi
         done
-        if (( keep == 0 )); then
-            tmux -f "${TMUX_CONF}" kill-session -t "=${live}" 2>/dev/null || true
+        if (( keep == 1 )); then
+            continue
         fi
+        if ! tmux -f "${TMUX_CONF}" show-environment -t "=${live}" CIND_WORKSPACE_NAME >/dev/null 2>&1; then
+            continue
+        fi
+        printf 'removing stale cind tmux session: %s\n' "${live}" >&2
+        tmux -f "${TMUX_CONF}" kill-session -t "=${live}" 2>/dev/null || true
     done < <(tmux -f "${TMUX_CONF}" list-sessions -F '#{session_name}' 2>/dev/null || true)
 fi

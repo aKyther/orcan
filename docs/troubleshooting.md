@@ -2,15 +2,15 @@
 
 ## Invalid or missing `PROJECT_DIR`
 
-**Symptom:** `make terminal` or `make build` fails with a `PROJECT_DIR` validation error.
+**Symptom:** `make setup` / `make env` / `make build` fails with a `PROJECT_DIR` validation error.
 
 **Fix:**
 
-1. Set an absolute path in `.env` (no `.`, `../`, or `~`).
-2. Run `make env PROJECT_DIR=/absolute/path/to/project`.
+1. Set an absolute path in `.env` (no `.`, `../`, or `~`), or pass it once: `make env PROJECT_DIR=/absolute/path/to/project`.
+2. Declare workspaces in `cind.config.json` and run `make env`.
 3. Run `make path-check`.
 
-See [Path parity](path-parity.md).
+See [Path parity](path-parity.md) and [Config](config.md).
 
 ## UID/GID conflicts or permission denied in `PROJECT_DIR`
 
@@ -21,7 +21,7 @@ See [Path parity](path-parity.md).
 ```bash
 make env
 make build
-make terminal PROJECT_DIR=/absolute/path/to/project
+make terminal-docker
 ```
 
 Confirm `.env` has your real host IDs:

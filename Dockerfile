@@ -209,7 +209,6 @@ RUN chmod 0755 \
         /usr/local/bin/cursor-init-project \
         /usr/local/bin/cursor-ttyd \
         /usr/local/bin/cursor-launcher \
-        /usr/local/bin/cursor-tmux-attach \
         /usr/local/bin/cursor-tmux-workspace-attach \
         /usr/local/bin/cursor-tmux-bootstrap-workspaces \
         /etc/tmux/scripts/*.sh \

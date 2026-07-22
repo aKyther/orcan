@@ -22,8 +22,8 @@ make --version
 ## Clone
 
 ```bash
-git clone <repository-url> cursor-cli-devcontainer
-cd cursor-cli-devcontainer
+git clone <repository-url> cind
+cd cind
 ```
 
 ## Configure environment
@@ -47,7 +47,6 @@ SHM_SIZE=2g
 TMPFS_SIZE=2g
 TTYD_PORT=7681
 TTYD_HOST_PORT=7681
-TMUX_SESSION_NAME=workspace
 ```
 
 !!! warning
