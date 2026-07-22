@@ -68,6 +68,7 @@ for script in \
     scripts/repository/validate-project-dir.sh \
     scripts/repository/require-generated.sh \
     scripts/repository/print-workspace-manifest.sh \
+    scripts/repository/registry.sh \
     scripts/repository/validate.sh \
     tests/smoke/test-container.sh \
     tests/integration/test-path-parity.sh

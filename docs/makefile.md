@@ -15,6 +15,10 @@ Everyday commands for building and running the cind container.
 | `make path-check` | Show mounts and workspace layout (read-only) |
 | `make build` | Build the container image (needs `.env` only) |
 | `make rebuild` | Rebuild without cache (needs `.env` only) |
+| `make registry-show` | Show local/remote image names for publish |
+| `make registry-login` | `docker login` to GitLab (or other) registry |
+| `make publish` | Tag + push image to registry |
+| `make pull` | Pull published image and retag as `cursor-dev:latest` |
 | `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
 | `make terminal-docker` | Start browser terminal with host Docker socket (does not run `make env`) |
 | `make terminal-url` | Print browser terminal URL |
@@ -50,6 +54,57 @@ make terminal-docker
 ```
 
 `make terminal` prints the URL (default `http://localhost:7681`). Run `make terminal-url` to print it again.
+
+## Publish image to GitLab
+
+Build once, push to GitLab Container Registry, pull on another host (e.g. VPS).
+
+### 1. Configure `.env`
+
+```dotenv
+IMAGE_REGISTRY=registry.gitlab.com
+IMAGE_REPOSITORY=mygroup/cind
+IMAGE_TAG=latest
+```
+
+Self-hosted GitLab: set `IMAGE_REGISTRY` to your registry host (often `registry.example.com`).
+
+### 2. Log in
+
+Create a GitLab **Personal Access Token** (or Deploy Token) with `read_registry` + `write_registry`.
+
+```bash
+make registry-login
+# prompts for username + token
+```
+
+Non-interactive:
+
+```bash
+REGISTRY_USER=myuser REGISTRY_PASSWORD=glpat-... make registry-login
+```
+
+### 3. Build and push
+
+```bash
+make build
+make publish
+```
+
+### 4. On another machine
+
+```bash
+# same IMAGE_* in .env
+make registry-login
+make pull
+make terminal-docker
+```
+
+Check names anytime:
+
+```bash
+make registry-show
+```
 
 ### After config changes
 

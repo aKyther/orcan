@@ -178,6 +178,98 @@ claude --version
 
 ---
 
+## Publish image to GitLab (build once, run anywhere)
+
+Typical flow: build on a machine with good network/CPU, push to **GitLab Container Registry**, pull on a VPS — without rebuilding from Dockerfile each time.
+
+```text
+Laptop / CI                          GitLab registry                    VPS
+─────────────────                    ───────────────                    ───
+make build  →  cursor-dev:latest
+make publish ─────────────────────►  registry…/group/cind:latest
+                                                                    make pull
+                                                                    → cursor-dev:latest
+                                                                    make terminal-docker
+```
+
+### Pieces involved
+
+| Piece | Role |
+| --- | --- |
+| Local image `cursor-dev:latest` | What Compose runs (`docker-compose.yml` → `image: cursor-dev:latest`) |
+| `IMAGE_REGISTRY` | Registry host — `registry.gitlab.com` or your self-hosted GitLab |
+| `IMAGE_REPOSITORY` | Path under the registry, e.g. `mygroup/cind` |
+| `IMAGE_TAG` | Tag (default `latest`) |
+| `make registry-login` | `docker login` with GitLab username + PAT / Deploy Token |
+| `make publish` | Tags local image → pushes to registry |
+| `make pull` | Pulls remote image and retags as `cursor-dev:latest` for Compose |
+| `make registry-show` | Prints configured local/remote names (sanity check) |
+
+Remote image name:
+
+```text
+${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}
+# e.g. registry.gitlab.com/mygroup/cind:latest
+```
+
+### 1. Configure `.env` (once per machine)
+
+```dotenv
+IMAGE_REGISTRY=registry.gitlab.com
+IMAGE_REPOSITORY=mygroup/cind
+IMAGE_TAG=latest
+```
+
+Self-hosted GitLab: set `IMAGE_REGISTRY` to your registry hostname (often `registry.example.com`).
+
+Do **not** put tokens in `.env` or git. Use a Personal Access Token or Deploy Token with `read_registry` + `write_registry`.
+
+### 2. Log in
+
+```bash
+make registry-login
+# prompts: GitLab username + token
+```
+
+Non-interactive:
+
+```bash
+REGISTRY_USER=myuser REGISTRY_PASSWORD=glpat-... make registry-login
+```
+
+### 3. Build and push (build machine)
+
+```bash
+make build          # or make rebuild
+make registry-show  # optional check
+make publish
+```
+
+### 4. Pull and run (VPS)
+
+Same clone of this repo + same `IMAGE_*` in `.env`, plus your `cind.config.json` / `make env` for mounts:
+
+```bash
+make registry-login
+make pull
+make env            # if config / mounts not ready yet
+make terminal-docker
+```
+
+`make pull` only updates the **image**. Workspace mounts and `.env` still come from `make env` / `cind.config.json` on that host.
+
+### When to rebuild vs pull
+
+| Change | On build machine | On VPS |
+| --- | --- | --- |
+| Dockerfile / `docker/rootfs/` (tmux, tools, …) | `make rebuild` → `make publish` | `make pull` |
+| `cind.config.json` (workspaces, paths) | — | `make env` → restart terminal |
+| Only `.env` limits (`CPUS`, ports) | — | edit `.env` → restart terminal |
+
+More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [docs/docker.md](docs/docker.md#publish-to-gitlab-container-registry).
+
+---
+
 ## Available Make commands
 
 | Command | Description |
@@ -186,6 +278,9 @@ claude --version
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
 | `make rebuild` | Rebuild with `--no-cache` |
+| `make registry-login` | Log in to GitLab Container Registry |
+| `make publish` | Tag + push image to registry |
+| `make pull` | Pull published image → `cursor-dev:latest` |
 | `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
 | `make terminal-docker` | Start browser terminal + Docker socket (does not run `make env`) |
 | `make terminal-url` | Print the browser terminal URL |
@@ -210,6 +305,8 @@ claude --version
 | First run / config change | `make setup` or `make env` |
 | Start terminal | `make terminal` or `make terminal-docker` |
 | Add a repo | `make config-scaffold …` then `make env` |
+| Push image to GitLab | `make build` → `make registry-login` → `make publish` |
+| Pull image on VPS | `make registry-login` → `make pull` → `make terminal-docker` |
 
 `make terminal*` reads `.env` as-is — it does not overwrite `CPUS`, mounts, or runtime files.
 
