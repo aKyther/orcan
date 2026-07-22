@@ -11,8 +11,12 @@ workspace="$(tmux show-environment -g CIND_WORKSPACE_NAME 2>/dev/null | cut -d= 
 session="$(tmux display -p '#{session_name}' 2>/dev/null || echo session)"
 
 if [[ -n "${workspace}" ]]; then
-    printf '%s#[fg=colour81,bold] %s #[fg=colour240]│ #[fg=colour117,bold]%s' \
-        "${prefix}" "${workspace}" "${session}"
+    if [[ "${workspace}" == "${session}" ]]; then
+        printf '%s#[fg=colour81,bold] %s' "${prefix}" "${workspace}"
+    else
+        printf '%s#[fg=colour81,bold] %s #[fg=colour240]│ #[fg=colour117,bold]%s' \
+            "${prefix}" "${workspace}" "${session}"
+    fi
 else
     project="$(tmux show-environment -g CIND_PROJECT_NAME 2>/dev/null | cut -d= -f2- || true)"
     if [[ -n "${project}" && "${project}" != "${session}" ]]; then
