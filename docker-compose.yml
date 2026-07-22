@@ -31,8 +31,10 @@ services:
       WORKSPACE_META_PATH: ${WORKSPACE_META_PATH:-}
       CIND_CONFIG: ${CIND_CONFIG:-/etc/cind/config.json}
       CIND_DATA: ${CIND_DATA}
+      TZ: ${TZ:-UTC}
     volumes:
       - ${CIND_CONFIG_HOST:-./.cind/runtime-config.json}:/etc/cind/config.json:ro
+      - /etc/localtime:/etc/localtime:ro
       - ${CIND_DATA}/cursor:/home/developer/.cursor
       - ${CIND_DATA}/cursor-app:/home/developer/.config/cursor
       - ${CIND_DATA}/claude:/home/developer/.claude

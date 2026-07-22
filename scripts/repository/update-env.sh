@@ -62,6 +62,25 @@ ensure_env_key "USER_UID" "${USER_UID}"
 ensure_env_key "USER_GID" "${USER_GID}"
 ensure_env_key "DOCKER_GID" "${DOCKER_GID}"
 
+# Match host timezone (compose passes TZ=; /etc/localtime is also bind-mounted).
+detect_host_tz() {
+    local tz=""
+    if [[ -f /etc/timezone ]]; then
+        tz="$(tr -d '[:space:]' </etc/timezone || true)"
+    fi
+    if [[ -z "${tz}" ]] && command -v timedatectl >/dev/null 2>&1; then
+        tz="$(timedatectl show -p Timezone --value 2>/dev/null || true)"
+    fi
+    if [[ -z "${tz}" && -L /etc/localtime ]]; then
+        tz="$(readlink -f /etc/localtime 2>/dev/null | sed -n 's|.*/zoneinfo/||p' || true)"
+    fi
+    if [[ -z "${tz}" ]]; then
+        tz="UTC"
+    fi
+    printf '%s\n' "${tz}"
+}
+ensure_env_key "TZ" "$(detect_host_tz)"
+
 # Host data root — always on (like poetry/pip under ~/.config).
 # Default: $HOME/.config/cind. Override in .env only for a custom path.
 # Do not overwrite an existing non-empty CIND_DATA.
@@ -95,8 +114,8 @@ else
         "${CIND_DATA}" "${USER_UID}" "${USER_GID}" >&2
 fi
 
-printf '.env updated (USER_UID=%s USER_GID=%s DOCKER_GID=%s)\n' \
-    "${USER_UID}" "${USER_GID}" "${DOCKER_GID}"
+printf '.env updated (USER_UID=%s USER_GID=%s DOCKER_GID=%s TZ=%s)\n' \
+    "${USER_UID}" "${USER_GID}" "${DOCKER_GID}" "$(grep -E '^TZ=' .env | cut -d= -f2-)"
 printf 'PROJECT_DIR=%s\n' "${PROJECT_DIR}"
 printf 'CIND_DATA=%s (host config/cache — created if missing)\n' "${CIND_DATA}"
 if [[ -n "${CONFIG}" ]]; then
