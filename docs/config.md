@@ -25,7 +25,7 @@ If `./cind.config.json` exists, `make env` picks it up automatically.
 
 ## Workspaces
 
-A **workspace** = one tmux session + one directory + 1+ repos.
+A **workspace** = one tmux session + one directory + **only** the repos listed in that entry’s `projects[]`.
 
 ```json
 {
@@ -47,15 +47,27 @@ A **workspace** = one tmux session + one directory + 1+ repos.
 }
 ```
 
+### Isolation (projects do not mix)
+
+| `workspaces[]` entry | Owns |
+| --- | --- |
+| `name` | tmux session + dir `/home/developer/workspaces/<name>/` |
+| `projects[]` | **Only** the symlinks under that dir |
+
+- Projects of workspace A never appear under workspace B’s root.
+- The same host path may be listed in two workspaces (two symlinks); that is optional and explicit in JSON — it is not automatic sharing.
+- `make env` regenerates mounts; container start runs `init-workspace`, which creates only the listed symlinks and **removes orphan** symlinks left from older configs.
+- Removing a workspace from JSON also deletes its `.cind/workspaces/<name>/` meta dir on the next `make env` (and again at container start). Run `make env` after edits — otherwise stale dirs stay visible under `/home/developer/workspaces/`.
+
 Rules:
 
 * `workspaces` must contain **at least one** workspace
 * each workspace must contain **at least one** project in `projects[]`
 * workspace container path: `/home/developer/workspaces/<name>`
 * tmux session name = workspace `name` (do not set a separate `tmux` field)
-* project `name` = subdirectory under workspace root
+* project `name` = subdirectory under **that** workspace root only
 * no `alias`, no `default_project`, no `default_workspace`, no `mount_mode`, no per-workspace `tmux`
-* each project uses **path parity** (same absolute path on host and in container) plus a **symlink** under the workspace root
+* each project uses **path parity** (same absolute path on host and in container) plus a **symlink** under its workspace root
 * container entrypoint uses the **first** workspace in the list for startup paths (`WORKSPACE_*` in `.env`); the launcher still lists **all** workspaces
 
 ### After editing workspaces
@@ -141,7 +153,7 @@ Full design: [Virtual workspace](architecture/workspace.md).
 2. Writes `.env` keys used by Compose (workspace paths, generated paths)
 3. Seeds `CPUS`, `MEMORY`, `TTYD_*` in `.env` **only if missing** — edit `.env` for host limits (not overwritten on `make env`)
 4. Writes `.cind/runtime-config.json` (mounted into the container as `/etc/cind/config.json`)
-5. Writes `.cind/compose-projects.generated.yml` (workspace root bind per workspace + path-parity bind per repo)
+5. Writes `.cind/compose-projects.generated.yml` (bind `.cind/workspaces` → `/home/developer/workspaces`, plus path-parity bind per repo)
 6. Writes `.cind/workspace.manifest.json` and `*.code-workspace` files
 
 The browser launcher reads `/etc/cind/config.json` and lists all workspaces.

@@ -182,18 +182,20 @@ For image-only rebuilds, `.env` is enough. Generated mounts are required for `ma
 
 ### Wrong workspace name vs mounts (or only one of two workspaces)
 
-**Symptom:** after adding a second workspace, the launcher shows the new name but the directory/mounts look like the previous workspace — or only one session appears.
+**Symptom:** after adding a second workspace, the launcher shows the new name but the directory/mounts look like the previous workspace — or only one session appears — or workspace B also lists projects from workspace A.
 
-**Cause:** `cind.config.json` was edited without regenerating mounts and recreating the container. The runtime JSON is bind-mounted (names update live); Docker bind mounts do not (need recreate).
+**Cause:** stale generated mounts, stale project symlinks under `.cind/workspaces/<name>/`, or an old container still using per-workspace binds.
 
 **Fix:**
 
 ```bash
 make env
+# optional: remove leftover symlinks under the second workspace meta on the host
+# ls -la .cind/workspaces/<name>/
 make down && make terminal-docker
 ```
 
-Then pick the workspace by number in the launcher. Confirm with `make config-show`.
+Confirm with `make config-show` and inside the container: `ls /home/developer/workspaces/<name>` should list **only that workspace’s** project symlinks.
 
 ### Out of disk during `--no-cache`
 
