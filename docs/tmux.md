@@ -1,35 +1,53 @@
 # tmux inside ttyd
 
-cind runs **ttyd → cursor-launcher → cursor-tmux-attach → tmux**. Each project gets its own tmux session with predefined windows, a status dashboard, and vi-style copy mode.
+cind runs **ttyd → cursor-launcher (workspaces) → cursor-tmux-workspace-attach → tmux**.
+
+- **Launcher (main page):** pick a workspace by number — phone-friendly, one tap from Android.
+- **Inside tmux:** normal tabs — workspace root, one tab per project, or multiple tabs when `windows[]` is set.
 
 Configuration lives under `/etc/tmux/` (symlinked from `~/.config/tmux/`). Your `~/.tmux.conf` only sources the system config.
 
 ## Session flow
 
 1. Open `http://localhost:7681` (`make terminal`).
-2. Pick a project from the launcher menu (phone-friendly numbers).
-3. `cursor-tmux-attach` attaches to the project session or creates it with the default layout.
-4. Open another browser tab to work in a second project session in parallel.
+2. Pick a **workspace** from the launcher menu (phone-friendly numbers).
+3. `cursor-tmux-workspace-attach` attaches to that workspace session or creates it with tabs from config.
+4. Use tmux normally: switch tabs (`prefix n` / `p` / `1`–`9`), split panes, detach, reattach.
 
-Sessions are named from `cind.config.json` (`projects[].tmux`). The launcher never attaches to the wrong session.
+Each workspace = **one tmux session**. Projects = **tabs** inside that session.
 
-## Project windows
+## Workspace tabs
 
-Define per-project windows in `cind.config.json`:
+Default layout per workspace session:
+
+| Tab | Meaning |
+| --- | --- |
+| **🖥 workspace** | Workspace root (agent starts here) |
+| **🐍 backend** | One tab per `projects[]` entry (icon from project `name`) |
+
+## Project windows (`windows[]`)
+
+Define extra tabs **inside a project** in `cind.config.json`:
 
 ```json
 {
-  "name": "backend",
-  "path": "/path/to/backend",
-  "tmux": "backend",
-  "windows": [
-    {"name": "editor", "icon": "📝", "dir": "."},
-    {"name": "server", "icon": "🐍", "dir": ".", "command": "bash"},
-    {"name": "logs", "icon": "⚙", "dir": "."},
-    {"name": "shell", "icon": "🖥", "dir": "."}
-  ]
+  "workspaces": [{
+    "name": "sejs",
+    "tmux": "sejs",
+    "projects": [{
+      "name": "backend",
+      "path": "/path/to/backend",
+      "windows": [
+        {"name": "editor", "icon": "📝", "dir": "."},
+        {"name": "server", "icon": "🐍", "dir": ".", "command": "make run"},
+        {"name": "logs", "icon": "⚙", "dir": "."}
+      ]
+    }]
+  }]
 }
 ```
+
+Tab titles look like **🐍 backend · 📝 editor**. Without `windows[]`, the project gets a single tab (**🐍 backend**).
 
 | Field | Meaning |
 | --- | --- |
@@ -38,9 +56,9 @@ Define per-project windows in `cind.config.json`:
 | `dir` | Working directory relative to project root (or absolute) |
 | `command` | Optional command sent after the window opens |
 
-If `windows` is omitted, cind creates: **🖥 shell**, **📝 editor**, **⚙ logs**, and **🧪 tests** when a `tests/` directory exists.
+After editing config: `make env`, then `make down && make terminal-docker`, and start a **new** tmux session (kill old session or pick workspace fresh).
 
-Windows are also auto-named from project contents (e.g. `package.json` → 🌐 frontend).
+Legacy per-project sessions (`cursor-tmux-attach`) still exist for single-repo setups without workspaces.
 
 ## Status bar
 
@@ -144,8 +162,9 @@ On phones, use the launcher menu and mouse instead of Alt/Ctrl shortcuts.
     session-switch.sh
 
 /usr/local/bin/
-  cursor-tmux-attach  # session bootstrap + attach
-  cursor-launcher     # ttyd project menu
+  cursor-tmux-workspace-attach  # workspace session bootstrap + attach
+  cursor-tmux-attach            # legacy single-project sessions
+  cursor-launcher                 # ttyd workspace menu
 ```
 
 ## Migration notes

@@ -13,6 +13,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 ## Features
 
 * Cursor CLI (`agent`)
+* Claude Code CLI (`claude`)
 * Docker-based environment on Debian Bookworm Slim
 * Multi-stage image build
 * Automatic TMUX in interactive shells
@@ -172,6 +173,7 @@ In the browser terminal:
 
 ```bash
 agent --version
+claude --version
 ```
 
 ---

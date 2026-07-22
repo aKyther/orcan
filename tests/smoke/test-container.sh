@@ -26,6 +26,10 @@ command -v cursor-init-project >/dev/null
 command -v cursor-ttyd >/dev/null
 command -v cursor-launcher >/dev/null
 command -v cursor-tmux-attach >/dev/null
+command -v agent >/dev/null
+command -v claude >/dev/null
+agent --version >/dev/null
+claude --version >/dev/null
 command -v ttyd >/dev/null
 command -v tree >/dev/null
 command -v yq >/dev/null

@@ -285,7 +285,7 @@ USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
 # ------------------------------------------------------------------------------
-# Cursor CLI
+# AI CLIs: Cursor (agent) + Claude Code (claude)
 # ------------------------------------------------------------------------------
 
 RUN curl -fsSL https://cursor.com/install | bash \
@@ -294,6 +294,10 @@ RUN curl -fsSL https://cursor.com/install | bash \
     && mkdir -p "${HOME}/.cursor"
 # Empty developer-owned ~/.cursor so the first named-volume mount stays writable.
 # Runtime seeding comes from /opt/cursor-defaults via init-cursor-home.
+
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && claude --version
+# Claude config lives under ~/.claude (container-local unless you add a volume later).
 
 ENTRYPOINT ["docker-entrypoint"]
 CMD ["bash"]

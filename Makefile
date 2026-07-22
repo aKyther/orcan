@@ -48,12 +48,10 @@ require-generated: ## Fail fast if .env or generated runtime files are missing (
 
 path-check: require-generated ## Show host/container project path parity (read-only)
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf 'Default repo path:      %s\n' "$$PROJECT_DIR"; \
-	printf 'Container working dir:  %s\n' "$${CONTAINER_PROJECT_DIR:-$${WORKSPACE_ROOT:-}}"; \
-	if [ -n "$${WORKSPACE_ROOT:-}" ]; then \
-		printf 'Startup workspace root: %s (%s)\n' "$$WORKSPACE_ROOT" "$${WORKSPACE_NAME:-workspace}"; \
-		printf 'Workspace meta (rules): %s\n' "$${WORKSPACE_META_PATH:-}'; \
-	fi; \
+	printf 'Orchestrator (host):    %s  (cind repo — where you run make)\n' "$$PROJECT_DIR"; \
+	printf 'Workspace (container):  %s (%s)\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}}" "$${WORKSPACE_NAME:-}"; \
+	printf 'Workspace meta (host):  %s\n' "$${WORKSPACE_META_PATH:-}"; \
+	printf 'Container working_dir:  %s\n' "$${CONTAINER_PROJECT_DIR:-$${WORKSPACE_ROOT:-}}"; \
 	printf 'Runtime config:         %s\n' "$${CIND_CONFIG_HOST:-none}"; \
 	printf 'Compose project mounts: %s\n' "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}"; \
 	if [ -f "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" ]; then \
@@ -105,7 +103,14 @@ terminal: require-generated ## Start browser terminal (no Docker socket; does no
 	-$(COMPOSE_TTYD_DOCKER) down
 	$(COMPOSE_TTYD) up -d
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n  Launcher: pick a workspace (one tmux session per workspace)\n  Default repo: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
+	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"; \
+	printf '  Launcher → workspace → tmux\n'; \
+	if [ -n "$${WORKSPACE_NAME:-}" ]; then \
+		printf '  Workspace: %s\n' "$${WORKSPACE_NAME}"; \
+		printf '  Start dir (container): %s\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}"; \
+		printf '  Meta on host: %s\n' "$${WORKSPACE_META_PATH:-}"; \
+	fi; \
+	printf '\nStop with: make down\n'
 
 terminal-docker: require-generated ## Start browser terminal + Docker socket (does not run make env)
 	@if [ ! -S /var/run/docker.sock ]; then \
@@ -123,7 +128,14 @@ terminal-docker: require-generated ## Start browser terminal + Docker socket (do
 		fi; \
 	fi
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n  Launcher: pick a workspace (one tmux session per workspace)\n  Default repo: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
+	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"; \
+	printf '  Launcher → workspace → tmux\n'; \
+	if [ -n "$${WORKSPACE_NAME:-}" ]; then \
+		printf '  Workspace: %s\n' "$${WORKSPACE_NAME}"; \
+		printf '  Start dir (container): %s\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}"; \
+		printf '  Meta on host: %s\n' "$${WORKSPACE_META_PATH:-}"; \
+	fi; \
+	printf '\nStop with: make down\n'
 
 terminal-url: require-generated ## Print the browser terminal URL
 	@set -a; [ -f .env ] && . ./.env; set +a; \
