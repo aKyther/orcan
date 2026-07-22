@@ -69,7 +69,9 @@ Open `http://localhost:7681` or run `make terminal-url`.
 
 Remote host on **Tailscale**: `http://<tailscale-ip>:7681`.
 
-In the browser: **workspace picker** → one tmux session per workspace → tabs `workspace-1` … `workspace-3`.
+In the browser: **workspace picker** → one **tmux session per workspace** → tabs `tab-1` … `tab-3` (shells in that workspace).
+
+To open another workspace without leaving tmux: `Ctrl+Space` then `w` (session list — all workspaces are started when the launcher loads). Or detach (`d`) and pick from the menu.
 
 !!! warning
 

@@ -29,7 +29,7 @@
   ],
   "tmux": {
     "initial_windows": 3,
-    "window_prefix": "workspace"
+    "window_prefix": "tab"
   },
   "ttyd": {
     "port": 7681,

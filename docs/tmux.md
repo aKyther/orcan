@@ -2,7 +2,9 @@
 
 cind tmux matches **host `~/.tmux.conf`** (prefix, colours, Alt/Ctrl bindings). Config lives in `/etc/tmux/`; `~/.tmux.conf` in the container only sources it.
 
-**Flow:** ttyd → workspace launcher (pick session) → tmux with tabs `workspace-1` … `workspace-3`.
+**Flow:** ttyd → workspace launcher (pick **session**) → tmux with tabs `tab-1` … `tab-3`.
+
+One **workspace in `cind.config.json` = one tmux session**. Tabs inside a session are just shells in that workspace root — not other workspaces.
 
 Rename tabs anytime: `Ctrl+Space` `,` (prompt) or `Alt+c` for a new window. Projects live as subdirectories — `cd backend` etc.
 
@@ -40,8 +42,9 @@ Most navigation/splits work **without prefix** (see below).
 | `x` | Kill pane |
 | `0` | Last window |
 | `r` | Reload config (cind) |
+| `s` / `w` | Switch **tmux session** (other cind workspaces) |
+| `d` | Detach → back to workspace launcher |
 | `P` | Copy pane path (cind) |
-| `s` | Session switch (cind) |
 | `I` | Workspace info (cind) |
 
 ## Appearance

@@ -19,7 +19,7 @@ Host (cind repo, automatic)              Container (always)
 | Workspace root | Always `/home/developer/workspaces/<name>` in the container |
 | Host persistence | Auto: `<cind-repo>/.cind/workspaces/<name>/` (not in JSON) |
 | `projects[]` | Path parity mount + symlink as subdirectory under workspace root |
-| tmux tabs | `workspace-1`, `workspace-2`, `workspace-3` (configurable count) |
+| tmux tabs | `tab-1`, `tab-2`, `tab-3` (shells in the same workspace; configurable) |
 
 You do **not** set container paths in JSON — cind handles parity mounts and symlinks.
 
@@ -39,7 +39,8 @@ Agents start in the workspace root and `cd` into project subdirectories.
 
 - ttyd launcher lists **workspaces**.
 - Choosing a workspace attaches **one** tmux session.
-- Default layout: **three tabs** — `workspace-1`, `workspace-2`, `workspace-3` (workspace root). Rename or add windows with normal tmux commands.
+- Default layout: **three tabs** — `tab-1`, `tab-2`, `tab-3` (all in this workspace root). These are **not** other workspaces. Rename or add windows with normal tmux commands.
+- Second workspace = second **tmux session** (launcher → pick again after detach, or `prefix s` / `prefix w`).
 - Project repos appear as subdirectories under the workspace root (symlinks).
 - Agent and shell start in the **workspace root**; projects are subdirectories.
 

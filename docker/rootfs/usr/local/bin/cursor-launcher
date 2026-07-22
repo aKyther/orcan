@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Workspace picker for ttyd — one tmux session per workspace.
-# Phone-friendly: choose by number.
+# Phone-friendly: choose by number. Detach (prefix d) returns here.
 
 set -Eeuo pipefail
 
@@ -79,6 +79,7 @@ print_menu() {
     else
         for i in "${!WS_NAMES[@]}"; do
             printf ' %d) %-16s %s\n' "$((i + 1))" "${WS_NAMES[i]}" "$(workspace_status "${WS_SESSIONS[i]}")"
+            printf '    session: %s\n' "${WS_SESSIONS[i]}"
             printf '    %s\n' "${WS_ROOTS[i]}"
             if [[ -n "${WS_REPOS[i]}" ]]; then
                 printf '    repos: %s\n' "${WS_REPOS[i]}"
@@ -86,9 +87,16 @@ print_menu() {
         done
     fi
     printf '────────────────────────────\n'
-    printf 'r) refresh\n'
-    printf 'q) quit\n'
+    printf 'All sessions are started in the background.\n'
+    printf 'In tmux: Ctrl+Space w (or s) = switch session · d = detach → menu\n'
+    printf 'r) refresh   q) quit\n'
     printf '\n'
+}
+
+ensure_sessions() {
+    if command -v cursor-tmux-bootstrap-workspaces >/dev/null 2>&1; then
+        cursor-tmux-bootstrap-workspaces || true
+    fi
 }
 
 attach_workspace() {
@@ -99,18 +107,22 @@ attach_workspace() {
 
     if [[ ! -d "${root}" ]]; then
         printf 'Workspace root missing: %s\n' "${root}"
-        sleep 2
+        printf 'Hint: make env && recreate the terminal container.\n'
+        sleep 3
         return 0
     fi
-    cd "${root}"
-    exec cursor-tmux-workspace-attach "${session}" "${root}" "${name}"
+
+    ensure_sessions
+    printf 'Attaching session %s (%s)…\n' "${session}" "${name}"
+    # Do not exec — after detach, return to this menu.
+    cursor-tmux-workspace-attach "${session}" "${root}" "${name}" || true
 }
 
 fallback_single_repo() {
     [[ -n "${PROJECT_DIR}" && -d "${PROJECT_DIR}" ]] || return 1
     local name
     name="$(basename "${PROJECT_DIR}")"
-    exec cursor-tmux-workspace-attach "${name}" "${PROJECT_DIR}" "${name}"
+    cursor-tmux-workspace-attach "${name}" "${PROJECT_DIR}" "${name}" || true
 }
 
 main() {
@@ -118,8 +130,13 @@ main() {
 
     while true; do
         if ! load_workspaces; then
-            fallback_single_repo
+            if ! fallback_single_repo; then
+                printf 'No workspaces configured.\n'
+                sleep 2
+            fi
+            continue
         fi
+        ensure_sessions
         print_menu
 
         if ! read -r -p 'Choose: ' choice; then

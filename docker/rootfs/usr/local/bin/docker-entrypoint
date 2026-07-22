@@ -94,18 +94,19 @@ run_init_ai_statusline() {
 }
 
 ensure_shell_aliases() {
-    # Seed missing bashrc.d snippets from skel; drop legacy cursor-dev names.
+    # Seed bashrc.d from skel; drop legacy cursor-dev names.
+    # Always refresh 50-cind-shell.sh (cwd logic must match the image).
     local src dst
     mkdir -p "${HOME}/.bashrc.d"
     rm -f "${HOME}/.bashrc.d/50-cursor-dev.sh"
     for src in /etc/skel/.bashrc.d/*.sh; do
         [[ -f "${src}" ]] || continue
         dst="${HOME}/.bashrc.d/$(basename "${src}")"
-        if [[ ! -e "${dst}" ]]; then
+        base="$(basename "${src}")"
+        if [[ "${base}" == "50-cind-shell.sh" || ! -e "${dst}" ]]; then
             cp -- "${src}" "${dst}"
         fi
     done
-    # Prefer /etc/profile.d/cind-path.sh if an old .profile still points at the legacy name.
     if [[ -f "${HOME}/.profile" ]] && grep -q 'cursor-dev-path' "${HOME}/.profile" 2>/dev/null; then
         sed -i 's|/etc/profile.d/cursor-dev-path.sh|/etc/profile.d/cind-path.sh|g' "${HOME}/.profile" || true
     fi

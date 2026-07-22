@@ -426,7 +426,7 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
         initial_windows = 1
     if initial_windows > 9:
         initial_windows = 9
-    window_prefix = str(tmux_cfg.get("window_prefix") or "workspace").strip() or "workspace"
+    window_prefix = str(tmux_cfg.get("window_prefix") or "tab").strip() or "tab"
 
     runtime: dict = {
         "workspaces": workspaces,
@@ -484,7 +484,7 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
     }
     runtime = {
         "workspaces": [workspace],
-        "tmux": {"initial_windows": 3, "window_prefix": "workspace"},
+        "tmux": {"initial_windows": 3, "window_prefix": "tab"},
         "ttyd": {"port": 7681, "host_port": 7681, "font_size": 22},
         "resources": {
             "cpus": 8,

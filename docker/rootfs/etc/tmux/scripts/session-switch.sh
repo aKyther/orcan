@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Fuzzy or prompted session switch (ttyd-safe).
+# Switch tmux session (one cind workspace = one session). ttyd-safe.
 set -Eeuo pipefail
 
-if tmux display-popup -h >/dev/null 2>&1 && command -v fzf >/dev/null 2>&1; then
-    tmux display-popup -E -w 50% -h 40% \
-        "s=\$(tmux list-sessions -F '#{session_name}' | fzf --reverse --height=100% --prompt='session> '); [ -n \"\$s\" ] && tmux switch-client -t \"=\$s\""
-    exit 0
+# Create any missing workspace sessions so the list is complete.
+if command -v cursor-tmux-bootstrap-workspaces >/dev/null 2>&1; then
+    cursor-tmux-bootstrap-workspaces 2>/dev/null || true
 fi
 
-tmux command-prompt -I "#{session_name}" -p 'switch session:' 'switch-client -t "%%"'
+# Native session picker — works in ttyd (unlike display-popup + fzf).
+tmux choose-tree -Zs

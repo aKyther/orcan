@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Attach to a workspace tmux session — default tabs workspace-1, workspace-2, …
+# Attach to a workspace tmux session — default tabs tab-1, tab-2, …
 # Usage: cursor-tmux-workspace-attach SESSION WORKSPACE_ROOT [WORKSPACE_LABEL]
 set -Eeuo pipefail
 
@@ -19,7 +19,7 @@ if [[ ! -d "${WORKSPACE_ROOT}" ]]; then
     exit 1
 fi
 
-WORKSPACE_ROOT="$(cd -- "${WORKSPACE_ROOT}" && pwd -P)"
+WORKSPACE_ROOT="$(cd -- "${WORKSPACE_ROOT}" && pwd)"
 WORKSPACE_LABEL="${WORKSPACE_LABEL:-$(basename "${WORKSPACE_ROOT}")}"
 
 export CIND_WORKSPACE_NAME="${WORKSPACE_LABEL}"
@@ -52,7 +52,7 @@ set_session_env() {
 
 read_tab_defaults() {
     INITIAL_WINDOWS=3
-    WINDOW_PREFIX="workspace"
+    WINDOW_PREFIX="tab"
     [[ -f "${CIND_CONFIG}" ]] || return 0
     while IFS=$'\t' read -r count prefix; do
         [[ -n "${count}" ]] && INITIAL_WINDOWS="${count}"
@@ -63,7 +63,7 @@ with open(sys.argv[1], encoding="utf-8") as fh:
     cfg = json.load(fh)
 tmux = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else {}
 count = int(tmux.get("initial_windows", 3))
-prefix = str(tmux.get("window_prefix") or "workspace").strip() or "workspace"
+prefix = str(tmux.get("window_prefix") or "tab").strip() or "tab"
 if count < 1:
     count = 1
 if count > 9:
