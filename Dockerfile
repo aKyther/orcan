@@ -55,7 +55,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         less \
         make \
         nano \
-        openssh-client \
         parallel \
         postgresql-client \
         python3 \

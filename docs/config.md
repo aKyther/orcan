@@ -6,13 +6,14 @@ Keep `.env` for host identity (`USER_UID`, `USER_GID`, `DOCKER_GID`).
 ## Quick start
 
 ```bash
-cp cind.config.example.json cind.config.json
-# or: make config-init
-# or one repo: make config-scaffold PROJECT_DIR=/absolute/path/to/repo
-make env
-make config-show
-make path-check
+make setup PROJECT_DIR=/absolute/path/to/your/repo
+make build
+make terminal-docker
 ```
+
+Add repos: `make config-scaffold PROJECT_DIR=... WORKSPACE=name` then `make env`.
+
+Optional template: `make config-init` (full example file).
 
 Or pass a config explicitly:
 
@@ -81,6 +82,19 @@ Workspace-only mode defaults root to `/home/developer/workspaces/<name>`. Parity
 
 Full guide: [Mount modes](architecture/mount-modes.md).
 
+### Resource limits (CPUS, memory, …)
+
+`cind.config.json` may include a `resources` block — used as **defaults on first `make env` only**.
+
+For host-specific limits (Docker CPU cap, RAM), edit **`.env`**:
+
+```dotenv
+CPUS=4
+MEMORY=8g
+```
+
+`make env` and `make terminal-docker` **do not overwrite** these once set.
+
 ### Legacy single-workspace shape
 
 Still supported — equivalent to one entry in `workspaces[]`:
@@ -91,7 +105,6 @@ Still supported — equivalent to one entry in `workspaces[]`:
     "name": "gotibooks",
     "root": "/workspace",
     "meta_path": "/home/you/gotibooks-workspace",
-    "tmux": "gotibooks",
     "tmux": "gotibooks",
     "projects": [
       {"name": "backend", "path": "/home/you/gotibooks/backend"}
@@ -132,10 +145,11 @@ Full design: [Virtual workspace](architecture/workspace.md).
 ## What `make env` does
 
 1. Reads `CONFIG` / `cind.config.json`
-2. Writes `.env` keys used by Compose (`PROJECT_DIR`, default workspace, ttyd, resources)
-3. Writes `.cind/runtime-config.json` (mounted into the container as `/etc/cind/config.json`)
-4. Writes `.cind/compose-projects.generated.yml` (meta_path bind per workspace + path-parity bind per repo)
-5. Writes `.cind/workspace.manifest.json` and `*.code-workspace` files
+2. Writes `.env` keys used by Compose (workspace paths, generated paths)
+3. Seeds `CPUS`, `MEMORY`, `TTYD_*` in `.env` **only if missing** — edit `.env` for host limits (not overwritten on `make env`)
+4. Writes `.cind/runtime-config.json` (mounted into the container as `/etc/cind/config.json`)
+5. Writes `.cind/compose-projects.generated.yml` (meta_path bind per workspace + path-parity bind per repo)
+6. Writes `.cind/workspace.manifest.json` and `*.code-workspace` files
 
 The browser launcher reads `/etc/cind/config.json` and lists all workspaces.
 
@@ -147,4 +161,4 @@ The browser launcher reads `/etc/cind/config.json` and lists all workspaces.
 | `cind.config.json` | Your local profile (gitignored) |
 | `.cind/runtime-config.json` | Generated runtime copy (gitignored) |
 | `.cind/compose-projects.generated.yml` | Generated Compose mounts (gitignored) |
-| `.env` | Host UID/GID + values derived from JSON |
+| `.env` | Host UID/GID, resource limits, values derived from config |

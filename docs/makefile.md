@@ -7,6 +7,7 @@ Everyday commands for building and running the cind container.
 | Target | Description |
 | --- | --- |
 | `make help` | List all targets |
+| `make setup` | **First run:** scaffold config (if missing), `make env`, show layout |
 | `make env` | Refresh `.env`, runtime config, and project mounts from `cind.config.json` |
 | `make config-init` | Create `cind.config.json` from example (skip if exists) |
 | `make config-scaffold` | Add workspace/project from `PROJECT_DIR` into `cind.config.json` |
@@ -59,23 +60,26 @@ Run `make env` after changing projects.
 
 | Target | Description |
 | --- | --- |
-| `make config-init` | Copy `cind.config.example.json` → `cind.config.json` |
+| `make setup` | First run: create minimal `cind.config.json`, run `env`, show next steps |
 | `make config-scaffold` | Append workspace/project from `PROJECT_DIR` |
 | `make config-show` | Print `cind.config.json` and generated runtime manifest |
+| `make config-init` | Optional: copy full `cind.config.example.json` template |
 
 ```bash
-make config-init
-# edit cind.config.json by hand, or scaffold repos:
-
-make config-scaffold PROJECT_DIR=/home/you/gotibooks/backend WORKSPACE=gotibooks
-make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibooks
-
-make env
-make config-show
-make path-check
+make setup PROJECT_DIR=/home/you/projects/my-app
+make build
+make terminal-docker
 ```
 
-Optional: `MOUNT_MODE=workspace`, `WORKSPACE=my-name`, `FORCE=1` (replace existing project).
+Add repos:
+
+```bash
+make config-scaffold PROJECT_DIR=/home/you/gotibooks/backend WORKSPACE=gotibooks
+make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibooks
+make env
+```
+
+Optional: `MOUNT_MODE=workspace`, `WORKSPACE=my-name`, `FORCE=1`.
 
 Note: `make config` prints **Docker Compose** config, not `cind.config.json`.
 

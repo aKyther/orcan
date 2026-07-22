@@ -137,6 +137,6 @@ Optional hardening and publishing ideas. None of these are required to use the p
 | Scan images with Trivy | Find known CVEs before publish |
 | Publish to GHCR | Share a prebuilt image |
 | Slim language variants | Smaller images for focused stacks |
-| Optional SSH agent forwarding | Safer than mounting `~/.ssh` |
+| Tailscale + ttyd for remote shells | Browser terminal over private network (no SSH) |
 | Image smoke tests in CI | Fail fast when a tool disappears |
 | Dependabot or Renovate | Keep base images and actions current |
