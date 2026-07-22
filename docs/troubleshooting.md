@@ -99,7 +99,7 @@ Then log in again inside the browser terminal.
 **Fix — try in order:**
 
 1. Click inside the terminal.
-2. **`Alt+a`** — turn mouse on; click panes, drag borders to split/resize.
+2. Mouse is on by default; **`Alt+q`** disables it if needed.
 3. Prefix: **`Ctrl+Space`** then **`-`** or **`|`**.
 4. On desktop browser where keys do get through: **`Ctrl+arrow`** splits, **`Alt+arrow`** moves panes (same as local tmux).
 
