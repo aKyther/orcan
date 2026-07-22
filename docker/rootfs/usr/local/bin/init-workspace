@@ -140,24 +140,47 @@ for ws in workspaces:
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
 
+    desired_names: set[str] = set()
     for item in projects:
         name = (item.get("name") or "").strip()
         host_path = (item.get("path") or "").strip()
-        workspace_path = (
-            item.get("workspace_path") or item.get("container_path") or ""
-        ).strip()
+        # Symlink location is always under this workspace root — never use
+        # container_path (parity path) as the link location.
+        workspace_path = (item.get("workspace_path") or "").strip()
         if not name or not host_path:
             continue
+        desired_names.add(name)
         target = Path(workspace_path) if workspace_path else root / name
-        if not str(target).startswith(str(root) + "/") and target != root:
+        root_prefix = str(root).rstrip("/") + "/"
+        if not str(target).startswith(root_prefix):
             target = root / name
         src = Path(host_path)
         if not src.is_dir():
             print(f"skip missing repo mount: {host_path}", file=sys.stderr)
             continue
         if target.exists() or target.is_symlink():
-            target.unlink()
+            if target.is_symlink() or target.is_file():
+                target.unlink()
+            else:
+                print(f"skip non-symlink in the way: {target}", file=sys.stderr)
+                continue
         target.symlink_to(src, target_is_directory=True)
+
+    # Drop leftover project symlinks from older configs / other workspaces.
+    keep_files = {
+        "AGENTS.md",
+        "CLAUDE.md",
+        "README.workspace.md",
+        ".manifest.json",
+    }
+    for child in root.iterdir():
+        if child.name in keep_files or child.name.startswith("."):
+            continue
+        if child.name in desired_names:
+            continue
+        if child.is_symlink():
+            child.unlink()
+            print(f"removed orphan symlink: {child}", file=sys.stderr)
 
     write_agents_md(root, ws, projects)
 
@@ -195,6 +218,28 @@ for ws in workspaces:
     print(
         f"workspace ready: {root} ({count} repo(s), tmux={ws.get('tmux_session') or ws.get('name')})"
     )
+
+# Remove whole workspace dirs that are no longer in config (visible via parent mount).
+active_names = {
+    str(ws.get("name") or "").strip()
+    for ws in workspaces
+    if ws.get("enabled") is not False and str(ws.get("name") or "").strip()
+}
+parents = {
+    Path(ws["root"]).parent
+    for ws in workspaces
+    if ws.get("enabled") is not False and ws.get("root")
+}
+for parent in parents:
+    if not parent.is_dir():
+        continue
+    for child in sorted(parent.iterdir()):
+        if not child.is_dir() or child.name.startswith("."):
+            continue
+        if child.name in active_names:
+            continue
+        shutil.rmtree(child)
+        print(f"removed stale workspace dir: {child}", file=sys.stderr)
 
 print(f"workspaces initialized: {len(workspaces)} ({total_repos} repo mount(s) total)")
 PY

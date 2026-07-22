@@ -7,11 +7,15 @@ A **workspace** is the primary unit in cind: one directory under `/home/develope
 ```text
 Host (cind repo, automatic)              Container (always)
 ──────────────────────────────────    ─────────────────────────────────────
-.cind/workspaces/gotibooks/      →    /home/developer/workspaces/gotibooks/
-  .cursor/rules/                         .cursor/rules/
-  backend/  → symlink                    backend/   → /home/you/.../backend (parity)
-  frontend/                              frontend/  → /home/you/.../frontend (parity)
+.cind/workspaces/              →    /home/developer/workspaces/
+  gotibooks/                              gotibooks/
+    .cursor/rules/                          .cursor/rules/
+    backend/  → symlink                     backend/   → /home/you/.../backend (parity)
+    frontend/                               frontend/  → /home/you/.../frontend (parity)
+  other/                                  other/
 ```
+
+One Compose bind mounts the whole `.cind/workspaces/` tree (not one bind per workspace). Each workspace is a subdirectory — project symlinks stay only under that subdirectory.
 
 | Concept | Path / meaning |
 | --- | --- |
