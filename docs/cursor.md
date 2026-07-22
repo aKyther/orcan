@@ -189,6 +189,28 @@ make init-project
 
 Review generated files before you commit them.
 
+## Claude Code CLI
+
+The image also installs Anthropic **Claude Code** (`claude`) via the official installer:
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+Inside the container:
+
+```bash
+claude --version
+claude          # interactive session
+```
+
+| CLI | Command | Config (container-local) |
+| --- | --- | --- |
+| Cursor | `agent` | `~/.cursor`, `~/.config/cursor` (named volumes) |
+| Claude Code | `claude` | `~/.claude` (not persisted across volume resets) |
+
+Pick whichever CLI fits the task. Log in separately for each (`agent` vs `claude`).
+
 ## Path mapping
 
 | Repository path | Container path | Purpose |

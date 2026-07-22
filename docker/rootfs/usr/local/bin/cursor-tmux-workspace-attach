@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Attach to a workspace tmux session — one window per registered repo.
+# Attach to a workspace tmux session — workspace tab + project tabs (optional windows[]).
 # Usage: cursor-tmux-workspace-attach SESSION WORKSPACE_ROOT [WORKSPACE_LABEL]
 set -Eeuo pipefail
 
@@ -19,6 +19,7 @@ if [[ ! -d "${WORKSPACE_ROOT}" ]]; then
     exit 1
 fi
 
+WORKSPACE_ROOT="$(cd -- "${WORKSPACE_ROOT}" && pwd -P)"
 WORKSPACE_LABEL="${WORKSPACE_LABEL:-$(basename "${WORKSPACE_ROOT}")}"
 
 export CIND_WORKSPACE_NAME="${WORKSPACE_LABEL}"
@@ -41,20 +42,6 @@ tmux_cmd() {
     tmux -f "${TMUX_CONF}" "$@"
 }
 
-repo_icon() {
-    case "${1,,}" in
-        backend|api|server) printf '🐍' ;;
-        frontend|web|ui) printf '🌐' ;;
-        agent|orchestrator) printf '🤖' ;;
-        docs|doc) printf '📖' ;;
-        infra|devops|ops) printf '⚙' ;;
-        shared|common|lib) printf '🧩' ;;
-        test|tests) printf '🧪' ;;
-        database|db) printf '🗄' ;;
-        *) printf '📁' ;;
-    esac
-}
-
 set_session_env() {
     tmux_cmd set-environment -t "=${SESSION}" CIND_WORKSPACE_NAME "${WORKSPACE_LABEL}" 2>/dev/null || true
     tmux_cmd set-environment -t "=${SESSION}" CIND_WORKSPACE_ROOT "${WORKSPACE_ROOT}" 2>/dev/null || true
@@ -62,12 +49,59 @@ set_session_env() {
     tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_PATH "${WORKSPACE_ROOT}" 2>/dev/null || true
 }
 
-fetch_repo_windows() {
+fetch_workspace_layout() {
     [[ -f "${CIND_CONFIG}" ]] || return 1
-    python3 - "${CIND_CONFIG}" "${WORKSPACE_LABEL}" <<'PY'
-import json, sys
+    python3 - "${CIND_CONFIG}" "${WORKSPACE_LABEL}" "${WORKSPACE_ROOT}" <<'PY'
+import json
+import sys
+from pathlib import Path
 
-config_path, workspace_name = sys.argv[1:3]
+config_path, workspace_name, workspace_root = sys.argv[1:4]
+
+
+def repo_icon(name: str) -> str:
+    key = (name or "").strip().lower()
+    icons = {
+        "backend": "🐍",
+        "api": "🐍",
+        "server": "🐍",
+        "frontend": "🌐",
+        "web": "🌐",
+        "ui": "🌐",
+        "agent": "🤖",
+        "orchestrator": "🤖",
+        "docs": "📖",
+        "doc": "📖",
+        "infra": "⚙",
+        "devops": "⚙",
+        "ops": "⚙",
+        "shared": "🧩",
+        "common": "🧩",
+        "lib": "🧩",
+        "test": "🧪",
+        "tests": "🧪",
+        "database": "🗄",
+        "db": "🗄",
+    }
+    return icons.get(key, "📁")
+
+
+def resolve_dir(base: str, rel: str) -> str:
+    rel = (rel or ".").strip()
+    base_path = Path(base)
+    if rel == "." or not rel:
+        return str(base_path)
+    if rel.startswith("/"):
+        return rel
+    return str((base_path / rel).resolve())
+
+
+def emit(title: str, cwd: str, command: str = "") -> None:
+    print(f"{title}\t{cwd}\t{command}")
+
+
+emit("🖥 workspace", workspace_root)
+
 with open(config_path, encoding="utf-8") as fh:
     cfg = json.load(fh)
 
@@ -85,17 +119,32 @@ else:
     if legacy.get("name", workspace_name) == workspace_name or not workspace_name:
         projects = legacy.get("projects") or cfg.get("projects") or []
 
+if not projects:
+    raise SystemExit(1)
+
 for item in projects:
     name = (item.get("name") or "").strip()
-    cwd = (
-        item.get("container_path")
-        or item.get("workspace_path")
-        or item.get("path")
-        or ""
-    ).strip()
-    role = (item.get("role") or "repo").strip()
-    if name and cwd:
-        print(f"{name}\t{cwd}\t{name}\t{role}")
+    project_cwd = (
+        (item.get("container_path") or item.get("workspace_path") or item.get("path") or "")
+        .strip()
+    )
+    if not name or not project_cwd:
+        continue
+
+    windows = item.get("windows") or []
+    project_icon = repo_icon(name)
+
+    if windows:
+        for win in windows:
+            win_name = (win.get("name") or "shell").strip()
+            win_icon = (win.get("icon") or "").strip()
+            suffix = f"{win_icon} {win_name}".strip() if win_icon else win_name
+            title = f"{project_icon} {name} · {suffix}"
+            cwd = resolve_dir(project_cwd, win.get("dir") or ".")
+            command = (win.get("command") or "").strip()
+            emit(title, cwd, command)
+    else:
+        emit(f"{project_icon} {name}", project_cwd)
 PY
 }
 
@@ -106,37 +155,50 @@ first_window_target() {
     printf '=%s:%s\n' "${SESSION}" "${idx}"
 }
 
+create_window() {
+    local index="$1"
+    local title="$2"
+    local dir="$3"
+    local command="$4"
+    local target
+
+    mkdir -p "${dir}" 2>/dev/null || true
+
+    if (( index == 1 )); then
+        target="$(first_window_target)"
+        tmux_cmd rename-window -t "${target}" "${title}"
+        if [[ "${dir}" != "${WORKSPACE_ROOT}" ]]; then
+            tmux_cmd send-keys -t "${target}" "cd -- $(printf '%q' "${dir}")" C-m || true
+        fi
+    else
+        tmux_cmd new-window -t "=${SESSION}" -n "${title}" -c "${dir}"
+        target="=${SESSION}:${title}"
+    fi
+
+    if [[ -n "${command}" && "${command}" != "bash" ]]; then
+        tmux_cmd send-keys -t "${target}" "${command}" C-m || true
+    fi
+}
+
 bootstrap_session() {
-    local index=1 name cwd alias role icon title target
-    local -a lines=()
+    local line title dir command index=1
+    local layout_file="${HOME}/.cache/tmux/bootstrap.${SESSION}.lst"
 
-    mapfile -t lines < <(fetch_repo_windows || true)
-
-    if (( ${#lines[@]} == 0 )); then
-        echo "No repos in config for workspace session" >&2
+    if ! fetch_workspace_layout >"${layout_file}" 2>/dev/null; then
+        echo "No projects in config for workspace session" >&2
         exit 1
     fi
 
     tmux_cmd new-session -d -s "${SESSION}" -c "${WORKSPACE_ROOT}" -n "🖥 workspace"
     set_session_env
 
-    while IFS=$'\t' read -r name cwd alias role; do
-        [[ -n "${name}" && -n "${cwd}" ]] || continue
-        icon="$(repo_icon "${name}")"
-        title="${icon} ${name}"
-
-        if (( index == 1 )); then
-            target="$(first_window_target)"
-            tmux_cmd rename-window -t "${target}" "${title}"
-            if [[ "${cwd}" != "${WORKSPACE_ROOT}" ]]; then
-                tmux_cmd send-keys -t "${target}" "cd -- $(printf '%q' "${cwd}")" C-m || true
-            fi
-        else
-            tmux_cmd new-window -t "=${SESSION}" -n "${title}" -c "${cwd}"
-        fi
+    while IFS=$'\t' read -r title dir command; do
+        [[ -n "${title}" && -n "${dir}" ]] || continue
+        create_window "${index}" "${title}" "${dir}" "${command:-}"
         index=$((index + 1))
-    done < <(fetch_repo_windows)
+    done <"${layout_file}"
 
+    rm -f "${layout_file}"
     tmux_cmd select-window -t "$(first_window_target)"
 }
 

@@ -582,8 +582,8 @@ def main() -> None:
     ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))
     ensure_env_key_unless_set(env_path, "TMPFS_SIZE", str(resources["tmpfs_size"]))
 
-    print(f"PROJECT_DIR={built['project_dir']} (cind repo on host)")
-    print(f"CONTAINER_PROJECT_DIR={built['container_project_dir']} (first workspace root)")
+    print(f"PROJECT_DIR={built['project_dir']} (orchestrator — where you run make)")
+    print(f"WORKSPACE_ROOT={primary_ws['root']} (agent/tmux start directory in container)")
     print(f"workspaces: {len(built['workspaces'])} (one tmux session each)")
     for ws in built["workspaces"]:
         print(

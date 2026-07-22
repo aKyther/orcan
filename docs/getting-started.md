@@ -81,6 +81,7 @@ After picking a workspace in the browser:
 
 ```bash
 agent --version
+claude --version
 test -d "${HOME}/.cursor"
 ```
 
