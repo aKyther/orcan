@@ -1,156 +1,125 @@
 #!/usr/bin/env bash
-# Interactive project picker for ttyd.
-# Prefers /etc/cind/config.json (from host cind.config.json), else env fallbacks.
-# Phone-friendly: choose by number, no tmux keybindings required.
+# Workspace picker for ttyd — one tmux session per workspace.
+# Phone-friendly: choose by number.
 
 set -Eeuo pipefail
 
 CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
 PROJECT_DIR="${PROJECT_DIR:-}"
 
-declare -a PROJECT_PATHS=()
-declare -a PROJECT_LABELS=()
-declare -a PROJECT_SESSIONS=()
+declare -a WS_NAMES=()
+declare -a WS_ROOTS=()
+declare -a WS_SESSIONS=()
+declare -a WS_REPOS=()
 
-sanitize_session_name() {
-    local name="$1"
-    name="$(printf '%s' "${name}" | tr -c 'A-Za-z0-9_-' '_')"
-    name="${name##_}"
-    name="${name%%_}"
-    if [[ -z "${name}" ]]; then
-        name="project"
-    fi
-    printf '%s\n' "${name:0:50}"
-}
+load_workspaces() {
+    WS_NAMES=()
+    WS_ROOTS=()
+    WS_SESSIONS=()
+    WS_REPOS=()
 
-path_already_listed() {
-    local candidate="$1"
-    local existing
-    for existing in "${PROJECT_PATHS[@]+"${PROJECT_PATHS[@]}"}"; do
-        if [[ "${existing}" == "${candidate}" ]]; then
-            return 0
-        fi
-    done
-    return 1
-}
+    [[ -f "${CIND_CONFIG}" ]] || return 1
 
-add_project() {
-    local path="$1"
-    local label="${2:-}"
-    local session="${3:-}"
-
-    if [[ ! -d "${path}" ]]; then
-        return 0
-    fi
-
-    path="$(cd -- "${path}" && pwd -P)"
-    if path_already_listed "${path}"; then
-        return 0
-    fi
-
-    if [[ -z "${label}" ]]; then
-        label="$(basename "${path}")"
-    fi
-    if [[ -z "${session}" ]]; then
-        session="$(sanitize_session_name "${label}")"
-    else
-        session="$(sanitize_session_name "${session}")"
-    fi
-
-    PROJECT_PATHS+=("${path}")
-    PROJECT_LABELS+=("${label}")
-    PROJECT_SESSIONS+=("${session}")
-}
-
-collect_from_json() {
-    local config_path="$1"
-    python3 - "${config_path}" <<'PY'
+    while IFS=$'\t' read -r name root session repos; do
+        [[ -n "${name}" ]] || continue
+        WS_NAMES+=("${name}")
+        WS_ROOTS+=("${root}")
+        WS_SESSIONS+=("${session}")
+        WS_REPOS+=("${repos}")
+    done < <(python3 - "${CIND_CONFIG}" <<'PY'
 import json, sys
-path = sys.argv[1]
-with open(path, encoding="utf-8") as fh:
+with open(sys.argv[1], encoding="utf-8") as fh:
     cfg = json.load(fh)
-for item in cfg.get("projects") or []:
-    name = (item.get("name") or "").strip()
-    p = (item.get("path") or "").strip()
-    tmux = (item.get("tmux") or name or "").strip()
-    if name and p:
-        print(f"{p}\t{name}\t{tmux}")
+
+workspaces = cfg.get("workspaces") or []
+if not workspaces:
+    legacy = cfg.get("workspace") or {}
+    if legacy.get("enabled") is False:
+        raise SystemExit(1)
+    projects = cfg.get("projects") or []
+    if legacy or projects:
+        merged = dict(legacy)
+        merged.setdefault("projects", projects)
+        workspaces = [merged]
+
+for ws in workspaces:
+    if ws.get("enabled") is False:
+        continue
+    name = (ws.get("name") or "workspace").replace("'", "'\\''")
+    root = (ws.get("root") or "/workspace").replace("'", "'\\''")
+    session = (ws.get("tmux_session") or ws.get("tmux") or name).replace("'", "'\\''")
+    repos = ", ".join(
+        (p.get("name") or p.get("alias") or "?") for p in (ws.get("projects") or [])
+    )
+    repos = repos.replace("'", "'\\''")
+    print(f"{name}\t{root}\t{session}\t{repos}")
 PY
+)
+
+    ((${#WS_NAMES[@]} > 0))
 }
 
-collect_projects() {
-    PROJECT_PATHS=()
-    PROJECT_LABELS=()
-    PROJECT_SESSIONS=()
-
-    if [[ -f "${CIND_CONFIG}" ]]; then
-        local line path label session
-        while IFS= read -r line; do
-            [[ -n "${line}" ]] || continue
-            IFS=$'\t' read -r path label session <<<"${line}"
-            add_project "${path}" "${label}" "${session}"
-        done < <(collect_from_json "${CIND_CONFIG}")
-        if (( ${#PROJECT_PATHS[@]} > 0 )); then
-            return 0
-        fi
-    fi
-
-    if [[ -n "${PROJECT_DIR}" && -d "${PROJECT_DIR}" ]]; then
-        add_project "${PROJECT_DIR}"
+workspace_status() {
+    local session="$1"
+    if tmux has-session -t "=${session}" 2>/dev/null; then
+        printf '[tmux live]'
+    else
+        printf '[new]'
     fi
 }
 
 print_menu() {
-    local i status session
+    local i
     clear 2>/dev/null || true
-    printf 'cind projects\n'
+    printf 'cind workspaces\n'
     printf '────────────────────────────\n'
-    if (( ${#PROJECT_PATHS[@]} == 0 )); then
-        printf '(no projects found)\n'
-        printf 'Add projects to cind.config.json (at least one project required)\n'
+    if ((${#WS_NAMES[@]} == 0)); then
+        printf '(no workspaces configured)\n'
+        printf 'Add workspaces[] to cind.config.json\n'
     else
-        for i in "${!PROJECT_PATHS[@]}"; do
-            session="${PROJECT_SESSIONS[$i]}"
-            if tmux has-session -t "=${session}" 2>/dev/null; then
-                status="[tmux live]"
-            else
-                status="[new]"
+        for i in "${!WS_NAMES[@]}"; do
+            printf ' %d) %-16s %s\n' "$((i + 1))" "${WS_NAMES[i]}" "$(workspace_status "${WS_SESSIONS[i]}")"
+            printf '    %s\n' "${WS_ROOTS[i]}"
+            if [[ -n "${WS_REPOS[i]}" ]]; then
+                printf '    repos: %s\n' "${WS_REPOS[i]}"
             fi
-            printf '%2d) %-20s %s\n   %s\n' \
-                "$((i + 1))" "${PROJECT_LABELS[$i]}" "${status}" "${PROJECT_PATHS[$i]}"
         done
     fi
     printf '────────────────────────────\n'
-    printf 'r) refresh list\n'
+    printf 'r) refresh\n'
     printf 'q) quit\n'
     printf '\n'
 }
 
-attach_project() {
+attach_workspace() {
     local index="$1"
-    local path label session
+    local name="${WS_NAMES[index]}"
+    local root="${WS_ROOTS[index]}"
+    local session="${WS_SESSIONS[index]}"
 
-    if (( index < 0 || index >= ${#PROJECT_PATHS[@]} )); then
-        printf 'Invalid choice.\n'
-        sleep 1
+    if [[ ! -d "${root}" ]]; then
+        printf 'Workspace root missing: %s\n' "${root}"
+        sleep 2
         return 0
     fi
+    cd "${root}"
+    exec cursor-tmux-workspace-attach "${session}" "${root}" "${name}"
+}
 
-    path="${PROJECT_PATHS[$index]}"
-    label="${PROJECT_LABELS[$index]}"
-    session="${PROJECT_SESSIONS[$index]}"
-
-    export PROJECT_DIR="${path}"
-    cd "${path}"
-
-    exec cursor-tmux-attach "${session}" "${path}" "${label}"
+fallback_single_repo() {
+    [[ -n "${PROJECT_DIR}" && -d "${PROJECT_DIR}" ]] || return 1
+    local name
+    name="$(basename "${PROJECT_DIR}")"
+    exec cursor-tmux-workspace-attach "${name}" "${PROJECT_DIR}" "${name}"
 }
 
 main() {
-    local choice
+    local choice index
 
     while true; do
-        collect_projects
+        if ! load_workspaces; then
+            fallback_single_repo
+        fi
         print_menu
 
         if ! read -r -p 'Choose: ' choice; then
@@ -159,17 +128,19 @@ main() {
         fi
 
         case "${choice}" in
-            q|Q)
-                exit 0
-                ;;
-            r|R|"")
-                continue
-                ;;
+            q|Q) exit 0 ;;
+            r|R|"") continue ;;
             *)
                 if [[ "${choice}" =~ ^[0-9]+$ ]]; then
-                    attach_project "$((choice - 1))"
+                    index=$((choice - 1))
+                    if (( index >= 0 && index < ${#WS_NAMES[@]} )); then
+                        attach_workspace "${index}"
+                    else
+                        printf 'Enter 1-%d, r, or q.\n' "${#WS_NAMES[@]}"
+                        sleep 1
+                    fi
                 else
-                    printf 'Enter a number, r, or q.\n'
+                    printf 'Enter 1-%d, r, or q.\n' "${#WS_NAMES[@]}"
                     sleep 1
                 fi
                 ;;

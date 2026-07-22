@@ -9,8 +9,12 @@ alias la='eza -la'
 alias cat='bat --paging=never'
 alias dc='docker compose'
 
-# Path parity: enter the same absolute project path as on the host.
-if [[ -n "${PROJECT_DIR:-}" && -d "${PROJECT_DIR}" ]]; then
+# Enter the default workspace root inside the container.
+if [[ -n "${CONTAINER_PROJECT_DIR:-}" && -d "${CONTAINER_PROJECT_DIR}" ]]; then
+    cd "${CONTAINER_PROJECT_DIR}" || printf 'Warning: could not cd to CONTAINER_PROJECT_DIR=%s\n' "${CONTAINER_PROJECT_DIR}" >&2
+elif [[ -n "${WORKSPACE_ROOT:-}" && -d "${WORKSPACE_ROOT}" ]]; then
+    cd "${WORKSPACE_ROOT}" || printf 'Warning: could not cd to WORKSPACE_ROOT=%s\n' "${WORKSPACE_ROOT}" >&2
+elif [[ -n "${PROJECT_DIR:-}" && -d "${PROJECT_DIR}" ]]; then
     cd "${PROJECT_DIR}" || printf 'Warning: could not cd to PROJECT_DIR=%s\n' "${PROJECT_DIR}" >&2
 fi
 

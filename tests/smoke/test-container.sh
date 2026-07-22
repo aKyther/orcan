@@ -38,7 +38,7 @@ test -f /etc/tmux/tmux.conf
 test -x /etc/tmux/scripts/status-left.sh
 # Launcher exits cleanly on q
 printf 'q\n' | cursor-launcher >/tmp/launcher-out.txt
-grep -q 'cind projects' /tmp/launcher-out.txt
+grep -q 'cind workspaces' /tmp/launcher-out.txt
 test -d /opt/cursor-defaults
 test -d \"\${HOME}/.cursor\"
 test -f \"\${HOME}/.cursor/cli-config.json\"
@@ -51,7 +51,7 @@ test -f /opt/cursor-defaults/rules/operating-principles.mdc
 test -f \"\${HOME}/.cursor/rules/operating-principles.mdc\"
 test -f \"\${HOME}/.cursor/skills/repository-analysis/SKILL.md\"
 
-test \"\$(pwd -P)\" = \"${SMOKE_PROJECT}\"
+test \"\$(pwd -P)\" = \"\${WORKSPACE_ROOT:-${SMOKE_PROJECT}}\"
 test \"\${PROJECT_DIR}\" = \"${SMOKE_PROJECT}\"
 test -d \"\${PROJECT_DIR}\"
 
@@ -71,11 +71,11 @@ cursor-init-project \"\${SMOKE_DIR}\" >/dev/null
 test -f \"\${SMOKE_DIR}/AGENTS.md\"
 rm -rf \"\${SMOKE_DIR}\"
 
-# tmux bootstrap (no attach)
+# tmux workspace bootstrap (no attach)
 tmux kill-session -t smoke-test 2>/dev/null || true
-CIND_TMUX_ATTACH=0 cursor-tmux-attach smoke-test \"${SMOKE_PROJECT}\" smoke >/dev/null
+CIND_TMUX_ATTACH=0 cursor-tmux-workspace-attach smoke-test \"\${WORKSPACE_ROOT:-${SMOKE_PROJECT}}\" \"\${WORKSPACE_NAME:-cind}\" >/dev/null
 tmux -f \"\${HOME}/.tmux.conf\" has-session -t smoke-test
-test \"\$(tmux -f \"\${HOME}/.tmux.conf\" list-windows -t smoke-test | wc -l)\" -ge 3
+test \"\$(tmux -f \"\${HOME}/.tmux.conf\" list-windows -t smoke-test | wc -l)\" -ge 1
 tmux -f \"\${HOME}/.tmux.conf\" kill-session -t smoke-test
 
 printf 'SMOKE_OK\n'

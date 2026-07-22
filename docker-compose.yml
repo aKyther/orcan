@@ -9,7 +9,7 @@ services:
         DOCKER_GID: ${DOCKER_GID:-999}
     image: cursor-dev:latest
     hostname: cursor-dev
-    working_dir: ${PROJECT_DIR}
+    working_dir: ${CONTAINER_PROJECT_DIR:-${PROJECT_DIR}}
     stdin_open: true
     tty: true
     init: true
@@ -25,6 +25,10 @@ services:
       DOCKER_BUILDKIT: "1"
       COMPOSE_DOCKER_CLI_BUILD: "1"
       PROJECT_DIR: ${PROJECT_DIR}
+      CONTAINER_PROJECT_DIR: ${CONTAINER_PROJECT_DIR:-${PROJECT_DIR}}
+      WORKSPACE_ROOT: ${WORKSPACE_ROOT:-}
+      WORKSPACE_NAME: ${WORKSPACE_NAME:-}
+      WORKSPACE_META_PATH: ${WORKSPACE_META_PATH:-}
       CIND_CONFIG: ${CIND_CONFIG:-/etc/cind/config.json}
     volumes:
       - ${CIND_CONFIG_HOST:-./.cind/runtime-config.json}:/etc/cind/config.json:ro

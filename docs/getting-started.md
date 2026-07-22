@@ -1,6 +1,6 @@
 # Getting started
 
-This page walks through the first run from an empty clone to a working shell.
+This page walks through the first run from an empty clone to a working browser terminal.
 
 ## 1. Clone the repository
 
@@ -9,10 +9,52 @@ git clone <repository-url> cursor-cli-devcontainer
 cd cursor-cli-devcontainer
 ```
 
-## 2. Create your local `.env`
+## 2. Configure projects
+
+### Option A — multi-project (recommended)
+
+Copy the JSON template and list every project you want to mount:
 
 ```bash
 cp .env.example .env
+cp cind.config.example.json cind.config.json
+```
+
+Edit `cind.config.json`:
+
+```json
+{
+  "default_project": "my-app",
+  "projects": [
+    {
+      "name": "my-app",
+      "path": "/home/you/projects/my-app",
+      "tmux": "my-app"
+    }
+  ]
+}
+```
+
+Rules:
+
+* `projects` must contain **at least one** project
+* each `path` must be an **absolute** host path (no `~` or relative paths)
+* each project is mounted into the container and shown in the launcher menu
+* `default_project` sets the container `working_dir` (defaults to the first project)
+
+See [JSON config](config.md) for `windows[]`, ttyd, and resources.
+
+### Option B — single project (no JSON)
+
+Skip `cind.config.json`. `make env` will create a one-project runtime from `PROJECT_DIR`:
+
+```bash
+cp .env.example .env
+```
+
+## 3. Generate `.env` and project mounts
+
+```bash
 make env
 ```
 
@@ -20,19 +62,35 @@ make env
 
 * `USER_UID` / `USER_GID` from your host account
 * `DOCKER_GID` from `/var/run/docker.sock` when present
-* `PROJECT_DIR` (absolute path; defaults to this repository path when you run `make env`)
+* `PROJECT_DIR` (default project path)
+* `.cind/compose-projects.generated.yml` (one Docker volume per project)
+* `.cind/runtime-config.json` (launcher + tmux)
+
+If `./cind.config.json` exists, it is used automatically. Override with:
+
+```bash
+make env CONFIG=/path/to/other.config.json
+```
+
+For single-project mode without JSON:
+
+```bash
+make env PROJECT_DIR=$HOME/projects/my-app
+```
 
 !!! tip
 
-    Use an absolute path only — not `.`, `../`, or `~/project`. See [Path parity](path-parity.md).
+    Use absolute paths only — not `.`, `../`, or `~/project`. See [Path parity](path-parity.md).
 
-## 3. Check path parity
+## 4. Check path parity
 
 ```bash
 make path-check
 ```
 
-## 4. Build the image
+Shows the default project and every mounted project path.
+
+## 5. Build the image
 
 ```bash
 make build
@@ -40,30 +98,36 @@ make build
 
 The first build downloads base images and tool stages. Later builds are faster because of Docker layer and BuildKit caches.
 
-## 5. Start the container and open the browser terminal
+## 6. Start the terminal
 
 ```bash
-make env PROJECT_DIR=$HOME/projects/my-app
-make path-check
-make terminal
+make terminal-docker
 ```
 
-Replace `$HOME/projects/my-app` with the absolute path of the project you want Cursor to edit.
+Use `make terminal` if you do **not** need the host Docker socket.
 
-Open the URL printed by `make terminal` (default: `http://localhost:7681`).
+Open the URL (default `http://localhost:7681`) or run:
+
+```bash
+make terminal-url
+```
+
+In the browser you see the **project launcher** — pick a project by number. Each choice attaches to a dedicated tmux session for that project.
+
+Two browser tabs → two projects at once.
 
 !!! note
 
     `make terminal` does **not** mount the Docker socket.
-    Use `make terminal-docker` only when you need Docker-from-Docker.
+    Use `make terminal-docker` when you need `docker compose` against the host daemon.
 
 !!! warning
 
     ttyd has no authentication. Use only on localhost or a private network (Tailscale).
 
-## 6. Confirm tools
+## 7. Confirm tools
 
-In the browser terminal:
+In the browser terminal (after picking a project):
 
 ```bash
 agent --version
@@ -71,30 +135,31 @@ test -d "${HOME}/.cursor"
 cursor-init-project --help
 ```
 
-## 7. Optional: scaffold Cursor files in the mounted project
+## 8. Optional: scaffold Cursor files in the mounted project
 
 ```bash
 cursor-init-project --dry-run
 cursor-init-project
 ```
 
-Review the files before you commit them.
+Or from the host:
 
-## 8. Use TMUX
+```bash
+make init-project-dry-run
+make init-project
+```
 
-The browser terminal starts TMUX automatically (session name: `workspace`).
-Config comes from `docker/rootfs/etc/skel/.tmux.conf` (prefix: `Ctrl-Space`).
+## Adding another project later
 
-| Action | Keys |
-| --- | --- |
-| Detach | `Ctrl-Space` `d` |
-| Reattach | `tmux attach -t workspace` |
-| New window | `Alt-c` |
+1. Add an entry to `projects[]` in `cind.config.json`
+2. `make env`
+3. `make down && make terminal-docker`
+4. Open the browser — the new project appears in the menu
 
 ## Next steps
 
-* Read [Path parity](path-parity.md) before using `docker compose` inside the container
-* Read [Docker](docker.md) to understand mounts and volumes
-* Read [Security](security.md) before enabling the Docker socket
-* Read [Cursor](cursor.md) for agent rules, image defaults, and ignore files
-* Read [Development](development.md) for repository vs container file layout
+* [JSON config](config.md) — full schema
+* [Project launcher](launcher.md) — multi-project workflow
+* [tmux](tmux.md) — sessions, windows, keybindings
+* [Path parity](path-parity.md) — why absolute paths matter
+* [Makefile](makefile.md) — all Make targets

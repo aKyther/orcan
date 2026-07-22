@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# Build workspace trees: repo symlinks, manifests, optional rule seeds.
+set -Eeuo pipefail
+
+CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
+DEFAULTS="${CIND_WORKSPACE_DEFAULTS:-/opt/cursor-defaults/templates/workspace}"
+
+init_workspace() {
+    python3 - "${CIND_CONFIG}" "${DEFAULTS}" <<'PY'
+import json
+import shutil
+import sys
+from pathlib import Path
+
+config_path, defaults_root = sys.argv[1:3]
+with open(config_path, encoding="utf-8") as fh:
+    cfg = json.load(fh)
+
+workspaces = cfg.get("workspaces") or []
+if not workspaces:
+    legacy = cfg.get("workspace") or {}
+    if legacy.get("enabled") is False:
+        sys.exit(0)
+    projects = cfg.get("projects") or []
+    if legacy or projects:
+        merged = dict(legacy)
+        merged.setdefault("projects", projects)
+        workspaces = [merged]
+
+if not workspaces:
+    sys.exit(0)
+
+template = Path(defaults_root) / ".cursor" / "rules" / "workspace-context.mdc"
+total_repos = 0
+
+for ws in workspaces:
+    if ws.get("enabled") is False:
+        continue
+
+    root = Path(ws["root"])
+    meta = Path(ws.get("meta_path") or root)
+    root.mkdir(parents=True, exist_ok=True)
+
+    projects = ws.get("projects") or []
+    manifest = {
+        "workspace": {
+            "name": ws.get("name"),
+            "root": ws.get("root"),
+            "meta_path": ws.get("meta_path"),
+            "tmux_session": ws.get("tmux_session"),
+        },
+        "projects": projects,
+    }
+    (root / ".manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    for item in projects:
+        name = (item.get("name") or "").strip()
+        host_path = (item.get("path") or "").strip()
+        workspace_path = (
+            item.get("workspace_path") or item.get("container_path") or ""
+        ).strip()
+        mount = (item.get("mount") or "parity").strip()
+        if not name or not host_path:
+            continue
+        target = Path(workspace_path) if workspace_path else root / name
+        src = Path(host_path)
+        if not src.is_dir():
+            print(f"skip missing repo mount: {host_path}", file=sys.stderr)
+            continue
+        if mount == "workspace":
+            if not target.is_dir():
+                print(f"skip workspace bind (not mounted yet): {target}", file=sys.stderr)
+            continue
+        if target.exists() or target.is_symlink():
+            target.unlink()
+        target.symlink_to(src, target_is_directory=True)
+
+    rules_dst = meta / ".cursor" / "rules"
+    dest = rules_dst / "workspace-context.mdc"
+    if template.is_file() and not dest.exists():
+        rules_dst.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(template, dest)
+
+    project_lines = [
+        f"| `{item.get('name')}` | `{item.get('path')}` | `{item.get('mount', 'parity')}` | `{item.get('workspace_path', item.get('container_path', ''))}` |"
+        for item in projects
+    ]
+    readme = root / "README.workspace.md"
+    readme.write_text(
+        "\n".join(
+            [
+                f"# {ws.get('name', 'workspace')}",
+                "",
+                "One tmux session per workspace. Project repos appear as subdirectories.",
+                "",
+                "Put cross-repo Cursor rules in `.cursor/rules/` here (workspace meta),",
+                "not inside a single project repo.",
+                "",
+                f"Meta path on host: `{ws.get('meta_path', '')}`",
+                "",
+                "| Name | Host path | Mount | Workspace path |",
+                "| --- | --- | --- | --- |",
+                *project_lines,
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    count = len(projects)
+    total_repos += count
+    print(
+        f"workspace ready: {root} ({count} repo(s), tmux={ws.get('tmux_session')})"
+    )
+
+print(f"workspaces initialized: {len(workspaces)} ({total_repos} repo mount(s) total)")
+PY
+}
+
+init_workspace

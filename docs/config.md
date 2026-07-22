@@ -1,16 +1,17 @@
 # JSON config profile
 
-Use a JSON file to declare **which projects are mounted** into the container and shown in the browser launcher.
+Use a JSON file to declare **workspaces** (each with 1+ mounted repos) shown in the browser launcher.
 Keep `.env` for host identity (`USER_UID`, `USER_GID`, `DOCKER_GID`).
 
 ## Quick start
 
 ```bash
 cp cind.config.example.json cind.config.json
-# edit paths in cind.config.json (at least one project)
+# or: make config-init
+# or one repo: make config-scaffold PROJECT_DIR=/absolute/path/to/repo
 make env
+make config-show
 make path-check
-make terminal-docker
 ```
 
 Or pass a config explicitly:
@@ -21,44 +22,92 @@ make terminal-docker CONFIG=./cind.config.json
 
 If `./cind.config.json` exists, `make env` picks it up automatically.
 
-## Example
+## Workspaces
+
+A **workspace** = one tmux session + one directory + 1+ repos.
 
 ```json
 {
-  "default_project": "app-a",
-  "projects": [
+  "workspaces": [
     {
-      "name": "app-a",
-      "path": "/home/you/projects/app-a",
-      "tmux": "app-a"
+      "name": "gotibooks",
+      "tmux": "gotibooks",
+      "projects": [
+        {"name": "backend", "path": "/home/you/gotibooks/backend", "role": "service"},
+        {"name": "frontend", "path": "/home/you/gotibooks/frontend", "role": "service"}
+      ]
     },
     {
       "name": "cind",
-      "path": "/home/you/workspace/kyther/cind",
-      "tmux": "cind"
+      "tmux": "cind",
+      "projects": [
+        {"name": "cind", "path": "/home/you/workspace/kyther/cind", "role": "orchestrator"}
+      ]
     }
-  ],
-  "ttyd": {
-    "port": 7681,
-    "host_port": 7681,
-    "font_size": 22
-  },
-  "resources": {
-    "cpus": 8,
-    "memory": "16g",
-    "shm_size": "2g",
-    "tmpfs_size": "2g"
-  }
+  ]
 }
 ```
 
 Rules:
 
-* `projects` is **required** and must contain **at least one** project
-* each `projects[].path` is mounted into the container with path parity (same absolute path on host and inside)
-* `default_project` must match a `projects[].name` (defaults to the first project if omitted)
-* `tmux` is the persistent session name for that project
-* optional `windows[]` defines tmux windows on first session create (see [tmux](tmux.md))
+* `workspaces` must contain **at least one** workspace
+* each workspace must contain **at least one** project in `projects[]`
+* workspace container path defaults to `/home/developer/workspaces/<name>`
+* `tmux` defaults to workspace `name` (one session per workspace)
+* project `name` = subdirectory under workspace root
+* no `alias`, no `default_project`, no `default_workspace`
+* container entrypoint uses the **first** workspace in the list for startup paths
+
+### Mount modes (`parity` vs `workspace`)
+
+| Mode | When | Container path |
+| --- | --- | --- |
+| `parity` (default) | Docker via host socket, bind mounts 1:1 | Same as host `path` |
+| `workspace` | Code review, AI analysis, no host path mirror | `<workspace.root>/<name>` |
+
+Set default per workspace with `mount_mode`, override per repo with `projects[].mount`.
+
+```json
+{
+  "name": "code-review",
+  "mount_mode": "workspace",
+  "projects": [
+    {"name": "upstream", "path": "/host/path/repo"}
+  ]
+}
+```
+
+Workspace-only mode defaults root to `/home/developer/workspaces/<name>`. Parity mode uses `/workspace` (single) or `/workspace/<name>` (multiple).
+
+Full guide: [Mount modes](architecture/mount-modes.md).
+
+### Legacy single-workspace shape
+
+Still supported — equivalent to one entry in `workspaces[]`:
+
+```json
+{
+  "workspace": {
+    "name": "gotibooks",
+    "root": "/workspace",
+    "meta_path": "/home/you/gotibooks-workspace",
+    "tmux": "gotibooks",
+    "tmux": "gotibooks",
+    "projects": [
+      {"name": "backend", "path": "/home/you/gotibooks/backend"}
+    ]
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `name` | Workspace label in launcher; directory under `/home/developer/workspaces/` |
+| `root` | Override container path (default `/home/developer/workspaces/<name>`) |
+| `meta_path` | Host dir for cross-repo `.cursor/rules` (default: `.cind/workspaces/<name>/`) |
+| `tmux` | tmux session name (defaults to workspace `name`) |
+| `projects[].name` | Subdirectory under workspace root |
+| `role` | Hint for agents (`service`, `orchestrator`, `docs`, …) |
 
 ### Project windows (optional)
 
@@ -66,44 +115,29 @@ Rules:
 "windows": [
   {"name": "editor", "icon": "📝", "dir": "."},
   {"name": "server", "icon": "🐍", "dir": ".", "command": "make run"},
-  {"name": "logs", "icon": "⚙", "dir": "."},
-  {"name": "shell", "icon": "🖥", "dir": "."}
+  {"name": "logs", "icon": "⚙", "dir": "."}
 ]
 ```
 
-Omit `windows` to use cind defaults (shell, editor, logs, tests when present).
+Omit `windows` for default layout (one window per repo). See [tmux](tmux.md).
+
+Generated files (per workspace):
+
+* `.cind/<name>.container.code-workspace` — open inside container
+* `.cind/<name>.host.code-workspace` — open from host (absolute paths)
+* `<workspace.root>/.manifest.json` — written at container startup
+
+Full design: [Virtual workspace](architecture/workspace.md).
 
 ## What `make env` does
 
 1. Reads `CONFIG` / `cind.config.json`
-2. Writes `.env` keys used by Compose (`PROJECT_DIR`, ttyd, resources)
+2. Writes `.env` keys used by Compose (`PROJECT_DIR`, default workspace, ttyd, resources)
 3. Writes `.cind/runtime-config.json` (mounted into the container as `/etc/cind/config.json`)
-4. Writes `.cind/compose-projects.generated.yml` (one path-parity volume per project)
+4. Writes `.cind/compose-projects.generated.yml` (meta_path bind per workspace + path-parity bind per repo)
+5. Writes `.cind/workspace.manifest.json` and `*.code-workspace` files
 
-The browser launcher reads `/etc/cind/config.json` and shows the project list.
-
-## Migration from `projects_dir`
-
-Older configs used a separate `projects_dir` plus `projects[]`. That field was removed.
-
-Before:
-
-```json
-{
-  "projects_dir": "/home/you/workspace/kyther",
-  "projects": [{ "name": "cind", "path": ".../cind", "tmux": "cind" }]
-}
-```
-
-After:
-
-```json
-{
-  "projects": [{ "name": "cind", "path": "/home/you/workspace/kyther/cind", "tmux": "cind" }]
-}
-```
-
-Each listed project is mounted individually. Add sibling repos as separate entries in `projects[]`.
+The browser launcher reads `/etc/cind/config.json` and lists all workspaces.
 
 ## Files
 

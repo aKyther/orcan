@@ -178,10 +178,12 @@ COPY docker/rootfs/ /
 RUN chmod 0755 \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
+        /usr/local/bin/init-workspace \
         /usr/local/bin/cursor-init-project \
         /usr/local/bin/cursor-ttyd \
         /usr/local/bin/cursor-launcher \
         /usr/local/bin/cursor-tmux-attach \
+        /usr/local/bin/cursor-tmux-workspace-attach \
         /etc/tmux/scripts/*.sh \
     && chmod -R a+rX /opt/cursor-defaults \
     && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
