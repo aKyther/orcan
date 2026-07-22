@@ -106,23 +106,75 @@ Docker container
 
 ## Quick start
 
+### Multi-project (recommended)
+
+Declare every project you want to mount in `cind.config.json`. At least one entry is required.
+
 ```bash
 git clone <repository-url> cursor-cli-devcontainer
 cd cursor-cli-devcontainer
 cp .env.example .env
-# Edit .env: PROJECT_DIR=/absolute/path/to/your/project
+cp cind.config.example.json cind.config.json
+```
+
+Edit `cind.config.json` — set absolute paths and workspace names. Each workspace gets one tmux session and can contain 1+ repos:
+
+```json
+{
+  "workspaces": [
+    {
+      "name": "gotibooks",
+      "tmux": "gotibooks",
+      "projects": [
+        { "name": "backend", "path": "/home/you/gotibooks/backend" },
+        { "name": "frontend", "path": "/home/you/gotibooks/frontend" }
+      ]
+    },
+    {
+      "name": "cind",
+      "tmux": "cind",
+      "projects": [
+        { "name": "cind", "path": "/home/you/workspace/kyther/cind" }
+      ]
+    }
+  ]
+}
+```
+
+Then:
+
+```bash
+make env
+make path-check          # workspaces, repos, mounts
+make build
+make terminal-docker
+```
+
+Open `http://localhost:7681`. Launcher lists workspaces — pick **`1`**, **`2`**, … for one tmux session per workspace (one window per repo).
+
+Open in Cursor: workspace root inside the container, or `.cind/<name>.host.code-workspace` from the host.
+
+Add workspaces or repos in `cind.config.json` → `make env` → `make down && make terminal-docker`.
+
+Docs: [config](docs/config.md) · [workspace architecture](docs/architecture/workspace.md) · [launcher](docs/launcher.md)
+
+### Single project (no JSON)
+
+If you skip `cind.config.json`, `make env` synthesizes a one-project setup from `PROJECT_DIR`:
+
+```bash
+cp .env.example .env
 make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
 make build
 make terminal
 ```
 
-Open the browser terminal URL printed by `make terminal` (default: `http://localhost:7681`).
+Open the browser URL printed by `make terminal` (default: `http://localhost:7681`).
 
-> Tip: `make env` writes your host `USER_UID`, `USER_GID`, and `DOCKER_GID` into `.env`.
-> Run `make terminal` anytime to print the URL again.
+> Tip: `make env` writes host `USER_UID`, `USER_GID`, and `DOCKER_GID` into `.env`, generates project mounts, and (when `cind.config.json` exists) picks it up automatically.
 
-TMUX starts automatically in the browser terminal (session name: `workspace`). Use Cursor CLI as usual, for example:
+In the browser terminal:
 
 ```bash
 agent --version
@@ -140,7 +192,7 @@ agent --version
 | `make rebuild` | Rebuild with `--no-cache` |
 | `make terminal` | Start container with **browser terminal** (no Docker socket) |
 | `make terminal-docker` | Start container with **browser terminal** and Docker socket |
-| `make terminal` | Print the browser terminal URL |
+| `make terminal-url` | Print the browser terminal URL |
 | `make down` | Stop containers; keep named volumes |
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep named volumes |
@@ -157,15 +209,26 @@ agent --version
 
 ### Choose a project
 
+**With JSON config** (see Quick start above):
+
+```bash
+# edit cind.config.json, then:
+make env
+make path-check
+make terminal-docker
+```
+
+**Without JSON** — single project only:
+
 ```bash
 make env PROJECT_DIR=$HOME/projects/my-app
 make path-check
 make terminal
 ```
 
-Then open `http://localhost:7681` (or the URL printed by `make terminal`).
+Then open `http://localhost:7681` (or `make terminal-url`).
 
-`PROJECT_DIR` must be an **absolute** host path. The same path is used inside the container so `docker compose` bind mounts resolve correctly on the host daemon. See [docs/path-parity.md](docs/path-parity.md).
+Each `projects[]` entry is mounted with path parity (same absolute path on host and in the container). See [docs/path-parity.md](docs/path-parity.md).
 
 ---
 
@@ -255,7 +318,8 @@ http://localhost:7681
 | --- | --- |
 | URL | `http://localhost:7681` |
 | Host port | `7681` (`TTYD_HOST_PORT`) |
-| TMUX session | `workspace` (`TMUX_SESSION_NAME`) |
+| Projects | Listed from `cind.config.json` (launcher menu) |
+| TMUX | One session per project (`projects[].tmux`) |
 
 On a VPS behind Tailscale, use the machine's Tailscale IP instead of `localhost`:
 

@@ -1,0 +1,26 @@
+---
+description: Workspace-level context for multi-repo sessions inside cind.
+alwaysApply: true
+---
+
+# Workspace context
+
+You are working inside a **cind workspace** — one tmux session, one directory, one or more project checkouts underneath.
+
+## Layout
+
+- Workspace root is **not** a git repository — start here, then `cd` into projects.
+- Each project subdirectory matches `projects[].name` in `.manifest.json`.
+- Cross-repo rules live in `.cursor/rules/` at the workspace root.
+
+## Mount modes
+
+| Mode | Work inside container | Host Docker socket |
+| --- | --- | --- |
+| `parity` | use `path` (same as host) | yes |
+| `workspace` | use `workspace_path` under this root | no |
+
+## Scope
+
+- Read `.manifest.json` before cross-repo edits.
+- Repo rules stay in each project's own `.cursor/`.

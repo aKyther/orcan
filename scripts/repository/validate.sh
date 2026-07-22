@@ -22,7 +22,8 @@ require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
 require_file "docker-compose.ttyd.yml"
 require_file "Makefile"
-require_file "scripts/repository/apply-config.py"
+require_file "scripts/repository/config-scaffold.py"
+require_file "scripts/repository/config-show.py"
 require_file "cind.config.example.json"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
 require_file "docker/rootfs/opt/cursor-defaults/rules/operating-principles.mdc"
@@ -39,6 +40,8 @@ require_file "docker/rootfs/usr/local/bin/cursor-init-project"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-attach"
+require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
+require_file "docker/rootfs/usr/local/bin/init-workspace"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
 require_file "docker/rootfs/etc/tmux/scripts/status-right.sh"
@@ -54,6 +57,8 @@ for script in \
     docker/rootfs/usr/local/bin/cursor-ttyd \
     docker/rootfs/usr/local/bin/cursor-launcher \
     docker/rootfs/usr/local/bin/cursor-tmux-attach \
+    docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
+    docker/rootfs/usr/local/bin/init-workspace \
     docker/rootfs/etc/tmux/scripts/status-left.sh \
     docker/rootfs/etc/tmux/scripts/status-right.sh \
     docker/rootfs/etc/tmux/scripts/window-name.sh \
@@ -70,6 +75,15 @@ do
         printf 'Syntax OK: %s\n' "${script}"
     fi
 done
+
+if [[ -f scripts/repository/config-scaffold.py ]]; then
+    python3 -m py_compile scripts/repository/config-scaffold.py
+    printf 'Syntax OK: scripts/repository/config-scaffold.py\n'
+fi
+if [[ -f scripts/repository/config-show.py ]]; then
+    python3 -m py_compile scripts/repository/config-show.py
+    printf 'Syntax OK: scripts/repository/config-show.py\n'
+fi
 
 if [[ -f scripts/repository/apply-config.py ]]; then
     python3 -m py_compile scripts/repository/apply-config.py

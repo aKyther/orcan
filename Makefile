@@ -16,7 +16,8 @@ CONFIG ?=
 
 .PHONY: help env build rebuild terminal terminal-docker terminal-url \
 	down logs config init-project init-project-dry-run clean clean-volumes \
-	docs docs-serve test validate path-check validate-project
+	docs docs-serve test validate path-check validate-project \
+	config-init config-scaffold config-show
 
 help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
@@ -27,16 +28,52 @@ validate-project:
 
 path-check: env validate-project ## Show host/container project path parity
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf 'Default project path:   %s\n' "$$PROJECT_DIR"; \
+	printf 'Default repo path:      %s\n' "$$PROJECT_DIR"; \
+	printf 'Container working dir:  %s\n' "$${CONTAINER_PROJECT_DIR:-$${WORKSPACE_ROOT:-}}"; \
+	if [ -n "$${WORKSPACE_ROOT:-}" ]; then \
+		printf 'Startup workspace root: %s (%s)\n' "$$WORKSPACE_ROOT" "$${WORKSPACE_NAME:-workspace}"; \
+		printf 'Workspace meta (rules): %s\n' "$${WORKSPACE_META_PATH:-}'; \
+	fi; \
 	printf 'Runtime config:         %s\n' "$${CIND_CONFIG_HOST:-none}"; \
 	printf 'Compose project mounts: %s\n' "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}"; \
 	if [ -f "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" ]; then \
 		grep -E '^[[:space:]]+- ' "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" | sed 's/^/  /'; \
 	fi; \
+	if [ -f "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}" ]; then \
+		printf 'Workspace manifest:     %s\n' "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}"; \
+		python3 - "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}" <<-'PY' | sed 's/^/  /'; \
+import json, sys; \
+m = json.load(open(sys.argv[1])); \
+print(f"workspaces: {len(m.get('workspaces', []))}"); \
+[print(f"{ws['name']}: mount_mode={ws.get('mount_mode')} tmux={ws.get('tmux_session')} root={ws.get('root')}") for ws in m.get('workspaces', [])]; \
+[print(f"  {p['name']}: {p['path']} -> {p.get('workspace_path')} [{p.get('mount')}]") for ws in m.get('workspaces', []) for p in ws.get('projects', [])]; \
+PY \
+	fi; \
 	printf 'Path parity:            enabled\n'
 
 env: ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
 	@CONFIG="$(CONFIG)" PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
+
+config-init: ## Create cind.config.json from example (skip if it already exists)
+	@if [ -f cind.config.json ]; then \
+		printf 'cind.config.json already exists\n'; \
+		printf '  edit:  $$EDITOR cind.config.json\n'; \
+		printf '  show:  make config-show\n'; \
+	else \
+		cp cind.config.example.json cind.config.json; \
+		printf 'Created cind.config.json from example\n'; \
+		printf '  edit paths, then: make env && make path-check\n'; \
+	fi
+
+config-scaffold: validate-project ## Add workspace/project to cind.config.json from PROJECT_DIR
+	@python3 ./scripts/repository/config-scaffold.py \
+		--project-dir "$(PROJECT_DIR)" \
+		$(if $(WORKSPACE),--workspace "$(WORKSPACE)",) \
+		$(if $(MOUNT_MODE),--mount-mode "$(MOUNT_MODE)",) \
+		$(if $(FORCE),--force,)
+
+config-show: ## List workspaces in cind.config.json and runtime manifest
+	@python3 ./scripts/repository/config-show.py
 
 build: env validate-project ## Build the container image
 	$(COMPOSE) build
@@ -48,7 +85,7 @@ terminal: env validate-project ## Start container with browser terminal (no Dock
 	-$(COMPOSE_TTYD_DOCKER) down
 	$(COMPOSE_TTYD) up -d
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n  Launcher: pick a project by number (tmux session per project)\n  Default project: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
+	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n  Launcher: pick a workspace (one tmux session per workspace)\n  Default repo: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
 
 terminal-docker: env validate-project ## Start container with browser terminal and host Docker socket
 	@if [ ! -S /var/run/docker.sock ]; then \
@@ -66,7 +103,7 @@ terminal-docker: env validate-project ## Start container with browser terminal a
 		fi; \
 	fi
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n  Launcher: pick a project by number (tmux session per project)\n  Default project: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
+	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n  Launcher: pick a workspace (one tmux session per workspace)\n  Default repo: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
 
 terminal-url: ## Print the browser terminal URL
 	@set -a; [ -f .env ] && . ./.env; set +a; \

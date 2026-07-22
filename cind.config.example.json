@@ -1,34 +1,60 @@
 {
-  "default_project": "app-a",
-  "projects": [
+  "workspaces": [
     {
-      "name": "app-a",
-      "path": "/absolute/path/to/projects/app-a",
-      "tmux": "app-a",
-      "windows": [
-        {"name": "editor", "icon": "📝", "dir": "."},
-        {"name": "server", "icon": "🐍", "dir": ".", "command": "bash"},
-        {"name": "logs", "icon": "⚙", "dir": "."},
-        {"name": "shell", "icon": "🖥", "dir": "."}
+      "name": "gotibooks",
+      "mount_mode": "parity",
+      "meta_path": "/absolute/path/to/gotibooks-workspace",
+      "tmux": "gotibooks",
+      "projects": [
+        {
+          "name": "backend",
+          "path": "/absolute/path/to/gotibooks/backend",
+          "role": "service",
+          "windows": [
+            {"name": "editor", "icon": "📝", "dir": "."},
+            {"name": "server", "icon": "🐍", "dir": ".", "command": "bash"},
+            {"name": "logs", "icon": "⚙", "dir": "."}
+          ]
+        },
+        {
+          "name": "frontend",
+          "path": "/absolute/path/to/gotibooks/frontend",
+          "role": "service"
+        },
+        {
+          "name": "agent",
+          "path": "/absolute/path/to/gotibooks/agent",
+          "role": "orchestrator"
+        }
       ]
     },
     {
-      "name": "app-b",
-      "path": "/absolute/path/to/projects/app-b",
-      "tmux": "app-b",
-      "windows": [
-        {"name": "editor", "icon": "📝", "dir": "."},
-        {"name": "dev server", "icon": "🌐", "dir": ".", "command": "bash"},
-        {"name": "tests", "icon": "🧪", "dir": ".", "command": "bash"},
-        {"name": "shell", "icon": "🖥", "dir": "."}
+      "name": "code-review",
+      "mount_mode": "workspace",
+      "tmux": "review",
+      "projects": [
+        {
+          "name": "upstream",
+          "path": "/absolute/path/to/upstream-repo",
+          "role": "repo"
+        }
       ]
     },
     {
       "name": "cind",
-      "path": "/absolute/path/to/cind",
-      "tmux": "cind"
+      "mount_mode": "parity",
+      "projects": [
+        {
+          "name": "cind",
+          "path": "/absolute/path/to/cind",
+          "role": "orchestrator"
+        }
+      ]
     }
   ],
+  "tmux": {
+    "mode": "windows-by-repo"
+  },
   "ttyd": {
     "port": 7681,
     "host_port": 7681,
