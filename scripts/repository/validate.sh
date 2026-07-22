@@ -27,6 +27,7 @@ require_file "scripts/repository/config-show.py"
 require_file "cind.config.example.json"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
 require_file "docker/rootfs/opt/cursor-defaults/rules/operating-principles.mdc"
+require_file "docker/rootfs/opt/cursor-defaults/rules/karpathy-guidelines.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/planning-and-execution.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/code-quality.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/documentation-discipline.mdc"
@@ -36,6 +37,8 @@ require_file "docker/rootfs/opt/cursor-defaults/skills/focused-implementation/SK
 require_file "docker/rootfs/opt/cursor-defaults/skills/final-review/SKILL.md"
 require_file "docker/rootfs/usr/local/bin/docker-entrypoint"
 require_file "docker/rootfs/usr/local/bin/init-cursor-home"
+require_file "docker/rootfs/usr/local/bin/init-ai-statusline"
+require_file "docker/rootfs/usr/local/bin/cind-ai-statusline"
 require_file "docker/rootfs/usr/local/bin/cursor-init-project"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
@@ -45,10 +48,13 @@ require_file "docker/rootfs/usr/local/bin/init-workspace"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
 require_file "docker/rootfs/etc/tmux/scripts/status-right.sh"
+require_file "docker/rootfs/etc/tmux/scripts/ai-usage.sh"
 require_file "docker/rootfs/etc/skel/.tmux.conf"
 require_file "docker/rootfs/etc/skel/.vimrc"
-require_file "docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh"
-require_file "docker/rootfs/etc/profile.d/cursor-dev-path.sh"
+require_file "docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh"
+require_file "docker/rootfs/etc/skel/.bashrc.d/60-cind-aliases.sh"
+require_file "docker/rootfs/etc/cind/shell/aliases.sh"
+require_file "docker/rootfs/etc/profile.d/cind-path.sh"
 
 for script in \
     docker/rootfs/usr/local/bin/docker-entrypoint \
@@ -79,19 +85,19 @@ do
     fi
 done
 
-if [[ -f scripts/repository/config-scaffold.py ]]; then
-    python3 -m py_compile scripts/repository/config-scaffold.py
-    printf 'Syntax OK: scripts/repository/config-scaffold.py\n'
-fi
-if [[ -f scripts/repository/config-show.py ]]; then
-    python3 -m py_compile scripts/repository/config-show.py
-    printf 'Syntax OK: scripts/repository/config-show.py\n'
-fi
-
-if [[ -f scripts/repository/apply-config.py ]]; then
-    python3 -m py_compile scripts/repository/apply-config.py
-    printf 'Syntax OK: scripts/repository/apply-config.py\n'
-fi
+for script in \
+    docker/rootfs/usr/local/bin/cind-ai-statusline \
+    docker/rootfs/usr/local/bin/init-ai-statusline \
+    docker/rootfs/etc/tmux/scripts/ai-usage.sh \
+    scripts/repository/config-scaffold.py \
+    scripts/repository/config-show.py \
+    scripts/repository/apply-config.py
+do
+    if [[ -f "${script}" ]]; then
+        python3 -m py_compile "${script}"
+        printf 'Syntax OK: %s\n' "${script}"
+    fi
+done
 
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null

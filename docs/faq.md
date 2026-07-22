@@ -30,7 +30,7 @@ Each command mounts one project at the same absolute path on host and container 
 TMUX starts only for interactive TTY shells. Non-interactive commands skip it.
 
 To disable it permanently, remove the TMUX block from
-`docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` and rebuild.
+`docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh` and rebuild.
 
 ## Can I use Docker inside the container?
 

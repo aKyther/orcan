@@ -118,7 +118,8 @@ Existing files in the volume are never overwritten.
 
 | Rule | Purpose |
 | --- | --- |
-| `operating-principles.mdc` | Understand the repo, stay focused, avoid clutter, report honestly |
+| `karpathy-guidelines.mdc` | Think → simplify → surgical edit → verify (Karpathy-inspired) |
+| `operating-principles.mdc` | Focus, clutter avoidance, honest reporting (cind-specific) |
 | `planning-and-execution.mdc` | Practical planning, scope control, validation, short completion reports |
 | `code-quality.mdc` | Readable code, no unnecessary abstraction |
 | `documentation-discipline.mdc` | Update existing docs, avoid duplicate or stray Markdown |
@@ -131,6 +132,7 @@ Stack-specific guidance belongs in the **mounted project**, not here.
 
 | Skill | Purpose |
 | --- | --- |
+| `karpathy-guidelines` | Recall the four behavioral principles on demand |
 | `repository-analysis` | Understand a repo before large changes |
 | `focused-implementation` | Smallest complete implementation |
 | `final-review` | Review diff and report validation honestly |
@@ -145,6 +147,8 @@ Skills do not replace rules. Rules apply every session; skills guide specific wo
 | --- | --- |
 | `${PROJECT_DIR}/.cursor/rules/` | Rules for **this** repository only |
 | `${PROJECT_DIR}/AGENTS.md` | Project goals, setup, and checks |
+
+Workspace roots (under `/home/developer/workspaces/<name>/`) also get a generated **`AGENTS.md`** / **`CLAUDE.md`** plus `.manifest.json` on every container start — see [Workspace architecture](architecture/workspace.md#agents).
 | `${PROJECT_DIR}/.cursorignore` | Files the agent should not read |
 
 Create project files with `cursor-init-project` when needed.
@@ -208,6 +212,8 @@ claude          # interactive session
 | --- | --- | --- |
 | Cursor | `agent` | `~/.cursor`, `~/.config/cursor` (`$CIND_DATA` on host) |
 | Claude Code | `claude` | `~/.claude` (`$CIND_DATA/claude` on host) |
+
+Both CLIs can feed **usage into the tmux status bar** (`ctx` / `5h` / `7d`) via `cind-ai-statusline`. See [tmux → AI usage](tmux.md#ai-usage-in-the-status-bar).
 
 Pick whichever CLI fits the task. Log in separately for each (`agent` vs `claude`).
 

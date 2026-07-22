@@ -18,7 +18,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 * Multi-stage image build
 * Automatic TMUX in interactive shells
 * Node.js, npm, pnpm
-* Python 3, uv
+* Python 3 (`python` / `python3`), pip, venv, **uv** / uvx
 * Go, Rust (rustc, cargo)
 * Docker CLI, Compose, Buildx (optional host socket)
 * Git, ripgrep, fd, fzf, bat, eza, jq, yq, tree, curl, shellcheck, hyperfine
@@ -69,6 +69,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 | `docker/rootfs/usr/local/bin/init-cursor-home` | `/usr/local/bin/init-cursor-home` | User config initialization |
 | `docker/rootfs/usr/local/bin/cursor-init-project` | `/usr/local/bin/cursor-init-project` | Project template initialization |
 | `docker/rootfs/usr/local/bin/cursor-ttyd` | `/usr/local/bin/cursor-ttyd` | Browser terminal (ttyd + tmux) |
+| `docker/rootfs/usr/local/bin/cind-ai-statusline` | `/usr/local/bin/cind-ai-statusline` | Claude/Cursor statusLine → tmux usage cache |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
 | `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Aliases, PATH, interactive TMUX |
@@ -472,7 +473,7 @@ Shell and editor configs live in the image filesystem:
 
 * `docker/rootfs/etc/skel/.tmux.conf` → `/home/developer/.tmux.conf`
 * `docker/rootfs/etc/skel/.vimrc` → `/home/developer/.vimrc`
-* `docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` → sourced from `~/.bashrc`
+* `docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh` → sourced from `~/.bashrc`
 
 TMUX starts automatically in the browser terminal (`cursor-ttyd` runs `tmux new-session -A -s workspace`).
 
@@ -544,7 +545,7 @@ Yes. Start a new session with another `PROJECT_DIR` (run `make down` first if a 
 
 **Can I disable TMUX?**  
 Yes. Start a non-interactive command, or remove the TMUX block from
-`docker/rootfs/etc/skel/.bashrc.d/50-cursor-dev.sh` and rebuild.
+`docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh` and rebuild.
 
 **Can I use Docker inside the container?**  
 Yes, with `make terminal-docker` when the host socket is available.

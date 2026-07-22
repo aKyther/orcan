@@ -57,8 +57,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         parallel \
         postgresql-client \
         python3 \
+        python3-dev \
         python3-pip \
         python3-venv \
+        python-is-python3 \
         redis-tools \
         ripgrep \
         shellcheck \
@@ -72,6 +74,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         zstd \
     && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
     && ln -sf /usr/bin/batcat /usr/local/bin/bat \
+    && python3 --version \
+    && python --version \
+    && pip3 --version \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------------------------
@@ -117,6 +122,10 @@ COPY --from=rust-tools /usr/local/cargo /usr/local/cargo
 COPY --from=rust-tools /usr/local/rustup /usr/local/rustup
 COPY --from=uv-tools /uv /usr/local/bin/uv
 COPY --from=uv-tools /uvx /usr/local/bin/uvx
+
+RUN set -eux; \
+    uv --version; \
+    uvx --version
 
 # ------------------------------------------------------------------------------
 # Docker CLI + Compose + Buildx
@@ -193,6 +202,8 @@ COPY docker/rootfs/ /
 RUN chmod 0755 \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
+        /usr/local/bin/init-ai-statusline \
+        /usr/local/bin/cind-ai-statusline \
         /usr/local/bin/init-workspace \
         /usr/local/bin/cursor-init-project \
         /usr/local/bin/cursor-ttyd \
@@ -203,7 +214,7 @@ RUN chmod 0755 \
     && chmod -R a+rX /opt/cursor-defaults \
     && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
     && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \
-    && chmod 0644 /etc/profile.d/cursor-dev-path.sh \
+    && chmod 0644 /etc/profile.d/cind-path.sh \
     && chmod -R a+rX /etc/skel
 
 # ------------------------------------------------------------------------------
@@ -274,8 +285,8 @@ RUN set -eux; \
             >> "/home/${USERNAME}/.bashrc"; \
     fi; \
     \
-    if ! grep -q 'cursor-dev-path\|/usr/local/go/bin' "/home/${USERNAME}/.profile"; then \
-        printf '\n# Toolchain PATH for login shells\n. /etc/profile.d/cursor-dev-path.sh\n' \
+    if ! grep -q 'cind-path\|cursor-dev-path\|/usr/local/go/bin' "/home/${USERNAME}/.profile"; then \
+        printf '\n# Toolchain PATH for login shells\n. /etc/profile.d/cind-path.sh\n' \
             >> "/home/${USERNAME}/.profile"; \
     fi; \
     \

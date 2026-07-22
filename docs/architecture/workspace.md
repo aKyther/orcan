@@ -73,8 +73,20 @@ On the host, edit `<cind-repo>/.cind/workspaces/<name>/.cursor/rules/` (created 
 
 ## Agents
 
-Read `<workspace.root>/.manifest.json` for projects and host paths.
+On container start, `init-workspace` writes at the workspace root:
+
+| File | Role |
+| --- | --- |
+| `.manifest.json` | Machine-readable projects / paths |
+| `AGENTS.md` | Agent instructions (regenerated each start) |
+| `CLAUDE.md` | Same content for Claude Code |
+| `.cursor/rules/workspace-context.mdc` | Cursor rule seed (missing-only) |
+| `README.workspace.md` | Short human map |
+
+Agents should read **`AGENTS.md` → `.manifest.json` → project `AGENTS.md`**.
 
 Do not treat workspace root as a git root.
+
+Custom lasting rules: edit `.cursor/rules/` under `<cind-repo>/.cind/workspaces/<name>/` (not the generated `AGENTS.md`).
 
 See also: [Path parity](../path-parity.md).

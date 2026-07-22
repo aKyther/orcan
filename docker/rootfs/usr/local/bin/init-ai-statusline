@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Ensure Claude / Cursor statusLine hooks point at cind-ai-statusline (missing only)."""
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def load_json(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def ensure_statusline(path: Path, status_block: dict, *, create_if_missing: bool) -> str:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists() and not create_if_missing:
+        return f"skipped (missing): {path}"
+    data = load_json(path)
+    existing = data.get("statusLine")
+    if isinstance(existing, dict) and str(existing.get("command") or "").strip():
+        return f"kept: {path}"
+    data["statusLine"] = status_block
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return f"set: {path}"
+
+
+def main() -> int:
+    home = Path(os.environ.get("HOME") or "").expanduser()
+    if not str(home):
+        print("HOME is not set", file=sys.stderr)
+        return 1
+
+    cmd = os.environ.get("CIND_AI_STATUSLINE", "/usr/local/bin/cind-ai-statusline")
+    status_block = {"type": "command", "command": cmd, "padding": 0}
+
+    print(
+        ensure_statusline(
+            home / ".claude" / "settings.json",
+            status_block,
+            create_if_missing=True,
+        )
+    )
+    print(
+        ensure_statusline(
+            home / ".cursor" / "cli-config.json",
+            status_block,
+            create_if_missing=False,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

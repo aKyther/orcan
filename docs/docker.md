@@ -18,7 +18,7 @@ Docker keeps the toolchain inside an image. Your host package manager stays clea
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
 | `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Interactive shell setup |
-| `docker/rootfs/etc/profile.d/cursor-dev-path.sh` | `/etc/profile.d/cursor-dev-path.sh` | Toolchain PATH |
+| `docker/rootfs/etc/profile.d/cind-path.sh` | `/etc/profile.d/cind-path.sh` | Toolchain PATH (login shells) |
 | `scripts/repository/` | *(not in image)* | Host-only helpers |
 
 ## Image filesystem (`docker/rootfs/`)
@@ -29,9 +29,11 @@ Their paths match the final container layout.
 ```text
 docker/rootfs/
 ├── etc/
-│   ├── profile.d/cursor-dev-path.sh
+│   ├── cind/shell/aliases.sh
+│   ├── profile.d/cind-path.sh
 │   └── skel/
-│       ├── .bashrc.d/50-cursor-dev.sh
+│       ├── .bashrc.d/50-cind-shell.sh
+│       ├── .bashrc.d/60-cind-aliases.sh
 │       ├── .tmux.conf
 │       └── .vimrc
 ├── opt/
@@ -65,6 +67,18 @@ The image is multi-stage:
 | `rust-tools` | `rust:1-bookworm` | Rustup / Cargo |
 | `uv-tools` | `ghcr.io/astral-sh/uv:latest` | `uv` / `uvx` |
 | final | `debian:bookworm-slim` | Runtime image |
+
+### Python toolchain (agents + status bar)
+
+Always in the image (no extra pip packages required for cind scripts):
+
+| Tool | Notes |
+| --- | --- |
+| `python` / `python3` | Debian Bookworm (`python-is-python3`) |
+| `pip3` / `python3-venv` / `python3-dev` | System installs and building wheels |
+| `uv` / `uvx` | Preferred for project deps (`uv add`, `uv run`) |
+
+`cind-ai-statusline` and tmux AI usage use **stdlib only** (`json`, `pathlib`, …). For project libraries, prefer `uv` in the workspace rather than `pip install` into the system Python.
 
 Build flow:
 
@@ -201,7 +215,7 @@ Config sources:
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` |
 
-Interactive shells inside TMUX source `~/.bashrc.d/50-cursor-dev.sh` (aliases, PATH, `cd` to `PROJECT_DIR`).
+Interactive shells inside TMUX source `~/.bashrc.d/50-cind-shell.sh` (PATH, `cd` to workspace) and `60-cind-aliases.sh` (aliases from `/etc/cind/shell/aliases.sh`).
 
 ## Cursor defaults on host data
 

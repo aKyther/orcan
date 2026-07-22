@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Claude Code / Cursor Agent statusLine hook.
+
+Reads session JSON on stdin, caches usage for tmux, prints a compact footer.
+"""
+from __future__ import annotations
+
+import json
+import math
+import os
+import sys
+import time
+from pathlib import Path
+
+
+def pct(value):
+    if value is None or value == "":
+        return None
+    try:
+        return max(0, min(100, int(math.floor(float(value)))))
+    except (TypeError, ValueError):
+        return None
+
+
+def dig(obj, *keys):
+    cur = obj
+    for key in keys:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+    return cur
+
+
+def detect_provider(data: dict, model: str) -> str:
+    provider = (os.environ.get("CIND_AI_PROVIDER") or "").strip().lower()
+    if provider:
+        return provider
+    if dig(data, "rate_limits") is not None or "claude" in model.lower():
+        return "claude"
+    if "cursor" in model.lower() or dig(data, "cursor") is not None:
+        return "cursor"
+    try:
+        ppid = Path(f"/proc/{os.getppid()}/comm").read_text(encoding="utf-8").strip()
+    except OSError:
+        ppid = ""
+    if "claude" in ppid.lower():
+        return "claude"
+    if ppid in {"agent", "cursor-agent"} or "cursor" in ppid.lower():
+        return "cursor"
+    return "ai"
+
+
+def main() -> int:
+    cache_dir = Path(
+        os.environ.get("CIND_AI_USAGE_DIR")
+        or (Path(os.environ.get("HOME", "/home/developer")) / ".cache" / "cind")
+    )
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    raw = sys.stdin.read()
+    try:
+        data = json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    model = (
+        dig(data, "model", "display_name")
+        or dig(data, "model", "id")
+        or dig(data, "model")
+        or ""
+    )
+    if isinstance(model, dict):
+        model = model.get("display_name") or model.get("id") or ""
+    model = str(model).strip()
+
+    context_pct = pct(dig(data, "context_window", "used_percentage"))
+    if context_pct is None:
+        context_pct = pct(dig(data, "context", "used_percentage"))
+    if context_pct is None:
+        context_pct = pct(data.get("context_used_percentage"))
+
+    five_pct = pct(dig(data, "rate_limits", "five_hour", "used_percentage"))
+    seven_pct = pct(dig(data, "rate_limits", "seven_day", "used_percentage"))
+
+    cost = dig(data, "cost", "total_cost_usd")
+    if cost is None:
+        cost = data.get("total_cost_usd")
+    try:
+        cost_usd = float(cost) if cost is not None and cost != "" else None
+    except (TypeError, ValueError):
+        cost_usd = None
+
+    provider = detect_provider(data, model)
+    payload = {
+        "version": 1,
+        "updated_at": int(time.time()),
+        "provider": provider,
+        "model": model or None,
+        "context_pct": context_pct,
+        "five_hour_pct": five_pct,
+        "seven_day_pct": seven_pct,
+        "cost_usd": cost_usd,
+    }
+
+    (cache_dir / f"ai-usage-{provider}.json").write_text(
+        json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+    )
+    (cache_dir / "ai-usage.json").write_text(
+        json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+    )
+
+    parts = []
+    if context_pct is not None:
+        parts.append(f"ctx {context_pct}%")
+    if five_pct is not None:
+        parts.append(f"5h {five_pct}%")
+    if seven_pct is not None:
+        parts.append(f"7d {seven_pct}%")
+    if cost_usd is not None and cost_usd > 0:
+        parts.append(f"${cost_usd:.2f}")
+
+    label = provider if provider != "ai" else (model or "ai")
+    if parts:
+        print(f"{label} · " + " · ".join(parts))
+    else:
+        print(label)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

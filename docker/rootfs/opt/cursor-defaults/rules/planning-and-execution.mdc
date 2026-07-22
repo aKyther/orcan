@@ -17,6 +17,8 @@ alwaysApply: true
 - Validate important behavior when checks exist.
 - Prefer project-native commands (`make`, test runners, linters).
 - If a check cannot run, say so. Do not imply success.
+- Prefer goal-driven loops: state the check, run it, fix until it passes
+  (see `karpathy-guidelines.mdc`).
 
 ## Completion report
 

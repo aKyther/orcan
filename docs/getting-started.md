@@ -85,6 +85,18 @@ claude --version
 test -d "${HOME}/.cursor"
 ```
 
+Handy aliases (always in the image — see `/etc/cind/shell/aliases.sh`):
+
+| Alias | Meaning |
+| --- | --- |
+| `ll` / `la` | list files (`eza`) |
+| `g` | `rg` (ripgrep) |
+| `gs` / `gd` | git status / diff |
+| `cc` | `claude` |
+| `ccy` | `claude --dangerously-skip-permissions` (no approval prompts) |
+| `ag` | `agent` |
+| `agy` | `agent --yolo` (skip tool approval prompts) |
+
 ## 7. Optional: scaffold Cursor files in a project
 
 From the host (pass the repo path explicitly):
