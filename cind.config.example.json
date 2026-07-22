@@ -2,7 +2,6 @@
   "workspaces": [
     {
       "name": "gotibooks",
-      "tmux": "gotibooks",
       "projects": [
         {
           "name": "backend",

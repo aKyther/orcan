@@ -54,7 +54,7 @@ Rules:
 * `workspaces` must contain **at least one** workspace
 * each workspace must contain **at least one** project in `projects[]`
 * workspace container path defaults to `/home/developer/workspaces/<name>`
-* `tmux` defaults to workspace `name` (one session per workspace)
+* `tmux` (optional) — tmux session name; defaults to workspace `name` (usually omit)
 * project `name` = subdirectory under workspace root
 * no `alias`, no `default_project`, no `default_workspace`, no `mount_mode`
 * each project uses **path parity** (same absolute path on host and in container) plus a **symlink** under the workspace root
