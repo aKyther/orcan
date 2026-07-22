@@ -50,7 +50,6 @@ Agents start in the workspace root and `cd` into project subdirectories.
   "workspaces": [
     {
       "name": "gotibooks",
-      "tmux": "gotibooks",
       "projects": [
         {"name": "backend", "path": "/home/you/gotibooks/backend"},
         {"name": "frontend", "path": "/home/you/gotibooks/frontend"}
@@ -62,12 +61,11 @@ Agents start in the workspace root and `cd` into project subdirectories.
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Workspace id — directory name under `/home/developer/workspaces/` |
-| `tmux` | tmux session (optional; defaults to `name`) |
+| `name` | Workspace id — directory under `/home/developer/workspaces/` and tmux session name |
 | `projects[].name` | Symlink name under workspace root |
 | `projects[].path` | Host absolute path (parity mount) |
 
-No `alias`, no `default_project`, no `default_workspace`, no `mount_mode`.
+No `alias`, no `default_project`, no `default_workspace`, no `mount_mode`, no per-workspace `tmux`.
 
 ## Workspace-level Cursor rules
 

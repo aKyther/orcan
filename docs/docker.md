@@ -50,7 +50,7 @@ docker/rootfs/
 * Edit container files under `docker/rootfs/`, not in the repository root.
 * Do not mix these assets with this repository's own `.cursor/` rules.
 * `/opt/cursor-defaults` is immutable product config for the container user.
-* Runtime writable state lives in `${HOME}/.cursor` (named volume).
+* Runtime writable state lives in `${HOME}/.cursor` (host: `$CIND_DATA/cursor`).
 
 The Dockerfile copies this tree with `COPY docker/rootfs/ /`, then sets permissions on binaries and `/opt/cursor-defaults`.
 
@@ -85,10 +85,12 @@ Shell access is **browser-only**: ttyd → workspace picker → tmux (see [Secur
 
 ### `docker-compose.yml` (base)
 
+Service name: **`cind`**, image: **`cind:latest`**.
+
 Provides:
 
 * project bind mounts from `cind.config.json` (path parity + workspace roots)
-* named volumes for caches and Cursor config
+* host binds under `CIND_DATA` (`~/.config/cind`) for Cursor/Claude state and caches
 * resource limits and a `/tmp` tmpfs
 
 Does **not** mount the Docker socket or host `~/.ssh`.
@@ -125,37 +127,52 @@ Open `http://localhost:7681` in your browser (or run `make terminal` to print th
 ## Layout
 
 ```text
-Host
-└── PROJECT_DIR
-     │
-     ▼
-Container
-├── ${PROJECT_DIR}                 (bind mount, path parity)
-├── /opt/cursor-defaults
-├── /home/developer/.cursor      (volume)
-├── /home/developer/.cache       (volume)
-├── /home/developer/.npm         (volume)
-├── /home/developer/.local/share/pnpm  (volume)
-├── /home/developer/.cargo       (volume)
-├── /home/developer/go           (volume)
-└── /command-history             (volume)
+Host ~/.config/cind/                 Container
+────────────────────────────────     ─────────────────────────────────
+cursor/           ───────────────►   /home/developer/.cursor
+cursor-app/       ───────────────►   /home/developer/.config/cursor
+claude/           ───────────────►   /home/developer/.claude
+cache/            ───────────────►   /home/developer/.cache
+npm/              ───────────────►   /home/developer/.npm
+pnpm/             ───────────────►   /home/developer/.local/share/pnpm
+cargo/            ───────────────►   /home/developer/.cargo
+go/               ───────────────►   /home/developer/go
+bash-history/     ───────────────►   /command-history
 ```
 
-## Volumes
+Plus path-parity project mounts and `/opt/cursor-defaults` from the image.
 
-| Volume | Path | Why |
+## Host data (`CIND_DATA`)
+
+Always on — same idea as poetry (`~/.config/pypoetry`) or pip: product state lives under the user’s config home.
+
+Default path: **`$HOME/.config/cind`**.
+
+`make env` (and first `make setup`):
+
+1. Writes absolute `CIND_DATA=…` into `.env` if missing/empty
+2. Creates the subdirectory tree (`cursor`, `claude`, caches, …)
+3. Sets ownership to `USER_UID`/`USER_GID`
+
+Override only when you need another location:
+
+```dotenv
+CIND_DATA=/custom/path/cind
+```
+
+| Host path | Container path | Why |
 | --- | --- | --- |
-| `cursor-config` | `/home/developer/.cursor` | Cursor CLI config, chats, rules, skills |
-| `cursor-app-config` | `/home/developer/.config/cursor` | Cursor login (`auth.json`) |
-| `cursor-cache` | `/home/developer/.cache` | General caches |
-| `npm-cache` | `/home/developer/.npm` | npm cache |
-| `pnpm-cache` | `/home/developer/.local/share/pnpm` | pnpm store/home |
-| `cargo-cache` | `/home/developer/.cargo` | Cargo registry and binaries |
-| `go-cache` | `/home/developer/go` | GOPATH modules and bins |
-| `bash-history` | `/command-history` | Shared bash history file |
+| `$CIND_DATA/cursor` | `/home/developer/.cursor` | Cursor CLI config, chats, rules, skills |
+| `$CIND_DATA/cursor-app` | `/home/developer/.config/cursor` | Cursor login (`auth.json`) |
+| `$CIND_DATA/claude` | `/home/developer/.claude` | Claude Code login and state |
+| `$CIND_DATA/cache` | `/home/developer/.cache` | General caches |
+| `$CIND_DATA/npm` | `/home/developer/.npm` | npm cache |
+| `$CIND_DATA/pnpm` | `/home/developer/.local/share/pnpm` | pnpm store/home |
+| `$CIND_DATA/cargo` | `/home/developer/.cargo` | Cargo registry and binaries |
+| `$CIND_DATA/go` | `/home/developer/go` | GOPATH modules and bins |
+| `$CIND_DATA/bash-history` | `/command-history` | Shared bash history file |
 
-Named volumes survive `make down` and `make clean`.
-Only `make clean-volumes` deletes them.
+No Docker **named volumes**. Data survives `make down` / `make clean`. Reset with `make clean-data`.
 
 ## User and permissions
 
@@ -186,9 +203,9 @@ Config sources:
 
 Interactive shells inside TMUX source `~/.bashrc.d/50-cursor-dev.sh` (aliases, PATH, `cd` to `PROJECT_DIR`).
 
-## Cursor defaults volume
+## Cursor defaults on host data
 
-`cursor-config` mounts at `/home/developer/.cursor`.
+`$CIND_DATA/cursor` mounts at `/home/developer/.cursor`.
 
 Defaults live in `/opt/cursor-defaults` and are copied in at startup when missing.
 See [Cursor](cursor.md).
@@ -198,6 +215,7 @@ See [Cursor](cursor.md).
 | Variable | Role |
 | --- | --- |
 | `PROJECT_DIR` | Absolute host project path (same path inside the container) |
+| `CIND_DATA` | Host data root (default `$HOME/.config/cind`) |
 | `USER_UID` / `USER_GID` | Container user identity |
 | `DOCKER_GID` | Socket group for `*-docker` targets |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits |
@@ -207,7 +225,7 @@ See [Cursor](cursor.md).
 | `IMAGE_REGISTRY` | Registry host for publish/pull (default `registry.gitlab.com`) |
 | `IMAGE_REPOSITORY` | Path under registry, e.g. `mygroup/cind` |
 | `IMAGE_TAG` | Remote tag (default `latest`) |
-| `IMAGE_LOCAL` | Local Compose image name (default `cursor-dev:latest`) |
+| `IMAGE_LOCAL` | Local Compose image name (default `cind:latest`) |
 
 ## Publish to GitLab Container Registry
 
@@ -226,7 +244,7 @@ On another host:
 
 ```bash
 make registry-login
-make pull             # retags as cursor-dev:latest
+make pull             # retags as cind:latest
 make terminal-docker
 ```
 

@@ -57,21 +57,21 @@ You should see group `docker` (or your host `DOCKER_GID`) and the socket file pr
 
 **Symptom:** `Failed to store authentication tokens: EPERM: operation not permitted, chmod '/home/developer/.config/cursor'`.
 
-**Cause:** the `cursor-app-config` named volume was created with `root` ownership (common on first mount).
+**Cause:** `$CIND_DATA/cursor-app` on the host is owned by root (or wrong UID).
 
 **Fix:**
 
-Restart the container so the entrypoint can repair ownership:
-
 ```bash
+make env                 # recreates dirs and chowns to USER_UID/USER_GID
 make down
-make terminal-docker   # or make terminal
+make terminal-docker
 ```
 
 If login still fails:
 
 ```bash
-make clean-volumes
+make clean-data
+make env
 make terminal-docker
 ```
 
@@ -189,18 +189,20 @@ For image-only rebuilds, `.env` is enough. Generated mounts are required for `ma
 If caches look corrupt:
 
 ```bash
-make clean-volumes
+make clean-data
+make env
 make rebuild
 ```
 
 ## Cursor CLI not logged in
 
-Run the login flow inside the browser terminal once. Auth persists in the `cursor-app-config` volume (`~/.config/cursor/auth.json`) across restarts.
+Run the login flow inside the browser terminal once. Auth persists in `$CIND_DATA/cursor-app` (`~/.config/cursor/auth.json` in the container) across restarts.
 
 If login state is broken:
 
 ```bash
-make clean-volumes
+make clean-data
+make env
 make terminal
 ```
 
@@ -247,5 +249,5 @@ make config
 docker compose -f docker-compose.yml config
 docker compose -f docker-compose.yml -f docker-compose.docker.yml config
 docker compose -f docker-compose.yml -f docker-compose.ttyd.yml config
-docker images | grep cursor-dev
+docker images | grep cind
 ```

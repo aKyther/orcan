@@ -12,7 +12,7 @@ alwaysApply: true
 - Do not modify `.env` unless the user explicitly asks.
 - Do not run destructive commands unless the user clearly requests them.
 - Do not run `docker system prune` or similar cleanup that deletes unrelated resources.
-- Do not delete Docker volumes unless the user explicitly requests `make clean-volumes`.
+- Do not delete host data under `CIND_DATA` (`~/.config/cind`) unless the user explicitly requests `make clean-data` / `make clean-volumes`.
 - Do not start containers with `--privileged`.
-- Do not mount `/`, `/home`, `/etc`, or other sensitive host paths into containers.
+- Do not mount `/`, `/home`, `/etc`, or other sensitive host paths into containers (except the intentional `CIND_DATA` binds under `~/.config/cind`).
 - Treat `/var/run/docker.sock` as privileged host access; enable it only with `*-docker` Make targets.

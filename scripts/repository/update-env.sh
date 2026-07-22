@@ -62,9 +62,43 @@ ensure_env_key "USER_UID" "${USER_UID}"
 ensure_env_key "USER_GID" "${USER_GID}"
 ensure_env_key "DOCKER_GID" "${DOCKER_GID}"
 
+# Host data root — always on (like poetry/pip under ~/.config).
+# Default: $HOME/.config/cind. Override in .env only for a custom path.
+# Do not overwrite an existing non-empty CIND_DATA.
+if [[ -z "${CIND_DATA:-}" ]]; then
+    CIND_DATA="${HOME}/.config/cind"
+fi
+# Persist absolute path in .env when missing or empty (make env always enables it).
+if ! grep -qE '^CIND_DATA=.' .env; then
+    ensure_env_key "CIND_DATA" "${CIND_DATA}"
+fi
+
+CIND_DATA_SUBDIRS=(
+    cursor
+    cursor-app
+    claude
+    cache
+    npm
+    pnpm
+    cargo
+    go
+    bash-history
+)
+mkdir -p "${CIND_DATA}"
+for sub in "${CIND_DATA_SUBDIRS[@]}"; do
+    mkdir -p "${CIND_DATA}/${sub}"
+done
+if chown -R "${USER_UID}:${USER_GID}" "${CIND_DATA}" 2>/dev/null; then
+    :
+else
+    printf 'Warning: could not chown %s (UID=%s GID=%s); fix ownership if mounts fail\n' \
+        "${CIND_DATA}" "${USER_UID}" "${USER_GID}" >&2
+fi
+
 printf '.env updated (USER_UID=%s USER_GID=%s DOCKER_GID=%s)\n' \
     "${USER_UID}" "${USER_GID}" "${DOCKER_GID}"
 printf 'PROJECT_DIR=%s\n' "${PROJECT_DIR}"
+printf 'CIND_DATA=%s (host config/cache — created if missing)\n' "${CIND_DATA}"
 if [[ -n "${CONFIG}" ]]; then
     printf 'CONFIG=%s\n' "${CONFIG}"
 fi

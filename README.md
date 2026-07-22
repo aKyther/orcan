@@ -23,7 +23,7 @@ This repository keeps your host system clean. Cursor and the toolchain run insid
 * Docker CLI, Compose, Buildx (optional host socket)
 * Git, ripgrep, fd, fzf, bat, eza, jq, yq, tree, curl, shellcheck, hyperfine
 * PostgreSQL client, Redis client
-* Persistent named volumes for caches and Cursor config
+* Persistent host data under `~/.config/cind` (Cursor/Claude login, caches)
 * Global Cursor defaults seeded at container startup
 * `cursor-init-project` for optional project scaffolding
 * Makefile entrypoints for everyday use
@@ -85,7 +85,7 @@ Host
 Docker container
 ├── /home/user/projects/my-app   ← same path (path parity)
 ├── /opt/cursor-defaults         ← immutable image defaults
-├── /home/developer/.cursor      ← named volume (seeded at startup)
+├── /home/developer/.cursor      ← $CIND_DATA/cursor (seeded at startup)
 ├── Cursor CLI
 ├── Node / pnpm
 ├── Python / uv
@@ -185,10 +185,10 @@ Typical flow: build on a machine with good network/CPU, push to **GitLab Contain
 ```text
 Laptop / CI                          GitLab registry                    VPS
 ─────────────────                    ───────────────                    ───
-make build  →  cursor-dev:latest
+make build  →  cind:latest
 make publish ─────────────────────►  registry…/group/cind:latest
                                                                     make pull
-                                                                    → cursor-dev:latest
+                                                                    → cind:latest
                                                                     make terminal-docker
 ```
 
@@ -196,13 +196,13 @@ make publish ─────────────────────► 
 
 | Piece | Role |
 | --- | --- |
-| Local image `cursor-dev:latest` | What Compose runs (`docker-compose.yml` → `image: cursor-dev:latest`) |
+| Local image `cind:latest` | What Compose runs (`docker-compose.yml` → `image: cind:latest`, service `cind`) |
 | `IMAGE_REGISTRY` | Registry host — `registry.gitlab.com` or your self-hosted GitLab |
 | `IMAGE_REPOSITORY` | Path under the registry, e.g. `mygroup/cind` |
 | `IMAGE_TAG` | Tag (default `latest`) |
 | `make registry-login` | `docker login` with GitLab username + PAT / Deploy Token |
 | `make publish` | Tags local image → pushes to registry |
-| `make pull` | Pulls remote image and retags as `cursor-dev:latest` for Compose |
+| `make pull` | Pulls remote image and retags as `cind:latest` for Compose |
 | `make registry-show` | Prints configured local/remote names (sanity check) |
 
 Remote image name:
@@ -280,14 +280,15 @@ More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [do
 | `make rebuild` | Rebuild with `--no-cache` |
 | `make registry-login` | Log in to GitLab Container Registry |
 | `make publish` | Tag + push image to registry |
-| `make pull` | Pull published image → `cursor-dev:latest` |
+| `make pull` | Pull published image → `cind:latest` |
 | `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
 | `make terminal-docker` | Start browser terminal + Docker socket (does not run `make env`) |
 | `make terminal-url` | Print the browser terminal URL |
-| `make down` | Stop containers; keep named volumes |
+| `make down` | Stop containers; keep host data (`CIND_DATA`) |
 | `make logs` | Follow logs |
-| `make clean` | Stop containers; keep named volumes |
-| `make clean-volumes` | Stop containers and **delete** named volumes |
+| `make clean` | Stop containers; keep host data |
+| `make clean-data` | Delete `$CIND_DATA` (`~/.config/cind`) — login + caches |
+| `make clean-volumes` | Alias for `clean-data` |
 | `make path-check` | Show host/container project path parity |
 | `make config` | Validate and print Compose configs |
 | `make init-project` | Create missing Cursor files in `PROJECT_DIR` |
@@ -364,13 +365,13 @@ make init-project
 
 Review generated files before committing them.
 
-Reset global container Cursor config by deleting the volume:
+Reset global container Cursor config by deleting host data:
 
 ```bash
-make clean-volumes
+make clean-data
 ```
 
-> Warning: that also deletes language caches and bash history volumes.
+> Warning: that also deletes language caches and bash history under `$CIND_DATA`.
 
 Details: [docs/cursor.md](docs/cursor.md).
 
@@ -452,7 +453,7 @@ Details: [docs/docker.md](docs/docker.md) and [docs/security.md](docs/security.m
 
 * Host package installs stay untouched
 * Toolchain lives in the image
-* Caches live in named volumes
+* Caches live under `$CIND_DATA` on the host (`~/.config/cind`)
 
 **Not fully isolated:**
 
@@ -493,10 +494,10 @@ TMUX starts automatically in the browser terminal (`cursor-ttyd` runs `tmux new-
 make rebuild
 ```
 
-To also delete caches and Cursor config volumes:
+To also delete caches and Cursor/Claude login under `$CIND_DATA`:
 
 ```bash
-make clean-volumes
+make clean-data
 make rebuild
 ```
 

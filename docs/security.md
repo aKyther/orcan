@@ -6,7 +6,7 @@ This page is intentionally direct. Containers help, but they are not a full secu
 
 * Host package installs are not required for the toolchain
 * Language tools live in the image
-* Caches and Cursor config live in named volumes
+* Caches and Cursor/Claude config live under `$CIND_DATA` on the host (`~/.config/cind` by default)
 * Base Compose does not mount the Docker socket
 * **No SSH server** — shell access is browser-only (ttyd + tmux)
 
@@ -71,14 +71,14 @@ Do **not** mount:
 * `~/.ssh` or other credential directories
 * unrelated disks or backup trees
 
-## Volumes
+## Host data (`CIND_DATA`)
 
-Named volumes persist data after containers stop. That is useful for caches and login state. It also means secrets written into those paths can survive `make down`.
+Login and caches live under `$CIND_DATA` on the host (default `~/.config/cind`). They survive `make down`. Secrets written there also persist.
 
 Delete them only with:
 
 ```bash
-make clean-volumes
+make clean-data
 ```
 
 ## Secrets

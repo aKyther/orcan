@@ -36,11 +36,10 @@ def print_workspaces(title: str, workspaces: list) -> None:
             continue
         name = ws.get("name", "?")
         root = ws.get("root", "")
-        tmux = ws.get("tmux_session") or ws.get("tmux") or name
         projects = ws.get("projects") or []
         root_suffix = f" @ {root}" if root else ""
         print(f"  {i}. {name}{root_suffix}")
-        print(f"     tmux={tmux} projects={len(projects)}")
+        print(f"     projects={len(projects)}")
         for p in projects:
             if not isinstance(p, dict):
                 continue

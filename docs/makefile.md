@@ -18,7 +18,7 @@ Everyday commands for building and running the cind container.
 | `make registry-show` | Show local/remote image names for publish |
 | `make registry-login` | `docker login` to GitLab (or other) registry |
 | `make publish` | Tag + push image to registry |
-| `make pull` | Pull published image and retag as `cursor-dev:latest` |
+| `make pull` | Pull published image and retag as `cind:latest` |
 | `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
 | `make terminal-docker` | Start browser terminal with host Docker socket (does not run `make env`) |
 | `make terminal-url` | Print browser terminal URL |
@@ -171,8 +171,9 @@ Use it only when you need `docker compose` or `docker build` inside the containe
 | `make config` | Print resolved Compose config |
 | `make init-project` | Bootstrap Cursor files in `PROJECT_DIR` |
 | `make init-project-dry-run` | Preview bootstrap |
-| `make clean` | Stop containers, keep volumes |
-| `make clean-volumes` | Stop and delete named volumes (destructive) |
+| `make clean` | Stop containers, keep host data under `CIND_DATA` |
+| `make clean-data` | Delete `$CIND_DATA` (`~/.config/cind`) — login + caches |
+| `make clean-volumes` | Alias for `clean-data` |
 | `make docs` | Build documentation site |
 | `make test-path-parity` | Integration test for path parity + Docker socket |
 

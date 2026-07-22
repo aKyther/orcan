@@ -1,5 +1,5 @@
 services:
-  cursor:
+  cind:
     build:
       context: .
       args:
@@ -7,8 +7,8 @@ services:
         USER_UID: ${USER_UID:-1000}
         USER_GID: ${USER_GID:-1000}
         DOCKER_GID: ${DOCKER_GID:-999}
-    image: cursor-dev:latest
-    hostname: cursor-dev
+    image: cind:latest
+    hostname: cind
     working_dir: ${CONTAINER_PROJECT_DIR:-${PROJECT_DIR}}
     stdin_open: true
     tty: true
@@ -30,25 +30,17 @@ services:
       WORKSPACE_NAME: ${WORKSPACE_NAME:-}
       WORKSPACE_META_PATH: ${WORKSPACE_META_PATH:-}
       CIND_CONFIG: ${CIND_CONFIG:-/etc/cind/config.json}
+      CIND_DATA: ${CIND_DATA}
     volumes:
       - ${CIND_CONFIG_HOST:-./.cind/runtime-config.json}:/etc/cind/config.json:ro
-      - cursor-config:/home/developer/.cursor
-      - cursor-app-config:/home/developer/.config/cursor
-      - cursor-cache:/home/developer/.cache
-      - npm-cache:/home/developer/.npm
-      - pnpm-cache:/home/developer/.local/share/pnpm
-      - cargo-cache:/home/developer/.cargo
-      - go-cache:/home/developer/go
-      - bash-history:/command-history
+      - ${CIND_DATA}/cursor:/home/developer/.cursor
+      - ${CIND_DATA}/cursor-app:/home/developer/.config/cursor
+      - ${CIND_DATA}/claude:/home/developer/.claude
+      - ${CIND_DATA}/cache:/home/developer/.cache
+      - ${CIND_DATA}/npm:/home/developer/.npm
+      - ${CIND_DATA}/pnpm:/home/developer/.local/share/pnpm
+      - ${CIND_DATA}/cargo:/home/developer/.cargo
+      - ${CIND_DATA}/go:/home/developer/go
+      - ${CIND_DATA}/bash-history:/command-history
     tmpfs:
       - /tmp:size=${TMPFS_SIZE:-2g},mode=1777
-
-volumes:
-  cursor-config:
-  cursor-app-config:
-  cursor-cache:
-  npm-cache:
-  pnpm-cache:
-  cargo-cache:
-  go-cache:
-  bash-history:

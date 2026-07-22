@@ -62,15 +62,15 @@ On a VPS behind Tailscale, use `http://<tailscale-ip>:7681`. ttyd has no authent
 
 ## Where is Cursor login stored?
 
-Login tokens live in the `cursor-app-config` volume at `/home/developer/.config/cursor/auth.json`.
+Login tokens live on the host at `$CIND_DATA/cursor-app` → `/home/developer/.config/cursor/auth.json` (default `~/.config/cind/cursor-app`).
 
-CLI settings, chats, and rules live in the `cursor-config` volume at `/home/developer/.cursor`.
+CLI settings, chats, and rules live in `$CIND_DATA/cursor` → `/home/developer/.cursor`.
 
-Both survive `make down`. Only `make clean-volumes` deletes them.
+Both survive `make down`. Only `make clean-data` deletes them.
 
 ## Does `make down` delete caches?
 
-No. Use `make clean-volumes` for that.
+No. Use `make clean-data` for that (removes `$CIND_DATA`, default `~/.config/cind`).
 
 ## Is the container a full security boundary?
 

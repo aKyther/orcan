@@ -86,7 +86,6 @@ def main() -> None:
     if ws is None:
         ws = {
             "name": ws_name,
-            "tmux": ws_name,
             "projects": [proj],
         }
         cfg["workspaces"].append(ws)

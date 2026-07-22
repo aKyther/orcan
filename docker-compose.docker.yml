@@ -1,7 +1,7 @@
 # Optional overlay: mount the host Docker socket.
 # Warning: this gives the container control over the host Docker Engine.
 services:
-  cursor:
+  cind:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:

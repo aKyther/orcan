@@ -19,7 +19,6 @@ Each workspace lives under `/home/developer/workspaces/<name>` with 1+ mounted p
   "workspaces": [
     {
       "name": "gotibooks",
-      "tmux": "gotibooks",
       "projects": [
         {"name": "backend", "path": "/home/you/gotibooks/backend"},
         {"name": "frontend", "path": "/home/you/gotibooks/frontend"}
