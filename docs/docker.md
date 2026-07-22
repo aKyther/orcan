@@ -204,6 +204,33 @@ See [Cursor](cursor.md).
 | `TTYD_PORT` | Container port for ttyd (default `7681`) |
 | `TTYD_HOST_PORT` | Host port published for the browser terminal (default `7681`) |
 | `TMUX_SESSION_NAME` | TMUX session name in the browser terminal (default `workspace`) |
+| `IMAGE_REGISTRY` | Registry host for publish/pull (default `registry.gitlab.com`) |
+| `IMAGE_REPOSITORY` | Path under registry, e.g. `mygroup/cind` |
+| `IMAGE_TAG` | Remote tag (default `latest`) |
+| `IMAGE_LOCAL` | Local Compose image name (default `cursor-dev:latest`) |
+
+## Publish to GitLab Container Registry
+
+```bash
+# in .env
+IMAGE_REGISTRY=registry.gitlab.com
+IMAGE_REPOSITORY=mygroup/cind
+IMAGE_TAG=latest
+
+make build
+make registry-login   # GitLab username + PAT (write_registry)
+make publish
+```
+
+On another host:
+
+```bash
+make registry-login
+make pull             # retags as cursor-dev:latest
+make terminal-docker
+```
+
+Full details: [Makefile — Publish image to GitLab](makefile.md#publish-image-to-gitlab).
 
 ## Network
 

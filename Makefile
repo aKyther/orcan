@@ -19,7 +19,8 @@ CONFIG ?=
 .PHONY: help setup env build rebuild terminal terminal-docker terminal-url \
 	down logs config init-project init-project-dry-run clean clean-volumes \
 	docs docs-serve test validate path-check validate-project require-generated require-env \
-	config-init config-scaffold config-show
+	config-init config-scaffold config-show \
+	registry-show registry-login publish pull
 
 help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
@@ -101,6 +102,18 @@ build: require-env ## Build the container image
 rebuild: require-env ## Rebuild the image without cache
 	@set -a; . ./.env; set +a; \
 	$(COMPOSE_BUILD) build --no-cache
+
+registry-show: ## Show local/remote image names for publish/pull
+	@./scripts/repository/registry.sh show
+
+registry-login: ## Log in to container registry (GitLab; prompts for user/token)
+	@./scripts/repository/registry.sh login
+
+publish: ## Tag and push image to IMAGE_REGISTRY/IMAGE_REPOSITORY:IMAGE_TAG
+	@./scripts/repository/registry.sh publish
+
+pull: ## Pull published image and retag as cursor-dev:latest
+	@./scripts/repository/registry.sh pull
 
 terminal: require-generated ## Start browser terminal (no Docker socket; does not run make env)
 	-$(COMPOSE_TTYD_DOCKER) down
