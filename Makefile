@@ -5,6 +5,7 @@ COMPOSE_PROJECTS_FILE := .cind/compose-projects.generated.yml
 COMPOSE_DOCKER_FILE := docker-compose.docker.yml
 COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE)
+COMPOSE_BUILD := docker compose -f $(COMPOSE_FILE)
 COMPOSE_TTYD := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE)
 COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE) -f $(COMPOSE_DOCKER_FILE)
 
@@ -17,7 +18,7 @@ CONFIG ?=
 
 .PHONY: help setup env build rebuild terminal terminal-docker terminal-url \
 	down logs config init-project init-project-dry-run clean clean-volumes \
-	docs docs-serve test validate path-check validate-project require-generated \
+	docs docs-serve test validate path-check validate-project require-generated require-env \
 	config-init config-scaffold config-show
 
 help: ## Show available Make targets
@@ -46,10 +47,17 @@ validate-project:
 require-generated: ## Fail fast if .env or generated runtime files are missing (no writes)
 	@./scripts/repository/require-generated.sh
 
+require-env: ## Fail fast if .env is missing (for image build only)
+	@if [ ! -f .env ]; then \
+		printf 'Error: .env is missing.\n' >&2; \
+		printf 'Run:  make env\n' >&2; \
+		exit 1; \
+	fi
+
 path-check: require-generated ## Show host/container project path parity (read-only)
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	printf 'Orchestrator (host):    %s  (cind repo — where you run make)\n' "$$PROJECT_DIR"; \
-	printf 'Workspace (container):  %s (%s)\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}}" "$${WORKSPACE_NAME:-}"; \
+	printf 'Workspace (container):  %s (%s)\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}" "$${WORKSPACE_NAME:-}"; \
 	printf 'Workspace meta (host):  %s\n' "$${WORKSPACE_META_PATH:-}"; \
 	printf 'Container working_dir:  %s\n' "$${CONTAINER_PROJECT_DIR:-$${WORKSPACE_ROOT:-}}"; \
 	printf 'Runtime config:         %s\n' "$${CIND_CONFIG_HOST:-none}"; \
@@ -59,13 +67,7 @@ path-check: require-generated ## Show host/container project path parity (read-o
 	fi; \
 	if [ -f "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}" ]; then \
 		printf 'Workspace manifest:     %s\n' "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}"; \
-		python3 - "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}" <<-'PY' | sed 's/^/  /'; \
-import json, sys; \
-m = json.load(open(sys.argv[1])); \
-print(f"workspaces: {len(m.get('workspaces', []))}"); \
-[print(f"{ws['name']}: tmux={ws.get('tmux_session')} root={ws.get('root')}") for ws in m.get('workspaces', [])]; \
-[print(f"  {p['name']}: {p['path']} -> {p.get('workspace_path')}") for ws in m.get('workspaces', []) for p in ws.get('projects', [])]; \
-PY \
+		./scripts/repository/print-workspace-manifest.sh "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}" | sed 's/^/  /'; \
 	fi; \
 	printf 'Path parity:            enabled\n'
 
@@ -92,11 +94,13 @@ config-scaffold: validate-project ## Add workspace/project to cind.config.json f
 config-show: ## List workspaces in cind.config.json and runtime manifest
 	@python3 ./scripts/repository/config-show.py
 
-build: require-generated ## Build the container image
-	$(COMPOSE) build
+build: require-env ## Build the container image
+	@set -a; . ./.env; set +a; \
+	$(COMPOSE_BUILD) build
 
-rebuild: require-generated ## Rebuild the image without cache
-	$(COMPOSE) build --no-cache
+rebuild: require-env ## Rebuild the image without cache
+	@set -a; . ./.env; set +a; \
+	$(COMPOSE_BUILD) build --no-cache
 
 terminal: require-generated ## Start browser terminal (no Docker socket; does not run make env)
 	-$(COMPOSE_TTYD_DOCKER) down
