@@ -119,6 +119,8 @@ make terminal-docker
 
 Open `http://localhost:7681` (or `http://<tailscale-ip>:7681` on a remote host in your tailnet). Pick a workspace → tmux session.
 
+**Daily:** `make terminal-docker` only — no config regeneration.
+
 `make setup`:
 
 * creates `cind.config.json` from `PROJECT_DIR` if missing (one workspace, one project)
@@ -182,8 +184,8 @@ agent --version
 | `make env` | Create/update `.env` from the host |
 | `make build` | Build the image |
 | `make rebuild` | Rebuild with `--no-cache` |
-| `make terminal` | Start container with **browser terminal** (no Docker socket) |
-| `make terminal-docker` | Start container with **browser terminal** and Docker socket |
+| `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
+| `make terminal-docker` | Start browser terminal + Docker socket (does not run `make env`) |
 | `make terminal-url` | Print the browser terminal URL |
 | `make down` | Stop containers; keep named volumes |
 | `make logs` | Follow logs |
@@ -199,6 +201,16 @@ agent --version
 | `make docs` | Build MkDocs site |
 | `make docs-serve` | Serve MkDocs locally |
 
+### Configure vs run
+
+| When | Command |
+| --- | --- |
+| First run / config change | `make setup` or `make env` |
+| Start terminal | `make terminal` or `make terminal-docker` |
+| Add a repo | `make config-scaffold …` then `make env` |
+
+`make terminal*` reads `.env` as-is — it does not overwrite `CPUS`, mounts, or runtime files.
+
 ### Choose a project
 
 **With JSON config** (see Quick start above):
@@ -207,10 +219,10 @@ agent --version
 # edit cind.config.json, then:
 make env
 make path-check
-make terminal-docker
+make down && make terminal-docker
 ```
 
-**Without JSON** — single project only:
+**Without JSON** — single project only (first `make env`):
 
 ```bash
 make env PROJECT_DIR=$HOME/projects/my-app

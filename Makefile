@@ -8,15 +8,16 @@ COMPOSE := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE)
 COMPOSE_TTYD := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE)
 COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE) -f $(COMPOSE_DOCKER_FILE)
 
+# Used by make env / make setup / make config-scaffold only — not by make terminal*.
 PROJECT_DIR ?= $(CURDIR)
-# Optional JSON profile. If empty and ./cind.config.json exists, update-env uses it.
+# Optional JSON profile for make env (if empty and ./cind.config.json exists, update-env uses it).
 CONFIG ?=
 
 .DEFAULT_GOAL := help
 
 .PHONY: help setup env build rebuild terminal terminal-docker terminal-url \
 	down logs config init-project init-project-dry-run clean clean-volumes \
-	docs docs-serve test validate path-check validate-project \
+	docs docs-serve test validate path-check validate-project require-generated \
 	config-init config-scaffold config-show
 
 help: ## Show available Make targets
@@ -42,7 +43,10 @@ setup: validate-project ## First run: create config if missing, refresh .env, sh
 validate-project:
 	@./scripts/repository/validate-project-dir.sh
 
-path-check: env validate-project ## Show host/container project path parity
+require-generated: ## Fail fast if .env or generated runtime files are missing (no writes)
+	@./scripts/repository/require-generated.sh
+
+path-check: require-generated ## Show host/container project path parity (read-only)
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	printf 'Default repo path:      %s\n' "$$PROJECT_DIR"; \
 	printf 'Container working dir:  %s\n' "$${CONTAINER_PROJECT_DIR:-$${WORKSPACE_ROOT:-}}"; \
@@ -91,19 +95,19 @@ config-scaffold: validate-project ## Add workspace/project to cind.config.json f
 config-show: ## List workspaces in cind.config.json and runtime manifest
 	@python3 ./scripts/repository/config-show.py
 
-build: env validate-project ## Build the container image
+build: require-generated ## Build the container image
 	$(COMPOSE) build
 
-rebuild: env validate-project ## Rebuild the image without cache
+rebuild: require-generated ## Rebuild the image without cache
 	$(COMPOSE) build --no-cache
 
-terminal: env validate-project ## Start container with browser terminal (no Docker socket)
+terminal: require-generated ## Start browser terminal (no Docker socket; does not run make env)
 	-$(COMPOSE_TTYD_DOCKER) down
 	$(COMPOSE_TTYD) up -d
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n  Launcher: pick a workspace (one tmux session per workspace)\n  Default repo: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
 
-terminal-docker: env validate-project ## Start container with browser terminal and host Docker socket
+terminal-docker: require-generated ## Start browser terminal + Docker socket (does not run make env)
 	@if [ ! -S /var/run/docker.sock ]; then \
 		echo "Error: /var/run/docker.sock not found. Docker Engine is required for terminal-docker."; \
 		exit 1; \
@@ -121,7 +125,7 @@ terminal-docker: env validate-project ## Start container with browser terminal a
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n  Launcher: pick a workspace (one tmux session per workspace)\n  Default repo: %s\n\nStop with: make down\n' "$${TTYD_HOST_PORT:-7681}" "$$PROJECT_DIR"
 
-terminal-url: ## Print the browser terminal URL
+terminal-url: require-generated ## Print the browser terminal URL
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	printf 'http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"
 
@@ -139,18 +143,18 @@ logs: ## Follow container logs
 		exit 1; \
 	fi
 
-config: env validate-project ## Validate and print the resolved Compose config
+config: require-generated ## Validate and print the resolved Compose config
 	@echo "=== terminal (make terminal) ==="
 	$(COMPOSE_TTYD) config
 	@echo ""
 	@echo "=== terminal-docker (make terminal-docker) ==="
 	$(COMPOSE_TTYD_DOCKER) config
 
-init-project: env validate-project ## Create missing Cursor project files in the mounted PROJECT_DIR
+init-project: require-generated ## Create missing Cursor project files in the mounted PROJECT_DIR
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	$(COMPOSE) run --rm --name cursor-dev-init-project cursor cursor-init-project "$$PROJECT_DIR"
 
-init-project-dry-run: env validate-project ## Show Cursor project files that would be created
+init-project-dry-run: require-generated ## Show Cursor project files that would be created
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run "$$PROJECT_DIR"
 

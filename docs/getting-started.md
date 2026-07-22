@@ -59,9 +59,13 @@ The first build downloads base images. Later builds reuse Docker layer caches.
 make terminal-docker
 ```
 
+No variables needed — uses existing `.env` and generated files. Does **not** run `make env`.
+
 Use `make terminal` if you do **not** need the host Docker socket.
 
 Open `http://localhost:7681` or run `make terminal-url`.
+
+**After editing `cind.config.json`:** run `make env`, then `make down && make terminal-docker`.
 
 Remote host on **Tailscale**: `http://<tailscale-ip>:7681`.
 
