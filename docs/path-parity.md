@@ -73,7 +73,7 @@ These are separate:
 | --- | --- |
 | `/home/developer` | Container user home (`${HOME}`) |
 | `${PROJECT_DIR}` | Mounted project (same path as on the host) |
-| `${HOME}/.cursor` | Global Cursor CLI config (named volume) |
+| `${HOME}/.cursor` | Global Cursor CLI config (`$CIND_DATA/cursor` on host) |
 | `${PROJECT_DIR}/.cursor` | Project-specific Cursor config |
 
 ## Validation

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke-test the built cursor-dev image.
+# Smoke-test the built cind image.
 # Host-only helper. Requires Docker.
 
 set -Eeuo pipefail
@@ -17,7 +17,7 @@ COMPOSE=(docker compose -f docker-compose.yml -f .cind/compose-projects.generate
 
 printf 'Running container smoke checks (PROJECT_DIR=%s)...\n' "${SMOKE_PROJECT}"
 
-"${COMPOSE[@]}" run --rm --no-TTY --name cursor-dev-smoke cursor bash -lc "
+"${COMPOSE[@]}" run --rm --no-TTY --name cind-smoke cind bash -lc "
 set -euo pipefail
 
 command -v docker-entrypoint >/dev/null

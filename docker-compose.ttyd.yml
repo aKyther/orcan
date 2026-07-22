@@ -2,7 +2,7 @@
 # Remote access: browser only (ttyd → workspace picker → tmux). No SSH server.
 # Recommended: Tailscale (or localhost). Do not expose port 7681 on the public Internet.
 services:
-  cursor:
+  cind:
     command: ["cursor-ttyd"]
     restart: unless-stopped
     ports:

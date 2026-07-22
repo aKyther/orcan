@@ -8,7 +8,7 @@ This repository prepares Cursor CLI with **global defaults inside the container*
 | --- | --- |
 | Root `.cursor/rules/`, ignore files | Developing **this** repository |
 | `docker/rootfs/opt/cursor-defaults/` | Product defaults copied into the **image** |
-| `${HOME}/.cursor` in the container | Writable user state (named volume) |
+| `${HOME}/.cursor` in the container | Writable user state (bind: `$CIND_DATA/cursor`) |
 | `${PROJECT_DIR}/.cursor` | Settings for the **mounted project** |
 
 Do not mix these layers.
@@ -21,10 +21,10 @@ Image defaults
 /opt/cursor-defaults
 (from docker/rootfs/opt/cursor-defaults)
 
-Persistent container user settings
+Persistent container user settings (host: ~/.config/cind/…)
     ↓
-/home/developer/.cursor           (named volume: cursor-config)
-/home/developer/.config/cursor    (named volume: cursor-app-config; login)
+/home/developer/.cursor           ← $CIND_DATA/cursor
+/home/developer/.config/cursor    ← $CIND_DATA/cursor-app (login)
 
 Project-specific settings
     ↓
@@ -41,8 +41,8 @@ Cursor CLI permissions
 
 ## Why `/opt/cursor-defaults` exists
 
-Compose mounts a named volume at `/home/developer/.cursor`.
-Anything written only to that path during `docker build` is hidden when the empty volume mounts.
+Compose bind-mounts `$CIND_DATA/cursor` at `/home/developer/.cursor`.
+Anything written only to that path during `docker build` is hidden when the host dir mounts.
 
 So the image stores defaults under `/opt/cursor-defaults`.
 At startup, the entrypoint copies **missing** files into `${HOME}/.cursor`.
@@ -65,13 +65,13 @@ Running init many times is safe:
 * later runs print `Skipped` for files that already exist
 * modified files are never overwritten by default
 
-The image keeps an empty, developer-owned `${HOME}/.cursor` directory so the first
-named-volume mount stays writable. Defaults still come only from `/opt/cursor-defaults`.
+Defaults still come only from `/opt/cursor-defaults`.
 
 ### Reset Cursor user config
 
 ```bash
-make clean-volumes
+make clean-data
+make env
 make terminal
 ```
 
@@ -79,18 +79,18 @@ Open `http://localhost:7681` to continue.
 
 ### Login persistence
 
-Cursor CLI stores different data in two volumes:
+Cursor CLI stores different data in two host dirs under `$CIND_DATA` (default `~/.config/cind`):
 
-| Path | Volume | Contents |
+| Path in container | Host path | Contents |
 | --- | --- | --- |
-| `~/.cursor` | `cursor-config` | `cli-config.json`, chats, rules, skills |
-| `~/.config/cursor` | `cursor-app-config` | `auth.json` (login tokens) |
+| `~/.cursor` | `$CIND_DATA/cursor` | `cli-config.json`, chats, rules, skills |
+| `~/.config/cursor` | `$CIND_DATA/cursor-app` | `auth.json` (login tokens) |
 
-Log in once from the browser terminal (`agent login` or the interactive flow). Restarts and `make down` keep both volumes.
+Log in once from the browser terminal (`agent login` or the interactive flow). Restarts and `make down` keep both.
 
 !!! warning
 
-    `make clean-volumes` deletes login state along with caches and CLI config.
+    `make clean-data` deletes login state along with caches and CLI config under `$CIND_DATA`.
 
 For scripts/CI, set `CURSOR_API_KEY` instead of interactive login.
 
@@ -206,8 +206,8 @@ claude          # interactive session
 
 | CLI | Command | Config (container-local) |
 | --- | --- | --- |
-| Cursor | `agent` | `~/.cursor`, `~/.config/cursor` (named volumes) |
-| Claude Code | `claude` | `~/.claude` (not persisted across volume resets) |
+| Cursor | `agent` | `~/.cursor`, `~/.config/cursor` (`$CIND_DATA` on host) |
+| Claude Code | `claude` | `~/.claude` (`$CIND_DATA/claude` on host) |
 
 Pick whichever CLI fits the task. Log in separately for each (`agent` vs `claude`).
 

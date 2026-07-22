@@ -48,7 +48,7 @@ printf '%s\n' "${MARKER}" > "${TEST_DIR}/${MARKER}"
 
 cat > "${TEST_DIR}/compose-mount.yml" <<EOF
 services:
-  cursor:
+  cind:
     volumes:
       - ${TEST_DIR}:${TEST_DIR}
 EOF
@@ -62,7 +62,7 @@ COMPOSE_TTYD_DOCKER=(
     -f docker-compose.docker.yml
 )
 
-"${COMPOSE_TTYD_DOCKER[@]}" run --rm --no-TTY cursor bash -lc "
+"${COMPOSE_TTYD_DOCKER[@]}" run --rm --no-TTY cind bash -lc "
 set -euo pipefail
 test \"\$(pwd -P)\" = \"${TEST_DIR}\"
 test \"\${PROJECT_DIR}\" = \"${TEST_DIR}\"

@@ -46,3 +46,12 @@ if (( ${#missing[@]} > 0 )); then
 fi
 
 validate_project_dir || exit 1
+
+# Ensure host data tree exists (default ~/.config/cind — like poetry under ~/.config).
+CIND_DATA="${CIND_DATA:-${HOME}/.config/cind}"
+if [[ -z "${CIND_DATA}" ]]; then
+    CIND_DATA="${HOME}/.config/cind"
+fi
+for sub in cursor cursor-app claude cache npm pnpm cargo go bash-history; do
+    mkdir -p "${CIND_DATA}/${sub}"
+done

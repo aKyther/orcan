@@ -9,7 +9,7 @@
 #   ./scripts/repository/registry.sh pull
 #
 # Env (from .env or shell):
-#   IMAGE_LOCAL       local image name (default: cursor-dev:latest)
+#   IMAGE_LOCAL       local image name (default: cind:latest)
 #   IMAGE_REGISTRY    registry host (default: registry.gitlab.com)
 #   IMAGE_REPOSITORY  path under registry, e.g. mygroup/cind
 #   IMAGE_TAG         tag (default: latest)
@@ -28,7 +28,7 @@ if [[ -f "${ROOT_DIR}/.env" ]]; then
     set +a
 fi
 
-IMAGE_LOCAL="${IMAGE_LOCAL:-cursor-dev:latest}"
+IMAGE_LOCAL="${IMAGE_LOCAL:-cind:latest}"
 IMAGE_REGISTRY="${IMAGE_REGISTRY:-registry.gitlab.com}"
 IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
@@ -137,7 +137,7 @@ Usage: registry.sh <show|login|publish|pull>
   show     Print configured image names
   login    docker login to IMAGE_REGISTRY (GitLab)
   publish  Tag local image and push to registry
-  pull     Pull remote image and retag as local cursor-dev:latest
+  pull     Pull remote image and retag as local cind:latest
 EOF
 }
 

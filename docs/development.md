@@ -71,18 +71,18 @@ Examples:
 3. Global skills (`skills/`) are reusable workflows; avoid duplicating rule content.
 4. Project templates (`templates/`) are copied by `cursor-init-project` — keep them project-scoped.
 5. Rebuild the image (`make build`).
-6. New files appear on next container start only if missing in the volume.
-7. To force a full reset of global Cursor home: `make clean-volumes`, then start again.
+6. New files appear on next container start only if missing under `$CIND_DATA/cursor`.
+7. To force a full reset of global Cursor home: `make clean-data`, then `make env` and start again.
 
 Do not write defaults only into `/home/developer/.cursor` during the image build.
-The named volume would hide them.
+The host bind would hide them.
 
 ## Changing Compose
 
 1. Keep the Docker socket out of `docker-compose.yml`.
 2. Put socket + `group_add` only in `docker-compose.docker.yml`.
 3. Put ttyd port and TMUX settings only in `docker-compose.ttyd.yml`.
-4. Preserve named volumes unless you have a migration plan.
+4. Keep host binds under `CIND_DATA` (no Docker named volumes for user state).
 5. Validate configs:
 
 ```bash
@@ -93,7 +93,7 @@ make config
 
 1. Keep `.PHONY` entries updated.
 2. Keep `help` comments (`## ...`) accurate.
-3. Never make `clean-volumes` an automatic dependency of another target.
+3. Never make `clean-data` / `clean-volumes` an automatic dependency of another target.
 4. Move complex host logic to `scripts/repository/`.
 
 ## Changing Cursor rules (this repository)

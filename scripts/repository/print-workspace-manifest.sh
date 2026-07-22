@@ -12,7 +12,7 @@ import sys
 m = json.load(open(sys.argv[1], encoding="utf-8"))
 print(f"workspaces: {len(m.get('workspaces', []))}")
 for ws in m.get("workspaces", []):
-    print(f"{ws['name']}: tmux={ws.get('tmux_session')} root={ws.get('root')}")
+    print(f"{ws['name']}: root={ws.get('root')}")
     for p in ws.get("projects", []):
         print(f"  {p['name']}: {p['path']} -> {p.get('workspace_path')}")
 PY

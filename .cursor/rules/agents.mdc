@@ -56,6 +56,7 @@ make down
 make logs
 make rebuild
 make clean
+make clean-data
 make clean-volumes
 make config
 make init-project
@@ -92,7 +93,7 @@ Not allowed:
 - Read or edit host paths outside `${PROJECT_DIR}`.
 - Modify `.env` unless asked.
 - Run `docker system prune`.
-- Delete volumes except via an explicit user request for `make clean-volumes`.
+- Delete host `CIND_DATA` except via an explicit user request for `make clean-data` / `make clean-volumes`.
 - Start `--privileged` containers.
 - Mount sensitive host directories.
 - Claim build success without running the build.

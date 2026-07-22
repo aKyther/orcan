@@ -17,7 +17,7 @@ CONFIG ?=
 .DEFAULT_GOAL := help
 
 .PHONY: help setup env build rebuild terminal terminal-docker terminal-url \
-	down logs config init-project init-project-dry-run clean clean-volumes \
+	down logs config init-project init-project-dry-run clean clean-volumes clean-data \
 	docs docs-serve test validate path-check validate-project require-generated require-env \
 	config-init config-scaffold config-show \
 	registry-show registry-login publish pull
@@ -112,7 +112,7 @@ registry-login: ## Log in to container registry (GitLab; prompts for user/token)
 publish: ## Tag and push image to IMAGE_REGISTRY/IMAGE_REPOSITORY:IMAGE_TAG
 	@./scripts/repository/registry.sh publish
 
-pull: ## Pull published image and retag as cursor-dev:latest
+pull: ## Pull published image and retag as cind:latest
 	@./scripts/repository/registry.sh pull
 
 terminal: require-generated ## Start browser terminal (no Docker socket; does not run make env)
@@ -135,10 +135,10 @@ terminal-docker: require-generated ## Start browser terminal + Docker socket (do
 	fi
 	-$(COMPOSE_TTYD) down
 	$(COMPOSE_TTYD_DOCKER) up -d
-	@if ! $(COMPOSE_TTYD_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
+	@if ! $(COMPOSE_TTYD_DOCKER) exec -T cind test -S /var/run/docker.sock 2>/dev/null; then \
 		echo "Docker socket missing in container; forcing recreate..."; \
 		$(COMPOSE_TTYD_DOCKER) up -d --force-recreate; \
-		if ! $(COMPOSE_TTYD_DOCKER) exec -T cursor test -S /var/run/docker.sock 2>/dev/null; then \
+		if ! $(COMPOSE_TTYD_DOCKER) exec -T cind test -S /var/run/docker.sock 2>/dev/null; then \
 			echo "Error: /var/run/docker.sock is not mounted in the container."; \
 			exit 1; \
 		fi; \
@@ -162,12 +162,12 @@ down: ## Stop containers without removing volumes
 	-$(COMPOSE_TTYD_DOCKER) down
 
 logs: ## Follow container logs
-	@if $(COMPOSE_TTYD_DOCKER) ps -q cursor 2>/dev/null | grep -q .; then \
+	@if $(COMPOSE_TTYD_DOCKER) ps -q cind 2>/dev/null | grep -q .; then \
 		$(COMPOSE_TTYD_DOCKER) logs -f; \
-	elif $(COMPOSE_TTYD) ps -q cursor 2>/dev/null | grep -q .; then \
+	elif $(COMPOSE_TTYD) ps -q cind 2>/dev/null | grep -q .; then \
 		$(COMPOSE_TTYD) logs -f; \
 	else \
-		echo "No running cursor container. Start with make terminal or make terminal-docker."; \
+		echo "No running cind container. Start with make terminal or make terminal-docker."; \
 		exit 1; \
 	fi
 
@@ -180,27 +180,35 @@ config: require-generated ## Validate and print the resolved Compose config
 
 init-project: require-generated ## Create missing Cursor project files in the mounted PROJECT_DIR
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	$(COMPOSE) run --rm --name cursor-dev-init-project cursor cursor-init-project "$$PROJECT_DIR"
+	$(COMPOSE) run --rm --name cind-init-project cind cursor-init-project "$$PROJECT_DIR"
 
 init-project-dry-run: require-generated ## Show Cursor project files that would be created
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	$(COMPOSE) run --rm --name cursor-dev-init-project-dry cursor cursor-init-project --dry-run "$$PROJECT_DIR"
+	$(COMPOSE) run --rm --name cind-init-project-dry cind cursor-init-project --dry-run "$$PROJECT_DIR"
 
-clean: ## Stop containers and remove anonymous resources (keeps named volumes)
+clean: ## Stop containers (keeps host data under CIND_DATA)
 	-$(COMPOSE_TTYD) down --remove-orphans
 	-$(COMPOSE_TTYD_DOCKER) down --remove-orphans
 
-clean-volumes: ## Stop containers and DELETE named volumes (destructive)
-	@echo "WARNING: This deletes named volumes (Cursor config/login, caches, bash history)."
-	@read -r -p "Type 'yes' to continue: " answer; \
+clean-data: ## Delete host data under CIND_DATA (~/.config/cind) — Cursor/Claude login, caches
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	data="$${CIND_DATA:-$${HOME}/.config/cind}"; \
+	printf 'WARNING: This deletes host data: %s\n' "$$data"; \
+	printf '  (Cursor/Claude login, caches, bash history)\n'; \
+	read -r -p "Type 'yes' to continue: " answer; \
 	if [ "$$answer" = "yes" ]; then \
-		$(COMPOSE_TTYD) down -v --remove-orphans; \
-		$(COMPOSE_TTYD_DOCKER) down -v --remove-orphans; \
-		echo "Named volumes removed."; \
+		$(COMPOSE_TTYD) down --remove-orphans 2>/dev/null || true; \
+		$(COMPOSE_TTYD_DOCKER) down --remove-orphans 2>/dev/null || true; \
+		rm -rf "$$data"; \
+		printf 'Removed %s\n' "$$data"; \
+		printf 'Next: make env && make terminal-docker\n'; \
 	else \
 		echo "Aborted."; \
 		exit 1; \
 	fi
+
+clean-volumes: clean-data ## Alias for clean-data (named Docker volumes are no longer used)
+	@printf 'Hint: old Docker named volumes (if any) can be removed with: docker volume prune\n'
 
 docs: ## Build the MkDocs site into ./site
 	@if command -v mkdocs >/dev/null 2>&1; then \

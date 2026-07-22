@@ -32,7 +32,6 @@ A **workspace** = one tmux session + one directory + 1+ repos.
   "workspaces": [
     {
       "name": "gotibooks",
-      "tmux": "gotibooks",
       "projects": [
         {"name": "backend", "path": "/home/you/gotibooks/backend"},
         {"name": "frontend", "path": "/home/you/gotibooks/frontend"}
@@ -40,7 +39,6 @@ A **workspace** = one tmux session + one directory + 1+ repos.
     },
     {
       "name": "cind",
-      "tmux": "cind",
       "projects": [
         {"name": "cind", "path": "/home/you/workspace/kyther/cind"}
       ]
@@ -53,10 +51,10 @@ Rules:
 
 * `workspaces` must contain **at least one** workspace
 * each workspace must contain **at least one** project in `projects[]`
-* workspace container path defaults to `/home/developer/workspaces/<name>`
-* `tmux` (optional) — tmux session name; defaults to workspace `name` (usually omit)
+* workspace container path: `/home/developer/workspaces/<name>`
+* tmux session name = workspace `name` (do not set a separate `tmux` field)
 * project `name` = subdirectory under workspace root
-* no `alias`, no `default_project`, no `default_workspace`, no `mount_mode`
+* no `alias`, no `default_project`, no `default_workspace`, no `mount_mode`, no per-workspace `tmux`
 * each project uses **path parity** (same absolute path on host and in container) plus a **symlink** under the workspace root
 * container entrypoint uses the **first** workspace in the list for startup paths
 
@@ -83,7 +81,6 @@ Still supported — equivalent to one entry in `workspaces[]`:
 {
   "workspace": {
     "name": "gotibooks",
-    "tmux": "gotibooks",
     "projects": [
       {"name": "backend", "path": "/home/you/gotibooks/backend"}
     ]
@@ -93,16 +90,15 @@ Still supported — equivalent to one entry in `workspaces[]`:
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Workspace label in launcher → `/home/developer/workspaces/<name>/` |
-| `tmux` | tmux session name (defaults to workspace `name`) |
+| `name` | Workspace label, directory, and tmux session name |
 | `projects[].name` | Symlink subdirectory under workspace root |
 | `projects[].path` | Host absolute path (parity mount) |
 
-Do not set `meta_path`, `root`, or `role` — workspace directories are fixed under `/home/developer/workspaces/`.
+Do not set `meta_path`, `root`, `role`, or per-workspace `tmux`.
 
 ### tmux tabs (global)
 
-Each workspace session starts with generic tabs (not one tab per repo):
+Root-level `tmux` configures **window defaults** (not the session name):
 
 ```json
 "tmux": {
@@ -111,7 +107,7 @@ Each workspace session starts with generic tabs (not one tab per repo):
 }
 ```
 
-Creates `workspace-1`, `workspace-2`, `workspace-3` in the workspace root. Developers rename tabs with tmux (`prefix ,`) or add windows (`Alt+c`).
+Creates `workspace-1`, `workspace-2`, `workspace-3` in the workspace root. Session name is always `workspaces[].name`. Developers rename tabs with tmux (`prefix ,`) or add windows (`Alt+c`).
 
 Generated files (per workspace):
 
