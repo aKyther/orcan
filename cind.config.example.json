@@ -2,58 +2,35 @@
   "workspaces": [
     {
       "name": "gotibooks",
-      "mount_mode": "parity",
-      "meta_path": "/absolute/path/to/gotibooks-workspace",
       "tmux": "gotibooks",
       "projects": [
         {
           "name": "backend",
-          "path": "/absolute/path/to/gotibooks/backend",
-          "role": "service",
-          "windows": [
-            {"name": "editor", "icon": "📝", "dir": "."},
-            {"name": "server", "icon": "🐍", "dir": ".", "command": "bash"},
-            {"name": "logs", "icon": "⚙", "dir": "."}
-          ]
+          "path": "/absolute/path/to/gotibooks/backend"
         },
         {
           "name": "frontend",
-          "path": "/absolute/path/to/gotibooks/frontend",
-          "role": "service"
+          "path": "/absolute/path/to/gotibooks/frontend"
         },
         {
           "name": "agent",
-          "path": "/absolute/path/to/gotibooks/agent",
-          "role": "orchestrator"
-        }
-      ]
-    },
-    {
-      "name": "code-review",
-      "mount_mode": "workspace",
-      "tmux": "review",
-      "projects": [
-        {
-          "name": "upstream",
-          "path": "/absolute/path/to/upstream-repo",
-          "role": "repo"
+          "path": "/absolute/path/to/gotibooks/agent"
         }
       ]
     },
     {
       "name": "cind",
-      "mount_mode": "parity",
       "projects": [
         {
           "name": "cind",
-          "path": "/absolute/path/to/cind",
-          "role": "orchestrator"
+          "path": "/absolute/path/to/cind"
         }
       ]
     }
   ],
   "tmux": {
-    "mode": "windows-by-repo"
+    "initial_windows": 3,
+    "window_prefix": "workspace"
   },
   "ttyd": {
     "port": 7681,

@@ -37,7 +37,7 @@ make down && make terminal-docker
 
 Optional: `make config-init` copies the full multi-workspace **example** when you prefer editing a template by hand.
 
-See [JSON config](config.md) for `mount_mode`, `windows[]`, ttyd, and resources.
+See [JSON config](config.md) for tmux tabs, ttyd, and resources.
 
 ## 3. Check mounts (optional)
 
@@ -69,7 +69,7 @@ Open `http://localhost:7681` or run `make terminal-url`.
 
 Remote host on **Tailscale**: `http://<tailscale-ip>:7681`.
 
-In the browser: **workspace picker** → one tmux session per workspace (one window per project).
+In the browser: **workspace picker** → one tmux session per workspace → tabs `workspace-1` … `workspace-3`.
 
 !!! warning
 

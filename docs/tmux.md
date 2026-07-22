@@ -2,7 +2,9 @@
 
 cind tmux matches **host `~/.tmux.conf`** (prefix, colours, Alt/Ctrl bindings). Config lives in `/etc/tmux/`; `~/.tmux.conf` in the container only sources it.
 
-**Flow:** ttyd → workspace launcher → tmux session with tabs.
+**Flow:** ttyd → workspace launcher (pick session) → tmux with tabs `workspace-1` … `workspace-3`.
+
+Rename tabs anytime: `Ctrl+Space` `,` (prompt) or `Alt+c` for a new window. Projects live as subdirectories — `cd backend` etc.
 
 ## Prefix
 

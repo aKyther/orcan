@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Attach to a workspace tmux session — workspace tab + project tabs (optional windows[]).
+# Attach to a workspace tmux session — default tabs workspace-1, workspace-2, …
 # Usage: cursor-tmux-workspace-attach SESSION WORKSPACE_ROOT [WORKSPACE_LABEL]
 set -Eeuo pipefail
 
@@ -49,157 +49,44 @@ set_session_env() {
     tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_PATH "${WORKSPACE_ROOT}" 2>/dev/null || true
 }
 
-fetch_workspace_layout() {
-    [[ -f "${CIND_CONFIG}" ]] || return 1
-    python3 - "${CIND_CONFIG}" "${WORKSPACE_LABEL}" "${WORKSPACE_ROOT}" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-config_path, workspace_name, workspace_root = sys.argv[1:4]
-
-
-def repo_icon(name: str) -> str:
-    key = (name or "").strip().lower()
-    icons = {
-        "backend": "🐍",
-        "api": "🐍",
-        "server": "🐍",
-        "frontend": "🌐",
-        "web": "🌐",
-        "ui": "🌐",
-        "agent": "🤖",
-        "orchestrator": "🤖",
-        "docs": "📖",
-        "doc": "📖",
-        "infra": "⚙",
-        "devops": "⚙",
-        "ops": "⚙",
-        "shared": "🧩",
-        "common": "🧩",
-        "lib": "🧩",
-        "test": "🧪",
-        "tests": "🧪",
-        "database": "🗄",
-        "db": "🗄",
-    }
-    return icons.get(key, "📁")
-
-
-def resolve_dir(base: str, rel: str) -> str:
-    rel = (rel or ".").strip()
-    base_path = Path(base)
-    if rel == "." or not rel:
-        return str(base_path)
-    if rel.startswith("/"):
-        return rel
-    return str((base_path / rel).resolve())
-
-
-def emit(title: str, cwd: str, command: str = "") -> None:
-    print(f"{title}\t{cwd}\t{command}")
-
-
-emit("🖥 workspace", workspace_root)
-
-with open(config_path, encoding="utf-8") as fh:
+read_tab_defaults() {
+    INITIAL_WINDOWS=3
+    WINDOW_PREFIX="workspace"
+    [[ -f "${CIND_CONFIG}" ]] || return 0
+    while IFS=$'\t' read -r count prefix; do
+        [[ -n "${count}" ]] && INITIAL_WINDOWS="${count}"
+        [[ -n "${prefix}" ]] && WINDOW_PREFIX="${prefix}"
+    done < <(python3 - "${CIND_CONFIG}" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as fh:
     cfg = json.load(fh)
-
-projects = []
-workspaces = cfg.get("workspaces") or []
-if workspaces:
-    for ws in workspaces:
-        if ws.get("name") == workspace_name:
-            projects = ws.get("projects") or []
-            break
-    if not projects and len(workspaces) == 1:
-        projects = workspaces[0].get("projects") or []
-else:
-    legacy = cfg.get("workspace") or {}
-    if legacy.get("name", workspace_name) == workspace_name or not workspace_name:
-        projects = legacy.get("projects") or cfg.get("projects") or []
-
-if not projects:
-    raise SystemExit(1)
-
-for item in projects:
-    name = (item.get("name") or "").strip()
-    project_cwd = (
-        (item.get("container_path") or item.get("workspace_path") or item.get("path") or "")
-        .strip()
-    )
-    if not name or not project_cwd:
-        continue
-
-    windows = item.get("windows") or []
-    project_icon = repo_icon(name)
-
-    if windows:
-        for win in windows:
-            win_name = (win.get("name") or "shell").strip()
-            win_icon = (win.get("icon") or "").strip()
-            suffix = f"{win_icon} {win_name}".strip() if win_icon else win_name
-            title = f"{project_icon} {name} · {suffix}"
-            cwd = resolve_dir(project_cwd, win.get("dir") or ".")
-            command = (win.get("command") or "").strip()
-            emit(title, cwd, command)
-    else:
-        emit(f"{project_icon} {name}", project_cwd)
+tmux = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else {}
+count = int(tmux.get("initial_windows", 3))
+prefix = str(tmux.get("window_prefix") or "workspace").strip() or "workspace"
+if count < 1:
+    count = 1
+if count > 9:
+    count = 9
+print(f"{count}\t{prefix}")
 PY
-}
-
-first_window_target() {
-    local idx
-    idx="$(tmux_cmd list-windows -t "=${SESSION}" -F '#{window_index}' 2>/dev/null | sort -n | head -1)"
-    [[ -n "${idx}" ]] || idx="0"
-    printf '=%s:%s\n' "${SESSION}" "${idx}"
-}
-
-create_window() {
-    local index="$1"
-    local title="$2"
-    local dir="$3"
-    local command="$4"
-    local target
-
-    mkdir -p "${dir}" 2>/dev/null || true
-
-    if (( index == 1 )); then
-        target="$(first_window_target)"
-        tmux_cmd rename-window -t "${target}" "${title}"
-        if [[ "${dir}" != "${WORKSPACE_ROOT}" ]]; then
-            tmux_cmd send-keys -t "${target}" "cd -- $(printf '%q' "${dir}")" C-m || true
-        fi
-    else
-        tmux_cmd new-window -t "=${SESSION}" -n "${title}" -c "${dir}"
-        target="=${SESSION}:${title}"
-    fi
-
-    if [[ -n "${command}" && "${command}" != "bash" ]]; then
-        tmux_cmd send-keys -t "${target}" "${command}" C-m || true
-    fi
+)
 }
 
 bootstrap_session() {
-    local line title dir command index=1
-    local layout_file="${HOME}/.cache/tmux/bootstrap.${SESSION}.lst"
+    local i title
 
-    if ! fetch_workspace_layout >"${layout_file}" 2>/dev/null; then
-        echo "No projects in config for workspace session" >&2
-        exit 1
-    fi
+    read_tab_defaults
 
-    tmux_cmd new-session -d -s "${SESSION}" -c "${WORKSPACE_ROOT}" -n "🖥 workspace"
+    tmux_cmd new-session -d -s "${SESSION}" -c "${WORKSPACE_ROOT}" \
+        -n "${WINDOW_PREFIX}-1"
     set_session_env
 
-    while IFS=$'\t' read -r title dir command; do
-        [[ -n "${title}" && -n "${dir}" ]] || continue
-        create_window "${index}" "${title}" "${dir}" "${command:-}"
-        index=$((index + 1))
-    done <"${layout_file}"
+    for (( i=2; i<=INITIAL_WINDOWS; i++ )); do
+        title="${WINDOW_PREFIX}-${i}"
+        tmux_cmd new-window -t "=${SESSION}" -n "${title}" -c "${WORKSPACE_ROOT}"
+    done
 
-    rm -f "${layout_file}"
-    tmux_cmd select-window -t "$(first_window_target)"
+    tmux_cmd select-window -t "=${SESSION}:1"
 }
 
 if tmux_cmd has-session -t "=${SESSION}" 2>/dev/null; then

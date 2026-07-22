@@ -63,8 +63,8 @@ path-check: require-generated ## Show host/container project path parity (read-o
 import json, sys; \
 m = json.load(open(sys.argv[1])); \
 print(f"workspaces: {len(m.get('workspaces', []))}"); \
-[print(f"{ws['name']}: mount_mode={ws.get('mount_mode')} tmux={ws.get('tmux_session')} root={ws.get('root')}") for ws in m.get('workspaces', [])]; \
-[print(f"  {p['name']}: {p['path']} -> {p.get('workspace_path')} [{p.get('mount')}]") for ws in m.get('workspaces', []) for p in ws.get('projects', [])]; \
+[print(f"{ws['name']}: tmux={ws.get('tmux_session')} root={ws.get('root')}") for ws in m.get('workspaces', [])]; \
+[print(f"  {p['name']}: {p['path']} -> {p.get('workspace_path')}") for ws in m.get('workspaces', []) for p in ws.get('projects', [])]; \
 PY \
 	fi; \
 	printf 'Path parity:            enabled\n'
@@ -87,7 +87,6 @@ config-scaffold: validate-project ## Add workspace/project to cind.config.json f
 	@python3 ./scripts/repository/config-scaffold.py \
 		--project-dir "$(PROJECT_DIR)" \
 		$(if $(WORKSPACE),--workspace "$(WORKSPACE)",) \
-		$(if $(MOUNT_MODE),--mount-mode "$(MOUNT_MODE)",) \
 		$(if $(FORCE),--force,)
 
 config-show: ## List workspaces in cind.config.json and runtime manifest

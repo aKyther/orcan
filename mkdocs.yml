@@ -71,7 +71,6 @@ nav:
   - JSON config: config.md
   - Architecture:
       - Virtual workspace: architecture/workspace.md
-      - Mount modes: architecture/mount-modes.md
   - Makefile: makefile.md
   - Cursor: cursor.md
   - Security: security.md

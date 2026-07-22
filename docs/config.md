@@ -34,15 +34,15 @@ A **workspace** = one tmux session + one directory + 1+ repos.
       "name": "gotibooks",
       "tmux": "gotibooks",
       "projects": [
-        {"name": "backend", "path": "/home/you/gotibooks/backend", "role": "service"},
-        {"name": "frontend", "path": "/home/you/gotibooks/frontend", "role": "service"}
+        {"name": "backend", "path": "/home/you/gotibooks/backend"},
+        {"name": "frontend", "path": "/home/you/gotibooks/frontend"}
       ]
     },
     {
       "name": "cind",
       "tmux": "cind",
       "projects": [
-        {"name": "cind", "path": "/home/you/workspace/kyther/cind", "role": "orchestrator"}
+        {"name": "cind", "path": "/home/you/workspace/kyther/cind"}
       ]
     }
   ]
@@ -56,31 +56,9 @@ Rules:
 * workspace container path defaults to `/home/developer/workspaces/<name>`
 * `tmux` defaults to workspace `name` (one session per workspace)
 * project `name` = subdirectory under workspace root
-* no `alias`, no `default_project`, no `default_workspace`
+* no `alias`, no `default_project`, no `default_workspace`, no `mount_mode`
+* each project uses **path parity** (same absolute path on host and in container) plus a **symlink** under the workspace root
 * container entrypoint uses the **first** workspace in the list for startup paths
-
-### Mount modes (`parity` vs `workspace`)
-
-| Mode | When | Container path |
-| --- | --- | --- |
-| `parity` (default) | Docker via host socket, bind mounts 1:1 | Same as host `path` |
-| `workspace` | Code review, AI analysis, no host path mirror | `<workspace.root>/<name>` |
-
-Set default per workspace with `mount_mode`, override per repo with `projects[].mount`.
-
-```json
-{
-  "name": "code-review",
-  "mount_mode": "workspace",
-  "projects": [
-    {"name": "upstream", "path": "/host/path/repo"}
-  ]
-}
-```
-
-Workspace-only mode defaults root to `/home/developer/workspaces/<name>`. Parity mode uses `/workspace` (single) or `/workspace/<name>` (multiple).
-
-Full guide: [Mount modes](architecture/mount-modes.md).
 
 ### Resource limits (CPUS, memory, …)
 
@@ -105,8 +83,6 @@ Still supported — equivalent to one entry in `workspaces[]`:
 {
   "workspace": {
     "name": "gotibooks",
-    "root": "/workspace",
-    "meta_path": "/home/you/gotibooks-workspace",
     "tmux": "gotibooks",
     "projects": [
       {"name": "backend", "path": "/home/you/gotibooks/backend"}
@@ -117,24 +93,25 @@ Still supported — equivalent to one entry in `workspaces[]`:
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Workspace label in launcher; directory under `/home/developer/workspaces/` |
-| `root` | Override container path (default `/home/developer/workspaces/<name>`) |
-| `meta_path` | Host dir for cross-repo `.cursor/rules` (default: `.cind/workspaces/<name>/`) |
+| `name` | Workspace label in launcher → `/home/developer/workspaces/<name>/` |
 | `tmux` | tmux session name (defaults to workspace `name`) |
-| `projects[].name` | Subdirectory under workspace root |
-| `role` | Hint for agents (`service`, `orchestrator`, `docs`, …) |
+| `projects[].name` | Symlink subdirectory under workspace root |
+| `projects[].path` | Host absolute path (parity mount) |
 
-### Project windows (optional)
+Do not set `meta_path`, `root`, or `role` — workspace directories are fixed under `/home/developer/workspaces/`.
+
+### tmux tabs (global)
+
+Each workspace session starts with generic tabs (not one tab per repo):
 
 ```json
-"windows": [
-  {"name": "editor", "icon": "📝", "dir": "."},
-  {"name": "server", "icon": "🐍", "dir": ".", "command": "make run"},
-  {"name": "logs", "icon": "⚙", "dir": "."}
-]
+"tmux": {
+  "initial_windows": 3,
+  "window_prefix": "workspace"
+}
 ```
 
-Omit `windows` for default layout (one window per repo). See [tmux](tmux.md).
+Creates `workspace-1`, `workspace-2`, `workspace-3` in the workspace root. Developers rename tabs with tmux (`prefix ,`) or add windows (`Alt+c`).
 
 Generated files (per workspace):
 
@@ -150,7 +127,7 @@ Full design: [Virtual workspace](architecture/workspace.md).
 2. Writes `.env` keys used by Compose (workspace paths, generated paths)
 3. Seeds `CPUS`, `MEMORY`, `TTYD_*` in `.env` **only if missing** — edit `.env` for host limits (not overwritten on `make env`)
 4. Writes `.cind/runtime-config.json` (mounted into the container as `/etc/cind/config.json`)
-5. Writes `.cind/compose-projects.generated.yml` (meta_path bind per workspace + path-parity bind per repo)
+5. Writes `.cind/compose-projects.generated.yml` (workspace root bind per workspace + path-parity bind per repo)
 6. Writes `.cind/workspace.manifest.json` and `*.code-workspace` files
 
 The browser launcher reads `/etc/cind/config.json` and lists all workspaces.

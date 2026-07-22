@@ -79,7 +79,8 @@ rm -rf \"\${SMOKE_DIR}\"
 tmux kill-session -t smoke-test 2>/dev/null || true
 CIND_TMUX_ATTACH=0 cursor-tmux-workspace-attach smoke-test \"\${WORKSPACE_ROOT:-${SMOKE_PROJECT}}\" \"\${WORKSPACE_NAME:-cind}\" >/dev/null
 tmux -f \"\${HOME}/.tmux.conf\" has-session -t smoke-test
-test \"\$(tmux -f \"\${HOME}/.tmux.conf\" list-windows -t smoke-test | wc -l)\" -ge 1
+test \"\$(tmux -f \"\${HOME}/.tmux.conf\" list-windows -t smoke-test | wc -l)\" -eq 3
+tmux -f \"\${HOME}/.tmux.conf\" list-windows -t smoke-test | grep -q 'workspace-1'
 tmux -f \"\${HOME}/.tmux.conf\" kill-session -t smoke-test
 
 printf 'SMOKE_OK\n'

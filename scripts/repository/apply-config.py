@@ -13,9 +13,6 @@ from pathlib import Path
 
 SENSITIVE = {"/", "/home", "/root", "/etc", "/usr", "/var", "/opt"}
 DEFAULT_DEVELOPER_WORKSPACES = "/home/developer/workspaces"
-MOUNT_PARITY = "parity"
-MOUNT_WORKSPACE = "workspace"
-VALID_MOUNTS = {MOUNT_PARITY, MOUNT_WORKSPACE}
 
 
 def die(msg: str) -> None:
@@ -114,13 +111,6 @@ def load_config(path: Path) -> dict:
     return data
 
 
-def normalize_mount(value: object, label: str, default: str = MOUNT_PARITY) -> str:
-    mount = str(value or default).strip().lower()
-    if mount not in VALID_MOUNTS:
-        die(f"{label} must be '{MOUNT_PARITY}' or '{MOUNT_WORKSPACE}' (got: {value})")
-    return mount
-
-
 def normalize_workspaces_raw(cfg: dict) -> list[dict]:
     if cfg.get("projects_dir"):
         die(
@@ -162,7 +152,6 @@ def parse_projects(
     projects_raw: list,
     ws_root: str,
     label: str,
-    ws_mount_mode: str,
 ) -> list[dict]:
     if not isinstance(projects_raw, list) or not projects_raw:
         die(f"{label} must contain at least one project")
@@ -179,9 +168,15 @@ def parse_projects(
                 f"{label}[{i}].alias was removed; use name as the subdirectory "
                 f"under the workspace root"
             )
+        if item.get("mount"):
+            die(
+                f"{label}[{i}].mount was removed; all projects use path parity "
+                f"(host path = container path) with a symlink under the workspace root"
+            )
+        if item.get("role"):
+            die(f"{label}[{i}].role was removed; use name and path only")
         name = str(item.get("name") or "").strip()
         path = str(item.get("path") or "").strip()
-        role = str(item.get("role") or "repo").strip()
         if not name or not path:
             die(f"{label}[{i}] requires name and path")
         if name in seen_names:
@@ -197,8 +192,6 @@ def parse_projects(
         seen_paths.add(path_key)
 
         workspace_path = f"{ws_root.rstrip('/')}/{name}"
-        mount = normalize_mount(item.get("mount"), f"{label}[{i}].mount", ws_mount_mode)
-        container_path = path_key if mount == MOUNT_PARITY else workspace_path
 
         windows_raw = item.get("windows") or []
         if windows_raw and not isinstance(windows_raw, list):
@@ -222,9 +215,7 @@ def parse_projects(
                 "name": name,
                 "path": path_key,
                 "workspace_path": workspace_path,
-                "container_path": container_path,
-                "mount": mount,
-                "role": role,
+                "container_path": path_key,
                 "windows": windows,
             }
         )
@@ -263,12 +254,19 @@ def build_workspace_entry(
             "Agents start in the workspace root."
         )
 
-    ws_mount_mode = normalize_mount(
-        ws_raw.get("mount_mode"),
-        f"workspaces[{ws_index}].mount_mode",
-    )
+    if ws_raw.get("mount_mode"):
+        die(
+            f"workspaces[{ws_index}].mount_mode was removed; all projects use path parity "
+            f"with symlinks under {DEFAULT_DEVELOPER_WORKSPACES}/<name>"
+        )
+
     explicit_root = str(ws_raw.get("root") or "").strip()
-    ws_root = default_workspace_root(ws_name, explicit_root)
+    if explicit_root:
+        die(
+            f"workspaces[{ws_index}].root was removed; workspace roots are always "
+            f"{DEFAULT_DEVELOPER_WORKSPACES}/<name>"
+        )
+    ws_root = default_workspace_root(ws_name, "")
     if not ws_root.startswith("/"):
         die(f"workspaces[{ws_index}].root must be an absolute path (got: {ws_root})")
     if ws_root in SENSITIVE:
@@ -279,25 +277,26 @@ def build_workspace_entry(
 
     meta_raw = str(ws_raw.get("meta_path") or "").strip()
     if meta_raw:
-        meta_path = ensure_dir(Path(meta_raw), f"workspaces[{ws_index}].meta_path")
-    else:
-        meta_path = ensure_dir(
-            repo_root / ".cind" / "workspaces" / ws_name,
-            f"workspace meta for {ws_name}",
+        die(
+            f"workspaces[{ws_index}].meta_path was removed; workspace roots are always "
+            f"{DEFAULT_DEVELOPER_WORKSPACES}/<name> (host meta: .cind/workspaces/<name>/)"
         )
+    meta_path = ensure_dir(
+        repo_root / ".cind" / "workspaces" / ws_name,
+        f"workspace meta for {ws_name}",
+    )
 
     tmux_name = str(ws_raw.get("tmux") or ws_name).strip()
     if tmux_name in seen_tmux:
         die(f"duplicate tmux session name: {tmux_name}")
     seen_tmux.add(tmux_name)
 
-    projects = parse_projects(projects_raw, ws_root, label, ws_mount_mode)
+    projects = parse_projects(projects_raw, ws_root, label)
 
     workspace = {
         "name": ws_name,
         "root": ws_root,
         "meta_path": str(meta_path),
-        "mount_mode": ws_mount_mode,
         "enabled": ws_raw.get("enabled", True) is not False,
         "tmux_session": tmux_name,
         "project_count": len(projects),
@@ -324,18 +323,10 @@ def write_compose_projects(workspaces: list[dict]) -> str:
         lines.append(f"      - {ws['meta_path']}:{ws['root']}")
 
     parity_paths: set[str] = set()
-    workspace_binds: set[str] = set()
     for ws in workspaces:
         for project in ws["projects"]:
-            if project["mount"] == MOUNT_PARITY:
-                parity_paths.add(project["path"])
-            else:
-                workspace_binds.add(
-                    f"      - {project['path']}:{project['container_path']}"
-                )
+            parity_paths.add(project["path"])
 
-    for line in sorted(workspace_binds):
-        lines.append(line)
     for path in sorted(parity_paths):
         lines.append(f"      - {path}:{path}")
     return "\n".join(lines) + "\n"
@@ -348,7 +339,6 @@ def write_workspace_manifest(runtime: dict) -> dict:
                 "name": ws["name"],
                 "root": ws["root"],
                 "meta_path": ws["meta_path"],
-                "mount_mode": ws["mount_mode"],
                 "tmux_session": ws["tmux_session"],
                 "project_count": ws["project_count"],
                 "projects": ws["projects"],
@@ -424,11 +414,18 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
         die("ttyd and resources must be objects")
 
     tmux_cfg = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else {}
+    initial_windows = int(tmux_cfg.get("initial_windows", 3))
+    if initial_windows < 1:
+        initial_windows = 1
+    if initial_windows > 9:
+        initial_windows = 9
+    window_prefix = str(tmux_cfg.get("window_prefix") or "workspace").strip() or "workspace"
 
     runtime: dict = {
         "workspaces": workspaces,
         "tmux": {
-            "mode": str(tmux_cfg.get("mode") or "windows-by-repo").strip(),
+            "initial_windows": initial_windows,
+            "window_prefix": window_prefix,
         },
         "ttyd": {
             "port": int(ttyd.get("port", 7681)),
@@ -466,8 +463,6 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
             "path": str(pd),
             "workspace_path": f"{ws_root}/{pd.name}",
             "container_path": str(pd),
-            "mount": MOUNT_PARITY,
-            "role": "repo",
             "windows": [],
         }
     ]
@@ -475,7 +470,6 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
         "name": ws_name,
         "root": ws_root,
         "meta_path": str(meta_path),
-        "mount_mode": MOUNT_PARITY,
         "enabled": True,
         "tmux_session": ws_name,
         "project_count": 1,
@@ -483,7 +477,7 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
     }
     runtime = {
         "workspaces": [workspace],
-        "tmux": {"mode": "windows-by-repo"},
+        "tmux": {"initial_windows": 3, "window_prefix": "workspace"},
         "ttyd": {"port": 7681, "host_port": 7681, "font_size": 22},
         "resources": {
             "cpus": 8,
@@ -588,12 +582,12 @@ def main() -> None:
     for ws in built["workspaces"]:
         print(
             f"  - {ws['name']} @ {ws['root']} "
-            f"(tmux={ws['tmux_session']}, mount_mode={ws['mount_mode']}, repos={ws['project_count']})"
+            f"(tmux={ws['tmux_session']}, repos={ws['project_count']})"
         )
         print(f"    meta: {ws['meta_path']}")
         for p in ws["projects"]:
             print(
-                f"      {p['name']}: {p['path']} → {p['container_path']} [{p['mount']}]"
+                f"      {p['name']}: {p['path']} (symlink → {p['workspace_path']})"
             )
     print(f"runtime config: {runtime_path}")
     print(f"compose mounts: {compose_path}")
