@@ -1,12 +1,35 @@
 # tmux inside ttyd
 
-cind tmux matches **host `~/.tmux.conf`** (prefix, colours, Alt/Ctrl bindings). Config lives in `/etc/tmux/`; `~/.tmux.conf` in the container only sources it.
+cind tmux is tuned for **browser ttyd**: IDE-like top tabs, per-pane footers, thin global status. Config lives in `/etc/tmux/`; `~/.tmux.conf` in the container only sources it.
 
-**Flow:** ttyd → workspace launcher (pick **session**) → tmux with tabs `tab-1` … `tab-3`.
+**Flow:** ttyd → workspace launcher (pick **session**) → tmux.
 
-One **workspace in `cind.config.json` = one tmux session**. Tabs inside a session are just shells in that workspace root — not other workspaces.
+## Sessions vs tabs
 
-Rename tabs anytime: `Ctrl+Space` `,` (prompt) or `Alt+c` for a new window. Projects live as subdirectories — `cd backend` etc.
+| Layer | Meaning |
+| --- | --- |
+| **tmux session** | One cind workspace (`cind.config.json`) |
+| **tmux window** (top tabs) | Shells / tools inside that workspace (`tab-1` … or renamed) |
+| **tmux pane** | Split inside a window; footer shows command + directory |
+
+Switch **workspace (session):** launcher after detach, or `Ctrl+Space` `s` / `w`.  
+Switch **window (tab):** `Alt+1`…`9`, mouse click on top bar, or `Ctrl+Space` `W`.
+
+Rename a tab: `Ctrl+Space` `,`. New window: `Alt+c`. Projects are subdirectories — `cd backend`, etc.
+
+## Layout (mockup)
+
+```text
+◉ gotibooks           1:tab-1  [2:claude]  3:tab-3        brief  14:32
+──────────────────────┬───────────────────────────────────────────────
+ $                    │  $
+──────────────────────┴───────────────────────────────────────────────
+ 1 bash · backend      2 claude · backend >
+```
+
+- **Top bar:** session/workspace (left) · window tabs (centre) · brief + AI (if any) + time (right)
+- **Pane footer:** index · current command · basename of cwd (`>` = active pane)
+- No global CPU/RAM/battery/git stack in the status bar (keeps ttyd readable)
 
 ## Prefix
 
@@ -14,7 +37,7 @@ Rename tabs anytime: `Ctrl+Space` `,` (prompt) or `Alt+c` for a new window. Proj
 
 Most navigation/splits work **without prefix** (see below).
 
-## Bindings (same as local)
+## Bindings
 
 ### No prefix
 
@@ -43,6 +66,7 @@ Most navigation/splits work **without prefix** (see below).
 | `0` | Last window |
 | `r` | Reload config (cind) |
 | `s` / `w` | Switch **tmux session** (other cind workspaces) |
+| `W` | Choose **window** in this session (tab picker) |
 | `d` | Detach → back to workspace launcher |
 | `P` | Copy pane path (cind) |
 | `I` | Workspace info (cind) |
@@ -51,47 +75,55 @@ Most navigation/splits work **without prefix** (see below).
 
 | Element | Style |
 | --- | --- |
-| Status bar | Dark (`colour234`) with cyan workspace, mint session, gold prefix active |
-| Window tabs | Inactive grey; **active tab** cyan background (`colour81`) |
-| Right status | Git branch, cwd, CPU load, memory %, **AI usage** (ctx / 5h / 7d when Claude or Cursor is active), battery, time |
-| Browser font | `TTYD_FONT_SIZE` (default **22** in `.env` / `cind.config.json`) |
-| Pane borders | Active pane highlighted cyan |
+| Status position | **Top** |
+| Status left | Prefix indicator + workspace / session name |
+| Window tabs | Centre; inactive muted; **active** cyan block (`colour81`); activity/bell in orange/red |
+| Status right (thin) | Optional **AI usage**, `brief` marker, clock |
+| Pane border status | **Bottom** on every pane: `index command dirname` |
+| Active pane border | Cyan + `>` in the footer |
+| Browser font | `TTYD_FONT_SIZE` (default **22**) |
 
-### AI usage in the status bar
+Activity: `monitor-activity` flags windows with background output (tab style only; no message spam).
 
-While `claude` or `agent` (Cursor CLI) is running, the right status can show live meters from the CLI `statusLine` hook — same idea as `/usage`, without polling the network from tmux:
+### AI usage (optional, thin right)
+
+While `claude` or `agent` is running, the right status may show meters from the CLI `statusLine` hook (cache under `~/.cache/cind/`, no network from tmux):
 
 ```text
 claude ctx 42% · 5h 18% · 7d 4%
 ```
 
-How it works:
+1. `init-ai-statusline` seeds hooks on container start (missing-only).
+2. `cind-ai-statusline` writes `ai-usage-*.json`.
+3. Thin `status-right` reads the cache (hidden when stale).
 
-1. On container start, `init-ai-statusline` sets `statusLine` in `~/.claude/settings.json` (and in `~/.cursor/cli-config.json` if that file exists and has no `statusLine` yet).
-2. Each turn, `/usr/local/bin/cind-ai-statusline` writes `~/.cache/cind/ai-usage-*.json`.
-3. tmux `status-right` reads the cache (stale after 30 minutes → hidden).
-
-Requires image rebuild (`make rebuild`) so the new scripts are in the image. Existing custom `statusLine` commands are left alone.
-
-Set font size in `.env`:
+### Font size
 
 ```dotenv
 TTYD_FONT_SIZE=28
 ```
 
-Or in `cind.config.json` → `ttyd.font_size` (applied on first `make env` only if unset in `.env`).
+Or `cind.config.json` → `ttyd.font_size` (first `make env` if unset in `.env`).
 
 ## Browser (ttyd) caveats
 
-Many browsers **do not forward** `Alt+*` or `Ctrl+arrow` to the terminal — bindings match local tmux, but the browser may block them.
+Many browsers **do not forward** `Alt+*` or `Ctrl+arrow` to the terminal.
 
 **Workarounds:**
 
-1. Mouse is **on by default** — click panes and drag borders to split/resize.
+1. Mouse is **on by default** — click top tabs, panes, and drag borders.
 2. Prefix splits: `Ctrl+Space` then `-` or `|`.
-3. On Android: hardware keyboard for the shortcuts above, or use mouse mode.
+3. Window list: `Ctrl+Space` `W`.
+4. On Android: hardware keyboard or mouse mode.
 
-Host `~/.tmux.conf` is **not mounted** into the container. To change defaults for everyone using the image, edit `docker/rootfs/etc/tmux/` and `make rebuild`.
+Host `~/.tmux.conf` is **not mounted**. Edit `docker/rootfs/etc/tmux/` and `make rebuild` for image defaults. Live test in a running container: `prefix r` after copying files, or append overrides under `~/.tmux.conf`.
+
+### Personal override (less chrome)
+
+```tmux
+source-file /etc/tmux/tmux.conf
+set -g pane-border-status off
+```
 
 ## File layout
 
@@ -101,18 +133,16 @@ Host `~/.tmux.conf` is **not mounted** into the container. To change defaults fo
   options.conf
   keybindings.conf
   status.conf
-  scripts/          # cind helpers (copy-path, session-switch)
+  scripts/          # status-left/right, session-switch, copy-path, ai-usage
 ```
 
 ## Custom overrides
-
-Inside the container, append **after** `source-file` in `~/.tmux.conf`:
 
 ```tmux
 source-file /etc/tmux/tmux.conf
 bind Q kill-session
 ```
 
-Existing sessions keep old binds until recreated or `prefix r` after reload.
+Existing sessions keep old UI until `prefix r` (after image has new files) or session recreate.
 
-See also: [Launcher](launcher.md), [Troubleshooting](troubleshooting.md#tmux-keys-do-not-work-in-the-browser).
+See also: [Launcher](launcher.md), [Context orchestration](architecture/context.md), [Troubleshooting](troubleshooting.md#tmux-keys-do-not-work-in-the-browser).
