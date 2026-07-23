@@ -1843,7 +1843,30 @@
 <h2 id="is-there-a-published-docker-image">Is there a published Docker image?<a class="headerlink" href="#is-there-a-published-docker-image" title="Permanent link">&para;</a></h2>
 <p><strong>No</strong> (not from CI). Clone the repo and <code>make build</code>. Optional private registry helpers exist for advanced use.</p>
 <h2 id="where-is-my-login-cache-data">Where is my login / cache data?<a class="headerlink" href="#where-is-my-login-cache-data" title="Permanent link">&para;</a></h2>
-<p>Under <code>$ORCAN_DATA</code> (default <code>~/.config/orcan</code>).</p>
+<p>Under <code>$ORCAN_DATA</code> (default <code>~/.config/orcan</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Host path</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>claude/</code></td>
+<td>Claude Code config + OAuth (<code>.credentials.json</code>, settings). <code>CLAUDE_CONFIG_DIR</code> points here so login survives restarts</td>
+</tr>
+<tr>
+<td><code>cursor/</code></td>
+<td>Cursor CLI home</td>
+</tr>
+<tr>
+<td><code>cache/</code></td>
+<td>Tool caches (ruff, pip, uv, …)</td>
+</tr>
+</tbody>
+</table>
+<p>After <code>make rebuild</code> / restart, you should <strong>not</strong> need to <code>/login</code> again unless you wiped <code>$ORCAN_DATA</code> or never completed login while the volume was mounted.</p>
 <h2 id="can-i-turn-off-tmux">Can I turn off tmux?<a class="headerlink" href="#can-i-turn-off-tmux" title="Permanent link">&para;</a></h2>
 <p>Not as a supported switch. The launcher starts tmux. Use multiple tmux windows/panes instead.</p>
 <h2 id="how-do-i-update">How do I update?<a class="headerlink" href="#how-do-i-update" title="Permanent link">&para;</a></h2>
@@ -1898,7 +1921,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:08:21 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:30:45 UTC">July 23, 2026</span>
   </span>
 
     
