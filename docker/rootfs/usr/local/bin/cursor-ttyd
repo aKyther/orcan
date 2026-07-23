@@ -7,8 +7,33 @@ set -Eeuo pipefail
 TTYD_PORT="${TTYD_PORT:-7681}"
 # xterm.js default is ~15px; 22 reads better on phone browsers.
 TTYD_FONT_SIZE="${TTYD_FONT_SIZE:-22}"
+if [[ -z "${TTYD_FONT_FAMILY:-}" ]]; then
+    TTYD_FONT_FAMILY="Menlo, Monaco, 'Courier New', monospace"
+fi
+# Preset name "dark" or a raw JSON object for xterm.js theme.
+if [[ -z "${TTYD_THEME:-}" ]]; then
+    TTYD_THEME="dark"
+fi
 
-printf 'ttyd ready: http://0.0.0.0:%s (project launcher + tmux, fontSize=%s)\n' \
+TTYD_THEME_DARK='{"background":"#1e1e2e","foreground":"#cdd6f4","cursor":"#f5e0dc","selectionBackground":"#585b70","black":"#45475a","red":"#f38ba8","green":"#a6e3a1","yellow":"#f9e2af","blue":"#89b4fa","magenta":"#f5c2e7","cyan":"#94e2d5","white":"#bac2de","brightBlack":"#585b70","brightRed":"#f38ba8","brightGreen":"#a6e3a1","brightYellow":"#f9e2af","brightBlue":"#89b4fa","brightMagenta":"#f5c2e7","brightCyan":"#94e2d5","brightWhite":"#a6adc8"}'
+
+resolve_theme() {
+    case "${TTYD_THEME}" in
+        dark|"")
+            printf '%s' "${TTYD_THEME_DARK}"
+            ;;
+        \{*)
+            printf '%s' "${TTYD_THEME}"
+            ;;
+        *)
+            printf '%s' "${TTYD_THEME_DARK}"
+            ;;
+    esac
+}
+
+THEME_JSON="$(resolve_theme)"
+
+printf 'ttyd ready: http://0.0.0.0:%s (launcher + tmux + zsh, fontSize=%s)\n' \
     "${TTYD_PORT}" "${TTYD_FONT_SIZE}" >&2
 printf 'WARNING: Do not expose this port to the public Internet without authentication and TLS.\n' >&2
 
@@ -17,4 +42,6 @@ exec ttyd \
     --interface 0.0.0.0 \
     --port "${TTYD_PORT}" \
     --client-option "fontSize=${TTYD_FONT_SIZE}" \
+    --client-option "fontFamily=${TTYD_FONT_FAMILY}" \
+    --client-option "theme=${THEME_JSON}" \
     cursor-launcher

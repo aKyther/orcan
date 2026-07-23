@@ -1,4 +1,5 @@
 {
+  "_comment": "Deprecated example — prefer cind.config.example.yaml. JSON configs are still loaded if no YAML file exists.",
   "workspaces": [
     {
       "name": "gotibooks",

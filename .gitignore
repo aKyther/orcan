@@ -3,7 +3,9 @@
 .env.local
 .env.*.local
 
-# Local cind profile (keep cind.config.example.json)
+# Local cind profile (keep cind.config.example.yaml)
+cind.config.yaml
+cind.config.yml
 cind.config.json
 .cind/
 

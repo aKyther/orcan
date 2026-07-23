@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""Create or update a minimal cind.config.json from PROJECT_DIR."""
+"""Create or update a minimal cind.config.yaml from PROJECT_DIR."""
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = ROOT / "cind.config.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from config_io import (  # noqa: E402
+    default_write_path,
+    discover_config,
+    dump_config,
+    is_json_path,
+    load_config,
+)
 
 
 def die(msg: str) -> None:
@@ -28,23 +34,8 @@ def resolve_project(path: str) -> Path:
     return p.resolve()
 
 
-def load_config(path: Path) -> dict:
-    if not path.is_file():
-        return {"workspaces": []}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        die(f"invalid JSON in {path}: {exc}")
-    if not isinstance(data, dict):
-        die(f"config root must be an object: {path}")
-    data.setdefault("workspaces", [])
-    if not isinstance(data["workspaces"], list):
-        die("workspaces must be an array")
-    return data
-
-
 def find_workspace(cfg: dict, name: str) -> dict | None:
-    for ws in cfg["workspaces"]:
+    for ws in cfg.get("workspaces") or []:
         if isinstance(ws, dict) and ws.get("name") == name:
             return ws
     return None
@@ -56,7 +47,11 @@ def project_entry(name: str, path: str) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Path to cind.config.json")
+    parser.add_argument(
+        "--config",
+        default="",
+        help="Path to config (default: discover or create cind.config.yaml)",
+    )
     parser.add_argument("--project-dir", required=True, help="Absolute host path to a repo")
     parser.add_argument(
         "--workspace",
@@ -75,11 +70,26 @@ def main() -> None:
     if not ws_name:
         die("workspace name is empty")
 
-    config_path = Path(args.config)
-    if not config_path.is_absolute():
-        config_path = (ROOT / config_path).resolve()
+    if args.config:
+        config_path = Path(args.config)
+        if not config_path.is_absolute():
+            config_path = (ROOT / config_path).resolve()
+    else:
+        config_path = discover_config(ROOT) or default_write_path(ROOT)
 
-    cfg = load_config(config_path)
+    if config_path.is_file():
+        cfg = load_config(config_path)
+    else:
+        cfg = {"workspaces": []}
+    cfg.setdefault("workspaces", [])
+    if not isinstance(cfg["workspaces"], list):
+        die("workspaces must be an array")
+
+    # Prefer writing YAML going forward when scaffolding into a legacy JSON file
+    # that does not exist yet — keep extension if file already exists.
+    if not config_path.exists() and is_json_path(config_path):
+        config_path = default_write_path(ROOT)
+
     ws = find_workspace(cfg, ws_name)
     proj = project_entry(project.name, str(project))
 
@@ -110,7 +120,7 @@ def main() -> None:
             projects.append(proj)
             action = "added project"
 
-    config_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+    dump_config(config_path, cfg)
     print(f"{action}: workspace={ws_name} project={project.name}")
     print(f"config: {config_path}")
     print("Next: make env && make path-check")

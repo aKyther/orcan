@@ -73,7 +73,7 @@ make docs-serve
 make help
 ```
 
-Use `cind.config.json` for workspaces; run `make env` after config edits. `make terminal` does not regenerate anything.
+Use `cind.config.yaml` for workspaces; run `make env` after config edits. `make terminal` does not regenerate anything. Legacy `cind.config.json` is still loaded if no YAML file exists.
 
 ## Cursor defaults
 

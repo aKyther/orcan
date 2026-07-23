@@ -1,0 +1,2 @@
+# Host-only Python deps for make env / config-scaffold (not used in the image).
+PyYAML>=6.0

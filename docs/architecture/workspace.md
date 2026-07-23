@@ -101,6 +101,7 @@ Agents should read **`AGENTS.md` → `.manifest.json` → session brief (if any)
 Ignore files at the workspace root help when the agent starts there. They do **not** rewrite files inside each project checkout (cind does not auto-modify mounted repos). For per-repo `.env` protection:
 
 ```bash
+make config-wizard   # or hand-edit / config-scaffold
 make env
 make init-project-all        # every projects[].path in config
 make down && make terminal-docker

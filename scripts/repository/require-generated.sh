@@ -41,17 +41,22 @@ if (( ${#missing[@]} > 0 )); then
         printf '  - %s\n' "${path}" >&2
     done
     printf 'Run:  make env\n' >&2
-    printf 'After editing cind.config.json, always run make env before make terminal.\n' >&2
+    printf 'After editing cind.config.yaml (or .json), always run make env before make terminal.\n' >&2
     exit 1
 fi
 
 config_file="${CONFIG:-}"
-if [[ -z "${config_file}" && -f "${ROOT_DIR}/cind.config.json" ]]; then
-    config_file="${ROOT_DIR}/cind.config.json"
+if [[ -z "${config_file}" ]]; then
+    for cand in cind.config.yaml cind.config.yml cind.config.json; do
+        if [[ -f "${ROOT_DIR}/${cand}" ]]; then
+            config_file="${ROOT_DIR}/${cand}"
+            break
+        fi
+    done
 fi
 if [[ -n "${config_file}" && -f "${config_file}" ]]; then
     if [[ "${config_file}" -nt "${runtime_file}" || "${config_file}" -nt "${compose_file}" ]]; then
-        printf 'Error: cind.config.json is newer than generated runtime files.\n' >&2
+        printf 'Error: cind config is newer than generated runtime files.\n' >&2
         printf '  config:  %s\n' "${config_file}" >&2
         printf '  runtime: %s\n' "${runtime_file}" >&2
         printf '  mounts:  %s\n' "${compose_file}" >&2
@@ -68,6 +73,6 @@ CIND_DATA="${CIND_DATA:-${HOME}/.config/cind}"
 if [[ -z "${CIND_DATA}" ]]; then
     CIND_DATA="${HOME}/.config/cind"
 fi
-for sub in cursor cursor-app claude cache npm pnpm cargo go bash-history; do
+for sub in cursor cursor-app claude cache npm pnpm cargo go bash-history shell-history; do
     mkdir -p "${CIND_DATA}/${sub}"
 done

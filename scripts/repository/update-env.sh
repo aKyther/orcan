@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create or refresh .env from host identity + optional cind.config.json.
+# Create or refresh .env from host identity + optional cind.config.yaml/.json.
 # Host-only: do not copy this into the Docker image.
 
 set -Eeuo pipefail
@@ -34,9 +34,14 @@ ensure_env_key() {
     fi
 }
 
-# Prefer explicit CONFIG, else local cind.config.json when present.
-if [[ -z "${CONFIG}" && -f "${ROOT_DIR}/cind.config.json" ]]; then
-    CONFIG="${ROOT_DIR}/cind.config.json"
+# Prefer explicit CONFIG, else discover YAML then JSON.
+if [[ -z "${CONFIG}" ]]; then
+    for cand in cind.config.yaml cind.config.yml cind.config.json; do
+        if [[ -f "${ROOT_DIR}/${cand}" ]]; then
+            CONFIG="${ROOT_DIR}/${cand}"
+            break
+        fi
+    done
 fi
 
 apply_args=(
@@ -47,7 +52,7 @@ if [[ -n "${CONFIG}" ]]; then
     apply_args+=(--config "${CONFIG}")
 fi
 
-python3 "${ROOT_DIR}/scripts/repository/apply-config.py" "${apply_args[@]}"
+"${ROOT_DIR}/scripts/repository/python.sh" "${ROOT_DIR}/scripts/repository/apply-config.py" "${apply_args[@]}"
 
 # Re-read paths written by apply-config, then validate default project path.
 # shellcheck disable=SC1091
@@ -105,6 +110,7 @@ CIND_DATA_SUBDIRS=(
     cargo
     go
     bash-history
+    shell-history
 )
 mkdir -p "${CIND_DATA}"
 for sub in "${CIND_DATA_SUBDIRS[@]}"; do

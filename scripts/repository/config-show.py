@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print workspaces from cind.config.json or generated runtime manifest."""
+"""Print workspaces from cind.config.yaml/.json or generated runtime manifest."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from config_io import discover_config, load_config  # noqa: E402
 
 
 def die(msg: str) -> None:
@@ -52,8 +54,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--config",
-        default=str(ROOT / "cind.config.json"),
-        help="Source cind.config.json",
+        default="",
+        help="Source config (default: discover cind.config.yaml / .json)",
     )
     parser.add_argument(
         "--runtime",
@@ -62,15 +64,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    config_path = Path(args.config)
+    if args.config:
+        config_path: Path | None = Path(args.config)
+    else:
+        config_path = discover_config(ROOT)
+
     runtime_path = Path(args.runtime)
 
-    if config_path.is_file():
-        cfg = load_json(config_path)
+    if config_path and config_path.is_file():
+        cfg = load_config(config_path)
         print_workspaces(f"Config: {config_path}", cfg.get("workspaces") or [])
         print()
     else:
-        print(f"Config: {config_path} (missing — run make config-init)\n")
+        print("Config: (missing — run make setup or make config-init)\n")
 
     if runtime_path.is_file():
         manifest = load_json(runtime_path)

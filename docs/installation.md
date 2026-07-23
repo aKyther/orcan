@@ -29,10 +29,22 @@ cd cind
 ## Configure environment
 
 ```bash
+make config-wizard
+make env
+make build
+make terminal-docker
+```
+
+Or with `setup` (scaffolds a one-project config if missing):
+
+```bash
 make setup PROJECT_DIR=/absolute/path/to/your/project
+make build
+make terminal-docker
 ```
 
 `make setup` / `make env` create `.env` automatically when missing (from `.env.example` + host UID/GID).
+After any later config change: `make env`, then `make down && make terminal-docker`.
 
 Example `.env` values:
 

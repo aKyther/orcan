@@ -68,7 +68,7 @@ nav:
   - Path parity: path-parity.md
   - Project launcher: launcher.md
   - tmux: tmux.md
-  - JSON config: config.md
+  - Config (YAML + wizard): config.md
   - Architecture:
       - Context orchestration: architecture/context.md
       - Virtual workspace: architecture/workspace.md

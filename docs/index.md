@@ -31,7 +31,8 @@ A ready-to-run container image and Compose setup where:
 
 | Page | Content |
 | --- | --- |
-| [Getting started](getting-started.md) | First successful run |
+| [Getting started](getting-started.md) | Ritual: wizard → `make env` → `make terminal-docker` |
+| [Config](config.md) | `cind.config.yaml` + interactive wizard |
 | [Context orchestration](architecture/context.md) | Product boundary, context pack, non-goals |
 | [Virtual workspace](architecture/workspace.md) | Workspace = context unit |
 | [Installation](installation.md) | Requirements and setup |

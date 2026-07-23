@@ -17,8 +17,11 @@ Docker keeps the toolchain inside an image. Your host package manager stays clea
 | `docker/rootfs/usr/local/bin/cursor-ttyd` | `/usr/local/bin/cursor-ttyd` | Browser terminal (ttyd + tmux) |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
-| `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Interactive shell setup |
+| `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` | `/home/developer/.zshrc*` | Default interactive shell (zsh + plugins + Starship) |
+| `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Bash fallback snippets |
 | `docker/rootfs/etc/profile.d/cind-path.sh` | `/etc/profile.d/cind-path.sh` | Toolchain PATH (login shells) |
+| `docker/rootfs/opt/cind/gitconfig` | seeded → `~/.gitconfig` | Container-local git defaults (delta) |
+| `docker/rootfs/opt/cind/starship.toml` | seeded → `~/.config/starship.toml` | Prompt defaults |
 | `scripts/repository/` | *(not in image)* | Host-only helpers |
 
 ## Image filesystem (`docker/rootfs/`)
@@ -32,12 +35,14 @@ docker/rootfs/
 │   ├── cind/shell/aliases.sh
 │   ├── profile.d/cind-path.sh
 │   └── skel/
-│       ├── .bashrc.d/50-cind-shell.sh
-│       ├── .bashrc.d/60-cind-aliases.sh
+│       ├── .zshrc
+│       ├── .zshrc.d/   (PATH, aliases, plugins, starship)
+│       ├── .bashrc.d/  (bash fallback)
 │       ├── .tmux.conf
 │       └── .vimrc
 ├── opt/
-│   └── cursor-defaults/     → /opt/cursor-defaults
+│   ├── cind/            → gitconfig + starship.toml seeds
+│   └── cursor-defaults/ → /opt/cursor-defaults
 └── usr/
     └── local/
         └── bin/
@@ -103,7 +108,7 @@ Service name: **`cind`**, image: **`cind:latest`**.
 
 Provides:
 
-* project bind mounts from `cind.config.json` (path parity + workspace roots)
+* project bind mounts from `cind.config.yaml` (path parity + workspace roots)
 * host binds under `CIND_DATA` (`~/.config/cind`) for Cursor/Claude state and caches
 * resource limits and a `/tmp` tmpfs
 
@@ -122,7 +127,7 @@ Used by both `make terminal` and `make terminal-docker`. Adds:
 
 * `command: cursor-ttyd` (browser terminal — no SSH)
 * publishes `${TTYD_HOST_PORT:-7681}:7681`
-* sets `TTYD_PORT`, `TTYD_FONT_SIZE`, workspace env vars
+* sets `TTYD_PORT`, `TTYD_FONT_SIZE`, `TTYD_THEME`, workspace env vars
 * `restart: unless-stopped`
 
 Remote access: use **Tailscale** (or localhost). Open `http://<tailscale-ip>:7681`.
@@ -151,7 +156,7 @@ npm/              ───────────────►   /home/devel
 pnpm/             ───────────────►   /home/developer/.local/share/pnpm
 cargo/            ───────────────►   /home/developer/.cargo
 go/               ───────────────►   /home/developer/go
-bash-history/     ───────────────►   /command-history
+shell-history/    ───────────────►   /command-history  (.zsh_history)
 ```
 
 Plus path-parity project mounts and `/opt/cursor-defaults` from the image.
@@ -184,7 +189,7 @@ CIND_DATA=/custom/path/cind
 | `$CIND_DATA/pnpm` | `/home/developer/.local/share/pnpm` | pnpm store/home |
 | `$CIND_DATA/cargo` | `/home/developer/.cargo` | Cargo registry and binaries |
 | `$CIND_DATA/go` | `/home/developer/go` | GOPATH modules and bins |
-| `$CIND_DATA/bash-history` | `/command-history` | Shared bash history file |
+| `$CIND_DATA/shell-history` | `/command-history` | Shared zsh history (`.zsh_history`) |
 
 No Docker **named volumes**. Data survives `make down` / `make clean`. Reset with `make clean-data`.
 
@@ -212,7 +217,9 @@ Config sources:
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` |
 
-Interactive shells inside TMUX source `~/.bashrc.d/50-cind-shell.sh` (PATH, `cd` to workspace) and `60-cind-aliases.sh` (aliases from `/etc/cind/shell/aliases.sh`).
+Interactive shells inside TMUX are **zsh** (`default-shell`). They source `~/.zshrc.d/` (PATH, workspace `cd`, aliases from `/etc/cind/shell/aliases.sh`, autosuggestions/syntax-highlighting/fzf, Starship). Bash snippets remain for manual `bash` sessions.
+
+Git: `~/.gitconfig` is seeded missing-only from `/opt/cind/gitconfig` (delta pager). Set `user.name` / `user.email` inside the container — host gitconfig is not mounted.
 
 Switch sessions: `Ctrl+Space w`. Details: [tmux](tmux.md).
 

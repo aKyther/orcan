@@ -14,9 +14,10 @@ Developers who want Cursor CLI plus Node, Python, Go, Rust, and optional Docker 
 
 ## Can I use multiple projects?
 
-Yes. List them under `workspaces[].projects` in `cind.config.json`, then:
+Yes. Use the wizard or edit `workspaces[].projects` in `cind.config.yaml`, then:
 
 ```bash
+make config-wizard   # optional if editing by hand
 make env
 make down && make terminal-docker
 ```

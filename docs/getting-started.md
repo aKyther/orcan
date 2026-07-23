@@ -2,6 +2,17 @@
 
 First run uses **Make only** — no manual copying of `.env.example` or config templates.
 
+## Ritual
+
+| Step | Command | Notes |
+| --- | --- | --- |
+| Config | `make config-wizard` or `make setup` | Write/edit `cind.config.yaml` |
+| Apply | `make env` | Always after config changes |
+| Build (once) | `make build` | Image |
+| Run | `make terminal-docker` | Does **not** call `make env` |
+
+Daily (no config change): `make terminal-docker` only.
+
 ## 1. Clone
 
 ```bash
@@ -17,9 +28,16 @@ make setup PROJECT_DIR=/absolute/path/to/your/repo
 
 `make setup`:
 
-1. Creates `cind.config.json` from `PROJECT_DIR` if the file is missing (one workspace, one project)
+1. Creates `cind.config.yaml` from `PROJECT_DIR` if missing (one workspace, one project)
 2. Runs `make env` — creates `.env`, generated Compose mounts, runtime config
 3. Prints workspace layout (`make config-show`) and next steps
+
+Or build the config interactively first:
+
+```bash
+make config-wizard
+make env
+```
 
 Developing **this** cind repo (defaults `PROJECT_DIR` to the clone):
 
@@ -30,6 +48,8 @@ make setup
 ### Add more repos later
 
 ```bash
+make config-wizard
+# or:
 make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibooks
 make env
 make down && make terminal-docker
@@ -37,7 +57,7 @@ make down && make terminal-docker
 
 Optional: `make config-init` copies the full multi-workspace **example** when you prefer editing a template by hand.
 
-See [JSON config](config.md) for tmux tabs, ttyd, and resources.
+See [Config](config.md) for the wizard, tmux tabs, ttyd, and resources.
 
 ## 3. Check mounts (optional)
 
@@ -65,11 +85,11 @@ Use `make terminal` if you do **not** need the host Docker socket.
 
 Open `http://localhost:7681` or run `make terminal-url`.
 
-**After editing `cind.config.json`:** run `make env`, then `make down && make terminal-docker`.
+**After `make config-wizard` or any config edit:** run `make env`, then `make down && make terminal-docker`.
 
 Remote host on **Tailscale**: `http://<tailscale-ip>:7681`.
 
-In the browser: **workspace picker** → one **tmux session per workspace** → tabs `tab-1` … `tab-3` (shells in that workspace).
+In the browser: **workspace picker** → one **tmux session per workspace** → **zsh** panes with Starship (git branch autodetect) → tabs `tab-1` … `tab-3`.
 
 To open another workspace without leaving tmux: `Ctrl+Space` then `w` (session list — all workspaces are started when the launcher loads). Or detach (`d`) and pick from the menu.
 
@@ -93,7 +113,11 @@ Handy aliases (always in the image — see `/etc/cind/shell/aliases.sh`):
 | --- | --- |
 | `ll` / `la` | list files (`eza`) |
 | `g` | `rg` (ripgrep) |
-| `gs` / `gd` | git status / diff |
+| `gs` / `gd` / `ga` / `gc` / `gp` / `gco` | git short aliases |
+| `gl` | git log graph |
+| `lg` | lazygit |
+| `ff` / `g` | fd / ripgrep |
+| Ctrl-R | fzf history (zsh) |
 | `cc` | `claude` |
 | `ccy` | `claude --dangerously-skip-permissions` (no approval prompts) |
 | `ag` | `agent` |
@@ -107,7 +131,7 @@ From the host (pass the repo path explicitly):
 
 ```bash
 make init-project PROJECT_DIR=/absolute/path/to/repo
-# or every projects[].path in cind.config.json (do this after make env):
+# or every projects[].path in cind.config.yaml (do this after make env):
 make init-project-all
 ```
 
@@ -116,8 +140,8 @@ Inside the container: `cind-session-brief` / `brief`, `cind-context-status` / `c
 ## Next steps
 
 * [Context orchestration](architecture/context.md) — what cind owns vs agent models
-* [Makefile](makefile.md) — all targets (`setup`, `config-scaffold`, …)
-* [JSON config](config.md)
+* [Makefile](makefile.md) — all targets (`setup`, `config-wizard`, `config-scaffold`, …)
+* [Config](config.md) — YAML profile + wizard
 * [Project launcher](launcher.md)
 * [Path parity](path-parity.md)
 * [Security — Tailscale](security.md#remote-access-tailscale)
