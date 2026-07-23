@@ -43,7 +43,7 @@ Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`.
 
 ## Status
 
-Version **0.1.0** (see [Changelog](changelog.md)). Distributed as **git clone + Makefile**. Images are built locally (`make build`). CI does not publish container images.
+Version **0.1.1** (see [Changelog](changelog.md)). Distributed as **git clone + Makefile**. Images are built locally (`make build`). CI does not publish container images.
 
 ## See also
 

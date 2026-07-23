@@ -43,7 +43,7 @@ Otwórz `http://localhost:7681`, wybierz workspace, potem uruchom `agent` lub `c
 
 ## Status
 
-Wersja **0.1.0** (zobacz [Changelog](changelog.md)). Dystrybucja: **git clone + Makefile**. Obrazy budujesz lokalnie (`make build`). CI nie publikuje obrazów kontenerów.
+Wersja **0.1.1** (zobacz [Changelog](changelog.md)). Dystrybucja: **git clone + Makefile**. Obrazy budujesz lokalnie (`make build`). CI nie publikuje obrazów kontenerów.
 
 ## Zobacz też
 

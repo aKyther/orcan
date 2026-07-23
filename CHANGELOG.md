@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `make bump-*` also syncs `mkdocs.yml` / README / Home docs version strings
 - Quickstart trimmed to first-run only
 - Renamed docs “Public interface” → “Host and container interface” (`interface.md`)
 - `.env.example` resource defaults aligned with config (8 CPU / 16g)
@@ -45,5 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI (validate + MkDocs → `gh-pages`)
 - SemVer releases via `VERSION` + git tags → GitHub Releases (no image registry)
 
-[Unreleased]: https://github.com/aKyther/orcan/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/aKyther/orcan/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/aKyther/orcan/releases/tag/v0.1.1
 [0.1.0]: https://github.com/aKyther/orcan/releases/tag/v0.1.0

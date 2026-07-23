@@ -21,8 +21,8 @@
 
 ## Steps
 
-1. Update `CHANGELOG.md` (move items from Unreleased).
-2. Bump version:
+1. Update `CHANGELOG.md` (move items from Unreleased into a new `## [X.Y.Z]` section; fix footer compare links).
+2. Bump version (also syncs display strings in `mkdocs.yml`, README, Home EN/PL):
 
 ```bash
 make bump-patch   # or bump-minor / bump-major
@@ -31,7 +31,7 @@ make bump-patch   # or bump-minor / bump-major
 3. Commit:
 
 ```bash
-git add VERSION CHANGELOG.md
+git add VERSION CHANGELOG.md mkdocs.yml README.md docs/en/index.md docs/pl/index.md
 git commit -m "release: vX.Y.Z"
 ```
 
