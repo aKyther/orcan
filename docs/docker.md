@@ -19,9 +19,9 @@ Docker keeps the toolchain inside an image. Your host package manager stays clea
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
 | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` | `/home/developer/.zshrc*` | Default interactive shell (zsh + plugins + Starship) |
 | `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Bash fallback snippets |
-| `docker/rootfs/etc/profile.d/cind-path.sh` | `/etc/profile.d/cind-path.sh` | Toolchain PATH (login shells) |
-| `docker/rootfs/opt/cind/gitconfig` | seeded → `~/.gitconfig` | Container-local git defaults (delta) |
-| `docker/rootfs/opt/cind/starship.toml` | seeded → `~/.config/starship.toml` | Prompt defaults |
+| `docker/rootfs/etc/profile.d/orcan-path.sh` | `/etc/profile.d/orcan-path.sh` | Toolchain PATH (login shells) |
+| `docker/rootfs/opt/orcan/gitconfig` | seeded → `~/.gitconfig` | Container-local git defaults (delta) |
+| `docker/rootfs/opt/orcan/starship.toml` | seeded → `~/.config/starship.toml` | Prompt defaults |
 | `scripts/repository/` | *(not in image)* | Host-only helpers |
 
 ## Image filesystem (`docker/rootfs/`)
@@ -32,8 +32,8 @@ Their paths match the final container layout.
 ```text
 docker/rootfs/
 ├── etc/
-│   ├── cind/shell/aliases.sh
-│   ├── profile.d/cind-path.sh
+│   ├── orcan/shell/aliases.sh
+│   ├── profile.d/orcan-path.sh
 │   └── skel/
 │       ├── .zshrc
 │       ├── .zshrc.d/   (PATH, aliases, plugins, starship)
@@ -41,7 +41,7 @@ docker/rootfs/
 │       ├── .tmux.conf
 │       └── .vimrc
 ├── opt/
-│   ├── cind/            → gitconfig + starship.toml seeds
+│   ├── orcan/            → gitconfig + starship.toml seeds
 │   └── cursor-defaults/ → /opt/cursor-defaults
 └── usr/
     └── local/
@@ -57,7 +57,7 @@ docker/rootfs/
 * Edit container files under `docker/rootfs/`, not in the repository root.
 * Do not mix these assets with this repository's own `.cursor/` rules.
 * `/opt/cursor-defaults` is immutable product config for the container user.
-* Runtime writable state lives in `${HOME}/.cursor` (host: `$CIND_DATA/cursor`).
+* Runtime writable state lives in `${HOME}/.cursor` (host: `$ORCAN_DATA/cursor`).
 
 The Dockerfile copies this tree with `COPY docker/rootfs/ /`, then sets permissions on binaries and `/opt/cursor-defaults`.
 
@@ -75,7 +75,7 @@ The image is multi-stage:
 
 ### Python toolchain (agents + status bar)
 
-Always in the image (no extra pip packages required for cind scripts):
+Always in the image (no extra pip packages required for orcan scripts):
 
 | Tool | Notes |
 | --- | --- |
@@ -83,7 +83,7 @@ Always in the image (no extra pip packages required for cind scripts):
 | `pip3` / `python3-venv` / `python3-dev` | System installs and building wheels |
 | `uv` / `uvx` | Preferred for project deps (`uv add`, `uv run`) |
 
-`cind-ai-statusline` and tmux AI usage use **stdlib only** (`json`, `pathlib`, …). For project libraries, prefer `uv` in the workspace rather than `pip install` into the system Python.
+`orcan-ai-statusline` and tmux AI usage use **stdlib only** (`json`, `pathlib`, …). For project libraries, prefer `uv` in the workspace rather than `pip install` into the system Python.
 
 Build flow:
 
@@ -104,12 +104,12 @@ Shell access is **browser-only**: ttyd → workspace picker → tmux (see [Secur
 
 ### `docker-compose.yml` (base)
 
-Service name: **`cind`**, image: **`cind:latest`**.
+Service name: **`orcan`**, image: **`orcan:latest`**.
 
 Provides:
 
-* project bind mounts from `cind.config.yaml` (path parity + workspace roots)
-* host binds under `CIND_DATA` (`~/.config/cind`) for Cursor/Claude state and caches
+* project bind mounts from `orcan.config.json` (path parity + workspace roots)
+* host binds under `ORCAN_DATA` (`~/.config/orcan`) for Cursor/Claude state and caches
 * resource limits and a `/tmp` tmpfs
 
 Does **not** mount the Docker socket or host `~/.ssh`.
@@ -146,7 +146,7 @@ Open `http://localhost:7681` in your browser (or run `make terminal` to print th
 ## Layout
 
 ```text
-Host ~/.config/cind/                 Container
+Host ~/.config/orcan/                 Container
 ────────────────────────────────     ─────────────────────────────────
 cursor/           ───────────────►   /home/developer/.cursor
 cursor-app/       ───────────────►   /home/developer/.config/cursor
@@ -161,35 +161,35 @@ shell-history/    ───────────────►   /command-hi
 
 Plus path-parity project mounts and `/opt/cursor-defaults` from the image.
 
-## Host data (`CIND_DATA`)
+## Host data (`ORCAN_DATA`)
 
 Always on — same idea as poetry (`~/.config/pypoetry`) or pip: product state lives under the user’s config home.
 
-Default path: **`$HOME/.config/cind`**.
+Default path: **`$HOME/.config/orcan`**.
 
 `make env` (and first `make setup`):
 
-1. Writes absolute `CIND_DATA=…` into `.env` if missing/empty
+1. Writes absolute `ORCAN_DATA=…` into `.env` if missing/empty
 2. Creates the subdirectory tree (`cursor`, `claude`, caches, …)
 3. Sets ownership to `USER_UID`/`USER_GID`
 
 Override only when you need another location:
 
 ```dotenv
-CIND_DATA=/custom/path/cind
+ORCAN_DATA=/custom/path/orcan
 ```
 
 | Host path | Container path | Why |
 | --- | --- | --- |
-| `$CIND_DATA/cursor` | `/home/developer/.cursor` | Cursor CLI config, chats, rules, skills |
-| `$CIND_DATA/cursor-app` | `/home/developer/.config/cursor` | Cursor login (`auth.json`) |
-| `$CIND_DATA/claude` | `/home/developer/.claude` | Claude Code login and state |
-| `$CIND_DATA/cache` | `/home/developer/.cache` | General caches |
-| `$CIND_DATA/npm` | `/home/developer/.npm` | npm cache |
-| `$CIND_DATA/pnpm` | `/home/developer/.local/share/pnpm` | pnpm store/home |
-| `$CIND_DATA/cargo` | `/home/developer/.cargo` | Cargo registry and binaries |
-| `$CIND_DATA/go` | `/home/developer/go` | GOPATH modules and bins |
-| `$CIND_DATA/shell-history` | `/command-history` | Shared zsh history (`.zsh_history`) |
+| `$ORCAN_DATA/cursor` | `/home/developer/.cursor` | Cursor CLI config, chats, rules, skills |
+| `$ORCAN_DATA/cursor-app` | `/home/developer/.config/cursor` | Cursor login (`auth.json`) |
+| `$ORCAN_DATA/claude` | `/home/developer/.claude` | Claude Code login and state |
+| `$ORCAN_DATA/cache` | `/home/developer/.cache` | General caches |
+| `$ORCAN_DATA/npm` | `/home/developer/.npm` | npm cache |
+| `$ORCAN_DATA/pnpm` | `/home/developer/.local/share/pnpm` | pnpm store/home |
+| `$ORCAN_DATA/cargo` | `/home/developer/.cargo` | Cargo registry and binaries |
+| `$ORCAN_DATA/go` | `/home/developer/go` | GOPATH modules and bins |
+| `$ORCAN_DATA/shell-history` | `/command-history` | Shared zsh history (`.zsh_history`) |
 
 No Docker **named volumes**. Data survives `make down` / `make clean`. Reset with `make clean-data`.
 
@@ -217,25 +217,44 @@ Config sources:
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` |
 
-Interactive shells inside TMUX are **zsh** (`default-shell`). They source `~/.zshrc.d/` (PATH, workspace `cd`, aliases from `/etc/cind/shell/aliases.sh`, autosuggestions/syntax-highlighting/fzf, Starship). Bash snippets remain for manual `bash` sessions.
+Interactive shells inside TMUX are **zsh** (`default-shell`). They source `~/.zshrc.d/` (PATH, workspace `cd`, aliases from `/etc/orcan/shell/aliases.sh`, autosuggestions/syntax-highlighting/fzf, Starship). Bash snippets remain for manual `bash` sessions.
 
-Git: `~/.gitconfig` is seeded missing-only from `/opt/cind/gitconfig` (delta pager). Set `user.name` / `user.email` inside the container — host gitconfig is not mounted.
+Git: `~/.gitconfig` is seeded missing-only from `/opt/orcan/gitconfig` (delta pager). Set `user.name` / `user.email` inside the container — host gitconfig is not mounted.
 
 Switch sessions: `Ctrl+Space w`. Details: [tmux](tmux.md).
 
 ## Cursor defaults on host data
 
-`$CIND_DATA/cursor` mounts at `/home/developer/.cursor`.
+`$ORCAN_DATA/cursor` mounts at `/home/developer/.cursor`.
 
 Defaults live in `/opt/cursor-defaults` and are copied in at startup when missing.
 See [Cursor](cursor.md).
+
+## Image variants
+
+One Dockerfile, two tags:
+
+| Tag | Build | Contents |
+| --- | --- | --- |
+| `orcan:latest` (also `orcan:full`) | `make build` | Claude Code + Cursor (`agent`) |
+| `orcan:claude` | `make build-claude` | Claude Code only |
+
+```bash
+make build                 # Claude + Cursor → orcan:latest
+make build-claude          # Claude only → orcan:claude
+
+# Run Claude-only:
+IMAGE_LOCAL=orcan:claude make terminal-docker
+```
+
+Bake-time flag: `INSTALL_CURSOR=0|1` (Compose build arg). Runtime file: `/etc/orcan/variant` (`full` or `claude`).
 
 ## Environment variables
 
 | Variable | Role |
 | --- | --- |
 | `PROJECT_DIR` | Absolute host project path (same path inside the container) |
-| `CIND_DATA` | Host data root (default `$HOME/.config/cind`) |
+| `ORCAN_DATA` | Host data root (default `$HOME/.config/orcan`) |
 | `USER_UID` / `USER_GID` | Container user identity |
 | `DOCKER_GID` | Socket group for `*-docker` targets |
 | `TZ` | Timezone (`make env` copies host zone, e.g. `Europe/Warsaw`); `/etc/localtime` is bind-mounted read-only |
@@ -243,16 +262,17 @@ See [Cursor](cursor.md).
 | `TTYD_PORT` | Container port for ttyd (default `7681`) |
 | `TTYD_HOST_PORT` | Host port published for the browser terminal (default `7681`) |
 | `IMAGE_REGISTRY` | Registry host for publish/pull (default `registry.gitlab.com`) |
-| `IMAGE_REPOSITORY` | Path under registry, e.g. `mygroup/cind` |
+| `IMAGE_REPOSITORY` | Path under registry, e.g. `mygroup/orcan` |
 | `IMAGE_TAG` | Remote tag (default `latest`) |
-| `IMAGE_LOCAL` | Local Compose image name (default `cind:latest`) |
+| `IMAGE_LOCAL` | Local Compose image name (default `orcan:latest`; use `orcan:claude` for Claude-only) |
+| `INSTALL_CURSOR` | Build arg: `1` = full, `0` = Claude-only |
 
 ## Publish to GitLab Container Registry
 
 ```bash
 # in .env
 IMAGE_REGISTRY=registry.gitlab.com
-IMAGE_REPOSITORY=mygroup/cind
+IMAGE_REPOSITORY=mygroup/orcan
 IMAGE_TAG=latest
 
 make build
@@ -264,7 +284,7 @@ On another host:
 
 ```bash
 make registry-login
-make pull             # retags as cind:latest
+make pull             # retags as orcan:latest
 make terminal-docker
 ```
 

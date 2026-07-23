@@ -2,7 +2,7 @@
 # Print workspace manifest summary for make path-check (host-only).
 set -Eeuo pipefail
 
-manifest="${1:-.cind/workspace.manifest.json}"
+manifest="${1:-.orcan/workspace.manifest.json}"
 [[ -f "${manifest}" ]] || exit 0
 
 python3 - "${manifest}" <<'PY'

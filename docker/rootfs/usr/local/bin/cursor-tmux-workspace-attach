@@ -6,7 +6,7 @@ set -Eeuo pipefail
 SESSION="${1:-}"
 WORKSPACE_ROOT="${2:-}"
 WORKSPACE_LABEL="${3:-}"
-CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
+ORCAN_CONFIG="${ORCAN_CONFIG:-/etc/orcan/config.json}"
 
 if [[ -z "${SESSION}" || -z "${WORKSPACE_ROOT}" ]]; then
     echo "Usage: cursor-tmux-workspace-attach SESSION WORKSPACE_ROOT [LABEL]" >&2
@@ -15,7 +15,7 @@ fi
 
 if [[ ! -d "${WORKSPACE_ROOT}" ]]; then
     echo "Workspace root does not exist: ${WORKSPACE_ROOT}" >&2
-    echo "Hint: init-workspace runs at container startup; check cind.config.json" >&2
+    echo "Hint: init-workspace runs at container startup; check orcan.config.json" >&2
     exit 1
 fi
 
@@ -39,38 +39,38 @@ tmux_cmd() {
     tmux -f "${TMUX_CONF}" "$@"
 }
 
-# Keep CIND_* out of the tmux *global* environment so session A does not
+# Keep ORCAN_* out of the tmux *global* environment so session A does not
 # leak into session B's first pane / bashrc.
-clear_global_cind_env() {
-    tmux_cmd set-environment -gu CIND_WORKSPACE_NAME 2>/dev/null || true
-    tmux_cmd set-environment -gu CIND_WORKSPACE_ROOT 2>/dev/null || true
-    tmux_cmd set-environment -gu CIND_PROJECT_NAME 2>/dev/null || true
-    tmux_cmd set-environment -gu CIND_PROJECT_PATH 2>/dev/null || true
+clear_global_orcan_env() {
+    tmux_cmd set-environment -gu ORCAN_WORKSPACE_NAME 2>/dev/null || true
+    tmux_cmd set-environment -gu ORCAN_WORKSPACE_ROOT 2>/dev/null || true
+    tmux_cmd set-environment -gu ORCAN_PROJECT_NAME 2>/dev/null || true
+    tmux_cmd set-environment -gu ORCAN_PROJECT_PATH 2>/dev/null || true
 }
 
 set_session_env() {
-    tmux_cmd set-environment -t "=${SESSION}" CIND_WORKSPACE_NAME "${WORKSPACE_LABEL}"
-    tmux_cmd set-environment -t "=${SESSION}" CIND_WORKSPACE_ROOT "${WORKSPACE_ROOT}"
-    tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_NAME "${WORKSPACE_LABEL}"
-    tmux_cmd set-environment -t "=${SESSION}" CIND_PROJECT_PATH "${WORKSPACE_ROOT}"
+    tmux_cmd set-environment -t "=${SESSION}" ORCAN_WORKSPACE_NAME "${WORKSPACE_LABEL}"
+    tmux_cmd set-environment -t "=${SESSION}" ORCAN_WORKSPACE_ROOT "${WORKSPACE_ROOT}"
+    tmux_cmd set-environment -t "=${SESSION}" ORCAN_PROJECT_NAME "${WORKSPACE_LABEL}"
+    tmux_cmd set-environment -t "=${SESSION}" ORCAN_PROJECT_PATH "${WORKSPACE_ROOT}"
     tmux_cmd set -g mouse on 2>/dev/null || true
-    clear_global_cind_env
+    clear_global_orcan_env
 }
 
 session_root_ok() {
     local got
-    got="$(tmux_cmd show-environment -t "=${SESSION}" CIND_WORKSPACE_ROOT 2>/dev/null || true)"
-    [[ "${got}" == "CIND_WORKSPACE_ROOT=${WORKSPACE_ROOT}" ]]
+    got="$(tmux_cmd show-environment -t "=${SESSION}" ORCAN_WORKSPACE_ROOT 2>/dev/null || true)"
+    [[ "${got}" == "ORCAN_WORKSPACE_ROOT=${WORKSPACE_ROOT}" ]]
 }
 
 read_tab_defaults() {
     INITIAL_WINDOWS=3
     WINDOW_PREFIX="tab"
-    [[ -f "${CIND_CONFIG}" ]] || return 0
+    [[ -f "${ORCAN_CONFIG}" ]] || return 0
     while IFS=$'\t' read -r count prefix; do
         [[ -n "${count}" ]] && INITIAL_WINDOWS="${count}"
         [[ -n "${prefix}" ]] && WINDOW_PREFIX="${prefix}"
-    done < <(python3 - "${CIND_CONFIG}" <<'PY'
+    done < <(python3 - "${ORCAN_CONFIG}" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as fh:
     cfg = json.load(fh)
@@ -90,14 +90,14 @@ bootstrap_session() {
     local i title
 
     read_tab_defaults
-    clear_global_cind_env
+    clear_global_orcan_env
 
     # -e sets session env *before* the first pane's shell starts (bashrc).
     tmux_cmd new-session -d -s "${SESSION}" -c "${WORKSPACE_ROOT}" \
-        -e "CIND_WORKSPACE_NAME=${WORKSPACE_LABEL}" \
-        -e "CIND_WORKSPACE_ROOT=${WORKSPACE_ROOT}" \
-        -e "CIND_PROJECT_NAME=${WORKSPACE_LABEL}" \
-        -e "CIND_PROJECT_PATH=${WORKSPACE_ROOT}" \
+        -e "ORCAN_WORKSPACE_NAME=${WORKSPACE_LABEL}" \
+        -e "ORCAN_WORKSPACE_ROOT=${WORKSPACE_ROOT}" \
+        -e "ORCAN_PROJECT_NAME=${WORKSPACE_LABEL}" \
+        -e "ORCAN_PROJECT_PATH=${WORKSPACE_ROOT}" \
         -n "${WINDOW_PREFIX}-1"
     set_session_env
 
@@ -123,7 +123,7 @@ ensure_session() {
 
 ensure_session
 cd "${WORKSPACE_ROOT}"
-if [[ "${CIND_TMUX_ATTACH:-1}" == "0" ]]; then
+if [[ "${ORCAN_TMUX_ATTACH:-1}" == "0" ]]; then
     exit 0
 fi
 exec tmux -f "${TMUX_CONF}" attach -t "=${SESSION}"

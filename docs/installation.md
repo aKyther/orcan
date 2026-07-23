@@ -22,8 +22,8 @@ make --version
 ## Clone
 
 ```bash
-git clone <repository-url> cind
-cd cind
+git clone <repository-url> orcan
+cd orcan
 ```
 
 ## Configure environment

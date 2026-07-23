@@ -22,9 +22,13 @@ require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
 require_file "docker-compose.ttyd.yml"
 require_file "Makefile"
+require_file "orcan.config.example.json"
+require_file "AGENTS.md"
 require_file "scripts/repository/config-scaffold.py"
 require_file "scripts/repository/config-show.py"
-require_file "cind.config.example.json"
+require_file "scripts/repository/config-wizard.py"
+require_file "scripts/repository/config_io.py"
+require_file "scripts/repository/python.sh"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
 require_file "docker/rootfs/opt/cursor-defaults/rules/operating-principles.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/karpathy-guidelines.mdc"
@@ -38,27 +42,21 @@ require_file "docker/rootfs/opt/cursor-defaults/skills/final-review/SKILL.md"
 require_file "docker/rootfs/usr/local/bin/docker-entrypoint"
 require_file "docker/rootfs/usr/local/bin/init-cursor-home"
 require_file "docker/rootfs/usr/local/bin/init-ai-statusline"
-require_file "docker/rootfs/usr/local/bin/cind-ai-statusline"
+require_file "docker/rootfs/usr/local/bin/orcan-ai-statusline"
 require_file "docker/rootfs/usr/local/bin/cursor-init-project"
-require_file "docker/rootfs/usr/local/bin/cind-init-projects"
-require_file "docker/rootfs/usr/local/bin/cind-session-brief"
-require_file "docker/rootfs/usr/local/bin/cind-workspaces"
-require_file "docker/rootfs/usr/local/bin/cind-context-status"
-require_file "docker/rootfs/usr/local/lib/cind/workspaces.py"
+require_file "docker/rootfs/usr/local/bin/orcan-init-projects"
+require_file "docker/rootfs/usr/local/bin/orcan-session-brief"
+require_file "docker/rootfs/usr/local/bin/orcan-workspaces"
+require_file "docker/rootfs/usr/local/bin/orcan-context-status"
+require_file "docker/rootfs/usr/local/lib/orcan/workspaces.py"
 require_file "docker/rootfs/opt/cursor-defaults/templates/workspace/session-brief.md"
-require_file "cind.config.example.yaml"
-require_file "requirements-host.txt"
-require_file "scripts/repository/config-wizard.py"
-require_file "scripts/repository/config_io.py"
-require_file "scripts/repository/python.sh"
-
 require_file "docker/rootfs/etc/skel/.zshrc"
-require_file "docker/rootfs/etc/skel/.zshrc.d/50-cind-shell.zsh"
+require_file "docker/rootfs/etc/skel/.zshrc.d/50-orcan-shell.zsh"
 require_file "docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh"
 require_file "docker/rootfs/etc/skel/.zshrc.d/80-starship.zsh"
-require_file "docker/rootfs/opt/cind/gitconfig"
-require_file "docker/rootfs/opt/cind/starship.toml"
-require_file "docker/rootfs/etc/cind/shell/aliases.sh"
+require_file "docker/rootfs/opt/orcan/gitconfig"
+require_file "docker/rootfs/opt/orcan/starship.toml"
+require_file "docker/rootfs/etc/orcan/shell/aliases.sh"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
@@ -70,9 +68,9 @@ require_file "docker/rootfs/etc/tmux/scripts/status-right.sh"
 require_file "docker/rootfs/etc/tmux/scripts/ai-usage.sh"
 require_file "docker/rootfs/etc/skel/.tmux.conf"
 require_file "docker/rootfs/etc/skel/.vimrc"
-require_file "docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh"
-require_file "docker/rootfs/etc/skel/.bashrc.d/60-cind-aliases.sh"
-require_file "docker/rootfs/etc/cind/shell/aliases.sh"
+require_file "docker/rootfs/etc/skel/.bashrc.d/50-orcan-shell.sh"
+require_file "docker/rootfs/etc/skel/.bashrc.d/60-orcan-aliases.sh"
+require_file "docker/rootfs/etc/orcan/shell/aliases.sh"
 require_file "docker/rootfs/opt/cursor-defaults/templates/cursorignore"
 require_file "docker/rootfs/opt/cursor-defaults/templates/cursorindexingignore"
 require_file "docker/rootfs/opt/cursor-defaults/templates/claudeignore"
@@ -82,8 +80,8 @@ for script in \
     docker/rootfs/usr/local/bin/docker-entrypoint \
     docker/rootfs/usr/local/bin/init-cursor-home \
     docker/rootfs/usr/local/bin/cursor-init-project \
-    docker/rootfs/usr/local/bin/cind-init-projects \
-    docker/rootfs/usr/local/bin/cind-session-brief \
+    docker/rootfs/usr/local/bin/orcan-init-projects \
+    docker/rootfs/usr/local/bin/orcan-session-brief \
     docker/rootfs/usr/local/bin/cursor-ttyd \
     docker/rootfs/usr/local/bin/cursor-launcher \
     docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
@@ -111,11 +109,11 @@ do
 done
 
 for script in \
-    docker/rootfs/usr/local/bin/cind-ai-statusline \
+    docker/rootfs/usr/local/bin/orcan-ai-statusline \
     docker/rootfs/usr/local/bin/init-ai-statusline \
-    docker/rootfs/usr/local/bin/cind-workspaces \
-    docker/rootfs/usr/local/bin/cind-context-status \
-    docker/rootfs/usr/local/lib/cind/workspaces.py \
+    docker/rootfs/usr/local/bin/orcan-workspaces \
+    docker/rootfs/usr/local/bin/orcan-context-status \
+    docker/rootfs/usr/local/lib/orcan/workspaces.py \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
@@ -132,10 +130,10 @@ done
 
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null
-    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml config --quiet
-    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
-    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
-    docker compose -f docker-compose.yml -f .cind/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
+    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config --quiet
+    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
+    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
+    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
     printf 'Compose config OK\n'
 else
     printf 'Skip: Docker daemon not available for compose config\n'

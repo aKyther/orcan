@@ -1,7 +1,7 @@
 # Session brief
 
-Optional handoff for agents in this cind workspace (`agent` and `claude`).
-Create with `cind-session-brief` — do not invent `PLAN.md` / `TODO.md` instead.
+Optional handoff for agents in this orcan workspace (`agent` and `claude`).
+Create with `orcan-session-brief` — do not invent `PLAN.md` / `TODO.md` instead.
 
 ## Goal
 

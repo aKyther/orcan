@@ -1,4 +1,4 @@
-# Default Starship config for cind (missing-only copy to ~/.config/starship.toml).
+# Default Starship config for orcan (missing-only copy to ~/.config/starship.toml).
 # Autodetects git branch/status; keep ASCII-friendly for ttyd.
 
 format = """

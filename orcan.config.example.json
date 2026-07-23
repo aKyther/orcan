@@ -1,5 +1,5 @@
 {
-  "_comment": "Deprecated example — prefer cind.config.example.yaml. JSON configs are still loaded if no YAML file exists.",
+  "_comment": "Copy to orcan.config.json and edit absolute paths. Then: make env",
   "workspaces": [
     {
       "name": "gotibooks",
@@ -19,11 +19,11 @@
       ]
     },
     {
-      "name": "cind",
+      "name": "orcan",
       "projects": [
         {
-          "name": "cind",
-          "path": "/absolute/path/to/cind"
+          "name": "orcan",
+          "path": "/absolute/path/to/orcan"
         }
       ]
     }
@@ -35,7 +35,9 @@
   "ttyd": {
     "port": 7681,
     "host_port": 7681,
-    "font_size": 22
+    "font_size": 22,
+    "font_family": "Menlo, Monaco, 'Courier New', monospace",
+    "theme": "dark"
   },
   "resources": {
     "cpus": 8,

@@ -1,11 +1,9 @@
-# Config profile (YAML)
+# Config profile (JSON)
 
-Declare **workspaces** (each with 1+ mounted repos) in **`cind.config.yaml`**.
+Declare **workspaces** (each with 1+ mounted repos) in **`orcan.config.json`**.
 Keep `.env` for host identity (`USER_UID`, `USER_GID`, `DOCKER_GID`).
 
-Host scripts need **PyYAML**. `make host-deps` / `make env` create a local `.venv` and install it (see `requirements-host.txt`). Alternatively: `sudo apt install python3-yaml`.
-
-JSON (`cind.config.json`) is still accepted if no YAML file is present. Prefer YAML for new setups.
+Host scripts use **stdlib Python only** (`json`) — no PyYAML for config.
 
 ## Quick start
 
@@ -18,7 +16,7 @@ make terminal-docker
 ### After the wizard (or any config edit)
 
 ```bash
-make config-wizard          # create / edit cind.config.yaml
+make config-wizard          # create / edit orcan.config.json
 make env                    # apply → .env, mounts, runtime
 make down && make terminal-docker   # if container already running
 ```
@@ -27,11 +25,11 @@ make down && make terminal-docker   # if container already running
 
 Non-interactive add: `make config-scaffold PROJECT_DIR=... WORKSPACE=name` then `make env`.
 
-Optional template: `make config-init` (copies `cind.config.example.yaml`).
+Optional template: `make config-init` (copies `orcan.config.example.json`).
 
 ## Config wizard
 
-`make config-wizard` walks you through creating or editing `cind.config.yaml`:
+`make config-wizard` walks you through creating or editing `orcan.config.json`:
 
 1. Create workspace? → name
 2. Add projects → name + absolute path (validates existence; retry on errors)
@@ -39,28 +37,32 @@ Optional template: `make config-init` (copies `cind.config.example.yaml`).
 4. Optional tmux / ttyd defaults
 5. If a config already exists → for each workspace: **keep / change / delete**; on keep or change, ask **Add another project to workspace …?**; then add more workspaces
 
-Writes YAML (offers to migrate off JSON). Then run `make env` before `make terminal-docker`.
+Writes JSON. Then run `make env` before `make terminal-docker`.
 
-Discovery order for `make env`: `cind.config.yaml` → `cind.config.yml` → `cind.config.json`.
 `make terminal` / `make terminal-docker` do **not** regenerate config — run `make env` after edits.
 
 ## Workspaces
 
 A **workspace** = one tmux session + one directory + **only** the repos listed in that entry’s `projects[]`.
 
-```yaml
-workspaces:
-  - name: gotibooks
-    projects:
-      - name: backend
-        path: /home/you/gotibooks/backend
-      - name: frontend
-        path: /home/you/gotibooks/frontend
-
-  - name: cind
-    projects:
-      - name: cind
-        path: /home/you/workspace/kyther/cind
+```json
+{
+  "workspaces": [
+    {
+      "name": "gotibooks",
+      "projects": [
+        { "name": "backend", "path": "/home/you/gotibooks/backend" },
+        { "name": "frontend", "path": "/home/you/gotibooks/frontend" }
+      ]
+    },
+    {
+      "name": "orcan",
+      "projects": [
+        { "name": "orcan", "path": "/home/you/workspace/kyther/orcan" }
+      ]
+    }
+  ]
+}
 ```
 
 ### Isolation (projects do not mix)
@@ -73,7 +75,7 @@ workspaces:
 - Projects of workspace A never appear under workspace B’s root.
 - The same host path may be listed in two workspaces (two symlinks); that is optional and explicit — not automatic sharing.
 - `make env` regenerates mounts; container start runs `init-workspace`, which creates only the listed symlinks and **removes orphan** symlinks left from older configs.
-- Removing a workspace from config also deletes its `.cind/workspaces/<name>/` meta dir on the next `make env` (and again at container start). Run `make env` after edits — otherwise stale dirs stay visible under `/home/developer/workspaces/`.
+- Removing a workspace from config also deletes its `.orcan/workspaces/<name>/` meta dir on the next `make env` (and again at container start). Run `make env` after edits — otherwise stale dirs stay visible under `/home/developer/workspaces/`.
 
 Rules:
 
@@ -104,7 +106,7 @@ make path-check
 
 ### Resource limits (CPUS, memory, …)
 
-`cind.config.yaml` may include a `resources` block — used as **defaults on first `make env` only**.
+`orcan.config.json` may include a `resources` block — used as **defaults on first `make env` only**.
 
 For host-specific limits (Docker CPU cap, RAM), edit **`.env`**:
 
@@ -121,85 +123,59 @@ MEMORY=8g
 
 Defaults are applied automatically (no chooser at start):
 
-```yaml
-ttyd:
-  port: 7681
-  host_port: 7681
-  font_size: 22
-  font_family: "Menlo, Monaco, 'Courier New', monospace"
-  theme: dark
+```json
+"ttyd": {
+  "port": 7681,
+  "host_port": 7681,
+  "font_size": 22,
+  "font_family": "Menlo, Monaco, 'Courier New', monospace",
+  "theme": "dark"
+}
 ```
 
-`theme: dark` selects a built-in xterm.js palette; or pass a raw JSON theme string. Seeded into `.env` on first `make env` only (`TTYD_*`).
-
-### Legacy single-workspace shape
-
-Still supported — equivalent to one entry in `workspaces[]`:
-
-```yaml
-workspace:
-  name: gotibooks
-  projects:
-    - name: backend
-      path: /home/you/gotibooks/backend
-```
-
-| Field | Meaning |
-| --- | --- |
-| `name` | Workspace label, directory, and tmux session name |
-| `projects[].name` | Symlink subdirectory under workspace root |
-| `projects[].path` | Host absolute path (parity mount) |
-
-Do not set `meta_path`, `root`, `role`, or per-workspace `tmux`.
-
-### tmux tabs (global)
-
-Root-level `tmux` configures **window defaults** (not the session name):
-
-```yaml
-tmux:
-  initial_windows: 3
-  window_prefix: tab
-```
-
-Creates `tab-1`, `tab-2`, `tab-3` in the workspace root. Session name is always `workspaces[].name`. Developers rename tabs with tmux (`prefix ,`) or add windows (`Alt+c`).
-
-Do not confuse tabs with workspaces: **one config workspace → one tmux session**; tabs are only extra shells inside that session.
-
-Generated files (per workspace):
-
-* `.cind/<name>.container.code-workspace` — open inside container
-* `.cind/<name>.host.code-workspace` — open from host (absolute paths)
-* `<workspace.root>/.manifest.json` — written at container startup
-
-Full design: [Virtual workspace](architecture/workspace.md).
+`theme: "dark"` selects a built-in xterm.js palette; or pass a raw JSON theme string. Seeded into `.env` on first `make env` only (`TTYD_*`).
 
 ## What `make env` does
 
-1. Reads `CONFIG` or discovers `cind.config.yaml` / `.yml` / `.json`
-2. Writes `.env` keys used by Compose (workspace paths, generated paths)
+1. Reads `CONFIG` or discovers `orcan.config.json`
+2. Writes `.env` keys (UID/GID, mounts, workspace paths)
 3. Seeds `CPUS`, `MEMORY`, `TTYD_*` in `.env` **only if missing** — edit `.env` for host limits (not overwritten on `make env`)
-4. Writes `.cind/runtime-config.json` (mounted into the container as `/etc/cind/config.json`)
-5. Writes `.cind/compose-projects.generated.yml` (bind `.cind/workspaces` → `/home/developer/workspaces`, plus path-parity bind per repo)
-6. Writes `.cind/workspace.manifest.json` and `*.code-workspace` files
-
-The browser launcher reads `/etc/cind/config.json` (generated) and lists all workspaces.
+4. Generates `.orcan/runtime-config.json`, compose project mounts, workspace meta dirs
 
 ## Files
 
-| File | Role |
+| Path | Role |
 | --- | --- |
-| `cind.config.example.yaml` | Template (committed) |
-| `cind.config.example.json` | Deprecated JSON template (still valid) |
-| `cind.config.yaml` | Your local profile (gitignored) — **preferred** |
-| `cind.config.json` | Legacy local profile (gitignored; used if no YAML) |
-| `.cind/runtime-config.json` | Generated runtime copy for the container (gitignored) |
-| `.cind/compose-projects.generated.yml` | Generated Compose mounts (gitignored) |
-| `.env` | Host UID/GID, resource limits, values derived from config |
-| `requirements-host.txt` / `.venv` | PyYAML for host `make env` / scaffold |
+| `orcan.config.example.json` | Template (committed) |
+| `orcan.config.json` | Your local profile (gitignored) |
+| `.orcan/` | Generated runtime (gitignored) |
 
-### Migrating from JSON
+## Migrating from YAML
 
-1. Keep `cind.config.json` working as-is, **or**
-2. `cp cind.config.example.yaml cind.config.yaml`, copy your workspaces into YAML, then remove or rename the JSON file (YAML is preferred when both exist).
-3. `make env`
+Older setups may still have `*.config.yaml`. Host config is **JSON-only** now:
+
+```bash
+yq -o=json cind.config.yaml > orcan.config.json   # or orcan.config.yaml
+rm -f cind.config.yaml orcan.config.yaml
+make env
+```
+
+## Migrating from the former name “cind”
+
+| Old | New |
+| --- | --- |
+| `cind.config.json` | `orcan.config.json` |
+| `.cind/` | `.orcan/` |
+| `~/.config/cind` (`CIND_DATA`) | `~/.config/orcan` (`ORCAN_DATA`) |
+| image / Compose service `cind` | `orcan` |
+| CLI helpers `cind-*` | `orcan-*` |
+
+```bash
+# optional host data move
+mv ~/.config/cind ~/.config/orcan
+make env
+make rebuild
+make down && make terminal-docker
+```
+
+The clone directory may still be named `…/cind` until you rename it on disk; `PROJECT_DIR` should match the real path.

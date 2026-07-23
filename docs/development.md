@@ -22,17 +22,17 @@ Guide for contributors and coding agents who change this repository.
 | Host orchestration | `Makefile` + Compose |
 | Host helpers | `scripts/repository/` |
 | Project templates | `docker/rootfs/opt/cursor-defaults/templates/` |
-| Shared workspace parser | `docker/rootfs/usr/local/lib/cind/workspaces.py` |
+| Shared workspace parser | `docker/rootfs/usr/local/lib/orcan/workspaces.py` |
 | This repo's Cursor rules | `.cursor/rules/` (see `agents.mdc`) |
 | Documentation | `README.md`, `docs/` |
 | Product boundary (context vs models) | `docs/architecture/context.md` |
 
-cind is a **context orchestrator**; do not add model-selection flags or AgentProvider abstractions. Non-goals are listed in that page.
+orcan is a **context orchestrator**; do not add model-selection flags or AgentProvider abstractions. Non-goals are listed in that page.
 
 ## Agent guide
 
-Agents working on **this** repository should follow `.cursor/rules/agents.mdc`.
-That file is always applied in Cursor.
+Agents working on **this** repository should follow `.cursor/rules/agents.mdc` and root `AGENTS.md`.
+That rule is always applied in Cursor.
 
 Key points:
 
@@ -66,7 +66,7 @@ Examples:
 
 * entrypoint → `docker/rootfs/usr/local/bin/docker-entrypoint`
 * Cursor defaults → `docker/rootfs/opt/cursor-defaults/`
-* TMUX/Vim/shell → `docker/rootfs/etc/skel/`
+* TMUX / zsh / Vim → `docker/rootfs/etc/tmux/`, `docker/rootfs/etc/skel/`
 
 ## Changing Cursor defaults
 
@@ -75,7 +75,7 @@ Examples:
 3. Global skills (`skills/`) are reusable workflows; avoid duplicating rule content.
 4. Project templates (`templates/`) are copied by `cursor-init-project` — keep them project-scoped.
 5. Rebuild the image (`make build`).
-6. New files appear on next container start only if missing under `$CIND_DATA/cursor`.
+6. New files appear on next container start only if missing under `$ORCAN_DATA/cursor`.
 7. To force a full reset of global Cursor home: `make clean-data`, then `make env` and start again.
 
 Do not write defaults only into `/home/developer/.cursor` during the image build.
@@ -86,7 +86,7 @@ The host bind would hide them.
 1. Keep the Docker socket out of `docker-compose.yml`.
 2. Put socket + `group_add` only in `docker-compose.docker.yml`.
 3. Put ttyd port and TMUX settings only in `docker-compose.ttyd.yml`.
-4. Keep host binds under `CIND_DATA` (no Docker named volumes for user state).
+4. Keep host binds under `ORCAN_DATA` (no Docker named volumes for user state).
 5. Validate configs:
 
 ```bash

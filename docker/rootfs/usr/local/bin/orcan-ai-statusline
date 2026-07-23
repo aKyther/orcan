@@ -32,7 +32,7 @@ def dig(obj, *keys):
 
 
 def detect_provider(data: dict, model: str) -> str:
-    provider = (os.environ.get("CIND_AI_PROVIDER") or "").strip().lower()
+    provider = (os.environ.get("ORCAN_AI_PROVIDER") or "").strip().lower()
     if provider:
         return provider
     if dig(data, "rate_limits") is not None or "claude" in model.lower():
@@ -52,8 +52,8 @@ def detect_provider(data: dict, model: str) -> str:
 
 def main() -> int:
     cache_dir = Path(
-        os.environ.get("CIND_AI_USAGE_DIR")
-        or (Path(os.environ.get("HOME", "/home/developer")) / ".cache" / "cind")
+        os.environ.get("ORCAN_AI_USAGE_DIR")
+        or (Path(os.environ.get("HOME", "/home/developer")) / ".cache" / "orcan")
     )
     cache_dir.mkdir(parents=True, exist_ok=True)
 

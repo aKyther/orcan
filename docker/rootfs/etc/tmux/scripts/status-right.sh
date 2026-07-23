@@ -18,9 +18,9 @@ if [[ -n "${ai_usage}" ]]; then
     parts+=("${ai_usage}")
 fi
 
-brief_root="$(tmux show-environment CIND_WORKSPACE_ROOT 2>/dev/null | cut -d= -f2- || true)"
+brief_root="$(tmux show-environment ORCAN_WORKSPACE_ROOT 2>/dev/null | cut -d= -f2- || true)"
 if [[ -z "${brief_root}" ]]; then
-    brief_root="${CIND_WORKSPACE_ROOT:-}"
+    brief_root="${ORCAN_WORKSPACE_ROOT:-}"
 fi
 if [[ -z "${brief_root}" ]]; then
     case "${pane_path}" in
@@ -29,7 +29,7 @@ if [[ -z "${brief_root}" ]]; then
             ;;
     esac
 fi
-if [[ -n "${brief_root}" && -f "${brief_root}/.cind/session-brief.md" ]]; then
+if [[ -n "${brief_root}" && -f "${brief_root}/.orcan/session-brief.md" ]]; then
     parts+=("#[fg=colour114,bold]brief")
 fi
 

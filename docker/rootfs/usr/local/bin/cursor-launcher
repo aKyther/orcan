@@ -4,7 +4,7 @@
 
 set -Eeuo pipefail
 
-CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
+ORCAN_CONFIG="${ORCAN_CONFIG:-/etc/orcan/config.json}"
 PROJECT_DIR="${PROJECT_DIR:-}"
 
 declare -a WS_NAMES=()
@@ -20,8 +20,8 @@ load_workspaces() {
     WS_REPOS=()
     WS_HINTS=()
 
-    [[ -f "${CIND_CONFIG}" ]] || return 1
-    command -v cind-workspaces >/dev/null 2>&1 || return 1
+    [[ -f "${ORCAN_CONFIG}" ]] || return 1
+    command -v orcan-workspaces >/dev/null 2>&1 || return 1
 
     while IFS=$'\t' read -r name root session repos hints; do
         [[ -n "${name}" ]] || continue
@@ -30,7 +30,7 @@ load_workspaces() {
         WS_SESSIONS+=("${session}")
         WS_REPOS+=("${repos}")
         WS_HINTS+=("${hints}")
-    done < <(CIND_CONFIG="${CIND_CONFIG}" cind-workspaces list --hints)
+    done < <(ORCAN_CONFIG="${ORCAN_CONFIG}" orcan-workspaces list --hints)
 
     ((${#WS_NAMES[@]} > 0))
 }
@@ -47,11 +47,11 @@ workspace_status() {
 print_menu() {
     local i
     clear 2>/dev/null || true
-    printf 'cind workspaces\n'
+    printf 'orcan workspaces\n'
     printf '────────────────────────────\n'
     if ((${#WS_NAMES[@]} == 0)); then
         printf '(no workspaces configured)\n'
-        printf 'Add workspaces[] to cind.config.json\n'
+        printf 'Add workspaces[] to orcan.config.json\n'
     else
         for i in "${!WS_NAMES[@]}"; do
             printf ' %d) %-16s %s\n' "$((i + 1))" "${WS_NAMES[i]}" "$(workspace_status "${WS_SESSIONS[i]}")"
@@ -80,10 +80,10 @@ ensure_sessions() {
 }
 
 show_context_status() {
-    if command -v cind-context-status >/dev/null 2>&1; then
-        CIND_CONFIG="${CIND_CONFIG}" cind-context-status || true
+    if command -v orcan-context-status >/dev/null 2>&1; then
+        ORCAN_CONFIG="${ORCAN_CONFIG}" orcan-context-status || true
     else
-        printf 'cind-context-status not available\n'
+        printf 'orcan-context-status not available\n'
     fi
     printf '\nPress Enter…\n'
     read -r _ || true
@@ -91,11 +91,11 @@ show_context_status() {
 
 show_init_hint() {
     printf '\nPer-repo ignores are not auto-written into checkouts.\n'
-    printf 'Inside container:  cind-init-projects\n'
+    printf 'Inside container:  orcan-init-projects\n'
     printf 'From host:         make init-project-all\n'
     printf 'Dry-run:           make init-project-all-dry-run\n'
-    printf 'Status:            cind-context-status\n'
-    printf 'Session handoff:   cind-session-brief   (alias: brief)\n'
+    printf 'Status:            orcan-context-status\n'
+    printf 'Session handoff:   orcan-session-brief   (alias: brief)\n'
     printf '\nPress Enter…\n'
     read -r _ || true
 }

@@ -1,6 +1,6 @@
 # Secrets and credentials — Claude Code discovery / context
 # Same patterns as .cursorignore. Not a hard security boundary;
-# also use .claude/settings.json permissions.deny (seeded by cind).
+# also use .claude/settings.json permissions.deny (seeded by orcan).
 .env
 .env.*
 !.env.example

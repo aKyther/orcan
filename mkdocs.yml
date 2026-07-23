@@ -1,9 +1,9 @@
-site_name: cind
+site_name: orcan
 site_description: Context orchestrator for Cursor CLI and Claude Code in Docker
-site_author: cind contributors
+site_author: orcan contributors
 
-repo_url: https://github.com/example/cind
-repo_name: example/cind
+repo_url: https://github.com/example/orcan
+repo_name: example/orcan
 edit_uri: edit/main/docs/
 
 theme:
@@ -68,7 +68,7 @@ nav:
   - Path parity: path-parity.md
   - Project launcher: launcher.md
   - tmux: tmux.md
-  - Config (YAML + wizard): config.md
+  - Config (JSON + wizard): config.md
   - Architecture:
       - Context orchestration: architecture/context.md
       - Virtual workspace: architecture/workspace.md

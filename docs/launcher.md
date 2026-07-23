@@ -13,7 +13,7 @@ Browser terminal (`ttyd`) starts a **workspace picker**, not a single tmux sessi
 
 | Concept | Meaning |
 | --- | --- |
-| Workspace (`cind.config.yaml`) | One session + one directory under `/home/developer/workspaces/<name>` |
+| Workspace (`orcan.config.json`) | One session + one directory under `/home/developer/workspaces/<name>` |
 | tmux **session** | That workspace (name = `workspaces[].name`) — all bootstrapped in the background |
 | tmux **tab** (`tab-1` …) | Extra shell in the **same** workspace — not another workspace |
 
@@ -25,20 +25,26 @@ make env
 make down && make terminal-docker
 ```
 
-Or edit `cind.config.yaml` by hand:
+Or edit `orcan.config.json` by hand:
 
-```yaml
-workspaces:
-  - name: gotibooks
-    projects:
-      - name: backend
-        path: /home/you/gotibooks/backend
-      - name: frontend
-        path: /home/you/gotibooks/frontend
-  - name: cind
-    projects:
-      - name: cind
-        path: /home/you/workspace/kyther/cind
+```json
+{
+  "workspaces": [
+    {
+      "name": "gotibooks",
+      "projects": [
+        { "name": "backend", "path": "/home/you/gotibooks/backend" },
+        { "name": "frontend", "path": "/home/you/gotibooks/frontend" }
+      ]
+    },
+    {
+      "name": "orcan",
+      "projects": [
+        { "name": "orcan", "path": "/home/you/workspace/kyther/orcan" }
+      ]
+    }
+  ]
+}
 ```
 
 After editing config: `make env && make down && make terminal-docker`.

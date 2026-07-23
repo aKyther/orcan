@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create or refresh .env from host identity + optional cind.config.yaml/.json.
+# Create or refresh .env from host identity + optional orcan.config.json.
 # Host-only: do not copy this into the Docker image.
 
 set -Eeuo pipefail
@@ -34,14 +34,9 @@ ensure_env_key() {
     fi
 }
 
-# Prefer explicit CONFIG, else discover YAML then JSON.
-if [[ -z "${CONFIG}" ]]; then
-    for cand in cind.config.yaml cind.config.yml cind.config.json; do
-        if [[ -f "${ROOT_DIR}/${cand}" ]]; then
-            CONFIG="${ROOT_DIR}/${cand}"
-            break
-        fi
-    done
+# Prefer explicit CONFIG, else orcan.config.json.
+if [[ -z "${CONFIG}" && -f "${ROOT_DIR}/orcan.config.json" ]]; then
+    CONFIG="${ROOT_DIR}/orcan.config.json"
 fi
 
 apply_args=(
@@ -90,17 +85,17 @@ if ! grep -qE '^TZ=.' .env; then
 fi
 
 # Host data root — always on (like poetry/pip under ~/.config).
-# Default: $HOME/.config/cind. Override in .env only for a custom path.
-# Do not overwrite an existing non-empty CIND_DATA.
-if [[ -z "${CIND_DATA:-}" ]]; then
-    CIND_DATA="${HOME}/.config/cind"
+# Default: $HOME/.config/orcan. Override in .env only for a custom path.
+# Do not overwrite an existing non-empty ORCAN_DATA.
+if [[ -z "${ORCAN_DATA:-}" ]]; then
+    ORCAN_DATA="${HOME}/.config/orcan"
 fi
 # Persist absolute path in .env when missing or empty (make env always enables it).
-if ! grep -qE '^CIND_DATA=.' .env; then
-    ensure_env_key "CIND_DATA" "${CIND_DATA}"
+if ! grep -qE '^ORCAN_DATA=.' .env; then
+    ensure_env_key "ORCAN_DATA" "${ORCAN_DATA}"
 fi
 
-CIND_DATA_SUBDIRS=(
+ORCAN_DATA_SUBDIRS=(
     cursor
     cursor-app
     claude
@@ -112,26 +107,26 @@ CIND_DATA_SUBDIRS=(
     bash-history
     shell-history
 )
-mkdir -p "${CIND_DATA}"
-for sub in "${CIND_DATA_SUBDIRS[@]}"; do
-    mkdir -p "${CIND_DATA}/${sub}"
+mkdir -p "${ORCAN_DATA}"
+for sub in "${ORCAN_DATA_SUBDIRS[@]}"; do
+    mkdir -p "${ORCAN_DATA}/${sub}"
 done
-if chown -R "${USER_UID}:${USER_GID}" "${CIND_DATA}" 2>/dev/null; then
+if chown -R "${USER_UID}:${USER_GID}" "${ORCAN_DATA}" 2>/dev/null; then
     :
 else
     printf 'Warning: could not chown %s (UID=%s GID=%s); fix ownership if mounts fail\n' \
-        "${CIND_DATA}" "${USER_UID}" "${USER_GID}" >&2
+        "${ORCAN_DATA}" "${USER_UID}" "${USER_GID}" >&2
 fi
 
 printf '.env updated (USER_UID=%s USER_GID=%s DOCKER_GID=%s TZ=%s)\n' \
     "${USER_UID}" "${USER_GID}" "${DOCKER_GID}" "$(grep -E '^TZ=' .env | cut -d= -f2-)"
 printf 'PROJECT_DIR=%s\n' "${PROJECT_DIR}"
-printf 'CIND_DATA=%s (host config/cache — created if missing)\n' "${CIND_DATA}"
+printf 'ORCAN_DATA=%s (host config/cache — created if missing)\n' "${ORCAN_DATA}"
 if [[ -n "${CONFIG}" ]]; then
     printf 'CONFIG=%s\n' "${CONFIG}"
 fi
-if [[ -f "${CIND_COMPOSE_PROJECTS:-${ROOT_DIR}/.cind/compose-projects.generated.yml}" ]]; then
-    printf 'project mounts: %s\n' "${CIND_COMPOSE_PROJECTS:-${ROOT_DIR}/.cind/compose-projects.generated.yml}"
+if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ROOT_DIR}/.orcan/compose-projects.generated.yml}" ]]; then
+    printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ROOT_DIR}/.orcan/compose-projects.generated.yml}"
 fi
 printf 'Next: make init-project-all  # seed per-repo ignores (missing-only)\n'
 printf '      make down && make terminal-docker\n'

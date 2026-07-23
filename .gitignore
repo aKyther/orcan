@@ -3,7 +3,13 @@
 .env.local
 .env.*.local
 
-# Local cind profile (keep cind.config.example.yaml)
+# Local orcan profile (committed template: orcan.config.example.json)
+orcan.config.json
+orcan.config.yaml
+orcan.config.yml
+.orcan/
+
+# Leftover names from the former "cind" product (safe to ignore)
 cind.config.yaml
 cind.config.yml
 cind.config.json

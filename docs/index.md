@@ -1,8 +1,8 @@
-# cind
+# orcan
 
-**cind** orchestrates **environment and context** for coding agents: workspaces, path-parity mounts, instruction/ignore seeds, and a browser tmux launcher.
+**orcan** orchestrates **environment and context** for coding agents: workspaces, path-parity mounts, instruction/ignore seeds, and a browser tmux launcher.
 
-Cursor CLI (`agent`) and Claude Code (`claude`) are **pluggable tools** inside that environment. **Models are out of scope** — configure them in each CLI / account, not in cind.
+Cursor CLI (`agent`) and Claude Code (`claude`) are **pluggable tools** inside that environment. **Models are out of scope** — configure them in each CLI / account, not in orcan.
 
 ## What this project is
 
@@ -32,7 +32,7 @@ A ready-to-run container image and Compose setup where:
 | Page | Content |
 | --- | --- |
 | [Getting started](getting-started.md) | Ritual: wizard → `make env` → `make terminal-docker` |
-| [Config](config.md) | `cind.config.yaml` + interactive wizard |
+| [Config](config.md) | `orcan.config.json` only (no PyYAML) + wizard |
 | [Context orchestration](architecture/context.md) | Product boundary, context pack, non-goals |
 | [Virtual workspace](architecture/workspace.md) | Workspace = context unit |
 | [Installation](installation.md) | Requirements and setup |
@@ -40,6 +40,6 @@ A ready-to-run container image and Compose setup where:
 | [Makefile](makefile.md) | Every Make command |
 | [Cursor](cursor.md) | Global profile, image defaults, project init |
 | [Security](security.md) | What is and is not isolated |
-| [Development](development.md) | Repository vs container layout |
+| [Development](development.md) | Repo layout for contributors / coding agents |
 | [FAQ](faq.md) | Common questions |
 | [Troubleshooting](troubleshooting.md) | Fixes for common failures |

@@ -6,7 +6,7 @@ First run uses **Make only** — no manual copying of `.env.example` or config t
 
 | Step | Command | Notes |
 | --- | --- | --- |
-| Config | `make config-wizard` or `make setup` | Write/edit `cind.config.yaml` |
+| Config | `make config-wizard` or `make setup` | Write/edit `orcan.config.json` |
 | Apply | `make env` | Always after config changes |
 | Build (once) | `make build` | Image |
 | Run | `make terminal-docker` | Does **not** call `make env` |
@@ -16,8 +16,8 @@ Daily (no config change): `make terminal-docker` only.
 ## 1. Clone
 
 ```bash
-git clone <repository-url> cind
-cd cind
+git clone <repository-url> orcan
+cd orcan
 ```
 
 ## 2. Setup
@@ -28,7 +28,7 @@ make setup PROJECT_DIR=/absolute/path/to/your/repo
 
 `make setup`:
 
-1. Creates `cind.config.yaml` from `PROJECT_DIR` if missing (one workspace, one project)
+1. Creates `orcan.config.json` from `PROJECT_DIR` if missing (one workspace, one project)
 2. Runs `make env` — creates `.env`, generated Compose mounts, runtime config
 3. Prints workspace layout (`make config-show`) and next steps
 
@@ -39,7 +39,7 @@ make config-wizard
 make env
 ```
 
-Developing **this** cind repo (defaults `PROJECT_DIR` to the clone):
+Developing **this** orcan repo (defaults `PROJECT_DIR` to the clone):
 
 ```bash
 make setup
@@ -107,7 +107,7 @@ claude --version
 test -d "${HOME}/.cursor"
 ```
 
-Handy aliases (always in the image — see `/etc/cind/shell/aliases.sh`):
+Handy aliases (always in the image — see `/etc/orcan/shell/aliases.sh`):
 
 | Alias | Meaning |
 | --- | --- |
@@ -122,8 +122,8 @@ Handy aliases (always in the image — see `/etc/cind/shell/aliases.sh`):
 | `ccy` | `claude --dangerously-skip-permissions` (no approval prompts) |
 | `ag` | `agent` |
 | `agy` | `agent --yolo` (skip tool approval prompts) |
-| `brief` | `cind-session-brief` (optional workspace handoff file) |
-| `ctx` | `cind-context-status` (context pack / ignore gaps) |
+| `brief` | `orcan-session-brief` (optional workspace handoff file) |
+| `ctx` | `orcan-context-status` (context pack / ignore gaps) |
 
 ## 7. Optional: scaffold Cursor/Claude files in a project
 
@@ -131,17 +131,17 @@ From the host (pass the repo path explicitly):
 
 ```bash
 make init-project PROJECT_DIR=/absolute/path/to/repo
-# or every projects[].path in cind.config.yaml (do this after make env):
+# or every projects[].path in orcan.config.json (do this after make env):
 make init-project-all
 ```
 
-Inside the container: `cind-session-brief` / `brief`, `cind-context-status` / `ctx`. Launcher: `s` = status, `i` = init hint.
+Inside the container: `orcan-session-brief` / `brief`, `orcan-context-status` / `ctx`. Launcher: `s` = status, `i` = init hint.
 
 ## Next steps
 
-* [Context orchestration](architecture/context.md) — what cind owns vs agent models
+* [Context orchestration](architecture/context.md) — what orcan owns vs agent models
 * [Makefile](makefile.md) — all targets (`setup`, `config-wizard`, `config-scaffold`, …)
-* [Config](config.md) — YAML profile + wizard
+* [Config](config.md) — JSON profile + wizard
 * [Project launcher](launcher.md)
 * [Path parity](path-parity.md)
 * [Security — Tailscale](security.md#remote-access-tailscale)

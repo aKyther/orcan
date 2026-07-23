@@ -1,15 +1,15 @@
 # Virtual workspace architecture
 
-A **workspace** is the primary **context unit** in cind: one directory under `/home/developer/workspaces/<name>`, one tmux session, one or more mounted repos, and a [context pack](context.md#canonical-context-pack).
+A **workspace** is the primary **context unit** in orcan: one directory under `/home/developer/workspaces/<name>`, one tmux session, one or more mounted repos, and a [context pack](context.md#canonical-context-pack).
 
-cind orchestrates that context. `agent` / `claude` are tools inside it; **models stay outside** cind config.
+orcan orchestrates that context. `agent` / `claude` are tools inside it; **models stay outside** orcan config.
 
 ## Model
 
 ```text
-Host (cind repo, automatic)              Container (always)
+Host (orcan repo, automatic)              Container (always)
 ──────────────────────────────────    ─────────────────────────────────────
-.cind/workspaces/              →    /home/developer/workspaces/
+.orcan/workspaces/              →    /home/developer/workspaces/
   gotibooks/                              gotibooks/
     .cursor/rules/                          .cursor/rules/
     .manifest.json, AGENTS.md, …            context pack
@@ -18,17 +18,17 @@ Host (cind repo, automatic)              Container (always)
   other/                                  other/
 ```
 
-One Compose bind mounts the whole `.cind/workspaces/` tree (not one bind per workspace). Each workspace is a subdirectory — project symlinks stay only under that subdirectory.
+One Compose bind mounts the whole `.orcan/workspaces/` tree (not one bind per workspace). Each workspace is a subdirectory — project symlinks stay only under that subdirectory.
 
 | Concept | Path / meaning |
 | --- | --- |
 | Workspace (context unit) | tmux session name = `workspaces[].name` |
 | Workspace root | Always `/home/developer/workspaces/<name>` in the container |
-| Host persistence | Auto: `<cind-repo>/.cind/workspaces/<name>/` (not in JSON) |
+| Host persistence | Auto: `<orcan-repo>/.orcan/workspaces/<name>/` (not in JSON) |
 | `projects[]` | Path parity mount + symlink as subdirectory under workspace root |
 | tmux tabs | `tab-1`, `tab-2`, `tab-3` (shells in the same workspace; configurable) |
 
-You do **not** set container paths in JSON — cind handles parity mounts and symlinks.
+You do **not** set container paths in JSON — orcan handles parity mounts and symlinks.
 
 ## Path parity + symlinks
 
@@ -77,7 +77,7 @@ No `alias`, no `default_project`, no `default_workspace`, no `mount_mode`, no pe
 
 ## Workspace-level Cursor rules
 
-On the host, edit `<cind-repo>/.cind/workspaces/<name>/.cursor/rules/` (created by `make env`). Inside the container the same files appear under `/home/developer/workspaces/<name>/.cursor/rules/`.
+On the host, edit `<orcan-repo>/.orcan/workspaces/<name>/.cursor/rules/` (created by `make env`). Inside the container the same files appear under `/home/developer/workspaces/<name>/.cursor/rules/`.
 
 ## Context pack (agents)
 
@@ -94,11 +94,11 @@ On container start, `init-workspace` maintains the canonical **context pack** at
 | `.claude/settings.json` | Claude `permissions.deny` for secrets | Missing-only |
 | `.cursor/rules/workspace-context.mdc` | Cursor rule seed | Missing-only |
 | `README.workspace.md` | Short human map | Every start |
-| `.cind/session-brief.md` | Optional shared handoff | **On demand** (`cind-session-brief`) |
+| `.orcan/session-brief.md` | Optional shared handoff | **On demand** (`orcan-session-brief`) |
 
 Agents should read **`AGENTS.md` → `.manifest.json` → session brief (if any) → project `AGENTS.md`**.
 
-Ignore files at the workspace root help when the agent starts there. They do **not** rewrite files inside each project checkout (cind does not auto-modify mounted repos). For per-repo `.env` protection:
+Ignore files at the workspace root help when the agent starts there. They do **not** rewrite files inside each project checkout (orcan does not auto-modify mounted repos). For per-repo `.env` protection:
 
 ```bash
 make config-wizard   # or hand-edit / config-scaffold
@@ -107,13 +107,13 @@ make init-project-all        # every projects[].path in config
 make down && make terminal-docker
 ```
 
-Check pack health: `cind-context-status` (alias `ctx`; launcher key `s`). Session brief shows as **brief** in tmux status-right when `.cind/session-brief.md` exists.
+Check pack health: `orcan-context-status` (alias `ctx`; launcher key `s`). Session brief shows as **brief** in tmux status-right when `.orcan/session-brief.md` exists.
 
 Global layers: Cursor `~/.cursor/cli-config.json` deny rules; Claude `~/.claude/settings.json` deny rules (seeded additively by `init-ai-statusline`).
 
 Do not treat workspace root as a git root.
 
-Custom lasting rules: edit `.cursor/rules/` under `<cind-repo>/.cind/workspaces/<name>/` (not the generated `AGENTS.md`). Customize ignore files in the same tree — they are missing-only and will not be overwritten on restart.
+Custom lasting rules: edit `.cursor/rules/` under `<orcan-repo>/.orcan/workspaces/<name>/` (not the generated `AGENTS.md`). Customize ignore files in the same tree — they are missing-only and will not be overwritten on restart.
 
 Full product boundary and non-goals: [Context orchestration](context.md).
 

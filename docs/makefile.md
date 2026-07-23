@@ -1,6 +1,6 @@
 # Makefile reference
 
-Everyday commands for building and running the cind container.
+Everyday commands for building and running the orcan container.
 
 ## Core targets
 
@@ -8,18 +8,20 @@ Everyday commands for building and running the cind container.
 | --- | --- |
 | `make help` | List all targets |
 | `make setup` | **First run:** scaffold config (if missing), `make env`, show layout |
-| `make env` | Refresh `.env`, runtime config, and project mounts from `cind.config.yaml` |
+| `make env` | Refresh `.env`, runtime config, and project mounts from `orcan.config.json` |
 | `make config-show` | Print config and generated runtime manifest |
-| `make config-wizard` | Interactive create/edit `cind.config.yaml` |
-| `make config-init` | Copy example YAML template |
+| `make config-wizard` | Interactive create/edit `orcan.config.json` |
+| `make config-init` | Copy example JSON template |
 | `make config-scaffold` | Non-interactive add project from `PROJECT_DIR` |
 | `make path-check` | Show mounts and workspace layout (read-only) |
-| `make build` | Build the container image (needs `.env` only) |
-| `make rebuild` | Rebuild without cache (needs `.env` only) |
+| `make build` | Build **full** image (Claude + Cursor) → `orcan:latest` |
+| `make build-claude` | Build **Claude-only** image → `orcan:claude` |
+| `make rebuild` | Rebuild full without cache |
+| `make rebuild-claude` | Rebuild Claude-only without cache |
 | `make registry-show` | Show local/remote image names for publish |
 | `make registry-login` | `docker login` to GitLab (or other) registry |
 | `make publish` | Tag + push image to registry |
-| `make pull` | Pull published image and retag as `cind:latest` |
+| `make pull` | Pull published image and retag as `orcan:latest` |
 | `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
 | `make terminal-docker` | Start browser terminal with host Docker socket (does not run `make env`) |
 | `make terminal-url` | Print browser terminal URL |
@@ -34,7 +36,7 @@ Everyday commands for building and running the cind container.
 
 ## Starting the terminal
 
-`make terminal` and `make terminal-docker` **only start containers**. They do not run `make env`, regenerate `.cind/*`, or overwrite `.env`.
+`make terminal` and `make terminal-docker` **only start containers**. They do not run `make env`, regenerate `.orcan/*`, or overwrite `.env`.
 
 ```bash
 make terminal
@@ -45,7 +47,7 @@ make terminal-docker
 ### Config change ritual
 
 ```bash
-make config-wizard          # or edit cind.config.yaml / config-scaffold
+make config-wizard          # or edit orcan.config.json / config-scaffold
 make env
 make init-project-all       # optional: seed ignores / AGENTS in new repos
 make down && make terminal-docker
@@ -76,7 +78,7 @@ Build once, push to GitLab Container Registry, pull on another host (e.g. VPS).
 
 ```dotenv
 IMAGE_REGISTRY=registry.gitlab.com
-IMAGE_REPOSITORY=mygroup/cind
+IMAGE_REPOSITORY=mygroup/orcan
 IMAGE_TAG=latest
 ```
 
@@ -132,10 +134,10 @@ make down && make terminal-docker
 
 | Target | Compose files |
 | --- | --- |
-| `make terminal` | `docker-compose.yml` + `.cind/compose-projects.generated.yml` + `docker-compose.ttyd.yml` |
+| `make terminal` | `docker-compose.yml` + `.orcan/compose-projects.generated.yml` + `docker-compose.ttyd.yml` |
 | `make terminal-docker` | above + `docker-compose.docker.yml` |
 
-Project paths come from `cind.config.yaml` → `.cind/compose-projects.generated.yml`.
+Project paths come from `orcan.config.json` → `.orcan/compose-projects.generated.yml`.
 Run `make env` after changing projects (wizard, scaffold, or hand-edit).
 
 ## Config helpers
@@ -143,10 +145,10 @@ Run `make env` after changing projects (wizard, scaffold, or hand-edit).
 | Target | Description |
 | --- | --- |
 | `make setup` | First run: scaffold config if missing, run `env`, show next steps |
-| `make config-wizard` | Interactive create/edit `cind.config.yaml` (keep / change / delete) |
+| `make config-wizard` | Interactive create/edit `orcan.config.json` (keep / change / delete) |
 | `make config-scaffold` | Non-interactive append workspace/project from `PROJECT_DIR` |
 | `make config-show` | Print config and generated runtime manifest |
-| `make config-init` | Optional: copy full `cind.config.example.yaml` template |
+| `make config-init` | Optional: copy full `orcan.config.example.json` template |
 
 ```bash
 make config-wizard
@@ -166,7 +168,7 @@ make env
 
 Optional: `WORKSPACE=my-name`, `FORCE=1`.
 
-Note: `make config` prints **Docker Compose** config, not `cind.config.yaml`.
+Note: `make config` prints **Docker Compose** config, not `orcan.config.json`.
 
 ## Docker socket
 
@@ -183,8 +185,8 @@ Use it only when you need `docker compose` or `docker build` inside the containe
 | `make init-project-dry-run` | Preview bootstrap |
 | `make init-project-all` | Bootstrap every configured project path |
 | `make init-project-all-dry-run` | Preview all-project bootstrap |
-| `make clean` | Stop containers, keep host data under `CIND_DATA` |
-| `make clean-data` | Delete `$CIND_DATA` (`~/.config/cind`) — login + caches |
+| `make clean` | Stop containers, keep host data under `ORCAN_DATA` |
+| `make clean-data` | Delete `$ORCAN_DATA` (`~/.config/orcan`) — login + caches |
 | `make clean-volumes` | Alias for `clean-data` |
 | `make docs` | Build documentation site |
 | `make test-path-parity` | Integration test for path parity + Docker socket |

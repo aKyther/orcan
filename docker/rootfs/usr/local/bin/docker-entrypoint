@@ -7,6 +7,12 @@ INIT_SCRIPT="${INIT_CURSOR_HOME_SCRIPT:-/usr/local/bin/init-cursor-home}"
 AI_STATUSLINE_SCRIPT="${INIT_AI_STATUSLINE_SCRIPT:-/usr/local/bin/init-ai-statusline}"
 WORKSPACE_SCRIPT="${INIT_WORKSPACE_SCRIPT:-/usr/local/bin/init-workspace}"
 
+# Bake-time variant: full (Claude+Cursor) or claude (Claude only).
+if [[ -z "${ORCAN_VARIANT:-}" && -r /etc/orcan/variant ]]; then
+    ORCAN_VARIANT="$(tr -d '[:space:]' < /etc/orcan/variant)"
+fi
+export ORCAN_VARIANT="${ORCAN_VARIANT:-full}"
+
 fix_named_volume_permissions() {
     local dir uid gid
 
@@ -79,6 +85,10 @@ enter_project_dir() {
 }
 
 run_init() {
+    # Cursor home seeds only matter when the Cursor CLI is in the image.
+    if [[ "${ORCAN_VARIANT}" == "claude" ]] && ! command -v agent >/dev/null 2>&1; then
+        return 0
+    fi
     if [[ ! -x "${INIT_SCRIPT}" ]]; then
         printf 'Warning: init script not found or not executable: %s\n' "${INIT_SCRIPT}" >&2
         return 0
@@ -99,12 +109,14 @@ ensure_shell_home() {
     local src dst base
     mkdir -p "${HOME}/.bashrc.d" "${HOME}/.zshrc.d" "${HOME}/.cache/zsh" "${HOME}/.config"
 
-    rm -f "${HOME}/.bashrc.d/50-cursor-dev.sh"
+    rm -f "${HOME}/.bashrc.d/50-cursor-dev.sh" \
+        "${HOME}/.bashrc.d/50-cind-shell.sh" \
+        "${HOME}/.zshrc.d/50-cind-shell.zsh"
     for src in /etc/skel/.bashrc.d/*.sh; do
         [[ -f "${src}" ]] || continue
         dst="${HOME}/.bashrc.d/$(basename "${src}")"
         base="$(basename "${src}")"
-        if [[ "${base}" == "50-cind-shell.sh" || ! -e "${dst}" ]]; then
+        if [[ "${base}" == "50-orcan-shell.sh" || ! -e "${dst}" ]]; then
             cp -- "${src}" "${dst}"
         fi
     done
@@ -116,20 +128,25 @@ ensure_shell_home() {
         [[ -f "${src}" ]] || continue
         dst="${HOME}/.zshrc.d/$(basename "${src}")"
         base="$(basename "${src}")"
-        if [[ "${base}" == "50-cind-shell.zsh" || ! -e "${dst}" ]]; then
+        if [[ "${base}" == "50-orcan-shell.zsh" || ! -e "${dst}" ]]; then
             cp -- "${src}" "${dst}"
         fi
     done
 
-    if [[ -f /opt/cind/starship.toml && ! -e "${HOME}/.config/starship.toml" ]]; then
-        cp -- /opt/cind/starship.toml "${HOME}/.config/starship.toml"
+    if [[ -f /opt/orcan/starship.toml && ! -e "${HOME}/.config/starship.toml" ]]; then
+        cp -- /opt/orcan/starship.toml "${HOME}/.config/starship.toml"
     fi
-    if [[ -f /opt/cind/gitconfig && ! -e "${HOME}/.gitconfig" ]]; then
-        cp -- /opt/cind/gitconfig "${HOME}/.gitconfig"
+    if [[ -f /opt/orcan/gitconfig && ! -e "${HOME}/.gitconfig" ]]; then
+        cp -- /opt/orcan/gitconfig "${HOME}/.gitconfig"
     fi
 
-    if [[ -f "${HOME}/.profile" ]] && grep -q 'cursor-dev-path' "${HOME}/.profile" 2>/dev/null; then
-        sed -i 's|/etc/profile.d/cursor-dev-path.sh|/etc/profile.d/cind-path.sh|g' "${HOME}/.profile" || true
+    if [[ -f "${HOME}/.profile" ]]; then
+        if grep -q 'cursor-dev-path\|cind-path' "${HOME}/.profile" 2>/dev/null; then
+            sed -i \
+                -e 's|/etc/profile.d/cursor-dev-path.sh|/etc/profile.d/orcan-path.sh|g' \
+                -e 's|/etc/profile.d/cind-path.sh|/etc/profile.d/orcan-path.sh|g' \
+                "${HOME}/.profile" || true
+        fi
     fi
 }
 

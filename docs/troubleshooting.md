@@ -7,7 +7,7 @@
 **Fix:**
 
 1. Set an absolute path in `.env` (no `.`, `../`, or `~`), or pass it once: `make env PROJECT_DIR=/absolute/path/to/project`.
-2. Declare workspaces (`make config-wizard` or `cind.config.yaml`) and run `make env`.
+2. Declare workspaces (`make config-wizard` or `orcan.config.json`) and run `make env`.
 3. Run `make path-check`.
 
 See [Path parity](path-parity.md) and [Config](config.md).
@@ -57,7 +57,7 @@ You should see group `docker` (or your host `DOCKER_GID`) and the socket file pr
 
 **Symptom:** `Failed to store authentication tokens: EPERM: operation not permitted, chmod '/home/developer/.config/cursor'`.
 
-**Cause:** `$CIND_DATA/cursor-app` on the host is owned by root (or wrong UID).
+**Cause:** `$ORCAN_DATA/cursor-app` on the host is owned by root (or wrong UID).
 
 **Fix:**
 
@@ -93,7 +93,7 @@ Then log in again inside the browser terminal.
 
 **Cause:**
 
-1. cind tmux is **`/etc/tmux/`** (aligned with typical `~/.tmux.conf`) — not your host file unless you copy binds into the container.
+1. orcan tmux is **`/etc/tmux/`** (aligned with typical `~/.tmux.conf`) — not your host file unless you copy binds into the container.
 2. Browsers often capture **`Alt+*`** and **`Ctrl+arrow`** before ttyd receives them (bindings exist but never arrive).
 
 **Fix — try in order:**
@@ -107,11 +107,11 @@ Then log in again inside the browser terminal.
 
 ## Legacy: host `~/.gitconfig` became a directory
 
-**Symptom:** on the host, `~/.gitconfig` is a **directory** (often root-owned) after an older cind version.
+**Symptom:** on the host, `~/.gitconfig` is a **directory** (often root-owned) after an older orcan version.
 
 **Cause:** Docker bind-mounted a missing `~/.gitconfig` file and created a directory.
 
-**Fix:** remove it on the host (cind no longer mounts gitconfig):
+**Fix:** remove it on the host (orcan no longer mounts gitconfig):
 
 ```bash
 sudo rm -rf ~/.gitconfig
@@ -161,7 +161,7 @@ make rebuild
 
 **Cause:** flaky download from npm/corepack on VPS.
 
-**Fix:** pull latest cind — pnpm is installed from a pinned GitHub release binary with retries. Then:
+**Fix:** pull latest orcan — pnpm is installed from a pinned GitHub release binary with retries. Then:
 
 ```bash
 make rebuild
@@ -184,14 +184,14 @@ For image-only rebuilds, `.env` is enough. Generated mounts are required for `ma
 
 **Symptom:** after adding a second workspace, the launcher shows the new name but the directory/mounts look like the previous workspace — or only one session appears — or workspace B also lists projects from workspace A.
 
-**Cause:** stale generated mounts, stale project symlinks under `.cind/workspaces/<name>/`, or an old container still using per-workspace binds.
+**Cause:** stale generated mounts, stale project symlinks under `.orcan/workspaces/<name>/`, or an old container still using per-workspace binds.
 
 **Fix:**
 
 ```bash
 make env
 # optional: remove leftover symlinks under the second workspace meta on the host
-# ls -la .cind/workspaces/<name>/
+# ls -la .orcan/workspaces/<name>/
 make down && make terminal-docker
 ```
 
@@ -213,7 +213,7 @@ make rebuild
 
 ## Cursor CLI not logged in
 
-Run the login flow inside the browser terminal once. Auth persists in `$CIND_DATA/cursor-app` (`~/.config/cursor/auth.json` in the container) across restarts.
+Run the login flow inside the browser terminal once. Auth persists in `$ORCAN_DATA/cursor-app` (`~/.config/cursor/auth.json` in the container) across restarts.
 
 If login state is broken:
 
@@ -235,7 +235,7 @@ Common causes:
 
 * invalid `.env` values
 * missing `PROJECT_DIR`
-* edited YAML indentation
+* edited JSON (trailing commas, bad paths)
 
 ## `make terminal-docker` fails immediately
 
@@ -266,5 +266,5 @@ make config
 docker compose -f docker-compose.yml config
 docker compose -f docker-compose.yml -f docker-compose.docker.yml config
 docker compose -f docker-compose.yml -f docker-compose.ttyd.yml config
-docker images | grep cind
+docker images | grep orcan
 ```

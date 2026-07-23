@@ -1,7 +1,7 @@
-"""Shared workspace helpers for cind container scripts.
+"""Shared workspace helpers for orcan container scripts.
 
-Import as: ``from cind.workspaces import …`` (``/usr/local/lib`` on PYTHONPATH
-via the ``cind-workspaces`` / ``cind-context-status`` entry points, or
+Import as: ``from orcan.workspaces import …`` (``/usr/local/lib`` on PYTHONPATH
+via the ``orcan-workspaces`` / ``orcan-context-status`` entry points, or
 ``sys.path.insert(0, "/usr/local/lib")``).
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
-DEFAULT_CONFIG = "/etc/cind/config.json"
+DEFAULT_CONFIG = "/etc/orcan/config.json"
 
 # Files that mark a project as having agent ignore coverage.
 PROJECT_IGNORE_MARKERS = (
@@ -23,7 +23,7 @@ PROJECT_IGNORE_MARKERS = (
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
-    cfg_path = Path(path or os.environ.get("CIND_CONFIG") or DEFAULT_CONFIG)
+    cfg_path = Path(path or os.environ.get("ORCAN_CONFIG") or DEFAULT_CONFIG)
     with cfg_path.open(encoding="utf-8") as fh:
         data = json.load(fh)
     if not isinstance(data, dict):
@@ -113,7 +113,7 @@ def pack_flags(root: str | Path) -> dict[str, bool]:
         "cursorindexingignore": (r / ".cursorindexingignore").is_file(),
         "claudeignore": (r / ".claudeignore").is_file(),
         "claude_settings": (r / ".claude" / "settings.json").is_file(),
-        "brief": (r / ".cind" / "session-brief.md").is_file(),
+        "brief": (r / ".orcan" / "session-brief.md").is_file(),
         "rules": (r / ".cursor" / "rules").is_dir(),
     }
 
@@ -162,12 +162,12 @@ def format_status(ws: dict[str, Any]) -> str:
         ("claudeignore", ".claudeignore"),
         ("claude_settings", ".claude/settings.json"),
         ("rules", ".cursor/rules/"),
-        ("brief", ".cind/session-brief.md"),
+        ("brief", ".orcan/session-brief.md"),
     ):
         mark = "ok" if flags[key] else "—"
         note = ""
         if key == "brief" and not flags[key]:
-            note = "  (create: cind-session-brief)"
+            note = "  (create: orcan-session-brief)"
         lines.append(f"  [{mark}] {label}{note}")
 
     missing = projects_needing_init(ws)

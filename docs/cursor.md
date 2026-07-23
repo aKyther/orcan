@@ -8,7 +8,7 @@ This repository prepares Cursor CLI with **global defaults inside the container*
 | --- | --- |
 | Root `.cursor/rules/`, ignore files | Developing **this** repository |
 | `docker/rootfs/opt/cursor-defaults/` | Product defaults copied into the **image** |
-| `${HOME}/.cursor` in the container | Writable user state (bind: `$CIND_DATA/cursor`) |
+| `${HOME}/.cursor` in the container | Writable user state (bind: `$ORCAN_DATA/cursor`) |
 | `${PROJECT_DIR}/.cursor` | Settings for the **mounted project** |
 
 Do not mix these layers.
@@ -21,10 +21,10 @@ Image defaults
 /opt/cursor-defaults
 (from docker/rootfs/opt/cursor-defaults)
 
-Persistent container user settings (host: ~/.config/cind/…)
+Persistent container user settings (host: ~/.config/orcan/…)
     ↓
-/home/developer/.cursor           ← $CIND_DATA/cursor
-/home/developer/.config/cursor    ← $CIND_DATA/cursor-app (login)
+/home/developer/.cursor           ← $ORCAN_DATA/cursor
+/home/developer/.config/cursor    ← $ORCAN_DATA/cursor-app (login)
 
 Project-specific settings
     ↓
@@ -41,7 +41,7 @@ Cursor CLI permissions
 
 ## Why `/opt/cursor-defaults` exists
 
-Compose bind-mounts `$CIND_DATA/cursor` at `/home/developer/.cursor`.
+Compose bind-mounts `$ORCAN_DATA/cursor` at `/home/developer/.cursor`.
 Anything written only to that path during `docker build` is hidden when the host dir mounts.
 
 So the image stores defaults under `/opt/cursor-defaults`.
@@ -79,18 +79,18 @@ Open `http://localhost:7681` to continue.
 
 ### Login persistence
 
-Cursor CLI stores different data in two host dirs under `$CIND_DATA` (default `~/.config/cind`):
+Cursor CLI stores different data in two host dirs under `$ORCAN_DATA` (default `~/.config/orcan`):
 
 | Path in container | Host path | Contents |
 | --- | --- | --- |
-| `~/.cursor` | `$CIND_DATA/cursor` | `cli-config.json`, chats, rules, skills |
-| `~/.config/cursor` | `$CIND_DATA/cursor-app` | `auth.json` (login tokens) |
+| `~/.cursor` | `$ORCAN_DATA/cursor` | `cli-config.json`, chats, rules, skills |
+| `~/.config/cursor` | `$ORCAN_DATA/cursor-app` | `auth.json` (login tokens) |
 
 Log in once from the browser terminal (`agent login` or the interactive flow). Restarts and `make down` keep both.
 
 !!! warning
 
-    `make clean-data` deletes login state along with caches and CLI config under `$CIND_DATA`.
+    `make clean-data` deletes login state along with caches and CLI config under `$ORCAN_DATA`.
 
 For scripts/CI, set `CURSOR_API_KEY` instead of interactive login.
 
@@ -119,7 +119,7 @@ Existing files in the volume are never overwritten.
 | Rule | Purpose |
 | --- | --- |
 | `karpathy-guidelines.mdc` | Think → simplify → surgical edit → verify (Karpathy-inspired) |
-| `operating-principles.mdc` | Focus, clutter avoidance, honest reporting (cind-specific) |
+| `operating-principles.mdc` | Focus, clutter avoidance, honest reporting (orcan-specific) |
 | `planning-and-execution.mdc` | Practical planning, scope control, validation, short completion reports |
 | `code-quality.mdc` | Readable code, no unnecessary abstraction |
 | `documentation-discipline.mdc` | Update existing docs, avoid duplicate or stray Markdown |
@@ -157,7 +157,7 @@ Workspace roots (under `/home/developer/workspaces/<name>/`) also get a generate
 Create project files with `cursor-init-project` when needed (or `make init-project` / `make init-project-all` from the host).
 Templates under `templates/` are starting points — customize them per project.
 
-Optional handoff between `agent` and `claude`: `cind-session-brief` → `.cind/session-brief.md` (see [Context orchestration](architecture/context.md)).
+Optional handoff between `agent` and `claude`: `orcan-session-brief` → `.orcan/session-brief.md` (see [Context orchestration](architecture/context.md)).
 
 !!! tip
 
@@ -222,10 +222,10 @@ claude          # interactive session
 
 | CLI | Command | Config (container-local) |
 | --- | --- | --- |
-| Cursor | `agent` | `~/.cursor`, `~/.config/cursor` (`$CIND_DATA` on host) |
-| Claude Code | `claude` | `~/.claude` (`$CIND_DATA/claude` on host) |
+| Cursor | `agent` | `~/.cursor`, `~/.config/cursor` (`$ORCAN_DATA` on host) |
+| Claude Code | `claude` | `~/.claude` (`$ORCAN_DATA/claude` on host) |
 
-Both CLIs can feed **usage into the tmux status bar** (`ctx` / `5h` / `7d`) via `cind-ai-statusline`. See [tmux → AI usage](tmux.md#ai-usage-in-the-status-bar).
+Both CLIs can feed **usage into the tmux status bar** (`ctx` / `5h` / `7d`) via `orcan-ai-statusline`. See [tmux → AI usage](tmux.md#ai-usage-in-the-status-bar).
 
 Pick whichever CLI fits the task. Log in separately for each (`agent` vs `claude`).
 
