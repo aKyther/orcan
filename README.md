@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **0.1.0**. Distributed as **git clone + Makefile**. Build images locally (`make build`). CI validates and publishes docs; it does **not** publish container images.
+Version **0.1.1**. Distributed as **git clone + Makefile**. Build images locally (`make build`). CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 

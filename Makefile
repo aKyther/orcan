@@ -36,7 +36,7 @@ help: ## Show available Make targets
 	@printf 'After orcan.config.json edits: make env && make init-project-all\n'
 	@printf 'Then: make down && make terminal-docker\n'
 	@printf 'Claude-only terminal: IMAGE_LOCAL=orcan:claude make terminal-docker\n'
-	@printf 'Release:    make bump-patch && commit VERSION+CHANGELOG && make release\n'
+	@printf 'Release:    make bump-patch && commit VERSION+CHANGELOG+version displays && make release\n'
 
 ORCAN_VERSION_FILE := $(shell tr -d '[:space:]' < VERSION 2>/dev/null || echo dev)
 

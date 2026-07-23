@@ -11,9 +11,10 @@
 #
 # Release ritual:
 #   1. Edit CHANGELOG.md (move Unreleased → version section)
-#   2. make bump-patch   # or bump-minor / bump-major
-#   3. git add VERSION CHANGELOG.md && git commit -m "release: vX.Y.Z"
-#   4. make release      # creates vX.Y.Z and pushes → GitHub Release (no image publish)
+#   2. make bump-patch   # bumps VERSION + display copies (mkdocs/README/Home)
+#   3. git add VERSION CHANGELOG.md mkdocs.yml README.md docs/en/index.md docs/pl/index.md
+#   4. git commit -m "release: vX.Y.Z"
+#   5. make release      # creates vX.Y.Z and pushes → GitHub Release (no image publish)
 
 set -Eeuo pipefail
 
@@ -73,11 +74,55 @@ cmd_bump() {
     old="$(read_version)"
     new="$(bump_semver "${part}")"
     write_version "${new}"
+    sync_version_displays "${old}" "${new}"
     printf 'Bumped VERSION: %s → %s\n' "${old}" "${new}"
+    printf 'Synced: mkdocs.yml, README.md, docs/en/index.md, docs/pl/index.md\n'
     printf 'Next:\n'
-    printf '  1. Update CHANGELOG.md for %s\n' "${new}"
-    printf '  2. git add VERSION CHANGELOG.md && git commit -m "release: v%s"\n' "${new}"
-    printf '  3. make release\n'
+    printf '  1. Update CHANGELOG.md for %s (move Unreleased → [%s])\n' "${new}" "${new}"
+    printf '  2. git add VERSION CHANGELOG.md mkdocs.yml README.md docs/en/index.md docs/pl/index.md\n'
+    printf '  3. git commit -m "release: v%s"\n' "${new}"
+    printf '  4. make release\n'
+}
+
+# Keep display copies of VERSION in sync (enforced by tests/host/test_version.py).
+sync_version_displays() {
+    local old="$1" new="$2"
+    local mkdocs="${ROOT_DIR}/mkdocs.yml"
+    local readme="${ROOT_DIR}/README.md"
+    local en_home="${ROOT_DIR}/docs/en/index.md"
+    local pl_home="${ROOT_DIR}/docs/pl/index.md"
+
+    if grep -qE "orcan_version: \"${old}\"" "${mkdocs}"; then
+        sed -i "s/orcan_version: \"${old}\"/orcan_version: \"${new}\"/" "${mkdocs}"
+    elif grep -qE 'orcan_version: "' "${mkdocs}"; then
+        sed -i -E "s/orcan_version: \"[0-9]+\.[0-9]+\.[0-9]+\"/orcan_version: \"${new}\"/" "${mkdocs}"
+    else
+        die "mkdocs.yml: missing orcan_version field to sync"
+    fi
+
+    if grep -qE "Version \\*\\*${old}\\*\\*" "${readme}"; then
+        sed -i "s/Version \\*\\*${old}\\*\\*/Version **${new}**/" "${readme}"
+    elif grep -qE 'Version \*\*[0-9]+\.[0-9]+\.[0-9]+\*\*' "${readme}"; then
+        sed -i -E "s/Version \\*\\*[0-9]+\\.[0-9]+\\.[0-9]+\\*\\*/Version **${new}**/" "${readme}"
+    else
+        die "README.md: missing Version **X.Y.Z** to sync"
+    fi
+
+    if grep -qE "Version \\*\\*${old}\\*\\*" "${en_home}"; then
+        sed -i "s/Version \\*\\*${old}\\*\\*/Version **${new}**/" "${en_home}"
+    elif grep -qE 'Version \*\*[0-9]+\.[0-9]+\.[0-9]+\*\*' "${en_home}"; then
+        sed -i -E "s/Version \\*\\*[0-9]+\\.[0-9]+\\.[0-9]+\\*\\*/Version **${new}**/" "${en_home}"
+    else
+        die "docs/en/index.md: missing Version **X.Y.Z** to sync"
+    fi
+
+    if grep -qE "Wersja \\*\\*${old}\\*\\*" "${pl_home}"; then
+        sed -i "s/Wersja \\*\\*${old}\\*\\*/Wersja **${new}**/" "${pl_home}"
+    elif grep -qE 'Wersja \*\*[0-9]+\.[0-9]+\.[0-9]+\*\*' "${pl_home}"; then
+        sed -i -E "s/Wersja \\*\\*[0-9]+\\.[0-9]+\\.[0-9]+\\*\\*/Wersja **${new}**/" "${pl_home}"
+    else
+        die "docs/pl/index.md: missing Wersja **X.Y.Z** to sync"
+    fi
 }
 
 require_clean_tree() {

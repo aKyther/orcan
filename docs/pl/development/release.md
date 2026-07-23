@@ -21,17 +21,17 @@
 
 ## Kroki
 
-1. Zaktualizuj `CHANGELOG.md` (przenieś pozycje z Unreleased).
-2. Podbij wersję:
+1. Zaktualizuj `CHANGELOG.md` (przenieś pozycje z Unreleased do nowej sekcji `## [X.Y.Z]`; popraw linki compare na dole).
+2. Podbij wersję (synchronizuje też stringi w `mkdocs.yml`, README, Home EN/PL):
 
 ```bash
-make bump-patch   # or bump-minor / bump-major
+make bump-patch   # lub bump-minor / bump-major
 ```
 
 3. Commit:
 
 ```bash
-git add VERSION CHANGELOG.md
+git add VERSION CHANGELOG.md mkdocs.yml README.md docs/en/index.md docs/pl/index.md
 git commit -m "release: vX.Y.Z"
 ```
 

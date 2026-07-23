@@ -65,7 +65,8 @@ Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
 ## Version numbers
 
 - Source of truth: root `VERSION`.
-- Keep `mkdocs.yml` `extra.orcan_version`, README Status, and Home Status in sync (enforced by `make test-host`).
+- `make bump-*` updates `mkdocs.yml` `extra.orcan_version`, README Status, and Home Status.
+- Enforced by `make test-host` (`tests/host/test_version.py`).
 
 ## Makefile reference
 
