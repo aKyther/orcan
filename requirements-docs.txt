@@ -1,0 +1,5 @@
+# Documentation build dependencies (host). Not used inside the Orcan image.
+mkdocs-material>=9.5,<10
+mkdocs-static-i18n>=1.2,<2
+mkdocs-git-revision-date-localized-plugin>=1.2,<2
+mike>=2.1,<3

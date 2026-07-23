@@ -22,13 +22,26 @@ require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
 require_file "docker-compose.ttyd.yml"
 require_file "Makefile"
-require_file "orcan.config.example.json"
+require_file "VERSION"
+require_file "CHANGELOG.md"
+require_file "requirements-docs.txt"
+require_file "CONTRIBUTING.md"
 require_file "AGENTS.md"
+require_file "orcan.config.example.json"
+require_file "orcan.config.schema.json"
+require_file "docs/STYLE_GUIDE.md"
+require_file "tests/host/run.sh"
+require_file "tests/host/test_config_io.py"
+require_file "tests/host/test_apply_config.py"
+require_file "tests/host/test_version.py"
 require_file "scripts/repository/config-scaffold.py"
 require_file "scripts/repository/config-show.py"
 require_file "scripts/repository/config-wizard.py"
 require_file "scripts/repository/config_io.py"
 require_file "scripts/repository/python.sh"
+require_file "scripts/repository/release.sh"
+require_file "scripts/repository/check-product-name.sh"
+require_file "scripts/repository/docs-mike.sh"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
 require_file "docker/rootfs/opt/cursor-defaults/rules/operating-principles.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/karpathy-guidelines.mdc"
@@ -98,6 +111,9 @@ for script in \
     scripts/repository/require-generated.sh \
     scripts/repository/print-workspace-manifest.sh \
     scripts/repository/registry.sh \
+    scripts/repository/release.sh \
+    scripts/repository/check-product-name.sh \
+    scripts/repository/docs-mike.sh \
     scripts/repository/validate.sh \
     tests/smoke/test-container.sh \
     tests/integration/test-path-parity.sh
@@ -127,6 +143,20 @@ do
         printf 'Syntax OK: %s\n' "${script}"
     fi
 done
+
+if [[ -f VERSION ]]; then
+    ver="$(tr -d '[:space:]' < VERSION)"
+    if [[ ! "${ver}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        printf 'VERSION must be SemVer X.Y.Z (got: %s)\n' "${ver}" >&2
+        fail=1
+    else
+        printf 'VERSION OK: %s\n' "${ver}"
+    fi
+fi
+
+if ! ./scripts/repository/check-product-name.sh; then
+    fail=1
+fi
 
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null

@@ -13,6 +13,11 @@ if [[ -z "${ORCAN_VARIANT:-}" && -r /etc/orcan/variant ]]; then
 fi
 export ORCAN_VARIANT="${ORCAN_VARIANT:-full}"
 
+if [[ -z "${ORCAN_VERSION:-}" && -r /etc/orcan/version ]]; then
+    ORCAN_VERSION="$(tr -d '[:space:]' < /etc/orcan/version)"
+fi
+export ORCAN_VERSION="${ORCAN_VERSION:-dev}"
+
 fix_named_volume_permissions() {
     local dir uid gid
 

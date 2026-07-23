@@ -1,16 +1,19 @@
 ---
 description: Documentation update rules for this repository
-globs: README.md,AGENTS.md,docs/**/*.md,mkdocs.yml,.cursor/rules/agents.mdc,Makefile
+globs: README.md,AGENTS.md,CONTRIBUTING.md,docs/**/*.md,mkdocs.yml,.cursor/rules/agents.mdc,Makefile,CHANGELOG.md
 alwaysApply: false
 ---
 
 # Documentation
 
-- Write all user documentation in simple B2 English.
-- Reflect every Makefile or Compose interface change in `README.md` and `docs/`.
-- Keep root `AGENTS.md` aligned with `.cursor/rules/agents.mdc` for coding-agent orientation (stack, ritual, JSON-only config).
-- Keep examples copy-paste ready.
+- Official product display name: **Orcan**. Technical ids stay lowercase (`orcan`, `ORCAN_*`).
+- Do not reintroduce old product brands: Sint, Orkan, or “cind” as the product name (migration notes OK).
+- **Cursor** means the Cursor editor / CLI — not the product.
+- Docs are bilingual: `docs/en/` (default) and `docs/pl/` (same relative paths). Update both (or mark PL TODO) when behaviour changes.
+- User docs: simple B1–B2 English / clear Polish. Keep `README.md` short.
+- Canonical AI map: `docs/en/ai/project-context.md` (+ PL) and root `AGENTS.md`.
+- Reflect Makefile / Compose / config interface changes in `docs/` (and a one-line README pointer if needed).
 - Do not document commands that do not exist.
-- Clearly mark Docker socket risk with a warning.
-- Prefer MkDocs Material admonitions (`note`, `tip`, `warning`, `info`).
-- Avoid duplicating the same long explanation across many pages; link instead.
+- Mark Docker socket risk with a warning.
+- Prefer admonitions; link instead of duplicating long explanations.
+- Before done: `make docs-check`.
