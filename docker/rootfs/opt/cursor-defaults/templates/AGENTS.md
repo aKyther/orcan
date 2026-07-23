@@ -33,7 +33,7 @@ Define verifiable success criteria and loop until checked (tests, `make`, lint).
 # Document install and run commands here
 ```
 
-## Python (cind)
+## Python (orcan)
 
 Prefer **`uv`** / **`uvx`** for dependencies and one-shot tools. Do not `pip install` into the system Python.
 

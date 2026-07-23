@@ -7,9 +7,9 @@ if [[ "$(tmux display -p '#{client_prefix}' 2>/dev/null || echo 0)" == "1" ]]; t
     prefix='#[fg=colour208,bold]◉ '
 fi
 
-workspace="$(tmux show-environment CIND_WORKSPACE_NAME 2>/dev/null | cut -d= -f2- || true)"
+workspace="$(tmux show-environment ORCAN_WORKSPACE_NAME 2>/dev/null | cut -d= -f2- || true)"
 if [[ -z "${workspace}" ]]; then
-    workspace="$(tmux show-environment -g CIND_WORKSPACE_NAME 2>/dev/null | cut -d= -f2- || true)"
+    workspace="$(tmux show-environment -g ORCAN_WORKSPACE_NAME 2>/dev/null | cut -d= -f2- || true)"
 fi
 session="$(tmux display -p '#{session_name}' 2>/dev/null || echo session)"
 
@@ -21,9 +21,9 @@ if [[ -n "${workspace}" ]]; then
             "${prefix}" "${workspace}" "${session}"
     fi
 else
-    project="$(tmux show-environment CIND_PROJECT_NAME 2>/dev/null | cut -d= -f2- || true)"
+    project="$(tmux show-environment ORCAN_PROJECT_NAME 2>/dev/null | cut -d= -f2- || true)"
     if [[ -z "${project}" ]]; then
-        project="$(tmux show-environment -g CIND_PROJECT_NAME 2>/dev/null | cut -d= -f2- || true)"
+        project="$(tmux show-environment -g ORCAN_PROJECT_NAME 2>/dev/null | cut -d= -f2- || true)"
     fi
     if [[ -n "${project}" && "${project}" != "${session}" ]]; then
         printf '%s#[fg=colour81,bold] %s #[fg=colour240]│ #[fg=colour117,bold]%s  ' \

@@ -23,11 +23,11 @@ def colour_for(*values) -> str:
 
 def main() -> int:
     cache_dir = Path(
-        os.environ.get("CIND_AI_USAGE_DIR")
-        or (Path(os.environ.get("HOME", "/home/developer")) / ".cache" / "cind")
+        os.environ.get("ORCAN_AI_USAGE_DIR")
+        or (Path(os.environ.get("HOME", "/home/developer")) / ".cache" / "orcan")
     )
     try:
-        max_age = int(os.environ.get("CIND_AI_USAGE_MAX_AGE", "1800"))
+        max_age = int(os.environ.get("ORCAN_AI_USAGE_MAX_AGE", "1800"))
     except ValueError:
         max_age = 1800
 

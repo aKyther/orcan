@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print workspaces from cind.config.yaml/.json or generated runtime manifest."""
+"""Print workspaces from orcan.config.json or generated runtime manifest."""
 
 from __future__ import annotations
 
@@ -55,11 +55,11 @@ def main() -> None:
     parser.add_argument(
         "--config",
         default="",
-        help="Source config (default: discover cind.config.yaml / .json)",
+        help="Source config (default: discover orcan.config.json)",
     )
     parser.add_argument(
         "--runtime",
-        default=str(ROOT / ".cind" / "workspace.manifest.json"),
+        default=str(ROOT / ".orcan" / "workspace.manifest.json"),
         help="Generated manifest from make env",
     )
     args = parser.parse_args()

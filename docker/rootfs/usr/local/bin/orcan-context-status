@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Show context-pack status for one or all cind workspaces."""
+"""Show context-pack status for one or all orcan workspaces."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, "/usr/local/lib")
 
-from cind.workspaces import (  # noqa: E402
+from orcan.workspaces import (  # noqa: E402
     DEFAULT_CONFIG,
     format_status,
     iter_workspaces,
@@ -44,13 +44,13 @@ def main() -> int:
     parser.add_argument(
         "--config",
         default="",
-        help=f"Config path (default: $CIND_CONFIG or {DEFAULT_CONFIG})",
+        help=f"Config path (default: $ORCAN_CONFIG or {DEFAULT_CONFIG})",
     )
     parser.add_argument(
         "workspace",
         nargs="?",
         default="",
-        help="Workspace name or root (default: $CIND_WORKSPACE_ROOT or all)",
+        help="Workspace name or root (default: $ORCAN_WORKSPACE_ROOT or all)",
     )
     args = parser.parse_args()
 
@@ -60,7 +60,7 @@ def main() -> int:
         print(f"Error reading config: {exc}", file=sys.stderr)
         return 1
 
-    target = (args.workspace or os.environ.get("CIND_WORKSPACE_ROOT") or "").strip()
+    target = (args.workspace or os.environ.get("ORCAN_WORKSPACE_ROOT") or "").strip()
     if target:
         ws = find_workspace(cfg, target)
         if ws is None:

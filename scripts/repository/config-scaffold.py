@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create or update a minimal cind.config.yaml from PROJECT_DIR."""
+"""Create or update a minimal orcan.config.json from PROJECT_DIR."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from config_io import (  # noqa: E402
     default_write_path,
     discover_config,
     dump_config,
-    is_json_path,
     load_config,
 )
 
@@ -50,7 +49,7 @@ def main() -> None:
     parser.add_argument(
         "--config",
         default="",
-        help="Path to config (default: discover or create cind.config.yaml)",
+        help="Path to config (default: discover or create orcan.config.json)",
     )
     parser.add_argument("--project-dir", required=True, help="Absolute host path to a repo")
     parser.add_argument(
@@ -84,11 +83,6 @@ def main() -> None:
     cfg.setdefault("workspaces", [])
     if not isinstance(cfg["workspaces"], list):
         die("workspaces must be an array")
-
-    # Prefer writing YAML going forward when scaffolding into a legacy JSON file
-    # that does not exist yet — keep extension if file already exists.
-    if not config_path.exists() and is_json_path(config_path):
-        config_path = default_write_path(ROOT)
 
     ws = find_workspace(cfg, ws_name)
     proj = project_entry(project.name, str(project))

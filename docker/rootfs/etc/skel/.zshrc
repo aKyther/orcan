@@ -1,4 +1,4 @@
-# cind interactive zsh — snippets in ~/.zshrc.d/
+# orcan interactive zsh — snippets in ~/.zshrc.d/
 
 # History (file path set via HISTFILE env from Compose)
 HISTSIZE=50000

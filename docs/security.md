@@ -6,7 +6,7 @@ This page is intentionally direct. Containers help, but they are not a full secu
 
 * Host package installs are not required for the toolchain
 * Language tools live in the image
-* Caches and Cursor/Claude config live under `$CIND_DATA` on the host (`~/.config/cind` by default)
+* Caches and Cursor/Claude config live under `$ORCAN_DATA` on the host (`~/.config/orcan` by default)
 * Base Compose does not mount the Docker socket
 * **No SSH server** — shell access is browser-only (ttyd + tmux)
 
@@ -20,7 +20,7 @@ Git config and credentials are **not** mounted from the host — configure Git i
 
 ## Remote access (Tailscale)
 
-There is **no SSH** into cind. The supported remote path is:
+There is **no SSH** into orcan. The supported remote path is:
 
 ```text
 Tailscale (or localhost) → http://<host>:7681 → workspace picker → tmux
@@ -71,9 +71,9 @@ Do **not** mount:
 * `~/.ssh` or other credential directories
 * unrelated disks or backup trees
 
-## Host data (`CIND_DATA`)
+## Host data (`ORCAN_DATA`)
 
-Login and caches live under `$CIND_DATA` on the host (default `~/.config/cind`). They survive `make down`. Secrets written there also persist.
+Login and caches live under `$ORCAN_DATA` on the host (default `~/.config/orcan`). They survive `make down`. Secrets written there also persist.
 
 Delete them only with:
 

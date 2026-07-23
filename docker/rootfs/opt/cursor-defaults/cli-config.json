@@ -5,7 +5,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "/usr/local/bin/cind-ai-statusline",
+    "command": "/usr/local/bin/orcan-ai-statusline",
     "padding": 0
   },
   "permissions": {

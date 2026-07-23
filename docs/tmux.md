@@ -1,6 +1,6 @@
 # tmux inside ttyd
 
-cind tmux is tuned for **browser ttyd**: IDE-like top tabs, per-pane footers, thin global status. Config lives in `/etc/tmux/`; `~/.tmux.conf` in the container only sources it.
+orcan tmux is tuned for **browser ttyd**: IDE-like top tabs, per-pane footers, thin global status. Config lives in `/etc/tmux/`; `~/.tmux.conf` in the container only sources it.
 
 **Flow:** ttyd → workspace launcher (pick **session**) → tmux.
 
@@ -8,7 +8,7 @@ cind tmux is tuned for **browser ttyd**: IDE-like top tabs, per-pane footers, th
 
 | Layer | Meaning |
 | --- | --- |
-| **tmux session** | One cind workspace (`cind.config.yaml`) |
+| **tmux session** | One orcan workspace (`orcan.config.json`) |
 | **tmux window** (top tabs) | Shells / tools inside that workspace (`tab-1` … or renamed) |
 | **tmux pane** | Split inside a window; footer shows command + directory |
 
@@ -66,12 +66,12 @@ Most navigation/splits work **without prefix** (see below).
 | `\|` | Split vertical |
 | `x` | Kill pane |
 | `0` | Last window |
-| `r` | Reload config (cind) |
-| `s` / `w` | Switch **tmux session** (other cind workspaces) |
+| `r` | Reload config (orcan) |
+| `s` / `w` | Switch **tmux session** (other orcan workspaces) |
 | `W` | Choose **window** in this session (tab picker) |
 | `d` | Detach → back to workspace launcher |
-| `P` | Copy pane path (cind) |
-| `I` | Workspace info (cind) |
+| `P` | Copy pane path (orcan) |
+| `I` | Workspace info (orcan) |
 
 ## Appearance
 
@@ -92,14 +92,14 @@ Activity: `monitor-activity` flags windows with background output (tab style onl
 
 ### AI usage (optional, thin right)
 
-While `claude` or `agent` is running, the right status may show meters from the CLI `statusLine` hook (cache under `~/.cache/cind/`, no network from tmux):
+While `claude` or `agent` is running, the right status may show meters from the CLI `statusLine` hook (cache under `~/.cache/orcan/`, no network from tmux):
 
 ```text
 claude ctx 42% · 5h 18% · 7d 4%
 ```
 
 1. `init-ai-statusline` seeds hooks on container start (missing-only).
-2. `cind-ai-statusline` writes `ai-usage-*.json`.
+2. `orcan-ai-statusline` writes `ai-usage-*.json`.
 3. Thin `status-right` reads the cache (hidden when stale).
 
 ### Font size
@@ -109,7 +109,7 @@ TTYD_FONT_SIZE=28
 TTYD_THEME=dark
 ```
 
-Or `cind.config.yaml` → `ttyd.font_size` / `ttyd.theme` / `ttyd.font_family` (first `make env` if unset in `.env`). Defaults apply automatically — no prompt when opening the terminal.
+Or `orcan.config.json` → `ttyd.font_size` / `ttyd.theme` / `ttyd.font_family` (first `make env` if unset in `.env`). Defaults apply automatically — no prompt when opening the terminal.
 
 ## Browser (ttyd) caveats
 
@@ -117,7 +117,7 @@ Many browsers **do not forward** `Alt+*` or `Ctrl+arrow` to the terminal.
 
 **Workarounds:**
 
-1. Mouse is **on by default** — click top tabs, panes, and drag borders.
+1. Mouse is **on by default** — click top tabs, panes, and drag borders. Right-click does **not** open a tmux menu (unbound) so the browser/OS context menu can appear.
 2. Prefix splits: `Ctrl+Space` then `-` or `|`.
 3. Window list: `Ctrl+Space` `W`.
 4. On Android: hardware keyboard or mouse mode.

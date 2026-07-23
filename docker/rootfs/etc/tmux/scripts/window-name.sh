@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Optional window rename helper — keeps plain names (no auto icons).
 # Usage: window-name.sh [window_id]
-# Hook manually in ~/.tmux.conf if desired; cind does not enable this by default.
+# Hook manually in ~/.tmux.conf if desired; orcan does not enable this by default.
 set -Eeuo pipefail
 
 wid="${1:-}"

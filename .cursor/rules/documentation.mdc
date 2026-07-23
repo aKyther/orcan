@@ -1,6 +1,6 @@
 ---
 description: Documentation update rules for this repository
-globs: README.md,docs/**/*.md,mkdocs.yml,.cursor/rules/agents.mdc,Makefile
+globs: README.md,AGENTS.md,docs/**/*.md,mkdocs.yml,.cursor/rules/agents.mdc,Makefile
 alwaysApply: false
 ---
 
@@ -8,6 +8,7 @@ alwaysApply: false
 
 - Write all user documentation in simple B2 English.
 - Reflect every Makefile or Compose interface change in `README.md` and `docs/`.
+- Keep root `AGENTS.md` aligned with `.cursor/rules/agents.mdc` for coding-agent orientation (stack, ritual, JSON-only config).
 - Keep examples copy-paste ready.
 - Do not document commands that do not exist.
 - Clearly mark Docker socket risk with a warning.

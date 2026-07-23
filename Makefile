@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 COMPOSE_FILE := docker-compose.yml
-COMPOSE_PROJECTS_FILE := .cind/compose-projects.generated.yml
+COMPOSE_PROJECTS_FILE := .orcan/compose-projects.generated.yml
 COMPOSE_DOCKER_FILE := docker-compose.docker.yml
 COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE)
@@ -11,16 +11,16 @@ COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_F
 
 # Used by make env / make setup / make config-scaffold only — not by make terminal*.
 PROJECT_DIR ?= $(CURDIR)
-# Optional config path for make env (if empty, discovers cind.config.yaml / .yml / .json).
+# Optional config path for make env (if empty, discovers orcan.config.json).
 CONFIG ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup env build rebuild terminal terminal-docker terminal-url \
+.PHONY: help setup env build rebuild build-claude rebuild-claude terminal terminal-docker terminal-url \
 	down logs config init-project init-project-dry-run init-project-all init-project-all-dry-run \
 	clean clean-volumes clean-data \
 	docs docs-serve test validate path-check validate-project require-generated require-env \
-	config-init config-scaffold config-show config-wizard host-deps \
+	config-init config-scaffold config-show config-wizard \
 	registry-show registry-login publish pull
 
 HOST_PYTHON := ./scripts/repository/python.sh
@@ -30,15 +30,17 @@ help: ## Show available Make targets
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@printf '\nFirst run: make setup PROJECT_DIR=/absolute/path/to/repo\n'
 	@printf 'Or wizard:  make config-wizard\n'
-	@printf 'After cind.config.yaml edits: make env && make init-project-all\n'
+	@printf 'Images:     make build  (Claude+Cursor → orcan:latest)\n'
+	@printf '            make build-claude  (Claude only → orcan:claude)\n'
+	@printf 'After orcan.config.json edits: make env && make init-project-all\n'
 	@printf 'Then: make down && make terminal-docker\n'
+	@printf 'Claude-only terminal: IMAGE_LOCAL=orcan:claude make terminal-docker\n'
 
 setup: validate-project ## First run: create config if missing, refresh .env, show layout
-	@$(MAKE) host-deps
-	@if [ -f cind.config.yaml ] || [ -f cind.config.yml ] || [ -f cind.config.json ]; then \
-		printf 'Using existing cind config (yaml/yml/json)\n'; \
+	@if [ -f orcan.config.json ]; then \
+		printf 'Using existing orcan.config.json\n'; \
 	else \
-		printf 'Creating cind.config.yaml (workspace=%s)...\n' \
+		printf 'Creating orcan.config.json (workspace=%s)...\n' \
 			"$${WORKSPACE:-$$(basename "$(PROJECT_DIR)")}"; \
 		$(HOST_PYTHON) ./scripts/repository/config-scaffold.py \
 			--project-dir "$(PROJECT_DIR)" \
@@ -64,63 +66,72 @@ require-env: ## Fail fast if .env is missing (for image build only)
 
 path-check: require-generated ## Show host/container project path parity (read-only)
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf 'Orchestrator (host):    %s  (cind repo — where you run make)\n' "$$PROJECT_DIR"; \
+	printf 'Orchestrator (host):    %s  (orcan repo — where you run make)\n' "$$PROJECT_DIR"; \
 	printf 'Workspace (container):  %s (%s)\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}" "$${WORKSPACE_NAME:-}"; \
 	printf 'Workspace meta (host):  %s\n' "$${WORKSPACE_META_PATH:-}"; \
 	printf 'Container working_dir:  %s\n' "$${CONTAINER_PROJECT_DIR:-$${WORKSPACE_ROOT:-}}"; \
-	printf 'Runtime config:         %s\n' "$${CIND_CONFIG_HOST:-none}"; \
-	printf 'Compose project mounts: %s\n' "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}"; \
-	if [ -f "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" ]; then \
-		grep -E '^[[:space:]]+- ' "$${CIND_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" | sed 's/^/  /'; \
+	printf 'Runtime config:         %s\n' "$${ORCAN_CONFIG_HOST:-none}"; \
+	printf 'Compose project mounts: %s\n' "$${ORCAN_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}"; \
+	if [ -f "$${ORCAN_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" ]; then \
+		grep -E '^[[:space:]]+- ' "$${ORCAN_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" | sed 's/^/  /'; \
 	fi; \
-	if [ -f "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}" ]; then \
-		printf 'Workspace manifest:     %s\n' "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}"; \
-		./scripts/repository/print-workspace-manifest.sh "$${CIND_WORKSPACE_MANIFEST:-.cind/workspace.manifest.json}" | sed 's/^/  /'; \
+	if [ -f "$${ORCAN_WORKSPACE_MANIFEST:-.orcan/workspace.manifest.json}" ]; then \
+		printf 'Workspace manifest:     %s\n' "$${ORCAN_WORKSPACE_MANIFEST:-.orcan/workspace.manifest.json}"; \
+		./scripts/repository/print-workspace-manifest.sh "$${ORCAN_WORKSPACE_MANIFEST:-.orcan/workspace.manifest.json}" | sed 's/^/  /'; \
 	fi; \
 	printf 'Path parity:            enabled\n'
 
-env: host-deps ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
+env: ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
 	@CONFIG="$(CONFIG)" PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
 
-host-deps: ## Ensure .venv with PyYAML for host config scripts
-	@if [ ! -x .venv/bin/python ]; then \
-		printf 'Creating .venv for host config tools (PyYAML)…\n'; \
-		python3 -m venv .venv; \
-	fi; \
-	if ! .venv/bin/python -c 'import yaml' 2>/dev/null; then \
-		.venv/bin/pip install -q -r requirements-host.txt; \
-	fi
-
-config-init: host-deps ## Copy full example cind.config.yaml (optional; prefer make setup)
-	@if [ -f cind.config.yaml ] || [ -f cind.config.yml ] || [ -f cind.config.json ]; then \
-		printf 'cind config already exists (yaml/yml/json)\n'; \
-		printf '  edit:  $$EDITOR cind.config.yaml   # preferred\n'; \
+config-init: ## Copy full example orcan.config.json (optional; prefer make setup)
+	@if [ -f orcan.config.json ]; then \
+		printf 'orcan.config.json already exists\n'; \
+		printf '  edit:  $$EDITOR orcan.config.json\n'; \
 		printf '  show:  make config-show\n'; \
 	else \
-		cp cind.config.example.yaml cind.config.yaml; \
-		printf 'Created cind.config.yaml from example\n'; \
+		cp orcan.config.example.json orcan.config.json; \
+		printf 'Created orcan.config.json from example\n'; \
 		printf '  edit paths, then: make env && make path-check\n'; \
 	fi
 
-config-scaffold: validate-project host-deps ## Add workspace/project to cind.config.yaml from PROJECT_DIR
+config-scaffold: validate-project ## Add workspace/project to orcan.config.json from PROJECT_DIR
 	@$(HOST_PYTHON) ./scripts/repository/config-scaffold.py \
 		--project-dir "$(PROJECT_DIR)" \
 		$(if $(WORKSPACE),--workspace "$(WORKSPACE)",) \
 		$(if $(FORCE),--force,)
 
-config-show: host-deps ## List workspaces in cind config and runtime manifest
+config-show: ## List workspaces in orcan config and runtime manifest
 	@$(HOST_PYTHON) ./scripts/repository/config-show.py
 
-config-wizard: host-deps ## Interactive create/edit cind.config.yaml (poetry/uv-style)
+config-wizard: ## Interactive create/edit orcan.config.json
 	@$(HOST_PYTHON) ./scripts/repository/config-wizard.py
 
-build: require-env ## Build the container image
+build: require-env ## Build full image (Claude + Cursor) → orcan:latest
 	@set -a; . ./.env; set +a; \
-	$(COMPOSE_BUILD) build
+	IMAGE_LOCAL=$${IMAGE_LOCAL:-orcan:latest} INSTALL_CURSOR=1 \
+		$(COMPOSE_BUILD) build; \
+	docker tag "$${IMAGE_LOCAL:-orcan:latest}" orcan:full 2>/dev/null || true; \
+	printf 'Built full variant (Claude + Cursor): %s\n' "$${IMAGE_LOCAL:-orcan:latest}"
 
-rebuild: require-env ## Rebuild the image without cache
+rebuild: require-env ## Rebuild full image without cache → orcan:latest
 	@set -a; . ./.env; set +a; \
-	$(COMPOSE_BUILD) build --no-cache
+	IMAGE_LOCAL=$${IMAGE_LOCAL:-orcan:latest} INSTALL_CURSOR=1 \
+		$(COMPOSE_BUILD) build --no-cache; \
+	docker tag "$${IMAGE_LOCAL:-orcan:latest}" orcan:full 2>/dev/null || true; \
+	printf 'Rebuilt full variant: %s\n' "$${IMAGE_LOCAL:-orcan:latest}"
+
+build-claude: require-env ## Build Claude-only image → orcan:claude
+	@set -a; . ./.env; set +a; \
+	IMAGE_LOCAL=orcan:claude INSTALL_CURSOR=0 \
+		$(COMPOSE_BUILD) build; \
+	printf 'Built Claude-only variant: orcan:claude\n'
+
+rebuild-claude: require-env ## Rebuild Claude-only image without cache → orcan:claude
+	@set -a; . ./.env; set +a; \
+	IMAGE_LOCAL=orcan:claude INSTALL_CURSOR=0 \
+		$(COMPOSE_BUILD) build --no-cache; \
+	printf 'Rebuilt Claude-only variant: orcan:claude\n'
 
 registry-show: ## Show local/remote image names for publish/pull
 	@./scripts/repository/registry.sh show
@@ -131,7 +142,7 @@ registry-login: ## Log in to container registry (GitLab; prompts for user/token)
 publish: ## Tag and push image to IMAGE_REGISTRY/IMAGE_REPOSITORY:IMAGE_TAG
 	@./scripts/repository/registry.sh publish
 
-pull: ## Pull published image and retag as cind:latest
+pull: ## Pull published image and retag as orcan:latest
 	@./scripts/repository/registry.sh pull
 
 terminal: require-generated ## Start browser terminal (no Docker socket; does not run make env)
@@ -154,10 +165,10 @@ terminal-docker: require-generated ## Start browser terminal + Docker socket (do
 	fi
 	-$(COMPOSE_TTYD) down
 	$(COMPOSE_TTYD_DOCKER) up -d
-	@if ! $(COMPOSE_TTYD_DOCKER) exec -T cind test -S /var/run/docker.sock 2>/dev/null; then \
+	@if ! $(COMPOSE_TTYD_DOCKER) exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then \
 		echo "Docker socket missing in container; forcing recreate..."; \
 		$(COMPOSE_TTYD_DOCKER) up -d --force-recreate; \
-		if ! $(COMPOSE_TTYD_DOCKER) exec -T cind test -S /var/run/docker.sock 2>/dev/null; then \
+		if ! $(COMPOSE_TTYD_DOCKER) exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then \
 			echo "Error: /var/run/docker.sock is not mounted in the container."; \
 			exit 1; \
 		fi; \
@@ -181,12 +192,12 @@ down: ## Stop containers without removing volumes
 	-$(COMPOSE_TTYD_DOCKER) down
 
 logs: ## Follow container logs
-	@if $(COMPOSE_TTYD_DOCKER) ps -q cind 2>/dev/null | grep -q .; then \
+	@if $(COMPOSE_TTYD_DOCKER) ps -q orcan 2>/dev/null | grep -q .; then \
 		$(COMPOSE_TTYD_DOCKER) logs -f; \
-	elif $(COMPOSE_TTYD) ps -q cind 2>/dev/null | grep -q .; then \
+	elif $(COMPOSE_TTYD) ps -q orcan 2>/dev/null | grep -q .; then \
 		$(COMPOSE_TTYD) logs -f; \
 	else \
-		echo "No running cind container. Start with make terminal or make terminal-docker."; \
+		echo "No running orcan container. Start with make terminal or make terminal-docker."; \
 		exit 1; \
 	fi
 
@@ -199,25 +210,25 @@ config: require-generated ## Validate and print the resolved Compose config
 
 init-project: require-generated ## Create missing Cursor/Claude project files in PROJECT_DIR
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	$(COMPOSE) run --rm --name cind-init-project cind cursor-init-project "$$PROJECT_DIR"
+	$(COMPOSE) run --rm --name orcan-init-project orcan cursor-init-project "$$PROJECT_DIR"
 
 init-project-dry-run: require-generated ## Show project files that would be created in PROJECT_DIR
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	$(COMPOSE) run --rm --name cind-init-project-dry cind cursor-init-project --dry-run "$$PROJECT_DIR"
+	$(COMPOSE) run --rm --name orcan-init-project-dry orcan cursor-init-project --dry-run "$$PROJECT_DIR"
 
 init-project-all: require-generated ## Seed ignores/templates into every projects[].path (missing-only)
-	$(COMPOSE) run --rm --name cind-init-projects cind cind-init-projects
+	$(COMPOSE) run --rm --name orcan-init-projects orcan orcan-init-projects
 
 init-project-all-dry-run: require-generated ## Dry-run init for every configured project path
-	$(COMPOSE) run --rm --name cind-init-projects-dry cind cind-init-projects --dry-run
+	$(COMPOSE) run --rm --name orcan-init-projects-dry orcan orcan-init-projects --dry-run
 
-clean: ## Stop containers (keeps host data under CIND_DATA)
+clean: ## Stop containers (keeps host data under ORCAN_DATA)
 	-$(COMPOSE_TTYD) down --remove-orphans
 	-$(COMPOSE_TTYD_DOCKER) down --remove-orphans
 
-clean-data: ## Delete host data under CIND_DATA (~/.config/cind) — Cursor/Claude login, caches
+clean-data: ## Delete host data under ORCAN_DATA (~/.config/orcan) — Cursor/Claude login, caches
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	data="$${CIND_DATA:-$${HOME}/.config/cind}"; \
+	data="$${ORCAN_DATA:-$${HOME}/.config/orcan}"; \
 	printf 'WARNING: This deletes host data: %s\n' "$$data"; \
 	printf '  (Cursor/Claude login, caches, bash history)\n'; \
 	read -r -p "Type 'yes' to continue: " answer; \

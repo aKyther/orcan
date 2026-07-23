@@ -1,4 +1,4 @@
-# cind developer aliases — sourced from interactive shells.
+# orcan developer aliases — sourced from interactive shells.
 # Safe for this container (isolated); skip-permission aliases are intentional.
 
 # ------------------------------------------------------------------------------
@@ -61,14 +61,16 @@ alias cc='claude'
 alias ccy='claude --dangerously-skip-permissions'
 alias claude-yolo='claude --dangerously-skip-permissions'
 
-alias ag='agent'
-# Cursor Agent: allow tools unless explicitly denied (--yolo == --force).
-alias agy='agent --yolo'
-alias agent-yolo='agent --yolo'
+if command -v agent >/dev/null 2>&1; then
+    alias ag='agent'
+    # Cursor Agent: allow tools unless explicitly denied (--yolo == --force).
+    alias agy='agent --yolo'
+    alias agent-yolo='agent --yolo'
+fi
 
 # Context handoff (workspace root)
-alias brief='cind-session-brief'
-alias ctx='cind-context-status'
+alias brief='orcan-session-brief'
+alias ctx='orcan-context-status'
 
 # ------------------------------------------------------------------------------
 # Python

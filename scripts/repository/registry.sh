@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tag / push / pull the cind image to a container registry (GitLab-friendly).
+# Tag / push / pull the orcan image to a container registry (GitLab-friendly).
 # Host-only: do not copy this into the Docker image.
 #
 # Usage:
@@ -9,9 +9,9 @@
 #   ./scripts/repository/registry.sh pull
 #
 # Env (from .env or shell):
-#   IMAGE_LOCAL       local image name (default: cind:latest)
+#   IMAGE_LOCAL       local image name (default: orcan:latest)
 #   IMAGE_REGISTRY    registry host (default: registry.gitlab.com)
-#   IMAGE_REPOSITORY  path under registry, e.g. mygroup/cind
+#   IMAGE_REPOSITORY  path under registry, e.g. mygroup/orcan
 #   IMAGE_TAG         tag (default: latest)
 #   REGISTRY_USER     username for docker login
 #   REGISTRY_PASSWORD password / PAT / deploy token (prefer stdin / env, not git)
@@ -28,7 +28,7 @@ if [[ -f "${ROOT_DIR}/.env" ]]; then
     set +a
 fi
 
-IMAGE_LOCAL="${IMAGE_LOCAL:-cind:latest}"
+IMAGE_LOCAL="${IMAGE_LOCAL:-orcan:latest}"
 IMAGE_REGISTRY="${IMAGE_REGISTRY:-registry.gitlab.com}"
 IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
@@ -48,7 +48,7 @@ require_repository() {
 
 Example in .env:
   IMAGE_REGISTRY=registry.gitlab.com
-  IMAGE_REPOSITORY=mygroup/cind
+  IMAGE_REPOSITORY=mygroup/orcan
   IMAGE_TAG=latest
 
 Then:
@@ -137,7 +137,7 @@ Usage: registry.sh <show|login|publish|pull>
   show     Print configured image names
   login    docker login to IMAGE_REGISTRY (GitLab)
   publish  Tag local image and push to registry
-  pull     Pull remote image and retag as local cind:latest
+  pull     Pull remote image and retag as local orcan:latest
 EOF
 }
 

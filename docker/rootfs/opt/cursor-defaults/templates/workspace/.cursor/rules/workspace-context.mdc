@@ -1,20 +1,20 @@
 ---
-description: Workspace-level context for multi-repo sessions inside cind.
+description: Workspace-level context for multi-repo sessions inside orcan.
 alwaysApply: true
 ---
 
 # Workspace context
 
-You are in a **cind workspace** (one tmux session, one root, one or more project checkouts).
-cind owns **context** (paths, ignores, instructions). `agent` / `claude` are tools; models are out of scope.
+You are in a **orcan workspace** (one tmux session, one root, one or more project checkouts).
+orcan owns **context** (paths, ignores, instructions). `agent` / `claude` are tools; models are out of scope.
 
 ## Read first
 
 1. `AGENTS.md` (or `CLAUDE.md`) at the workspace root — behaviour and project table.
 2. `.manifest.json` — canonical paths and symlink layout.
-3. `.cind/session-brief.md` if present — **read before coding** (`cind-session-brief`).
+3. `.orcan/session-brief.md` if present — **read before coding** (`orcan-session-brief`).
 4. After `cd <project>/` — that repo’s own `AGENTS.md` / `.cursor/rules/`.
-5. Pack health: `cind-context-status` (alias `ctx`).
+5. Pack health: `orcan-context-status` (alias `ctx`).
 
 ## Behaviour (Karpathy-inspired)
 
@@ -38,4 +38,4 @@ Full text: global `karpathy-guidelines` rule + this workspace’s `AGENTS.md`.
 - Respect `.cursorignore` / `.claudeignore` and Claude `.claude/settings.json` denies — do not read `.env` or secrets.
 - Missing project ignores → `cursor-init-project` (or host `make init-project-all`).
 - Prefer `uv` / `uvx` for Python — not system `pip install`.
-- Do not create planning/summary Markdown files unless asked; use `cind-session-brief` for handoff.
+- Do not create planning/summary Markdown files unless asked; use `orcan-session-brief` for handoff.

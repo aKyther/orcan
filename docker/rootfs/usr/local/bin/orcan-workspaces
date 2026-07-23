@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List / dump cind workspaces from runtime config (shared by bash tools)."""
+"""List / dump orcan workspaces from runtime config (shared by bash tools)."""
 from __future__ import annotations
 
 import argparse
@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, "/usr/local/lib")
 
-from cind.workspaces import (  # noqa: E402
+from orcan.workspaces import (  # noqa: E402
     DEFAULT_CONFIG,
     compact_hints,
     iter_workspaces,
@@ -23,7 +23,7 @@ def main() -> int:
     parser.add_argument(
         "--config",
         default="",
-        help=f"Config path (default: $CIND_CONFIG or {DEFAULT_CONFIG})",
+        help=f"Config path (default: $ORCAN_CONFIG or {DEFAULT_CONFIG})",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 

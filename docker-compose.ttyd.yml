@@ -2,7 +2,7 @@
 # Remote access: browser only (ttyd → workspace picker → tmux). No SSH server.
 # Recommended: Tailscale (or localhost). Do not expose port 7681 on the public Internet.
 services:
-  cind:
+  orcan:
     command: ["cursor-ttyd"]
     restart: unless-stopped
     ports:
@@ -17,7 +17,7 @@ services:
       WORKSPACE_ROOT: ${WORKSPACE_ROOT:-}
       WORKSPACE_NAME: ${WORKSPACE_NAME:-}
       WORKSPACE_META_PATH: ${WORKSPACE_META_PATH:-}
-      CIND_CONFIG: ${CIND_CONFIG:-/etc/cind/config.json}
+      ORCAN_CONFIG: ${ORCAN_CONFIG:-/etc/orcan/config.json}
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:7681/ >/dev/null || exit 1"]
       interval: 10s

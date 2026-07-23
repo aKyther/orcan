@@ -17,8 +17,8 @@ if [[ ! -S /var/run/docker.sock ]]; then
     exit 0
 fi
 
-TEST_DIR="$(mktemp -d /tmp/cind-path-parity-XXXXXX)"
-COMPOSE_PROJECT="cind-parity-test-$$"
+TEST_DIR="$(mktemp -d /tmp/orcan-path-parity-XXXXXX)"
+COMPOSE_PROJECT="orcan-parity-test-$$"
 COMPOSE_FILE="${TEST_DIR}/docker-compose.yml"
 MARKER="parity-marker-$$"
 
@@ -48,7 +48,7 @@ printf '%s\n' "${MARKER}" > "${TEST_DIR}/${MARKER}"
 
 cat > "${TEST_DIR}/compose-mount.yml" <<EOF
 services:
-  cind:
+  orcan:
     volumes:
       - ${TEST_DIR}:${TEST_DIR}
 EOF
@@ -62,7 +62,7 @@ COMPOSE_TTYD_DOCKER=(
     -f docker-compose.docker.yml
 )
 
-"${COMPOSE_TTYD_DOCKER[@]}" run --rm --no-TTY cind bash -lc "
+"${COMPOSE_TTYD_DOCKER[@]}" run --rm --no-TTY orcan bash -lc "
 set -euo pipefail
 test \"\$(pwd -P)\" = \"${TEST_DIR}\"
 test \"\${PROJECT_DIR}\" = \"${TEST_DIR}\"

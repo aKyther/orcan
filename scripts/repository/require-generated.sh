@@ -24,8 +24,8 @@ set -a
 source "${ROOT_DIR}/.env"
 set +a
 
-compose_file="${CIND_COMPOSE_PROJECTS:-${ROOT_DIR}/.cind/compose-projects.generated.yml}"
-runtime_file="${CIND_CONFIG_HOST:-${ROOT_DIR}/.cind/runtime-config.json}"
+compose_file="${ORCAN_COMPOSE_PROJECTS:-${ROOT_DIR}/.orcan/compose-projects.generated.yml}"
+runtime_file="${ORCAN_CONFIG_HOST:-${ROOT_DIR}/.orcan/runtime-config.json}"
 
 missing=()
 if [[ ! -f "${compose_file}" ]]; then
@@ -41,22 +41,17 @@ if (( ${#missing[@]} > 0 )); then
         printf '  - %s\n' "${path}" >&2
     done
     printf 'Run:  make env\n' >&2
-    printf 'After editing cind.config.yaml (or .json), always run make env before make terminal.\n' >&2
+    printf 'After editing orcan.config.json, always run make env before make terminal.\n' >&2
     exit 1
 fi
 
 config_file="${CONFIG:-}"
-if [[ -z "${config_file}" ]]; then
-    for cand in cind.config.yaml cind.config.yml cind.config.json; do
-        if [[ -f "${ROOT_DIR}/${cand}" ]]; then
-            config_file="${ROOT_DIR}/${cand}"
-            break
-        fi
-    done
+if [[ -z "${config_file}" && -f "${ROOT_DIR}/orcan.config.json" ]]; then
+    config_file="${ROOT_DIR}/orcan.config.json"
 fi
 if [[ -n "${config_file}" && -f "${config_file}" ]]; then
     if [[ "${config_file}" -nt "${runtime_file}" || "${config_file}" -nt "${compose_file}" ]]; then
-        printf 'Error: cind config is newer than generated runtime files.\n' >&2
+        printf 'Error: orcan config is newer than generated runtime files.\n' >&2
         printf '  config:  %s\n' "${config_file}" >&2
         printf '  runtime: %s\n' "${runtime_file}" >&2
         printf '  mounts:  %s\n' "${compose_file}" >&2
@@ -68,11 +63,11 @@ fi
 
 validate_project_dir || exit 1
 
-# Ensure host data tree exists (default ~/.config/cind — like poetry under ~/.config).
-CIND_DATA="${CIND_DATA:-${HOME}/.config/cind}"
-if [[ -z "${CIND_DATA}" ]]; then
-    CIND_DATA="${HOME}/.config/cind"
+# Ensure host data tree exists (default ~/.config/orcan — like poetry under ~/.config).
+ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}"
+if [[ -z "${ORCAN_DATA}" ]]; then
+    ORCAN_DATA="${HOME}/.config/orcan"
 fi
 for sub in cursor cursor-app claude cache npm pnpm cargo go bash-history shell-history; do
-    mkdir -p "${CIND_DATA}/${sub}"
+    mkdir -p "${ORCAN_DATA}/${sub}"
 done

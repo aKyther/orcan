@@ -19,7 +19,7 @@ Inspect when present:
 - `Makefile` Docker targets
 - Entrypoint and init scripts
 - UID/GID mapping
-- Host binds (`CIND_DATA`) and path-parity mounts
+- Host binds (`ORCAN_DATA`) and path-parity mounts
 - Docker socket access
 - Non-root execution
 - Image size and multi-stage builds

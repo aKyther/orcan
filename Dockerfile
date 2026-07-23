@@ -243,13 +243,13 @@ RUN chmod 0755 \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
         /usr/local/bin/init-ai-statusline \
-        /usr/local/bin/cind-ai-statusline \
+        /usr/local/bin/orcan-ai-statusline \
         /usr/local/bin/init-workspace \
         /usr/local/bin/cursor-init-project \
-        /usr/local/bin/cind-init-projects \
-        /usr/local/bin/cind-session-brief \
-        /usr/local/bin/cind-workspaces \
-        /usr/local/bin/cind-context-status \
+        /usr/local/bin/orcan-init-projects \
+        /usr/local/bin/orcan-session-brief \
+        /usr/local/bin/orcan-workspaces \
+        /usr/local/bin/orcan-context-status \
         /usr/local/bin/cursor-ttyd \
         /usr/local/bin/cursor-launcher \
         /usr/local/bin/cursor-tmux-workspace-attach \
@@ -258,11 +258,11 @@ RUN chmod 0755 \
     && chmod -R a+rX /opt/cursor-defaults \
     && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
     && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \
-    && chmod 0644 /etc/profile.d/cind-path.sh \
+    && chmod 0644 /etc/profile.d/orcan-path.sh \
     && chmod -R a+rX /etc/skel \
-    && chmod -R a+rX /opt/cind \
-    && chmod 0644 /opt/cind/gitconfig /opt/cind/starship.toml \
-    && chmod 0644 /etc/cind/shell/aliases.sh
+    && chmod -R a+rX /opt/orcan \
+    && chmod 0644 /opt/orcan/gitconfig /opt/orcan/starship.toml \
+    && chmod 0644 /etc/orcan/shell/aliases.sh
 
 # ------------------------------------------------------------------------------
 # User
@@ -330,10 +330,10 @@ RUN set -eux; \
     ln -sfn /etc/tmux "/home/${USERNAME}/.config/tmux"; \
     mkdir -p "/home/${USERNAME}/.cache/tmux" "/home/${USERNAME}/.config"; \
     if [[ ! -e "/home/${USERNAME}/.config/starship.toml" ]]; then \
-        cp -a /opt/cind/starship.toml "/home/${USERNAME}/.config/starship.toml"; \
+        cp -a /opt/orcan/starship.toml "/home/${USERNAME}/.config/starship.toml"; \
     fi; \
     if [[ ! -e "/home/${USERNAME}/.gitconfig" ]]; then \
-        cp -a /opt/cind/gitconfig "/home/${USERNAME}/.gitconfig"; \
+        cp -a /opt/orcan/gitconfig "/home/${USERNAME}/.gitconfig"; \
     fi; \
     \
     if ! grep -q 'bashrc.d' "/home/${USERNAME}/.bashrc"; then \
@@ -341,8 +341,8 @@ RUN set -eux; \
             >> "/home/${USERNAME}/.bashrc"; \
     fi; \
     \
-    if ! grep -q 'cind-path\|cursor-dev-path\|/usr/local/go/bin' "/home/${USERNAME}/.profile"; then \
-        printf '\n# Toolchain PATH for login shells\n. /etc/profile.d/cind-path.sh\n' \
+    if ! grep -q 'orcan-path\|cursor-dev-path\|/usr/local/go/bin' "/home/${USERNAME}/.profile"; then \
+        printf '\n# Toolchain PATH for login shells\n. /etc/profile.d/orcan-path.sh\n' \
             >> "/home/${USERNAME}/.profile"; \
     fi; \
     \
@@ -368,20 +368,13 @@ USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
 # ------------------------------------------------------------------------------
-# AI CLIs: Cursor (agent) + Claude Code (claude)
+# AI CLIs — always Claude Code; Cursor (agent) optional via INSTALL_CURSOR
 # ------------------------------------------------------------------------------
+# Variants:
+#   INSTALL_CURSOR=1 (default) → full (Claude + Cursor) — typically tagged orcan:latest
+#   INSTALL_CURSOR=0           → Claude only — typically tagged orcan:claude
 
-RUN set -eux; \
-    for attempt in 1 2 3; do \
-        if curl -fsSL https://cursor.com/install | bash; then break; fi; \
-        echo "Cursor install attempt ${attempt} failed, retrying..." >&2; \
-        sleep 10; \
-    done; \
-    agent --version; \
-    rm -rf "${HOME}/.cursor"; \
-    mkdir -p "${HOME}/.cursor"
-# Empty developer-owned ~/.cursor so the first named-volume mount stays writable.
-# Runtime seeding comes from /opt/cursor-defaults via init-cursor-home.
+ARG INSTALL_CURSOR=1
 
 RUN set -eux; \
     for attempt in 1 2 3; do \
@@ -390,7 +383,31 @@ RUN set -eux; \
         sleep 10; \
     done; \
     claude --version
-# Claude config lives under ~/.claude (container-local unless you add a volume later).
+# Claude config lives under ~/.claude (bind: $ORCAN_DATA/claude).
+
+RUN set -eux; \
+    if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then \
+        for attempt in 1 2 3; do \
+            if curl -fsSL https://cursor.com/install | bash; then break; fi; \
+            echo "Cursor install attempt ${attempt} failed, retrying..." >&2; \
+            sleep 10; \
+        done; \
+        agent --version; \
+        rm -rf "${HOME}/.cursor"; \
+        mkdir -p "${HOME}/.cursor"; \
+        printf 'full' > /tmp/orcan-variant; \
+    else \
+        printf 'Skipping Cursor CLI (INSTALL_CURSOR=%s)\n' "${INSTALL_CURSOR}" >&2; \
+        printf 'claude' > /tmp/orcan-variant; \
+    fi
+# Empty ~/.cursor so the first volume mount stays writable; seeded at runtime (full).
+
+USER root
+RUN install -d -m 0755 /etc/orcan \
+    && mv /tmp/orcan-variant /etc/orcan/variant \
+    && chmod 0644 /etc/orcan/variant \
+    && chown root:root /etc/orcan/variant
+USER ${USERNAME}
 
 ENTRYPOINT ["docker-entrypoint"]
 CMD ["zsh"]

@@ -85,7 +85,7 @@ def main() -> int:
         print("HOME is not set", file=sys.stderr)
         return 1
 
-    cmd = os.environ.get("CIND_AI_STATUSLINE", "/usr/local/bin/cind-ai-statusline")
+    cmd = os.environ.get("ORCAN_AI_STATUSLINE", "/usr/local/bin/orcan-ai-statusline")
     status_block = {"type": "command", "command": cmd, "padding": 0}
     claude_settings = home / ".claude" / "settings.json"
 

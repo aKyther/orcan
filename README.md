@@ -1,10 +1,10 @@
-# cind
+# orcan
 
-**Context orchestrator** for coding agents: workspaces, path-parity mounts, ignore/instruction seeds, and a browser tmux launcher. **Cursor CLI** (`agent`) and **Claude Code** (`claude`) run as tools inside that environment. **Models are out of scope** for cind — each CLI chooses its own.
+**Context orchestrator** for coding agents: workspaces, path-parity mounts, ignore/instruction seeds, and a browser tmux launcher. **Cursor CLI** (`agent`) and **Claude Code** (`claude`) run as tools inside that environment. **Models are out of scope** for orcan — each CLI chooses its own.
 
-This repository keeps your host system clean. Tools run inside a container. Projects use [path parity](docs/path-parity.md). Workspaces are declared in `cind.config.yaml` (one tmux session per workspace).
+This repository keeps your host system clean. Tools run inside a container. Projects use [path parity](docs/path-parity.md). Workspaces are declared in `orcan.config.json` (one tmux session per workspace).
 
-**Who it is for:** developers who want a shared agent environment (Node, Python, Go, Rust, optional Docker) without installing the full toolchain on the host — and without managing models in cind config.
+**Who it is for:** developers who want a shared agent environment (Node, Python, Go, Rust, optional Docker) without installing the full toolchain on the host — and without managing models in orcan config.
 
 **Problem it solves:** mixed global toolchains, root-owned files from containers, and unclear boundaries between agent work and the host OS. See [Context orchestration](docs/architecture/context.md).
 
@@ -12,20 +12,22 @@ This repository keeps your host system clean. Tools run inside a container. Proj
 
 ## Features
 
-* Cursor CLI (`agent`)
-* Claude Code CLI (`claude`)
+* Cursor CLI (`agent`) — **full** image variant
+* Claude Code CLI (`claude`) — **full** and **claude-only** variants
+* Two image tags: `orcan:latest` (Claude+Cursor), `orcan:claude` (Claude only)
 * Docker-based environment on Debian Bookworm Slim
 * Multi-stage image build
-* Multi-workspace launcher → one **tmux session per workspace** (browser ttyd)
+* Multi-workspace launcher → one **tmux session per workspace** (browser ttyd + **zsh**)
 * Workspace **context pack** (manifest, AGENTS/CLAUDE, ignores) — see [docs/architecture/context.md](docs/architecture/context.md)
+* Starship prompt, fzf, delta, lazygit (image defaults)
 * Node.js, npm, pnpm; Python 3 + **uv**; Go; Rust
 * Docker CLI, Compose, Buildx (optional host socket)
 * Git, ripgrep, fd, fzf, bat, eza, jq, yq, tree, curl, shellcheck, hyperfine
 * PostgreSQL client, Redis client
-* Persistent host data under `~/.config/cind` (`CIND_DATA` binds — not named volumes)
+* Persistent host data under `~/.config/orcan` (`ORCAN_DATA` binds — not named volumes)
 * Global Cursor defaults seeded at container startup
 * `cursor-init-project` / `make init-project-all` for optional per-repo scaffolding
-* `cind-session-brief` for optional agent/claude handoff
+* `orcan-session-brief` for optional agent/claude handoff
 * Makefile entrypoints for everyday use
 
 ---
@@ -35,10 +37,11 @@ This repository keeps your host system clean. Tools run inside a container. Proj
 | Path | Why it exists |
 | --- | --- |
 | `Dockerfile` | Builds the toolchain and installs Cursor CLI |
-| `docker-compose.yml` | Base service: path-parity mounts + `$CIND_DATA` binds, no Docker socket |
+| `docker-compose.yml` | Base service: path-parity mounts + `$ORCAN_DATA` binds, no Docker socket |
 | `docker-compose.docker.yml` | Optional overlay: host Docker socket + `DOCKER_GID` |
 | `docker-compose.ttyd.yml` | Browser terminal (ttyd) for local / Tailscale access |
-| `cind.config.yaml` | Workspaces and projects (run `make env` after edits; JSON still accepted) |
+| `orcan.config.json` | Workspaces and projects (JSON only; run `make env` after edits) |
+| `AGENTS.md` | Orientation for coding agents working on this repo |
 | `Makefile` | Short host commands for build, shell, cleanup |
 | `docker/rootfs/` | Files installed into the image (paths match the container) |
 | `scripts/repository/` | Host-only maintenance helpers |
@@ -70,12 +73,12 @@ This repository keeps your host system clean. Tools run inside a container. Proj
 | `docker/rootfs/usr/local/bin/init-cursor-home` | `/usr/local/bin/init-cursor-home` | User config initialization |
 | `docker/rootfs/usr/local/bin/cursor-init-project` | `/usr/local/bin/cursor-init-project` | Project template initialization |
 | `docker/rootfs/usr/local/bin/cursor-ttyd` | `/usr/local/bin/cursor-ttyd` | Browser terminal (ttyd + tmux) |
-| `docker/rootfs/usr/local/bin/cind-ai-statusline` | `/usr/local/bin/cind-ai-statusline` | Claude/Cursor statusLine → tmux usage cache |
+| `docker/rootfs/usr/local/bin/orcan-ai-statusline` | `/usr/local/bin/orcan-ai-statusline` | Claude/Cursor statusLine → tmux usage cache |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
 | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` | `/home/developer/.zshrc*` | Default shell (zsh + plugins + Starship) |
 | `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Bash fallback |
-| `docker/rootfs/opt/cind/` | seeded gitconfig + starship | Missing-only into `$HOME` |
+| `docker/rootfs/opt/orcan/` | seeded gitconfig + starship | Missing-only into `$HOME` |
 
 ---
 
@@ -89,7 +92,7 @@ Host
 Docker container
 ├── /home/user/projects/my-app   ← same path (path parity)
 ├── /opt/cursor-defaults         ← immutable image defaults
-├── /home/developer/.cursor      ← $CIND_DATA/cursor (seeded at startup)
+├── /home/developer/.cursor      ← $ORCAN_DATA/cursor (seeded at startup)
 ├── Cursor CLI
 ├── Node / pnpm
 ├── Python / uv
@@ -99,9 +102,9 @@ Docker container
 
 * **Docker** isolates tools from the host package manager.
 * **Context orchestration** — workspaces, context pack, ignores; CLIs are plugs; models out of scope ([docs](docs/architecture/context.md)).
-* **`cind.config.yaml` workspaces** isolate project sets (no cross-workspace mixing).
+* **`orcan.config.json` workspaces** isolate project sets (no cross-workspace mixing).
 * **UID/GID mapping** makes new files owned by your host user.
-* **`$CIND_DATA` host binds** keep npm/pnpm/cargo/go/uv caches and Cursor/Claude login between runs.
+* **`$ORCAN_DATA` host binds** keep npm/pnpm/cargo/go/uv caches and Cursor/Claude login between runs.
 * **`/opt/cursor-defaults`** seeds `${HOME}/.cursor` at startup (missing files only).
 * **tmux** via the browser launcher; switch sessions with `Ctrl+Space w`.
 * **Docker socket** is optional because it grants strong host access.
@@ -129,8 +132,8 @@ Everything goes through **Make** — no manual `cp` of `.env` or config template
 ### First run
 
 ```bash
-git clone <repository-url> cind
-cd cind
+git clone <repository-url> orcan
+cd orcan
 
 make setup PROJECT_DIR=/absolute/path/to/your/repo
 make build
@@ -150,7 +153,7 @@ Open `http://localhost:7681` (or `http://<tailscale-ip>:7681` on a remote host i
 
 `make setup`:
 
-* creates `cind.config.yaml` from `PROJECT_DIR` if missing (one workspace, one project)
+* creates `orcan.config.json` from `PROJECT_DIR` if missing (one workspace, one project)
 * runs `make env` (`.env`, mounts, runtime config)
 * prints `make config-show` output and next steps
 
@@ -165,23 +168,27 @@ make env
 make down && make terminal-docker
 ```
 
-Optional: `make config-init` copies the full example from `cind.config.example.yaml` to edit by hand.
+Optional: `make config-init` copies the full example from `orcan.config.example.json` to edit by hand.
 
 Example shape (usually from wizard / `setup` / `config-scaffold`):
 
-```yaml
-workspaces:
-  - name: gotibooks
-    projects:
-      - name: backend
-        path: /home/you/gotibooks/backend
-      - name: frontend
-        path: /home/you/gotibooks/frontend
+```json
+{
+  "workspaces": [
+    {
+      "name": "gotibooks",
+      "projects": [
+        { "name": "backend", "path": "/home/you/gotibooks/backend" },
+        { "name": "frontend", "path": "/home/you/gotibooks/frontend" }
+      ]
+    }
+  ]
+}
 ```
 
 Docs: [config](docs/config.md) · [Makefile](docs/makefile.md) · [workspace architecture](docs/architecture/workspace.md)
 
-### Developing this repository (cind)
+### Developing this repository (orcan)
 
 `PROJECT_DIR` defaults to the clone directory:
 
@@ -209,10 +216,10 @@ Typical flow: build on a machine with good network/CPU, push to **GitLab Contain
 ```text
 Laptop / CI                          GitLab registry                    VPS
 ─────────────────                    ───────────────                    ───
-make build  →  cind:latest
-make publish ─────────────────────►  registry…/group/cind:latest
+make build  →  orcan:latest
+make publish ─────────────────────►  registry…/group/orcan:latest
                                                                     make pull
-                                                                    → cind:latest
+                                                                    → orcan:latest
                                                                     make terminal-docker
 ```
 
@@ -220,27 +227,27 @@ make publish ─────────────────────► 
 
 | Piece | Role |
 | --- | --- |
-| Local image `cind:latest` | What Compose runs (`docker-compose.yml` → `image: cind:latest`, service `cind`) |
+| Local image `orcan:latest` | What Compose runs (`docker-compose.yml` → `image: orcan:latest`, service `orcan`) |
 | `IMAGE_REGISTRY` | Registry host — `registry.gitlab.com` or your self-hosted GitLab |
-| `IMAGE_REPOSITORY` | Path under the registry, e.g. `mygroup/cind` |
+| `IMAGE_REPOSITORY` | Path under the registry, e.g. `mygroup/orcan` |
 | `IMAGE_TAG` | Tag (default `latest`) |
 | `make registry-login` | `docker login` with GitLab username + PAT / Deploy Token |
 | `make publish` | Tags local image → pushes to registry |
-| `make pull` | Pulls remote image and retags as `cind:latest` for Compose |
+| `make pull` | Pulls remote image and retags as `orcan:latest` for Compose |
 | `make registry-show` | Prints configured local/remote names (sanity check) |
 
 Remote image name:
 
 ```text
 ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}
-# e.g. registry.gitlab.com/mygroup/cind:latest
+# e.g. registry.gitlab.com/mygroup/orcan:latest
 ```
 
 ### 1. Configure `.env` (once per machine)
 
 ```dotenv
 IMAGE_REGISTRY=registry.gitlab.com
-IMAGE_REPOSITORY=mygroup/cind
+IMAGE_REPOSITORY=mygroup/orcan
 IMAGE_TAG=latest
 ```
 
@@ -271,7 +278,7 @@ make publish
 
 ### 4. Pull and run (VPS)
 
-Same clone of this repo + same `IMAGE_*` in `.env`, plus your `cind.config.yaml` / `make env` for mounts:
+Same clone of this repo + same `IMAGE_*` in `.env`, plus your `orcan.config.json` / `make env` for mounts:
 
 ```bash
 make registry-login
@@ -280,14 +287,14 @@ make env            # if config / mounts not ready yet
 make terminal-docker
 ```
 
-`make pull` only updates the **image**. Workspace mounts and `.env` still come from `make env` / `cind.config.yaml` on that host.
+`make pull` only updates the **image**. Workspace mounts and `.env` still come from `make env` / `orcan.config.json` on that host.
 
 ### When to rebuild vs pull
 
 | Change | On build machine | On VPS |
 | --- | --- | --- |
 | Dockerfile / `docker/rootfs/` (tmux, tools, …) | `make rebuild` → `make publish` | `make pull` |
-| `cind.config.yaml` (workspaces, paths) | — | `make env` → restart terminal |
+| `orcan.config.json` (workspaces, paths) | — | `make env` → restart terminal |
 | Only `.env` limits (`CPUS`, ports) | — | edit `.env` → restart terminal |
 
 More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [docs/docker.md](docs/docker.md#publish-to-gitlab-container-registry).
@@ -300,22 +307,24 @@ More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [do
 | --- | --- |
 | `make help` | List targets |
 | `make setup` | First run: scaffold config if missing, then `make env` |
-| `make config-wizard` | Interactive create/edit `cind.config.yaml` |
+| `make config-wizard` | Interactive create/edit `orcan.config.json` |
 | `make config-scaffold` | Non-interactive add project from `PROJECT_DIR` |
 | `make config-show` | Print config + runtime manifest |
 | `make env` | Apply config → `.env`, mounts, runtime (run after wizard/edits) |
-| `make build` | Build the image |
-| `make rebuild` | Rebuild with `--no-cache` |
+| `make build` | Build **full** image (Claude + Cursor) → `orcan:latest` |
+| `make build-claude` | Build **Claude-only** image → `orcan:claude` |
+| `make rebuild` | Rebuild full image with `--no-cache` |
+| `make rebuild-claude` | Rebuild Claude-only image with `--no-cache` |
 | `make registry-login` | Log in to GitLab Container Registry |
 | `make publish` | Tag + push image to registry |
-| `make pull` | Pull published image → `cind:latest` |
+| `make pull` | Pull published image → `orcan:latest` |
 | `make terminal` | Start browser terminal (no Docker socket; does not run `make env`) |
 | `make terminal-docker` | Start browser terminal + Docker socket (does not run `make env`) |
 | `make terminal-url` | Print the browser terminal URL |
-| `make down` | Stop containers; keep host data (`CIND_DATA`) |
+| `make down` | Stop containers; keep host data (`ORCAN_DATA`) |
 | `make logs` | Follow logs |
 | `make clean` | Stop containers; keep host data |
-| `make clean-data` | Delete `$CIND_DATA` (`~/.config/cind`) — login + caches |
+| `make clean-data` | Delete `$ORCAN_DATA` (`~/.config/orcan`) — login + caches |
 | `make clean-volumes` | Alias for `clean-data` |
 | `make path-check` | Show host/container project path parity |
 | `make config` | Validate and print Compose configs |
@@ -342,10 +351,10 @@ More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [do
 
 ### Choose a project
 
-Preferred: edit via wizard or `cind.config.yaml`, then apply:
+Preferred: edit via wizard or `orcan.config.json`, then apply:
 
 ```bash
-make config-wizard   # or edit cind.config.yaml by hand
+make config-wizard   # or edit orcan.config.json by hand
 make env
 make path-check
 make down && make terminal-docker
@@ -400,7 +409,7 @@ Reset global container Cursor config by deleting host data:
 make clean-data
 ```
 
-> Warning: that also deletes language caches and bash history under `$CIND_DATA`.
+> Warning: that also deletes language caches and bash history under `$ORCAN_DATA`.
 
 Details: [docs/cursor.md](docs/cursor.md).
 
@@ -441,7 +450,7 @@ make build
 make terminal-docker
 ```
 
-Projects come from `cind.config.yaml` (not `PROJECT_DIR=` on the Make line). After config edits: `make env`, then recreate the container.
+Projects come from `orcan.config.json` (not `PROJECT_DIR=` on the Make line). After config edits: `make env`, then recreate the container.
 
 Open in your browser:
 
@@ -455,7 +464,7 @@ http://localhost:7681
 | Host port | `7681` (`TTYD_HOST_PORT`) |
 | Shell | **zsh** + Starship (git autodectect); plugins baked in |
 | Theme | `TTYD_THEME=dark` (from config / `.env`, no startup chooser) |
-| Projects | Listed from `cind.config.yaml` (workspace launcher) |
+| Projects | Listed from `orcan.config.json` (workspace launcher) |
 | TMUX | One session per workspace (`Ctrl+Space w` to switch) |
 
 **Remote access:** there is no SSH into this environment. Use the browser terminal only.
@@ -486,7 +495,7 @@ Details: [docs/docker.md](docs/docker.md) and [docs/security.md](docs/security.m
 
 * Host package installs stay untouched
 * Toolchain lives in the image
-* Caches live under `$CIND_DATA` on the host (`~/.config/cind`)
+* Caches live under `$ORCAN_DATA` on the host (`~/.config/orcan`)
 
 **Not fully isolated:**
 
@@ -505,7 +514,7 @@ Shell and editor configs live in the image filesystem:
 
 * `docker/rootfs/etc/skel/.tmux.conf` → `/home/developer/.tmux.conf`
 * `docker/rootfs/etc/skel/.vimrc` → `/home/developer/.vimrc`
-* `docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh` → sourced from `~/.bashrc`
+* `docker/rootfs/etc/skel/.bashrc.d/50-orcan-shell.sh` → sourced from `~/.bashrc`
 
 The browser launcher attaches you to a tmux session named after the workspace (`workspaces[].name`). Tabs are `tab-1`… (not other workspaces).
 
@@ -527,7 +536,7 @@ The browser launcher attaches you to a tmux session named after the workspace (`
 make rebuild
 ```
 
-To also delete caches and Cursor/Claude login under `$CIND_DATA`:
+To also delete caches and Cursor/Claude login under `$ORCAN_DATA`:
 
 ```bash
 make clean-data
@@ -545,7 +554,7 @@ make rebuild
 | No TTY / odd terminal | Run from a real terminal; ensure `stdin_open`/`tty` stay enabled |
 | TMUX did not start | Non-interactive commands skip TMUX; check `[ -t 0 ]` |
 | Stale image | `make rebuild` |
-| Cursor CLI not logged in | Log in once inside the container; auth persists under `$CIND_DATA` (`~/.config/cind`) |
+| Cursor CLI not logged in | Log in once inside the container; auth persists under `$ORCAN_DATA` (`~/.config/orcan`) |
 
 More detail: [docs/troubleshooting.md](docs/troubleshooting.md).
 
@@ -577,7 +586,7 @@ Yes. Start a new session with another `PROJECT_DIR` (run `make down` first if a 
 
 **Can I disable TMUX?**  
 Yes. Start a non-interactive command, or remove the TMUX block from
-`docker/rootfs/etc/skel/.bashrc.d/50-cind-shell.sh` and rebuild.
+`docker/rootfs/etc/skel/.bashrc.d/50-orcan-shell.sh` and rebuild.
 
 **Can I use Docker inside the container?**  
 Yes, with `make terminal-docker` when the host socket is available.

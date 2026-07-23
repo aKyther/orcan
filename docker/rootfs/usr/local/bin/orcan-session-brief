@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Create .cind/session-brief.md in the current cind workspace (missing-only).
-# Usage: cind-session-brief [workspace-root]
+# Create .orcan/session-brief.md in the current orcan workspace (missing-only).
+# Usage: orcan-session-brief [workspace-root]
 set -Eeuo pipefail
 
-TEMPLATE="${CIND_SESSION_BRIEF_TEMPLATE:-/opt/cursor-defaults/templates/workspace/session-brief.md}"
+TEMPLATE="${ORCAN_SESSION_BRIEF_TEMPLATE:-/opt/cursor-defaults/templates/workspace/session-brief.md}"
 
 usage() {
     cat <<'EOF'
-Usage: cind-session-brief [workspace-root]
+Usage: orcan-session-brief [workspace-root]
 
-Create .cind/session-brief.md for agent/claude handoff (missing-only).
+Create .orcan/session-brief.md for agent/claude handoff (missing-only).
 
-Default root: $CIND_WORKSPACE_ROOT, else current directory.
+Default root: $ORCAN_WORKSPACE_ROOT, else current directory.
 EOF
 }
 
@@ -21,8 +21,8 @@ resolve_root() {
         printf '%s\n' "$(cd -- "${raw}" && pwd -P)"
         return 0
     fi
-    if [[ -n "${CIND_WORKSPACE_ROOT:-}" && -d "${CIND_WORKSPACE_ROOT}" ]]; then
-        printf '%s\n' "$(cd -- "${CIND_WORKSPACE_ROOT}" && pwd -P)"
+    if [[ -n "${ORCAN_WORKSPACE_ROOT:-}" && -d "${ORCAN_WORKSPACE_ROOT}" ]]; then
+        printf '%s\n' "$(cd -- "${ORCAN_WORKSPACE_ROOT}" && pwd -P)"
         return 0
     fi
     printf '%s\n' "$(pwd -P)"
@@ -38,7 +38,7 @@ main() {
 
     local root dest
     root="$(resolve_root "${1:-}")"
-    dest="${root}/.cind/session-brief.md"
+    dest="${root}/.orcan/session-brief.md"
 
     if [[ ! -f "${TEMPLATE}" ]]; then
         printf 'Error: template missing: %s\n' "${TEMPLATE}" >&2

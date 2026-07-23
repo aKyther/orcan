@@ -5,109 +5,88 @@ alwaysApply: true
 
 # Agent guide
 
-This repository builds and runs an isolated Docker environment for Cursor CLI and Claude Code (**cind**): a **context orchestrator** (workspaces, mounts, ignores, instructions). Agent CLIs are tools inside it; **models are out of scope** for cind config.
-Host projects are mounted with path parity. Workspaces come from `cind.config.json`. Treat mounts under `${PROJECT_DIR}` / configured project paths as the writable project scope.
+**orcan** = Docker **context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`): workspaces, path-parity mounts, ignore/instruction seeds, browser terminal. Agent CLIs are tools inside it; **models are out of scope**.
+
+Read root [`AGENTS.md`](../../AGENTS.md) for a short orientation. This rule is always applied.
+
+## Product ritual (host)
+
+```bash
+make config-wizard    # or setup / config-scaffold / hand-edit orcan.config.json
+make env              # ALWAYS after config changes (terminal* does not call env)
+make rebuild          # after Dockerfile / docker/rootfs / tmux / shell changes
+make terminal-docker  # daily start (ttyd); or make terminal without Docker socket
+```
+
+Recreate after env changes: `make down && make terminal-docker`.
+
+## Config = JSON only
+
+- User profile: **`orcan.config.json`** (stdlib `json` — **no PyYAML**, no `host-deps`, no `requirements-host.txt`).
+- Example: `orcan.config.example.json`.
+- Keep Compose/docs YAML (`docker-compose*.yml`, `mkdocs.yml`, generated `.orcan/*.yml`).
+- Do not revive YAML user configs.
+
+## Runtime stack (container)
+
+```text
+ttyd (cursor-ttyd) → cursor-launcher → tmux → zsh
+  Starship prompt · autosuggestions · syntax-highlighting · fzf
+  aliases: /etc/orcan/shell/aliases.sh
+```
+
+| Concern | Source of truth |
+| --- | --- |
+| tmux | `docker/rootfs/etc/tmux/` (2-row status; RMB menus unbound in `tmux.conf`) |
+| zsh | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` |
+| git/starship seeds | `docker/rootfs/opt/orcan/` |
+| Cursor defaults | `docker/rootfs/opt/cursor-defaults/` → seeded missing-only |
 
 ## File map
 
 | Path | Role |
 | --- | --- |
-| `Dockerfile` | Image build only (packages, COPY rootfs, user, ENTRYPOINT) |
-| `docker-compose.yml` | Base service (no Docker socket); uses generated project mounts |
-| `docker-compose.docker.yml` | Optional Docker socket overlay |
-| `docker-compose.ttyd.yml` | Optional ttyd overlay (browser terminal) |
-| `.cind/compose-projects.generated.yml` | Generated path-parity + workspace binds (`make env`) |
-| `Makefile` | Thin host UI; calls Compose and `scripts/repository/` |
-| `docker/rootfs/` | Files installed into the image (source of truth) |
-| `scripts/repository/` | Host-only helpers (`update-env`, `require-generated`, `validate`, …) |
-| `tests/smoke/` | Container smoke tests |
-| `tests/integration/` | Path parity integration tests |
-| `.env.example` | Safe defaults for UID/GID and `PROJECT_DIR` |
-| `.cursorignore` | Blocks agent access to secrets and junk **in this repo** |
-| `.cursorindexingignore` | Reduces indexing noise |
+| `Dockerfile` | Image build (packages, COPY rootfs, user, ENTRYPOINT) |
+| `docker-compose.yml` | Base service (no Docker socket) + generated mounts |
+| `docker-compose.docker.yml` | Host Docker socket overlay |
+| `docker-compose.ttyd.yml` | Browser terminal overlay |
+| `.orcan/*` | Generated runtime (gitignored; from `make env`) |
+| `Makefile` | Host UI |
+| `docker/rootfs/` | Files installed into the image |
+| `scripts/repository/` | Host-only helpers (`update-env`, `apply-config`, wizard, …) |
+| `AGENTS.md` | Short agent orientation (this repo) |
 | `.cursor/rules/*.mdc` | Cursor rules **for this repository** |
 | `docs/` | MkDocs Material documentation |
 | `mkdocs.yml` | Docs site config |
 
-## Separation rules
+## Separation
 
-- Repository rules (root `.cursor/`) are not image defaults (`docker/rootfs/opt/cursor-defaults/`).
-- Container scripts live only under `docker/rootfs/usr/local/bin/`.
-- Host scripts live only under `scripts/repository/`.
-- Do not embed large heredoc programs in the Dockerfile.
+- Repo rules (`.cursor/`) ≠ image defaults (`docker/rootfs/opt/cursor-defaults/`).
+- Container scripts: only `docker/rootfs/usr/local/bin/`.
+- Host scripts: only `scripts/repository/`.
+- No large heredocs in the Dockerfile.
 
-## Commands
+## Commands (high-signal)
 
-**Configure** (writes `.env` and `.cind/*` — run after editing `cind.config.json`):
+Configure: `make setup` · `make env` · `make config-wizard` · `make config-scaffold` · `make config-show` · `make init-project-all`
 
-```bash
-make setup
-make env
-make config-scaffold PROJECT_DIR=/absolute/path/to/repo WORKSPACE=name
-```
+Run: `make build` · `make build-claude` · `make rebuild` · `make terminal` · `make terminal-docker` · `make down` · `make path-check` · `make validate` · `make test` · `make help`
 
-**Run** (read-only — does not call `make env`):
+Claude-only runtime: `IMAGE_LOCAL=orcan:claude make terminal-docker`.
 
-```bash
-make build
-make terminal
-make terminal-docker
-make terminal-url
-make down
-make logs
-make rebuild
-make clean
-make clean-data
-make clean-volumes
-make config
-make init-project
-make init-project-dry-run
-make init-project-all
-make init-project-all-dry-run
-make path-check
-make validate
-make test
-make test-path-parity
-make docs
-make docs-serve
-make help
-```
+## Boundaries
 
-Use `cind.config.yaml` for workspaces; run `make env` after config edits. `make terminal` does not regenerate anything. Legacy `cind.config.json` is still loaded if no YAML file exists.
+Allowed: edit this repo; Make/Compose checks; image builds; update docs when the interface changes.
 
-## Cursor defaults
-
-- Source of truth: `docker/rootfs/opt/cursor-defaults/` → `/opt/cursor-defaults`.
-- Seed `${HOME}/.cursor` at startup via `init-cursor-home` (missing files only).
-- Do not write defaults only into `/home/.../.cursor` during `docker build` (volume hides them).
-- Do not auto-modify `${PROJECT_DIR}` on startup; use `cursor-init-project` explicitly.
-- Active CLI permissions file is `cli-config.json`.
-
-## Agent boundaries
-
-Allowed:
-
-- Edit files under `${PROJECT_DIR}` for this repository.
-- Run Make, Compose config checks, and image builds.
-- Update docs when the user-facing interface changes.
-
-Not allowed:
-
-- Read or edit host paths outside `${PROJECT_DIR}`.
-- Modify `.env` unless asked.
-- Run `docker system prune`.
-- Delete host `CIND_DATA` except via an explicit user request for `make clean-data` / `make clean-volumes`.
-- Start `--privileged` containers.
-- Mount sensitive host directories.
-- Claim build success without running the build.
+Not allowed: host paths outside the project; modify `.env` unless asked; `docker system prune`; delete `ORCAN_DATA` except via explicit `make clean-data`; `--privileged`; claim build success without running the build.
 
 ## Done checklist
 
 - [ ] `make validate` passes
-- [ ] Compose config validates (base + generated mounts, ttyd, and docker overlays)
-- [ ] Makefile help matches real targets
-- [ ] Docs/README updated for interface/path changes
-- [ ] No secrets added to the image or repo
-- [ ] Final report lists ran tests, skipped tests, and limits
+- [ ] Compose config OK (base + generated + ttyd + docker overlays as needed)
+- [ ] `make help` matches real targets / docs
+- [ ] README/docs updated for user-facing changes
+- [ ] No secrets in image or repo
+- [ ] Report: tests ran / skipped / limits
 
-More detail: `docs/development.md`.
+More: `docs/development.md`, `docs/architecture/context.md`, `docs/config.md`.

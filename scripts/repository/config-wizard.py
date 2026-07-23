@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Interactive wizard to create or edit cind.config.yaml (poetry/uv-style)."""
+"""Interactive wizard to create or edit orcan.config.json."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from config_io import (  # noqa: E402
     default_write_path,
     discover_config,
     dump_config,
-    is_json_path,
     load_config,
 )
 
@@ -280,7 +279,7 @@ def edit_existing(cfg: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_fresh() -> dict[str, Any]:
-    info("No cind config found — building a new cind.config.yaml")
+    info("No orcan config found — building a new orcan.config.json")
     workspaces: list[dict[str, Any]] = []
     while True:
         created = ask_new_workspace()
@@ -358,12 +357,12 @@ def main() -> None:
     parser.add_argument(
         "--root",
         default=str(ROOT),
-        help="Repository root (default: cind repo)",
+        help="Repository root (default: orcan repo)",
     )
     parser.add_argument(
         "--config",
         default="",
-        help="Config path (default: discover or create cind.config.yaml)",
+        help="Config path (default: discover or create orcan.config.json)",
     )
     args = parser.parse_args()
     root = Path(args.root).resolve()
@@ -371,7 +370,7 @@ def main() -> None:
     if not sys.stdin.isatty():
         die("config wizard needs an interactive TTY (run in a terminal)")
 
-    info("cind config wizard")
+    info("orcan config wizard")
     info("──────────────────")
 
     if args.config:
@@ -392,12 +391,6 @@ def main() -> None:
             return
         cfg = edit_existing(cfg)
         out_path = existing
-        if is_json_path(existing):
-            if ask_yes_no(
-                "Save as cind.config.yaml instead of JSON? (recommended)",
-                default=True,
-            ):
-                out_path = default_write_path(root)
     else:
         cfg = create_fresh()
         out_path = default_write_path(root)
@@ -411,8 +404,6 @@ def main() -> None:
 
     dump_config(out_path, cfg)
     info(f"Wrote {out_path}")
-    if existing and is_json_path(existing) and out_path != existing:
-        info(f"(left {existing} in place — remove it if you no longer need JSON)")
     info("Next: make env && make init-project-all")
     info("      make down && make terminal-docker")
 

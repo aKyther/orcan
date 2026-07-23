@@ -10,6 +10,7 @@ alwaysApply: false
 - Keep the multi-stage build (Node, Go, Rust, uv tool stages).
 - Keep a non-root runtime user (`developer`).
 - Put container files under `docker/rootfs/` (paths match the image).
+- Default interactive shell is **zsh** (skel under `etc/skel/.zshrc*`); tmux under `etc/tmux/`.
 - Never copy SSH keys or tokens into the image.
 - Preserve BuildKit cache mounts for APT where used.
 - Install APT packages with `--no-install-recommends`.
