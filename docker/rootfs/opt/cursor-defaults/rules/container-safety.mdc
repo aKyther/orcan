@@ -1,5 +1,5 @@
 ---
-description: Safety rules for Cursor running inside the development container
+description: Safety rules for Cursor CLI agents running inside an Orcan container
 alwaysApply: true
 ---
 

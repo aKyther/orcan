@@ -7,6 +7,8 @@ alwaysApply: true
 
 - After changes, run available checks before claiming success.
 - Prefer `make validate` (includes generated mounts when Docker is available).
+- Prefer `make test-host` for config/apply/VERSION regressions (no image build).
+- When docs or user-facing text changed: `make docs-check`.
 - Otherwise run Compose with the generated overlay:
   - `docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config`
   - `docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.docker.yml config`

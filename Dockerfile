@@ -375,6 +375,7 @@ WORKDIR /home/${USERNAME}
 #   INSTALL_CURSOR=0           → Claude only — typically tagged orcan:claude
 
 ARG INSTALL_CURSOR=1
+ARG ORCAN_VERSION=dev
 
 RUN set -eux; \
     for attempt in 1 2 3; do \
@@ -403,10 +404,21 @@ RUN set -eux; \
 # Empty ~/.cursor so the first volume mount stays writable; seeded at runtime (full).
 
 USER root
+ARG ORCAN_VERSION=dev
 RUN install -d -m 0755 /etc/orcan \
     && mv /tmp/orcan-variant /etc/orcan/variant \
-    && chmod 0644 /etc/orcan/variant \
-    && chown root:root /etc/orcan/variant
+    && printf '%s\n' "${ORCAN_VERSION}" > /etc/orcan/version \
+    && chmod 0644 /etc/orcan/variant /etc/orcan/version \
+    && chown root:root /etc/orcan/variant /etc/orcan/version
+
+LABEL org.opencontainers.image.title="Orcan" \
+      org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \
+      org.opencontainers.image.source="https://github.com/aKyther/orcan" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${ORCAN_VERSION}"
+
+ENV ORCAN_VERSION="${ORCAN_VERSION}"
+
 USER ${USERNAME}
 
 ENTRYPOINT ["docker-entrypoint"]

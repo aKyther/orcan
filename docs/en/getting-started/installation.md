@@ -1,0 +1,95 @@
+# Installation
+
+## What this does
+
+Lists what you need on the **host** before you run Orcan.
+
+## Before you start
+
+Orcan runs on a machine with Docker. Most people use Linux or WSL2.
+
+## Requirements
+
+| Tool | Notes |
+| --- | --- |
+| Docker Engine | With Compose v2 (`docker compose`) |
+| Make | GNU Make |
+| Git | To clone this repository |
+| Python 3 | For host config scripts (`make env`, wizard) |
+
+Optional:
+
+| Tool | Notes |
+| --- | --- |
+| `gh` | Only for `make docs-publish` / `make release` helpers |
+| Tailscale | Optional private access to the browser terminal |
+
+Check versions:
+
+```bash
+docker version
+docker compose version
+make --version
+python3 --version
+```
+
+## Get the code
+
+```bash
+git clone https://github.com/aKyther/orcan.git
+cd orcan
+```
+
+Your clone directory may still be named `cind` if you forked an older path. That is fine. Product paths use `orcan` (config, `$HOME/.config/orcan`, image name `orcan`).
+
+## First configure
+
+```bash
+make setup PROJECT_DIR=/absolute/path/to/your/repo
+```
+
+Or use the wizard:
+
+```bash
+make config-wizard
+make env
+```
+
+## Build the image
+
+=== "Full (default)"
+
+    ```bash
+    make build
+    ```
+
+    Tag: `orcan:latest` (also tagged `orcan:full`) — Claude Code + Cursor CLI.
+
+=== "Claude only"
+
+    ```bash
+    make build-claude
+    IMAGE_LOCAL=orcan:claude make terminal-docker
+    ```
+
+    Tag: `orcan:claude` — Claude only.
+
+## Expected result
+
+- `.env` and `.orcan/` exist
+- Local image `orcan:latest` (or `orcan:claude`) exists
+- `make path-check` prints workspace paths
+
+## Uninstall
+
+See [Workflows — uninstall](../guides/workflows.md#uninstall) or [FAQ](../faq.md#uninstall).
+
+## Common problems
+
+| Problem | What to try |
+| --- | --- |
+| Docker permission denied | Add your user to the `docker` group, or use rootless Docker |
+| `make env` fails on `PROJECT_DIR` | Use an **absolute** path; do not use `/`, `/home`, or `/etc` as the project |
+| Slow first build | Normal — the image installs toolchains and CLIs |
+
+Next: [Quickstart](quickstart.md).

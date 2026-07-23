@@ -1,39 +1,136 @@
-site_name: orcan
+site_name: Orcan
 site_description: Context orchestrator for Cursor CLI and Claude Code in Docker
-site_author: orcan contributors
+site_author: Orcan contributors
+site_url: https://akyther.github.io/orcan/
 
-repo_url: https://github.com/example/orcan
-repo_name: example/orcan
+repo_url: https://github.com/aKyther/orcan
+repo_name: aKyther/orcan
 edit_uri: edit/main/docs/
+
+# Maintainer-only; not part of the published site nav
+exclude_docs: |
+  STYLE_GUIDE.md
+
+copyright: >
+  Copyright &copy; 2026 Orcan contributors ·
+  <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
+
+extra:
+  orcan_version: "0.1.0"
+  version:
+    provider: mike
+    default: latest
+    alias: true
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/aKyther/orcan
+      name: GitHub
+    - icon: fontawesome/solid/bug
+      link: https://github.com/aKyther/orcan/issues
+      name: Issues
+    - icon: fontawesome/solid/tags
+      link: https://github.com/aKyther/orcan/releases
+      name: Releases
+  homepage: https://akyther.github.io/orcan/
 
 theme:
   name: material
+  custom_dir: overrides
+  language: en
+  favicon: assets/images/favicon.svg
+  logo: assets/images/favicon.svg
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
   palette:
-    - scheme: default
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       primary: indigo
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    - scheme: slate
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
       primary: indigo
       accent: indigo
       toggle:
         icon: material/brightness-4
-        name: Switch to light mode
+        name: Switch to system preference
   features:
-    - navigation.instant
+    # navigation.instant is incompatible with the i18n language switcher
     - navigation.tracking
     - navigation.sections
+    - navigation.expand
     - navigation.top
+    - navigation.footer
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
+    - content.code.annotate
     - content.tabs.link
+    - content.action.edit
+    - content.action.view
     - toc.follow
 
 plugins:
-  - search
+  # lunr.js has no Polish stemmer; EN analyzer is used for both locales
+  - search:
+      lang: en
+  # i18n must be defined before git-revision-date-localized (locale on pages)
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      reconfigure_material: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+          site_name: Orcan
+        - locale: pl
+          name: Polski
+          build: true
+          site_name: Orcan
+          nav_translations:
+            Home: Start
+            Quick Start: Szybki start
+            Installation: Instalacja
+            User Guide: Przewodnik
+            Workflows: Przepływy pracy
+            Troubleshooting: Rozwiązywanie problemów
+            Concepts: Koncepcje
+            Architecture: Architektura
+            Workspaces: Workspaces
+            Path parity: Path parity
+            Configuration: Konfiguracja
+            Config guide: Przewodnik po konfiguracji
+            Config reference: Referencja konfiguracji
+            Environment variables: Zmienne środowiskowe
+            Development: Rozwój
+            Overview: Przegląd
+            Testing: Testy
+            Release process: Proces wydania
+            Deployment: Wdrożenie
+            Host and container interface: Interfejs hosta i kontenera
+            Reference: Referencja
+            Makefile: Makefile
+            Docker: Docker
+            Cursor and Claude: Cursor i Claude
+            Security: Bezpieczeństwo
+            AI context: Kontekst AI
+            FAQ: FAQ
+            Changelog: Changelog
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: date
+      fallback_to_build_date: true
 
 markdown_extensions:
   - admonition
@@ -51,7 +148,11 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist:
@@ -60,21 +161,38 @@ markdown_extensions:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
+extra_javascript:
+  - assets/javascripts/mike-i18n.js
+
+extra_css: []
+
 nav:
   - Home: index.md
-  - Getting started: getting-started.md
-  - Installation: installation.md
-  - Docker: docker.md
-  - Path parity: path-parity.md
-  - Project launcher: launcher.md
-  - tmux: tmux.md
-  - Config (JSON + wizard): config.md
-  - Architecture:
-      - Context orchestration: architecture/context.md
-      - Virtual workspace: architecture/workspace.md
-  - Makefile: makefile.md
-  - Cursor: cursor.md
-  - Security: security.md
-  - Development: development.md
+  - Quick Start:
+      - Quick Start: getting-started/quickstart.md
+      - Installation: getting-started/installation.md
+  - User Guide:
+      - Workflows: guides/workflows.md
+      - Troubleshooting: guides/troubleshooting.md
+      - Concepts:
+          - Architecture: concepts/architecture.md
+          - Workspaces: concepts/workspaces.md
+          - Path parity: concepts/path-parity.md
+  - Configuration:
+      - Config guide: getting-started/configuration.md
+      - Config reference: reference/configuration.md
+      - Environment variables: reference/environment.md
+  - Development:
+      - Overview: development/overview.md
+      - Testing: development/testing.md
+      - Release process: development/release.md
+      - AI context: ai/project-context.md
+  - Deployment: deployment.md
+  - Host and container interface: interface.md
+  - Reference:
+      - Makefile: reference/makefile.md
+      - Docker: reference/docker.md
+      - Cursor and Claude: reference/cursor-and-claude.md
+      - Security: reference/security.md
   - FAQ: faq.md
-  - Troubleshooting: troubleshooting.md
+  - Changelog: changelog.md

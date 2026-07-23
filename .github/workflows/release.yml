@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to validate/release (e.g. v0.1.0)"
+        required: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Validate, docs, GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: |
+          set -euo pipefail
+          file_v="$(tr -d '[:space:]' < VERSION)"
+          if [[ ! "${file_v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION must be SemVer X.Y.Z (got: ${file_v})" >&2
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="${{ inputs.tag }}"
+            git checkout "refs/tags/${tag}"
+            file_v="$(tr -d '[:space:]' < VERSION)"
+          fi
+
+          [[ "${tag}" == v* ]] || { echo "tag must start with v (got: ${tag})" >&2; exit 1; }
+          tag_v="${tag#v}"
+          if [[ "${tag_v}" != "${file_v}" ]]; then
+            echo "Tag ${tag} does not match VERSION file (${file_v})" >&2
+            exit 1
+          fi
+
+          echo "version=${tag_v}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${tag} → ${tag_v}"
+
+      - name: Fetch gh-pages
+        run: git fetch origin gh-pages --force || echo "gh-pages not present yet"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Validate repository
+        run: make validate
+
+      - name: Host tests
+        run: make test-host
+
+      - name: Check documentation
+        run: make docs-check
+
+      - name: Deploy versioned docs (mike)
+        env:
+          DOCS_MIKE_PUSH: "1"
+        run: ./scripts/repository/docs-mike.sh release "${{ steps.ver.outputs.version }}"
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Orcan v${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          body: |
+            ## Install / upgrade
+
+            Orcan is distributed as a **git repository + Makefile**. Build images locally:
+
+            ```bash
+            git clone https://github.com/aKyther/orcan.git
+            cd orcan
+            git checkout v${{ steps.ver.outputs.version }}
+            make setup PROJECT_DIR=/absolute/path/to/your/repo
+            make build
+            make terminal-docker
+            ```
+
+            ## Docs
+
+            - Latest: https://akyther.github.io/orcan/latest/
+            - This version: https://akyther.github.io/orcan/${{ steps.ver.outputs.version }}/
+            - Polish: https://akyther.github.io/orcan/${{ steps.ver.outputs.version }}/pl/
+
+            See [CHANGELOG.md](https://github.com/aKyther/orcan/blob/v${{ steps.ver.outputs.version }}/CHANGELOG.md).

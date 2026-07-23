@@ -5,9 +5,11 @@ alwaysApply: true
 
 # Agent guide
 
-**orcan** = Docker **context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`): workspaces, path-parity mounts, ignore/instruction seeds, browser terminal. Agent CLIs are tools inside it; **models are out of scope**.
+**Orcan** = Docker **context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`): workspaces, path-parity mounts, ignore/instruction seeds, browser terminal. Agent CLIs are tools inside it; **models are out of scope**.
 
-Read root [`AGENTS.md`](../../AGENTS.md) for a short orientation. This rule is always applied.
+Display name: **Orcan**. Technical ids: `orcan`, `ORCAN_*`. Do not use old product names (Sint, Orkan, cind-as-product).
+
+Read root [`AGENTS.md`](../../AGENTS.md) and [`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md). This rule is always applied.
 
 ## Product ritual (host)
 
@@ -46,33 +48,25 @@ ttyd (cursor-ttyd) → cursor-launcher → tmux → zsh
 
 | Path | Role |
 | --- | --- |
-| `Dockerfile` | Image build (packages, COPY rootfs, user, ENTRYPOINT) |
-| `docker-compose.yml` | Base service (no Docker socket) + generated mounts |
-| `docker-compose.docker.yml` | Host Docker socket overlay |
-| `docker-compose.ttyd.yml` | Browser terminal overlay |
+| `Dockerfile` | Image build |
+| `docker-compose*.yml` | Runtime overlays |
 | `.orcan/*` | Generated runtime (gitignored; from `make env`) |
 | `Makefile` | Host UI |
-| `docker/rootfs/` | Files installed into the image |
-| `scripts/repository/` | Host-only helpers (`update-env`, `apply-config`, wizard, …) |
-| `AGENTS.md` | Short agent orientation (this repo) |
-| `.cursor/rules/*.mdc` | Cursor rules **for this repository** |
-| `docs/` | MkDocs Material documentation |
-| `mkdocs.yml` | Docs site config |
-
-## Separation
-
-- Repo rules (`.cursor/`) ≠ image defaults (`docker/rootfs/opt/cursor-defaults/`).
-- Container scripts: only `docker/rootfs/usr/local/bin/`.
-- Host scripts: only `scripts/repository/`.
-- No large heredocs in the Dockerfile.
+| `docker/rootfs/` | Image filesystem |
+| `scripts/repository/` | Host-only helpers |
+| `docs/` | MkDocs (canonical docs) |
+| `README.md` | Short entry only |
+| `AGENTS.md` | Short agent orientation |
+| `.cursor/rules/*.mdc` | Rules for this repository |
 
 ## Commands (high-signal)
 
 Configure: `make setup` · `make env` · `make config-wizard` · `make config-scaffold` · `make config-show` · `make init-project-all`
 
-Run: `make build` · `make build-claude` · `make rebuild` · `make terminal` · `make terminal-docker` · `make down` · `make path-check` · `make validate` · `make test` · `make help`
+Run: `make build` · `make build-claude` · `make release` · `make terminal` · `make terminal-docker` · `make down` · `make path-check` · `make validate` · `make docs-check` · `make test` · `make help`
 
-Claude-only runtime: `IMAGE_LOCAL=orcan:claude make terminal-docker`.
+Claude-only: `IMAGE_LOCAL=orcan:claude make terminal-docker`.  
+Release: `make bump-patch` → commit `VERSION`+`CHANGELOG.md` → `make release` (GitHub Release; no image publish).
 
 ## Boundaries
 
@@ -83,10 +77,11 @@ Not allowed: host paths outside the project; modify `.env` unless asked; `docker
 ## Done checklist
 
 - [ ] `make validate` passes
-- [ ] Compose config OK (base + generated + ttyd + docker overlays as needed)
+- [ ] `make test-host` passes
+- [ ] `make docs-check` passes when docs/interface changed
+- [ ] Compose config OK
 - [ ] `make help` matches real targets / docs
-- [ ] README/docs updated for user-facing changes
 - [ ] No secrets in image or repo
 - [ ] Report: tests ran / skipped / limits
 
-More: `docs/development.md`, `docs/architecture/context.md`, `docs/config.md`.
+More: [docs/en/development/overview.md](../../docs/en/development/overview.md), [docs/en/concepts/architecture.md](../../docs/en/concepts/architecture.md).

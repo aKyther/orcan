@@ -1,9 +1,12 @@
-# orcan — agent context for this repository
+# Orcan — agent context for this repository
 
-This file orients coding agents working **on the orcan repo itself**.
+Official product name: **Orcan** (technical ids: `orcan`, `ORCAN_*`).
+
+This file orients coding agents working **on the Orcan repo itself**.
 Cursor also applies `.cursor/rules/agents.mdc` (always on).
+Longer map: `docs/en/ai/project-context.md` (Polish: `docs/pl/ai/project-context.md`).
 
-## What orcan is
+## What Orcan is
 
 **Context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`) in Docker:
 
@@ -13,6 +16,7 @@ Cursor also applies `.cursor/rules/agents.mdc` (always on).
 - Image variants: `orcan:latest` (Claude+Cursor), `orcan:claude` (Claude only)
 
 **Not** a model manager — do not add model-selection or provider abstractions.
+**Not** an image registry product — users `git clone` + `make build`.
 
 ## Ritual (host)
 
@@ -25,39 +29,41 @@ make terminal-docker        # daily; does NOT run make env
 
 After config edits with a running container: `make env && make down && make terminal-docker`.
 
+Release: `make bump-patch` → update `CHANGELOG.md` → commit → `make release` (GitHub Release only).
+
 ## Config
 
 - **Only** `orcan.config.json` (stdlib JSON — no PyYAML / host venv for config).
 - Template: `orcan.config.example.json`.
-- Docker Compose YAML (`docker-compose*.yml`, `mkdocs.yml`, generated `.orcan/*.yml`) stays YAML — that is fine.
+- Docker Compose YAML and `mkdocs.yml` stay YAML — that is fine.
 - Do **not** reintroduce YAML user profiles or `host-deps` / `requirements-host.txt`.
 
 ## Runtime stack (inside container)
 
 ```text
 ttyd → cursor-launcher → tmux (default-shell zsh)
-                      → Starship + zsh plugins (autosuggestions, syntax, fzf)
+                      → Starship + zsh plugins
                       → aliases in /etc/orcan/shell/aliases.sh
 ```
 
-- tmux config: `docker/rootfs/etc/tmux/` (2-row status; right-click menus unbound).
-- Shell skel: `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/`.
-- Git defaults seed: `/opt/orcan/gitconfig` → `~/.gitconfig` (missing-only).
+## File map (this repo)
 
-## Layout (edit here)
-
-| Area | Path |
+| Path | Role |
 | --- | --- |
-| Image filesystem | `docker/rootfs/` |
-| Host Make / scripts | `Makefile`, `scripts/repository/` |
-| Docs | `README.md`, `docs/` |
-| Repo Cursor rules | `.cursor/rules/` |
-| Image Cursor defaults | `docker/rootfs/opt/cursor-defaults/` |
+| `Dockerfile` | Image build |
+| `docker-compose*.yml` | Runtime |
+| `docker/rootfs/` | Image filesystem |
+| `scripts/repository/` | Host helpers |
+| `docs/` | MkDocs EN+PL (`docs/en/`, `docs/pl/`) |
+| `README.md` | Short entry only |
+| `.cursor/rules/` | Rules for developing Orcan |
+| `docker/rootfs/opt/cursor-defaults/` | Defaults seeded into user containers |
 
-## Do / don’t
+## Validation before done
 
-- Work only under this repo (`PROJECT_DIR` when developing orcan).
-- After Make/Compose/rootfs interface changes: update docs + `make validate`.
-- Do not modify `.env` unless asked; do not claim build success without `make build` / `make rebuild`.
+- `make validate`
+- `make test-host`
+- `make docs-check`
+- `make test` when Docker behaviour changes and Docker is available
 
-Details: `docs/development.md`, `docs/architecture/context.md`, `docs/config.md`.
+Report what ran, what did not, and environment limits.
