@@ -35,6 +35,9 @@ ensure_mike() {
         "${PIP}" install -q -r requirements-docs.txt
     fi
     [[ -x "${MIKE}" ]] || die "mike not installed in ${VENV}"
+    # mike shells out to `mkdocs`; keep venv binaries first on PATH
+    export PATH="${VENV}/bin:${PATH}"
+    command -v mkdocs >/dev/null || die "mkdocs not on PATH after activating ${VENV}/bin"
 }
 
 push_flags=()
