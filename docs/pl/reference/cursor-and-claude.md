@@ -18,7 +18,7 @@ Aktywny plik uprawnień Cursor CLI: `cli-config.json` (seedowany z domyślnych).
 - Context pack **workspace'a**: zapisywany pod `/home/developer/workspaces/<name>/` przez `init-workspace`
 - Pliki **projektu**: tylko gdy uruchomisz cele init-project
 
-Zobacz [Architektura](../concepts/architecture.md).
+Zobacz [Architektura](../architecture.md).
 
 ## Status line
 
@@ -30,7 +30,7 @@ Gdy rozwijasz **samego Orcana**, przeczytaj też root `AGENTS.md` oraz `.cursor/
 
 ## Zobacz też
 
-- [Architektura](../concepts/architecture.md)
+- [Architektura](../architecture.md)
 - [Kontekst AI projektu](../ai/project-context.md)
 - [Workspaces](../concepts/workspaces.md)
 - [Bezpieczeństwo](security.md)

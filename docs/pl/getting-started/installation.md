@@ -1,8 +1,14 @@
+---
+description: Wymagania hosta dla Orcana — izolacja Dockera to wybór produktowy, nie przypadek.
+---
+
 # Instalacja
 
-## Co to robi
+## Dlaczego te wymagania
 
-Wypisuje, czego potrzebujesz na **hoście**, zanim uruchomisz Orcana.
+Orcan izoluje toolchainy agentów w Dockerze, żeby host został cienki. Ten wybór wymaga Docker Compose, Make (cienkie UI hosta), Gita (klon tego repo i Twoich projektów) oraz Pythona 3 (skrypty konfiguracji na hoście).
+
+Jeśli nie chcesz Dockera, Orcan nie jest właściwym narzędziem — zobacz [Dlaczego Orcan?](../why-orcan.md).
 
 ## Zanim zaczniesz
 

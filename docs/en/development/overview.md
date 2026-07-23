@@ -73,4 +73,4 @@ For a behaviour change, update as needed:
 - [Testing](testing.md)
 - [Release process](release.md)
 - [AI project context](../ai/project-context.md)
-- [Architecture](../concepts/architecture.md)
+- [Architecture](../architecture.md)

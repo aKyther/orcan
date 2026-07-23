@@ -73,4 +73,4 @@ Przy zmianie zachowania zaktualizuj w razie potrzeby:
 - [Testy](testing.md)
 - [Proces wydania](release.md)
 - [Kontekst AI projektu](../ai/project-context.md)
-- [Architektura](../concepts/architecture.md)
+- [Architektura](../architecture.md)

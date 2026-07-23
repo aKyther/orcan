@@ -1,16 +1,28 @@
+---
+description: Path parity — same absolute paths on host and in the Orcan container, and why nested Docker needs it.
+---
+
 # Path parity
 
-## What this means
+## Problem
 
-**Path parity** = the same absolute path on the host and inside the Orcan container.
+You run Docker **inside** the Orcan container (`make terminal-docker`). The daemon that creates nested containers is still the **host** daemon. Bind mounts are resolved on the host.
 
-Example: host path `/home/you/code/app` is mounted at `/home/you/code/app` in the container (not at `/workspace/app`).
+If the path inside Orcan were `/workspace/app` while the host checkout lived at `/home/you/code/app`, nested Compose would mount the wrong directory — or nothing.
 
-## Why it matters
+## Why it hurts
 
-When you run Docker **inside** Orcan (`make terminal-docker`), the **host** Docker daemon resolves bind mounts. If paths differed, nested Compose would bind the wrong directories.
+Broken nested builds, empty volumes, and “it works on my laptop path but not in the agent container” bugs that are expensive to debug.
 
-## How Orcan does it
+## How Orcan addresses it
+
+**Path parity** means the same absolute path on the host and inside the Orcan container.
+
+Example: host `/home/you/code/app` is mounted at `/home/you/code/app` in the container (not rewritten to `/workspace/app`).
+
+Workspace UX still uses short symlinks under `/home/developer/workspaces/<name>/` for navigation. Parity mounts are for correctness with Docker-from-Docker. See [Mental Model](../ideas/mental-model.md).
+
+## How it works
 
 `make env` writes mounts into `.orcan/compose-projects.generated.yml`:
 
@@ -20,9 +32,7 @@ volumes:
   - /absolute/path/to/app:/absolute/path/to/app
 ```
 
-Workspace UX still uses short symlinks under `/home/developer/workspaces/<name>/`.
-
-## Check
+## Check (commands last)
 
 ```bash
 make path-check

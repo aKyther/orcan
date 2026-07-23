@@ -1,6 +1,6 @@
 # Zmienne środowiskowe
 
-Zapisywane głównie przez `make env` do `.env`. Nie commituj `.env`.
+Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach preferuj edycję `orcan.config.json`, potem `make env`. Nie commituj `.env`.
 
 ## Zawsze zarządzane przez `make env`
 

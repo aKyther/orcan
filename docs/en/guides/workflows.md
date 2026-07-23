@@ -1,45 +1,60 @@
-# Common workflows
+---
+description: Typical Orcan workflows — day scenarios first, then the Make commands that support them.
+---
 
-All commands below run on the **host** unless marked **(container)**.
+# Typical workflows
 
-## Daily start
+These scenarios assume you already know [Core Ideas](../ideas/core-ideas.md). Commands run on the **host** unless marked **(container)**.
+
+## Scenario: start the day in one context
+
+You already configured workspaces. You want the browser terminal and yesterday’s mounts.
+
+**Idea:** recreate the session without regenerating config.
 
 ```bash
 cd /absolute/path/to/orcan
 make terminal-docker
 ```
 
-Open `http://localhost:7681`. This does **not** run `make env`.
+Open `http://localhost:7681` and pick a workspace.
 
 !!! note
-    After every `orcan.config.json` edit: `make env`, then `make down && make terminal-docker` (optionally `make init-project-all` first).
+    `make terminal*` does **not** run `make env`. If you changed `orcan.config.json`, apply config first.
 
-## Change workspaces or ports
+## Scenario: switch customer or product line
+
+**Problem:** another set of repos is today’s context.  
+**Approach:** edit the workspace list (or enable another workspace), apply config, recreate the container.
 
 ```bash
 make config-wizard    # or edit orcan.config.json
 make env
-make init-project-all
+make init-project-all # optional seeds into each project path
 make down
 make terminal-docker
 ```
 
-## Run without host Docker socket
+## Scenario: safer terminal without host Docker socket
 
-Safer, but no Docker-from-Docker:
+**Trade-off:** no Docker-from-Docker; smaller blast radius.
 
 ```bash
 make terminal
 ```
 
-## Claude-only image
+## Scenario: Claude only
+
+**Idea:** smaller image when Cursor CLI is not needed.
 
 ```bash
 make build-claude
 IMAGE_LOCAL=orcan:claude make terminal-docker
 ```
 
-## Rebuild after Dockerfile or rootfs changes
+## Scenario: rebuild after Dockerfile or rootfs changes
+
+**Idea:** context description stayed the same; the **tooling image** changed.
 
 ```bash
 make rebuild          # full
@@ -49,7 +64,9 @@ make down
 make terminal-docker
 ```
 
-## Check path parity
+## Scenario: verify path parity
+
+**Why:** nested Docker only works if absolute paths match.
 
 ```bash
 make path-check
@@ -57,42 +74,40 @@ make path-check
 
 ## Inside the container
 
-| Action | Command |
+| Need | Command |
 | --- | --- |
 | List workspaces | `orcan-workspaces` |
 | Context pack status | `orcan-context-status` |
 | Seed all projects | `orcan-init-projects` |
-| Create session brief | `orcan-session-brief` |
+| Session brief | `orcan-session-brief` |
 | AI status line helper | `orcan-ai-statusline` |
-| Cursor CLI | `agent` / alias `ag` |
-| Claude Code | `claude` / alias `cc` |
+| Cursor CLI | `agent` / `ag` |
+| Claude Code | `claude` / `cc` |
 
-Launcher keys (browser menu): workspace number, `s` = status, `i` = init hint, `q` = quit.
+Launcher keys: workspace number, `s` = status, `i` = init hint, `q` = quit.
 
-## Stop and clean
+## Stop, clean, uninstall
 
 ```bash
-make down                 # stop containers; keep ~/.config/orcan
-make clean                # same idea as down for compose stacks
-make clean-data           # DESTRUCTIVE: deletes ORCAN_DATA (logins, caches, shell history)
+make down                 # stop; keep ~/.config/orcan
+make clean                # compose down style
+make clean-data           # DESTRUCTIVE: deletes ORCAN_DATA (type yes)
 ```
 
-`make clean-data` asks you to type `yes`.
+Full removal: [Uninstall](#uninstall).
 
 ## Uninstall { #uninstall }
-
-Full removal from this host:
 
 ```bash
 cd /absolute/path/to/orcan
 make down
-make clean-data                 # type yes — deletes $ORCAN_DATA (default ~/.config/orcan)
-docker images 'orcan*'          # review local tags
-docker rmi orcan:latest orcan:full orcan:claude   # optional; add version tags if present
-rm -rf /absolute/path/to/orcan  # remove the clone when finished
+make clean-data
+docker images 'orcan*'
+docker rmi orcan:latest orcan:full orcan:claude   # optional
+rm -rf /absolute/path/to/orcan                    # optional
 ```
 
-You do **not** need to delete your mounted project repos unless you want to.
+Mounted project repos are untouched unless you delete them yourself.
 
 ## Upgrade Orcan
 
@@ -105,11 +120,9 @@ make rebuild              # if Dockerfile/rootfs changed
 make down && make terminal-docker
 ```
 
-Releases are git tags + GitHub Release notes. There is no published container image from CI.
-
 ## See also
 
-- [Quick start](../getting-started/quickstart.md)
-- [Troubleshooting](troubleshooting.md)
-- [Makefile reference](../reference/makefile.md)
+- [Quick Start](../getting-started/quickstart.md)  
+- [Troubleshooting](troubleshooting.md)  
+- [Makefile reference](../reference/makefile.md)  
 - [FAQ](../faq.md)

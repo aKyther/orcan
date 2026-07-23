@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Docs storytelling rewrite: Why Orcan / Core Ideas / Mental Model; Home and Architecture narrative-first; Reference last in nav
+
 ### Fixed
 
 - Docs mike deploy: re-sync `gh-pages` before push + retry; serialize CI `dev` and Release on concurrency group `docs-gh-pages`

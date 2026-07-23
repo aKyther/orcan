@@ -1,28 +1,38 @@
+---
+description: Path parity — te same ścieżki bezwzględne na hoście i w kontenerze Orcana oraz dlaczego potrzebuje tego zagnieżdżony Docker.
+---
+
 # Path parity
 
-## Co to znaczy
+## Problem
 
-**Path parity** = ta sama ścieżka bezwzględna na hoście i wewnątrz kontenera Orcana.
+Uruchamiasz Dockera **wewnątrz** kontenera Orcana (`make terminal-docker`). Daemon, który tworzy zagnieżdżone kontenery, to nadal daemon **hosta**. Bind mounty są rozwiązywane na hoście.
 
-Przykład: ścieżka hosta `/home/you/code/app` jest montowana pod `/home/you/code/app` w kontenerze (nie pod `/workspace/app`).
+Gdyby ścieżka w Orcanie była `/workspace/app`, a checkout na hoście `/home/you/code/app`, zagnieżdżony Compose zamontowałby zły katalog — albo nic.
 
-## Dlaczego to ważne
+## Dlaczego to boli
 
-Gdy uruchamiasz Dockera **wewnątrz** Orcana (`make terminal-docker`), to **hostowy** daemon Dockera rozwiązuje bind mounty. Gdyby ścieżki się różniły, zagnieżdżony Compose montowałby złe katalogi.
+Zepsute zagnieżdżone buildy, puste volume'y i drogie w debugowaniu błędy „u mnie ścieżka działa, w kontenerze agenta nie”.
 
-## Jak Orcan to robi
+## Jak Orcan to rozwiązuje
+
+**Path parity** oznacza tę samą ścieżkę bezwzględną na hoście i w kontenerze Orcana.
+
+Przykład: host `/home/you/code/app` jest montowany jako `/home/you/code/app` w kontenerze (nie przepisywany na `/workspace/app`).
+
+UX workspace'a nadal używa krótkich symlinków pod `/home/developer/workspaces/<name>/` do nawigacji. Mounty parity służą poprawności Docker-from-Docker. Zobacz [Model mentalny](../ideas/mental-model.md).
+
+## Jak to działa
 
 `make env` zapisuje mounty do `.orcan/compose-projects.generated.yml`:
 
 ```yaml
-# conceptual
+# koncepcyjnie
 volumes:
   - /absolute/path/to/app:/absolute/path/to/app
 ```
 
-UX workspace'ów nadal używa krótkich symlinków pod `/home/developer/workspaces/<name>/`.
-
-## Sprawdzenie
+## Sprawdzenie (komendy na końcu)
 
 ```bash
 make path-check
@@ -38,13 +48,6 @@ make test-path-parity
 
 | Błąd | Skutek |
 | --- | --- |
-| Względne `projects[].path` | Odrzucone lub zepsute mounty |
+| Względne `projects[].path` | Odrzucenie lub zepsute mounty |
 | Założenie `/workspace` | Stary wzorzec — nieużywany |
 | Ręczna edycja wygenerowanego Compose | Nadpisane przez `make env` |
-
-## Zobacz też
-
-- [Workspaces](workspaces.md)
-- [Architektura](architecture.md)
-- [Docker](../reference/docker.md)
-- [Rozwiązywanie problemów](../guides/troubleshooting.md)

@@ -4,7 +4,7 @@ description: Host Makefile, container CLIs, and orcan.config.json — Orcan has 
 
 # Host and container interface
 
-Orcan has **no HTTP / REST API**.
+This is the **contract** surface after you know the mental model: Make on the host, CLIs in the container, JSON config. Orcan has **no HTTP / REST API**.
 
 The supported public interfaces are:
 
@@ -46,6 +46,6 @@ Machine-readable schema: [`orcan.config.schema.json`](https://github.com/aKyther
 
 ## See also
 
-- [Architecture](concepts/architecture.md)
+- [Architecture](architecture.md)
 - [User guide — workflows](guides/workflows.md)
 - [Source on GitHub](https://github.com/aKyther/orcan)

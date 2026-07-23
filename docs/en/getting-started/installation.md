@@ -1,8 +1,14 @@
+---
+description: Host requirements for Orcan — Docker isolation is a product choice, not an accident.
+---
+
 # Installation
 
-## What this does
+## Why these requirements
 
-Lists what you need on the **host** before you run Orcan.
+Orcan isolates agent toolchains in Docker so the host stays thin. That choice needs Docker Compose, Make (thin host UI), Git (clone this repo and your projects), and Python 3 (config scripts on the host).
+
+If you do not want Docker, Orcan is not the right tool — see [Why Orcan?](../why-orcan.md).
 
 ## Before you start
 

@@ -1,6 +1,6 @@
 # Environment variables
 
-Written mainly by `make env` into `.env`. Do not commit `.env`.
+Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.json` for new setups, then `make env`. Do not commit `.env`.
 
 ## Always managed by `make env`
 

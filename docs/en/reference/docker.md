@@ -1,5 +1,7 @@
 # Docker and Compose
 
+Use this page for image tags, Compose overlays, and `$ORCAN_DATA` binds. For **why** the split exists, see [Architecture](../architecture.md).
+
 ## Image
 
 - Base: Debian Bookworm Slim

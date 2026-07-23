@@ -1,5 +1,5 @@
 site_name: Orcan
-site_description: Context orchestrator for Cursor CLI and Claude Code in Docker
+site_description: Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker
 site_author: Orcan contributors
 site_url: https://akyther.github.io/orcan/
 
@@ -100,31 +100,36 @@ plugins:
           site_name: Orcan
           nav_translations:
             Home: Start
-            Quick Start: Szybki start
-            Installation: Instalacja
-            User Guide: Przewodnik
-            Workflows: Przepływy pracy
-            Troubleshooting: Rozwiązywanie problemów
+            Why Orcan?: Dlaczego Orcan?
+            Core Ideas: Idee podstawowe
+            Mental Model: Model mentalny
+            Ideas: Idee
             Concepts: Koncepcje
-            Architecture: Architektura
             Workspaces: Workspaces
             Path parity: Path parity
-            Configuration: Konfiguracja
+            Getting Started: Pierwsze kroki
+            Quick Start: Szybki start
+            Installation: Instalacja
             Config guide: Przewodnik po konfiguracji
+            Typical Workflows: Typowe workflowy
+            Workflows: Przepływy pracy
+            Troubleshooting: Rozwiązywanie problemów
+            Architecture: Architektura
+            Reference: Referencja
+            Configuration: Konfiguracja
             Config reference: Referencja konfiguracji
             Environment variables: Zmienne środowiskowe
-            Development: Rozwój
-            Overview: Przegląd
-            Testing: Testy
-            Release process: Proces wydania
-            Deployment: Wdrożenie
-            Host and container interface: Interfejs hosta i kontenera
-            Reference: Referencja
             Makefile: Makefile
             Docker: Docker
             Cursor and Claude: Cursor i Claude
             Security: Bezpieczeństwo
+            Host and container interface: Interfejs hosta i kontenera
+            Development: Rozwój
+            Overview: Przegląd
+            Testing: Testy
+            Release process: Proces wydania
             AI context: Kontekst AI
+            Deployment: Wdrożenie
             FAQ: FAQ
             Changelog: Changelog
   - git-revision-date-localized:
@@ -168,31 +173,34 @@ extra_css: []
 
 nav:
   - Home: index.md
-  - Quick Start:
-      - Quick Start: getting-started/quickstart.md
+  - Why Orcan?: why-orcan.md
+  - Ideas:
+      - Core Ideas: ideas/core-ideas.md
+      - Mental Model: ideas/mental-model.md
+  - Concepts:
+      - Workspaces: concepts/workspaces.md
+      - Path parity: concepts/path-parity.md
+  - Getting Started:
       - Installation: getting-started/installation.md
-  - User Guide:
+      - Quick Start: getting-started/quickstart.md
+      - Config guide: getting-started/configuration.md
+  - Typical Workflows:
       - Workflows: guides/workflows.md
       - Troubleshooting: guides/troubleshooting.md
-      - Concepts:
-          - Architecture: concepts/architecture.md
-          - Workspaces: concepts/workspaces.md
-          - Path parity: concepts/path-parity.md
-  - Configuration:
-      - Config guide: getting-started/configuration.md
+  - Architecture: architecture.md
+  - Reference:
+      - Makefile: reference/makefile.md
+      - Docker: reference/docker.md
       - Config reference: reference/configuration.md
       - Environment variables: reference/environment.md
+      - Cursor and Claude: reference/cursor-and-claude.md
+      - Security: reference/security.md
+      - Host and container interface: interface.md
   - Development:
       - Overview: development/overview.md
       - Testing: development/testing.md
       - Release process: development/release.md
       - AI context: ai/project-context.md
   - Deployment: deployment.md
-  - Host and container interface: interface.md
-  - Reference:
-      - Makefile: reference/makefile.md
-      - Docker: reference/docker.md
-      - Cursor and Claude: reference/cursor-and-claude.md
-      - Security: reference/security.md
   - FAQ: faq.md
   - Changelog: changelog.md

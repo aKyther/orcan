@@ -2,6 +2,20 @@
 
 Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
 
+## Story first
+
+Lead the reader: **problem → why it hurts → how Orcan helps → how it works → example → commands (last)**.
+
+Never open a conceptual page with “run this command” unless the page is Quick Start or Reference and the idea was already taught.
+
+Preferred public arc (nav order):
+
+```text
+Home → Why Orcan? → Core Ideas → Mental Model → Concepts → Getting Started → Workflows → Architecture → Reference → Development
+```
+
+Reference is last. Ideas before Make targets.
+
 ## When to add a page
 
 - Prefer extending an existing page over creating a new one.
@@ -15,12 +29,18 @@ Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
 - One H1 per page (= nav title).
 - Prefer this shape for how-to pages:
 
-  1. Short intro (or YAML `description`)
+  1. Short intro (or YAML `description`) — include *why*
   2. Before you start (optional)
   3. Steps
   4. Expected result
   5. Common problems
   6. See also
+
+For idea pages: problem / hurt / solution / example / trade-offs / next.
+
+## Define terms before use
+
+Do not use **Workspace**, **Context**, **Project**, **path parity**, **context pack**, or **manifest** on a page without a plain definition nearby — or a link to [Core Ideas](en/ideas/core-ideas.md) / [Mental Model](en/ideas/mental-model.md).
 
 ## Language level
 
@@ -32,6 +52,7 @@ Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
 ## Examples
 
 - Use absolute paths in examples (`/absolute/path/to/…`).
+- Prefer multi-repo / multi-org stories over single-path demos when teaching ideas.
 - Only document commands that exist (`make help`, container binaries under `docker/rootfs/usr/local/bin/`).
 - Prefer fenced bash blocks with copy-friendly commands.
 - Translate comments inside code blocks when the page language is Polish.
@@ -45,22 +66,23 @@ Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
 
 ## Mermaid
 
-- Use Mermaid for runtime / data-flow diagrams when ASCII is hard to scan.
-- Keep node labels short; avoid secrets or host-specific paths.
+- Use Mermaid for relationships, journeys, and architecture when ASCII is hard to scan.
+- Every diagram needs a short **caption** in prose under it.
+- Keep node labels short; avoid secrets or host-specific real usernames.
 - ASCII remains fine for tiny sketches.
 
 ## EN ↔ PL
 
 - Same relative path and section structure.
 - Same external URLs (GitHub, Pages). Prefer Pages links with `/latest/` (or `/dev/` when documenting unreleased docs).
-- Update both languages in the same PR when behaviour changes.
+- Update both languages in the same PR when behaviour or narrative changes.
 - `nav_translations` in `mkdocs.yml` must cover every English nav label.
 
 ## Linking
 
-- Inside one language tree: relative Markdown links (`../guides/workflows.md`).
+- Inside one language tree: relative Markdown links.
 - Do not link `docs/en/…` from Polish pages (or the reverse).
-- After renaming a page, update nav, both languages, and greppable references (`api.md` → `interface.md` style).
+- After renaming a page, update nav, both languages, and greppable references.
 
 ## Version numbers
 
@@ -72,6 +94,7 @@ Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
 
 - Document every Make target that has a `##` help string.
 - When adding a target, update `docs/en/reference/makefile.md` and `docs/pl/reference/makefile.md`.
+- Keep a two-sentence “when you need this page” intro on Reference pages.
 
 ## Social / community links
 
@@ -82,6 +105,8 @@ Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
 
 - [ ] EN + PL updated (or N/A)
 - [ ] `nav` / `nav_translations` if new page
+- [ ] Terms defined or linked before use
+- [ ] Diagrams have captions
 - [ ] No dead relative links
 - [ ] `make docs-check`
 - [ ] User-visible change noted in `CHANGELOG.md` when appropriate

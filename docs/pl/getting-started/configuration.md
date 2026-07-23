@@ -1,8 +1,14 @@
+---
+description: Opisz workspace'y i projekty w orcan.config.json — najpierw historia kontekstu, potem zastosowanie.
+---
+
 # Konfiguracja
 
-## Co to robi
+## Dlaczego plik konfiguracji
 
-Wyjaśnia, jak Orcan przechowuje workspace'y i jak stosować zmiany.
+Twoja praca multi-repo to **historia**: które projekty tworzą który workspace. `orcan.config.json` to ta historia w danych. Make nie wymyśla układu; stosuje to, co opiszesz.
+
+Jeśli Project / Workspace / Context są niejasne, najpierw przeczytaj [Idee podstawowe](../ideas/core-ideas.md).
 
 ## Źródło prawdy
 
