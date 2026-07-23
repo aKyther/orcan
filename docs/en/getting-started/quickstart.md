@@ -13,12 +13,18 @@ You should already know why Orcan exists ([Why Orcan?](../why-orcan.md)) and wha
 
 ## Steps (host)
 
+Config is JSON. Docker only sees what **`make env`** writes (`.env` + `.orcan/*`).
+
 ```bash
 cd /absolute/path/to/orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo
+make setup PROJECT_DIR=/absolute/path/to/your/repo   # scaffold config if needed, then make env
+make env                                             # refresh .env + .orcan/* for Compose (safe to re-run)
 make build
 make terminal-docker
 ```
+
+!!! note
+    `make setup` already runs `make env` once. Keep `make env` in the habit: **every** config edit needs it before `make build` / `make terminal*`. Those targets do **not** regenerate runtime files.
 
 Open the URL printed in the terminal (default `http://localhost:7681`).
 

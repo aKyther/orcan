@@ -6,9 +6,9 @@ services:
     stdin_open: true
     tty: true
     init: true
-    cpus: ${CPUS:-8}
-    mem_limit: ${MEMORY:-16g}
-    shm_size: ${SHM_SIZE:-2g}
+    cpus: ${CPUS:-2}
+    mem_limit: ${MEMORY:-4g}
+    shm_size: ${SHM_SIZE:-512m}
     build:
       context: .
       args:
@@ -56,4 +56,4 @@ services:
       - ${ORCAN_DATA}/go:/home/developer/go
       - ${ORCAN_DATA}/shell-history:/command-history
     tmpfs:
-      - /tmp:size=${TMPFS_SIZE:-2g},mode=1777
+      - /tmp:size=${TMPFS_SIZE:-512m},mode=1777

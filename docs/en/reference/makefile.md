@@ -16,7 +16,7 @@ Run from the Orcan repository root on the **host**.
 | `make config-scaffold` | Add project from `PROJECT_DIR` |
 | `make config-init` | Copy example config file |
 | `make config-show` | Print workspaces |
-| `make env` | Apply config → `.env` + `.orcan/*` |
+| `make env` | Apply config → `.env` + `.orcan/*` that Compose / `terminal*` consume |
 | `make require-generated` | Fail if `.env` / generated runtime files are missing (no writes) |
 | `make require-env` | Fail if `.env` is missing (image build) |
 

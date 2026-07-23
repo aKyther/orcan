@@ -16,7 +16,7 @@ Uruchamiaj z katalogu głównego repozytorium Orcana na **hoście**.
 | `make config-scaffold` | Dodaj projekt z `PROJECT_DIR` |
 | `make config-init` | Skopiuj przykładowy plik konfiguracji |
 | `make config-show` | Wypisz workspace'y |
-| `make env` | Zastosuj konfigurację → `.env` + `.orcan/*` |
+| `make env` | Zastosuj konfigurację → `.env` + `.orcan/*`, które konsumuje Compose / `terminal*` |
 | `make require-generated` | Fail, gdy brak `.env` / wygenerowanych plików (bez zapisów) |
 | `make require-env` | Fail, gdy brak `.env` (build obrazu) |
 

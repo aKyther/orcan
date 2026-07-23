@@ -65,13 +65,15 @@ make down && make terminal-docker
     "theme": "dark"
   },
   "resources": {
-    "cpus": 8,
-    "memory": "16g",
-    "shm_size": "2g",
-    "tmpfs_size": "2g"
+    "cpus": 2,
+    "memory": "4g",
+    "shm_size": "512m",
+    "tmpfs_size": "512m"
   }
 }
 ```
+
+Defaults stay light on purpose (typical laptop). Raise them when the machine can spare more — see below.
 
 ### Field notes
 
@@ -82,7 +84,18 @@ make down && make terminal-docker
 | `projects[].path` | Absolute host path (same path inside the container — path parity) |
 | `tmux.*` | Windows created when a session starts |
 | `ttyd.*` | Browser terminal port and look |
-| `resources.*` | Container CPU / memory limits |
+| `resources.*` | Container CPU / memory / shm / tmpfs limits |
+
+### Raising resources
+
+Edit `resources` in `orcan.config.json` (for example `cpus: 8`, `memory: "16g"`), then:
+
+```bash
+make env
+make down && make terminal-docker
+```
+
+If `.env` already has `CPUS` / `MEMORY` set, `make env` keeps those values. Change them in `.env` too, or remove the keys so config wins on the next `make env`.
 
 ## Ways to edit
 
@@ -101,6 +114,8 @@ make path-check
 ```
 
 ## What `make env` writes
+
+`orcan.config.json` is the story you edit. **`make env`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.
 
 | Output | Role |
 | --- | --- |

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Default container resources: **2** CPU / **4g** RAM (shm/tmpfs **512m**); raise via `resources` in config
+- Docs: first-run flow spells out `make env` as the step that materialises `.env` / `.orcan/*` for Compose
 - Docs: remove historical product-name migration notes; **Orcan** is the only documented product name
 - Docs storytelling rewrite: Why Orcan / Core Ideas / Mental Model; Home and Architecture narrative-first; Reference last in nav
 - tmux status bar at bottom (tabs above, metrics below); metric icons instead of text labels; Starship separates path and git with `│`

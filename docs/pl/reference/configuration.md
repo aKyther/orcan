@@ -12,7 +12,7 @@ Szkic maszynowy: [`orcan.config.schema.json`](https://github.com/aKyther/orcan/b
 | `workspaces` | tak (niepusty) | Lista obiektów workspace |
 | `tmux` | nie | Domyślny układ okien |
 | `ttyd` | nie | Ustawienia terminala w przeglądarce |
-| `resources` | nie | Limity kontenera |
+| `resources` | nie | Limity kontenera (domyślnie **2** CPU / **4g** RAM — podnieś w configu w razie potrzeby) |
 
 Legacy akceptowane i normalizowane: pojedynczy obiekt `workspace` albo top-level `projects[]` (jeden workspace).
 

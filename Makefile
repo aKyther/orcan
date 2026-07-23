@@ -53,6 +53,7 @@ setup: validate-project ## First run: create config if missing, refresh .env, sh
 	@$(MAKE) env
 	@$(MAKE) config-show
 	@printf '\nNext:\n  make build\n  make terminal-docker    # browser terminal + Docker socket\n  make terminal           # browser terminal only\n  make path-check         # verify mounts\n'
+	@printf 'After editing orcan.config.json: make env   # regenerates .env + .orcan/* for Compose\n'
 	@printf '\nAdd another repo: make config-scaffold PROJECT_DIR=/path/to/repo WORKSPACE=name\n'
 
 validate-project:
