@@ -12,11 +12,7 @@
       "Edit(**/.env)",
       "Edit(**/.env.*)",
       "Edit(**/*.pem)",
-      "Edit(**/*.key)",
-      "Write(**/.env)",
-      "Write(**/.env.*)",
-      "Write(**/*.pem)",
-      "Write(**/*.key)"
+      "Edit(**/*.key)"
     ]
   }
 }

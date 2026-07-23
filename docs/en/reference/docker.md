@@ -34,7 +34,7 @@ Default host root: `~/.config/orcan`.
 | --- | --- |
 | `cursor/` | `~/.cursor` |
 | `cursor-app/` | `~/.config/cursor` |
-| `claude/` | `~/.claude` |
+| `claude/` | `~/.claude` (`CLAUDE_CONFIG_DIR` — OAuth + settings survive restarts) |
 | `cache/`, `npm/`, `pnpm/`, `cargo/`, `go/` | Tool caches/homes |
 | `shell-history/` | `/command-history` (zsh history) |
 

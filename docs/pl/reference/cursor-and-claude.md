@@ -13,6 +13,8 @@ Orcan **nie** nadpisuje istniejących plików w `~/.cursor` przy każdym starcie
 
 Aktywny plik uprawnień Cursor CLI: `cli-config.json` (seedowany z domyślnych).
 
+Reguły deny Claude Code używają tylko `Read(path)` i `Edit(path)`. Formy `Write(...)` są przestarzałe (Claude ostrzega i je ignoruje; `Edit` obejmuje wszystkie narzędzia edycji plików). Szablony Orcan i `init-ai-statusline` trzymają `Edit(**/.env)` (i pokrewne) bez `Write(...)`.
+
 ## Workspace vs projekt
 
 - Context pack **workspace'a**: zapisywany pod `/home/developer/workspaces/<name>/` przez `init-workspace`

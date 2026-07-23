@@ -26,7 +26,9 @@ fix_named_volume_permissions() {
 
     for dir in \
         "${HOME}/.config/cursor" \
-        "${HOME}/.cursor"
+        "${HOME}/.cursor" \
+        "${HOME}/.claude" \
+        "${HOME}/.cache"
     do
         [[ -e "${dir}" ]] || continue
         if [[ "$(stat -c '%u' "${dir}")" != "${uid}" ]] \
@@ -35,6 +37,27 @@ fix_named_volume_permissions() {
             sudo chown -R "${uid}:${gid}" "${dir}"
         fi
     done
+}
+
+# Claude Code: keep OAuth + ~/.claude.json under the mounted ~/.claude volume.
+# Without CLAUDE_CONFIG_DIR, the CLI also writes ~/.claude.json in ephemeral HOME.
+persist_claude_config() {
+    local config_dir legacy
+    config_dir="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}"
+    export CLAUDE_CONFIG_DIR="${config_dir}"
+    mkdir -p "${config_dir}"
+
+    legacy="${HOME}/.claude.json"
+    if [[ -f "${legacy}" && ! -L "${legacy}" ]]; then
+        if [[ ! -e "${config_dir}/.claude.json" ]]; then
+            mv -- "${legacy}" "${config_dir}/.claude.json"
+        else
+            rm -f -- "${legacy}"
+        fi
+    fi
+    if [[ -f "${config_dir}/.claude.json" && ! -e "${legacy}" ]]; then
+        ln -sfn "${config_dir}/.claude.json" "${legacy}"
+    fi
 }
 
 create_project_symlinks() {
@@ -170,6 +193,7 @@ ensure_shell_home() {
 
 main() {
     fix_named_volume_permissions
+    persist_claude_config
     run_init
     run_init_ai_statusline
     ensure_shell_home

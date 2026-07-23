@@ -13,6 +13,8 @@ Orcan does **not** overwrite existing files in `~/.cursor` on every start.
 
 Active Cursor CLI permissions file: `cli-config.json` (seeded from defaults).
 
+Claude Code project/user deny rules use `Read(path)` and `Edit(path)` only. Path-form `Write(...)` rules are obsolete (Claude warns and ignores them; `Edit` covers all file-editing tools). Orcan templates and `init-ai-statusline` keep `Edit(**/.env)` (and related) denies without `Write(...)`.
+
 ## Workspace vs project
 
 - **Workspace** context pack: written under `/home/developer/workspaces/<name>/` by `init-workspace`

@@ -57,7 +57,15 @@ Do **not** pass `PROJECT_DIR=…` to `make terminal*`.
 
 ## Where is my login / cache data?
 
-Under `$ORCAN_DATA` (default `~/.config/orcan`).
+Under `$ORCAN_DATA` (default `~/.config/orcan`):
+
+| Host path | What |
+| --- | --- |
+| `claude/` | Claude Code config + OAuth (`.credentials.json`, settings). `CLAUDE_CONFIG_DIR` points here so login survives restarts |
+| `cursor/` | Cursor CLI home |
+| `cache/` | Tool caches (ruff, pip, uv, …) |
+
+After `make rebuild` / restart, you should **not** need to `/login` again unless you wiped `$ORCAN_DATA` or never completed login while the volume was mounted.
 
 ## Can I turn off tmux?
 

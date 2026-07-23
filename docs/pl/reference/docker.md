@@ -34,7 +34,7 @@ Domyślny root hosta: `~/.config/orcan`.
 | --- | --- |
 | `cursor/` | `~/.cursor` |
 | `cursor-app/` | `~/.config/cursor` |
-| `claude/` | `~/.claude` |
+| `claude/` | `~/.claude` (`CLAUDE_CONFIG_DIR` — OAuth + settings przeżywają restarty) |
 | `cache/`, `npm/`, `pnpm/`, `cargo/`, `go/` | Cache/home narzędzi |
 | `shell-history/` | `/command-history` (historia zsh) |
 

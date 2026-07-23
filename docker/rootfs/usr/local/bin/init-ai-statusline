@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 
 # Merged into ~/.claude/settings.json permissions.deny when missing.
+# Claude Code file checks match Read(path) and Edit(path) only — Write(path)
+# rules warn and never match (Edit covers all file-editing tools).
 SECRET_DENY = [
     "Read(**/.env)",
     "Read(**/.env.*)",
@@ -21,11 +23,10 @@ SECRET_DENY = [
     "Edit(**/.env.*)",
     "Edit(**/*.pem)",
     "Edit(**/*.key)",
-    "Write(**/.env)",
-    "Write(**/.env.*)",
-    "Write(**/*.pem)",
-    "Write(**/*.key)",
 ]
+
+# Path-form Write/NotebookEdit/Glob rules are obsolete noise; drop on refresh.
+_OBSOLETE_FILE_RULE_PREFIXES = ("Write(", "NotebookEdit(", "Glob(")
 
 
 def load_json(path: Path) -> dict:
@@ -55,8 +56,16 @@ def ensure_statusline(path: Path, status_block: dict, *, create_if_missing: bool
     return f"set statusLine: {path}"
 
 
+def _is_obsolete_file_rule(rule: str) -> bool:
+    """True for Write(path)/NotebookEdit(path)/Glob(path) — never matched."""
+    text = str(rule).strip()
+    if not text.endswith(")"):
+        return False
+    return any(text.startswith(prefix) for prefix in _OBSOLETE_FILE_RULE_PREFIXES)
+
+
 def ensure_secret_denies(path: Path) -> str:
-    """Add secret deny rules without removing user entries."""
+    """Add secret deny rules; strip obsolete Write/NotebookEdit/Glob path rules."""
     data = load_json(path) if path.exists() else {}
     perms = data.get("permissions")
     if not isinstance(perms, dict):
@@ -64,6 +73,14 @@ def ensure_secret_denies(path: Path) -> str:
     deny = perms.get("deny")
     if not isinstance(deny, list):
         deny = []
+    cleaned: list[object] = []
+    removed = 0
+    for rule in deny:
+        if _is_obsolete_file_rule(str(rule)):
+            removed += 1
+            continue
+        cleaned.append(rule)
+    deny = cleaned
     existing = {str(x) for x in deny}
     added = 0
     for rule in SECRET_DENY:
@@ -74,8 +91,13 @@ def ensure_secret_denies(path: Path) -> str:
     perms["deny"] = deny
     data["permissions"] = perms
     write_json(path, data)
+    parts: list[str] = []
+    if removed:
+        parts.append(f"removed {removed} obsolete Write/NotebookEdit/Glob rule(s)")
     if added:
-        return f"added {added} secret deny rule(s): {path}"
+        parts.append(f"added {added} secret deny rule(s)")
+    if parts:
+        return f"{'; '.join(parts)}: {path}"
     return f"secret denies ok: {path}"
 
 
