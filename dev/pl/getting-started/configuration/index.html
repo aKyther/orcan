@@ -837,6 +837,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#podnoszenie-zasobow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Podnoszenie zasobów
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1628,6 +1639,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#podnoszenie-zasobow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Podnoszenie zasobów
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1757,13 +1779,14 @@
 </span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="nt">&quot;theme&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dark&quot;</span>
 </span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">  </span><span class="p">},</span>
 </span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">  </span><span class="nt">&quot;resources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="nt">&quot;cpus&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">    </span><span class="nt">&quot;memory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;16g&quot;</span><span class="p">,</span>
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">    </span><span class="nt">&quot;shm_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2g&quot;</span><span class="p">,</span>
-</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">    </span><span class="nt">&quot;tmpfs_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2g&quot;</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="nt">&quot;cpus&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">    </span><span class="nt">&quot;memory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4g&quot;</span><span class="p">,</span>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">    </span><span class="nt">&quot;shm_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;512m&quot;</span><span class="p">,</span>
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">    </span><span class="nt">&quot;tmpfs_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;512m&quot;</span>
 </span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">  </span><span class="p">}</span>
 </span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>Domyślne limity są celowo lekkie (typowy laptop). Podnieś je, gdy maszyna ma zapas — poniżej.</p>
 <h3 id="uwagi-do-pol">Uwagi do pól<a class="headerlink" href="#uwagi-do-pol" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1795,10 +1818,16 @@
 </tr>
 <tr>
 <td><code>resources.*</code></td>
-<td>Limity CPU / pamięci kontenera</td>
+<td>Limity CPU / pamięci / shm / tmpfs kontenera</td>
 </tr>
 </tbody>
 </table>
+<h3 id="podnoszenie-zasobow">Podnoszenie zasobów<a class="headerlink" href="#podnoszenie-zasobow" title="Permanent link">&para;</a></h3>
+<p>Edytuj <code>resources</code> w <code>orcan.config.json</code> (np. <code>cpus: 8</code>, <code>memory: "16g"</code>), potem:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>env
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>make<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>terminal-docker
+</span></code></pre></div>
+<p>Jeśli <code>.env</code> ma już <code>CPUS</code> / <code>MEMORY</code>, <code>make env</code> ich nie nadpisze. Zmień je też w <code>.env</code>, albo usuń klucze, żeby config wygrał przy następnym <code>make env</code>.</p>
 <h2 id="sposoby-edycji">Sposoby edycji<a class="headerlink" href="#sposoby-edycji" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1827,10 +1856,11 @@
 </tbody>
 </table>
 <p>Pokaż bieżący układ:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>config-show
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>make<span class="w"> </span>path-check
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>config-show
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>make<span class="w"> </span>path-check
 </span></code></pre></div>
 <h2 id="co-zapisuje-make-env">Co zapisuje <code>make env</code><a class="headerlink" href="#co-zapisuje-make-env" title="Permanent link">&para;</a></h2>
+<p><code>orcan.config.json</code> to historia, którą edytujesz. <strong><code>make env</code></strong> to to, co Docker / Compose może łyknąć: odświeża pliki runtime hosta z tego JSON (+ UID/GID). Bez tego mounty i env zostają stare albo w ogóle ich nie ma.</p>
 <table>
 <thead>
 <tr>
@@ -1864,9 +1894,9 @@
 <p>Nie commituj <code>.env</code> ani <code>.orcan/</code> (są w gitignore).</p>
 <h2 id="seed-plikow-projektu-opcjonalnie">Seed plików projektu (opcjonalnie)<a class="headerlink" href="#seed-plikow-projektu-opcjonalnie" title="Permanent link">&para;</a></h2>
 <p>Orcan <strong>nie</strong> przepisuje każdego zamontowanego repo przy starcie. Aby raz zaseedować ignores/szablony:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>init-project-all
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># or dry-run:</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>make<span class="w"> </span>init-project-all-dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>init-project-all
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># or dry-run:</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>make<span class="w"> </span>init-project-all-dry-run
 </span></code></pre></div>
 <p>Pełne reguły pól i odrzucane klucze: <a href="../../reference/configuration/">Referencja konfiguracji</a>.</p>
 <h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
@@ -1898,7 +1928,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:37:02 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:42:59 UTC">23 lipca 2026</span>
   </span>
 
     
