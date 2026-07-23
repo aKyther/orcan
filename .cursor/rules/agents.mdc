@@ -7,7 +7,7 @@ alwaysApply: true
 
 **Orcan** = Docker **context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`): workspaces, path-parity mounts, ignore/instruction seeds, browser terminal. Agent CLIs are tools inside it; **models are out of scope**.
 
-Display name: **Orcan**. Technical ids: `orcan`, `ORCAN_*`. Do not use old product names (Sint, Orkan, cind-as-product).
+Display name: **Orcan**. Technical ids: `orcan`, `ORCAN_*`. **Orcan** is the only product name in docs and user-facing text.
 
 Read root [`AGENTS.md`](../../AGENTS.md) and [`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md). This rule is always applied.
 

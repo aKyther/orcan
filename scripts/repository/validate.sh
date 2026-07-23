@@ -109,6 +109,7 @@ for script in \
     docker/rootfs/etc/tmux/scripts/window-name.sh \
     docker/rootfs/etc/tmux/scripts/copy-path.sh \
     docker/rootfs/etc/tmux/scripts/session-switch.sh \
+    docker/rootfs/etc/tmux/scripts/pick-url.sh \
     scripts/repository/update-env.sh \
     scripts/repository/python.sh \
     scripts/repository/validate-project-dir.sh \

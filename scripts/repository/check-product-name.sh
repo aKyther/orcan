@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Fail if historical product names reappear as branding in user-facing docs.
-# Allows: Cursor (editor/CLI), cursor-* binaries, cind migration notes,
-# and meta lines that *forbid* old names.
+# Fail if non-Orcan product names appear in user-facing docs.
+# Allows: Cursor (editor/CLI), cursor-* binaries.
 # Host-only.
 
 set -Eeuo pipefail
@@ -21,15 +20,9 @@ trap 'rm -f "${scan_list}"' EXIT
 
 mapfile -t files < "${scan_list}"
 
-# Meta / allowlist lines may mention forbidden names on purpose.
-allow_re='old product|do not (reintroduce|use)|Forbidden|except migration|migration notes|cind-as-product|historical'
-
-if raw="$(grep -nEiw 'Sint|Orkan' "${files[@]}" 2>/dev/null || true)" && [[ -n "${raw}" ]]; then
-    hits="$(printf '%s\n' "${raw}" | grep -Ev "${allow_re}" || true)"
-    if [[ -n "${hits}" ]]; then
-        printf 'Forbidden old product name (Sint|Orkan):\n%s\n' "${hits}" >&2
-        fail=1
-    fi
+if raw="$(grep -nEiw 'Sint|Orkan|cind' "${files[@]}" 2>/dev/null || true)" && [[ -n "${raw}" ]]; then
+    printf 'Forbidden non-Orcan product name (Sint|Orkan|cind):\n%s\n' "${raw}" >&2
+    fail=1
 fi
 
 if hits="$(grep -nF 'Cursor CLI Dev Container' "${files[@]}" 2>/dev/null || true)" && [[ -n "${hits}" ]]; then

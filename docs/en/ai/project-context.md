@@ -7,7 +7,7 @@ Also read root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AGENTS.m
 ## Product identity
 
 - Official name: **Orcan** (display). Technical ids use lowercase `orcan` (`orcan:latest`, `ORCAN_DATA`, `orcan.config.json`).
-- Do **not** reintroduce old product names: Sint, Orkan, cind (except migration notes / cleanup code).
+- **Orcan** is the only product name in documentation and user-facing text.
 - **Cursor** means the Cursor editor / Cursor CLI — not the product name.
 - Orcan is a **context orchestrator**, not a model manager.
 

@@ -46,8 +46,6 @@ git clone https://github.com/aKyther/orcan.git
 cd orcan
 ```
 
-Your clone directory may still be named `cind` if you forked an older path. That is fine. Product paths use `orcan` (config, `$HOME/.config/orcan`, image name `orcan`).
-
 ## First configure
 
 ```bash
