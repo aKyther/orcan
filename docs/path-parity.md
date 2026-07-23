@@ -50,6 +50,7 @@ Path parity removes that mismatch.
 
 ```bash
 make setup PROJECT_DIR=/home/user/projects/example
+# or: make config-wizard && make env
 make path-check
 make terminal-docker
 ```

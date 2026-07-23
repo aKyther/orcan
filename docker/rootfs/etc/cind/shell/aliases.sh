@@ -36,7 +36,18 @@ fi
 
 alias gs='git status -sb'
 alias gd='git diff'
-alias gl='git log --oneline -20'
+alias ga='git add'
+alias gaa='git add -A'
+alias gc='git commit'
+alias gcam='git commit -am'
+alias gp='git push'
+alias gpl='git pull'
+alias gco='git checkout'
+alias gb='git branch'
+alias gl='git log --oneline --graph --decorate -20'
+if command -v lazygit >/dev/null 2>&1; then
+    alias lg='lazygit'
+fi
 alias dc='docker compose'
 alias dps='docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
 

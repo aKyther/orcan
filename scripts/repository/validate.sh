@@ -46,7 +46,19 @@ require_file "docker/rootfs/usr/local/bin/cind-workspaces"
 require_file "docker/rootfs/usr/local/bin/cind-context-status"
 require_file "docker/rootfs/usr/local/lib/cind/workspaces.py"
 require_file "docker/rootfs/opt/cursor-defaults/templates/workspace/session-brief.md"
-require_file "docs/architecture/context.md"
+require_file "cind.config.example.yaml"
+require_file "requirements-host.txt"
+require_file "scripts/repository/config-wizard.py"
+require_file "scripts/repository/config_io.py"
+require_file "scripts/repository/python.sh"
+
+require_file "docker/rootfs/etc/skel/.zshrc"
+require_file "docker/rootfs/etc/skel/.zshrc.d/50-cind-shell.zsh"
+require_file "docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh"
+require_file "docker/rootfs/etc/skel/.zshrc.d/80-starship.zsh"
+require_file "docker/rootfs/opt/cind/gitconfig"
+require_file "docker/rootfs/opt/cind/starship.toml"
+require_file "docker/rootfs/etc/cind/shell/aliases.sh"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
@@ -83,6 +95,7 @@ for script in \
     docker/rootfs/etc/tmux/scripts/copy-path.sh \
     docker/rootfs/etc/tmux/scripts/session-switch.sh \
     scripts/repository/update-env.sh \
+    scripts/repository/python.sh \
     scripts/repository/validate-project-dir.sh \
     scripts/repository/require-generated.sh \
     scripts/repository/print-workspace-manifest.sh \
@@ -106,6 +119,8 @@ for script in \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
+    scripts/repository/config-wizard.py \
+    scripts/repository/config_io.py \
     scripts/repository/apply-config.py
 do
     if [[ -f "${script}" ]]; then

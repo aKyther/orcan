@@ -2,7 +2,7 @@
 
 **Context orchestrator** for coding agents: workspaces, path-parity mounts, ignore/instruction seeds, and a browser tmux launcher. **Cursor CLI** (`agent`) and **Claude Code** (`claude`) run as tools inside that environment. **Models are out of scope** for cind — each CLI chooses its own.
 
-This repository keeps your host system clean. Tools run inside a container. Projects use [path parity](docs/path-parity.md). Workspaces are declared in `cind.config.json` (one tmux session per workspace).
+This repository keeps your host system clean. Tools run inside a container. Projects use [path parity](docs/path-parity.md). Workspaces are declared in `cind.config.yaml` (one tmux session per workspace).
 
 **Who it is for:** developers who want a shared agent environment (Node, Python, Go, Rust, optional Docker) without installing the full toolchain on the host — and without managing models in cind config.
 
@@ -38,7 +38,7 @@ This repository keeps your host system clean. Tools run inside a container. Proj
 | `docker-compose.yml` | Base service: path-parity mounts + `$CIND_DATA` binds, no Docker socket |
 | `docker-compose.docker.yml` | Optional overlay: host Docker socket + `DOCKER_GID` |
 | `docker-compose.ttyd.yml` | Browser terminal (ttyd) for local / Tailscale access |
-| `cind.config.json` | Workspaces and projects (run `make env` after edits) |
+| `cind.config.yaml` | Workspaces and projects (run `make env` after edits; JSON still accepted) |
 | `Makefile` | Short host commands for build, shell, cleanup |
 | `docker/rootfs/` | Files installed into the image (paths match the container) |
 | `scripts/repository/` | Host-only maintenance helpers |
@@ -73,7 +73,9 @@ This repository keeps your host system clean. Tools run inside a container. Proj
 | `docker/rootfs/usr/local/bin/cind-ai-statusline` | `/usr/local/bin/cind-ai-statusline` | Claude/Cursor statusLine → tmux usage cache |
 | `docker/rootfs/etc/skel/.tmux.conf` | `/home/developer/.tmux.conf` | TMUX config |
 | `docker/rootfs/etc/skel/.vimrc` | `/home/developer/.vimrc` | Vim config |
-| `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Aliases, PATH, interactive TMUX |
+| `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` | `/home/developer/.zshrc*` | Default shell (zsh + plugins + Starship) |
+| `docker/rootfs/etc/skel/.bashrc.d/` | `/home/developer/.bashrc.d/` | Bash fallback |
+| `docker/rootfs/opt/cind/` | seeded gitconfig + starship | Missing-only into `$HOME` |
 
 ---
 
@@ -97,7 +99,7 @@ Docker container
 
 * **Docker** isolates tools from the host package manager.
 * **Context orchestration** — workspaces, context pack, ignores; CLIs are plugs; models out of scope ([docs](docs/architecture/context.md)).
-* **`cind.config.json` workspaces** isolate project sets (no cross-workspace mixing).
+* **`cind.config.yaml` workspaces** isolate project sets (no cross-workspace mixing).
 * **UID/GID mapping** makes new files owned by your host user.
 * **`$CIND_DATA` host binds** keep npm/pnpm/cargo/go/uv caches and Cursor/Claude login between runs.
 * **`/opt/cursor-defaults`** seeds `${HOME}/.cursor` at startup (missing files only).
@@ -109,7 +111,22 @@ Docker container
 
 ## Quick start
 
-Everything goes through **Make** — no manual `cp` of `.env` or config templates ( `make env` creates `.env` when missing).
+Everything goes through **Make** — no manual `cp` of `.env` or config templates (`make env` creates `.env` when missing).
+
+### Ritual (config → env → terminal)
+
+| Step | Command | When |
+| --- | --- | --- |
+| 1. Config | `make config-wizard` or `make setup` / `config-scaffold` | Create or edit workspaces |
+| 2. Apply | `make env` | Always after config changes |
+| 3. Seed (optional) | `make init-project-all` | After new projects |
+| 4. Run | `make terminal-docker` | Start browser terminal |
+
+`make terminal` / `make terminal-docker` **do not** run `make env`. After any config change: `make env`, then `make down && make terminal-docker` if a container is already running.
+
+**Daily (no config change):** `make terminal-docker` only.
+
+### First run
 
 ```bash
 git clone <repository-url> cind
@@ -120,41 +137,46 @@ make build
 make terminal-docker
 ```
 
-Open `http://localhost:7681` (or `http://<tailscale-ip>:7681` on a remote host in your tailnet). Pick a workspace → tmux session.
+Or interactive config (poetry/uv-style), then apply and start:
 
-**Daily:** `make terminal-docker` only — no config regeneration.
+```bash
+make config-wizard
+make env
+make build
+make terminal-docker
+```
+
+Open `http://localhost:7681` (or `http://<tailscale-ip>:7681` on a remote host in your tailnet). Pick a workspace → tmux session.
 
 `make setup`:
 
-* creates `cind.config.json` from `PROJECT_DIR` if missing (one workspace, one project)
+* creates `cind.config.yaml` from `PROJECT_DIR` if missing (one workspace, one project)
 * runs `make env` (`.env`, mounts, runtime config)
 * prints `make config-show` output and next steps
 
 ### More repos or workspaces
 
 ```bash
+make config-wizard
+# or non-interactive:
 make config-scaffold PROJECT_DIR=/home/you/gotibooks/backend WORKSPACE=gotibooks
 make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibooks
 make env
 make down && make terminal-docker
 ```
 
-Optional: `make config-init` copies the **full** multi-workspace example from `cind.config.example.json` when you want a template to edit by hand.
+Optional: `make config-init` copies the full example from `cind.config.example.yaml` to edit by hand.
 
-Example shape (usually generated by `make setup` / `config-scaffold`, not written from scratch):
+Example shape (usually from wizard / `setup` / `config-scaffold`):
 
-```json
-{
-  "workspaces": [
-    {
-      "name": "gotibooks",
-      "projects": [
-        { "name": "backend", "path": "/home/you/gotibooks/backend" },
-        { "name": "frontend", "path": "/home/you/gotibooks/frontend" }
-      ]
-    }
-  ]
-}
+```yaml
+workspaces:
+  - name: gotibooks
+    projects:
+      - name: backend
+        path: /home/you/gotibooks/backend
+      - name: frontend
+        path: /home/you/gotibooks/frontend
 ```
 
 Docs: [config](docs/config.md) · [Makefile](docs/makefile.md) · [workspace architecture](docs/architecture/workspace.md)
@@ -249,7 +271,7 @@ make publish
 
 ### 4. Pull and run (VPS)
 
-Same clone of this repo + same `IMAGE_*` in `.env`, plus your `cind.config.json` / `make env` for mounts:
+Same clone of this repo + same `IMAGE_*` in `.env`, plus your `cind.config.yaml` / `make env` for mounts:
 
 ```bash
 make registry-login
@@ -258,14 +280,14 @@ make env            # if config / mounts not ready yet
 make terminal-docker
 ```
 
-`make pull` only updates the **image**. Workspace mounts and `.env` still come from `make env` / `cind.config.json` on that host.
+`make pull` only updates the **image**. Workspace mounts and `.env` still come from `make env` / `cind.config.yaml` on that host.
 
 ### When to rebuild vs pull
 
 | Change | On build machine | On VPS |
 | --- | --- | --- |
 | Dockerfile / `docker/rootfs/` (tmux, tools, …) | `make rebuild` → `make publish` | `make pull` |
-| `cind.config.json` (workspaces, paths) | — | `make env` → restart terminal |
+| `cind.config.yaml` (workspaces, paths) | — | `make env` → restart terminal |
 | Only `.env` limits (`CPUS`, ports) | — | edit `.env` → restart terminal |
 
 More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [docs/docker.md](docs/docker.md#publish-to-gitlab-container-registry).
@@ -277,7 +299,11 @@ More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [do
 | Command | Description |
 | --- | --- |
 | `make help` | List targets |
-| `make env` | Create/update `.env` from the host |
+| `make setup` | First run: scaffold config if missing, then `make env` |
+| `make config-wizard` | Interactive create/edit `cind.config.yaml` |
+| `make config-scaffold` | Non-interactive add project from `PROJECT_DIR` |
+| `make config-show` | Print config + runtime manifest |
+| `make env` | Apply config → `.env`, mounts, runtime (run after wizard/edits) |
 | `make build` | Build the image |
 | `make rebuild` | Rebuild with `--no-cache` |
 | `make registry-login` | Log in to GitLab Container Registry |
@@ -305,9 +331,10 @@ More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [do
 
 | When | Command |
 | --- | --- |
-| First run / config change | `make setup` or `make env` |
+| Create / edit config | `make config-wizard` (or `make setup` / `config-scaffold`) |
+| Apply config | `make env` |
 | Start terminal | `make terminal` or `make terminal-docker` |
-| Add a repo | `make config-scaffold …` then `make env` |
+| After config change (container already up) | `make env` → `make down && make terminal-docker` |
 | Push image to GitLab | `make build` → `make registry-login` → `make publish` |
 | Pull image on VPS | `make registry-login` → `make pull` → `make terminal-docker` |
 
@@ -315,16 +342,16 @@ More detail: [docs/makefile.md](docs/makefile.md#publish-image-to-gitlab) · [do
 
 ### Choose a project
 
-**With JSON config** (see Quick start above):
+Preferred: edit via wizard or `cind.config.yaml`, then apply:
 
 ```bash
-# edit cind.config.json, then:
+make config-wizard   # or edit cind.config.yaml by hand
 make env
 make path-check
 make down && make terminal-docker
 ```
 
-**Without JSON** — single project only (first `make env`):
+Single project without a config file yet (first `make env` only):
 
 ```bash
 make env PROJECT_DIR=$HOME/projects/my-app
@@ -414,7 +441,7 @@ make build
 make terminal-docker
 ```
 
-Projects come from `cind.config.json` (not `PROJECT_DIR=` on the Make line). After config edits: `make env`, then recreate the container.
+Projects come from `cind.config.yaml` (not `PROJECT_DIR=` on the Make line). After config edits: `make env`, then recreate the container.
 
 Open in your browser:
 
@@ -426,7 +453,9 @@ http://localhost:7681
 | --- | --- |
 | URL | `http://localhost:7681` |
 | Host port | `7681` (`TTYD_HOST_PORT`) |
-| Projects | Listed from `cind.config.json` (workspace launcher) |
+| Shell | **zsh** + Starship (git autodectect); plugins baked in |
+| Theme | `TTYD_THEME=dark` (from config / `.env`, no startup chooser) |
+| Projects | Listed from `cind.config.yaml` (workspace launcher) |
 | TMUX | One session per workspace (`Ctrl+Space w` to switch) |
 
 **Remote access:** there is no SSH into this environment. Use the browser terminal only.

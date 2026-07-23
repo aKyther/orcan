@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply cind.config.json into .env, runtime config, workspace artifacts, and Compose mounts."""
+"""Apply cind.config.yaml (or .json) into .env, runtime config, workspace artifacts, and Compose mounts."""
 
 from __future__ import annotations
 
@@ -10,6 +10,10 @@ import re
 import shutil
 import sys
 from pathlib import Path
+
+# Host scripts live next to this file.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from config_io import discover_config, load_config as load_user_config  # noqa: E402
 
 
 SENSITIVE = {"/", "/home", "/root", "/etc", "/usr", "/var", "/opt"}
@@ -57,22 +61,33 @@ def ensure_dir(path: Path, label: str) -> Path:
     return resolved
 
 
+def format_env_value(value: str) -> str:
+    """Quote .env values that would break shell sourcing (spaces, commas, quotes)."""
+    if value == "":
+        return '""'
+    if re.search(r'[\s#"\'\\$`]|,', value) or value.startswith(("'", '"')):
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    return value
+
+
 def ensure_env_key(env_path: Path, key: str, value: str) -> None:
     text = env_path.read_text(encoding="utf-8") if env_path.exists() else ""
     lines = text.splitlines()
     pattern = re.compile(rf"^{re.escape(key)}=")
     replaced = False
     out: list[str] = []
+    rendered = f"{key}={format_env_value(value)}"
     for line in lines:
         if pattern.match(line):
-            out.append(f"{key}={value}")
+            out.append(rendered)
             replaced = True
         else:
             out.append(line)
     if not replaced:
         if out and out[-1] != "":
             out.append("")
-        out.append(f"{key}={value}")
+        out.append(rendered)
     env_path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
@@ -103,20 +118,14 @@ def remove_env_key(env_path: Path, key: str) -> None:
 
 
 def load_config(path: Path) -> dict:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        die(f"invalid JSON in {path}: {exc}")
-    if not isinstance(data, dict):
-        die(f"config root must be an object: {path}")
-    return data
+    return load_user_config(path)
 
 
 def normalize_workspaces_raw(cfg: dict) -> list[dict]:
     if cfg.get("projects_dir"):
         die(
             "'projects_dir' was removed; use workspaces[] or workspace.projects[] "
-            "(see cind.config.example.json)"
+            "(see cind.config.example.yaml)"
         )
 
     raw_list = cfg.get("workspaces")
@@ -328,7 +337,7 @@ def prune_stale_workspace_metas(repo_root: Path, active_names: set[str]) -> None
         if child.name in active_names:
             continue
         print(
-            f"warning: removing stale workspace meta (no longer in cind.config.json): {child}",
+            f"warning: removing stale workspace meta (no longer in cind config): {child}",
             file=sys.stderr,
         )
         shutil.rmtree(child)
@@ -457,6 +466,11 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
             "port": int(ttyd.get("port", 7681)),
             "host_port": int(ttyd.get("host_port", ttyd.get("port", 7681))),
             "font_size": int(ttyd.get("font_size", 22)),
+            "font_family": str(
+                ttyd.get("font_family")
+                or "Menlo, Monaco, 'Courier New', monospace"
+            ),
+            "theme": str(ttyd.get("theme") or "dark"),
         },
         "resources": {
             "cpus": resources.get("cpus", 8),
@@ -503,7 +517,13 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
     runtime = {
         "workspaces": [workspace],
         "tmux": {"initial_windows": 3, "window_prefix": "tab"},
-        "ttyd": {"port": 7681, "host_port": 7681, "font_size": 22},
+        "ttyd": {
+            "port": 7681,
+            "host_port": 7681,
+            "font_size": 22,
+            "font_family": "Menlo, Monaco, 'Courier New', monospace",
+            "theme": "dark",
+        },
         "resources": {
             "cpus": 8,
             "memory": "16g",
@@ -523,7 +543,11 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="", help="Path to cind.config.json")
+    parser.add_argument(
+        "--config",
+        default="",
+        help="Path to cind.config.yaml / .yml / .json (optional)",
+    )
     parser.add_argument("--root", default="", help="Repository root")
     parser.add_argument("--project-dir", default="", help="Fallback PROJECT_DIR")
     args = parser.parse_args()
@@ -544,6 +568,8 @@ def main() -> None:
     config_path = Path(args.config) if args.config else None
     if config_path is not None and not config_path.is_absolute():
         config_path = (root / config_path).resolve()
+    if config_path is None:
+        config_path = discover_config(root)
 
     if config_path and config_path.is_file():
         built = build_from_config(load_config(config_path), root)
@@ -610,6 +636,8 @@ def main() -> None:
     ensure_env_key_unless_set(env_path, "TTYD_PORT", str(ttyd["port"]))
     ensure_env_key_unless_set(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
+    ensure_env_key_unless_set(env_path, "TTYD_FONT_FAMILY", str(ttyd["font_family"]))
+    ensure_env_key_unless_set(env_path, "TTYD_THEME", str(ttyd["theme"]))
     ensure_env_key_unless_set(env_path, "CPUS", str(resources["cpus"]))
     ensure_env_key_unless_set(env_path, "MEMORY", str(resources["memory"]))
     ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))

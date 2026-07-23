@@ -1,0 +1,37 @@
+# cind user profile — copy to cind.config.yaml and edit paths.
+# After edits: make env && make init-project-all && make down && make terminal-docker
+#
+# JSON (cind.config.json) is still accepted if present and no YAML file exists.
+
+workspaces:
+  - name: gotibooks
+    projects:
+      - name: backend
+        path: /absolute/path/to/gotibooks/backend
+      - name: frontend
+        path: /absolute/path/to/gotibooks/frontend
+      - name: agent
+        path: /absolute/path/to/gotibooks/agent
+
+  - name: cind
+    projects:
+      - name: cind
+        path: /absolute/path/to/cind
+
+tmux:
+  initial_windows: 3
+  window_prefix: tab
+
+ttyd:
+  port: 7681
+  host_port: 7681
+  font_size: 22
+  # Applied automatically — no chooser at terminal start
+  font_family: "Menlo, Monaco, 'Courier New', monospace"
+  theme: dark  # or raw xterm.js JSON object as a string
+
+resources:
+  cpus: 8
+  memory: 16g
+  shm_size: 2g
+  tmpfs_size: 2g

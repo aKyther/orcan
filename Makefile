@@ -11,7 +11,7 @@ COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_F
 
 # Used by make env / make setup / make config-scaffold only — not by make terminal*.
 PROJECT_DIR ?= $(CURDIR)
-# Optional JSON profile for make env (if empty and ./cind.config.json exists, update-env uses it).
+# Optional config path for make env (if empty, discovers cind.config.yaml / .yml / .json).
 CONFIG ?=
 
 .DEFAULT_GOAL := help
@@ -20,25 +20,29 @@ CONFIG ?=
 	down logs config init-project init-project-dry-run init-project-all init-project-all-dry-run \
 	clean clean-volumes clean-data \
 	docs docs-serve test validate path-check validate-project require-generated require-env \
-	config-init config-scaffold config-show \
+	config-init config-scaffold config-show config-wizard host-deps \
 	registry-show registry-login publish pull
+
+HOST_PYTHON := ./scripts/repository/python.sh
 
 help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@printf '\nFirst run: make setup PROJECT_DIR=/absolute/path/to/repo\n'
-	@printf 'After cind.config.json edits: make env && make init-project-all\n'
+	@printf 'Or wizard:  make config-wizard\n'
+	@printf 'After cind.config.yaml edits: make env && make init-project-all\n'
 	@printf 'Then: make down && make terminal-docker\n'
 
 setup: validate-project ## First run: create config if missing, refresh .env, show layout
-	@if [ ! -f cind.config.json ]; then \
-		printf 'Creating cind.config.json (workspace=%s)...\n' \
+	@$(MAKE) host-deps
+	@if [ -f cind.config.yaml ] || [ -f cind.config.yml ] || [ -f cind.config.json ]; then \
+		printf 'Using existing cind config (yaml/yml/json)\n'; \
+	else \
+		printf 'Creating cind.config.yaml (workspace=%s)...\n' \
 			"$${WORKSPACE:-$$(basename "$(PROJECT_DIR)")}"; \
-		python3 ./scripts/repository/config-scaffold.py \
+		$(HOST_PYTHON) ./scripts/repository/config-scaffold.py \
 			--project-dir "$(PROJECT_DIR)" \
 			--workspace "$${WORKSPACE:-$$(basename "$(PROJECT_DIR)")}"; \
-	else \
-		printf 'Using existing cind.config.json\n'; \
 	fi
 	@$(MAKE) env
 	@$(MAKE) config-show
@@ -75,28 +79,40 @@ path-check: require-generated ## Show host/container project path parity (read-o
 	fi; \
 	printf 'Path parity:            enabled\n'
 
-env: ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
+env: host-deps ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
 	@CONFIG="$(CONFIG)" PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
 
-config-init: ## Copy full example cind.config.json (optional; prefer make setup)
-	@if [ -f cind.config.json ]; then \
-		printf 'cind.config.json already exists\n'; \
-		printf '  edit:  $$EDITOR cind.config.json\n'; \
+host-deps: ## Ensure .venv with PyYAML for host config scripts
+	@if [ ! -x .venv/bin/python ]; then \
+		printf 'Creating .venv for host config tools (PyYAML)…\n'; \
+		python3 -m venv .venv; \
+	fi; \
+	if ! .venv/bin/python -c 'import yaml' 2>/dev/null; then \
+		.venv/bin/pip install -q -r requirements-host.txt; \
+	fi
+
+config-init: host-deps ## Copy full example cind.config.yaml (optional; prefer make setup)
+	@if [ -f cind.config.yaml ] || [ -f cind.config.yml ] || [ -f cind.config.json ]; then \
+		printf 'cind config already exists (yaml/yml/json)\n'; \
+		printf '  edit:  $$EDITOR cind.config.yaml   # preferred\n'; \
 		printf '  show:  make config-show\n'; \
 	else \
-		cp cind.config.example.json cind.config.json; \
-		printf 'Created cind.config.json from example\n'; \
+		cp cind.config.example.yaml cind.config.yaml; \
+		printf 'Created cind.config.yaml from example\n'; \
 		printf '  edit paths, then: make env && make path-check\n'; \
 	fi
 
-config-scaffold: validate-project ## Add workspace/project to cind.config.json from PROJECT_DIR
-	@python3 ./scripts/repository/config-scaffold.py \
+config-scaffold: validate-project host-deps ## Add workspace/project to cind.config.yaml from PROJECT_DIR
+	@$(HOST_PYTHON) ./scripts/repository/config-scaffold.py \
 		--project-dir "$(PROJECT_DIR)" \
 		$(if $(WORKSPACE),--workspace "$(WORKSPACE)",) \
 		$(if $(FORCE),--force,)
 
-config-show: ## List workspaces in cind.config.json and runtime manifest
-	@python3 ./scripts/repository/config-show.py
+config-show: host-deps ## List workspaces in cind config and runtime manifest
+	@$(HOST_PYTHON) ./scripts/repository/config-show.py
+
+config-wizard: host-deps ## Interactive create/edit cind.config.yaml (poetry/uv-style)
+	@$(HOST_PYTHON) ./scripts/repository/config-wizard.py
 
 build: require-env ## Build the container image
 	@set -a; . ./.env; set +a; \

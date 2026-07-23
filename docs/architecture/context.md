@@ -14,7 +14,7 @@
 Agent selection (`agent` vs `claude`, aliases like `agy` / `ccy`) is a **lower layer** — convenient slots, not the product core.
 
 ```text
-cind.config.json  →  mounts + workspace roots
+cind.config.yaml  →  mounts + workspace roots
                   →  context pack (manifest, instructions, ignores)
                   →  tmux / launcher
                   →  agent | claude   (their models stay theirs)
@@ -45,7 +45,7 @@ Agents should read: **`AGENTS.md` → `.manifest.json` → (if present) `.cind/s
 
 cind **does not** auto-modify mounted git checkouts. Workspace ignores do not rewrite `backend/.env` protection inside a project.
 
-Ritual after editing `cind.config.json`:
+Ritual after `make config-wizard` or any config edit:
 
 ```bash
 make env

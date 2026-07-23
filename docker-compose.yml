@@ -19,7 +19,7 @@ services:
     environment:
       TERM: xterm-256color
       COLORTERM: truecolor
-      HISTFILE: /command-history/.bash_history
+      HISTFILE: /command-history/.zsh_history
       PNPM_HOME: /home/developer/.local/share/pnpm
       UV_CACHE_DIR: /home/developer/.cache/uv
       DOCKER_BUILDKIT: "1"
@@ -43,6 +43,6 @@ services:
       - ${CIND_DATA}/pnpm:/home/developer/.local/share/pnpm
       - ${CIND_DATA}/cargo:/home/developer/.cargo
       - ${CIND_DATA}/go:/home/developer/go
-      - ${CIND_DATA}/bash-history:/command-history
+      - ${CIND_DATA}/shell-history:/command-history
     tmpfs:
       - /tmp:size=${TMPFS_SIZE:-2g},mode=1777

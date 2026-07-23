@@ -8,7 +8,7 @@ cind tmux is tuned for **browser ttyd**: IDE-like top tabs, per-pane footers, th
 
 | Layer | Meaning |
 | --- | --- |
-| **tmux session** | One cind workspace (`cind.config.json`) |
+| **tmux session** | One cind workspace (`cind.config.yaml`) |
 | **tmux window** (top tabs) | Shells / tools inside that workspace (`tab-1` … or renamed) |
 | **tmux pane** | Split inside a window; footer shows command + directory |
 
@@ -20,16 +20,18 @@ Rename a tab: `Ctrl+Space` `,`. New window: `Alt+c`. Projects are subdirectories
 ## Layout (mockup)
 
 ```text
-◉ gotibooks           1:tab-1  [2:claude]  3:tab-3        brief  14:32
+◉ gotibooks                                    claude ctx 42% · git main · cpu 0.4 · 14:32
+ 1:tab-1  [2:claude]  3:tab-3
 ──────────────────────┬───────────────────────────────────────────────
  $                    │  $
 ──────────────────────┴───────────────────────────────────────────────
  1 bash · backend      2 claude · backend >
 ```
 
-- **Top bar:** session/workspace (left) · window tabs (centre) · brief + AI (if any) + time (right)
+- **Top bar (2 rows):**
+  - row 1 — workspace (left) · metrics (right: AI, brief, git, cpu, mem, battery, time)
+  - row 2 — window tabs on a **full-width** line (never clipped by metrics)
 - **Pane footer:** index · current command · basename of cwd (`>` = active pane)
-- No global CPU/RAM/battery/git stack in the status bar (keeps ttyd readable)
 
 ## Prefix
 
@@ -75,13 +77,16 @@ Most navigation/splits work **without prefix** (see below).
 
 | Element | Style |
 | --- | --- |
-| Status position | **Top** |
-| Status left | Prefix indicator + workspace / session name |
-| Window tabs | Centre; inactive muted; **active** cyan block (`colour81`); activity/bell in orange/red |
-| Status right (thin) | Optional **AI usage**, `brief` marker, clock |
+| Status position | **Top**, **2 rows** (`status 2`) |
+| Status row 1 | Workspace / session (left) + metrics (right) |
+| Status row 2 | Window tabs (full width, left-aligned — not overlapped by metrics) |
+| Window tabs | Inactive muted; **active** cyan block (`colour81`); activity/bell in orange/red |
+| Status right | AI usage (if active), `brief`, git branch, CPU load, memory %, battery, clock |
 | Pane border status | **Bottom** on every pane: `index command dirname` |
 | Active pane border | Cyan + `>` in the footer |
 | Browser font | `TTYD_FONT_SIZE` (default **22**) |
+| Browser theme | `TTYD_THEME` (default **dark**) — no chooser at start |
+| Default shell | **zsh** (Starship prompt, plugins baked in) |
 
 Activity: `monitor-activity` flags windows with background output (tab style only; no message spam).
 
@@ -101,9 +106,10 @@ claude ctx 42% · 5h 18% · 7d 4%
 
 ```dotenv
 TTYD_FONT_SIZE=28
+TTYD_THEME=dark
 ```
 
-Or `cind.config.json` → `ttyd.font_size` (first `make env` if unset in `.env`).
+Or `cind.config.yaml` → `ttyd.font_size` / `ttyd.theme` / `ttyd.font_family` (first `make env` if unset in `.env`). Defaults apply automatically — no prompt when opening the terminal.
 
 ## Browser (ttyd) caveats
 

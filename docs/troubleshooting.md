@@ -7,7 +7,7 @@
 **Fix:**
 
 1. Set an absolute path in `.env` (no `.`, `../`, or `~`), or pass it once: `make env PROJECT_DIR=/absolute/path/to/project`.
-2. Declare workspaces in `cind.config.json` and run `make env`.
+2. Declare workspaces (`make config-wizard` or `cind.config.yaml`) and run `make env`.
 3. Run `make path-check`.
 
 See [Path parity](path-parity.md) and [Config](config.md).

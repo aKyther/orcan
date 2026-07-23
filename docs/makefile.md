@@ -8,10 +8,11 @@ Everyday commands for building and running the cind container.
 | --- | --- |
 | `make help` | List all targets |
 | `make setup` | **First run:** scaffold config (if missing), `make env`, show layout |
-| `make env` | Refresh `.env`, runtime config, and project mounts from `cind.config.json` |
-| `make config-init` | Create `cind.config.json` from example (skip if exists) |
-| `make config-scaffold` | Add workspace/project from `PROJECT_DIR` into `cind.config.json` |
-| `make config-show` | List workspaces (config + runtime manifest) |
+| `make env` | Refresh `.env`, runtime config, and project mounts from `cind.config.yaml` |
+| `make config-show` | Print config and generated runtime manifest |
+| `make config-wizard` | Interactive create/edit `cind.config.yaml` |
+| `make config-init` | Copy example YAML template |
+| `make config-scaffold` | Non-interactive add project from `PROJECT_DIR` |
 | `make path-check` | Show mounts and workspace layout (read-only) |
 | `make build` | Build the container image (needs `.env` only) |
 | `make rebuild` | Rebuild without cache (needs `.env` only) |
@@ -41,11 +42,12 @@ make terminal
 make terminal-docker
 ```
 
-Run **`make env`** when you change `cind.config.json`, add a project, or need fresh generated mounts. Then seed per-repo ignores and recreate the terminal:
+### Config change ritual
 
 ```bash
+make config-wizard          # or edit cind.config.yaml / config-scaffold
 make env
-make init-project-all
+make init-project-all       # optional: seed ignores / AGENTS in new repos
 make down && make terminal-docker
 ```
 
@@ -53,11 +55,12 @@ First time (or missing `.env`):
 
 ```bash
 make setup PROJECT_DIR=/absolute/path/to/repo
+# or: make config-wizard && make env
 make build
 make terminal-docker
 ```
 
-Daily use:
+Daily use (no config change):
 
 ```bash
 make terminal-docker
@@ -119,16 +122,10 @@ make registry-show
 ### After config changes
 
 ```bash
-make config-scaffold PROJECT_DIR=/home/you/gotibooks/frontend WORKSPACE=gotibooks
+make config-wizard
+# or: make config-scaffold PROJECT_DIR=... WORKSPACE=...
 make env
 make down && make terminal-docker
-```
-
-### With JSON config
-
-```bash
-make env
-make terminal-docker
 ```
 
 ## Compose stacks
@@ -138,25 +135,28 @@ make terminal-docker
 | `make terminal` | `docker-compose.yml` + `.cind/compose-projects.generated.yml` + `docker-compose.ttyd.yml` |
 | `make terminal-docker` | above + `docker-compose.docker.yml` |
 
-Project paths come from `cind.config.json` → `.cind/compose-projects.generated.yml`.
-Run `make env` after changing projects.
+Project paths come from `cind.config.yaml` → `.cind/compose-projects.generated.yml`.
+Run `make env` after changing projects (wizard, scaffold, or hand-edit).
 
-## JSON config helpers
+## Config helpers
 
 | Target | Description |
 | --- | --- |
-| `make setup` | First run: create minimal `cind.config.json`, run `env`, show next steps |
-| `make config-scaffold` | Append workspace/project from `PROJECT_DIR` |
-| `make config-show` | Print `cind.config.json` and generated runtime manifest |
-| `make config-init` | Optional: copy full `cind.config.example.json` template |
+| `make setup` | First run: scaffold config if missing, run `env`, show next steps |
+| `make config-wizard` | Interactive create/edit `cind.config.yaml` (keep / change / delete) |
+| `make config-scaffold` | Non-interactive append workspace/project from `PROJECT_DIR` |
+| `make config-show` | Print config and generated runtime manifest |
+| `make config-init` | Optional: copy full `cind.config.example.yaml` template |
 
 ```bash
+make config-wizard
+# or:
 make setup PROJECT_DIR=/home/you/projects/my-app
 make build
 make terminal-docker
 ```
 
-Add repos:
+Add repos without the wizard:
 
 ```bash
 make config-scaffold PROJECT_DIR=/home/you/gotibooks/backend WORKSPACE=gotibooks
@@ -166,7 +166,7 @@ make env
 
 Optional: `WORKSPACE=my-name`, `FORCE=1`.
 
-Note: `make config` prints **Docker Compose** config, not `cind.config.json`.
+Note: `make config` prints **Docker Compose** config, not `cind.config.yaml`.
 
 ## Docker socket
 

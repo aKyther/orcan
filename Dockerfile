@@ -38,7 +38,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update \
-    && apt-get install -y --no-install-recommends \
+    &&     apt-get install -y --no-install-recommends \
         bash \
         bat \
         build-essential \
@@ -72,6 +72,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         vim \
         wget \
         zip \
+        zsh \
+        zsh-autosuggestions \
+        zsh-syntax-highlighting \
         zstd \
     && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
     && ln -sf /usr/bin/batcat /usr/local/bin/bat \
@@ -195,6 +198,42 @@ RUN set -eux; \
     yq --version
 
 # ------------------------------------------------------------------------------
+# Starship + delta + lazygit (shell / git UX)
+# ------------------------------------------------------------------------------
+
+ARG STARSHIP_VERSION=1.22.1
+ARG DELTA_VERSION=0.18.2
+ARG LAZYGIT_VERSION=0.48.0
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) \
+            starship_arch="x86_64-unknown-linux-musl"; \
+            delta_arch="x86_64-unknown-linux-gnu"; \
+            lazygit_arch="Linux_x86_64"; \
+            ;; \
+        arm64) \
+            starship_arch="aarch64-unknown-linux-musl"; \
+            delta_arch="aarch64-unknown-linux-gnu"; \
+            lazygit_arch="Linux_arm64"; \
+            ;; \
+        *) echo "unsupported architecture for shell tools: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/starship/starship/releases/download/v${STARSHIP_VERSION}/starship-${starship_arch}.tar.gz" \
+        | tar -xz -C /usr/local/bin starship; \
+    chmod 0755 /usr/local/bin/starship; \
+    starship --version; \
+    curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/delta-${DELTA_VERSION}-${delta_arch}.tar.gz" \
+        | tar -xz --strip-components=1 -C /usr/local/bin "delta-${DELTA_VERSION}-${delta_arch}/delta"; \
+    chmod 0755 /usr/local/bin/delta; \
+    delta --version; \
+    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_${lazygit_arch}.tar.gz" \
+        | tar -xz -C /usr/local/bin lazygit; \
+    chmod 0755 /usr/local/bin/lazygit; \
+    lazygit --version
+
+# ------------------------------------------------------------------------------
 # Container filesystem (scripts, defaults, shell configs)
 # ------------------------------------------------------------------------------
 
@@ -220,7 +259,10 @@ RUN chmod 0755 \
     && find /opt/cursor-defaults -type f -exec chmod 0444 {} \; \
     && find /opt/cursor-defaults -type d -exec chmod 0555 {} \; \
     && chmod 0644 /etc/profile.d/cind-path.sh \
-    && chmod -R a+rX /etc/skel
+    && chmod -R a+rX /etc/skel \
+    && chmod -R a+rX /opt/cind \
+    && chmod 0644 /opt/cind/gitconfig /opt/cind/starship.toml \
+    && chmod 0644 /etc/cind/shell/aliases.sh
 
 # ------------------------------------------------------------------------------
 # User
@@ -240,7 +282,7 @@ RUN set -eux; \
             --login "${USERNAME}" \
             --home "/home/${USERNAME}" \
             --move-home \
-            --shell /bin/bash \
+            --shell /bin/zsh \
             --gid "${existing_group}" \
             "${existing_user}"; \
     else \
@@ -248,7 +290,7 @@ RUN set -eux; \
             --uid "${USER_UID}" \
             --gid "${existing_group}" \
             --create-home \
-            --shell /bin/bash \
+            --shell /bin/zsh \
             "${USERNAME}"; \
     fi; \
     \
@@ -276,14 +318,23 @@ RUN set -eux; \
         "/home/${USERNAME}/.cargo" \
         "/home/${USERNAME}/go" \
         "/home/${USERNAME}/.bashrc.d" \
+        "/home/${USERNAME}/.zshrc.d" \
         "/home/${USERNAME}/.cursor"; \
     \
     # Install shell configs from skel (safe if useradd already copied them).
     cp -a /etc/skel/.bashrc.d/. "/home/${USERNAME}/.bashrc.d/"; \
+    cp -a /etc/skel/.zshrc.d/. "/home/${USERNAME}/.zshrc.d/"; \
+    cp -a /etc/skel/.zshrc "/home/${USERNAME}/.zshrc"; \
     cp -a /etc/skel/.tmux.conf "/home/${USERNAME}/.tmux.conf"; \
     cp -a /etc/skel/.vimrc "/home/${USERNAME}/.vimrc"; \
     ln -sfn /etc/tmux "/home/${USERNAME}/.config/tmux"; \
-    mkdir -p "/home/${USERNAME}/.cache/tmux"; \
+    mkdir -p "/home/${USERNAME}/.cache/tmux" "/home/${USERNAME}/.config"; \
+    if [[ ! -e "/home/${USERNAME}/.config/starship.toml" ]]; then \
+        cp -a /opt/cind/starship.toml "/home/${USERNAME}/.config/starship.toml"; \
+    fi; \
+    if [[ ! -e "/home/${USERNAME}/.gitconfig" ]]; then \
+        cp -a /opt/cind/gitconfig "/home/${USERNAME}/.gitconfig"; \
+    fi; \
     \
     if ! grep -q 'bashrc.d' "/home/${USERNAME}/.bashrc"; then \
         printf '\n# Container shell snippets\nfor f in "$HOME"/.bashrc.d/*.sh; do\n  [ -r "$f" ] && . "$f"\ndone\n' \
@@ -342,4 +393,4 @@ RUN set -eux; \
 # Claude config lives under ~/.claude (container-local unless you add a volume later).
 
 ENTRYPOINT ["docker-entrypoint"]
-CMD ["bash"]
+CMD ["zsh"]

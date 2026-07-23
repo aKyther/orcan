@@ -93,11 +93,12 @@ run_init_ai_statusline() {
     "${AI_STATUSLINE_SCRIPT}" || true
 }
 
-ensure_shell_aliases() {
-    # Seed bashrc.d from skel; drop legacy cursor-dev names.
-    # Always refresh 50-cind-shell.sh (cwd logic must match the image).
-    local src dst
-    mkdir -p "${HOME}/.bashrc.d"
+ensure_shell_home() {
+    # Seed bashrc.d / zshrc.d from skel; drop legacy cursor-dev names.
+    # Always refresh managed PATH/cwd snippets so image logic stays in sync.
+    local src dst base
+    mkdir -p "${HOME}/.bashrc.d" "${HOME}/.zshrc.d" "${HOME}/.cache/zsh" "${HOME}/.config"
+
     rm -f "${HOME}/.bashrc.d/50-cursor-dev.sh"
     for src in /etc/skel/.bashrc.d/*.sh; do
         [[ -f "${src}" ]] || continue
@@ -107,6 +108,26 @@ ensure_shell_aliases() {
             cp -- "${src}" "${dst}"
         fi
     done
+
+    if [[ -f /etc/skel/.zshrc && ! -e "${HOME}/.zshrc" ]]; then
+        cp -- /etc/skel/.zshrc "${HOME}/.zshrc"
+    fi
+    for src in /etc/skel/.zshrc.d/*.zsh; do
+        [[ -f "${src}" ]] || continue
+        dst="${HOME}/.zshrc.d/$(basename "${src}")"
+        base="$(basename "${src}")"
+        if [[ "${base}" == "50-cind-shell.zsh" || ! -e "${dst}" ]]; then
+            cp -- "${src}" "${dst}"
+        fi
+    done
+
+    if [[ -f /opt/cind/starship.toml && ! -e "${HOME}/.config/starship.toml" ]]; then
+        cp -- /opt/cind/starship.toml "${HOME}/.config/starship.toml"
+    fi
+    if [[ -f /opt/cind/gitconfig && ! -e "${HOME}/.gitconfig" ]]; then
+        cp -- /opt/cind/gitconfig "${HOME}/.gitconfig"
+    fi
+
     if [[ -f "${HOME}/.profile" ]] && grep -q 'cursor-dev-path' "${HOME}/.profile" 2>/dev/null; then
         sed -i 's|/etc/profile.d/cursor-dev-path.sh|/etc/profile.d/cind-path.sh|g' "${HOME}/.profile" || true
     fi
@@ -116,12 +137,12 @@ main() {
     fix_named_volume_permissions
     run_init
     run_init_ai_statusline
-    ensure_shell_aliases
+    ensure_shell_home
     run_init_workspace
     enter_project_dir
 
     if [[ "$#" -eq 0 ]]; then
-        set -- bash
+        set -- zsh
     fi
 
     exec "$@"
