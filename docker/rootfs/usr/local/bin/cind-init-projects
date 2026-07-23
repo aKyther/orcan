@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Run cursor-init-project on every project path in /etc/cind/config.json (missing-only).
+# Usage: cind-init-projects [--dry-run] [--force]
+set -Eeuo pipefail
+
+CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
+EXTRA_ARGS=()
+
+usage() {
+    cat <<'EOF'
+Usage: cind-init-projects [--dry-run] [--force]
+
+Seed Cursor/Claude ignore files and templates into every configured project
+checkout (missing-only unless --force). Does not run at container start.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --dry-run|--force)
+            EXTRA_ARGS+=("$1")
+            shift
+            ;;
+        *)
+            printf 'Unknown argument: %s\n' "$1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ ! -f "${CIND_CONFIG}" ]]; then
+    printf 'Error: config not found: %s\n' "${CIND_CONFIG}" >&2
+    exit 1
+fi
+
+if ! command -v cind-workspaces >/dev/null 2>&1; then
+    printf 'Error: cind-workspaces not found\n' >&2
+    exit 1
+fi
+
+mapfile -t PATHS < <(CIND_CONFIG="${CIND_CONFIG}" cind-workspaces paths)
+
+if ((${#PATHS[@]} == 0)); then
+    printf 'No project paths in %s\n' "${CIND_CONFIG}"
+    exit 0
+fi
+
+fail=0
+for path in "${PATHS[@]}"; do
+    if [[ ! -d "${path}" ]]; then
+        printf 'Skip (missing dir): %s\n' "${path}" >&2
+        continue
+    fi
+    printf '=== %s ===\n' "${path}"
+    if cursor-init-project "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}" "${path}"; then
+        :
+    else
+        fail=1
+    fi
+done
+
+exit "${fail}"

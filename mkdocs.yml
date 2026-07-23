@@ -1,5 +1,5 @@
 site_name: cind
-site_description: Isolated Docker environment for Cursor CLI, Claude Code, and developer tools
+site_description: Context orchestrator for Cursor CLI and Claude Code in Docker
 site_author: cind contributors
 
 repo_url: https://github.com/example/cind
@@ -70,6 +70,7 @@ nav:
   - tmux: tmux.md
   - JSON config: config.md
   - Architecture:
+      - Context orchestration: architecture/context.md
       - Virtual workspace: architecture/workspace.md
   - Makefile: makefile.md
   - Cursor: cursor.md

@@ -1,26 +1,29 @@
-# Cursor CLI Dev Container
+# cind
 
-This project gives you an isolated Docker environment for **Cursor CLI** and a full developer toolchain.
+**cind** orchestrates **environment and context** for coding agents: workspaces, path-parity mounts, instruction/ignore seeds, and a browser tmux launcher.
+
+Cursor CLI (`agent`) and Claude Code (`claude`) are **pluggable tools** inside that environment. **Models are out of scope** — configure them in each CLI / account, not in cind.
 
 ## What this project is
 
 A ready-to-run container image and Compose setup where:
 
-* your chosen project is mounted at the same absolute path as on the host (`PROJECT_DIR`)
-* Cursor CLI and common tools are already installed
+* workspaces group one or more repos into one context unit (tmux session)
+* projects mount with path parity (same absolute path on host and in the container)
+* agents get a **context pack** (`AGENTS.md` / `CLAUDE.md`, ignores, manifest) at the workspace root
 * the host stays free of global language toolchains
 * optional Docker socket access is an explicit choice
 
 ## Who should use it
 
-* Developers who use Cursor CLI on Linux or WSL
-* Teams that want the same toolchain for every machine
+* Developers who want Cursor and/or Claude CLI in one isolated toolbox
+* Teams that want the same toolchain and context layout on every machine
 * Anyone who wants clearer boundaries between agent work and the host OS
 
 ## Project goals
 
 1. Keep the host clean.
-2. Give Cursor a complete toolbox.
+2. Own **where** agents work and **what** they should see — not which model they use.
 3. Make everyday commands short (`make build`, `make terminal`).
 4. Be honest about security limits.
 
@@ -29,15 +32,13 @@ A ready-to-run container image and Compose setup where:
 | Page | Content |
 | --- | --- |
 | [Getting started](getting-started.md) | First successful run |
+| [Context orchestration](architecture/context.md) | Product boundary, context pack, non-goals |
+| [Virtual workspace](architecture/workspace.md) | Workspace = context unit |
 | [Installation](installation.md) | Requirements and setup |
-| [Docker](docker.md) | Image, Compose, volumes, users |
+| [Docker](docker.md) | Image, Compose, binds, users |
 | [Makefile](makefile.md) | Every Make command |
 | [Cursor](cursor.md) | Global profile, image defaults, project init |
 | [Security](security.md) | What is and is not isolated |
 | [Development](development.md) | Repository vs container layout |
 | [FAQ](faq.md) | Common questions |
 | [Troubleshooting](troubleshooting.md) | Fixes for common failures |
-
-!!! tip
-
-    If you only want to try it once, open [Getting started](getting-started.md).

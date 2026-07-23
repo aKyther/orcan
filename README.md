@@ -1,12 +1,12 @@
 # cind
 
-Isolated Docker environment for **Cursor CLI** (`agent`), **Claude Code**, and common developer tools.
+**Context orchestrator** for coding agents: workspaces, path-parity mounts, ignore/instruction seeds, and a browser tmux launcher. **Cursor CLI** (`agent`) and **Claude Code** (`claude`) run as tools inside that environment. **Models are out of scope** for cind — each CLI chooses its own.
 
 This repository keeps your host system clean. Tools run inside a container. Projects use [path parity](docs/path-parity.md). Workspaces are declared in `cind.config.json` (one tmux session per workspace).
 
-**Who it is for:** developers who want Cursor/Claude with Node, Python, Go, Rust, and optional Docker access — without installing the full toolchain on the host.
+**Who it is for:** developers who want a shared agent environment (Node, Python, Go, Rust, optional Docker) without installing the full toolchain on the host — and without managing models in cind config.
 
-**Problem it solves:** mixed global toolchains, root-owned files from containers, and unclear boundaries between agent work and the host OS.
+**Problem it solves:** mixed global toolchains, root-owned files from containers, and unclear boundaries between agent work and the host OS. See [Context orchestration](docs/architecture/context.md).
 
 ---
 
@@ -17,13 +17,15 @@ This repository keeps your host system clean. Tools run inside a container. Proj
 * Docker-based environment on Debian Bookworm Slim
 * Multi-stage image build
 * Multi-workspace launcher → one **tmux session per workspace** (browser ttyd)
+* Workspace **context pack** (manifest, AGENTS/CLAUDE, ignores) — see [docs/architecture/context.md](docs/architecture/context.md)
 * Node.js, npm, pnpm; Python 3 + **uv**; Go; Rust
 * Docker CLI, Compose, Buildx (optional host socket)
 * Git, ripgrep, fd, fzf, bat, eza, jq, yq, tree, curl, shellcheck, hyperfine
 * PostgreSQL client, Redis client
 * Persistent host data under `~/.config/cind` (`CIND_DATA` binds — not named volumes)
 * Global Cursor defaults seeded at container startup
-* `cursor-init-project` for optional project scaffolding
+* `cursor-init-project` / `make init-project-all` for optional per-repo scaffolding
+* `cind-session-brief` for optional agent/claude handoff
 * Makefile entrypoints for everyday use
 
 ---
@@ -94,6 +96,7 @@ Docker container
 ```
 
 * **Docker** isolates tools from the host package manager.
+* **Context orchestration** — workspaces, context pack, ignores; CLIs are plugs; models out of scope ([docs](docs/architecture/context.md)).
 * **`cind.config.json` workspaces** isolate project sets (no cross-workspace mixing).
 * **UID/GID mapping** makes new files owned by your host user.
 * **`$CIND_DATA` host binds** keep npm/pnpm/cargo/go/uv caches and Cursor/Claude login between runs.

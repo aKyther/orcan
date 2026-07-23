@@ -55,6 +55,10 @@ alias ag='agent'
 alias agy='agent --yolo'
 alias agent-yolo='agent --yolo'
 
+# Context handoff (workspace root)
+alias brief='cind-session-brief'
+alias ctx='cind-context-status'
+
 # ------------------------------------------------------------------------------
 # Python
 # ------------------------------------------------------------------------------

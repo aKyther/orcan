@@ -26,6 +26,10 @@ Everyday commands for building and running the cind container.
 | `make logs` | Follow container logs |
 | `make validate` | Validate repository layout and scripts |
 | `make test` | Run smoke tests |
+| `make init-project` | Bootstrap Cursor/Claude files in `PROJECT_DIR` |
+| `make init-project-dry-run` | Preview bootstrap for `PROJECT_DIR` |
+| `make init-project-all` | Bootstrap every `projects[].path` (missing-only; not at startup) |
+| `make init-project-all-dry-run` | Preview bootstrap for every configured project |
 
 ## Starting the terminal
 
@@ -37,7 +41,13 @@ make terminal
 make terminal-docker
 ```
 
-Run **`make env`** when you change `cind.config.json`, add a project, or need fresh generated mounts — then `make terminal-docker` again.
+Run **`make env`** when you change `cind.config.json`, add a project, or need fresh generated mounts. Then seed per-repo ignores and recreate the terminal:
+
+```bash
+make env
+make init-project-all
+make down && make terminal-docker
+```
 
 First time (or missing `.env`):
 
@@ -169,8 +179,10 @@ Use it only when you need `docker compose` or `docker build` inside the containe
 | Target | Description |
 | --- | --- |
 | `make config` | Print resolved Compose config |
-| `make init-project` | Bootstrap Cursor files in `PROJECT_DIR` |
+| `make init-project` | Bootstrap Cursor/Claude files in `PROJECT_DIR` |
 | `make init-project-dry-run` | Preview bootstrap |
+| `make init-project-all` | Bootstrap every configured project path |
+| `make init-project-all-dry-run` | Preview all-project bootstrap |
 | `make clean` | Stop containers, keep host data under `CIND_DATA` |
 | `make clean-data` | Delete `$CIND_DATA` (`~/.config/cind`) — login + caches |
 | `make clean-volumes` | Alias for `clean-data` |

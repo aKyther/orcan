@@ -40,6 +40,13 @@ require_file "docker/rootfs/usr/local/bin/init-cursor-home"
 require_file "docker/rootfs/usr/local/bin/init-ai-statusline"
 require_file "docker/rootfs/usr/local/bin/cind-ai-statusline"
 require_file "docker/rootfs/usr/local/bin/cursor-init-project"
+require_file "docker/rootfs/usr/local/bin/cind-init-projects"
+require_file "docker/rootfs/usr/local/bin/cind-session-brief"
+require_file "docker/rootfs/usr/local/bin/cind-workspaces"
+require_file "docker/rootfs/usr/local/bin/cind-context-status"
+require_file "docker/rootfs/usr/local/lib/cind/workspaces.py"
+require_file "docker/rootfs/opt/cursor-defaults/templates/workspace/session-brief.md"
+require_file "docs/architecture/context.md"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
@@ -63,6 +70,8 @@ for script in \
     docker/rootfs/usr/local/bin/docker-entrypoint \
     docker/rootfs/usr/local/bin/init-cursor-home \
     docker/rootfs/usr/local/bin/cursor-init-project \
+    docker/rootfs/usr/local/bin/cind-init-projects \
+    docker/rootfs/usr/local/bin/cind-session-brief \
     docker/rootfs/usr/local/bin/cursor-ttyd \
     docker/rootfs/usr/local/bin/cursor-launcher \
     docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
@@ -91,13 +100,17 @@ done
 for script in \
     docker/rootfs/usr/local/bin/cind-ai-statusline \
     docker/rootfs/usr/local/bin/init-ai-statusline \
+    docker/rootfs/usr/local/bin/cind-workspaces \
+    docker/rootfs/usr/local/bin/cind-context-status \
+    docker/rootfs/usr/local/lib/cind/workspaces.py \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
     scripts/repository/apply-config.py
 do
     if [[ -f "${script}" ]]; then
-        python3 -m py_compile "${script}"
+        PYTHONPATH="${ROOT_DIR}/docker/rootfs/usr/local/lib${PYTHONPATH:+:$PYTHONPATH}" \
+            python3 -m py_compile "${script}"
         printf 'Syntax OK: %s\n' "${script}"
     fi
 done

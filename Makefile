@@ -17,7 +17,8 @@ CONFIG ?=
 .DEFAULT_GOAL := help
 
 .PHONY: help setup env build rebuild terminal terminal-docker terminal-url \
-	down logs config init-project init-project-dry-run clean clean-volumes clean-data \
+	down logs config init-project init-project-dry-run init-project-all init-project-all-dry-run \
+	clean clean-volumes clean-data \
 	docs docs-serve test validate path-check validate-project require-generated require-env \
 	config-init config-scaffold config-show \
 	registry-show registry-login publish pull
@@ -26,6 +27,8 @@ help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@printf '\nFirst run: make setup PROJECT_DIR=/absolute/path/to/repo\n'
+	@printf 'After cind.config.json edits: make env && make init-project-all\n'
+	@printf 'Then: make down && make terminal-docker\n'
 
 setup: validate-project ## First run: create config if missing, refresh .env, show layout
 	@if [ ! -f cind.config.json ]; then \
@@ -178,13 +181,19 @@ config: require-generated ## Validate and print the resolved Compose config
 	@echo "=== terminal-docker (make terminal-docker) ==="
 	$(COMPOSE_TTYD_DOCKER) config
 
-init-project: require-generated ## Create missing Cursor project files in the mounted PROJECT_DIR
+init-project: require-generated ## Create missing Cursor/Claude project files in PROJECT_DIR
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	$(COMPOSE) run --rm --name cind-init-project cind cursor-init-project "$$PROJECT_DIR"
 
-init-project-dry-run: require-generated ## Show Cursor project files that would be created
+init-project-dry-run: require-generated ## Show project files that would be created in PROJECT_DIR
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	$(COMPOSE) run --rm --name cind-init-project-dry cind cursor-init-project --dry-run "$$PROJECT_DIR"
+
+init-project-all: require-generated ## Seed ignores/templates into every projects[].path (missing-only)
+	$(COMPOSE) run --rm --name cind-init-projects cind cind-init-projects
+
+init-project-all-dry-run: require-generated ## Dry-run init for every configured project path
+	$(COMPOSE) run --rm --name cind-init-projects-dry cind cind-init-projects --dry-run
 
 clean: ## Stop containers (keeps host data under CIND_DATA)
 	-$(COMPOSE_TTYD) down --remove-orphans

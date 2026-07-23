@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Show context-pack status for one or all cind workspaces."""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "/usr/local/lib")
+
+from cind.workspaces import (  # noqa: E402
+    DEFAULT_CONFIG,
+    format_status,
+    iter_workspaces,
+    load_config,
+)
+
+
+def find_workspace(cfg: dict, needle: str) -> dict | None:
+    needle = needle.strip()
+    if not needle:
+        return None
+    for ws in iter_workspaces(cfg):
+        if ws["name"] == needle or ws["root"] == needle:
+            return ws
+        if ws["root"] and Path(ws["root"]).resolve() == Path(needle).resolve():
+            return ws
+    # Treat as a bare workspace root path not in config
+    root = Path(needle)
+    if root.is_dir():
+        return {
+            "name": root.name,
+            "root": str(root.resolve()),
+            "tmux_session": root.name,
+            "projects": [],
+        }
+    return None
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config",
+        default="",
+        help=f"Config path (default: $CIND_CONFIG or {DEFAULT_CONFIG})",
+    )
+    parser.add_argument(
+        "workspace",
+        nargs="?",
+        default="",
+        help="Workspace name or root (default: $CIND_WORKSPACE_ROOT or all)",
+    )
+    args = parser.parse_args()
+
+    try:
+        cfg = load_config(args.config or None)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"Error reading config: {exc}", file=sys.stderr)
+        return 1
+
+    target = (args.workspace or os.environ.get("CIND_WORKSPACE_ROOT") or "").strip()
+    if target:
+        ws = find_workspace(cfg, target)
+        if ws is None:
+            print(f"Workspace not found: {target}", file=sys.stderr)
+            return 1
+        print(format_status(ws), end="")
+        return 0
+
+    workspaces = list(iter_workspaces(cfg))
+    if not workspaces:
+        print("No workspaces configured.", file=sys.stderr)
+        return 1
+    for i, ws in enumerate(workspaces):
+        if i:
+            print("────────────────────────────")
+        print(format_status(ws), end="")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

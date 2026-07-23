@@ -154,14 +154,16 @@ Skills do not replace rules. Rules apply every session; skills guide specific wo
 
 Workspace roots (under `/home/developer/workspaces/<name>/`) also get a generated **`AGENTS.md`** / **`CLAUDE.md`**, ignore files, and `.manifest.json` on container start — see [Workspace architecture](architecture/workspace.md#agents).
 
-Create project files with `cursor-init-project` when needed.
+Create project files with `cursor-init-project` when needed (or `make init-project` / `make init-project-all` from the host).
 Templates under `templates/` are starting points — customize them per project.
+
+Optional handoff between `agent` and `claude`: `cind-session-brief` → `.cind/session-brief.md` (see [Context orchestration](architecture/context.md)).
 
 !!! tip
 
     Workspace-level `.cursorignore` / `.claudeignore` cover the workspace root.
     When you `cd` into a project symlink, prefer the same files **inside that repo**
-    (`cursor-init-project`). Global denies in `cli-config.json` / `~/.claude/settings.json`
+    (`cursor-init-project` or `make init-project-all`). Global denies in `cli-config.json` / `~/.claude/settings.json`
     still apply. Ignore files reduce accidental discovery; they are not a hard security boundary.
 
 ### Why the separation exists
