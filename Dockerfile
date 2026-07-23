@@ -370,6 +370,7 @@ ENV PRE_COMMIT_HOME=/home/${USERNAME}/.cache/pre-commit
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTEST_ADDOPTS="-p no:cacheprovider"
+ENV CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude
 ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
 
 USER ${USERNAME}

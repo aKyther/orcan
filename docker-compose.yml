@@ -32,6 +32,7 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
       PYTEST_ADDOPTS: "-p no:cacheprovider"
+      CLAUDE_CONFIG_DIR: /home/developer/.claude
       DOCKER_BUILDKIT: "1"
       COMPOSE_DOCKER_CLI_BUILD: "1"
       PROJECT_DIR: ${PROJECT_DIR}

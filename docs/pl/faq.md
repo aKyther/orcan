@@ -57,7 +57,15 @@ make down && make terminal-docker
 
 ## Gdzie są dane logowania / cache?
 
-Pod `$ORCAN_DATA` (domyślnie `~/.config/orcan`).
+Pod `$ORCAN_DATA` (domyślnie `~/.config/orcan`):
+
+| Ścieżka na hoście | Co |
+| --- | --- |
+| `claude/` | Konfiguracja Claude Code + OAuth (`.credentials.json`, settings). `CLAUDE_CONFIG_DIR` wskazuje tu, żeby login przeżywał restarty |
+| `cursor/` | Home CLI Cursor |
+| `cache/` | Cache narzędzi (ruff, pip, uv, …) |
+
+Po `make rebuild` / restarcie **nie** powinieneś musieć ponownie robić `/login`, chyba że wyczyściłeś `$ORCAN_DATA` albo nigdy nie dokończyłeś logowania przy zamontowanym volume.
 
 ## Czy mogę wyłączyć tmux?
 
