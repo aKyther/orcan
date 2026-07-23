@@ -51,7 +51,10 @@ Po edycji konfiguracji przy działającym kontenerze: `make env && make down && 
 
 | Temat | Doc |
 | --- | --- |
-| Architektura | [concepts/architecture.md](../concepts/architecture.md) |
+| Dlaczego Orcan | [why-orcan.md](../why-orcan.md) |
+| Idee podstawowe | [ideas/core-ideas.md](../ideas/core-ideas.md) |
+| Model mentalny | [ideas/mental-model.md](../ideas/mental-model.md) |
+| Architektura | [architecture.md](../architecture.md) |
 | Schemat konfiguracji | [reference/configuration.md](../reference/configuration.md) |
 | Cele Make | [reference/makefile.md](../reference/makefile.md) |
 | Bezpieczeństwo | [reference/security.md](../reference/security.md) |
@@ -65,6 +68,6 @@ Zmiana kodu jest niekompletna bez aktualizacji odpowiadających docs, gdy zmieni
 ## Zobacz też
 
 - [Przegląd rozwoju](../development/overview.md)
-- [Architektura](../concepts/architecture.md)
+- [Architektura](../architecture.md)
 - [Referencja Makefile](../reference/makefile.md)
 - [Bezpieczeństwo](../reference/security.md)

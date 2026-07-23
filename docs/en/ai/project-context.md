@@ -51,7 +51,10 @@ After config edits with a running container: `make env && make down && make term
 
 | Topic | Doc |
 | --- | --- |
-| Architecture | [concepts/architecture.md](../concepts/architecture.md) |
+| Why Orcan | [why-orcan.md](../why-orcan.md) |
+| Core Ideas | [ideas/core-ideas.md](../ideas/core-ideas.md) |
+| Mental Model | [ideas/mental-model.md](../ideas/mental-model.md) |
+| Architecture | [architecture.md](../architecture.md) |
 | Config schema | [reference/configuration.md](../reference/configuration.md) |
 | Make targets | [reference/makefile.md](../reference/makefile.md) |
 | Security | [reference/security.md](../reference/security.md) |

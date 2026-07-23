@@ -1,24 +1,40 @@
+---
+description: Głębsze spojrzenie na workspace'y Orcana — po co istnieją, układ i mapowanie na konfigurację.
+---
+
 # Workspaces
 
-## Idea
+## Problem
 
-**Workspace** grupuje jeden lub więcej projektów hosta w:
+Pojedyncze repozytorium rzadko jest całą pracą. Bez nazwy dla „te checkouty należą do siebie” każdy odtwarza zbiór ad hoc — a agenci widzą tylko katalog, w którym ich uruchomiono.
 
-- jeden folder pod `/home/developer/workspaces/<name>`
-- jedną sesję **tmux** o tej samej nazwie
-- jeden context pack (manifest, ignores, instrukcje agentów)
+## Dlaczego workspace'y istnieją
 
-## Układ
+**Workspace** to jednostka **kontekstu** w Orcanie: jedna nazwa, jedna sesja, jeden wspólny pack startowy dla agentów oraz jeden lub więcej **projektów** (ścieżki repo).
+
+Jest ważniejszy niż pojedynczy projekt przy agentach kodujących, bo agent potrzebuje **wiązki**.
+
+Jeśli terminy są nowe, najpierw [Idee podstawowe](../ideas/core-ideas.md).
+
+## Jak to działa
+
+Każdy workspace staje się:
+
+- folderem pod `/home/developer/workspaces/<name>`
+- jedną sesją **tmux** o tej samej nazwie
+- **context packiem** w tym rootcie (manifest, wspólne instrukcje, ignores)
+
+Każdy projekt to symlink do nawigacji **oraz** bind mount path-parity dla Dockera.
+
+## Przykładowy układ
 
 ```text
-/home/developer/workspaces/myapp/     # workspace root
+/home/developer/workspaces/myapp/     # root workspace'a
   .manifest.json
   AGENTS.md
-  backend  → symlink to /absolute/path/to/backend
-  frontend → symlink to /absolute/path/to/frontend
+  backend  → symlink do /absolute/path/to/backend
+  frontend → symlink do /absolute/path/to/frontend
 ```
-
-Każde `projects[].path` jest też bind-montowane pod **tą samą ścieżką bezwzględną** (path parity). Symlinki służą nawigacji; mounty parity — Dockerowi z Dockera.
 
 ## Mapowanie konfiguracji
 
@@ -31,16 +47,23 @@ Każde `projects[].path` jest też bind-montowane pod **tą samą ścieżką bez
 }
 ```
 
-- `name` → sesja + katalog workspace'a
-- `projects[].name` → nazwa symlinku
-- `projects[].path` → bezwzględna ścieżka host/kontener
+- `name` → sesja + katalog workspace'a  
+- `projects[].name` → nazwa symlinka  
+- `projects[].path` → bezwzględna ścieżka host/kontener  
 
 ## Primary workspace
 
-Pierwszy włączony workspace steruje `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR` w `.env` (cel `cd` w entrypointcie).
+Pierwszy włączony workspace napędza `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR` w `.env` (katalog startu entrypointu).
 
-## Zobacz też
+## Kompromisy
 
-- [Path parity](path-parity.md)
-- [Architektura](architecture.md)
+- **Zysk:** jeden nazwany kontekst do odtworzenia.  
+- **Koszt:** musisz utrzymywać poprawne ścieżki bezwzględne i uruchamiać `make env` po edycji konfiguracji.  
+- **Wybór:** Orcan nie przepisuje każdego checkoutu git przy starcie; seeduj projekty jawnie, gdy tego chcesz.
+
+## Powiązane
+
+- [Model mentalny](../ideas/mental-model.md)  
+- [Path parity](path-parity.md)  
+- [Architektura](../architecture.md)  
 - [Konfiguracja](../getting-started/configuration.md)

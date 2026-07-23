@@ -1,45 +1,60 @@
+---
+description: Typowe workflowy Orcana — najpierw scenariusze dnia, potem komendy Make.
+---
+
 # Typowe workflowy
 
-Wszystkie polecenia poniżej uruchamiasz na **hoście**, o ile nie oznaczono **(kontener)**.
+Te scenariusze zakładają, że znasz już [Idee podstawowe](../ideas/core-ideas.md). Polecenia na **hoście**, o ile nie oznaczono **(kontener)**.
 
-## Codzienny start
+## Scenariusz: start dnia w jednym kontekście
+
+Masz już skonfigurowane workspace'y. Chcesz terminal w przeglądarce i wczorajsze mounty.
+
+**Idea:** odtwórz sesję bez regenerowania konfiguracji.
 
 ```bash
 cd /absolute/path/to/orcan
 make terminal-docker
 ```
 
-Otwórz `http://localhost:7681`. To **nie** uruchamia `make env`.
+Otwórz `http://localhost:7681` i wybierz workspace.
 
 !!! note
-    Po każdej edycji `orcan.config.json`: `make env`, potem `make down && make terminal-docker` (opcjonalnie najpierw `make init-project-all`).
+    `make terminal*` **nie** uruchamia `make env`. Jeśli zmieniłeś `orcan.config.json`, najpierw zastosuj konfigurację.
 
-## Zmiana workspace'ów lub portów
+## Scenariusz: przełączenie klienta lub linii produktu
+
+**Problem:** inny zestaw repo to dzisiejszy kontekst.  
+**Podejście:** edytuj listę workspace'ów (lub włącz inny), zastosuj konfigurację, odtwórz kontener.
 
 ```bash
 make config-wizard    # albo edytuj orcan.config.json
 make env
-make init-project-all
+make init-project-all # opcjonalne seedy w każdej ścieżce projektu
 make down
 make terminal-docker
 ```
 
-## Uruchomienie bez socketa Dockera hosta
+## Scenariusz: bezpieczniejszy terminal bez socketa Dockera hosta
 
-Bezpieczniej, ale bez Docker-from-Docker:
+**Kompromis:** brak Docker-from-Docker; mniejszy blast radius.
 
 ```bash
 make terminal
 ```
 
-## Obraz tylko Claude
+## Scenariusz: tylko Claude
+
+**Idea:** mniejszy obraz, gdy Cursor CLI nie jest potrzebny.
 
 ```bash
 make build-claude
 IMAGE_LOCAL=orcan:claude make terminal-docker
 ```
 
-## Rebuild po zmianach Dockerfile lub rootfs
+## Scenariusz: rebuild po zmianach Dockerfile lub rootfs
+
+**Idea:** opis kontekstu ten sam; zmienił się **obraz narzędzi**.
 
 ```bash
 make rebuild          # pełny
@@ -49,7 +64,9 @@ make down
 make terminal-docker
 ```
 
-## Sprawdzenie path parity
+## Scenariusz: weryfikacja path parity
+
+**Dlaczego:** zagnieżdżony Docker działa tylko przy zgodnych ścieżkach bezwzględnych.
 
 ```bash
 make path-check
@@ -57,42 +74,40 @@ make path-check
 
 ## Wewnątrz kontenera
 
-| Akcja | Polecenie |
+| Potrzeba | Polecenie |
 | --- | --- |
 | Lista workspace'ów | `orcan-workspaces` |
 | Status context pack | `orcan-context-status` |
 | Seed wszystkich projektów | `orcan-init-projects` |
-| Utwórz session brief | `orcan-session-brief` |
+| Session brief | `orcan-session-brief` |
 | Helper statusu AI | `orcan-ai-statusline` |
-| Cursor CLI | `agent` / alias `ag` |
-| Claude Code | `claude` / alias `cc` |
+| Cursor CLI | `agent` / `ag` |
+| Claude Code | `claude` / `cc` |
 
-Klawisze launchera (menu w przeglądarce): numer workspace'a, `s` = status, `i` = wskazówka init, `q` = wyjście.
+Klawisze launchera: numer workspace'a, `s` = status, `i` = wskazówka init, `q` = wyjście.
 
-## Zatrzymanie i czyszczenie
+## Stop, czyszczenie, odinstalowanie
 
 ```bash
-make down                 # zatrzymaj kontenery; zachowaj ~/.config/orcan
-make clean                # podobnie jak down dla stosów Compose
-make clean-data           # DESTRUKCYJNE: usuwa ORCAN_DATA (loginy, cache, historia shella)
+make down                 # zatrzymaj; zachowaj ~/.config/orcan
+make clean                # styl compose down
+make clean-data           # DESTRUKCYJNE: usuwa ORCAN_DATA (wpisz yes)
 ```
 
-`make clean-data` prosi o wpisanie `yes`.
+Pełne usunięcie: [Odinstalowanie](#odinstalowanie).
 
 ## Odinstalowanie { #odinstalowanie }
-
-Pełne usunięcie z tego hosta:
 
 ```bash
 cd /absolute/path/to/orcan
 make down
-make clean-data                 # wpisz yes — usuwa $ORCAN_DATA (domyślnie ~/.config/orcan)
-docker images 'orcan*'          # przejrzyj lokalne tagi
-docker rmi orcan:latest orcan:full orcan:claude   # opcjonalnie; dodaj tagi wersji jeśli są
-rm -rf /absolute/path/to/orcan  # usuń clone, gdy skończysz
+make clean-data
+docker images 'orcan*'
+docker rmi orcan:latest orcan:full orcan:claude   # opcjonalnie
+rm -rf /absolute/path/to/orcan                    # opcjonalnie
 ```
 
-**Nie** musisz usuwać zamontowanych repozytoriów projektów, chyba że chcesz.
+Zamontowane repo projektów zostają, dopóki sam ich nie usuniesz.
 
 ## Aktualizacja Orcana
 
@@ -105,11 +120,9 @@ make rebuild              # gdy zmienił się Dockerfile/rootfs
 make down && make terminal-docker
 ```
 
-Wydania to tagi git + notatki GitHub Release. CI nie publikuje obrazu kontenera.
-
 ## Zobacz też
 
-- [Szybki start](../getting-started/quickstart.md)
-- [Rozwiązywanie problemów](troubleshooting.md)
-- [Referencja Makefile](../reference/makefile.md)
+- [Szybki start](../getting-started/quickstart.md)  
+- [Rozwiązywanie problemów](troubleshooting.md)  
+- [Referencja Makefile](../reference/makefile.md)  
 - [FAQ](../faq.md)

@@ -18,7 +18,7 @@ Active Cursor CLI permissions file: `cli-config.json` (seeded from defaults).
 - **Workspace** context pack: written under `/home/developer/workspaces/<name>/` by `init-workspace`
 - **Project** files: only when you run init-project targets
 
-See [Architecture](../concepts/architecture.md).
+See [Architecture](../architecture.md).
 
 ## Status line
 
@@ -27,3 +27,8 @@ Optional AI usage in tmux status: `init-ai-statusline` + `orcan-ai-statusline` (
 ## This repository
 
 When you develop **Orcan itself**, also read root `AGENTS.md` and `.cursor/rules/` — those are for the Orcan repo, not for every mounted customer project.
+
+## See also
+
+- [Architecture](../architecture.md)
+- [Core Ideas](../ideas/core-ideas.md)

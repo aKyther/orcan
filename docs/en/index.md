@@ -1,21 +1,62 @@
 ---
-description: Context orchestrator for Cursor CLI and Claude Code in Docker — workspaces, path parity, browser terminal.
+description: Orcan — work-context orchestrator for coding agents across many repositories.
 ---
 
 # Orcan
 
-**Orcan** is a context orchestrator for coding agents. It runs **Cursor CLI** (`agent`) and **Claude Code** (`claude`) inside Docker, with path-parity mounts, workspaces, and a browser terminal (ttyd → tmux → zsh).
+Orcan orchestrates **work context** for coding agents: which repositories belong together, how they are mounted, and how you enter that environment in Docker.
 
-Orcan does **not** choose models. Each CLI uses its own account and model settings.
+It does **not** choose models. Cursor CLI (`agent`) and Claude Code (`claude`) keep their own accounts and model settings.
 
-## Why use it
+## The problem
 
-- Keep heavy toolchains off the host
-- One config for several repos (workspaces)
-- Same absolute paths on host and in the container ([path parity](concepts/path-parity.md))
-- Shared agent context (ignores, `AGENTS.md` / `CLAUDE.md`) without rewriting every git checkout on every start
+You maintain many repositories. They often come from different organisations. Some collaborate. Some pin versions of shared libraries. Each laptop accumulates a different mix of tools and startup habits.
 
-## Minimal example
+After a few months, the expensive part is not `git clone`. It is **rebuilding the full context**: which checkouts form today’s job, what agents should read first, and which absolute paths still work when Docker runs inside Docker.
+
+## The solution
+
+Orcan does not manage “Git” as a product. It manages **context**.
+
+- A **project** is one checkout (absolute path).
+- A **workspace** is a named set of projects that belong together.
+- **Context** is the reproducible environment around that set: mounts, shared instructions, ignores, and a browser terminal session.
+
+Configuration describes those relationships. Make and Docker apply them. Agents and humans then share the same layout.
+
+## A day of work
+
+You might touch, in one morning:
+
+- backend API  
+- frontend app  
+- shared library  
+- infrastructure repo  
+- documentation  
+
+Each is its own repository. Each may live under a different org. Together they are still **one job**. Orcan lets you name that job as a workspace and open it as one session.
+
+```mermaid
+graph TD
+  day["Workspace today"] --> api[backend]
+  day --> web[frontend]
+  day --> lib[shared-lib]
+  day --> infra[infra]
+  day --> docs[docs]
+```
+
+**Caption:** One workspace, many projects — the unit of work is the set, not a single folder.
+
+## How to read these docs
+
+1. [Why Orcan?](why-orcan.md) — when it helps and when it does not  
+2. [Core Ideas](ideas/core-ideas.md) — Project, Workspace, Context  
+3. [Mental Model](ideas/mental-model.md) — how the pieces relate  
+4. [Quick Start](getting-started/quickstart.md) — run it once you understand the idea  
+
+Reference pages (Makefile, env vars, Compose) come **after** that arc.
+
+## Try it (after the idea)
 
 ```bash
 git clone https://github.com/aKyther/orcan.git
@@ -27,27 +68,12 @@ make terminal-docker
 
 Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`.
 
-## Next steps
-
-| Goal | Page |
-| --- | --- |
-| Install and first run | [Quickstart](getting-started/quickstart.md) |
-| Requirements | [Installation](getting-started/installation.md) |
-| Edit workspaces | [Configuration](getting-started/configuration.md) |
-| Daily workflows | [Common workflows](guides/workflows.md) |
-| When something breaks | [Troubleshooting](guides/troubleshooting.md) |
-| Make targets | [Makefile reference](reference/makefile.md) |
-| How Orcan thinks about context | [Architecture](concepts/architecture.md) |
-| Develop this repo | [Development](development/overview.md) |
-| AI / Cursor agents working on Orcan | [AI project context](ai/project-context.md) |
-
 ## Status
 
-Version **0.1.1** (see [Changelog](changelog.md)). Distributed as **git clone + Makefile**. Images are built locally (`make build`). CI does not publish container images.
+Version **0.1.1** (see [Changelog](changelog.md)). Distributed as **git clone + Makefile**. Images are built locally. CI does not publish container images.
 
 ## See also
 
-- [FAQ](faq.md)
-- [Deployment](deployment.md)
-- [Host and container interface](interface.md)
+- [Architecture](architecture.md)  
+- [FAQ](faq.md)  
 - [GitHub repository](https://github.com/aKyther/orcan)

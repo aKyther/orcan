@@ -8,7 +8,9 @@ Short answers to common Orcan questions.
 
 ## What is Orcan?
 
-Orcan is a **context orchestrator**. It runs Cursor CLI (`agent`) and Claude Code (`claude`) in Docker with workspaces, path-parity mounts, and a browser terminal.
+Orcan is a **work-context orchestrator**. It runs Cursor CLI (`agent`) and Claude Code (`claude`) in Docker with workspaces (named sets of projects), path-parity mounts, and a browser terminal.
+
+Read [Why Orcan?](why-orcan.md) and [Core Ideas](ideas/core-ideas.md) before the rest of this FAQ.
 
 ## Does Orcan choose AI models?
 

@@ -4,7 +4,7 @@ description: Makefile na hoście, CLI w kontenerze i orcan.config.json — Orcan
 
 # Interfejs hosta i kontenera
 
-Orcan **nie ma** HTTP / REST API.
+To powierzchnia **kontraktu** po poznaniu modelu mentalnego: Make na hoście, CLI w kontenerze, konfiguracja JSON. Orcan **nie ma** HTTP / REST API.
 
 Obsługiwane interfejsy publiczne:
 
@@ -46,6 +46,6 @@ Schema maszynowa: [`orcan.config.schema.json`](https://github.com/aKyther/orcan/
 
 ## Zobacz też
 
-- [Architektura](concepts/architecture.md)
+- [Architektura](architecture.md)
 - [Przewodnik — workflowy](guides/workflows.md)
 - [Kod na GitHubie](https://github.com/aKyther/orcan)

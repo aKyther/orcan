@@ -1,13 +1,15 @@
 ---
-description: Clone Orcan, build the image, and open the browser terminal in a few commands.
+description: Clone Orcan, build the image, and open the browser terminal — after you understand the product idea.
 ---
 
 # Quickstart
 
+You should already know why Orcan exists ([Why Orcan?](../why-orcan.md)) and what a **workspace** is ([Core Ideas](../ideas/core-ideas.md)). This page only gets you running.
+
 ## Before you start
 
-- Docker is running
-- Absolute path to at least one git repo to mount
+- Docker is running  
+- Absolute path to at least one git repo to mount  
 
 ## Steps (host)
 
@@ -22,8 +24,8 @@ Open the URL printed in the terminal (default `http://localhost:7681`).
 
 ## In the browser
 
-1. Pick a **workspace** from the launcher (or press Enter for the default).
-2. You land in **tmux** with **zsh**.
+1. Pick a **workspace** from the launcher (or press Enter for the default).  
+2. You land in **tmux** with **zsh**.  
 3. Check tools:
 
 ```bash
@@ -34,9 +36,9 @@ pwd
 
 ## Expected result
 
-- Browser shows a dark terminal
-- Launcher lists your workspaces
-- `agent` and/or `claude` respond to `--version`
+- Browser shows a dark terminal  
+- Launcher lists your workspaces  
+- `agent` and/or `claude` respond to `--version`  
 
 ## Common problems
 
@@ -49,10 +51,10 @@ pwd
 !!! tip
     After you edit `orcan.config.json`, run `make env` before recreating the container. `make terminal*` does **not** refresh config. See [Workflows](../guides/workflows.md).
 
-Image variants (`orcan:latest` vs `orcan:claude`): [Installation](installation.md) and [FAQ](../faq.md).
+Image variants: [Installation](installation.md) and [FAQ](../faq.md).
 
 ## See also
 
-- [Installation](installation.md)
-- [Configuration](configuration.md)
-- [Workflows](../guides/workflows.md)
+- [Installation](installation.md)  
+- [Configuration](configuration.md)  
+- [Mental Model](../ideas/mental-model.md)

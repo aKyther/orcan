@@ -1,8 +1,14 @@
+---
+description: Describe workspaces and projects in orcan.config.json — the story of your context, then how to apply it.
+---
+
 # Configuration
 
-## What this does
+## Why a config file
 
-Explains how Orcan stores workspaces and how you apply changes.
+Your multi-repo job is a **story**: which projects form which workspace. `orcan.config.json` is that story in data. Make does not invent your layout; it applies what you describe.
+
+If Project / Workspace / Context are unclear, read [Core Ideas](../ideas/core-ideas.md) first.
 
 ## Source of truth
 

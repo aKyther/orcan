@@ -1,5 +1,7 @@
 # Makefile reference
 
+Use this page when you already understand the product idea and need the full host command surface. For the story, start at [Home](../index.md) or [Why Orcan?](../why-orcan.md).
+
 Run from the Orcan repository root on the **host**.
 
 !!! note

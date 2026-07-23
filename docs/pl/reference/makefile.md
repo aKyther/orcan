@@ -1,5 +1,7 @@
 # Referencja Makefile
 
+Użyj tej strony, gdy znasz już ideę produktu i potrzebujesz pełnej powierzchni komend hosta. Historię zacznij od [Start](../index.md) lub [Dlaczego Orcan?](../why-orcan.md).
+
 Uruchamiaj z katalogu głównego repozytorium Orcana na **hoście**.
 
 !!! note

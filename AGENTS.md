@@ -8,12 +8,14 @@ Longer map: `docs/en/ai/project-context.md` (Polish: `docs/pl/ai/project-context
 
 ## What Orcan is
 
-**Context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`) in Docker:
+**Work-context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`) in Docker:
 
-- workspaces + path-parity mounts
-- ignore / instruction seeds
+- workspaces (named sets of projects) + path-parity mounts
+- ignore / instruction seeds (context pack)
 - browser terminal (ttyd) → launcher → tmux → **zsh**
 - Image variants: `orcan:latest` (Claude+Cursor), `orcan:claude` (Claude only)
+
+User-facing story: `docs/en/why-orcan.md`, `docs/en/ideas/core-ideas.md`, `docs/en/ideas/mental-model.md`.
 
 **Not** a model manager — do not add model-selection or provider abstractions.
 **Not** an image registry product — users `git clone` + `make build`.

@@ -1,6 +1,6 @@
 # Orcan
 
-**Context orchestrator** for coding agents. Run **Cursor CLI** (`agent`) and **Claude Code** (`claude`) in Docker with path-parity mounts, workspaces, and a browser tmux terminal.
+**Work-context orchestrator** for coding agents. Run **Cursor CLI** (`agent`) and **Claude Code** (`claude`) in Docker with path-parity mounts, workspaces (named sets of projects), and a browser tmux terminal.
 
 Models are out of scope — each CLI picks its own.
 
@@ -42,9 +42,12 @@ Open `http://localhost:7681`. After config edits: `make env && make down && make
 | --- | --- |
 | Full docs (EN) | https://akyther.github.io/orcan/latest/ |
 | Full docs (PL) | https://akyther.github.io/orcan/latest/pl/ |
+| Why Orcan? | [docs/en/why-orcan.md](docs/en/why-orcan.md) |
+| Core Ideas | [docs/en/ideas/core-ideas.md](docs/en/ideas/core-ideas.md) |
+| Mental Model | [docs/en/ideas/mental-model.md](docs/en/ideas/mental-model.md) |
+| Quickstart (source) | [docs/en/getting-started/quickstart.md](docs/en/getting-started/quickstart.md) |
 | Daily work vs release | [docs/en/development/release.md](docs/en/development/release.md) |
 | Docs aliases (`dev` / `latest`) | [docs/en/deployment.md](docs/en/deployment.md) |
-| Quickstart (source) | [docs/en/getting-started/quickstart.md](docs/en/getting-started/quickstart.md) |
 | Development | [docs/en/development/overview.md](docs/en/development/overview.md) |
 | AI / agents | [AGENTS.md](AGENTS.md), [docs/en/ai/project-context.md](docs/en/ai/project-context.md) |
 

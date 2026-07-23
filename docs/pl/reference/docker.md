@@ -1,5 +1,7 @@
 # Docker i Compose
 
+Użyj tej strony dla tagów obrazu, nakładek Compose i bindów `$ORCAN_DATA`. **Dlaczego** jest podział: [Architektura](../architecture.md).
+
 ## Obraz
 
 - Baza: Debian Bookworm Slim
