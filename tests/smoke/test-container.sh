@@ -25,6 +25,10 @@ command -v init-cursor-home >/dev/null
 command -v init-ai-statusline >/dev/null
 command -v cind-ai-statusline >/dev/null
 command -v cursor-init-project >/dev/null
+command -v cind-init-projects >/dev/null
+command -v cind-session-brief >/dev/null
+command -v cind-workspaces >/dev/null
+command -v cind-context-status >/dev/null
 command -v cursor-ttyd >/dev/null
 command -v cursor-launcher >/dev/null
 command -v cursor-tmux-workspace-attach >/dev/null
@@ -49,6 +53,12 @@ test -x /usr/local/bin/yq
 test -x /usr/local/bin/cursor-launcher
 test -x /usr/local/bin/cursor-tmux-workspace-attach
 test -x /usr/local/bin/cursor-tmux-bootstrap-workspaces
+test -x /usr/local/bin/cind-init-projects
+test -x /usr/local/bin/cind-session-brief
+test -x /usr/local/bin/cind-workspaces
+test -x /usr/local/bin/cind-context-status
+test -f /usr/local/lib/cind/workspaces.py
+test -f /opt/cursor-defaults/templates/workspace/session-brief.md
 test -x /usr/local/bin/cind-ai-statusline
 test -x /usr/local/bin/init-ai-statusline
 test -f /etc/tmux/tmux.conf

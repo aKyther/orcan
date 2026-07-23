@@ -127,3 +127,5 @@ fi
 if [[ -f "${CIND_COMPOSE_PROJECTS:-${ROOT_DIR}/.cind/compose-projects.generated.yml}" ]]; then
     printf 'project mounts: %s\n' "${CIND_COMPOSE_PROJECTS:-${ROOT_DIR}/.cind/compose-projects.generated.yml}"
 fi
+printf 'Next: make init-project-all  # seed per-repo ignores (missing-only)\n'
+printf '      make down && make terminal-docker\n'

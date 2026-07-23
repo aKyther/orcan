@@ -11,50 +11,26 @@ declare -a WS_NAMES=()
 declare -a WS_ROOTS=()
 declare -a WS_SESSIONS=()
 declare -a WS_REPOS=()
+declare -a WS_HINTS=()
 
 load_workspaces() {
     WS_NAMES=()
     WS_ROOTS=()
     WS_SESSIONS=()
     WS_REPOS=()
+    WS_HINTS=()
 
     [[ -f "${CIND_CONFIG}" ]] || return 1
+    command -v cind-workspaces >/dev/null 2>&1 || return 1
 
-    while IFS=$'\t' read -r name root session repos; do
+    while IFS=$'\t' read -r name root session repos hints; do
         [[ -n "${name}" ]] || continue
         WS_NAMES+=("${name}")
         WS_ROOTS+=("${root}")
         WS_SESSIONS+=("${session}")
         WS_REPOS+=("${repos}")
-    done < <(python3 - "${CIND_CONFIG}" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as fh:
-    cfg = json.load(fh)
-
-workspaces = cfg.get("workspaces") or []
-if not workspaces:
-    legacy = cfg.get("workspace") or {}
-    if legacy.get("enabled") is False:
-        raise SystemExit(1)
-    projects = cfg.get("projects") or []
-    if legacy or projects:
-        merged = dict(legacy)
-        merged.setdefault("projects", projects)
-        workspaces = [merged]
-
-for ws in workspaces:
-    if ws.get("enabled") is False:
-        continue
-    name = (ws.get("name") or "workspace").replace("'", "'\\''")
-    root = (ws.get("root") or "/workspace").replace("'", "'\\''")
-    session = (ws.get("tmux_session") or ws.get("tmux") or name).replace("'", "'\\''")
-    repos = ", ".join(
-        (p.get("name") or p.get("alias") or "?") for p in (ws.get("projects") or [])
-    )
-    repos = repos.replace("'", "'\\''")
-    print(f"{name}\t{root}\t{session}\t{repos}")
-PY
-)
+        WS_HINTS+=("${hints}")
+    done < <(CIND_CONFIG="${CIND_CONFIG}" cind-workspaces list --hints)
 
     ((${#WS_NAMES[@]} > 0))
 }
@@ -84,12 +60,16 @@ print_menu() {
             if [[ -n "${WS_REPOS[i]}" ]]; then
                 printf '    repos: %s\n' "${WS_REPOS[i]}"
             fi
+            if [[ -n "${WS_HINTS[i]}" ]]; then
+                printf '    context: %s\n' "${WS_HINTS[i]}"
+            fi
         done
     fi
     printf '────────────────────────────\n'
     printf 'All sessions are started in the background.\n'
     printf 'In tmux: Ctrl+Space w (or s) = switch session · d = detach → menu\n'
-    printf 'r) refresh   q) quit\n'
+    printf 'After make env: make init-project-all  (per-repo ignores)\n'
+    printf 's) context status   i) init hint   r) refresh   q) quit\n'
     printf '\n'
 }
 
@@ -97,6 +77,27 @@ ensure_sessions() {
     if command -v cursor-tmux-bootstrap-workspaces >/dev/null 2>&1; then
         cursor-tmux-bootstrap-workspaces || true
     fi
+}
+
+show_context_status() {
+    if command -v cind-context-status >/dev/null 2>&1; then
+        CIND_CONFIG="${CIND_CONFIG}" cind-context-status || true
+    else
+        printf 'cind-context-status not available\n'
+    fi
+    printf '\nPress Enter…\n'
+    read -r _ || true
+}
+
+show_init_hint() {
+    printf '\nPer-repo ignores are not auto-written into checkouts.\n'
+    printf 'Inside container:  cind-init-projects\n'
+    printf 'From host:         make init-project-all\n'
+    printf 'Dry-run:           make init-project-all-dry-run\n'
+    printf 'Status:            cind-context-status\n'
+    printf 'Session handoff:   cind-session-brief   (alias: brief)\n'
+    printf '\nPress Enter…\n'
+    read -r _ || true
 }
 
 attach_workspace() {
@@ -147,17 +148,19 @@ main() {
         case "${choice}" in
             q|Q) exit 0 ;;
             r|R|"") continue ;;
+            s|S) show_context_status ;;
+            i|I) show_init_hint ;;
             *)
                 if [[ "${choice}" =~ ^[0-9]+$ ]]; then
                     index=$((choice - 1))
                     if (( index >= 0 && index < ${#WS_NAMES[@]} )); then
                         attach_workspace "${index}"
                     else
-                        printf 'Enter 1-%d, r, or q.\n' "${#WS_NAMES[@]}"
+                        printf 'Enter 1-%d, s, i, r, or q.\n' "${#WS_NAMES[@]}"
                         sleep 1
                     fi
                 else
-                    printf 'Enter 1-%d, r, or q.\n' "${#WS_NAMES[@]}"
+                    printf 'Enter 1-%d, s, i, r, or q.\n' "${#WS_NAMES[@]}"
                     sleep 1
                 fi
                 ;;

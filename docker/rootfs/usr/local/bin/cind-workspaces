@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""List / dump cind workspaces from runtime config (shared by bash tools)."""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+
+sys.path.insert(0, "/usr/local/lib")
+
+from cind.workspaces import (  # noqa: E402
+    DEFAULT_CONFIG,
+    compact_hints,
+    iter_workspaces,
+    load_config,
+    project_paths,
+    repo_names,
+)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config",
+        default="",
+        help=f"Config path (default: $CIND_CONFIG or {DEFAULT_CONFIG})",
+    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_list = sub.add_parser("list", help="TSV: name root session repos [hints]")
+    p_list.add_argument(
+        "--hints",
+        action="store_true",
+        help="Append compact context hints as a 5th column",
+    )
+    sub.add_parser("paths", help="Unique project paths, one per line")
+    sub.add_parser("bootstrap", help="TSV: name root session (for tmux bootstrap)")
+
+    args = parser.parse_args()
+    try:
+        cfg = load_config(args.config or None)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"Error reading config: {exc}", file=sys.stderr)
+        return 1
+
+    if args.cmd == "paths":
+        for path in project_paths(cfg):
+            print(path)
+        return 0
+
+    if args.cmd == "bootstrap":
+        for ws in iter_workspaces(cfg):
+            if not ws["root"]:
+                continue
+            print(f"{ws['name']}\t{ws['root']}\t{ws['tmux_session']}")
+        return 0
+
+    for ws in iter_workspaces(cfg):
+        repos = repo_names(ws)
+        line = f"{ws['name']}\t{ws['root']}\t{ws['tmux_session']}\t{repos}"
+        if args.hints:
+            line += f"\t{compact_hints(ws)}"
+        print(line)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

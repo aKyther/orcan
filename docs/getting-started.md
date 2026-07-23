@@ -98,17 +98,24 @@ Handy aliases (always in the image — see `/etc/cind/shell/aliases.sh`):
 | `ccy` | `claude --dangerously-skip-permissions` (no approval prompts) |
 | `ag` | `agent` |
 | `agy` | `agent --yolo` (skip tool approval prompts) |
+| `brief` | `cind-session-brief` (optional workspace handoff file) |
+| `ctx` | `cind-context-status` (context pack / ignore gaps) |
 
-## 7. Optional: scaffold Cursor files in a project
+## 7. Optional: scaffold Cursor/Claude files in a project
 
 From the host (pass the repo path explicitly):
 
 ```bash
 make init-project PROJECT_DIR=/absolute/path/to/repo
+# or every projects[].path in cind.config.json (do this after make env):
+make init-project-all
 ```
+
+Inside the container: `cind-session-brief` / `brief`, `cind-context-status` / `ctx`. Launcher: `s` = status, `i` = init hint.
 
 ## Next steps
 
+* [Context orchestration](architecture/context.md) — what cind owns vs agent models
 * [Makefile](makefile.md) — all targets (`setup`, `config-scaffold`, …)
 * [JSON config](config.md)
 * [Project launcher](launcher.md)

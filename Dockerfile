@@ -207,6 +207,10 @@ RUN chmod 0755 \
         /usr/local/bin/cind-ai-statusline \
         /usr/local/bin/init-workspace \
         /usr/local/bin/cursor-init-project \
+        /usr/local/bin/cind-init-projects \
+        /usr/local/bin/cind-session-brief \
+        /usr/local/bin/cind-workspaces \
+        /usr/local/bin/cind-context-status \
         /usr/local/bin/cursor-ttyd \
         /usr/local/bin/cursor-launcher \
         /usr/local/bin/cursor-tmux-workspace-attach \

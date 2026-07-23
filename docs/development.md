@@ -22,8 +22,12 @@ Guide for contributors and coding agents who change this repository.
 | Host orchestration | `Makefile` + Compose |
 | Host helpers | `scripts/repository/` |
 | Project templates | `docker/rootfs/opt/cursor-defaults/templates/` |
+| Shared workspace parser | `docker/rootfs/usr/local/lib/cind/workspaces.py` |
 | This repo's Cursor rules | `.cursor/rules/` (see `agents.mdc`) |
 | Documentation | `README.md`, `docs/` |
+| Product boundary (context vs models) | `docs/architecture/context.md` |
+
+cind is a **context orchestrator**; do not add model-selection flags or AgentProvider abstractions. Non-goals are listed in that page.
 
 ## Agent guide
 

@@ -65,6 +65,22 @@ if [[ -n "${ai_usage}" ]]; then
     parts+=("${ai_usage}")
 fi
 
+# Session handoff marker (tmux session env, else path under workspaces/).
+brief_root="$(tmux show-environment CIND_WORKSPACE_ROOT 2>/dev/null | cut -d= -f2- || true)"
+if [[ -z "${brief_root}" ]]; then
+    brief_root="${CIND_WORKSPACE_ROOT:-}"
+fi
+if [[ -z "${brief_root}" ]]; then
+    case "${pane_path}" in
+        /home/developer/workspaces/*)
+            brief_root="$(printf '%s' "${pane_path}" | cut -d/ -f1-5)"
+            ;;
+    esac
+fi
+if [[ -n "${brief_root}" && -f "${brief_root}/.cind/session-brief.md" ]]; then
+    parts+=("#[fg=colour114,bold]brief")
+fi
+
 if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
     bat_colour='109'
     if (( battery < 20 )); then

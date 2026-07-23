@@ -8,6 +8,7 @@ CIND_CONFIG="${CIND_CONFIG:-/etc/cind/config.json}"
 TMUX_CONF="${TMUX_CONF:-${HOME}/.tmux.conf}"
 
 [[ -f "${CIND_CONFIG}" ]] || exit 0
+command -v cind-workspaces >/dev/null 2>&1 || exit 0
 
 declare -a ACTIVE_SESSIONS=()
 
@@ -16,31 +17,7 @@ while IFS=$'\t' read -r name root session; do
     [[ -d "${root}" ]] || continue
     ACTIVE_SESSIONS+=("${session}")
     CIND_TMUX_ATTACH=0 cursor-tmux-workspace-attach "${session}" "${root}" "${name}" >/dev/null 2>&1 || true
-done < <(python3 - "${CIND_CONFIG}" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as fh:
-    cfg = json.load(fh)
-
-workspaces = cfg.get("workspaces") or []
-if not workspaces:
-    legacy = cfg.get("workspace") or {}
-    projects = cfg.get("projects") or []
-    if legacy or projects:
-        merged = dict(legacy)
-        merged.setdefault("projects", projects)
-        workspaces = [merged]
-
-for ws in workspaces:
-    if ws.get("enabled") is False:
-        continue
-    name = (ws.get("name") or "workspace").strip()
-    root = (ws.get("root") or "").strip()
-    session = (ws.get("tmux_session") or ws.get("tmux") or name).strip()
-    if not name or not root:
-        continue
-    print(f"{name}\t{root}\t{session}")
-PY
-)
+done < <(CIND_CONFIG="${CIND_CONFIG}" cind-workspaces bootstrap)
 
 # Drop only cind-managed sessions left over after a workspace was removed from config.
 # Sessions without CIND_WORKSPACE_NAME are left alone (user or smoke sessions).
