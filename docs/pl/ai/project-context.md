@@ -7,7 +7,7 @@ Przeczytaj też root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AG
 ## Tożsamość produktu
 
 - Oficjalna nazwa: **Orcan** (display). Identyfikatory techniczne używają małych liter `orcan` (`orcan:latest`, `ORCAN_DATA`, `orcan.config.json`).
-- **Nie** przywracaj starych nazw produktu (old product names): Sint, Orkan, cind (except migration notes / cleanup code).
+- **Orcan** to jedyna nazwa produktu w dokumentacji i tekstach użytkownika.
 - **Cursor** oznacza edytor Cursor / Cursor CLI — nie nazwę produktu.
 - Orcan to **orkiestrator kontekstu**, nie menedżer modeli.
 

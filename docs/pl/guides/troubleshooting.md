@@ -56,6 +56,14 @@ Zobacz [Path parity](../concepts/path-parity.md). Potwierdź mounty przez `make 
 
 Ustaw fokus na panelu terminala. Użyj prefixu tmux (domyślne ustawienia obrazu pod `/etc/tmux`). Prawy przycisk myszy otwiera menu przeglądarki (menu myszy tmux są celowo odwiązane).
 
+## Długi URL się zawija i trudno kliknąć
+
+Autodetekcja linków w przeglądarce/terminalu zwykle łapie **jeden wiersz ekranu**. Soft-wrap `https://…` tnie URL na kawałki, więc klik nie otwiera całości.
+
+Workaround (domyślnie w obrazie): **prefix `u`** (`C-Space`, potem `u`) — skleja zawinięte linie w panelu i kopiuje URL (menu, gdy jest kilka). Wklej prefixem `]` albo skrótem przeglądarki.
+
+Aplikacje emitujące hiperłącza OSC 8 mogą zostać klikalne mimo zawinięcia, gdy zewnętrzny terminal to obsługuje; zwykły wydrukowany tekst nadal wymaga prefix `u`.
+
 ## „Wyłącz tmux” / tylko zwykły shell
 
 tmux startuje launcher (`cursor-ttyd` → `cursor-launcher`), a nie blok w `50-orcan-shell.zsh`. Dziś nie ma obsługiwanego przełącznika „wyłącz tmux”. Nadal możesz otwierać dodatkowe shelle w oknach tmux.

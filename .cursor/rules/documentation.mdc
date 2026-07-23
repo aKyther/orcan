@@ -7,7 +7,7 @@ alwaysApply: false
 # Documentation
 
 - Official product display name: **Orcan**. Technical ids stay lowercase (`orcan`, `ORCAN_*`).
-- Do not reintroduce old product brands: Sint, Orkan, or “cind” as the product name (migration notes OK).
+- **Orcan** is the only product name in documentation — do not mention alternate or historical product names.
 - **Cursor** means the Cursor editor / CLI — not the product.
 - Docs are bilingual: `docs/en/` (default) and `docs/pl/` (same relative paths). Update both (or mark PL TODO) when behaviour changes.
 - User docs: simple B1–B2 English / clear Polish. Keep `README.md` short.

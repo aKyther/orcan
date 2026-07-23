@@ -56,6 +56,14 @@ See [Path parity](../concepts/path-parity.md). Confirm mounts with `make path-ch
 
 Focus the terminal pane. Use tmux prefix (see image defaults under `/etc/tmux`). Right-click uses the browser menu (tmux mouse menus are unbound on purpose).
 
+## Long URL wraps and is hard to click
+
+Browser/terminal linkify usually matches **one screen row**. Soft-wrapped `https://…` links break into pieces, so click-to-open fails.
+
+Workaround (image default): **prefix `u`** (`C-Space` then `u`) — joins wrapped lines in the pane, then copies the URL (menu if several). Paste with prefix `]` or the browser paste shortcut.
+
+Apps that emit OSC 8 hyperlinks can stay clickable across wraps when the outer terminal supports them; plain printed URLs still need prefix `u`.
+
 ## “Disable tmux” / plain shell only
 
 tmux is started by the launcher (`cursor-ttyd` → `cursor-launcher`), not by a block in `50-orcan-shell.zsh`. There is no supported “turn off tmux” switch today. You can still open extra shells inside tmux windows.

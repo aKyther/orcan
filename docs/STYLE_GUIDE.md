@@ -47,7 +47,7 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 - User-facing docs: B1–B2 English / clear Polish.
 - Short paragraphs. Prefer tables for commands and options.
 - No marketing fluff. No invented features or Make targets.
-- Product name is **Orcan**. Do not reintroduce Sint, Orkan, or cind as product names (migration notes only).
+- Product name is **Orcan** only (technical ids: `orcan`, `ORCAN_*`). Do not invent or use other product names in docs.
 
 ## Examples
 

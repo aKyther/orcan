@@ -46,8 +46,6 @@ git clone https://github.com/aKyther/orcan.git
 cd orcan
 ```
 
-Katalog clone'a może nadal nazywać się `cind`, jeśli forknąłeś starszą ścieżkę. To w porządku. Ścieżki produktu używają `orcan` (konfiguracja, `$HOME/.config/orcan`, nazwa obrazu `orcan`).
-
 ## Pierwsza konfiguracja
 
 ```bash

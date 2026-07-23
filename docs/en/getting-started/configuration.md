@@ -122,14 +122,4 @@ make init-project-all
 make init-project-all-dry-run
 ```
 
-## Migrating from older “cind” installs
-
-If you still have old host data:
-
-```bash
-mv ~/.config/cind ~/.config/orcan
-```
-
-Old local files like `cind.config.json` are obsolete. Use `orcan.config.json` only.
-
 Full field rules and rejected keys: [Configuration reference](../reference/configuration.md).
