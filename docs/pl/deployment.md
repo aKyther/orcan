@@ -48,6 +48,8 @@ Strony PL: `/latest/pl/`, `/0.1.0/pl/` itd.
 | Push na `main` | `mike deploy` alias `dev` (CI) |
 | Pull request | Tylko build/check — **bez** publish |
 
+CI `docs-dev` i Release dzielą grupę concurrency `docs-gh-pages`, żeby nie pchać brancha jednocześnie. `docs-mike.sh` przed każdym deployem ponownie pobiera `gh-pages` i przy odrzuceniu pusha robi retry.
+
 ### Lokalne helpery mike
 
 ```bash
