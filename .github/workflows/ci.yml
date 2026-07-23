@@ -40,6 +40,10 @@ jobs:
     needs: checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Serialize with Release workflow (both push gh-pages)
+    concurrency:
+      group: docs-gh-pages
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:

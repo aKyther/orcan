@@ -48,6 +48,8 @@ Polish pages live under the same version prefix, e.g. `/latest/pl/`, `/0.1.0/pl/
 | Push to `main` | `mike deploy` alias `dev` (CI) |
 | Pull request | Build/check only — **no** publish |
 
+CI `docs-dev` and Release share concurrency group `docs-gh-pages` so they do not push the branch at the same time. `docs-mike.sh` also re-fetches `gh-pages` before each deploy and retries on push rejection.
+
 ### Local mike helpers
 
 ```bash

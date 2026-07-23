@@ -21,6 +21,7 @@ REMOTE="${DOCS_MIKE_REMOTE:-origin}"
 VENV="${ROOT_DIR}/.venv-docs"
 MIKE="${VENV}/bin/mike"
 PIP="${VENV}/bin/pip"
+MIKE_PUSH_RETRIES="${MIKE_PUSH_RETRIES:-3}"
 
 die() {
     printf 'Error: %s\n' "$1" >&2
@@ -55,8 +56,60 @@ ensure_git_identity() {
     fi
 }
 
+# mike does not git-fetch for you. Keep local gh-pages aligned with origin
+# before every deploy (avoids "rejected (fetch first)" after concurrent CI).
+sync_gh_pages() {
+    if ! git ls-remote --exit-code --heads "${REMOTE}" gh-pages >/dev/null 2>&1; then
+        printf 'Note: remote gh-pages not present yet — mike will create it\n'
+        return 0
+    fi
+    git fetch "${REMOTE}" gh-pages --force
+    if git show-ref --verify --quiet refs/heads/gh-pages; then
+        git update-ref refs/heads/gh-pages "refs/remotes/${REMOTE}/gh-pages"
+    else
+        git branch --track gh-pages "${REMOTE}/gh-pages" 2>/dev/null \
+            || git branch gh-pages "${REMOTE}/gh-pages"
+    fi
+}
+
+# Run mike; on gh-pages push rejection, re-sync and retry.
+mike_run() {
+    local attempt=1
+    local max="${MIKE_PUSH_RETRIES}"
+    local log status
+    log="$(mktemp)"
+    # shellcheck disable=SC2064
+    trap 'rm -f "'"${log}"'"' RETURN
+
+    while true; do
+        sync_gh_pages
+        set +e
+        "${MIKE}" "$@" 2>&1 | tee "${log}"
+        status=${PIPESTATUS[0]}
+        set -e
+        if [[ "${status}" -eq 0 ]]; then
+            return 0
+        fi
+        if [[ "${PUSH}" != "1" && "${PUSH}" != "true" ]]; then
+            return "${status}"
+        fi
+        if ! grep -Eiq 'rejected|fetch first|non-fast-forward|failed to push' "${log}"; then
+            return "${status}"
+        fi
+        if (( attempt >= max )); then
+            die "mike $* failed after ${max} push attempts (gh-pages race?)"
+        fi
+        printf 'Warning: gh-pages push rejected (attempt %s/%s) — re-syncing and retrying\n' \
+            "${attempt}" "${max}" >&2
+        : >"${log}"
+        attempt=$((attempt + 1))
+        sleep $((attempt * 2))
+    done
+}
+
 cmd_list() {
     ensure_mike
+    sync_gh_pages
     "${MIKE}" list
 }
 
@@ -64,7 +117,7 @@ cmd_dev() {
     ensure_mike
     ensure_git_identity
     printf 'Deploying docs alias: dev\n'
-    "${MIKE}" deploy "${push_flags[@]}" --update-aliases dev
+    mike_run deploy "${push_flags[@]}" --update-aliases dev
     printf 'OK: docs alias "dev" updated\n'
     printf 'URL: https://akyther.github.io/orcan/dev/\n'
 }
@@ -83,8 +136,8 @@ cmd_release() {
     ensure_mike
     ensure_git_identity
     printf 'Deploying docs version %s (alias latest)\n' "${ver}"
-    "${MIKE}" deploy "${push_flags[@]}" --update-aliases "${ver}" latest
-    "${MIKE}" set-default "${push_flags[@]}" latest
+    mike_run deploy "${push_flags[@]}" --update-aliases "${ver}" latest
+    mike_run set-default "${push_flags[@]}" latest
     printf 'OK: docs %s → latest (default)\n' "${ver}"
     printf 'URL: https://akyther.github.io/orcan/latest/\n'
     printf '     https://akyther.github.io/orcan/%s/\n' "${ver}"
