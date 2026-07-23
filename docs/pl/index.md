@@ -61,12 +61,13 @@ Strony referencyjne (Makefile, zmienne, Compose) są **po** tym łuku.
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo
+make setup PROJECT_DIR=/absolute/path/to/your/repo   # zawiera make env raz
+make env                                             # .env + .orcan/* dla Compose
 make build
 make terminal-docker
 ```
 
-Otwórz `http://localhost:7681`, wybierz workspace, potem uruchom `agent` lub `claude`.
+Otwórz `http://localhost:7681`, wybierz workspace, potem uruchom `agent` lub `claude`. Po zmianach konfiguracji zawsze `make env` przed odtworzeniem.
 
 ## Status
 

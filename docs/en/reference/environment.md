@@ -19,7 +19,7 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 
 | Variable | Role |
 | --- | --- |
-| `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits |
+| `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits (defaults: 2 / 4g / 512m / 512m) |
 | `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` | Browser terminal |
 
 Edit via `orcan.config.json` (`resources`, `ttyd`) then `make env` for new machines; existing `.env` values may be preserved depending on `update-env.sh` rules — prefer config file as source of truth for new setups.

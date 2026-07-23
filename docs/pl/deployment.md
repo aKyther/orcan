@@ -19,6 +19,7 @@ git clone https://github.com/aKyther/orcan.git
 cd orcan
 git checkout v0.1.0
 make setup PROJECT_DIR=/absolute/path/to/your/repo
+make env
 make build
 make terminal-docker
 ```

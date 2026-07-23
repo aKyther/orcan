@@ -19,7 +19,7 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 
 | Zmienna | Rola |
 | --- | --- |
-| `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Limity zasobów |
+| `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Limity zasobów (domyślnie: 2 / 4g / 512m / 512m) |
 | `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` | Terminal w przeglądarce |
 
 Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `make env` na nowych maszynach; istniejące wartości `.env` mogą być zachowane zależnie od reguł `update-env.sh` — przy nowych setupach preferuj plik konfiguracji jako źródło prawdy.

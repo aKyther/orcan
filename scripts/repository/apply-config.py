@@ -473,10 +473,10 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
             "theme": str(ttyd.get("theme") or "dark"),
         },
         "resources": {
-            "cpus": resources.get("cpus", 8),
-            "memory": str(resources.get("memory", "16g")),
-            "shm_size": str(resources.get("shm_size", "2g")),
-            "tmpfs_size": str(resources.get("tmpfs_size", "2g")),
+            "cpus": resources.get("cpus", 2),
+            "memory": str(resources.get("memory", "4g")),
+            "shm_size": str(resources.get("shm_size", "512m")),
+            "tmpfs_size": str(resources.get("tmpfs_size", "512m")),
         },
     }
 
@@ -525,10 +525,10 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
             "theme": "dark",
         },
         "resources": {
-            "cpus": 8,
-            "memory": "16g",
-            "shm_size": "2g",
-            "tmpfs_size": "2g",
+            "cpus": 2,
+            "memory": "4g",
+            "shm_size": "512m",
+            "tmpfs_size": "512m",
         },
     }
     return {

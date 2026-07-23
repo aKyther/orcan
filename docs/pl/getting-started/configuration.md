@@ -65,13 +65,15 @@ make down && make terminal-docker
     "theme": "dark"
   },
   "resources": {
-    "cpus": 8,
-    "memory": "16g",
-    "shm_size": "2g",
-    "tmpfs_size": "2g"
+    "cpus": 2,
+    "memory": "4g",
+    "shm_size": "512m",
+    "tmpfs_size": "512m"
   }
 }
 ```
+
+Domyślne limity są celowo lekkie (typowy laptop). Podnieś je, gdy maszyna ma zapas — poniżej.
 
 ### Uwagi do pól
 
@@ -82,7 +84,18 @@ make down && make terminal-docker
 | `projects[].path` | Bezwzględna ścieżka hosta (ta sama w kontenerze — path parity) |
 | `tmux.*` | Okna tworzone przy starcie sesji |
 | `ttyd.*` | Port i wygląd terminala w przeglądarce |
-| `resources.*` | Limity CPU / pamięci kontenera |
+| `resources.*` | Limity CPU / pamięci / shm / tmpfs kontenera |
+
+### Podnoszenie zasobów
+
+Edytuj `resources` w `orcan.config.json` (np. `cpus: 8`, `memory: "16g"`), potem:
+
+```bash
+make env
+make down && make terminal-docker
+```
+
+Jeśli `.env` ma już `CPUS` / `MEMORY`, `make env` ich nie nadpisze. Zmień je też w `.env`, albo usuń klucze, żeby config wygrał przy następnym `make env`.
 
 ## Sposoby edycji
 
@@ -101,6 +114,8 @@ make path-check
 ```
 
 ## Co zapisuje `make env`
+
+`orcan.config.json` to historia, którą edytujesz. **`make env`** to to, co Docker / Compose może łyknąć: odświeża pliki runtime hosta z tego JSON (+ UID/GID). Bez tego mounty i env zostają stare albo w ogóle ich nie ma.
 
 | Wynik | Rola |
 | --- | --- |

@@ -13,12 +13,18 @@ Powinieneś już wiedzieć, po co Orcan istnieje ([Dlaczego Orcan?](../why-orcan
 
 ## Kroki (host)
 
+Konfiguracja to JSON. Docker widzi tylko to, co zapisze **`make env`** (`.env` + `.orcan/*`).
+
 ```bash
 cd /absolute/path/to/orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo
+make setup PROJECT_DIR=/absolute/path/to/your/repo   # scaffold konfiguracji w razie potrzeby, potem make env
+make env                                             # odśwież .env + .orcan/* dla Compose (bezpieczne ponowić)
 make build
 make terminal-docker
 ```
+
+!!! note
+    `make setup` już raz uruchamia `make env`. Trzymaj `make env` w nawyku: **każda** edycja konfiguracji wymaga go przed `make build` / `make terminal*`. Te cele **nie** regenerują plików runtime.
 
 Otwórz URL wypisany w terminalu (domyślnie `http://localhost:7681`).
 

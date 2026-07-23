@@ -12,7 +12,7 @@ Machine-readable draft: [`orcan.config.schema.json`](https://github.com/aKyther/
 | `workspaces` | yes (non-empty) | List of workspace objects |
 | `tmux` | no | Default window layout |
 | `ttyd` | no | Browser terminal settings |
-| `resources` | no | Container limits |
+| `resources` | no | Container limits (default **2** CPU / **4g** RAM — raise in config when needed) |
 
 Legacy accepted and normalized: single `workspace` object, or top-level `projects[]` (one workspace).
 

@@ -29,12 +29,13 @@ Docker (Compose v2), Make, Git, Python 3.
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo
+make setup PROJECT_DIR=/absolute/path/to/your/repo   # includes make env once
+make env                                             # materialise .env + .orcan/* for Compose
 make build
 make terminal-docker
 ```
 
-Open `http://localhost:7681`. After config edits: `make env && make down && make terminal-docker`.
+Open `http://localhost:7681`. After any `orcan.config.json` edit: `make env && make down && make terminal-docker` (`terminal*` does not run `make env`).
 
 ## Documentation
 

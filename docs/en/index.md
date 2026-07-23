@@ -61,12 +61,13 @@ Reference pages (Makefile, env vars, Compose) come **after** that arc.
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo
+make setup PROJECT_DIR=/absolute/path/to/your/repo   # includes make env once
+make env                                             # .env + .orcan/* for Compose
 make build
 make terminal-docker
 ```
 
-Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`.
+Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`. Config changes always need `make env` before recreate.
 
 ## Status
 

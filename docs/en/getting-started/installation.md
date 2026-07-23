@@ -48,9 +48,13 @@ cd orcan
 
 ## First configure
 
+Describe workspaces in `orcan.config.json`, then **materialise** files Compose reads:
+
 ```bash
 make setup PROJECT_DIR=/absolute/path/to/your/repo
 ```
+
+`make setup` scaffolds the config if missing and runs **`make env`** (writes `.env` + `.orcan/*`). Re-run `make env` after every later config edit — `make build` / `make terminal*` only consume those files; they do not regenerate them.
 
 Or use the wizard:
 
