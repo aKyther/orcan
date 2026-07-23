@@ -23,7 +23,15 @@ services:
       COLORTERM: truecolor
       HISTFILE: /command-history/.zsh_history
       PNPM_HOME: /home/developer/.local/share/pnpm
+      XDG_CACHE_HOME: /home/developer/.cache
       UV_CACHE_DIR: /home/developer/.cache/uv
+      RUFF_CACHE_DIR: /home/developer/.cache/ruff
+      MYPY_CACHE_DIR: /home/developer/.cache/mypy
+      PIP_CACHE_DIR: /home/developer/.cache/pip
+      PRE_COMMIT_HOME: /home/developer/.cache/pre-commit
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      PYTEST_ADDOPTS: "-p no:cacheprovider"
       DOCKER_BUILDKIT: "1"
       COMPOSE_DOCKER_CLI_BUILD: "1"
       PROJECT_DIR: ${PROJECT_DIR}

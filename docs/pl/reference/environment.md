@@ -46,6 +46,19 @@ Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `make env` na nowy
 | `ORCAN_VERSION` | Z `/etc/orcan/version` |
 | `HISTFILE` | `/command-history/.zsh_history` (bind: `$ORCAN_DATA/shell-history`) |
 
+### Higiena cache narzędzi developerskich
+
+Shelly logowania i `docker-entrypoint` (żeby `agent` / `claude` dziedziczyły to samo) ustawiają:
+
+| Zmienna | Efekt |
+| --- | --- |
+| `PYTHONDONTWRITEBYTECODE=1` | Brak `__pycache__` / `.pyc` obok źródeł |
+| `PYTHONUNBUFFERED=1` | Niebuforowane stdout/stderr Pythona |
+| `RUFF_CACHE_DIR` / `MYPY_CACHE_DIR` / `PIP_CACHE_DIR` / `UV_CACHE_DIR` / `PRE_COMMIT_HOME` / … | Cache w `$HOME/.cache` (host: `$ORCAN_DATA/cache`) |
+| `PYTEST_ADDOPTS` zawiera `-p no:cacheprovider` | Brak `.pytest_cache/` w repozytoriach |
+
+Nadpisz dowolną z tych zmiennych, jeśli narzędzie musi użyć domyślnego układu na dysku. Szablony ignore też listują typowe katalogi cache, żeby agenci je pomijali, gdy już powstaną.
+
 Zobacz też `.env.example`.
 
 ## Zobacz też

@@ -65,11 +65,14 @@ require_file "docker/rootfs/usr/local/lib/orcan/workspaces.py"
 require_file "docker/rootfs/opt/cursor-defaults/templates/workspace/session-brief.md"
 require_file "docker/rootfs/etc/skel/.zshrc"
 require_file "docker/rootfs/etc/skel/.zshrc.d/50-orcan-shell.zsh"
+require_file "docker/rootfs/etc/skel/.zshrc.d/55-orcan-devtools.zsh"
 require_file "docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh"
 require_file "docker/rootfs/etc/skel/.zshrc.d/80-starship.zsh"
 require_file "docker/rootfs/opt/orcan/gitconfig"
 require_file "docker/rootfs/opt/orcan/starship.toml"
 require_file "docker/rootfs/etc/orcan/shell/aliases.sh"
+require_file "docker/rootfs/etc/orcan/shell/devtools-env.sh"
+require_file "docker/rootfs/etc/profile.d/orcan-devtools.sh"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/cursor-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
@@ -82,6 +85,7 @@ require_file "docker/rootfs/etc/tmux/scripts/ai-usage.sh"
 require_file "docker/rootfs/etc/skel/.tmux.conf"
 require_file "docker/rootfs/etc/skel/.vimrc"
 require_file "docker/rootfs/etc/skel/.bashrc.d/50-orcan-shell.sh"
+require_file "docker/rootfs/etc/skel/.bashrc.d/55-orcan-devtools.sh"
 require_file "docker/rootfs/etc/skel/.bashrc.d/60-orcan-aliases.sh"
 require_file "docker/rootfs/etc/orcan/shell/aliases.sh"
 require_file "docker/rootfs/opt/cursor-defaults/templates/cursorignore"
@@ -139,6 +143,7 @@ for script in \
 do
     if [[ -f "${script}" ]]; then
         PYTHONPATH="${ROOT_DIR}/docker/rootfs/usr/local/lib${PYTHONPATH:+:$PYTHONPATH}" \
+            PYTHONDONTWRITEBYTECODE=1 \
             python3 -m py_compile "${script}"
         printf 'Syntax OK: %s\n' "${script}"
     fi

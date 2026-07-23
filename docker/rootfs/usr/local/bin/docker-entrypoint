@@ -113,6 +113,15 @@ ensure_shell_home() {
     # Always refresh managed PATH/cwd snippets so image logic stays in sync.
     local src dst base
     mkdir -p "${HOME}/.bashrc.d" "${HOME}/.zshrc.d" "${HOME}/.cache/zsh" "${HOME}/.config"
+    mkdir -p \
+        "${HOME}/.cache/ruff" \
+        "${HOME}/.cache/mypy" \
+        "${HOME}/.cache/pip" \
+        "${HOME}/.cache/uv" \
+        "${HOME}/.cache/pre-commit" \
+        "${HOME}/.cache/yarn" \
+        "${HOME}/.cache/go-build" \
+        "${HOME}/.cache/turbo"
 
     rm -f "${HOME}/.bashrc.d/50-cursor-dev.sh" \
         "${HOME}/.bashrc.d/50-cind-shell.sh" \
@@ -121,7 +130,9 @@ ensure_shell_home() {
         [[ -f "${src}" ]] || continue
         dst="${HOME}/.bashrc.d/$(basename "${src}")"
         base="$(basename "${src}")"
-        if [[ "${base}" == "50-orcan-shell.sh" || ! -e "${dst}" ]]; then
+        if [[ "${base}" == "50-orcan-shell.sh" \
+            || "${base}" == "55-orcan-devtools.sh" \
+            || ! -e "${dst}" ]]; then
             cp -- "${src}" "${dst}"
         fi
     done
@@ -133,7 +144,9 @@ ensure_shell_home() {
         [[ -f "${src}" ]] || continue
         dst="${HOME}/.zshrc.d/$(basename "${src}")"
         base="$(basename "${src}")"
-        if [[ "${base}" == "50-orcan-shell.zsh" || ! -e "${dst}" ]]; then
+        if [[ "${base}" == "50-orcan-shell.zsh" \
+            || "${base}" == "55-orcan-devtools.zsh" \
+            || ! -e "${dst}" ]]; then
             cp -- "${src}" "${dst}"
         fi
     done
@@ -162,6 +175,14 @@ main() {
     ensure_shell_home
     run_init_workspace
     enter_project_dir
+
+    if [[ -f /etc/orcan/shell/devtools-env.sh ]]; then
+        set -a
+        # shellcheck disable=SC1091
+        # shellcheck source=/etc/orcan/shell/devtools-env.sh
+        . /etc/orcan/shell/devtools-env.sh
+        set +a
+    fi
 
     if [[ "$#" -eq 0 ]]; then
         set -- zsh

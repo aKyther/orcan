@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Right status: AI · brief · git · cpu · mem · battery · time
-# (Global metrics live here; cwd/command stay on pane-border footers.)
+# Icon prefixes (Unicode) — works with Menlo/Monaco in ttyd; no Nerd Font required.
 set -Eeuo pipefail
 
 pane_path="$(tmux display -p '#{pane_current_path}' 2>/dev/null || pwd)"
@@ -30,7 +30,7 @@ if [[ -z "${brief_root}" ]]; then
     esac
 fi
 if [[ -n "${brief_root}" && -f "${brief_root}/.orcan/session-brief.md" ]]; then
-    parts+=("#[fg=colour114,bold]brief")
+    parts+=("#[fg=colour114,bold]◆")
 fi
 
 branch=""
@@ -41,8 +41,7 @@ if command -v git >/dev/null 2>&1; then
     fi
 fi
 if [[ -n "${branch}" ]]; then
-    # Plain "git" label — avoids Nerd Font / special glyphs in ttyd
-    parts+=("#[fg=colour141,bold]git ${branch}")
+    parts+=("#[fg=colour141,bold]⎇ ${branch}")
 fi
 
 load=""
@@ -50,7 +49,7 @@ if [[ -r /proc/loadavg ]]; then
     load="$(awk '{printf "%.1f", $1}' /proc/loadavg 2>/dev/null || true)"
 fi
 if [[ -n "${load}" ]]; then
-    parts+=("#[fg=colour109]cpu ${load}")
+    parts+=("#[fg=colour109]◉ ${load}")
 fi
 
 mem=""
@@ -58,7 +57,7 @@ if command -v free >/dev/null 2>&1; then
     mem="$(free -m 2>/dev/null | awk '/^Mem:/ { if ($2>0) printf "%.0f%%", ($3/$2)*100 }')"
 fi
 if [[ -n "${mem}" ]]; then
-    parts+=("#[fg=colour109]mem ${mem}")
+    parts+=("#[fg=colour109]▣ ${mem}")
 fi
 
 battery=""
@@ -75,7 +74,7 @@ if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
     elif (( battery < 50 )); then
         bat_colour='208'
     fi
-    parts+=("#[fg=colour${bat_colour}]bat ${battery}%")
+    parts+=("#[fg=colour${bat_colour}]⚡ ${battery}%")
 fi
 
 parts+=("#[fg=colour228,bold]$(date +%H:%M)")

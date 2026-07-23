@@ -3,6 +3,7 @@
 
 format = """
 $directory\
+[ │ ](bright-black)\
 $git_branch\
 $git_status\
 $character"""
@@ -17,8 +18,8 @@ truncate_to_repo = true
 style = "bold cyan"
 
 [git_branch]
-symbol = ""
-format = "[$branch]($style) "
+symbol = "⎇ "
+format = "[$symbol$branch]($style) "
 style = "bold purple"
 
 [git_status]
