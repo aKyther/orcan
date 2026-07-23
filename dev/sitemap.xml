@@ -8,6 +8,13 @@
         <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/"/>
     </url>
     <url>
+        <loc>https://akyther.github.io/orcan/dev/architecture/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/dev/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/architecture/"/>
+    </url>
+    <url>
         <loc>https://akyther.github.io/orcan/dev/changelog/</loc>
         <lastmod>2026-07-23</lastmod>
         <changefreq>daily</changefreq>
@@ -36,18 +43,18 @@
         <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/interface/"/>
     </url>
     <url>
+        <loc>https://akyther.github.io/orcan/dev/why-orcan/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/dev/why-orcan/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/why-orcan/"/>
+    </url>
+    <url>
         <loc>https://akyther.github.io/orcan/dev/ai/project-context/</loc>
         <lastmod>2026-07-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/dev/ai/project-context/"/>
         <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/ai/project-context/"/>
-    </url>
-    <url>
-        <loc>https://akyther.github.io/orcan/dev/concepts/architecture/</loc>
-        <lastmod>2026-07-23</lastmod>
-        <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/dev/concepts/architecture/"/>
-        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/concepts/architecture/"/>
     </url>
     <url>
         <loc>https://akyther.github.io/orcan/dev/concepts/path-parity/</loc>
@@ -120,6 +127,20 @@
         <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/guides/workflows/"/>
     </url>
     <url>
+        <loc>https://akyther.github.io/orcan/dev/ideas/core-ideas/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/dev/ideas/core-ideas/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/ideas/core-ideas/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/dev/ideas/mental-model/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/dev/ideas/mental-model/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/devpl/ideas/mental-model/"/>
+    </url>
+    <url>
         <loc>https://akyther.github.io/orcan/dev/reference/configuration/</loc>
         <lastmod>2026-07-23</lastmod>
         <changefreq>daily</changefreq>
@@ -169,6 +190,13 @@
         <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/dev"/>
     </url>
     <url>
+        <loc>https://akyther.github.io/orcan/dev/pl/architecture/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/dev/pl/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devarchitecture/"/>
+    </url>
+    <url>
         <loc>https://akyther.github.io/orcan/dev/pl/changelog/</loc>
         <lastmod>2026-07-23</lastmod>
         <changefreq>daily</changefreq>
@@ -197,18 +225,18 @@
         <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devinterface/"/>
     </url>
     <url>
+        <loc>https://akyther.github.io/orcan/dev/pl/why-orcan/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/dev/pl/why-orcan/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devwhy-orcan/"/>
+    </url>
+    <url>
         <loc>https://akyther.github.io/orcan/dev/pl/ai/project-context/</loc>
         <lastmod>2026-07-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/dev/pl/ai/project-context/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devai/project-context/"/>
-    </url>
-    <url>
-        <loc>https://akyther.github.io/orcan/dev/pl/concepts/architecture/</loc>
-        <lastmod>2026-07-23</lastmod>
-        <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/dev/pl/concepts/architecture/"/>
-        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devconcepts/architecture/"/>
     </url>
     <url>
         <loc>https://akyther.github.io/orcan/dev/pl/concepts/path-parity/</loc>
@@ -279,6 +307,20 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/dev/pl/guides/workflows/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devguides/workflows/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/dev/pl/ideas/core-ideas/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/dev/pl/ideas/core-ideas/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devideas/core-ideas/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/dev/pl/ideas/mental-model/</loc>
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/dev/pl/ideas/mental-model/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/devideas/mental-model/"/>
     </url>
     <url>
         <loc>https://akyther.github.io/orcan/dev/pl/reference/configuration/</loc>

@@ -6,23 +6,23 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+        <meta name="description" content="Model mentalny Orcana — workspace opisuje relacje, project opisuje repo, context opisuje środowisko.">
       
       
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/guides/troubleshooting/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/ideas/mental-model/">
       
       
-        <link rel="prev" href="../workflows/">
+        <link rel="prev" href="../core-ideas/">
       
       
-        <link rel="next" href="../../architecture/">
+        <link rel="next" href="../../concepts/workspaces/">
       
       
         
-          <link rel="alternate" href="../../../guides/troubleshooting/" hreflang="en">
+          <link rel="alternate" href="../../../ideas/mental-model/" hreflang="en">
         
           <link rel="alternate" href="./" hreflang="pl">
         
@@ -33,7 +33,7 @@
     
     
       
-        <title>Rozwiązywanie problemów - Orcan</title>
+        <title>Model mentalny - Orcan</title>
       
     
     
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta name="description" content="Model mentalny Orcana — workspace opisuje relacje, project opisuje repo, context opisuje środowisko.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Rozwiązywanie problemów — Orcan">
-  <meta property="og:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
-  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/guides/troubleshooting/">
+  <meta property="og:title" content="Model mentalny — Orcan">
+  <meta property="og:description" content="Model mentalny Orcana — workspace opisuje relacje, project opisuje repo, context opisuje środowisko.">
+  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/ideas/mental-model/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Rozwiązywanie problemów — Orcan">
-  <meta name="twitter:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta name="twitter:title" content="Model mentalny — Orcan">
+  <meta name="twitter:description" content="Model mentalny Orcana — workspace opisuje relacje, project opisuje repo, context opisuje środowisko.">
 
   </head>
   
@@ -96,7 +96,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#rozwiazywanie-problemow" class="md-skip">
+        <a href="#model-mentalny" class="md-skip">
           Przejdź do treści
         </a>
       
@@ -147,7 +147,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Rozwiązywanie problemów
+              Model mentalny
             
           </span>
         </div>
@@ -204,7 +204,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../guides/troubleshooting/" hreflang="en" class="md-select__link">
+            <a href="../../../ideas/mental-model/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -386,8 +386,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -398,13 +400,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -425,7 +425,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -443,7 +443,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../ideas/core-ideas/" class="md-nav__link">
+      <a href="../core-ideas/" class="md-nav__link">
         
   
   
@@ -468,10 +468,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../ideas/mental-model/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model mentalny
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -487,6 +514,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Spis treści
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#drzewo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drzewo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trzy-zdania" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trzy zdania
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#co-konfigurujesz" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Co konfigurujesz
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dwa-sposoby-widzenia-tych-samych-projektow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dwa sposoby widzenia tych samych projektów
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#podroz-dnia-mentalna-nie-komendy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Podróż dnia (mentalna, nie komendy)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-parity-jako-konsekwencja" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Path parity jako konsekwencja
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dalej" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dalej
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -765,8 +889,6 @@
       
   
   
-    
-  
   
   
     
@@ -779,11 +901,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
@@ -804,7 +928,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -822,7 +946,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../workflows/" class="md-nav__link">
+      <a href="../../guides/workflows/" class="md-nav__link">
         
   
   
@@ -847,37 +971,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Rozwiązywanie problemów
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../guides/troubleshooting/" class="md-nav__link">
         
   
   
@@ -893,169 +990,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Spis treści
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#co-to-robi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Co to robi
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zanim-zaczniesz" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zanim zaczniesz
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#terminal-w-przegladarce-sie-nie-otwiera" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Terminal w przeglądarce się nie otwiera
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#launcher-jest-pusty-ze-projekty" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Launcher jest pusty / złe projekty
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#make-env-require-generated-sie-wywala" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        make env / require-generated się wywala
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#brak-agenta-lub-claude" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Brak agenta lub Claude
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#bedy-socketa-dockera-wewnatrz-kontenera" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Błędy socketa Dockera wewnątrz kontenera
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#path-parity-zagniezdzony-compose-nie-dziaa" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Path parity / zagnieżdżony Compose nie działa
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#klawisze-tmux-nie-dziaaja-w-przegladarce" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Klawisze tmux nie działają w przeglądarce
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#wyacz-tmux-tylko-zwyky-shell" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        „Wyłącz tmux” / tylko zwykły shell
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hostowy-gitconfig-sta-sie-katalogiem" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Hostowy ~/.gitconfig stał się katalogiem
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#checklista-diagnostyczna" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Checklista diagnostyczna
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zobacz-tez" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zobacz też
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1633,10 +1567,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#co-to-robi" class="md-nav__link">
+  <a href="#drzewo" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Co to robi
+        Drzewo
       
     </span>
   </a>
@@ -1644,10 +1578,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#zanim-zaczniesz" class="md-nav__link">
+  <a href="#trzy-zdania" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Zanim zaczniesz
+        Trzy zdania
       
     </span>
   </a>
@@ -1655,10 +1589,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#terminal-w-przegladarce-sie-nie-otwiera" class="md-nav__link">
+  <a href="#co-konfigurujesz" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Terminal w przeglądarce się nie otwiera
+        Co konfigurujesz
       
     </span>
   </a>
@@ -1666,10 +1600,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#launcher-jest-pusty-ze-projekty" class="md-nav__link">
+  <a href="#dwa-sposoby-widzenia-tych-samych-projektow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Launcher jest pusty / złe projekty
+        Dwa sposoby widzenia tych samych projektów
       
     </span>
   </a>
@@ -1677,10 +1611,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#make-env-require-generated-sie-wywala" class="md-nav__link">
+  <a href="#podroz-dnia-mentalna-nie-komendy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        make env / require-generated się wywala
+        Podróż dnia (mentalna, nie komendy)
       
     </span>
   </a>
@@ -1688,10 +1622,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#brak-agenta-lub-claude" class="md-nav__link">
+  <a href="#path-parity-jako-konsekwencja" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Brak agenta lub Claude
+        Path parity jako konsekwencja
       
     </span>
   </a>
@@ -1699,76 +1633,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bedy-socketa-dockera-wewnatrz-kontenera" class="md-nav__link">
+  <a href="#dalej" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Błędy socketa Dockera wewnątrz kontenera
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#path-parity-zagniezdzony-compose-nie-dziaa" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Path parity / zagnieżdżony Compose nie działa
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#klawisze-tmux-nie-dziaaja-w-przegladarce" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Klawisze tmux nie działają w przeglądarce
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#wyacz-tmux-tylko-zwyky-shell" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        „Wyłącz tmux” / tylko zwykły shell
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hostowy-gitconfig-sta-sie-katalogiem" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Hostowy ~/.gitconfig stał się katalogiem
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#checklista-diagnostyczna" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Checklista diagnostyczna
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zobacz-tez" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zobacz też
+        Dalej
       
     </span>
   </a>
@@ -1792,7 +1660,7 @@
 
 
   
-    <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/guides/troubleshooting.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/ideas/mental-model.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -1801,88 +1669,102 @@
     
       
     
-    <a href="https://github.com/aKyther/orcan/raw/main/docs/pl/guides/troubleshooting.md" title="Zobacz kod źródłowy tej strony" class="md-content__button md-icon">
+    <a href="https://github.com/aKyther/orcan/raw/main/docs/pl/ideas/mental-model.md" title="Zobacz kod źródłowy tej strony" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
     </a>
   
 
 
-<h1 id="rozwiazywanie-problemow">Rozwiązywanie problemów<a class="headerlink" href="#rozwiazywanie-problemow" title="Permanent link">&para;</a></h1>
-<h2 id="co-to-robi">Co to robi<a class="headerlink" href="#co-to-robi" title="Permanent link">&para;</a></h2>
-<p>Wypisuje częste awarie i jak je diagnozować na <strong>hoście</strong>.</p>
-<h2 id="zanim-zaczniesz">Zanim zaczniesz<a class="headerlink" href="#zanim-zaczniesz" title="Permanent link">&para;</a></h2>
-<p>Z repozytorium Orcana:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>validate
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>path-check
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>config
+<h1 id="model-mentalny">Model mentalny<a class="headerlink" href="#model-mentalny" title="Permanent link">&para;</a></h1>
+<p>Trzymaj ten obraz, zanim dotkniesz JSON-a lub Make.</p>
+<h2 id="drzewo">Drzewo<a class="headerlink" href="#drzewo" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Workspace
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    │
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    ├── Project
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    ├── Project
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    ├── Project
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    └── Project
 </span></code></pre></div>
-<p><code>make config</code> wypisuje rozwiązany plik Compose (wymaga wygenerowanych plików <code>.orcan</code>).</p>
-<h2 id="terminal-w-przegladarce-sie-nie-otwiera">Terminal w przeglądarce się nie otwiera<a class="headerlink" href="#terminal-w-przegladarce-sie-nie-otwiera" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TB
+  subgraph ctx [Context]
+    ws[Workspace]
+    ws --&gt; p1[Project]
+    ws --&gt; p2[Project]
+    ws --&gt; p3[Project]
+  end</code></pre>
+<p><strong>Podpis:</strong> Workspace siedzi w kontekście. Projekty wiszą na workspace jako członkowie, nie jako zagnieżdżone remote'y git.</p>
+<h2 id="trzy-zdania">Trzy zdania<a class="headerlink" href="#trzy-zdania" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Potwierdź, że kontener działa: <code>make logs</code></li>
-<li>Potwierdź URL: <code>make terminal-url</code> (domyślnie <code>http://localhost:7681</code>)</li>
-<li>Jeśli port jest zajęty, zmień <code>ttyd.host_port</code> w <code>orcan.config.json</code>, potem <code>make env</code> i odtwórz kontener</li>
+<li><strong>Workspace</strong> nie trzyma historii źródeł. Opisuje <strong>które projekty należą do siebie</strong> i jak wchodzisz do tego zbioru (sesja, pliki startowe).</li>
+<li><strong>Project</strong> nie opisuje biznesu. Opisuje <strong>jedną ścieżkę repozytorium</strong> na dysku.</li>
+<li><strong>Context</strong> opisuje <strong>środowisko pracy</strong>: mounty, wspólne instrukcje, ignores oraz ścieżkę wejścia do terminala.</li>
 </ol>
-<h2 id="launcher-jest-pusty-ze-projekty">Launcher jest pusty / złe projekty<a class="headerlink" href="#launcher-jest-pusty-ze-projekty" title="Permanent link">&para;</a></h2>
-<ol>
-<li>Sprawdź, że <code>orcan.config.json</code> ma <code>workspaces</code> z bezwzględnymi <code>projects[].path</code></li>
-<li>Uruchom <code>make env</code> (cele terminal nie odświeżają konfiguracji)</li>
-<li><code>make down &amp;&amp; make terminal-docker</code></li>
-</ol>
-<p><strong>Nie</strong> przekazuj <code>PROJECT_DIR=…</code> przy <code>make terminal</code>. Przełączaj projekty przez edycję konfiguracji + <code>make env</code>.</p>
-<h2 id="make-env-require-generated-sie-wywala"><code>make env</code> / <code>require-generated</code> się wywala<a class="headerlink" href="#make-env-require-generated-sie-wywala" title="Permanent link">&para;</a></h2>
+<h2 id="co-konfigurujesz">Co konfigurujesz<a class="headerlink" href="#co-konfigurujesz" title="Permanent link">&para;</a></h2>
+<p>Gdy idee są jasne, plik hosta to tylko opis drzewa:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;workspaces&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;customer-a&quot;</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">&quot;projects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backend&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/acme-api&quot;</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;frontend&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/acme-web&quot;</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sdk&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/partner-sdk&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">      </span><span class="p">]</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
+</span></code></pre></div>
+<ul>
+<li><code>workspaces[].name</code> — tożsamość workspace'a (i nazwa sesji tmux).</li>
+<li><code>projects[].name</code> — krótka nazwa w workspace (symlink).</li>
+<li><code>projects[].path</code> — bezwzględna ścieżka hosta (ta sama w kontenerze).</li>
+</ul>
+<p>Pełna lista pól: <a href="../../getting-started/configuration/">Przewodnik po konfiguracji</a>.</p>
+<h2 id="dwa-sposoby-widzenia-tych-samych-projektow">Dwa sposoby widzenia tych samych projektów<a class="headerlink" href="#dwa-sposoby-widzenia-tych-samych-projektow" title="Permanent link">&para;</a></h2>
+<p>Orcan pokazuje każdy projekt na dwa komplementarne sposoby:</p>
 <table>
 <thead>
 <tr>
-<th>Komunikat</th>
-<th>Rozwiązanie</th>
+<th>Widok</th>
+<th>Rola</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Brak <code>.env</code></td>
-<td><code>make env</code> lub <code>make setup</code></td>
+<td>Symlink pod <code>/home/developer/workspaces/&lt;name&gt;/</code></td>
+<td>Nawigacja człowieka i agenta („cd backend”)</td>
 </tr>
 <tr>
-<td>Wygenerowane pliki nieaktualne</td>
-<td>Konfiguracja nowsza niż <code>.orcan/*</code> — uruchom <code>make env</code></td>
-</tr>
-<tr>
-<td>Nieprawidłowy <code>PROJECT_DIR</code></td>
-<td>Ścieżka bezwzględna; unikaj <code>/</code>, <code>/home</code>, <code>/etc</code></td>
+<td>Bind mount pod <strong>tą samą ścieżką bezwzględną</strong> co host</td>
+<td>Path parity dla Docker-from-Docker</td>
 </tr>
 </tbody>
 </table>
-<h2 id="brak-agenta-lub-claude">Brak agenta lub Claude<a class="headerlink" href="#brak-agenta-lub-claude" title="Permanent link">&para;</a></h2>
+<p>To nie duplikacja dla sztuki. Zagnieżdżony Compose na daemonie <strong>hosta</strong> rozumie tylko ścieżki hosta. Same symlinki okłamałyby Dockera. Same mounty abs byłyby niewygodne w przeglądaniu. Dostajesz oba.</p>
+<pre class="mermaid"><code>flowchart LR
+  hostPath["Host /abs/path/to/api"] --&gt; mount["Mount w kontenerze /abs/path/to/api"]
+  hostPath --&gt; link["Symlink .../workspaces/customer-a/backend"]</code></pre>
+<p><strong>Podpis:</strong> Ten sam checkout, dwie ścieżki dostępu — parity dla Dockera, krótkie nazwy dla ludzi i agentów.</p>
+<h2 id="podroz-dnia-mentalna-nie-komendy">Podróż dnia (mentalna, nie komendy)<a class="headerlink" href="#podroz-dnia-mentalna-nie-komendy" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>journey
+  title Dzień w jednym workspace
+  section Poranek
+    Otwórz terminal w przeglądarce: 5
+    Wybierz workspace: 5
+  section Praca
+    Agent czyta context pack: 4
+    Edycja przez projekty: 5
+  section Przełączenie
+    Zostaw sesję / wybierz inny workspace: 4</code></pre>
+<p><strong>Podpis:</strong> Jednostką „gdzie pracuję?” jest workspace, nie pojedyncze <code>cd</code> do jednego repo.</p>
+<h2 id="path-parity-jako-konsekwencja">Path parity jako konsekwencja<a class="headerlink" href="#path-parity-jako-konsekwencja" title="Permanent link">&para;</a></h2>
+<p>Path parity nie jest przypadkową funkcją. Wynika z tego, że „agenci mogą odpalać Dockera wobec daemona hosta”. Zobacz <a href="../../concepts/path-parity/">Path parity</a>.</p>
+<h2 id="dalej">Dalej<a class="headerlink" href="#dalej" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Pełny obraz: <code>make build</code>, potem odtwórz kontener</li>
-<li>Tylko Claude: <code>IMAGE_LOCAL=orcan:claude</code> — <code>agent</code> nie jest zainstalowany (oczekiwane)</li>
-<li>Auth leży pod <code>$ORCAN_DATA</code> (<code>~/.config/orcan</code>)</li>
-</ul>
-<h2 id="bedy-socketa-dockera-wewnatrz-kontenera">Błędy socketa Dockera wewnątrz kontenera<a class="headerlink" href="#bedy-socketa-dockera-wewnatrz-kontenera" title="Permanent link">&para;</a></h2>
-<p>Użyj <code>make terminal-docker</code>. Zwykły <code>make terminal</code> nie montuje socketa.</p>
-<h2 id="path-parity-zagniezdzony-compose-nie-dziaa">Path parity / zagnieżdżony Compose nie działa<a class="headerlink" href="#path-parity-zagniezdzony-compose-nie-dziaa" title="Permanent link">&para;</a></h2>
-<p>Zobacz <a href="../../concepts/path-parity/">Path parity</a>. Potwierdź mounty przez <code>make path-check</code>.</p>
-<h2 id="klawisze-tmux-nie-dziaaja-w-przegladarce">Klawisze tmux nie działają w przeglądarce<a class="headerlink" href="#klawisze-tmux-nie-dziaaja-w-przegladarce" title="Permanent link">&para;</a></h2>
-<p>Ustaw fokus na panelu terminala. Użyj prefixu tmux (domyślne ustawienia obrazu pod <code>/etc/tmux</code>). Prawy przycisk myszy otwiera menu przeglądarki (menu myszy tmux są celowo odwiązane).</p>
-<h2 id="wyacz-tmux-tylko-zwyky-shell">„Wyłącz tmux” / tylko zwykły shell<a class="headerlink" href="#wyacz-tmux-tylko-zwyky-shell" title="Permanent link">&para;</a></h2>
-<p>tmux startuje launcher (<code>cursor-ttyd</code> → <code>cursor-launcher</code>), a nie blok w <code>50-orcan-shell.zsh</code>. Dziś nie ma obsługiwanego przełącznika „wyłącz tmux”. Nadal możesz otwierać dodatkowe shelle w oknach tmux.</p>
-<h2 id="hostowy-gitconfig-sta-sie-katalogiem">Hostowy <code>~/.gitconfig</code> stał się katalogiem<a class="headerlink" href="#hostowy-gitconfig-sta-sie-katalogiem" title="Permanent link">&para;</a></h2>
-<p>Starszy układ mógł utworzyć katalog należący do roota. Napraw właściciela albo zastąp zwykłym plikiem, potem zaktualizuj Orcana i odtwórz kontener.</p>
-<h2 id="checklista-diagnostyczna">Checklista diagnostyczna<a class="headerlink" href="#checklista-diagnostyczna" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>validate
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>make<span class="w"> </span>path-check
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>.orcan/compose-projects.generated.yml<span class="w"> </span>config
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>make<span class="w"> </span>logs
-</span></code></pre></div>
-<p>Więcej o limitach: <a href="../../reference/security/">Bezpieczeństwo</a>.</p>
-<h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../workflows/">Typowe workflowy</a></li>
-<li><a href="../../concepts/path-parity/">Path parity</a></li>
-<li><a href="../../reference/security/">Bezpieczeństwo</a></li>
-<li><a href="../../faq/">FAQ</a></li>
+<li><a href="../../architecture/">Architektura</a> — dlaczego warstwy wyglądają tak  </li>
+<li><a href="../../getting-started/quickstart/">Szybki start</a>  </li>
+<li><a href="../../guides/workflows/">Typowe workflowy</a></li>
 </ul>
 
 
@@ -1906,7 +1788,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 13:06:39 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:08:21 UTC">23 lipca 2026</span>
   </span>
 
     
@@ -1916,7 +1798,7 @@
     <span class="md-icon" title="Utworzony">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 13:06:39 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:08:21 UTC">23 lipca 2026</span>
   </span>
 
     
@@ -1953,7 +1835,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Stopka" >
         
           
-          <a href="../workflows/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Przepływy pracy">
+          <a href="../core-ideas/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Idee podstawowe">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1963,20 +1845,20 @@
                 Poprzednia strona
               </span>
               <div class="md-ellipsis">
-                Przepływy pracy
+                Idee podstawowe
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../architecture/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Architektura">
+          <a href="../../concepts/workspaces/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Workspaces">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Następna strona
               </span>
               <div class="md-ellipsis">
-                Architektura
+                Workspaces
               </div>
             </div>
             <div class="md-footer__button md-icon">
