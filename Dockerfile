@@ -362,6 +362,14 @@ ENV GOPATH=/home/${USERNAME}/go
 ENV GOCACHE=/home/${USERNAME}/.cache/go-build
 ENV GOMODCACHE=/home/${USERNAME}/go/pkg/mod
 ENV UV_CACHE_DIR=/home/${USERNAME}/.cache/uv
+ENV XDG_CACHE_HOME=/home/${USERNAME}/.cache
+ENV RUFF_CACHE_DIR=/home/${USERNAME}/.cache/ruff
+ENV MYPY_CACHE_DIR=/home/${USERNAME}/.cache/mypy
+ENV PIP_CACHE_DIR=/home/${USERNAME}/.cache/pip
+ENV PRE_COMMIT_HOME=/home/${USERNAME}/.cache/pre-commit
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTEST_ADDOPTS="-p no:cacheprovider"
 ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
 
 USER ${USERNAME}

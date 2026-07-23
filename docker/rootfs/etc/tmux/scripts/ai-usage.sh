@@ -65,11 +65,11 @@ def main() -> int:
         seven = data.get("seven_day_pct")
         cost = data.get("cost_usd")
         if isinstance(ctx, int):
-            parts.append(f"ctx {ctx}%")
+            parts.append(f"◌{ctx}%")
         if isinstance(five, int):
-            parts.append(f"5h {five}%")
+            parts.append(f"◷{five}%")
         if isinstance(seven, int):
-            parts.append(f"7d {seven}%")
+            parts.append(f"◫{seven}%")
         if isinstance(cost, (int, float)) and float(cost) > 0:
             parts.append(f"${float(cost):.2f}")
         if not parts:
@@ -80,7 +80,8 @@ def main() -> int:
             five if isinstance(five, int) else 0,
             seven if isinstance(seven, int) else 0,
         )
-        segments.append(f"#[fg=colour{colour}]{provider} " + " · ".join(parts))
+        # ✦ = AI usage; short provider name; metric icons instead of "ctx"/"5h"/"7d" labels
+        segments.append(f"#[fg=colour{colour}]✦{provider} " + " ".join(parts))
 
     sys.stdout.write("#[fg=colour240] · #[default]".join(segments))
     return 0

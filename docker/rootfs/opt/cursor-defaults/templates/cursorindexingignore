@@ -27,6 +27,11 @@ coverage/
 .next/
 site/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
 
 # Binaries and archives
 *.exe
