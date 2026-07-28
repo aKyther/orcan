@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-07-29
+
+### Added
+
+- `orcan enter` (alias `go-in`): local terminal into the running container — launcher / `--shell` / `--tmux`
+- User **dotfiles** under `$ORCAN_DATA/dotfiles` (aliases, zsh/bashrc snippets, tmux/vim/starship/git overlays); image defaults stay
+
+### Changed
+
+- Rename workspace picker to `agent-launcher` (`cursor-launcher` remains a compatibility symlink)
+- Docs: local attach alongside ttyd (`orcan enter`, workflows, quickstart, FAQ)
+
 ## [0.3.1] - 2026-07-28
 
 ### Added
@@ -113,7 +125,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI (validate + MkDocs → `gh-pages`)
 - SemVer releases via `VERSION` + git tags → GitHub Releases (no image registry)
 
-[Unreleased]: https://github.com/aKyther/orcan/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/aKyther/orcan/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/aKyther/orcan/releases/tag/v0.3.2
+[0.3.1]: https://github.com/aKyther/orcan/releases/tag/v0.3.1
+[0.3.0]: https://github.com/aKyther/orcan/releases/tag/v0.3.0
 [0.2.1]: https://github.com/aKyther/orcan/releases/tag/v0.2.1
 [0.2.0]: https://github.com/aKyther/orcan/releases/tag/v0.2.0
 [0.1.1]: https://github.com/aKyther/orcan/releases/tag/v0.1.1

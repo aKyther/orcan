@@ -13,7 +13,7 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 | `CONTAINER_PROJECT_DIR` / `WORKSPACE_*` | Primary workspace paths |
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Runtime config mount |
 | `ORCAN_COMPOSE_PROJECTS` | Generated Compose overlay (project mounts) |
-| `ORCAN_DATA` | Host data root (default `$HOME/.config/orcan`) |
+| `ORCAN_DATA` | Host data root (default `$HOME/.config/orcan`) — includes `dotfiles/` for personal shell/tmux/vim overlays |
 | `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Host `git config --global` identity for in-container commits |
 | `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Same as author (kept in sync) |
 

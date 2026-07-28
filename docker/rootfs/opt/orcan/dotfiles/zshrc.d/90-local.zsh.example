@@ -1,0 +1,2 @@
+# Example zsh snippet (copy to zshrc.d/90-local.zsh).
+# export EDITOR=vim

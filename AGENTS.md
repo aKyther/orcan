@@ -45,7 +45,7 @@ Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit �
 ## Runtime stack (inside container)
 
 ```text
-ttyd → cursor-launcher → tmux (default-shell zsh)
+ttyd → agent-launcher → tmux (default-shell zsh)
                       → Starship + zsh plugins
                       → aliases in /etc/orcan/shell/aliases.sh
 ```

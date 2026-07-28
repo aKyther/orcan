@@ -50,6 +50,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan publish` | Push both-agents `orcan:latest` (**manual**; not `-claude`/`-cursor`) |
 | `orcan url` | Print terminal URL |
 | `orcan logs` | Follow logs |
+| `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
 | `orcan update [--release\|--main]` | Newest release tag `vX.Y.Z` (default); `--main` for bleeding edge |
 | `orcan doctor` | Host / config health report |
 | `orcan uninstall [--purge-data]` | Remove CLI (optional wipe of `ORCAN_DATA`) |

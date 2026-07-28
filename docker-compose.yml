@@ -66,5 +66,6 @@ services:
       - ${ORCAN_DATA}/cargo:/home/developer/.cargo
       - ${ORCAN_DATA}/go:/home/developer/go
       - ${ORCAN_DATA}/shell-history:/command-history
+      - ${ORCAN_DATA}/dotfiles:/home/developer/.config/orcan/dotfiles
     tmpfs:
       - /tmp:size=${TMPFS_SIZE:-512m},mode=1777

@@ -30,6 +30,7 @@ command -v orcan-session-brief >/dev/null
 command -v orcan-workspaces >/dev/null
 command -v orcan-context-status >/dev/null
 command -v cursor-ttyd >/dev/null
+command -v agent-launcher >/dev/null
 command -v cursor-launcher >/dev/null
 command -v cursor-tmux-workspace-attach >/dev/null
 command -v cursor-tmux-bootstrap-workspaces >/dev/null
@@ -58,6 +59,8 @@ test -x /usr/local/bin/ttyd
 test -x /usr/local/bin/yq
 test -x /usr/local/bin/gh
 test -x /usr/local/bin/sg
+test -x /usr/local/bin/agent-launcher
+test -L /usr/local/bin/cursor-launcher
 test -x /usr/local/bin/cursor-launcher
 test -x /usr/local/bin/cursor-tmux-workspace-attach
 test -x /usr/local/bin/cursor-tmux-bootstrap-workspaces
@@ -84,7 +87,7 @@ rm -rf \"\${AI_CACHE}\"
 init-ai-statusline >/tmp/ai-statusline-init.txt
 grep -q 'statusLine' \"\${HOME}/.claude/settings.json\"
 # Launcher exits cleanly on q
-printf 'q\n' | cursor-launcher >/tmp/launcher-out.txt
+printf 'q\n' | agent-launcher >/tmp/launcher-out.txt
 grep -q 'orcan workspaces' /tmp/launcher-out.txt
 test -d /opt/cursor-defaults
 test -d \"\${HOME}/.cursor\"

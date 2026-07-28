@@ -133,8 +133,9 @@ run_init_ai_statusline() {
 
 ensure_shell_home() {
     # Seed bashrc.d / zshrc.d from skel; drop legacy cursor-dev names.
-    # Always refresh managed PATH/cwd snippets so image logic stays in sync.
+    # Always refresh managed PATH/cwd/user-overlay snippets so image logic stays in sync.
     local src dst base
+    local dotfiles="${ORCAN_DOTFILES:-${HOME}/.config/orcan/dotfiles}"
     mkdir -p "${HOME}/.bashrc.d" "${HOME}/.zshrc.d" "${HOME}/.cache/zsh" "${HOME}/.config"
     mkdir -p \
         "${HOME}/.cache/ruff" \
@@ -155,6 +156,7 @@ ensure_shell_home() {
         base="$(basename "${src}")"
         if [[ "${base}" == "50-orcan-shell.sh" \
             || "${base}" == "55-orcan-devtools.sh" \
+            || "${base}" == "65-orcan-user.sh" \
             || ! -e "${dst}" ]]; then
             cp -- "${src}" "${dst}"
         fi
@@ -169,12 +171,28 @@ ensure_shell_home() {
         base="$(basename "${src}")"
         if [[ "${base}" == "50-orcan-shell.zsh" \
             || "${base}" == "55-orcan-devtools.zsh" \
+            || "${base}" == "65-orcan-user.zsh" \
             || ! -e "${dst}" ]]; then
             cp -- "${src}" "${dst}"
         fi
     done
 
-    if [[ -f /opt/orcan/starship.toml && ! -e "${HOME}/.config/starship.toml" ]]; then
+    # Managed: always refresh so new image hooks (dotfiles) apply.
+    if [[ -f /etc/skel/.tmux.conf ]]; then
+        cp -- /etc/skel/.tmux.conf "${HOME}/.tmux.conf"
+    fi
+    if [[ -f /etc/skel/.vimrc ]]; then
+        cp -- /etc/skel/.vimrc "${HOME}/.vimrc"
+    fi
+    mkdir -p "${HOME}/.config"
+    if [[ -L "${HOME}/.config/tmux" || ! -e "${HOME}/.config/tmux" ]]; then
+        ln -sfn /etc/tmux "${HOME}/.config/tmux"
+    fi
+
+    if [[ -f "${dotfiles}/starship.toml" ]]; then
+        mkdir -p "${HOME}/.config"
+        ln -sfn "${dotfiles}/starship.toml" "${HOME}/.config/starship.toml"
+    elif [[ -f /opt/orcan/starship.toml && ! -e "${HOME}/.config/starship.toml" ]]; then
         cp -- /opt/orcan/starship.toml "${HOME}/.config/starship.toml"
     fi
     if [[ -f /opt/orcan/gitconfig && ! -e "${HOME}/.gitconfig" ]]; then
@@ -189,6 +207,9 @@ ensure_shell_home() {
         fi
         if [[ -n "${GIT_AUTHOR_EMAIL:-}" ]]; then
             git config --global user.email "${GIT_AUTHOR_EMAIL}" || true
+        fi
+        if [[ -f "${dotfiles}/gitconfig.local" ]]; then
+            git config --global include.path "${dotfiles}/gitconfig.local" || true
         fi
     fi
 

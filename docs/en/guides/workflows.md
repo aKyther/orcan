@@ -22,6 +22,28 @@ Open `http://localhost:7681` and pick a workspace.
 !!! note
     `orcan up` does **not** run `orcan sync`. If you changed `orcan.config.json`, apply config first.
 
+## Scenario: local terminal (not only the browser) { #local-terminal }
+
+**When:** you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside ttyd.
+
+ttyd is the remote-friendly path. Locally you can use **`orcan enter`** (or raw `docker exec`) to join the **same** tmux sessions the browser uses (multiple clients are fine).
+
+```bash
+orcan enter                 # workspace picker (agent-launcher) — default
+orcan enter --tmux          # list sessions; attach if only one
+orcan enter --tmux my-ws    # attach a named session
+orcan enter --shell         # plain zsh (not in tmux)
+
+# equivalent low-level:
+docker exec -it orcan-1 tmux ls
+docker exec -it orcan-1 agent-launcher
+```
+
+Alias: `orcan go-in` (same as `enter`). Default container name is `orcan-1` (`ORCAN_INSTANCE`). Detach tmux with prefix + `d` — the session keeps running for ttyd and other clients.
+
+!!! tip
+    Browser + local terminal can share one session: edit in iTerm/Windows Terminal, keep ttyd open on a phone or second screen.
+
 ## Scenario: switch customer or product line
 
 **Problem:** another set of repos is today’s context.  
