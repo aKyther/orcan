@@ -38,6 +38,11 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context show` | Lista workspace'ów + path parity |
 | `orcan context wizard` | Interaktywny edytor konfiguracji |
 | `orcan context add PATH` | Dodaj projekt (`--workspace`, `--force`) |
+| `orcan context add --from-worktree REPO SELECTOR` | Dodaj istniejący git worktree (selektor: branch, indeks lub ścieżka) |
+| `orcan context worktrees [REPO]` | Lista git worktree (`git worktree list`) |
+| `orcan context worktree create …` | Utwórz worktree (managed pod `$ORCAN_DATA/worktrees` przy `--workspace`) i podepnij |
+| `orcan context worktree remove --path PATH` | Usuń jeden managed worktree |
+| `orcan context worktree remove --workspace NAME` | Usuń wszystkie managed worktree workspace'a (i wypnij z configu) |
 | `orcan up [--with-docker] [--with-git]` | Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release |
 | `orcan down` | Stop kontenerów |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Obaj agenci → `orcan:latest` + `orcan:<VERSION>` (pull lub build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (bez pull; nie nadpisuje `latest`). Nigdy nie publikuje |

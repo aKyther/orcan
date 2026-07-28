@@ -29,42 +29,272 @@ orcan_cmd_context() {
             ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-wizard.py" "$@"
             orcan_info "run: orcan sync"
             ;;
-        add)
-            local path="${1:-}"
-            local workspace=""
-            local force=""
+        worktrees)
+            local repo="${1:-${PWD}}"
+            if [[ "${repo}" != /* ]]; then
+                repo="$(cd -- "${repo}" 2>/dev/null && pwd)" || orcan_die "not a directory: ${1:-${PWD}}"
+            fi
+            orcan_host_python "${ORCAN_SCRIPTS}/git_worktrees.py" list --repo "${repo}"
+            ;;
+        worktree)
+            local wsub="${1:-}"
             shift || true
-            while [[ $# -gt 0 ]]; do
-                case "$1" in
-                    --workspace)
-                        workspace="${2:-}"
-                        shift 2 || orcan_usage_error "--workspace needs a value"
-                        ;;
-                    --force)
-                        force=1
-                        shift
-                        ;;
-                    *)
-                        orcan_usage_error "unknown argument: $1"
-                        ;;
-                esac
-            done
-            if [[ -z "${path}" || "${path}" != /* ]]; then
-                orcan_usage_error "usage: orcan context add /absolute/path/to/repo [--workspace NAME]"
-            fi
-            local args=(--project-dir "${path}" --config "${ORCAN_CONFIG_FILE}")
-            if [[ -n "${workspace}" ]]; then
-                args+=(--workspace "${workspace}")
-            fi
-            if [[ -n "${force}" ]]; then
-                args+=(--force)
-            fi
-            ORCAN_HOME="${ORCAN_HOME}" orcan_host_python \
-                "${ORCAN_SCRIPTS}/config-scaffold.py" "${args[@]}"
-            orcan_info "run: orcan sync"
+            case "${wsub}" in
+                create)
+                    orcan_context_worktree_create "$@"
+                    ;;
+                remove)
+                    orcan_context_worktree_remove "$@"
+                    ;;
+                -h | --help | "")
+                    printf 'usage: orcan context worktree create --repo PATH --branch NAME [--workspace NAME --project NAME]\n'
+                    printf '       orcan context worktree remove --path PATH [--force]\n'
+                    printf '       orcan context worktree remove --workspace NAME [--force]\n'
+                    printf '  Managed paths: \$ORCAN_DATA/worktrees/<workspace>/<project>\n'
+                    ;;
+                *)
+                    orcan_usage_error "usage: orcan context worktree <create|remove>"
+                    ;;
+            esac
+            ;;
+        add)
+            orcan_context_add "$@"
             ;;
         *)
-            orcan_usage_error "usage: orcan context <show|wizard|add>"
+            orcan_usage_error "usage: orcan context <show|wizard|add|worktrees|worktree>"
             ;;
     esac
+}
+
+orcan_context_add() {
+    local path=""
+    local workspace=""
+    local force=""
+    local from_worktree=""
+    local selector=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --from-worktree)
+                from_worktree="${2:-}"
+                shift 2 || orcan_usage_error "--from-worktree needs a repo path"
+                ;;
+            --workspace)
+                workspace="${2:-}"
+                shift 2 || orcan_usage_error "--workspace needs a value"
+                ;;
+            --force)
+                force=1
+                shift
+                ;;
+            -h | --help)
+                printf 'usage: orcan context add /absolute/path/to/repo [--workspace NAME] [--force]\n'
+                printf '       orcan context add --from-worktree /abs/repo [branch|index|path] [--workspace NAME] [--force]\n'
+                return 0
+                ;;
+            *)
+                if [[ -n "${from_worktree}" && -z "${selector}" && "$1" != --* ]]; then
+                    selector="$1"
+                    shift
+                elif [[ -z "${path}" && -z "${from_worktree}" ]]; then
+                    path="$1"
+                    shift
+                else
+                    orcan_usage_error "unknown argument: $1"
+                fi
+                ;;
+        esac
+    done
+
+    if [[ -n "${from_worktree}" ]]; then
+        if [[ "${from_worktree}" != /* ]]; then
+            orcan_usage_error "--from-worktree needs an absolute repo path"
+        fi
+        if [[ -z "${selector}" ]]; then
+            orcan_host_python "${ORCAN_SCRIPTS}/git_worktrees.py" list --repo "${from_worktree}"
+            orcan_usage_error "usage: orcan context add --from-worktree /abs/repo <branch|index|path>"
+        fi
+        path="$(
+            orcan_host_python "${ORCAN_SCRIPTS}/git_worktrees.py" resolve \
+                --repo "${from_worktree}" "${selector}"
+        )" || orcan_die "could not resolve worktree ${selector}"
+        orcan_info "using worktree: ${path}"
+    fi
+
+    if [[ -z "${path}" || "${path}" != /* ]]; then
+        orcan_usage_error "usage: orcan context add /absolute/path/to/repo [--workspace NAME]"
+    fi
+    local args=(--project-dir "${path}" --config "${ORCAN_CONFIG_FILE}")
+    if [[ -n "${workspace}" ]]; then
+        args+=(--workspace "${workspace}")
+    fi
+    if [[ -n "${force}" ]]; then
+        args+=(--force)
+    fi
+    ORCAN_HOME="${ORCAN_HOME}" orcan_host_python \
+        "${ORCAN_SCRIPTS}/config-scaffold.py" "${args[@]}"
+    orcan_info "run: orcan sync"
+}
+
+orcan_context_worktree_create() {
+    local repo=""
+    local branch=""
+    local path=""
+    local workspace=""
+    local project=""
+    local force=""
+    local start_point="HEAD"
+    local managed=0
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --repo)
+                repo="${2:-}"
+                shift 2 || orcan_usage_error "--repo needs a value"
+                ;;
+            --branch)
+                branch="${2:-}"
+                shift 2 || orcan_usage_error "--branch needs a value"
+                ;;
+            --path)
+                path="${2:-}"
+                shift 2 || orcan_usage_error "--path needs a value"
+                ;;
+            --workspace)
+                workspace="${2:-}"
+                shift 2 || orcan_usage_error "--workspace needs a value"
+                ;;
+            --project)
+                project="${2:-}"
+                shift 2 || orcan_usage_error "--project needs a value"
+                ;;
+            --managed)
+                managed=1
+                shift
+                ;;
+            --start-point)
+                start_point="${2:-}"
+                shift 2 || orcan_usage_error "--start-point needs a value"
+                ;;
+            --force)
+                force=1
+                shift
+                ;;
+            -h | --help)
+                printf 'usage: orcan context worktree create --repo PATH --branch NAME \\\n'
+                printf '         [--workspace NAME --project NAME | --path PATH] [--force]\n'
+                printf '  Default: managed under \$ORCAN_DATA/worktrees/<workspace>/<project>\n'
+                return 0
+                ;;
+            *)
+                orcan_usage_error "unknown argument: $1"
+                ;;
+        esac
+    done
+
+    if [[ -z "${repo}" || "${repo}" != /* ]]; then
+        orcan_usage_error "--repo must be an absolute path"
+    fi
+    if [[ -z "${branch}" ]]; then
+        orcan_usage_error "--branch is required"
+    fi
+    # Prefer managed layout when workspace is set (project defaults to repo basename).
+    if [[ -n "${workspace}" && -z "${path}" ]]; then
+        managed=1
+        if [[ -z "${project}" ]]; then
+            project="$(basename "${repo}")"
+        fi
+    fi
+    if (( managed )) && [[ -z "${workspace}" || -z "${project}" ]]; then
+        orcan_usage_error "--managed needs --workspace and --project (or omit --path and pass --workspace)"
+    fi
+
+    local create_args=(
+        create --repo "${repo}" --branch "${branch}" --start-point "${start_point}"
+    )
+    if [[ -n "${path}" ]]; then
+        if [[ "${path}" != /* ]]; then
+            orcan_usage_error "--path must be absolute"
+        fi
+        create_args+=(--path "${path}")
+    fi
+    if (( managed )); then
+        create_args+=(--managed --workspace "${workspace}" --project "${project}")
+    fi
+
+    local out wt_path
+    out="$(
+        ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+            orcan_host_python "${ORCAN_SCRIPTS}/git_worktrees.py" "${create_args[@]}"
+    )" || orcan_die "worktree create failed"
+    printf '%s\n' "${out}"
+    wt_path="$(printf '%s\n' "${out}" | tail -1)"
+    if [[ -z "${wt_path}" || "${wt_path}" != /* ]]; then
+        orcan_die "could not parse created worktree path"
+    fi
+
+    local args=(--project-dir "${wt_path}" --config "${ORCAN_CONFIG_FILE}")
+    if [[ -n "${workspace}" ]]; then
+        args+=(--workspace "${workspace}")
+    fi
+    if [[ -n "${force}" ]]; then
+        args+=(--force)
+    fi
+    ORCAN_HOME="${ORCAN_HOME}" orcan_host_python \
+        "${ORCAN_SCRIPTS}/config-scaffold.py" "${args[@]}"
+    orcan_info "run: orcan sync"
+}
+
+orcan_context_worktree_remove() {
+    local path=""
+    local workspace=""
+    local force=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --path)
+                path="${2:-}"
+                shift 2 || orcan_usage_error "--path needs a value"
+                ;;
+            --workspace)
+                workspace="${2:-}"
+                shift 2 || orcan_usage_error "--workspace needs a value"
+                ;;
+            --force)
+                force=1
+                shift
+                ;;
+            -h | --help)
+                printf 'usage: orcan context worktree remove --path PATH [--force]\n'
+                printf '       orcan context worktree remove --workspace NAME [--force]\n'
+                printf '  --workspace removes all managed worktrees for that workspace\n'
+                return 0
+                ;;
+            *)
+                orcan_usage_error "unknown argument: $1"
+                ;;
+        esac
+    done
+
+    if [[ -n "${workspace}" ]]; then
+        if [[ -n "${path}" ]]; then
+            orcan_usage_error "use either --path or --workspace, not both"
+        fi
+        local rm_args=(remove --config "${ORCAN_CONFIG_FILE}" --workspace "${workspace}")
+        if [[ -n "${force}" ]]; then
+            rm_args+=(--force)
+        fi
+        ORCAN_HOME="${ORCAN_HOME}" ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+            orcan_host_python "${ORCAN_SCRIPTS}/managed_workspace.py" "${rm_args[@]}"
+        return
+    fi
+
+    if [[ -z "${path}" || "${path}" != /* ]]; then
+        orcan_usage_error "--path must be an absolute managed worktree path (or pass --workspace)"
+    fi
+    local rm_args=(remove --path "${path}")
+    if [[ -n "${force}" ]]; then
+        rm_args+=(--force)
+    fi
+    ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+        orcan_host_python "${ORCAN_SCRIPTS}/git_worktrees.py" "${rm_args[@]}"
 }

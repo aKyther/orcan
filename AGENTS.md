@@ -24,6 +24,7 @@ User-facing story: `docs/en/why-orcan.md`, `docs/en/ideas/core-ideas.md`, `docs/
 
 ```bash
 orcan context wizard        # or edit ORCAN_HOME/orcan.config.json / orcan context add
+# worktrees: orcan context worktrees | add --from-worktree | worktree create
 orcan sync                  # apply config → .env, .orcan/*, mounts
 orcan build                 # once / after Dockerfile|rootfs changes
 orcan up                    # daily; does NOT run orcan sync

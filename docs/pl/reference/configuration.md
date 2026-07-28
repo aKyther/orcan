@@ -48,6 +48,9 @@ Nie używaj: `projects_dir`, `default_project`, `default_workspace`, projektowe 
 | --- | --- |
 | `orcan context wizard` | Edytor interaktywny |
 | `orcan context add` | Dodawanie bez interakcji |
+| `orcan context add --from-worktree` | Dodanie istniejącego git worktree |
+| `orcan context worktrees` | Lista worktree dla repo |
+| `orcan context worktree create` | Utwórz worktree i podepnij w configu |
 | `orcan context show` | Lista workspace'ów |
 | `scripts/repository/config_io.py` | Load/dump/discover |
 

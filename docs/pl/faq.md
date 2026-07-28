@@ -37,6 +37,8 @@ orcan down && orcan up
 
 **Push/pull po SSH:** startuj z `orcan up --with-git` (montuje `~/.ssh` oraz agenta SSH, gdy jest dostępny). Razem z DinD: `orcan up --with-docker --with-git`. Zwykłe `orcan up` nie podpina kluczy. Zobacz [Szybki start](getting-started/quickstart.md#git-w-kontenerze) i [Bezpieczeństwo](reference/security.md).
 
+**Worktree:** opcjonalne. Domyślnie montujesz zwykłą ścieżkę klona; zaawansowana pomoc w wizardzie albo `orcan context worktree`, gdy chcesz osobny checkout pod `$ORCAN_DATA/worktrees`. Zobacz [Workspace'y](concepts/workspaces.md#git-worktree).
+
 ## Którzy agenci są zainstalowani?
 
 Domyślnie obraz ma **obu** agentów (`orcan:latest` / `orcan:<VERSION>`). Żeby pominąć agenta, którego nie użyjesz, zbuduj **osobny lokalny tag** (bez pull; nie nadpisuje `latest`):
@@ -106,7 +108,7 @@ docker images 'orcan*'   # opcjonalnie: docker rmi …
 # potem usuń katalog clone'a, jeśli go nie potrzebujesz
 ```
 
-Szczegóły: [Workflowy — odinstalowanie](guides/workflows.md#odinstalowanie).
+Szczegóły: [Workflowy — odinstalowanie](guides/workflows.md#uninstall).
 
 ## Jak zgłosić błąd?
 

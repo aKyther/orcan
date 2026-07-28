@@ -38,6 +38,11 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context show` | List workspaces + path-parity summary |
 | `orcan context wizard` | Interactive config editor |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
+| `orcan context add --from-worktree REPO SELECTOR` | Add an existing git worktree (selector: branch, index, or path) |
+| `orcan context worktrees [REPO]` | List git worktrees (`git worktree list`) |
+| `orcan context worktree create …` | Create a worktree (managed under `$ORCAN_DATA/worktrees` when `--workspace` is set) and pin it |
+| `orcan context worktree remove --path PATH` | Remove one managed worktree |
+| `orcan context worktree remove --workspace NAME` | Remove all managed worktrees for a workspace (and unpin from config) |
 | `orcan up [--with-docker] [--with-git]` | Start browser terminal (socket / host SSH only with flags); hints if a newer release exists |
 | `orcan down` | Stop containers |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Both agents → `orcan:latest` + `orcan:<VERSION>` (pull or build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (no pull; does not overwrite `latest`). Never publishes |
