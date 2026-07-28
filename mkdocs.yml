@@ -16,7 +16,7 @@ copyright: >
   <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
 
 extra:
-  orcan_version: "0.3.0"
+  orcan_version: "0.3.1"
   version:
     provider: mike
     default: latest

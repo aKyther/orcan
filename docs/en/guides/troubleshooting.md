@@ -48,6 +48,16 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 
 Use `orcan up --with-docker`. Plain `orcan up` does not mount the socket.
 
+If `docker` needs `sudo` inside the container, the host socket GID must match `DOCKER_GID` in `.env`:
+
+```bash
+stat -c '%g' /var/run/docker.sock
+grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan/home}/.env"
+orcan sync && orcan down && orcan up --with-docker
+```
+
+`orcan sync` re-detects the socket GID from the host (do not leave a stale `999` from `.env.example`).
+
 ## Path parity / nested Compose fails
 
 See [Path parity](../concepts/path-parity.md). Confirm mounts with `orcan context show`.
