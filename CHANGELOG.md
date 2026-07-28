@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-28
+
+### Added
+
+- Image tooling for agents: `gh`, `openssh-client`, `rsync`, `sqlite3`, `ast-grep` (`sg`); `USE_BUILTIN_RIPGREP=0` so Claude prefers system `rg`
+
+### Fixed
+
+- `orcan sync`: `DOCKER_GID` (and host UID/GID) no longer stuck at stale `.env` values — re-detect after sourcing `.env` (socket GID was overwritten by `999` from `.env.example`)
+
 ## [0.3.0] - 2026-07-28
 
 ### Added

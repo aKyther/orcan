@@ -48,6 +48,16 @@ docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml co
 
 Użyj `orcan up --with-docker`. Zwykły `orcan up` nie montuje socketa.
 
+Jeśli w kontenerze `docker` wymaga `sudo`, GID socketa na hoście musi zgadzać się z `DOCKER_GID` w `.env`:
+
+```bash
+stat -c '%g' /var/run/docker.sock
+grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan/home}/.env"
+orcan sync && orcan down && orcan up --with-docker
+```
+
+`orcan sync` ponownie wykrywa GID socketa z hosta (nie zostawiaj starego `999` z `.env.example`).
+
 ## Path parity / zagnieżdżony Compose nie działa
 
 Zobacz [Path parity](../concepts/path-parity.md). Potwierdź mounty przez `orcan context show`.

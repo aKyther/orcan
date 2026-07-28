@@ -54,6 +54,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         less \
         make \
         nano \
+        openssh-client \
         parallel \
         postgresql-client \
         python3 \
@@ -63,7 +64,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python-is-python3 \
         redis-tools \
         ripgrep \
+        rsync \
         shellcheck \
+        sqlite3 \
         sudo \
         tmux \
         tree \
@@ -196,6 +199,45 @@ RUN set -eux; \
         -o /usr/local/bin/yq; \
     chmod 0755 /usr/local/bin/yq; \
     yq --version
+
+# ------------------------------------------------------------------------------
+# gh (GitHub CLI) + ast-grep (structural search) — agents use these on PATH
+# ------------------------------------------------------------------------------
+
+ARG GH_VERSION=2.96.0
+ARG AST_GREP_VERSION=0.45.0
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) \
+            gh_arch="amd64"; \
+            sg_arch="x86_64-unknown-linux-gnu"; \
+            ;; \
+        arm64) \
+            gh_arch="arm64"; \
+            sg_arch="aarch64-unknown-linux-gnu"; \
+            ;; \
+        *) echo "unsupported architecture for gh/ast-grep: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${gh_arch}.tar.gz" \
+        | tar -xz --strip-components=1 -C /usr/local \
+            "gh_${GH_VERSION}_linux_${gh_arch}/bin/gh"; \
+    chmod 0755 /usr/local/bin/gh; \
+    gh --version; \
+    tmp="$(mktemp -d)"; \
+    curl -fsSL "https://github.com/ast-grep/ast-grep/releases/download/${AST_GREP_VERSION}/app-${sg_arch}.zip" \
+        -o "${tmp}/ast-grep.zip"; \
+    unzip -q "${tmp}/ast-grep.zip" -d "${tmp}"; \
+    install -m 0755 "${tmp}/sg" /usr/local/bin/sg; \
+    if [[ -f "${tmp}/ast-grep" ]]; then \
+        install -m 0755 "${tmp}/ast-grep" /usr/local/bin/ast-grep; \
+    else \
+        ln -sf sg /usr/local/bin/ast-grep; \
+    fi; \
+    rm -rf "${tmp}"; \
+    sg --version; \
+    ast-grep --version
 
 # ------------------------------------------------------------------------------
 # Starship + delta + lazygit (shell / git UX)
@@ -371,6 +413,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTEST_ADDOPTS="-p no:cacheprovider"
 ENV CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude
+# Prefer system ripgrep on PATH (faster than Claude's bundled wrapper).
+ENV USE_BUILTIN_RIPGREP=0
 ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
 
 USER ${USERNAME}

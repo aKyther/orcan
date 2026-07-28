@@ -48,8 +48,16 @@ command -v ttyd >/dev/null
 command -v tree >/dev/null
 command -v yq >/dev/null
 command -v curl >/dev/null
+command -v gh >/dev/null
+command -v sg >/dev/null
+command -v ast-grep >/dev/null
+command -v ssh >/dev/null
+command -v rsync >/dev/null
+command -v sqlite3 >/dev/null
 test -x /usr/local/bin/ttyd
 test -x /usr/local/bin/yq
+test -x /usr/local/bin/gh
+test -x /usr/local/bin/sg
 test -x /usr/local/bin/cursor-launcher
 test -x /usr/local/bin/cursor-tmux-workspace-attach
 test -x /usr/local/bin/cursor-tmux-bootstrap-workspaces

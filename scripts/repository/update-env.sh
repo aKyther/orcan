@@ -87,6 +87,15 @@ set -a
 source "${ORCAN_HOME}/.env"
 set +a
 
+# source .env above can overwrite UID/GID/DOCKER_GID with stale values (e.g.
+# DOCKER_GID=999 from .env.example). Always re-detect from the host.
+USER_UID="$(id -u)"
+USER_GID="$(id -g)"
+DOCKER_GID="999"
+if [[ -S /var/run/docker.sock ]]; then
+    DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
+fi
+
 validate_project_dir "${PROJECT_DIR}"
 
 ensure_env_key "USER_UID" "${USER_UID}"
