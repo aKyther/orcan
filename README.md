@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **0.2.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **0.2.1**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -37,7 +37,7 @@ Version **0.2.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the i
 curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
 ```
 
-Adds `orcan` to `~/.local/bin` (ensure that directory is on your `PATH`).
+Adds `orcan` to `~/.local/bin` and appends that directory to your shell rc (`~/.zshrc` / `~/.bashrc`) if needed.
 
 ## Quickstart
 
@@ -59,7 +59,7 @@ Open `http://localhost:7681`. After any config edit: `orcan sync && orcan down &
 | `orcan up` / `orcan up --with-docker` / `orcan down` | Start (optional DinD) / stop browser terminal |
 | `orcan build [--claude\|--cursor]` | Both → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor` |
 | `orcan publish` | Manual image push (maintainers) |
-| `orcan update` | Update the CLI install from Git |
+| `orcan update` | Newest release tag `vX.Y.Z` (`--main` for bleeding edge) |
 | `orcan uninstall` | Remove CLI (`--purge-data` also deletes logins/caches) |
 
 Config lives in `~/.config/orcan/home/` by default (install clone: `~/.local/share/orcan`).

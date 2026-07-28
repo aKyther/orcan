@@ -23,7 +23,7 @@ Commands:
   publish                  Manual push of both-agents orcan:latest (maintainers)
   url                      Print http://localhost:<port>
   logs                     Follow container logs
-  update                   git pull the orcan install
+  update [--release|--main] Checkout newest release tag (default) or main
   doctor                   Host / config health report
   uninstall [--purge-data] Remove CLI (and optionally ORCAN_DATA)
   version                  Print version

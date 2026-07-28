@@ -38,14 +38,14 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context show` | List workspaces + path-parity summary |
 | `orcan context wizard` | Interactive config editor |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
-| `orcan up [--with-docker]` | Start browser terminal (socket only with `--with-docker`) |
+| `orcan up [--with-docker]` | Start browser terminal (socket only with `--with-docker`); hints if a newer release exists |
 | `orcan down` | Stop containers |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Both agents → `orcan:latest` + `orcan:<VERSION>` (pull or build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (no pull; does not overwrite `latest`). Never publishes |
 | `orcan pull` | Pull both-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push both-agents `orcan:latest` (**manual**; not `-claude`/`-cursor`) |
 | `orcan url` | Print terminal URL |
 | `orcan logs` | Follow logs |
-| `orcan update` | `git pull` the install |
+| `orcan update [--release\|--main]` | Newest release tag `vX.Y.Z` (default); `--main` for bleeding edge |
 | `orcan doctor` | Host / config health report |
 | `orcan uninstall [--purge-data]` | Remove CLI (optional wipe of `ORCAN_DATA`) |
 | `orcan version` / `orcan help` | Version / help |

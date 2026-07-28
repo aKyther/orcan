@@ -17,11 +17,11 @@ You should already know why Orcan exists ([Why Orcan?](../why-orcan.md)) and wha
 curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
 ```
 
-Ensure `~/.local/bin` is on your `PATH`, then:
-
 ```bash
 orcan doctor
 ```
+
+(`install.sh` adds `~/.local/bin` to your shell rc; in the *current* terminal you may need `export PATH="$HOME/.local/bin:$PATH"` or a new shell.)
 
 ## Steps
 
