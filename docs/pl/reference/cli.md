@@ -38,7 +38,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context show` | Lista workspace'ów + path parity |
 | `orcan context wizard` | Interaktywny edytor konfiguracji |
 | `orcan context add PATH` | Dodaj projekt (`--workspace`, `--force`) |
-| `orcan up [--with-docker]` | Start terminala (socket tylko z `--with-docker`); podpowiada, gdy jest nowszy release |
+| `orcan up [--with-docker] [--with-git]` | Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release |
 | `orcan down` | Stop kontenerów |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Obaj agenci → `orcan:latest` + `orcan:<VERSION>` (pull lub build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (bez pull; nie nadpisuje `latest`). Nigdy nie publikuje |
 | `orcan pull` | Pull obu agentów `orcan:<VERSION>` → `orcan:latest` |
@@ -73,6 +73,18 @@ orcan down && orcan up
 ```
 
 `orcan up` **nie** uruchamia `sync`.
+
+### Flagi `orcan up`
+
+| Flaga | Efekt |
+| --- | --- |
+| *(brak)* | Tylko terminal w przeglądarce — bez socketa Dockera, bez hostowego SSH |
+| `--with-docker` | Montuje `/var/run/docker.sock` (Docker-from-Docker) |
+| `--with-git` | Montuje hostowy `~/.ssh` tylko do odczytu (+ agent SSH, gdy `SSH_AUTH_SOCK` jest ustawiony) do push/pull |
+
+Flagi łączą się: `orcan up --with-docker --with-git`.
+
+Tożsamość **autora** Gita zawsze synchronizuje `orcan sync` (`GIT_AUTHOR_*` z hostowego `user.name` / `user.email`). Klucze SSH są podpinane tylko przez `--with-git`. Obie opcjonalne flagi wypisują ostrzeżenie bezpieczeństwa — agenci w środku mogą użyć zamontowanego socketa lub kluczy. Zobacz [Bezpieczeństwo](security.md) i [Workflowy](../guides/workflows.md).
 
 ## Make dla maintainerów
 

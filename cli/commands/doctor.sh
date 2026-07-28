@@ -47,6 +47,24 @@ orcan_cmd_doctor() {
         local projects="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_RUNTIME_DIR}/compose-projects.generated.yml}"
         local runtime="${ORCAN_CONFIG_HOST:-${ORCAN_RUNTIME_DIR}/runtime-config.json}"
         check "compose mounts" "$([[ -f ${projects} ]] && echo 1 || echo 0)" "${projects}"
+        local git_name="${GIT_AUTHOR_NAME:-}"
+        local git_email="${GIT_AUTHOR_EMAIL:-}"
+        if [[ -n "${git_name}" && -n "${git_email}" ]]; then
+            check "git identity" "1" "${git_name} <${git_email}>"
+        else
+            check "git identity" "0" "set host git user.name/email, then: orcan sync"
+        fi
+        local git_overlay="${ORCAN_COMPOSE_GIT:-${ORCAN_RUNTIME_DIR}/compose-git.generated.yml}"
+        if [[ -f "${git_overlay}" ]]; then
+            check "git overlay (up --with-git)" "1" "${git_overlay}"
+        else
+            check "git overlay (up --with-git)" "1" "created on demand by: orcan up --with-git"
+        fi
+        if [[ -d "${HOME}/.ssh" ]]; then
+            check "host ~/.ssh" "1" "${HOME}/.ssh"
+        else
+            check "host ~/.ssh" "0" "needed for: orcan up --with-git"
+        fi
         check "runtime config" "$([[ -f ${runtime} ]] && echo 1 || echo 0)" "${runtime}"
         if [[ -f "${ORCAN_CONFIG_FILE}" && -f "${runtime}" ]]; then
             if [[ "${ORCAN_CONFIG_FILE}" -nt "${runtime}" ]]; then

@@ -181,6 +181,21 @@ ensure_shell_home() {
         cp -- /opt/orcan/gitconfig "${HOME}/.gitconfig"
     fi
 
+    # Apply host identity from Compose env (orcan sync). GIT_AUTHOR_* alone is
+    # enough for commits; user.* keeps tools that only read gitconfig consistent.
+    if command -v git >/dev/null 2>&1; then
+        if [[ -n "${GIT_AUTHOR_NAME:-}" ]]; then
+            git config --global user.name "${GIT_AUTHOR_NAME}" || true
+        fi
+        if [[ -n "${GIT_AUTHOR_EMAIL:-}" ]]; then
+            git config --global user.email "${GIT_AUTHOR_EMAIL}" || true
+        fi
+    fi
+
+    # Parent for optional known_hosts bind (compose-git overlay).
+    mkdir -p "${HOME}/.ssh"
+    chmod 700 "${HOME}/.ssh" 2>/dev/null || true
+
     if [[ -f "${HOME}/.profile" ]]; then
         if grep -q 'cursor-dev-path\|cind-path' "${HOME}/.profile" 2>/dev/null; then
             sed -i \

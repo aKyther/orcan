@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- In-container git identity matches the host: `orcan sync` copies global `user.name` / `user.email` into `GIT_AUTHOR_*` / `GIT_COMMITTER_*`
+- `orcan up --with-git`: mount host `~/.ssh` (and SSH agent when `SSH_AUTH_SOCK` is set) for push/pull — same pattern as `--with-docker`; both flags print a security warning (agents inside can use the mounted socket/keys)
+
 ## [0.2.1] - 2026-07-28
 
 ### Changed

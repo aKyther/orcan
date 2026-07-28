@@ -16,7 +16,7 @@ After a few months, the expensive part is not `git clone`. It is **rebuilding th
 
 ## The solution
 
-Orcan does not manage “Git” as a product. It manages **context**.
+Orcan does not manage products. It manages **context**.
 
 - A **project** is one checkout (absolute path).
 - A **workspace** is a named set of projects that belong together.

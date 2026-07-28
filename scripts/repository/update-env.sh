@@ -45,8 +45,17 @@ fi
 ensure_env_key() {
     local key="$1"
     local value="$2"
+    local tmp line
     if grep -qE "^${key}=" .env; then
-        sed -i "s|^${key}=.*|${key}=${value}|" .env
+        tmp="$(mktemp)"
+        while IFS= read -r line || [[ -n "${line}" ]]; do
+            if [[ "${line}" == "${key}="* ]]; then
+                printf '%s=%s\n' "${key}" "${value}"
+            else
+                printf '%s\n' "${line}"
+            fi
+        done < .env >"${tmp}"
+        mv -- "${tmp}" .env
     else
         printf '%s=%s\n' "${key}" "${value}" >> .env
     fi
@@ -105,6 +114,32 @@ if ! grep -qE '^TZ=.' .env; then
     ensure_env_key "TZ" "$(detect_host_tz)"
 fi
 
+# Quote a value for Docker Compose .env (double-quoted; escape \ and ").
+quote_dotenv() {
+    local v="$1"
+    v="${v//\\/\\\\}"
+    v="${v//\"/\\\"}"
+    printf '"%s"' "${v}"
+}
+
+# Host git identity → container commits match host author/committer.
+# Prefer global config (update-env cwd is ORCAN_HOME, not a project repo).
+# SSH keys / agent are NOT mounted here — use: orcan up --with-git
+GIT_AUTHOR_NAME="$(git config --global --get user.name 2>/dev/null || true)"
+GIT_AUTHOR_EMAIL="$(git config --global --get user.email 2>/dev/null || true)"
+if [[ -n "${GIT_AUTHOR_NAME}" ]]; then
+    ensure_env_key "GIT_AUTHOR_NAME" "$(quote_dotenv "${GIT_AUTHOR_NAME}")"
+    ensure_env_key "GIT_COMMITTER_NAME" "$(quote_dotenv "${GIT_AUTHOR_NAME}")"
+else
+    printf 'Warning: host git user.name unset — commits inside the container may lack identity\n' >&2
+fi
+if [[ -n "${GIT_AUTHOR_EMAIL}" ]]; then
+    ensure_env_key "GIT_AUTHOR_EMAIL" "$(quote_dotenv "${GIT_AUTHOR_EMAIL}")"
+    ensure_env_key "GIT_COMMITTER_EMAIL" "$(quote_dotenv "${GIT_AUTHOR_EMAIL}")"
+else
+    printf 'Warning: host git user.email unset — commits inside the container may lack identity\n' >&2
+fi
+
 if [[ -z "${ORCAN_DATA:-}" ]]; then
     ORCAN_DATA="${HOME}/.config/orcan"
 fi
@@ -137,6 +172,10 @@ fi
 
 printf '.env updated (USER_UID=%s USER_GID=%s DOCKER_GID=%s TZ=%s)\n' \
     "${USER_UID}" "${USER_GID}" "${DOCKER_GID}" "$(grep -E '^TZ=' .env | cut -d= -f2-)"
+if [[ -n "${GIT_AUTHOR_NAME}" || -n "${GIT_AUTHOR_EMAIL}" ]]; then
+    printf 'git identity: %s <%s>\n' \
+        "${GIT_AUTHOR_NAME:-?}" "${GIT_AUTHOR_EMAIL:-?}"
+fi
 printf 'ORCAN_HOME=%s\n' "${ORCAN_HOME}"
 printf 'ORCAN_ROOT=%s\n' "${ORCAN_ROOT}"
 printf 'PROJECT_DIR=%s\n' "${PROJECT_DIR}"
@@ -147,4 +186,5 @@ fi
 if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/.orcan/compose-projects.generated.yml}" ]]; then
     printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/.orcan/compose-projects.generated.yml}"
 fi
+printf 'SSH keys: orcan up --with-git (not mounted by sync)\n'
 printf 'Next: orcan down && orcan up\n'

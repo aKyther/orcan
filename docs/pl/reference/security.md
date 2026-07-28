@@ -6,9 +6,13 @@ Orcan to wygodna izolacja, **nie** twarda granica bezpieczeństwa.
 
 - Bind mounty dają kontenerowi zapis do Twoich projektów
 - `orcan up --with-docker` montuje `/var/run/docker.sock` → silny dostęp do hosta
+- `orcan up --with-git` montuje hostowy `~/.ssh` (tylko odczyt) i może montować socket agenta SSH
 
 !!! warning
     Używaj `orcan up --with-docker` tylko gdy potrzebujesz Docker-from-Docker. Preferuj zwykłe `orcan up` bez socketa.
+
+!!! warning
+    Używaj `orcan up --with-git` tylko gdy potrzebujesz push/pull z kontenera. Udostępnia to kontenerowi klucze SSH (i agenta).
 
 ## Dane na hoście
 

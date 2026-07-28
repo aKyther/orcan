@@ -1,5 +1,6 @@
 # Container-local git defaults (missing-only → ~/.gitconfig).
-# Set user.name / user.email inside the container (host gitconfig is not mounted).
+# user.name / user.email come from the host via orcan sync (GIT_AUTHOR_* env +
+# entrypoint). Host ~/.gitconfig is intentionally not mounted.
 
 [init]
 	defaultBranch = main

@@ -43,6 +43,15 @@ bash --version
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
+```
+
+`install.sh` kładzie launcher w `~/.local/bin` i dopisuje ten katalog do shell rc (idempotentnie; pomiń przez `ORCAN_SKIP_PATH=1`). Instalacja przez `curl | bash` **nie może** zmienić `PATH` w shellu rodzica, więc zanim uruchomisz `orcan doctor`:
+
+1. Upewnij się, że `~/.local/bin` jest na `PATH` (`echo "$PATH"` albo `command -v orcan`).
+2. Jeśli installer dopisał linię do rc, ale ta sesja jej jeszcze nie ma — przeładuj shell, np. `exec bash -l`, `exec zsh -l`, albo otwórz nowy terminal. Jednorazowo: `export PATH="$HOME/.local/bin:$PATH"`.
+3. Jeśli rc nie zostało zaktualizowane, dodaj export ręcznie, przeładuj sesję i dopiero potem idź dalej.
+
+```bash
 orcan doctor
 ```
 
@@ -99,6 +108,8 @@ orcan sync
 - Lokalny obraz `orcan:latest` istnieje
 - `orcan context show` wypisuje ścieżki workspace'ów
 
+Tożsamość autora Gita wypełnia `orcan sync`. Żeby podpiąć hostowe klucze SSH do push/pull, użyj `orcan up --with-git` (zobacz [Szybki start](quickstart.md#git-w-kontenerze)).
+
 ## Odinstalowanie
 
 ```bash
@@ -115,6 +126,6 @@ Zobacz [Workflowy — uninstall](../guides/workflows.md#uninstall) lub [FAQ](../
 | Docker permission denied | Dodaj użytkownika do grupy `docker` albo użyj rootless Docker |
 | `orcan sync` pada na `PROJECT_DIR` | Użyj ścieżki **bezwzględnej**; nie używaj `/`, `/home` ani `/etc` jako projektu |
 | Wolny pierwszy build | Normalne — obraz instaluje toolchainy i CLI |
-| `orcan: command not found` | Otwórz nowy shell albo `export PATH="$HOME/.local/bin:$PATH"`; ponów `install.sh` jeśli trzeba |
+| `orcan: command not found` | Upewnij się, że `~/.local/bin` jest na `PATH`, potem przeładuj shell (`exec bash -l` / nowy terminal) albo `export PATH="$HOME/.local/bin:$PATH"`; ponów `install.sh`, jeśli brakuje linii w rc |
 
 Dalej: [Szybki start](quickstart.md) · [Referencja CLI](../reference/cli.md).

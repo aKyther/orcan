@@ -12,8 +12,10 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 | `PROJECT_DIR` | Ścieżka instalacji Orcana (gdzie uruchamiasz `orcan`) |
 | `CONTAINER_PROJECT_DIR` / `WORKSPACE_*` | Ścieżki primary workspace |
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Mount runtime config |
-| `ORCAN_COMPOSE_PROJECTS` | Wygenerowana nakładka Compose |
+| `ORCAN_COMPOSE_PROJECTS` | Wygenerowana nakładka Compose (mounty projektów) |
 | `ORCAN_DATA` | Root danych hosta (domyślnie `$HOME/.config/orcan`) |
+| `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Tożsamość z hostowego `git config --global` (commity w kontenerze) |
+| `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Jak autor (trzymane w syncu) |
 
 ## Seedowane raz (zachowywane przy kolejnym `orcan sync`)
 
@@ -45,6 +47,8 @@ Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `orcan sync` na no
 | `ORCAN_VARIANT` | `full` lub `claude` (z `/etc/orcan/variant`) |
 | `ORCAN_VERSION` | Z `/etc/orcan/version` |
 | `HISTFILE` | `/command-history/.zsh_history` (bind: `$ORCAN_DATA/shell-history`) |
+| `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Ta sama tożsamość commitów co użytkownik hosta |
+| `SSH_AUTH_SOCK` | Agent hosta (tylko z `orcan up --with-git`) |
 
 ### Higiena cache narzędzi developerskich
 

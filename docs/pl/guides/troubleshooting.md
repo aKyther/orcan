@@ -72,6 +72,18 @@ tmux startuje launcher (`cursor-ttyd` → `cursor-launcher`), a nie blok w `50-o
 
 Starszy układ mógł utworzyć katalog należący do roota. Napraw właściciela albo zastąp zwykłym plikiem, potem zaktualizuj Orcana i odtwórz kontener.
 
+Orcan **nie** montuje hostowego `~/.gitconfig`. Zamiast tego `orcan sync` kopiuje `user.name` / `user.email` do `.env` (`GIT_AUTHOR_*` / `GIT_COMMITTER_*`), żeby commity w kontenerze miały tego samego autora co na hoście.
+
+Do `git push` / `git pull` po SSH:
+
+```bash
+orcan up --with-git
+# razem z DinD:
+orcan up --with-docker --with-git
+```
+
+Montuje hostowy `~/.ssh` tylko do odczytu (oraz agenta SSH, gdy `SSH_AUTH_SOCK` jest ustawiony). Zwykłe `orcan up` tego nie robi.
+
 ## Checklista diagnostyczna
 
 ```bash
