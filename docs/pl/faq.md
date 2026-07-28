@@ -31,6 +31,14 @@ orcan down && orcan up
 
 `orcan up` nie uruchamia `orcan sync`. Najpierw zawsze zastosuj konfigurację.
 
+## Czy mogę zmienić aliasy / tmux / vim?
+
+**Tak.** Nadpisania w `$ORCAN_DATA/dotfiles` (domyślnie `~/.config/orcan/dotfiles`). Defaulty obrazu zostają; Twoje pliki są montowane. Zobacz [Dotfiles użytkownika](guides/dotfiles.md).
+
+## Czy muszę używać przeglądarki (ttyd)?
+
+**Nie.** ttyd jest świetne zdalnie / na telefonie. Lokalnie: `orcan enter` (lub `orcan go-in`) — domyślnie picker workspace’ów; `--tmux` / `--shell` na inne tryby. Zobacz [Workflowy — lokalny terminal](guides/workflows.md#local-terminal).
+
 ## Czy mogę commitować i pushować z kontenera?
 
 **Autor commitów:** tak po `orcan sync` — hostowe `user.name` / `user.email` trafiają do `GIT_AUTHOR_*` w kontenerze.

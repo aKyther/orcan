@@ -76,7 +76,7 @@ Aplikacje emitujące hiperłącza OSC 8 mogą zostać klikalne mimo zawinięcia,
 
 ## „Wyłącz tmux” / tylko zwykły shell
 
-tmux startuje launcher (`cursor-ttyd` → `cursor-launcher`), a nie blok w `50-orcan-shell.zsh`. Dziś nie ma obsługiwanego przełącznika „wyłącz tmux”. Nadal możesz otwierać dodatkowe shelle w oknach tmux.
+tmux startuje launcher (`cursor-ttyd` → `agent-launcher`), a nie blok w `50-orcan-shell.zsh`. Dziś nie ma obsługiwanego przełącznika „wyłącz tmux”. Nadal możesz otwierać dodatkowe shelle w oknach tmux.
 
 ## Hostowy `~/.gitconfig` stał się katalogiem
 

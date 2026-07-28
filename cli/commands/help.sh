@@ -31,6 +31,9 @@ Commands:
   publish                  Manual push of both-agents orcan:latest (maintainers)
   url                      Print http://localhost:<port>
   logs                     Follow container logs
+  enter [--launcher|--shell|--tmux [SESSION]]
+                           Local terminal into the running container
+                           (default: agent-launcher; alias: go-in)
   update [--release|--main] Checkout newest release tag (default) or main
   doctor                   Host / config health report
   uninstall [--purge-data] Remove CLI (and optionally ORCAN_DATA)

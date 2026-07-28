@@ -76,7 +76,7 @@ Apps that emit OSC 8 hyperlinks can stay clickable across wraps when the outer t
 
 ## “Disable tmux” / plain shell only
 
-tmux is started by the launcher (`cursor-ttyd` → `cursor-launcher`), not by a block in `50-orcan-shell.zsh`. There is no supported “turn off tmux” switch today. You can still open extra shells inside tmux windows.
+tmux is started by the launcher (`cursor-ttyd` → `agent-launcher`), not by a block in `50-orcan-shell.zsh`. There is no supported “turn off tmux” switch today. You can still open extra shells inside tmux windows.
 
 ## Host `~/.gitconfig` became a directory
 

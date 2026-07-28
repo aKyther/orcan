@@ -293,7 +293,7 @@ RUN chmod 0755 \
         /usr/local/bin/orcan-workspaces \
         /usr/local/bin/orcan-context-status \
         /usr/local/bin/cursor-ttyd \
-        /usr/local/bin/cursor-launcher \
+        /usr/local/bin/agent-launcher \
         /usr/local/bin/cursor-tmux-workspace-attach \
         /usr/local/bin/cursor-tmux-bootstrap-workspaces \
         /etc/tmux/scripts/*.sh \

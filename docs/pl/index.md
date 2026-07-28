@@ -71,7 +71,7 @@ Otwórz `http://localhost:7681`, wybierz workspace, potem uruchom `agent` lub `c
 
 ## Status
 
-Wersja **0.3.1** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
+Wersja **0.3.2** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
 
 ## Zobacz też
 

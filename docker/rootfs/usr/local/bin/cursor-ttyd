@@ -44,4 +44,4 @@ exec ttyd \
     --client-option "fontSize=${TTYD_FONT_SIZE}" \
     --client-option "fontFamily=${TTYD_FONT_FAMILY}" \
     --client-option "theme=${THEME_JSON}" \
-    cursor-launcher
+    agent-launcher

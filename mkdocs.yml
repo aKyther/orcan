@@ -16,7 +16,7 @@ copyright: >
   <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
 
 extra:
-  orcan_version: "0.3.1"
+  orcan_version: "0.3.2"
   version:
     provider: mike
     default: latest
@@ -113,6 +113,7 @@ plugins:
             Config guide: Przewodnik po konfiguracji
             Typical Workflows: Typowe workflowy
             Workflows: Przepływy pracy
+            User dotfiles: Dotfiles użytkownika
             Troubleshooting: Rozwiązywanie problemów
             Architecture: Architektura
             Reference: Referencja
@@ -186,6 +187,7 @@ nav:
       - Config guide: getting-started/configuration.md
   - Typical Workflows:
       - Workflows: guides/workflows.md
+      - User dotfiles: guides/dotfiles.md
       - Troubleshooting: guides/troubleshooting.md
   - Architecture: architecture.md
   - Reference:

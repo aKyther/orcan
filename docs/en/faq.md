@@ -31,6 +31,14 @@ Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
 `orcan up` does not run `orcan sync`. Always apply config first.
 
+## Can I customize aliases / tmux / vim?
+
+**Yes.** Put overlays in `$ORCAN_DATA/dotfiles` (default `~/.config/orcan/dotfiles`). Image defaults stay; your files are bind-mounted. See [User dotfiles](guides/dotfiles.md).
+
+## Must I use the browser (ttyd)?
+
+**No.** ttyd is great for remote / phone. Locally use `orcan enter` (or `orcan go-in`) — workspace picker by default; `--tmux` / `--shell` for other modes. See [Workflows — local terminal](guides/workflows.md#local-terminal).
+
 ## Can I commit and push from inside the container?
 
 **Commit author:** yes after `orcan sync` — host `user.name` / `user.email` become `GIT_AUTHOR_*` in the container.

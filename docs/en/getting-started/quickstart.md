@@ -39,6 +39,8 @@ orcan up
 
 Open the URL printed in the terminal (default `http://localhost:7681`).
 
+On the same machine you can also use **`orcan enter`** into the same tmux sessions — you do not have to stay in the browser. See [Workflows — local terminal](../guides/workflows.md#local-terminal).
+
 ## Git inside the container
 
 `orcan sync` copies your host `git config --global` identity (`user.name` / `user.email`) so commits inside match the host author.

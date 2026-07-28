@@ -1,0 +1,3 @@
+# Example personal aliases (copy to aliases.sh).
+# alias ll='eza -lah --git'
+# alias gs='git status -sb'

@@ -22,6 +22,28 @@ Otwórz `http://localhost:7681` i wybierz workspace.
 !!! note
     `orcan up` **nie** uruchamia `orcan sync`. Jeśli zmieniłeś `orcan.config.json`, najpierw zastosuj konfigurację.
 
+## Scenariusz: lokalny terminal (nie tylko przeglądarka) { #local-terminal }
+
+**Kiedy:** jesteś na tej samej maszynie co kontener (laptop) i chcesz natywny terminal — albo drugi klient obok ttyd.
+
+ttyd jest ścieżką pod zdalne programowanie. Lokalnie użyj **`orcan enter`** (albo surowego `docker exec`), żeby dołączyć do **tych samych** sesji tmux co przeglądarka (wielu klientów naraz jest OK).
+
+```bash
+orcan enter                 # picker workspace'ów (agent-launcher) — domyślnie
+orcan enter --tmux          # lista sesji; attach jeśli jest tylko jedna
+orcan enter --tmux my-ws    # attach do nazwanej sesji
+orcan enter --shell         # zwykły zsh (bez tmux)
+
+# równoważnie „nisko”:
+docker exec -it orcan-1 tmux ls
+docker exec -it orcan-1 agent-launcher
+```
+
+Alias: `orcan go-in` (to samo co `enter`). Domyślna nazwa kontenera to `orcan-1` (`ORCAN_INSTANCE`). Detach tmux: prefix + `d` — sesja dalej działa dla ttyd i innych klientów.
+
+!!! tip
+    Przeglądarka + lokalny terminal mogą dzielić jedną sesję: edytuj w iTerm / Windows Terminal, trzymaj ttyd na telefonie lub drugim ekranie.
+
 ## Scenariusz: przełączenie klienta lub linii produktu
 
 **Problem:** inny zestaw repo to dzisiejszy kontekst.  

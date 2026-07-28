@@ -28,6 +28,7 @@ Commands:
   publish      Manual push of both-agents orcan:latest (not part of build)
   url          Print browser terminal URL
   logs         Follow container logs
+  enter        Local terminal into the container (alias: go-in)
   update       Checkout newest release tag (or --main)
   doctor       Check host dependencies and config
   uninstall    Remove the CLI install (optional --purge-data)
@@ -38,6 +39,7 @@ Examples:
   orcan init /absolute/path/to/repo
   orcan sync
   orcan up
+  orcan enter
   orcan build
 
 Docs: https://akyther.github.io/orcan/latest/
@@ -60,14 +62,22 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | context | up | down | build | pull | publish | url | logs | seed | update | doctor | uninstall)
-            local script="${ORCAN_CLI_DIR}/commands/${cmd}.sh"
+        init | sync | context | up | down | build | pull | publish | url | logs | seed | update | doctor | uninstall | enter | go-in)
+            local script=""
+            case "${cmd}" in
+                go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;
+                *) script="${ORCAN_CLI_DIR}/commands/${cmd}.sh" ;;
+            esac
             if [[ ! -f "${script}" ]]; then
                 orcan_usage_error "command not implemented: ${cmd}"
             fi
             # shellcheck disable=SC1090
             source "${script}"
-            "orcan_cmd_${cmd}" "$@"
+            if [[ "${cmd}" == "go-in" ]]; then
+                orcan_cmd_enter "$@"
+            else
+                "orcan_cmd_${cmd}" "$@"
+            fi
             ;;
         *)
             orcan_usage_error "unknown command: ${cmd} (try: orcan help)"

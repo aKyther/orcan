@@ -39,6 +39,8 @@ orcan up
 
 Otwórz URL wypisany w terminalu (domyślnie `http://localhost:7681`).
 
+Na tej samej maszynie możesz też wejść przez **`orcan enter`** do tych samych sesji tmux — nie musisz zostać w przeglądarce. Zobacz [Workflowy — lokalny terminal](../guides/workflows.md#local-terminal).
+
 ## Git w kontenerze
 
 `orcan sync` kopiuje tożsamość z hostowego `git config --global` (`user.name` / `user.email`), żeby commity w środku miały tego samego autora co na hoście.

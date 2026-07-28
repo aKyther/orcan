@@ -13,7 +13,7 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 | `CONTAINER_PROJECT_DIR` / `WORKSPACE_*` | Ścieżki primary workspace |
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Mount runtime config |
 | `ORCAN_COMPOSE_PROJECTS` | Wygenerowana nakładka Compose (mounty projektów) |
-| `ORCAN_DATA` | Root danych hosta (domyślnie `$HOME/.config/orcan`) |
+| `ORCAN_DATA` | Root danych hosta (domyślnie `$HOME/.config/orcan`) — w tym `dotfiles/` na własne aliasy/tmux/vim |
 | `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Tożsamość z hostowego `git config --global` (commity w kontenerze) |
 | `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Jak autor (trzymane w syncu) |
 

@@ -168,11 +168,32 @@ ORCAN_DATA_SUBDIRS=(
     bash-history
     shell-history
     worktrees
+    dotfiles
 )
 mkdir -p "${ORCAN_DATA}"
 for sub in "${ORCAN_DATA_SUBDIRS[@]}"; do
     mkdir -p "${ORCAN_DATA}/${sub}"
 done
+
+# Seed example overlays once (never overwrite user files).
+DOTFILES_SRC="${ORCAN_ROOT}/docker/rootfs/opt/orcan/dotfiles"
+DOTFILES_DST="${ORCAN_DATA}/dotfiles"
+if [[ -d "${DOTFILES_SRC}" ]]; then
+    mkdir -p "${DOTFILES_DST}/zshrc.d" "${DOTFILES_DST}/bashrc.d"
+    if [[ -f "${DOTFILES_SRC}/README.md" && ! -e "${DOTFILES_DST}/README.md" ]]; then
+        cp -- "${DOTFILES_SRC}/README.md" "${DOTFILES_DST}/README.md"
+    fi
+    for src in "${DOTFILES_SRC}"/*.example "${DOTFILES_SRC}"/zshrc.d/*.example; do
+        [[ -f "${src}" ]] || continue
+        rel="${src#"${DOTFILES_SRC}/"}"
+        dst="${DOTFILES_DST}/${rel}"
+        mkdir -p "$(dirname "${dst}")"
+        if [[ ! -e "${dst}" ]]; then
+            cp -- "${src}" "${dst}"
+        fi
+    done
+fi
+
 if chown -R "${USER_UID}:${USER_GID}" "${ORCAN_DATA}" 2>/dev/null; then
     :
 else
@@ -186,6 +207,7 @@ if [[ -n "${GIT_AUTHOR_NAME}" || -n "${GIT_AUTHOR_EMAIL}" ]]; then
     printf 'git identity: %s <%s>\n' \
         "${GIT_AUTHOR_NAME:-?}" "${GIT_AUTHOR_EMAIL:-?}"
 fi
+printf 'user dotfiles: %s  (aliases / tmux / vim / zsh — see README there)\n' "${DOTFILES_DST}"
 printf 'ORCAN_HOME=%s\n' "${ORCAN_HOME}"
 printf 'ORCAN_ROOT=%s\n' "${ORCAN_ROOT}"
 printf 'PROJECT_DIR=%s\n' "${PROJECT_DIR}"

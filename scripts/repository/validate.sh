@@ -42,6 +42,7 @@ require_file "cli/commands/doctor.sh"
 require_file "cli/commands/update.sh"
 require_file "cli/commands/uninstall.sh"
 require_file "cli/commands/context.sh"
+require_file "cli/commands/enter.sh"
 require_file "VERSION"
 require_file "CHANGELOG.md"
 require_file "requirements-docs.txt"
@@ -97,7 +98,7 @@ require_file "docker/rootfs/etc/orcan/shell/aliases.sh"
 require_file "docker/rootfs/etc/orcan/shell/devtools-env.sh"
 require_file "docker/rootfs/etc/profile.d/orcan-devtools.sh"
 require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
-require_file "docker/rootfs/usr/local/bin/cursor-launcher"
+require_file "docker/rootfs/usr/local/bin/agent-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces"
 require_file "docker/rootfs/usr/local/bin/init-workspace"
@@ -123,7 +124,7 @@ for script in \
     docker/rootfs/usr/local/bin/orcan-init-projects \
     docker/rootfs/usr/local/bin/orcan-session-brief \
     docker/rootfs/usr/local/bin/cursor-ttyd \
-    docker/rootfs/usr/local/bin/cursor-launcher \
+    docker/rootfs/usr/local/bin/agent-launcher \
     docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
     docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces \
     docker/rootfs/usr/local/bin/init-workspace \
@@ -151,6 +152,7 @@ for script in \
     cli/commands/pull.sh \
     cli/commands/publish.sh \
     cli/commands/context.sh \
+    cli/commands/enter.sh \
     tests/smoke/test-container.sh \
     tests/integration/test-path-parity.sh
 do

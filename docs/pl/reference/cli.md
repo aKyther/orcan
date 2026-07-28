@@ -50,6 +50,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan publish` | Push obu agentów `orcan:latest` (**ręcznie**; nie `-claude`/`-cursor`) |
 | `orcan url` | URL terminala |
 | `orcan logs` | Logi |
+| `orcan enter` / `orcan go-in` | Lokalny terminal do działającego kontenera (`--launcher` domyślnie, `--shell`, `--tmux [SESSION]`) |
 | `orcan update [--release\|--main]` | Najnowszy tag release `vX.Y.Z` (domyślnie); `--main` = bleeding edge |
 | `orcan doctor` | Raport zdrowia hosta / configu |
 | `orcan uninstall [--purge-data]` | Usuń CLI (opcjonalnie `ORCAN_DATA`) |

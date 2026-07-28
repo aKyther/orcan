@@ -32,7 +32,7 @@ Recreate after sync: `orcan down && orcan up`.
 ## Runtime stack (container)
 
 ```text
-ttyd (cursor-ttyd) → cursor-launcher → tmux → zsh
+ttyd (cursor-ttyd) → agent-launcher → tmux → zsh
   Starship prompt · autosuggestions · syntax-highlighting · fzf
   aliases: /etc/orcan/shell/aliases.sh
 ```
