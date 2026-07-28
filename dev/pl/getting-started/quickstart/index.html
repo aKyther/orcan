@@ -798,6 +798,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#git-w-kontenerze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git w kontenerze
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#w-przegladarce" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1628,6 +1639,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#git-w-kontenerze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git w kontenerze
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#w-przegladarce" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1729,15 +1751,23 @@
 <p><code>orcan init</code> już raz uruchamia <code>sync</code>. Trzymaj <code>orcan sync</code> w nawyku: <strong>każda</strong> edycja konfiguracji wymaga go przed <code>orcan build</code> / <code>orcan up</code>. Te komendy <strong>nie</strong> regenerują plików runtime.</p>
 </div>
 <p>Otwórz URL wypisany w terminalu (domyślnie <code>http://localhost:7681</code>).</p>
+<h2 id="git-w-kontenerze">Git w kontenerze<a class="headerlink" href="#git-w-kontenerze" title="Permanent link">&para;</a></h2>
+<p><code>orcan sync</code> kopiuje tożsamość z hostowego <code>git config --global</code> (<code>user.name</code> / <code>user.email</code>), żeby commity w środku miały tego samego autora co na hoście.</p>
+<p>Zwykłe <code>orcan up</code> <strong>nie</strong> montuje kluczy SSH. Do push/pull po SSH z kontenera:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># opcjonalnie DinD jednocześnie:</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
+</span></code></pre></div>
+<p>Montuje hostowy <code>~/.ssh</code> tylko do odczytu (oraz agenta SSH, gdy <code>SSH_AUTH_SOCK</code> jest ustawiony). Obie flagi są opcjonalne i wypisują ostrzeżenie bezpieczeństwa — agenci w kontenerze mogą użyć zamontowanego socketa/kluczy. Szczegóły: <a href="../../guides/workflows/">Workflowy</a>, <a href="../../reference/security/">Bezpieczeństwo</a>.</p>
 <h2 id="w-przegladarce">W przeglądarce<a class="headerlink" href="#w-przegladarce" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Wybierz <strong>workspace</strong> z launchera (lub Enter dla domyślnego).  </li>
 <li>Trafiasz do <strong>tmux</strong> z <strong>zsh</strong>.  </li>
 <li>Sprawdź narzędzia:</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>agent<span class="w"> </span>--version
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>claude<span class="w"> </span>--version
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">pwd</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>agent<span class="w"> </span>--version
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>claude<span class="w"> </span>--version
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">pwd</span>
 </span></code></pre></div>
 <h2 id="oczekiwany-wynik">Oczekiwany wynik<a class="headerlink" href="#oczekiwany-wynik" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1765,6 +1795,10 @@
 <tr>
 <td>Błędy socketu Docker-in-Docker</td>
 <td>Użyj <code>orcan up --with-docker</code></td>
+</tr>
+<tr>
+<td><code>git push</code> pada (SSH) w kontenerze</td>
+<td>Użyj <code>orcan up --with-git</code></td>
 </tr>
 </tbody>
 </table>
@@ -1802,7 +1836,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:44:04 UTC">28 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 20:07:18 UTC">28 lipca 2026</span>
   </span>
 
     

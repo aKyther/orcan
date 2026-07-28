@@ -1808,35 +1808,42 @@
 </span></code></pre></div>
 <h2 id="zainstaluj-cli">Zainstaluj CLI<a class="headerlink" href="#zainstaluj-cli" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/aKyther/orcan/main/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>doctor
+</span></code></pre></div>
+<p><code>install.sh</code> kładzie launcher w <code>~/.local/bin</code> i dopisuje ten katalog do shell rc (idempotentnie; pomiń przez <code>ORCAN_SKIP_PATH=1</code>). Instalacja przez <code>curl | bash</code> <strong>nie może</strong> zmienić <code>PATH</code> w shellu rodzica, więc zanim uruchomisz <code>orcan doctor</code>:</p>
+<ol>
+<li>Upewnij się, że <code>~/.local/bin</code> jest na <code>PATH</code> (<code>echo "$PATH"</code> albo <code>command -v orcan</code>).</li>
+<li>Jeśli installer dopisał linię do rc, ale ta sesja jej jeszcze nie ma — przeładuj shell, np. <code>exec bash -l</code>, <code>exec zsh -l</code>, albo otwórz nowy terminal. Jednorazowo: <code>export PATH="$HOME/.local/bin:$PATH"</code>.</li>
+<li>Jeśli rc nie zostało zaktualizowane, dodaj export ręcznie, przeładuj sesję i dopiero potem idź dalej.</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>doctor
 </span></code></pre></div>
 <p>Z checkoutu gita tego repozytorium możesz też uruchomić <code>./bin/orcan</code> bez instalacji.</p>
 <h2 id="pierwsza-konfiguracja">Pierwsza konfiguracja<a class="headerlink" href="#pierwsza-konfiguracja" title="Permanent link">&para;</a></h2>
 <p>Opisz workspace'y w <code>~/.config/orcan/home/orcan.config.json</code>, potem <strong>zmaterializuj</strong> pliki, które czyta Compose:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>init<span class="w"> </span>/absolute/path/to/your/repo
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>init<span class="w"> </span>/absolute/path/to/your/repo
 </span></code></pre></div>
 <p><code>orcan init</code> tworzy konfigurację, gdy jej brakuje, i uruchamia <strong><code>orcan sync</code></strong> (zapisuje <code>.env</code> + <code>.orcan/*</code> pod <code>ORCAN_HOME</code>). Po każdej kolejnej edycji konfiguracji ponów <code>orcan sync</code> — <code>orcan build</code> / <code>orcan up</code> tylko je konsumują; nie regenerują ich.</p>
 <p>Albo użyj wizarda:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>wizard
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>orcan<span class="w"> </span>sync
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>wizard
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>sync
 </span></code></pre></div>
 <h2 id="budowa-obrazu">Budowa obrazu<a class="headerlink" href="#budowa-obrazu" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Obaj agenci (domyślnie)</label><label for="__tabbed_1_2">Tylko Claude Code (bez pull)</label><label for="__tabbed_1_3">Tylko Cursor CLI (bez pull)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>build
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>build
 </span></code></pre></div>
 <p>Tagi: <code>orcan:latest</code> oraz <code>orcan:&lt;VERSION&gt;</code>.</p>
 </div>
 <div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-claude<span class="w"> </span>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-claude<span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <p>Tag: <code>orcan:&lt;VERSION&gt;-claude</code> (nie nadpisuje <code>latest</code>).</p>
 </div>
 <div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--cursor
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-cursor<span class="w"> </span>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--cursor
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-cursor<span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <p>Tag: <code>orcan:&lt;VERSION&gt;-cursor</code>.</p>
 </div>
@@ -1848,9 +1855,10 @@
 <li>Lokalny obraz <code>orcan:latest</code> istnieje</li>
 <li><code>orcan context show</code> wypisuje ścieżki workspace'ów</li>
 </ul>
+<p>Tożsamość autora Gita wypełnia <code>orcan sync</code>. Żeby podpiąć hostowe klucze SSH do push/pull, użyj <code>orcan up --with-git</code> (zobacz <a href="../quickstart/#git-w-kontenerze">Szybki start</a>).</p>
 <h2 id="odinstalowanie">Odinstalowanie<a class="headerlink" href="#odinstalowanie" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>uninstall<span class="w">              </span><span class="c1"># usuń launcher + klon instalacji</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span><span class="c1"># także usuń ORCAN_DATA po potwierdzeniu</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan<span class="w"> </span>uninstall<span class="w">              </span><span class="c1"># usuń launcher + klon instalacji</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span><span class="c1"># także usuń ORCAN_DATA po potwierdzeniu</span>
 </span></code></pre></div>
 <p>Zobacz <a href="../../guides/workflows/#uninstall">Workflowy — uninstall</a> lub <a href="../../faq/#uninstall">FAQ</a>.</p>
 <h2 id="typowe-problemy">Typowe problemy<a class="headerlink" href="#typowe-problemy" title="Permanent link">&para;</a></h2>
@@ -1876,7 +1884,7 @@
 </tr>
 <tr>
 <td><code>orcan: command not found</code></td>
-<td>Otwórz nowy shell albo <code>export PATH="$HOME/.local/bin:$PATH"</code>; ponów <code>install.sh</code> jeśli trzeba</td>
+<td>Upewnij się, że <code>~/.local/bin</code> jest na <code>PATH</code>, potem przeładuj shell (<code>exec bash -l</code> / nowy terminal) albo <code>export PATH="$HOME/.local/bin:$PATH"</code>; ponów <code>install.sh</code>, jeśli brakuje linii w rc</td>
 </tr>
 </tbody>
 </table>
@@ -1903,7 +1911,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:44:04 UTC">28 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 20:07:18 UTC">28 lipca 2026</span>
   </span>
 
     
