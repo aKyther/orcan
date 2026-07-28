@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://akyther.github.io/orcan/dev/guides/troubleshooting/">
       
       
-        <link rel="prev" href="../workflows/">
+        <link rel="prev" href="../dotfiles/">
       
       
         <link rel="next" href="../../architecture/">
@@ -830,6 +830,34 @@
     
   
     Workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dotfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User dotfiles
   
 
     
@@ -1905,7 +1933,7 @@
 <p>Workaround (image default): <strong>prefix <code>u</code></strong> (<code>C-Space</code> then <code>u</code>) — joins wrapped lines in the pane, then copies the URL (menu if several). Paste with prefix <code>]</code> or the browser paste shortcut.</p>
 <p>Apps that emit OSC 8 hyperlinks can stay clickable across wraps when the outer terminal supports them; plain printed URLs still need prefix <code>u</code>.</p>
 <h2 id="disable-tmux-plain-shell-only">“Disable tmux” / plain shell only<a class="headerlink" href="#disable-tmux-plain-shell-only" title="Permanent link">&para;</a></h2>
-<p>tmux is started by the launcher (<code>cursor-ttyd</code> → <code>cursor-launcher</code>), not by a block in <code>50-orcan-shell.zsh</code>. There is no supported “turn off tmux” switch today. You can still open extra shells inside tmux windows.</p>
+<p>tmux is started by the launcher (<code>cursor-ttyd</code> → <code>agent-launcher</code>), not by a block in <code>50-orcan-shell.zsh</code>. There is no supported “turn off tmux” switch today. You can still open extra shells inside tmux windows.</p>
 <h2 id="host-gitconfig-became-a-directory">Host <code>~/.gitconfig</code> became a directory<a class="headerlink" href="#host-gitconfig-became-a-directory" title="Permanent link">&para;</a></h2>
 <p>An older layout could create a root-owned directory. Fix ownership or replace with a normal file, then update Orcan and recreate the container.</p>
 <p>Orcan does <strong>not</strong> mount host <code>~/.gitconfig</code>. Instead <code>orcan sync</code> copies <code>user.name</code> / <code>user.email</code> into <code>.env</code> (<code>GIT_AUTHOR_*</code> / <code>GIT_COMMITTER_*</code>) so commits inside the container match the host author.</p>
@@ -1944,7 +1972,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 21:38:48 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 22:23:54 UTC">July 28, 2026</span>
   </span>
 
     
@@ -1991,7 +2019,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../workflows/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Workflows">
+          <a href="../dotfiles/" class="md-footer__link md-footer__link--prev" aria-label="Previous: User dotfiles">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2001,7 +2029,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Workflows
+                User dotfiles
               </div>
             </div>
           </a>
