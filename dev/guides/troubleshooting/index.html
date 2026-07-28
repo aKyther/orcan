@@ -1890,6 +1890,12 @@
 </ul>
 <h2 id="docker-socket-errors-inside-the-container">Docker socket errors inside the container<a class="headerlink" href="#docker-socket-errors-inside-the-container" title="Permanent link">&para;</a></h2>
 <p>Use <code>orcan up --with-docker</code>. Plain <code>orcan up</code> does not mount the socket.</p>
+<p>If <code>docker</code> needs <code>sudo</code> inside the container, the host socket GID must match <code>DOCKER_GID</code> in <code>.env</code>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>stat<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;%g&#39;</span><span class="w"> </span>/var/run/docker.sock
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>DOCKER_GID<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ORCAN_HOME</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan/home</span><span class="si">}</span><span class="s2">/.env&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
+</span></code></pre></div>
+<p><code>orcan sync</code> re-detects the socket GID from the host (do not leave a stale <code>999</code> from <code>.env.example</code>).</p>
 <h2 id="path-parity-nested-compose-fails">Path parity / nested Compose fails<a class="headerlink" href="#path-parity-nested-compose-fails" title="Permanent link">&para;</a></h2>
 <p>See <a href="../../concepts/path-parity/">Path parity</a>. Confirm mounts with <code>orcan context show</code>.</p>
 <h2 id="tmux-keys-do-not-work-in-the-browser">tmux keys do not work in the browser<a class="headerlink" href="#tmux-keys-do-not-work-in-the-browser" title="Permanent link">&para;</a></h2>
@@ -1904,16 +1910,16 @@
 <p>An older layout could create a root-owned directory. Fix ownership or replace with a normal file, then update Orcan and recreate the container.</p>
 <p>Orcan does <strong>not</strong> mount host <code>~/.gitconfig</code>. Instead <code>orcan sync</code> copies <code>user.name</code> / <code>user.email</code> into <code>.env</code> (<code>GIT_AUTHOR_*</code> / <code>GIT_COMMITTER_*</code>) so commits inside the container match the host author.</p>
 <p>For <code>git push</code> / <code>git pull</code> over SSH:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># combine with DinD:</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># combine with DinD:</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
 </span></code></pre></div>
 <p>That mounts host <code>~/.ssh</code> read-only (and the SSH agent when <code>SSH_AUTH_SOCK</code> is set). Plain <code>orcan up</code> does not.</p>
 <h2 id="diagnostics-checklist">Diagnostics checklist<a class="headerlink" href="#diagnostics-checklist" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>doctor
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>.orcan/compose-projects.generated.yml<span class="w"> </span>config
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>orcan<span class="w"> </span>logs
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>doctor
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>.orcan/compose-projects.generated.yml<span class="w"> </span>config
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>orcan<span class="w"> </span>logs
 </span></code></pre></div>
 <p>More on limits: <a href="../../reference/security/">Security</a>.</p>
 
@@ -1938,7 +1944,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 20:07:18 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 21:38:48 UTC">July 28, 2026</span>
   </span>
 
     
