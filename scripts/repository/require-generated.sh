@@ -69,6 +69,6 @@ ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}"
 if [[ -z "${ORCAN_DATA}" ]]; then
     ORCAN_DATA="${HOME}/.config/orcan"
 fi
-for sub in cursor cursor-app claude cache npm pnpm cargo go bash-history shell-history; do
+for sub in cursor cursor-app claude cache npm pnpm cargo go bash-history shell-history worktrees; do
     mkdir -p "${ORCAN_DATA}/${sub}"
 done

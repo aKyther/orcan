@@ -223,10 +223,12 @@ config: require-generated ## Print resolved Compose configs
 	@$(ORCAN) sync >/dev/null
 	@set -a; . "$${ORCAN_HOME:-$$PWD}/.env"; set +a; \
 	printf '=== orcan up ===\n'; \
-	docker compose --env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
+	docker compose --project-name "$${COMPOSE_PROJECT_NAME:-orcan}" \
+		--env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
 		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml config; \
 	printf '\n=== orcan up --with-docker ===\n'; \
-	docker compose --env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
+	docker compose --project-name "$${COMPOSE_PROJECT_NAME:-orcan}" \
+		--env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
 		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml \
 		-f docker-compose.docker.yml config
 

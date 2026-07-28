@@ -103,6 +103,9 @@ Jeśli `.env` ma już `CPUS` / `MEMORY`, `orcan sync` ich nie nadpisze. Zmień j
 | --- | --- |
 | `orcan context wizard` | Interaktywne tworzenie/edycja |
 | `orcan context add /abs/path` | Dodanie jednego projektu bez interakcji |
+| `orcan context add --from-worktree /abs/repo SELECTOR` | Dodanie istniejącego git worktree |
+| `orcan context worktrees [/abs/repo]` | Lista worktree dla repo |
+| `orcan context worktree create --repo … --branch …` | Utwórz worktree i podepnij |
 | `orcan init /abs/path` | Pierwszy uruchomienie |
 | Ręczna edycja JSON | Znasz schemat |
 

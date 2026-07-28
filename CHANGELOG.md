@@ -7,10 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-28
+
 ### Added
 
 - In-container git identity matches the host: `orcan sync` copies global `user.name` / `user.email` into `GIT_AUTHOR_*` / `GIT_COMMITTER_*`
 - `orcan up --with-git`: mount host `~/.ssh` (and SSH agent when `SSH_AUTH_SOCK` is set) for push/pull — same pattern as `--with-docker`; both flags print a security warning (agents inside can use the mounted socket/keys)
+- Git worktree helpers for context: `orcan context worktrees`, `add --from-worktree`, `worktree create`; wizard can offer existing worktrees
+- Managed worktrees under `$ORCAN_DATA/worktrees/<workspace>/<project>/` (`orcan context worktree`; wizard mounts paths by default with optional worktree help)
+- Wizard worktree create: detect branch/path conflicts, explain, then retry / use existing / mount original
+
+### Changed
+
+- Config wizard UX: quick map + numbered menus; Enter mounts as-is; mid-flow project list; next steps (`sync` / `down && up`) after save
+- Wizard labels: drop `[1]` / step numbers — use `› Project` / section titles; numbers only in choice menus
+- Compose container name is `orcan-1` (not `orcan-orcan-1` / folder-based); optional `ORCAN_INSTANCE` for `orcan-2`, …
+- Wizard prompts: after project path ask for **project name** (not “workspace”) so labels stay clear
+- Drop `orcan context feature` — use wizard / `orcan context worktree` (incl. `remove --workspace`)
 
 ## [0.2.1] - 2026-07-28
 

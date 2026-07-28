@@ -60,6 +60,22 @@ orcan up --with-git
 orcan up --with-docker --with-git
 ```
 
+## Scenariusz: opcjonalny git worktree
+
+**Kiedy:** chcesz drugi checkout bez ruszania klona od `main` / `pull`.
+
+W wizardzie po podaniu ścieżki projektu odpowiedz **tak** na pytanie o worktree (domyślnie **nie** — samo montowanie).
+
+Albo bez interakcji:
+
+```bash
+orcan context worktree create --repo /absolute/path/to/repo \
+  --branch topic --workspace my-ws --project backend
+orcan sync && orcan down && orcan up
+```
+
+Ścieżki managed: `$ORCAN_DATA/worktrees/`. Sprzątanie: wizard → **clean**, albo `orcan context worktree remove --workspace my-ws`.
+
 ## Scenariusz: zainstaluj tylko jednego agenta
 
 **Idea:** nie instaluj agenta, którego nie użyjesz (mniejszy obraz, te same tagi).
@@ -113,9 +129,9 @@ orcan down                 # zatrzymaj; zachowaj ~/.config/orcan
 orcan uninstall --purge-data           # DESTRUKCYJNE: usuwa ORCAN_DATA (wpisz yes)
 ```
 
-Pełne usunięcie: [Odinstalowanie](#odinstalowanie).
+Pełne usunięcie: [Odinstalowanie](#uninstall).
 
-## Odinstalowanie { #odinstalowanie }
+## Odinstalowanie { #uninstall }
 
 ```bash
 cd /absolute/path/to/orcan

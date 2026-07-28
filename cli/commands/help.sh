@@ -14,6 +14,11 @@ Commands:
   context show             List workspaces
   context wizard           Interactive config editor
   context add PATH         Add a project (optional --workspace NAME)
+  context add --from-worktree REPO SELECTOR
+                           Add an existing git worktree as a project
+  context worktrees [REPO] List git worktrees for a repo (default: cwd)
+  context worktree create  Create a worktree (+ optional managed path) and pin it
+  context worktree remove  Remove a managed worktree (--path or --workspace)
   up [--with-docker] [--with-git]
                            Start browser terminal
                            --with-docker: mount Docker socket

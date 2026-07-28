@@ -48,6 +48,9 @@ Do not use: `projects_dir`, `default_project`, `default_workspace`, project `ali
 | --- | --- |
 | `orcan context wizard` | Interactive editor |
 | `orcan context add` | Non-interactive add |
+| `orcan context add --from-worktree` | Add an existing git worktree |
+| `orcan context worktrees` | List worktrees for a repo |
+| `orcan context worktree create` | Create a worktree and pin it in config |
 | `orcan context show` | List workspaces |
 | `scripts/repository/config_io.py` | Load/dump/discover |
 

@@ -61,6 +61,32 @@ Pierwszy włączony workspace napędza `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR
 - **Koszt:** musisz utrzymywać poprawne ścieżki bezwzględne i uruchamiać `orcan sync` po edycji konfiguracji.  
 - **Wybór:** Orcan nie przepisuje każdego checkoutu git przy starcie; seeduj projekty jawnie, gdy tego chcesz.
 
+## Git worktree
+
+**Git worktree** to kolejny checkout tego samego repozytorium (inna ścieżka, zwykle inny branch). Na co dzień wystarczy zamontować zwykłą ścieżkę klona w workspace i pracować na tym branchu, który tam jest.
+
+Worktree to **opcjonalna, zaawansowana pomoc**: gdy chcesz drugi checkout bez ruszania klona od `main` / `pull`. Orcan może je tworzyć pod `$ORCAN_DATA/worktrees/<workspace>/<project>/` i zapisać w `manifest.json`.
+
+```bash
+orcan context wizard   # montuj ścieżki; opcjonalnie utwórz/wybierz worktree
+
+# Bez interakcji (jedno repo):
+orcan context worktree create --repo /abs/repo --branch topic --workspace my-ws --project backend
+orcan context worktree remove --workspace my-ws   # albo --path /abs/managed/checkout
+```
+
+Przykład po managed create:
+
+```json
+{
+  "name": "my-ws",
+  "projects": [
+    { "name": "backend", "path": "/home/you/.config/orcan/worktrees/my-ws/backend" },
+    { "name": "frontend", "path": "/home/you/.config/orcan/worktrees/my-ws/frontend" }
+  ]
+}
+```
+
 ## Powiązane
 
 - [Model mentalny](../ideas/mental-model.md)  

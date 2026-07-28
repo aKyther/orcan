@@ -24,6 +24,13 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Limity zasobów (domyślnie: 2 / 4g / 512m / 512m) |
 | `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` | Terminal w przeglądarce |
 
+## Nazwy Compose (opcjonalne)
+
+| Zmienna | Rola |
+| --- | --- |
+| `COMPOSE_PROJECT_NAME` | Projekt Compose (CLI domyślnie `orcan`) |
+| `ORCAN_INSTANCE` | Sufiks nazwy kontenera → `orcan-1`, `orcan-2`, … (domyślnie `1`) |
+
 Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `orcan sync` na nowych maszynach; istniejące wartości `.env` mogą być zachowane zależnie od reguł `update-env.sh` — przy nowych setupach preferuj plik konfiguracji jako źródło prawdy.
 
 ## Wybór obrazu

@@ -41,6 +41,7 @@ require_file "cli/commands/publish.sh"
 require_file "cli/commands/doctor.sh"
 require_file "cli/commands/update.sh"
 require_file "cli/commands/uninstall.sh"
+require_file "cli/commands/context.sh"
 require_file "VERSION"
 require_file "CHANGELOG.md"
 require_file "requirements-docs.txt"
@@ -57,6 +58,9 @@ require_file "scripts/repository/config-scaffold.py"
 require_file "scripts/repository/config-show.py"
 require_file "scripts/repository/config-wizard.py"
 require_file "scripts/repository/config_io.py"
+require_file "scripts/repository/git_worktrees.py"
+require_file "scripts/repository/managed_workspace.py"
+require_file "tests/host/test_git_worktrees.py"
 require_file "scripts/repository/python.sh"
 require_file "scripts/repository/release.sh"
 require_file "scripts/repository/check-product-name.sh"
@@ -146,6 +150,7 @@ for script in \
     cli/commands/build.sh \
     cli/commands/pull.sh \
     cli/commands/publish.sh \
+    cli/commands/context.sh \
     tests/smoke/test-container.sh \
     tests/integration/test-path-parity.sh
 do
@@ -166,6 +171,8 @@ for script in \
     scripts/repository/config-show.py \
     scripts/repository/config-wizard.py \
     scripts/repository/config_io.py \
+    scripts/repository/git_worktrees.py \
+    scripts/repository/managed_workspace.py \
     scripts/repository/apply-config.py
 do
     if [[ -f "${script}" ]]; then
@@ -191,10 +198,11 @@ fi
 
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null
-    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config --quiet
-    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
-    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
-    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
+    compose_base=(docker compose --project-name orcan)
+    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
     # Optional --with-git overlay (generated on demand; stub for config check)
     mkdir -p .orcan
     cat >.orcan/compose-git.generated.yml <<'YAML'
@@ -204,8 +212,14 @@ services:
     environment:
       ORCAN_WITH_GIT_STUB: "1"
 YAML
-    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f .orcan/compose-git.generated.yml -f docker-compose.ttyd.yml config --quiet
-    printf 'Compose config OK\n'
+    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f .orcan/compose-git.generated.yml -f docker-compose.ttyd.yml config --quiet
+    resolved="$("${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml config)"
+    if ! printf '%s\n' "${resolved}" | grep -qE 'container_name:[[:space:]]*orcan-1'; then
+        printf 'Error: expected container_name orcan-1 in compose config\n' >&2
+        fail=1
+    else
+        printf 'Compose config OK\n'
+    fi
 else
     printf 'Skip: Docker daemon not available for compose config\n'
 fi

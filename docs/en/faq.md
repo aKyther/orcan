@@ -37,6 +37,8 @@ Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
 **Push/pull over SSH:** start with `orcan up --with-git` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --with-docker --with-git`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
 
+**Worktrees:** optional. Mount a normal clone path by default; use the wizard’s advanced help or `orcan context worktree` when you want a separate checkout under `$ORCAN_DATA/worktrees`. See [Workspaces](concepts/workspaces.md#git-worktrees).
+
 ## Which agents are installed?
 
 By default the image includes **both** agents (`orcan:latest` / `orcan:<VERSION>`). To skip installing an agent you will not use, build a **separate local tag** (no registry pull; does not overwrite `latest`):

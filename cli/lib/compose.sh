@@ -83,10 +83,18 @@ orcan_write_git_overlay() {
     printf '%s\n' "${gitf}"
 }
 
+# Always use Compose project "orcan" (container: orcan-1 via docker-compose.yml).
+orcan_compose_project_args() {
+    local -n _out="$1"
+    _out=(--project-name "${COMPOSE_PROJECT_NAME:-orcan}")
+}
+
 orcan_compose_base() {
-    local overlays=()
+    local overlays=() project=()
     orcan_compose_overlay_args overlays 0
+    orcan_compose_project_args project
     docker compose \
+        "${project[@]}" \
         --env-file "${ORCAN_ENV_FILE}" \
         --project-directory "${ORCAN_ROOT}" \
         -f "${ORCAN_ROOT}/docker-compose.yml" \
@@ -95,7 +103,10 @@ orcan_compose_base() {
 }
 
 orcan_compose_build() {
+    local project=()
+    orcan_compose_project_args project
     docker compose \
+        "${project[@]}" \
         --env-file "${ORCAN_ENV_FILE}" \
         --project-directory "${ORCAN_ROOT}" \
         -f "${ORCAN_ROOT}/docker-compose.yml" \
@@ -108,10 +119,12 @@ orcan_compose_ttyd_run() {
     local with_docker="${1:-0}"
     local with_git="${2:-0}"
     shift 2
-    local overlays=()
+    local overlays=() project=()
     orcan_compose_overlay_args overlays "${with_git}"
+    orcan_compose_project_args project
     local -a cmd=(
         docker compose
+        "${project[@]}"
         --env-file "${ORCAN_ENV_FILE}"
         --project-directory "${ORCAN_ROOT}"
         -f "${ORCAN_ROOT}/docker-compose.yml"

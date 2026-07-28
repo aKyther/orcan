@@ -60,6 +60,22 @@ orcan up --with-git
 orcan up --with-docker --with-git
 ```
 
+## Scenario: optional git worktree
+
+**When:** you want a second checkout without changing the clone you use for `main` / pulls.
+
+In the wizard, after you enter a project path, answer **yes** to the advanced worktree question (default is **no** — just mount the path).
+
+Or non-interactively:
+
+```bash
+orcan context worktree create --repo /absolute/path/to/repo \
+  --branch topic --workspace my-ws --project backend
+orcan sync && orcan down && orcan up
+```
+
+Managed paths live under `$ORCAN_DATA/worktrees/`. Clean up: wizard → **clean**, or `orcan context worktree remove --workspace my-ws`.
+
 ## Scenario: install only one agent
 
 **Idea:** skip installing an agent you will not use (smaller image, same tags).

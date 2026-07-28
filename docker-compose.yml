@@ -1,6 +1,11 @@
+# Fixed Compose project name (avoids folder-based names like cind-orcan-1).
+# Container shows as orcan-1 (set ORCAN_INSTANCE=2 for orcan-2, etc.).
+name: orcan
+
 services:
   orcan:
     image: ${IMAGE_LOCAL:-orcan:latest}
+    container_name: orcan-${ORCAN_INSTANCE:-1}
     hostname: orcan
     working_dir: ${CONTAINER_PROJECT_DIR:-${PROJECT_DIR}}
     stdin_open: true
