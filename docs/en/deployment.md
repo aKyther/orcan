@@ -10,23 +10,23 @@ Orcan is **not** deployed as a pulled image from GHCR.
 
 1. Clone a release tag or `main`
 2. Configure `orcan.config.json`
-3. `make env`
-4. `make build` (or `make build-claude`)
-5. `make terminal` or `make terminal-docker`
+3. `orcan sync`
+4. `orcan build` (or `orcan build --claude`)
+5. `orcan up` or `orcan up --with-docker`
 
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
 git checkout v0.1.0
-make setup PROJECT_DIR=/absolute/path/to/your/repo
-make env
-make build
-make terminal-docker
+orcan init /absolute/path/to/your/repo
+orcan sync
+orcan build
+orcan up
 ```
 
 ### Multi-host
 
-On each host: same git tag + `make build`, **or** (optional) push a privately built image with `make publish` / `make pull`. CI does not publish images.
+On each host: `orcan build` (pull matching `VERSION`, or local build on miss — never publishes). CI does not publish images.
 
 ## Documentation site (versioned, mike)
 

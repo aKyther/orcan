@@ -10,7 +10,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(
+    os.environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2]
+)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import (  # noqa: E402
     default_write_path,
@@ -147,22 +149,27 @@ def ask_project_path(prompt: str, *, default: str = "") -> str:
 
 def ask_project(*, default_name: str = "", default_path: str = "") -> dict[str, str]:
     name = ask_name("  Project name", default=default_name, label="project name")
-    path_default = default_path
-    if not path_default and name:
-        # mild hint only — still validated
-        path_default = ""
-    path = ask_project_path("  Project path (absolute)", default=path_default)
-    if not default_name and Path(path).name != name:
-        if ask_yes_no(
-            f"  Directory basename is {Path(path).name!r}; use that as project name?",
+    path = ask_project_path("  Project path (absolute)", default=default_path)
+    basename = Path(path).name
+    if basename != name:
+        # User-chosen name wins; only switch if they explicitly decline to keep it.
+        keep = ask_yes_no(
+            f"  Keep project name {name!r}? (folder is {basename!r})",
             default=True,
-        ):
-            name = Path(path).name
+        )
+        if not keep:
+            err = validate_name(basename, label="project name")
+            if err:
+                warn(f"{err} — keeping {name!r}")
+            else:
+                info(f"  Using folder name {basename!r} as project name.")
+                name = basename
     return {"name": name, "path": path}
 
 
-def ask_new_workspace() -> dict[str, Any] | None:
-    if not ask_yes_no("Create a workspace?", default=True):
+def ask_new_workspace(*, prompt_confirm: bool = False) -> dict[str, Any] | None:
+    """Collect one workspace. Skip confirm when the caller already asked."""
+    if prompt_confirm and not ask_yes_no("Create a workspace?", default=True):
         return None
     name = ask_name("Workspace name", label="workspace name")
     projects: list[dict[str, str]] = []
@@ -268,7 +275,7 @@ def edit_existing(cfg: dict[str, Any]) -> dict[str, Any]:
         if edited is not None:
             new_workspaces.append(edited)
     while ask_yes_no("Add another workspace?", default=False):
-        created = ask_new_workspace()
+        created = ask_new_workspace(prompt_confirm=False)
         if created:
             new_workspaces.append(created)
     if not new_workspaces:
@@ -282,7 +289,11 @@ def create_fresh() -> dict[str, Any]:
     info("No orcan config found — building a new orcan.config.json")
     workspaces: list[dict[str, Any]] = []
     while True:
-        created = ask_new_workspace()
+        # First workspace is implied; later ones already confirmed by
+        # "Add another workspace?" — never re-ask "Create a workspace?".
+        label = "first" if not workspaces else "next"
+        info(f"\nConfigure the {label} workspace.")
+        created = ask_new_workspace(prompt_confirm=False)
         if created:
             workspaces.append(created)
         elif not workspaces:
@@ -404,8 +415,8 @@ def main() -> None:
 
     dump_config(out_path, cfg)
     info(f"Wrote {out_path}")
-    info("Next: make env && make init-project-all")
-    info("      make down && make terminal-docker")
+    info("Next: orcan sync")
+    info("      orcan up")
 
 
 if __name__ == "__main__":

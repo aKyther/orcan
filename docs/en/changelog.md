@@ -12,6 +12,6 @@ The full Keep a Changelog file lives in the repository root:
 | --- | --- |
 | Git tag `v0.1.0` | Source release |
 | Local image `orcan:0.1.0` | Built on your machine from that tag |
-| GitHub Release | Notes + install reminder (`git checkout` + `make build`) |
+| GitHub Release | Notes + install reminder (`git checkout` + `orcan build`) |
 
 CI does not publish container images.

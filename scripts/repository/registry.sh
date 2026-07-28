@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tag / push / pull the orcan image to a container registry (GitLab-friendly).
+# Tag / push / pull the orcan image to a container registry.
 # Host-only: do not copy this into the Docker image.
 #
 # Usage:
@@ -8,11 +8,11 @@
 #   ./scripts/repository/registry.sh publish
 #   ./scripts/repository/registry.sh pull
 #
-# Env (from .env or shell):
+# Env (from ORCAN_HOME/.env, repo .env, or shell):
 #   IMAGE_LOCAL       local image name (default: orcan:latest)
-#   IMAGE_REGISTRY    registry host (default: registry.gitlab.com)
-#   IMAGE_REPOSITORY  path under registry, e.g. mygroup/orcan
-#   IMAGE_TAG         tag (default: latest)
+#   IMAGE_REGISTRY    registry host (default: ghcr.io)
+#   IMAGE_REPOSITORY  path under registry (default: akyther/orcan)
+#   IMAGE_TAG         tag (default: VERSION file contents)
 #   REGISTRY_USER     username for docker login
 #   REGISTRY_PASSWORD password / PAT / deploy token (prefer stdin / env, not git)
 
@@ -21,21 +21,28 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-if [[ -f "${ROOT_DIR}/.env" ]]; then
-    set -a
-    # shellcheck disable=SC1091
-    source "${ROOT_DIR}/.env"
-    set +a
-fi
+ORCAN_HOME="${ORCAN_HOME:-${ROOT_DIR}}"
+ENV_CANDIDATES=("${ORCAN_HOME}/.env" "${ROOT_DIR}/.env")
+for envf in "${ENV_CANDIDATES[@]}"; do
+    if [[ -f "${envf}" ]]; then
+        set -a
+        # shellcheck disable=SC1090
+        source "${envf}"
+        set +a
+        break
+    fi
+done
 
 IMAGE_LOCAL="${IMAGE_LOCAL:-orcan:latest}"
-IMAGE_REGISTRY="${IMAGE_REGISTRY:-registry.gitlab.com}"
-IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-}"
-IMAGE_TAG="${IMAGE_TAG:-latest}"
+IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
+IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-akyther/orcan}"
+if [[ -z "${IMAGE_TAG:-}" ]]; then
+    IMAGE_TAG="$(tr -d '[:space:]' < "${ROOT_DIR}/VERSION" 2>/dev/null || echo latest)"
+fi
 
 # Accept common GitLab CI / deploy aliases
-REGISTRY_USER="${REGISTRY_USER:-${CI_REGISTRY_USER:-${GITLAB_USER:-}}}"
-REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-${CI_REGISTRY_PASSWORD:-${GITLAB_TOKEN:-${CI_JOB_TOKEN:-}}}}"
+REGISTRY_USER="${REGISTRY_USER:-${CI_REGISTRY_USER:-${GITLAB_USER:-${GITHUB_ACTOR:-}}}}"
+REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-${CI_REGISTRY_PASSWORD:-${GITLAB_TOKEN:-${CI_JOB_TOKEN:-${GHCR_TOKEN:-${GITHUB_TOKEN:-}}}}}}"
 
 die() {
     printf 'Error: %s\n' "$1" >&2
@@ -47,13 +54,13 @@ require_repository() {
         die "IMAGE_REPOSITORY is not set.
 
 Example in .env:
-  IMAGE_REGISTRY=registry.gitlab.com
-  IMAGE_REPOSITORY=mygroup/orcan
-  IMAGE_TAG=latest
+  IMAGE_REGISTRY=ghcr.io
+  IMAGE_REPOSITORY=akyther/orcan
+  IMAGE_TAG=0.1.1
 
 Then:
-  make registry-login
-  make publish"
+  orcan publish
+  # or: make registry-login (maintainers)"
     fi
 }
 
@@ -74,7 +81,7 @@ cmd_show() {
     if docker image inspect "${IMAGE_LOCAL}" >/dev/null 2>&1; then
         printf 'Local exists:  yes\n'
     else
-        printf 'Local exists:  no (run: make build)\n'
+        printf 'Local exists:  no (run: orcan build)\n'
     fi
 }
 
@@ -84,13 +91,13 @@ cmd_login() {
     password="${REGISTRY_PASSWORD}"
 
     if [[ -z "${user}" ]]; then
-        printf 'Registry user (GitLab username or deploy-token username): '
+        printf 'Registry user (GitHub username for ghcr.io): '
         read -r user
     fi
     [[ -n "${user}" ]] || die "username is empty"
 
     if [[ -z "${password}" ]]; then
-        printf 'Password / Personal Access Token / Deploy Token (input hidden): '
+        printf 'Password / PAT / Deploy Token (input hidden): '
         read -rs password
         printf '\n'
     fi
@@ -99,8 +106,7 @@ cmd_login() {
     printf 'Logging in to %s as %s...\n' "${IMAGE_REGISTRY}" "${user}"
     printf '%s' "${password}" | docker login "${IMAGE_REGISTRY}" -u "${user}" --password-stdin
     printf 'OK: logged in to %s\n' "${IMAGE_REGISTRY}"
-    printf 'Hint: create a GitLab PAT with scopes read_registry + write_registry\n'
-    printf '      or a Deploy Token with read_registry + write_registry\n'
+    printf 'Hint: for ghcr.io use a GitHub PAT with write:packages (and read:packages)\n'
 }
 
 cmd_publish() {
@@ -108,7 +114,7 @@ cmd_publish() {
     remote="$(remote_image)"
 
     if ! docker image inspect "${IMAGE_LOCAL}" >/dev/null 2>&1; then
-        die "local image ${IMAGE_LOCAL} not found. Run: make build"
+        die "local image ${IMAGE_LOCAL} not found. Run: orcan build --force"
     fi
 
     printf 'Tagging %s → %s\n' "${IMAGE_LOCAL}" "${remote}"
@@ -127,7 +133,7 @@ cmd_pull() {
     printf 'Tagging %s → %s (for Compose)\n' "${remote}" "${IMAGE_LOCAL}"
     docker tag "${remote}" "${IMAGE_LOCAL}"
     printf 'OK: ready as %s\n' "${IMAGE_LOCAL}"
-    printf 'Next: make terminal-docker\n'
+    printf 'Next: orcan up\n'
 }
 
 usage() {
@@ -135,9 +141,14 @@ usage() {
 Usage: registry.sh <show|login|publish|pull>
 
   show     Print configured image names
-  login    docker login to IMAGE_REGISTRY (GitLab)
+  login    docker login to IMAGE_REGISTRY
   publish  Tag local image and push to registry
   pull     Pull remote image and retag as local orcan:latest
+
+Prefer the CLI when installed:
+  orcan build     # pull VERSION; on miss build locally (never publishes)
+  orcan pull
+  orcan publish   # manual; maintainers only
 EOF
 }
 

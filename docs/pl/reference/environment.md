@@ -1,42 +1,42 @@
 # Zmienne środowiskowe
 
-Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach preferuj edycję `orcan.config.json`, potem `make env`. Nie commituj `.env`.
+Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach preferuj edycję `orcan.config.json`, potem `orcan sync`. Nie commituj `.env`.
 
-## Zawsze zarządzane przez `make env`
+## Zawsze zarządzane przez `orcan sync`
 
 | Zmienna | Rola |
 | --- | --- |
 | `USER_UID` / `USER_GID` | Mapowanie użytkownika kontenera na hosta |
-| `DOCKER_GID` | Grupa dla socketa Dockera (`terminal-docker`) |
+| `DOCKER_GID` | Grupa dla socketa Dockera (`orcan up --with-docker`) |
 | `TZ` | Strefa czasowa |
-| `PROJECT_DIR` | Ścieżka repo Orcana (gdzie uruchamiasz Make) |
+| `PROJECT_DIR` | Ścieżka instalacji Orcana (gdzie uruchamiasz `orcan`) |
 | `CONTAINER_PROJECT_DIR` / `WORKSPACE_*` | Ścieżki primary workspace |
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Mount runtime config |
 | `ORCAN_COMPOSE_PROJECTS` | Wygenerowana nakładka Compose |
 | `ORCAN_DATA` | Root danych hosta (domyślnie `$HOME/.config/orcan`) |
 
-## Seedowane raz (zachowywane przy kolejnym `make env`)
+## Seedowane raz (zachowywane przy kolejnym `orcan sync`)
 
 | Zmienna | Rola |
 | --- | --- |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Limity zasobów (domyślnie: 2 / 4g / 512m / 512m) |
 | `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` | Terminal w przeglądarce |
 
-Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `make env` na nowych maszynach; istniejące wartości `.env` mogą być zachowane zależnie od reguł `update-env.sh` — przy nowych setupach preferuj plik konfiguracji jako źródło prawdy.
+Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `orcan sync` na nowych maszynach; istniejące wartości `.env` mogą być zachowane zależnie od reguł `update-env.sh` — przy nowych setupach preferuj plik konfiguracji jako źródło prawdy.
 
 ## Wybór obrazu
 
 | Zmienna | Rola |
 | --- | --- |
-| `IMAGE_LOCAL` | Obraz uruchamiany przez Compose (`orcan:latest` lub `orcan:claude`) |
-| `INSTALL_CURSOR` | Tylko build-arg (`1` pełny / `0` tylko Claude) |
+| `IMAGE_LOCAL` | Obraz Compose (domyślnie `orcan:latest`) |
+| `INSTALL_CURSOR` / `INSTALL_CLAUDE` | Build-argi (`1`/`0`); domyślnie oba włączone |
 | `ORCAN_VERSION` | Build-arg z pliku `VERSION` |
 
 ## Opcjonalny prywatny rejestr
 
 | Zmienna | Rola |
 | --- | --- |
-| `IMAGE_REGISTRY` / `IMAGE_REPOSITORY` / `IMAGE_TAG` | `make publish` / `pull` |
+| `IMAGE_REGISTRY` / `IMAGE_REPOSITORY` / `IMAGE_TAG` | `orcan publish` / `orcan pull` |
 
 ## Wewnątrz kontenera
 

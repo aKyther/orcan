@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import re
@@ -23,6 +24,25 @@ DEFAULT_DEVELOPER_WORKSPACES = "/home/developer/workspaces"
 def die(msg: str) -> None:
     print(f"Error: {msg}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def write_text_replace(path: Path, text: str) -> None:
+    """Write text; skip with a warning if the path is a busy/read-only bind mount."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.write_text(text, encoding="utf-8")
+        return
+    except OSError as exc:
+        if exc.errno not in (errno.EROFS, errno.EACCES, errno.EBUSY):
+            raise
+    try:
+        path.unlink(missing_ok=True)
+        path.write_text(text, encoding="utf-8")
+    except OSError as exc:
+        print(
+            f"Warning: could not update {path} ({exc.strerror}); leaving existing file",
+            file=sys.stderr,
+        )
 
 
 def resolve_abs(path: str, label: str) -> Path:
@@ -414,7 +434,7 @@ def write_code_workspace(
         "folders": folders,
         "settings": {"files.exclude": {"**/.git": True}},
     }
-    out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    write_text_replace(out_path, json.dumps(payload, indent=2) + "\n")
     return out_path
 
 
@@ -643,7 +663,7 @@ def main() -> None:
     ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))
     ensure_env_key_unless_set(env_path, "TMPFS_SIZE", str(resources["tmpfs_size"]))
 
-    print(f"PROJECT_DIR={built['project_dir']} (orchestrator — where you run make)")
+    print(f"PROJECT_DIR={built['project_dir']} (orchestrator home)")
     print(f"WORKSPACE_ROOT={primary_ws['root']} (agent/tmux start directory in container)")
     print(f"workspaces: {len(built['workspaces'])} (one tmux session each)")
     for ws in built["workspaces"]:

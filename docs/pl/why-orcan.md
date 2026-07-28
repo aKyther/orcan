@@ -37,7 +37,7 @@ Trzymasz prywatną listę ścieżek. Otwierasz pięć terminali. Masz nadzieję,
 
 ## Życie z Orcanem
 
-Piszesz jedną konfigurację JSON: workspace'y i bezwzględne ścieżki projektów. `make env` materializuje mounty i pliki runtime. Otwierasz jeden terminal w przeglądarce, wybierasz workspace — Ty i agenci dzielicie ten sam układ oraz te same instrukcje startowe.
+Piszesz jedną konfigurację JSON: workspace'y i bezwzględne ścieżki projektów. `orcan sync` materializuje mounty i pliki runtime. Otwierasz jeden terminal w przeglądarce, wybierasz workspace — Ty i agenci dzielicie ten sam układ oraz te same instrukcje startowe.
 
 ## Kiedy używać
 
@@ -51,7 +51,7 @@ Piszesz jedną konfigurację JSON: workspace'y i bezwzględne ścieżki projekt�
 - Jedno małe repo i zwykłe IDE wystarczą.
 - Nie chcesz Dockera na hoście.
 - Potrzebujesz produktu, który **routuje lub przypina modele** — to zostaje przy każdym CLI.
-- Chcesz hostowanego rejestru obrazów SaaS — Orcan to **clone + `make build`**.
+- Chcesz hostowanego rejestru obrazów SaaS — Orcan to **clone + `orcan build`**.
 
 ## Stanowisko projektowe (non-goals)
 

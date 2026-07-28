@@ -5,7 +5,7 @@
 | Warstwa | Ścieżka | Rola |
 | --- | --- | --- |
 | Domyślne obrazu | `/opt/cursor-defaults` (z `docker/rootfs/opt/cursor-defaults/`) | Seedowane do `~/.cursor` przy starcie (**tylko gdy brakuje**) |
-| Zamontowane projekty | Twoje repozytoria git | Opcjonalne seedy przez `make init-project` / `init-project-all` |
+| Zamontowane projekty | Twoje repozytoria git | Opcjonalne `orcan seed` — **nie wymagane**; pack workspace wystarcza |
 
 Orcan **nie** nadpisuje istniejących plików w `~/.cursor` przy każdym starcie.
 
@@ -17,8 +17,8 @@ Reguły deny Claude Code używają tylko `Read(path)` i `Edit(path)`. Formy `Wri
 
 ## Workspace vs projekt
 
-- Context pack **workspace'a**: zapisywany pod `/home/developer/workspaces/<name>/` przez `init-workspace`
-- Pliki **projektu**: tylko gdy uruchomisz cele init-project
+- Context pack **workspace'a**: zapisywany pod `/home/developer/workspaces/<name>/` przez `init-workspace` (automatycznie przy starcie)
+- Pliki **projektu** w checkoutach git: tylko jeśli uruchomisz `orcan seed` (opcjonalnie)
 
 Zobacz [Architektura](../architecture.md).
 

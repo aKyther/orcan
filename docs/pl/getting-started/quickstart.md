@@ -1,5 +1,5 @@
 ---
-description: Sklonuj Orcana, zbuduj obraz i otwórz terminal — gdy już rozumiesz ideę produktu.
+description: Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz, otwórz terminal.
 ---
 
 # Szybki start
@@ -11,20 +11,31 @@ Powinieneś już wiedzieć, po co Orcan istnieje ([Dlaczego Orcan?](../why-orcan
 - Docker działa  
 - Bezwzględna ścieżka do co najmniej jednego repo git do zamontowania  
 
-## Kroki (host)
-
-Konfiguracja to JSON. Docker widzi tylko to, co zapisze **`make env`** (`.env` + `.orcan/*`).
+## Zainstaluj CLI
 
 ```bash
-cd /absolute/path/to/orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo   # scaffold konfiguracji w razie potrzeby, potem make env
-make env                                             # odśwież .env + .orcan/* dla Compose (bezpieczne ponowić)
-make build
-make terminal-docker
+curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
+```
+
+Upewnij się, że `~/.local/bin` jest na `PATH`, potem:
+
+```bash
+orcan doctor
+```
+
+## Kroki
+
+Konfiguracja to JSON w `~/.config/orcan/home/`. Docker widzi tylko to, co zapisze **`orcan sync`** (`.env` + `.orcan/*`).
+
+```bash
+orcan init /absolute/path/to/your/repo   # scaffold + sync
+orcan sync                               # odśwież po późniejszych edycjach
+orcan build
+orcan up
 ```
 
 !!! note
-    `make setup` już raz uruchamia `make env`. Trzymaj `make env` w nawyku: **każda** edycja konfiguracji wymaga go przed `make build` / `make terminal*`. Te cele **nie** regenerują plików runtime.
+    `orcan init` już raz uruchamia `sync`. Trzymaj `orcan sync` w nawyku: **każda** edycja konfiguracji wymaga go przed `orcan build` / `orcan up`. Te komendy **nie** regenerują plików runtime.
 
 Otwórz URL wypisany w terminalu (domyślnie `http://localhost:7681`).
 
@@ -42,20 +53,20 @@ pwd
 
 ## Oczekiwany wynik
 
-- Ciemny terminal w przeglądarce  
-- Launcher listuje workspace'y  
+- Przeglądarka pokazuje ciemny terminal  
+- Launcher listuje Twoje workspace'y  
 - `agent` i/lub `claude` odpowiadają na `--version`  
 
-## Częste problemy
+## Typowe problemy
 
-| Problem | Rozwiązanie |
+| Problem | Fix |
 | --- | --- |
-| Port 7681 zajęty | Ustaw `ttyd.host_port` w konfiguracji, potem `make env` |
-| Pusty launcher | Sprawdź workspace'y w `orcan.config.json`, potem `make env` |
-| Błędy socketa przy Docker-in-Docker | Użyj `make terminal-docker` (nie `make terminal`) |
+| Port 7681 zajęty | Ustaw `ttyd.host_port` w configu, potem `orcan sync` |
+| Pusty launcher | Sprawdź workspace'y w configu, potem `orcan sync` |
+| Błędy socketu Docker-in-Docker | Użyj `orcan up --with-docker` |
 
 !!! tip
-    Po edycji `orcan.config.json` uruchom `make env` przed odtworzeniem kontenera. `make terminal*` **nie** odświeża konfiguracji. Zobacz [Workflowy](../guides/workflows.md).
+    Po edycji `orcan.config.json` uruchom `orcan sync` przed odtworzeniem kontenera. `orcan up` **nie** odświeża konfiguracji. Zobacz [Workflowy](../guides/workflows.md).
 
 Warianty obrazu: [Instalacja](installation.md) i [FAQ](../faq.md).
 
@@ -63,4 +74,5 @@ Warianty obrazu: [Instalacja](installation.md) i [FAQ](../faq.md).
 
 - [Instalacja](installation.md)  
 - [Konfiguracja](configuration.md)  
+- [Referencja CLI](../reference/cli.md)  
 - [Model mentalny](../ideas/mental-model.md)

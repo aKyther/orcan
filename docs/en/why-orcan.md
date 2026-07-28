@@ -37,7 +37,7 @@ You keep a personal list of paths. You open five terminals. You hope `docker com
 
 ## Life with Orcan
 
-You write one JSON config: workspaces and absolute project paths. `make env` materialises mounts and runtime files. You open one browser terminal, pick a workspace, and both you and the agents share the same layout and the same starter instructions.
+You write one JSON config: workspaces and absolute project paths. `orcan sync` materialises mounts and runtime files. You open one browser terminal, pick a workspace, and both you and the agents share the same layout and the same starter instructions.
 
 ## When to use it
 
@@ -51,7 +51,7 @@ You write one JSON config: workspaces and absolute project paths. `make env` mat
 - One small repo and a normal local IDE is enough.
 - You do not want Docker on the host.
 - You need a product that **routes or pins models** — that stays with each CLI.
-- You want a hosted SaaS image registry — Orcan is **clone + `make build`**.
+- You want a hosted SaaS image registry — Orcan is **clone + `orcan build`**.
 
 ## Design stance (non-goals)
 

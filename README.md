@@ -8,13 +8,13 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **0.1.1**. Distributed as **git clone + Makefile**. Build images locally (`make build`). CI validates and publishes docs; it does **not** publish container images.
+Version **0.2.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
 - Workspaces (one tmux session per workspace)
 - Path parity (same absolute paths host ↔ container)
-- Full image (`orcan:latest`) or Claude-only (`orcan:claude`)
+- Images: `orcan:latest` / `orcan:<VERSION>` (both agents); optional local `orcan:<VERSION>-claude` / `-cursor`
 - Browser terminal (ttyd → launcher → tmux → zsh)
 - Host data under `~/.config/orcan` (`ORCAN_DATA`)
 - JSON config + wizard (`orcan.config.json`)
@@ -22,20 +22,47 @@ Version **0.1.1**. Distributed as **git clone + Makefile**. Build images locally
 
 ## Requirements
 
-Docker (Compose v2), Make, Git, Python 3.
+| Tool | Role |
+| --- | --- |
+| Bash | `orcan` CLI dispatcher |
+| Python 3 | Host config: `sync`, `init`, `context` (wizard / show / add) — stdlib only, no pip |
+| Git | Install clone + your projects |
+| Docker (Compose v2) | Image + browser terminal |
+
+`orcan` itself is Bash; several commands call small Python helpers on the host. `orcan doctor` checks all of the above.
+
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
+```
+
+Adds `orcan` to `~/.local/bin` (ensure that directory is on your `PATH`).
 
 ## Quickstart
 
 ```bash
-git clone https://github.com/aKyther/orcan.git
-cd orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo   # includes make env once
-make env                                             # materialise .env + .orcan/* for Compose
-make build
-make terminal-docker
+orcan doctor
+orcan init /absolute/path/to/your/repo
+orcan build
+orcan up
 ```
 
-Open `http://localhost:7681`. After any `orcan.config.json` edit: `make env && make down && make terminal-docker` (`terminal*` does not run `make env`).
+Open `http://localhost:7681`. After any config edit: `orcan sync && orcan down && orcan up` (`up` does not run `sync`).
+
+### Useful commands
+
+| Command | Role |
+| --- | --- |
+| `orcan sync` | Apply `orcan.config.json` → `.env` + `.orcan/*` |
+| `orcan context wizard` | Interactive config |
+| `orcan up` / `orcan up --with-docker` / `orcan down` | Start (optional DinD) / stop browser terminal |
+| `orcan build [--claude\|--cursor]` | Both → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor` |
+| `orcan publish` | Manual image push (maintainers) |
+| `orcan update` | Update the CLI install from Git |
+| `orcan uninstall` | Remove CLI (`--purge-data` also deletes logins/caches) |
+
+Config lives in `~/.config/orcan/home/` by default (install clone: `~/.local/share/orcan`).
 
 ## Documentation
 
@@ -47,13 +74,12 @@ Open `http://localhost:7681`. After any `orcan.config.json` edit: `make env && m
 | Core Ideas | [docs/en/ideas/core-ideas.md](docs/en/ideas/core-ideas.md) |
 | Mental Model | [docs/en/ideas/mental-model.md](docs/en/ideas/mental-model.md) |
 | Quickstart (source) | [docs/en/getting-started/quickstart.md](docs/en/getting-started/quickstart.md) |
-| Daily work vs release | [docs/en/development/release.md](docs/en/development/release.md) |
-| Docs aliases (`dev` / `latest`) | [docs/en/deployment.md](docs/en/deployment.md) |
+| CLI reference | [docs/en/reference/cli.md](docs/en/reference/cli.md) |
 | Development | [docs/en/development/overview.md](docs/en/development/overview.md) |
 | AI / agents | [AGENTS.md](AGENTS.md), [docs/en/ai/project-context.md](docs/en/ai/project-context.md) |
 
 ```bash
-make docs-serve
+make docs-serve   # maintainers — MkDocs from a git checkout
 ```
 
 ## License

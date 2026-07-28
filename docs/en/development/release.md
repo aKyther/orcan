@@ -17,7 +17,7 @@
 - GitHub Release notes (CI)
 - Versioned docs via **mike** (`latest` / SemVer / `dev`)
 - **No** container image publish from CI
-- Users: `git checkout vX.Y.Z && make build`
+- Users: `git checkout vX.Y.Z && orcan build`
 
 ## Steps
 
@@ -45,4 +45,4 @@ CI (`.github/workflows/release.yml`) validates, deploys versioned docs with **mi
 
 ## Local tags after build
 
-`make build` also tags `orcan:VERSION` locally. That is for your machine only.
+`orcan build` also tags `orcan:VERSION` locally. That is for your machine only.

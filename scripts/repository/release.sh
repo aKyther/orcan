@@ -45,9 +45,8 @@ cmd_show() {
     v="$(read_version)"
     printf 'VERSION:     %s\n' "${v}"
     printf 'Git tag:     v%s\n' "${v}"
-    printf 'Local tags:  orcan:%s  orcan:latest  orcan:full\n' "${v}"
-    printf '             orcan:%s-claude  orcan:claude\n' "${v}"
-    printf 'Distribute:  git clone + make build (images are not published)\n'
+    printf 'Local tags:  orcan:%s  orcan:latest\n' "${v}"
+    printf 'Distribute:  install.sh / git clone + orcan build (images are not published)\n'
     if git rev-parse "v${v}" >/dev/null 2>&1; then
         printf 'Tag exists locally: yes\n'
     else
@@ -162,7 +161,7 @@ cmd_push_tag() {
     git push origin "v${v}"
     printf 'Pushed v%s → origin\n' "${v}"
     printf 'GitHub Actions: Release workflow validates + creates GitHub Release\n'
-    printf 'Users: git checkout v%s && make build && make terminal-docker\n' "${v}"
+    printf 'Users: git checkout v%s && orcan build && orcan up\n' "${v}"
 }
 
 cmd_release() {

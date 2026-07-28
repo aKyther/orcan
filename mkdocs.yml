@@ -16,7 +16,7 @@ copyright: >
   <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
 
 extra:
-  orcan_version: "0.1.1"
+  orcan_version: "0.2.0"
   version:
     provider: mike
     default: latest
@@ -189,7 +189,8 @@ nav:
       - Troubleshooting: guides/troubleshooting.md
   - Architecture: architecture.md
   - Reference:
-      - Makefile: reference/makefile.md
+      - CLI: reference/cli.md
+      - Makefile (maintainers): reference/makefile.md
       - Docker: reference/docker.md
       - Config reference: reference/configuration.md
       - Environment variables: reference/environment.md

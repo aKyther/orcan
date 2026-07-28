@@ -2,7 +2,7 @@
 
 Host file: `orcan.config.json` (stdlib JSON only).
 
-Apply with `make env`. Schema enforcement lives in `scripts/repository/apply-config.py`.
+Apply with `orcan sync`. Schema enforcement lives in `scripts/repository/apply-config.py`.
 Machine-readable draft: [`orcan.config.schema.json`](https://github.com/aKyther/orcan/blob/main/orcan.config.schema.json).
 
 ## Top-level keys
@@ -46,9 +46,9 @@ Do not use: `projects_dir`, `default_project`, `default_workspace`, project `ali
 
 | Command | Role |
 | --- | --- |
-| `make config-wizard` | Interactive editor |
-| `make config-scaffold` | Non-interactive add |
-| `make config-show` | List workspaces |
+| `orcan context wizard` | Interactive editor |
+| `orcan context add` | Non-interactive add |
+| `orcan context show` | List workspaces |
 | `scripts/repository/config_io.py` | Load/dump/discover |
 
 User guide: [Getting started — Configuration](../getting-started/configuration.md).

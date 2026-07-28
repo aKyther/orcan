@@ -149,7 +149,7 @@ def format_status(ws: dict[str, Any]) -> str:
         "context pack:",
     ]
     if not root or not Path(root).is_dir():
-        lines.append("  (root missing — run make env && recreate container)")
+        lines.append("  (root missing — run orcan sync && recreate container)")
         return "\n".join(lines) + "\n"
 
     flags = pack_flags(root)
@@ -175,10 +175,8 @@ def format_status(ws: dict[str, Any]) -> str:
     lines.append(f"projects: {len(ws.get('projects') or [])}")
     if missing:
         lines.append(
-            "  need cursor-init-project (no .cursorignore/.claudeignore): "
-            + ", ".join(missing)
+            "  per-repo ignores absent (ok): " + ", ".join(missing)
         )
-        lines.append("  fix: cursor-init-project <path>  or  make init-project-all")
     else:
-        lines.append("  project ignores: ok (or no projects)")
+        lines.append("  per-repo ignores: present (or no projects)")
     return "\n".join(lines) + "\n"

@@ -23,16 +23,16 @@ Template: `orcan.config.example.json`.
 After edits, always run:
 
 ```bash
-make env
+orcan sync
 ```
 
 !!! note
-    `make terminal*` does **not** run `make env`. Apply config first, then recreate the container.
+    `orcan up` does **not** run `orcan sync`. Apply config first, then recreate the container.
 
 Then recreate the container if it is already running:
 
 ```bash
-make down && make terminal-docker
+orcan down && orcan up
 ```
 
 ## Shape (example)
@@ -91,31 +91,30 @@ Defaults stay light on purpose (typical laptop). Raise them when the machine can
 Edit `resources` in `orcan.config.json` (for example `cpus: 8`, `memory: "16g"`), then:
 
 ```bash
-make env
-make down && make terminal-docker
+orcan sync
+orcan down && orcan up
 ```
 
-If `.env` already has `CPUS` / `MEMORY` set, `make env` keeps those values. Change them in `.env` too, or remove the keys so config wins on the next `make env`.
+If `.env` already has `CPUS` / `MEMORY` set, `orcan sync` keeps those values. Change them in `.env` too, or remove the keys so config wins on the next `orcan sync`.
 
 ## Ways to edit
 
 | Command | Use when |
 | --- | --- |
-| `make config-wizard` | Interactive create/edit |
-| `make config-scaffold PROJECT_DIR=…` | Add one project non-interactively |
-| `make setup PROJECT_DIR=…` | First run |
+| `orcan context wizard` | Interactive create/edit |
+| `orcan context add /abs/path` | Add one project non-interactively |
+| `orcan init /abs/path` | First run |
 | Hand-edit JSON | You know the schema |
 
 Show current layout:
 
 ```bash
-make config-show
-make path-check
+orcan context show
 ```
 
-## What `make env` writes
+## What `orcan sync` writes
 
-`orcan.config.json` is the story you edit. **`make env`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.
+`orcan.config.json` is the story you edit (default under `~/.config/orcan/home/`). **`orcan sync`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.
 
 | Output | Role |
 | --- | --- |
@@ -127,14 +126,15 @@ make path-check
 
 Do not commit `.env` or `.orcan/` (gitignored).
 
-## Seed project files (optional)
+## Seed into git checkouts (optional, rarely needed)
 
-Orcan does **not** rewrite every mounted repo on startup. To seed ignores/templates once:
+The **workspace** already gets a context pack on container start (`AGENTS.md`, ignores, `.cursor/rules/`). You do **not** need `orcan seed` for that.
+
+`orcan seed` only copies the same kind of files **into each mounted git repo**. Skip it unless you want those files inside the checkouts themselves (e.g. to commit them):
 
 ```bash
-make init-project-all
-# or dry-run:
-make init-project-all-dry-run
+orcan seed --all
+orcan seed --all --dry-run
 ```
 
 Full field rules and rejected keys: [Configuration reference](../reference/configuration.md).

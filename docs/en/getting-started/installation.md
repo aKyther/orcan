@@ -6,7 +6,7 @@ description: Host requirements for Orcan — Docker isolation is a product choic
 
 ## Why these requirements
 
-Orcan isolates agent toolchains in Docker so the host stays thin. That choice needs Docker Compose, Make (thin host UI), Git (clone this repo and your projects), and Python 3 (config scripts on the host).
+Orcan isolates agent toolchains in Docker so the host stays thin. That choice needs Docker Compose, Git (clone this repo and your projects), Python 3 (config scripts on the host), and Bash (the `orcan` CLI).
 
 If you do not want Docker, Orcan is not the right tool — see [Why Orcan?](../why-orcan.md).
 
@@ -19,9 +19,9 @@ Orcan runs on a machine with Docker. Most people use Linux or WSL2.
 | Tool | Notes |
 | --- | --- |
 | Docker Engine | With Compose v2 (`docker compose`) |
-| Make | GNU Make |
-| Git | To clone this repository |
-| Python 3 | For host config scripts (`make env`, wizard) |
+| Git | To clone installs and your projects |
+| Python 3 | Host config scripts — `orcan sync`, `init`, `context` (wizard). Stdlib only; no pip. |
+| Bash | CLI launcher |
 
 Optional:
 
@@ -35,60 +35,76 @@ Check versions:
 ```bash
 docker version
 docker compose version
-make --version
 python3 --version
+bash --version
 ```
 
-## Get the code
+## Install the CLI
 
 ```bash
-git clone https://github.com/aKyther/orcan.git
-cd orcan
+curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
+orcan doctor
 ```
+
+From a git checkout of this repository you can also run `./bin/orcan` without installing.
 
 ## First configure
 
-Describe workspaces in `orcan.config.json`, then **materialise** files Compose reads:
+Describe workspaces in `~/.config/orcan/home/orcan.config.json`, then **materialise** files Compose reads:
 
 ```bash
-make setup PROJECT_DIR=/absolute/path/to/your/repo
+orcan init /absolute/path/to/your/repo
 ```
 
-`make setup` scaffolds the config if missing and runs **`make env`** (writes `.env` + `.orcan/*`). Re-run `make env` after every later config edit — `make build` / `make terminal*` only consume those files; they do not regenerate them.
+`orcan init` scaffolds the config if missing and runs **`orcan sync`** (writes `.env` + `.orcan/*` under `ORCAN_HOME`). Re-run `orcan sync` after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
 
 Or use the wizard:
 
 ```bash
-make config-wizard
-make env
+orcan context wizard
+orcan sync
 ```
 
 ## Build the image
 
-=== "Full (default)"
+=== "Both agents (default)"
 
     ```bash
-    make build
+    orcan build
     ```
 
-    Tag: `orcan:latest` (also tagged `orcan:full`) — Claude Code + Cursor CLI.
+    Tags: `orcan:latest` and `orcan:<VERSION>`.
 
-=== "Claude only"
+=== "Claude Code only (no pull)"
 
     ```bash
-    make build-claude
-    IMAGE_LOCAL=orcan:claude make terminal-docker
+    orcan build --claude
+    IMAGE_LOCAL=orcan:0.1.1-claude orcan up
     ```
 
-    Tag: `orcan:claude` — Claude only.
+    Tag: `orcan:<VERSION>-claude` (does not overwrite `latest`).
+
+=== "Cursor CLI only (no pull)"
+
+    ```bash
+    orcan build --cursor
+    IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
+    ```
+
+    Tag: `orcan:<VERSION>-cursor`.
 
 ## Expected result
 
-- `.env` and `.orcan/` exist
-- Local image `orcan:latest` (or `orcan:claude`) exists
-- `make path-check` prints workspace paths
+- Config and `.env` exist under `~/.config/orcan/home/`
+- Local image `orcan:latest` exists
+- `orcan context show` prints workspace paths
 
 ## Uninstall
+
+```bash
+orcan uninstall              # remove launcher + install clone
+orcan uninstall --purge-data # also delete ORCAN_DATA after confirmation
+```
 
 See [Workflows — uninstall](../guides/workflows.md#uninstall) or [FAQ](../faq.md#uninstall).
 
@@ -97,7 +113,8 @@ See [Workflows — uninstall](../guides/workflows.md#uninstall) or [FAQ](../faq.
 | Problem | What to try |
 | --- | --- |
 | Docker permission denied | Add your user to the `docker` group, or use rootless Docker |
-| `make env` fails on `PROJECT_DIR` | Use an **absolute** path; do not use `/`, `/home`, or `/etc` as the project |
+| `orcan sync` fails on `PROJECT_DIR` | Use an **absolute** path; do not use `/`, `/home`, or `/etc` as the project |
 | Slow first build | Normal — the image installs toolchains and CLIs |
+| `orcan: command not found` | Add `~/.local/bin` to `PATH`, or re-run `install.sh` |
 
-Next: [Quickstart](quickstart.md).
+Next: [Quickstart](quickstart.md) · [CLI reference](../reference/cli.md).

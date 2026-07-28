@@ -23,16 +23,16 @@ Szablon: `orcan.config.example.json`.
 Po edycji zawsze uruchom:
 
 ```bash
-make env
+orcan sync
 ```
 
 !!! note
-    `make terminal*` **nie** uruchamia `make env`. Najpierw zastosuj konfigurację, potem odtwórz kontener.
+    `orcan up` **nie** uruchamia `orcan sync`. Najpierw zastosuj konfigurację, potem odtwórz kontener.
 
 Potem odtwórz kontener, jeśli już działa:
 
 ```bash
-make down && make terminal-docker
+orcan down && orcan up
 ```
 
 ## Kształt (przykład)
@@ -91,31 +91,30 @@ Domyślne limity są celowo lekkie (typowy laptop). Podnieś je, gdy maszyna ma 
 Edytuj `resources` w `orcan.config.json` (np. `cpus: 8`, `memory: "16g"`), potem:
 
 ```bash
-make env
-make down && make terminal-docker
+orcan sync
+orcan down && orcan up
 ```
 
-Jeśli `.env` ma już `CPUS` / `MEMORY`, `make env` ich nie nadpisze. Zmień je też w `.env`, albo usuń klucze, żeby config wygrał przy następnym `make env`.
+Jeśli `.env` ma już `CPUS` / `MEMORY`, `orcan sync` ich nie nadpisze. Zmień je też w `.env`, albo usuń klucze, żeby config wygrał przy następnym `orcan sync`.
 
 ## Sposoby edycji
 
 | Polecenie | Kiedy użyć |
 | --- | --- |
-| `make config-wizard` | Interaktywne tworzenie/edycja |
-| `make config-scaffold PROJECT_DIR=…` | Dodanie jednego projektu bez interakcji |
-| `make setup PROJECT_DIR=…` | Pierwszy uruchomienie |
+| `orcan context wizard` | Interaktywne tworzenie/edycja |
+| `orcan context add /abs/path` | Dodanie jednego projektu bez interakcji |
+| `orcan init /abs/path` | Pierwszy uruchomienie |
 | Ręczna edycja JSON | Znasz schemat |
 
 Pokaż bieżący układ:
 
 ```bash
-make config-show
-make path-check
+orcan context show
 ```
 
-## Co zapisuje `make env`
+## Co zapisuje `orcan sync`
 
-`orcan.config.json` to historia, którą edytujesz. **`make env`** to to, co Docker / Compose może łyknąć: odświeża pliki runtime hosta z tego JSON (+ UID/GID). Bez tego mounty i env zostają stare albo w ogóle ich nie ma.
+`orcan.config.json` to historia, którą edytujesz. **`orcan sync`** to to, co Docker / Compose może łyknąć: odświeża pliki runtime hosta z tego JSON (+ UID/GID). Bez tego mounty i env zostają stare albo w ogóle ich nie ma.
 
 | Wynik | Rola |
 | --- | --- |
@@ -127,14 +126,15 @@ make path-check
 
 Nie commituj `.env` ani `.orcan/` (są w gitignore).
 
-## Seed plików projektu (opcjonalnie)
+## Seed do checkoutów git (opcjonalnie, rzadko potrzebne)
 
-Orcan **nie** przepisuje każdego zamontowanego repo przy starcie. Aby raz zaseedować ignores/szablony:
+**Workspace** i tak dostaje context pack przy starcie kontenera (`AGENTS.md`, ignores, `.cursor/rules/`). Do tego **`orcan seed` nie jest potrzebny**.
+
+`orcan seed` tylko kopiuje podobne pliki **do każdego zamontowanego repo**. Pomiń, chyba że chcesz je mieć w samym checkoucie (np. żeby je commitować):
 
 ```bash
-make init-project-all
-# or dry-run:
-make init-project-all-dry-run
+orcan seed --all
+orcan seed --all --dry-run
 ```
 
 Pełne reguły pól i odrzucane klucze: [Referencja konfiguracji](../reference/configuration.md).

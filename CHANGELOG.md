@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-28
+
 ### Added
 
+- **`orcan` CLI** (`bin/orcan`, `cli/`, `install.sh`): `init`, `sync`, `context`, `up` / `up --with-docker`, `down`, `build`, `pull`, `publish`, `seed`, `update`, `doctor`, `uninstall` — public UX no longer requires Make
+- `orcan build`: both agents → `orcan:latest` + `orcan:<VERSION>`; `--claude`/`--cursor` → `orcan:<VERSION>-claude|cursor` (no pull, no overwrite of `latest`)
 - Container devtool hygiene: no `__pycache__` / `.pyc` in projects; ruff/mypy/pip/uv/pytest (and related) caches under `$HOME/.cache` (`$ORCAN_DATA/cache` on the host)
 - Persist Claude Code login across restarts: `CLAUDE_CONFIG_DIR` → mounted `~/.claude`, chown that volume, migrate legacy `~/.claude.json`
 - tmux: prefix `u` picks/copies http(s) URLs with soft-wrap joined (`capture-pane -J`); enable OSC 8 `hyperlinks` terminal-features
@@ -16,18 +20,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Claude deny templates: drop obsolete `Write(path)` rules (use `Edit` only; removes startup warnings)
+- Docs mike deploy: re-sync `gh-pages` before push + retry; serialize CI `dev` and Release on concurrency group `docs-gh-pages`
 
 ### Changed
 
+- GitHub Release notes: `install.sh` → `orcan init` → `orcan build` → `orcan up` (no Makefile)
+- `orcan build` never publishes (pull → local build only); `orcan publish` is manual
+- `orcan seed` demoted in help; user docs no longer treat it as a ritual step
+- User-facing EN/PL docs: Make → `orcan` CLI
+- Docs / help / installer: **Python 3 on the host** required for `sync` / wizard / `init`
+- User config home defaults to `~/.config/orcan/home` (`ORCAN_HOME`); install clone at `~/.local/share/orcan`
+- Makefile is maintainer-oriented; deprecated user targets forward to `./bin/orcan`
 - Default container resources: **2** CPU / **4g** RAM (shm/tmpfs **512m**); raise via `resources` in config
-- Docs: first-run flow spells out `make env` as the step that materialises `.env` / `.orcan/*` for Compose
+- Docs: first-run flow uses `orcan sync` to materialise `.env` / `.orcan/*` for Compose
 - Docs: remove historical product-name migration notes; **Orcan** is the only documented product name
 - Docs storytelling rewrite: Why Orcan / Core Ideas / Mental Model; Home and Architecture narrative-first; Reference last in nav
 - tmux status bar at bottom (tabs above, metrics below); metric icons instead of text labels; Starship separates path and git with `│`
-
-### Fixed
-
-- Docs mike deploy: re-sync `gh-pages` before push + retry; serialize CI `dev` and Release on concurrency group `docs-gh-pages`
 
 ## [0.1.1] - 2026-07-23
 
@@ -68,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI (validate + MkDocs → `gh-pages`)
 - SemVer releases via `VERSION` + git tags → GitHub Releases (no image registry)
 
-[Unreleased]: https://github.com/aKyther/orcan/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/aKyther/orcan/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/aKyther/orcan/releases/tag/v0.2.0
 [0.1.1]: https://github.com/aKyther/orcan/releases/tag/v0.1.1
 [0.1.0]: https://github.com/aKyther/orcan/releases/tag/v0.1.0

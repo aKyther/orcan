@@ -17,6 +17,7 @@ services:
         USER_GID: ${USER_GID:-1000}
         DOCKER_GID: ${DOCKER_GID:-999}
         INSTALL_CURSOR: ${INSTALL_CURSOR:-1}
+        INSTALL_CLAUDE: ${INSTALL_CLAUDE:-1}
         ORCAN_VERSION: ${ORCAN_VERSION:-dev}
     environment:
       TERM: xterm-256color

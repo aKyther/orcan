@@ -5,16 +5,16 @@
 Orcan to wygodna izolacja, **nie** twarda granica bezpieczeństwa.
 
 - Bind mounty dają kontenerowi zapis do Twoich projektów
-- `make terminal-docker` montuje `/var/run/docker.sock` → silny dostęp do hosta
+- `orcan up --with-docker` montuje `/var/run/docker.sock` → silny dostęp do hosta
 
 !!! warning
-    Używaj `terminal-docker` tylko gdy potrzebujesz Docker-from-Docker. Preferuj `make terminal`, gdy nie potrzebujesz.
+    Używaj `orcan up --with-docker` tylko gdy potrzebujesz Docker-from-Docker. Preferuj zwykłe `orcan up` bez socketa.
 
 ## Dane na hoście
 
 Logowania i cache leżą pod `$ORCAN_DATA` (domyślnie `~/.config/orcan`). Traktuj ten katalog jako wrażliwy.
 
-`make clean-data` usuwa go po potwierdzeniu.
+`orcan uninstall --purge-data` usuwa go po potwierdzeniu.
 
 ## Terminal w przeglądarce
 

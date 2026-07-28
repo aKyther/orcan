@@ -58,7 +58,7 @@ Pierwszy włączony workspace napędza `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR
 ## Kompromisy
 
 - **Zysk:** jeden nazwany kontekst do odtworzenia.  
-- **Koszt:** musisz utrzymywać poprawne ścieżki bezwzględne i uruchamiać `make env` po edycji konfiguracji.  
+- **Koszt:** musisz utrzymywać poprawne ścieżki bezwzględne i uruchamiać `orcan sync` po edycji konfiguracji.  
 - **Wybór:** Orcan nie przepisuje każdego checkoutu git przy starcie; seeduj projekty jawnie, gdy tego chcesz.
 
 ## Powiązane

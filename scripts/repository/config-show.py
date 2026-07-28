@@ -8,7 +8,10 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(
+    __import__("os").environ.get("ORCAN_HOME")
+    or Path(__file__).resolve().parents[2]
+)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import discover_config, load_config  # noqa: E402
 
@@ -60,7 +63,7 @@ def main() -> None:
     parser.add_argument(
         "--runtime",
         default=str(ROOT / ".orcan" / "workspace.manifest.json"),
-        help="Generated manifest from make env",
+        help="Generated manifest from orcan sync",
     )
     args = parser.parse_args()
 
@@ -76,13 +79,13 @@ def main() -> None:
         print_workspaces(f"Config: {config_path}", cfg.get("workspaces") or [])
         print()
     else:
-        print("Config: (missing — run make setup or make config-init)\n")
+        print("Config: (missing — run orcan init)\n")
 
     if runtime_path.is_file():
         manifest = load_json(runtime_path)
         print_workspaces(f"Runtime: {runtime_path}", manifest.get("workspaces") or [])
     else:
-        print(f"Runtime: {runtime_path} (missing — run make env)")
+        print(f"Runtime: {runtime_path} (missing — run orcan sync)")
 
 
 if __name__ == "__main__":

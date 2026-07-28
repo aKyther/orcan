@@ -1,42 +1,42 @@
 # Environment variables
 
-Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.json` for new setups, then `make env`. Do not commit `.env`.
+Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.json` for new setups, then `orcan sync`. Do not commit `.env`.
 
-## Always managed by `make env`
+## Always managed by `orcan sync`
 
 | Variable | Role |
 | --- | --- |
 | `USER_UID` / `USER_GID` | Map container user to host |
-| `DOCKER_GID` | Group for Docker socket (`terminal-docker`) |
+| `DOCKER_GID` | Group for Docker socket (`orcan up --with-docker`) |
 | `TZ` | Timezone |
-| `PROJECT_DIR` | Orcan repo path (where you run Make) |
+| `PROJECT_DIR` | Orcan install path (where you run `orcan`) |
 | `CONTAINER_PROJECT_DIR` / `WORKSPACE_*` | Primary workspace paths |
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Runtime config mount |
 | `ORCAN_COMPOSE_PROJECTS` | Generated Compose overlay |
 | `ORCAN_DATA` | Host data root (default `$HOME/.config/orcan`) |
 
-## Seeded once (kept on later `make env`)
+## Seeded once (kept on later `orcan sync`)
 
 | Variable | Role |
 | --- | --- |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits (defaults: 2 / 4g / 512m / 512m) |
 | `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` | Browser terminal |
 
-Edit via `orcan.config.json` (`resources`, `ttyd`) then `make env` for new machines; existing `.env` values may be preserved depending on `update-env.sh` rules — prefer config file as source of truth for new setups.
+Edit via `orcan.config.json` (`resources`, `ttyd`) then `orcan sync` for new machines; existing `.env` values may be preserved depending on `update-env.sh` rules — prefer config file as source of truth for new setups.
 
 ## Image selection
 
 | Variable | Role |
 | --- | --- |
-| `IMAGE_LOCAL` | Image Compose runs (`orcan:latest` or `orcan:claude`) |
-| `INSTALL_CURSOR` | Build-arg only (`1` full / `0` Claude-only) |
+| `IMAGE_LOCAL` | Image Compose runs (default `orcan:latest`) |
+| `INSTALL_CURSOR` / `INSTALL_CLAUDE` | Build-args (`1`/`0`); default both on |
 | `ORCAN_VERSION` | Build-arg from `VERSION` file |
 
 ## Optional private registry
 
 | Variable | Role |
 | --- | --- |
-| `IMAGE_REGISTRY` / `IMAGE_REPOSITORY` / `IMAGE_TAG` | `make publish` / `pull` |
+| `IMAGE_REGISTRY` / `IMAGE_REPOSITORY` / `IMAGE_TAG` | `orcan publish` / `orcan pull` |
 
 ## Inside the container
 

@@ -7,7 +7,7 @@ Guide for people and coding agents who change the **Orcan** repository.
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
-make setup PROJECT_DIR="$(pwd)"
+orcan init "$(pwd)"
 make validate
 make test-host
 ```
@@ -15,7 +15,7 @@ make test-host
 Build and smoke (needs Docker; builds the full image):
 
 ```bash
-make build
+orcan build
 make test
 ```
 
@@ -30,11 +30,13 @@ make docs-serve
 
 | Path | Role |
 | --- | --- |
+| `bin/orcan`, `cli/` | Public CLI |
+| `install.sh` | curl\|bash installer |
 | `Dockerfile` | Image build |
 | `docker-compose*.yml` | Runtime overlays |
 | `docker/rootfs/` | Files copied into the image |
 | `scripts/repository/` | Host-only helpers |
-| `Makefile` | Thin host UI |
+| `Makefile` | Maintainer targets |
 | `orcan.config.example.json` | Config template |
 | `docs/` | MkDocs site |
 | `tests/` | Host unit tests + smoke + path-parity |

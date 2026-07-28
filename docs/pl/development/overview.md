@@ -7,7 +7,7 @@ Przewodnik dla osób i agentów kodujących, którzy zmieniają repozytorium **O
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
-make setup PROJECT_DIR="$(pwd)"
+orcan init "$(pwd)"
 make validate
 make test-host
 ```
@@ -15,7 +15,7 @@ make test-host
 Build i smoke (wymaga Dockera; buduje pełny obraz):
 
 ```bash
-make build
+orcan build
 make test
 ```
 

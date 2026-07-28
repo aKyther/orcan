@@ -7,7 +7,10 @@ import argparse
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(
+    __import__("os").environ.get("ORCAN_HOME")
+    or Path(__file__).resolve().parents[2]
+)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import (  # noqa: E402
     default_write_path,
@@ -117,7 +120,7 @@ def main() -> None:
     dump_config(config_path, cfg)
     print(f"{action}: workspace={ws_name} project={project.name}")
     print(f"config: {config_path}")
-    print("Next: make env && make path-check")
+    print("Next: orcan sync && orcan context show")
 
 
 if __name__ == "__main__":

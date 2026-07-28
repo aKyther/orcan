@@ -13,29 +13,30 @@ Longer map: `docs/en/ai/project-context.md` (Polish: `docs/pl/ai/project-context
 - workspaces (named sets of projects) + path-parity mounts
 - ignore / instruction seeds (context pack)
 - browser terminal (ttyd) → launcher → tmux → **zsh**
-- Image variants: `orcan:latest` (Claude+Cursor), `orcan:claude` (Claude only)
+- Image: `orcan:latest` / `orcan:<VERSION>` (both agents). Single-agent local: `orcan build --claude` → `orcan:<VERSION>-claude`
 
 User-facing story: `docs/en/why-orcan.md`, `docs/en/ideas/core-ideas.md`, `docs/en/ideas/mental-model.md`.
 
 **Not** a model manager — do not add model-selection or provider abstractions.
-**Not** an image registry product — users `git clone` + `make build`.
+**Not** an image registry product — users install the CLI (`install.sh`) and run `orcan build` (pull or local build; publish is manual via `orcan publish`).
 
 ## Ritual (host)
 
 ```bash
-make config-wizard          # or edit orcan.config.json / config-scaffold
-make env                    # apply config → .env, .orcan/*, mounts
-make build                  # once / after Dockerfile|rootfs changes
-make terminal-docker        # daily; does NOT run make env
+orcan context wizard        # or edit ORCAN_HOME/orcan.config.json / orcan context add
+orcan sync                  # apply config → .env, .orcan/*, mounts
+orcan build                 # once / after Dockerfile|rootfs changes
+orcan up                    # daily; does NOT run orcan sync
 ```
 
-After config edits with a running container: `make env && make down && make terminal-docker`.
+After config edits with a running container: `orcan sync && orcan down && orcan up`.
 
-Release: `make bump-patch` → update `CHANGELOG.md` → commit → `make release` (GitHub Release only).
+Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit → `make release`.
 
 ## Config
 
 - **Only** `orcan.config.json` (stdlib JSON — no PyYAML / host venv for config).
+- Default location: `~/.config/orcan/home/orcan.config.json` (`ORCAN_HOME`).
 - Template: `orcan.config.example.json`.
 - Docker Compose YAML and `mkdocs.yml` stay YAML — that is fine.
 - Do **not** reintroduce YAML user profiles or `host-deps` / `requirements-host.txt`.
@@ -52,10 +53,13 @@ ttyd → cursor-launcher → tmux (default-shell zsh)
 
 | Path | Role |
 | --- | --- |
+| `bin/orcan`, `cli/` | Public CLI |
+| `install.sh` | curl\|bash installer |
 | `Dockerfile` | Image build |
 | `docker-compose*.yml` | Runtime |
 | `docker/rootfs/` | Image filesystem |
 | `scripts/repository/` | Host helpers |
+| `Makefile` | Maintainer targets only |
 | `docs/` | MkDocs EN+PL (`docs/en/`, `docs/pl/`) |
 | `README.md` | Short entry only |
 | `.cursor/rules/` | Rules for developing Orcan |
@@ -66,6 +70,7 @@ ttyd → cursor-launcher → tmux (default-shell zsh)
 - `make validate`
 - `make test-host`
 - `make docs-check`
+- `./bin/orcan help` / `./bin/orcan doctor`
 - `make test` when Docker behaviour changes and Docker is available
 
 Report what ran, what did not, and environment limits.

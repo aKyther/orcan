@@ -45,7 +45,7 @@ flowchart TB
 
 ### Why the host owns config
 
-Config must run without the image (wizard, CI host tests, `make env`). Stdlib JSON keeps the host side thin. Compose YAML remains for Docker only.
+Config must run without the image (wizard, CI host tests, `orcan sync`). Stdlib JSON keeps the host side thin. Compose YAML remains for Docker only.
 
 ### Why the image owns the toolchain
 
@@ -81,7 +81,7 @@ Why not a plain SSH shell only? The browser path is the default product surface:
 
 At the **workspace root**, Orcan maintains a small pack (manifest, shared `AGENTS.md` / `CLAUDE.md`, ignores). That answers: “what is this context?”
 
-Mounted **git checkouts** are not rewritten on every start. Seeding files into each `projects[].path` is explicit (`make init-project-all`). That protects customer repos from surprise diffs while still allowing shared context above them.
+Mounted **git checkouts** are not rewritten on every start. Seeding files into each `projects[].path` is explicit (`orcan seed --all`). That protects customer repos from surprise diffs while still allowing shared context above them.
 
 ## Product boundary
 

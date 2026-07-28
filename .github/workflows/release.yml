@@ -95,16 +95,19 @@ jobs:
           body: |
             ## Install / upgrade
 
-            Orcan is distributed as a **git repository + Makefile**. Build images locally:
+            Orcan is distributed as a **CLI**. Install, then init / build / up:
 
             ```bash
-            git clone https://github.com/aKyther/orcan.git
-            cd orcan
-            git checkout v${{ steps.ver.outputs.version }}
-            make setup PROJECT_DIR=/absolute/path/to/your/repo
-            make build
-            make terminal-docker
+            curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/v${{ steps.ver.outputs.version }}/install.sh | bash
+            orcan doctor
+            orcan init /absolute/path/to/your/repo
+            orcan build
+            orcan up
             ```
+
+            Open `http://localhost:7681`. After config edits: `orcan sync && orcan down && orcan up`.
+
+            Already installed? `orcan update`, then checkout `v${{ steps.ver.outputs.version }}` in the install clone (`~/.local/share/orcan`) and run `orcan build` if the image changed.
 
             ## Docs
 

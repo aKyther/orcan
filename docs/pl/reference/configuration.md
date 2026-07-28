@@ -2,7 +2,7 @@
 
 Plik hosta: `orcan.config.json` (tylko stdlib JSON).
 
-Zastosuj przez `make env`. Egzekwowanie schematu jest w `scripts/repository/apply-config.py`.
+Zastosuj przez `orcan sync`. Egzekwowanie schematu jest w `scripts/repository/apply-config.py`.
 Szkic maszynowy: [`orcan.config.schema.json`](https://github.com/aKyther/orcan/blob/main/orcan.config.schema.json).
 
 ## Klucze najwyższego poziomu
@@ -46,9 +46,9 @@ Nie używaj: `projects_dir`, `default_project`, `default_workspace`, projektowe 
 
 | Polecenie | Rola |
 | --- | --- |
-| `make config-wizard` | Edytor interaktywny |
-| `make config-scaffold` | Dodawanie bez interakcji |
-| `make config-show` | Lista workspace'ów |
+| `orcan context wizard` | Edytor interaktywny |
+| `orcan context add` | Dodawanie bez interakcji |
+| `orcan context show` | Lista workspace'ów |
 | `scripts/repository/config_io.py` | Load/dump/discover |
 
 Przewodnik użytkownika: [Pierwsze kroki — Konfiguracja](../getting-started/configuration.md).

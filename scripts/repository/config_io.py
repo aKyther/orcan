@@ -31,7 +31,7 @@ def discover_config(root: Path) -> Path | None:
             die(
                 f"found {name}; host config is JSON-only. "
                 f"Convert to {JSON_NAME} (e.g. yq -o=json {name} > {JSON_NAME}), "
-                "then run make env"
+                f"then run orcan sync"
             )
     return None
 

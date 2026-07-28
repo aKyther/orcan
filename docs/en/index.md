@@ -22,7 +22,7 @@ Orcan does not manage “Git” as a product. It manages **context**.
 - A **workspace** is a named set of projects that belong together.
 - **Context** is the reproducible environment around that set: mounts, shared instructions, ignores, and a browser terminal session.
 
-Configuration describes those relationships. Make and Docker apply them. Agents and humans then share the same layout.
+Configuration describes those relationships. `orcan sync` and Docker apply them. Agents and humans then share the same layout.
 
 ## A day of work
 
@@ -54,24 +54,24 @@ graph TD
 3. [Mental Model](ideas/mental-model.md) — how the pieces relate  
 4. [Quick Start](getting-started/quickstart.md) — run it once you understand the idea  
 
-Reference pages (Makefile, env vars, Compose) come **after** that arc.
+Reference pages (CLI, env vars, Compose) come **after** that arc.
 
 ## Try it (after the idea)
 
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo   # includes make env once
-make env                                             # .env + .orcan/* for Compose
-make build
-make terminal-docker
+orcan init /absolute/path/to/your/repo   # includes orcan sync once
+orcan sync                                             # .env + .orcan/* for Compose
+orcan build
+orcan up
 ```
 
-Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`. Config changes always need `make env` before recreate.
+Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`. Config changes always need `orcan sync` before recreate.
 
 ## Status
 
-Version **0.1.1** (see [Changelog](changelog.md)). Distributed as **git clone + Makefile**. Images are built locally. CI does not publish container images.
+Version **0.2.0** (see [Changelog](changelog.md)). Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`); CI does not publish container images.
 
 ## See also
 

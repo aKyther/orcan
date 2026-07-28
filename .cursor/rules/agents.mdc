@@ -14,17 +14,17 @@ Read root [`AGENTS.md`](../../AGENTS.md) and [`docs/en/ai/project-context.md`](.
 ## Product ritual (host)
 
 ```bash
-make config-wizard    # or setup / config-scaffold / hand-edit orcan.config.json
-make env              # ALWAYS after config changes (terminal* does not call env)
-make rebuild          # after Dockerfile / docker/rootfs / tmux / shell changes
-make terminal-docker  # daily start (ttyd); or make terminal without Docker socket
+orcan context wizard  # or init / context add / hand-edit orcan.config.json
+orcan sync            # ALWAYS after config changes (up does not call sync)
+orcan build           # after Dockerfile / docker/rootfs / tmux / shell changes
+orcan up              # daily start (ttyd); orcan up --with-docker for DinD
 ```
 
-Recreate after env changes: `make down && make terminal-docker`.
+Recreate after sync: `orcan down && orcan up`.
 
 ## Config = JSON only
 
-- User profile: **`orcan.config.json`** (stdlib `json` — **no PyYAML**, no `host-deps`, no `requirements-host.txt`).
+- User profile: **`orcan.config.json`** under `ORCAN_HOME` (default `~/.config/orcan/home/`).
 - Example: `orcan.config.example.json`.
 - Keep Compose/docs YAML (`docker-compose*.yml`, `mkdocs.yml`, generated `.orcan/*.yml`).
 - Do not revive YAML user configs.
@@ -48,10 +48,12 @@ ttyd (cursor-ttyd) → cursor-launcher → tmux → zsh
 
 | Path | Role |
 | --- | --- |
+| `bin/orcan`, `cli/` | Public CLI |
+| `install.sh` | curl\|bash installer |
 | `Dockerfile` | Image build |
 | `docker-compose*.yml` | Runtime overlays |
-| `.orcan/*` | Generated runtime (gitignored; from `make env`) |
-| `Makefile` | Host UI |
+| `.orcan/*` / `ORCAN_HOME` | Generated runtime (gitignored; from `orcan sync`) |
+| `Makefile` | Maintainer targets |
 | `docker/rootfs/` | Image filesystem |
 | `scripts/repository/` | Host-only helpers |
 | `docs/` | MkDocs (canonical docs) |
@@ -61,26 +63,28 @@ ttyd (cursor-ttyd) → cursor-launcher → tmux → zsh
 
 ## Commands (high-signal)
 
-Configure: `make setup` · `make env` · `make config-wizard` · `make config-scaffold` · `make config-show` · `make init-project-all`
+Configure: `orcan init` · `orcan sync` · `orcan context wizard` · `orcan context add` · `orcan context show` · `orcan seed --all`
 
-Run: `make build` · `make build-claude` · `make release` · `make terminal` · `make terminal-docker` · `make down` · `make path-check` · `make validate` · `make docs-check` · `make test` · `make help`
+Run: `orcan build` · `orcan build --claude` · `orcan up` · `orcan up --with-docker` · `orcan down` · `orcan doctor` · `orcan update`
 
-Claude-only: `IMAGE_LOCAL=orcan:claude make terminal-docker`.  
+Maintainers: `make validate` · `make docs-check` · `make test` · `make release` · `make help`
+
+Claude-only local: `orcan build --claude` → `orcan:<VERSION>-claude`, then `IMAGE_LOCAL=… orcan up`.
 Release: `make bump-patch` → commit `VERSION`+`CHANGELOG.md` → `make release` (GitHub Release; no image publish).
 
 ## Boundaries
 
-Allowed: edit this repo; Make/Compose checks; image builds; update docs when the interface changes.
+Allowed: edit this repo; CLI/Make/Compose checks; image builds; update docs when the interface changes.
 
-Not allowed: host paths outside the project; modify `.env` unless asked; `docker system prune`; delete `ORCAN_DATA` except via explicit `make clean-data`; `--privileged`; claim build success without running the build.
+Not allowed: host paths outside the project; modify `.env` unless asked; `docker system prune`; delete `ORCAN_DATA` except via explicit `orcan uninstall --purge-data`; `--privileged`; claim build success without running the build.
 
 ## Done checklist
 
 - [ ] `make validate` passes
 - [ ] `make test-host` passes
 - [ ] `make docs-check` passes when docs/interface changed
+- [ ] `./bin/orcan help` works
 - [ ] Compose config OK
-- [ ] `make help` matches real targets / docs
 - [ ] No secrets in image or repo
 - [ ] Report: tests ran / skipped / limits
 

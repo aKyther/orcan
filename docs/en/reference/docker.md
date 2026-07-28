@@ -8,13 +8,25 @@ Use this page for image tags, Compose overlays, and `$ORCAN_DATA` binds. For **w
 - Multi-stage tool fetch (Node, Go, Rust, uv)
 - Non-root user `developer`
 - Entry: `docker-entrypoint`
-- Variants via build-arg `INSTALL_CURSOR` and file `/etc/orcan/variant`
 
-| Tag | Build | Contents |
-| --- | --- | --- |
-| `orcan:latest` (+ `orcan:full`) | `make build` | Claude + Cursor |
-| `orcan:claude` | `make build-claude` | Claude only |
+| Tag | Role |
+| --- | --- |
+| `orcan:latest` | Both agents — what Compose runs by default |
+| `orcan:<VERSION>` | Same both-agents image (registry + local pin) |
+| `orcan:<VERSION>-claude` | Local only — Claude Code installed, Cursor not |
+| `orcan:<VERSION>-cursor` | Local only — Cursor CLI installed, Claude not |
 
+Agent choice:
+
+| Flag | Effect |
+| --- | --- |
+| (none) | Pull `orcan:<VERSION>` if available, else build both → `latest` + `<VERSION>` |
+| `--claude` | No pull; build `orcan:<VERSION>-claude` (does not touch `latest`) |
+| `--cursor` | No pull; build `orcan:<VERSION>-cursor` |
+
+Then run single-agent images with `IMAGE_LOCAL=orcan:<VERSION>-claude orcan up` (or set `IMAGE_LOCAL` in `.env`). `/etc/orcan/variant` records `full` / `claude` / `cursor`. `orcan publish` only pushes both-agents tags.
+
+Build-args: `INSTALL_CLAUDE` / `INSTALL_CURSOR` (default both `1`).
 Version label: `ORCAN_VERSION` / `/etc/orcan/version`.
 
 ## Compose files
@@ -42,4 +54,4 @@ Named Docker volumes are **not** used for this data.
 
 ## Optional private registry
 
-CI does **not** publish images. For your own registry see [Makefile — optional registry](makefile.md#optional-private-registry).
+CI does **not** publish images. For your own registry use `orcan pull` / `orcan publish` (see [CLI reference](cli.md)). Maintainer helpers: [Makefile — optional registry](makefile.md#optional-private-registry).

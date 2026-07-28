@@ -1,30 +1,33 @@
 ---
-description: Makefile na hoście, CLI w kontenerze i orcan.config.json — Orcan nie ma REST API.
+description: CLI orcan na hoście, CLI w kontenerze i orcan.config.json — Orcan nie ma REST API.
 ---
 
 # Interfejs hosta i kontenera
 
-To powierzchnia **kontraktu** po poznaniu modelu mentalnego: Make na hoście, CLI w kontenerze, konfiguracja JSON. Orcan **nie ma** HTTP / REST API.
+To powierzchnia **kontraktu** po poznaniu modelu mentalnego: `orcan` na hoście, CLI w kontenerze, konfiguracja JSON. Orcan **nie ma** HTTP / REST API.
 
 Obsługiwane interfejsy publiczne:
 
-1. **Makefile na hoście** — konfiguracja, build, uruchomienie, testy, docs, release
+1. **CLI `orcan`** — konfiguracja, build, uruchomienie, diagnostyka (zobacz [Referencja CLI](reference/cli.md))
 2. **CLI w kontenerze** — `agent`, `claude` oraz helpery `orcan-*`
 3. **Plik konfiguracji** — `orcan.config.json` (walidowany przez skrypty hosta; zobacz JSON Schema poniżej)
 
-## Host (Make)
+## Host (`orcan`)
 
-Kanoniczna lista: [Referencja Makefile](reference/makefile.md).
-
-Najważniejsze targety:
+Najważniejsze komendy:
 
 ```bash
-make setup | config-wizard | env
-make build | build-claude
-make terminal | terminal-docker
-make validate | docs-check | test
-make release
+orcan init | sync | context wizard | context show
+orcan build [--claude|--cursor] [--force]
+orcan up | up --with-docker | down
+orcan logs | doctor | url
 ```
+
+Rytuał użytkownika: `orcan init` → `orcan build` → `orcan up`. Po edycji konfiguracji: `orcan sync && orcan down && orcan up`.
+
+## Make dla maintainerów
+
+Checkout gita ma też **Makefile** pod docs, testy i release — nie do codziennej pracy. Zobacz [Referencja Makefile](reference/makefile.md) oraz [Przegląd rozwoju](development/overview.md).
 
 ## Helpery w kontenerze
 
@@ -34,7 +37,7 @@ make release
 | `claude` / `cc` | Claude Code |
 | `orcan-workspaces` | Lista workspace'ów |
 | `orcan-context-status` | Status context pack |
-| `orcan-init-projects` | Seed szablonów projektów |
+| `orcan-init-projects` | Opcjonalnie: seed szablonów projektów (zaawansowane) |
 | `orcan-session-brief` | Opcjonalny plik handoff sesji |
 | `orcan-ai-statusline` | Opcjonalne użycie AI w statusie tmux |
 
