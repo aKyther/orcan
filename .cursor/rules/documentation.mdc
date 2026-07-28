@@ -12,7 +12,8 @@ alwaysApply: false
 - Docs are bilingual: `docs/en/` (default) and `docs/pl/` (same relative paths). Update both (or mark PL TODO) when behaviour changes.
 - User docs: simple B1–B2 English / clear Polish. Keep `README.md` short.
 - Canonical AI map: `docs/en/ai/project-context.md` (+ PL) and root `AGENTS.md`.
-- Reflect Makefile / Compose / config interface changes in `docs/` (and a one-line README pointer if needed).
+- Reflect CLI / Compose / config interface changes in `docs/` (and a one-line README pointer if needed).
+- Do not document Make as the end-user interface; public API is `orcan` ([reference/cli.md](../../docs/en/reference/cli.md)).
 - Do not document commands that do not exist.
 - Mark Docker socket risk with a warning.
 - Prefer admonitions; link instead of duplicating long explanations.

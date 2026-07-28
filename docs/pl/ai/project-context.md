@@ -28,13 +28,13 @@ Przeczytaj też root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AG
 ## Rytuał (host)
 
 ```bash
-make config-wizard          # or edit orcan.config.json
-make env
-make build                  # when image inputs change
-make terminal-docker        # daily; does NOT run make env
+orcan context wizard          # or edit orcan.config.json
+orcan sync
+orcan build                  # when image inputs change
+orcan up        # daily; does NOT run orcan sync
 ```
 
-Po edycji konfiguracji przy działającym kontenerze: `make env && make down && make terminal-docker`.
+Po edycji konfiguracji przy działającym kontenerze: `orcan sync && orcan down && orcan up`.
 
 ## Gdzie co zmieniać
 

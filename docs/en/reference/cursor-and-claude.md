@@ -5,7 +5,7 @@
 | Layer | Path | Role |
 | --- | --- | --- |
 | Image defaults | `/opt/cursor-defaults` (from `docker/rootfs/opt/cursor-defaults/`) | Seeded into `~/.cursor` at startup (**missing-only**) |
-| Mounted projects | Your git repos | Optional seeds via `make init-project` / `init-project-all` |
+| Mounted projects | Your git repos | Optional `orcan seed` — **not required**; workspace pack is enough |
 
 Orcan does **not** overwrite existing files in `~/.cursor` on every start.
 
@@ -17,8 +17,8 @@ Claude Code project/user deny rules use `Read(path)` and `Edit(path)` only. Path
 
 ## Workspace vs project
 
-- **Workspace** context pack: written under `/home/developer/workspaces/<name>/` by `init-workspace`
-- **Project** files: only when you run init-project targets
+- **Workspace** context pack: written under `/home/developer/workspaces/<name>/` by `init-workspace` (automatic on start)
+- **Project** files inside git checkouts: only if you run `orcan seed` (optional)
 
 See [Architecture](../architecture.md).
 

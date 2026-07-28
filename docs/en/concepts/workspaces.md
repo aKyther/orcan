@@ -58,7 +58,7 @@ The first enabled workspace drives `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR` in
 ## Trade-offs
 
 - **Gain:** one named context you can recreate.  
-- **Cost:** you must keep absolute paths accurate and run `make env` after config edits.  
+- **Cost:** you must keep absolute paths accurate and run `orcan sync` after config edits.  
 - **Choice:** Orcan does not rewrite every git checkout on start; seed projects explicitly when you want that.
 
 ## Related

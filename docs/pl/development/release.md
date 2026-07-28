@@ -17,7 +17,7 @@
 - Notatki GitHub Release (CI)
 - Wersjonowane docs przez **mike** (`latest` / SemVer / `dev`)
 - **Brak** publikacji obrazu kontenera z CI
-- Użytkownicy: `git checkout vX.Y.Z && make build`
+- Użytkownicy: `git checkout vX.Y.Z && orcan build`
 
 ## Kroki
 
@@ -45,7 +45,7 @@ CI (`.github/workflows/release.yml`) waliduje, publikuje wersjonowane docs przez
 
 ## Lokalne tagi po buildzie
 
-`make build` taguje też lokalnie `orcan:VERSION`. To tylko na Twojej maszynie.
+`orcan build` taguje też lokalnie `orcan:VERSION`. To tylko na Twojej maszynie.
 
 ## Zobacz też
 

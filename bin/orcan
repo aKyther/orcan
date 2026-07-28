@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Thin PATH launcher — resolves install root and execs cli/orcan.sh
+set -Eeuo pipefail
+
+HERE="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd -- "${HERE}/.." && pwd)"
+export ORCAN_ROOT="${ORCAN_ROOT:-${ROOT}}"
+exec bash "${ROOT}/cli/orcan.sh" "$@"

@@ -6,51 +6,51 @@ Wypisuje częste awarie i jak je diagnozować na **hoście**.
 
 ## Zanim zaczniesz
 
-Z repozytorium Orcana:
+Z instalacji Orcana (albo checkoutu gita):
 
 ```bash
-make validate
-make path-check
-make config
+orcan doctor
+orcan context show
+docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
 ```
 
-`make config` wypisuje rozwiązany plik Compose (wymaga wygenerowanych plików `.orcan`).
+`docker compose config` wypisuje rozwiązany plik Compose (wymaga wygenerowanych plików `.orcan` z `orcan sync`).
 
 ## Terminal w przeglądarce się nie otwiera
 
-1. Potwierdź, że kontener działa: `make logs`
-2. Potwierdź URL: `make terminal-url` (domyślnie `http://localhost:7681`)
-3. Jeśli port jest zajęty, zmień `ttyd.host_port` w `orcan.config.json`, potem `make env` i odtwórz kontener
+1. Potwierdź, że kontener działa: `orcan logs`
+2. Potwierdź URL: `orcan url` (domyślnie `http://localhost:7681`)
+3. Jeśli port jest zajęty, zmień `ttyd.host_port` w `orcan.config.json`, potem `orcan sync` i odtwórz kontener
 
 ## Launcher jest pusty / złe projekty
 
 1. Sprawdź, że `orcan.config.json` ma `workspaces` z bezwzględnymi `projects[].path`
-2. Uruchom `make env` (cele terminal nie odświeżają konfiguracji)
-3. `make down && make terminal-docker`
+2. Uruchom `orcan sync` (cele terminal nie odświeżają konfiguracji)
+3. `orcan down && orcan up`
 
-**Nie** przekazuj `PROJECT_DIR=…` przy `make terminal`. Przełączaj projekty przez edycję konfiguracji + `make env`.
+**Nie** przekazuj `PROJECT_DIR=…` przy `orcan up`. Przełączaj projekty przez edycję konfiguracji + `orcan sync`.
 
-## `make env` / `require-generated` się wywala
+## `orcan sync` / `require-generated` się wywala
 
 | Komunikat | Rozwiązanie |
 | --- | --- |
-| Brak `.env` | `make env` lub `make setup` |
-| Wygenerowane pliki nieaktualne | Konfiguracja nowsza niż `.orcan/*` — uruchom `make env` |
+| Brak `.env` | `orcan sync` lub `orcan init` |
+| Wygenerowane pliki nieaktualne | Konfiguracja nowsza niż `.orcan/*` — uruchom `orcan sync` |
 | Nieprawidłowy `PROJECT_DIR` | Ścieżka bezwzględna; unikaj `/`, `/home`, `/etc` |
 
 ## Brak agenta lub Claude
 
-- Pełny obraz: `make build`, potem odtwórz kontener
-- Tylko Claude: `IMAGE_LOCAL=orcan:claude` — `agent` nie jest zainstalowany (oczekiwane)
+- Pełny obraz: `orcan build`, potem odtwórz kontener
+- Tylko Claude: `orcan build --claude`, potem `IMAGE_LOCAL=orcan:<VERSION>-claude orcan up` — `agent` nie jest zainstalowany (oczekiwane)
 - Auth leży pod `$ORCAN_DATA` (`~/.config/orcan`)
 
 ## Błędy socketa Dockera wewnątrz kontenera
 
-Użyj `make terminal-docker`. Zwykły `make terminal` nie montuje socketa.
+Użyj `orcan up --with-docker`. Zwykły `orcan up` nie montuje socketa.
 
 ## Path parity / zagnieżdżony Compose nie działa
 
-Zobacz [Path parity](../concepts/path-parity.md). Potwierdź mounty przez `make path-check`.
+Zobacz [Path parity](../concepts/path-parity.md). Potwierdź mounty przez `orcan context show`.
 
 ## Klawisze tmux nie działają w przeglądarce
 
@@ -75,10 +75,10 @@ Starszy układ mógł utworzyć katalog należący do roota. Napraw właściciel
 ## Checklista diagnostyczna
 
 ```bash
-make validate
-make path-check
+orcan doctor
+orcan context show
 docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
-make logs
+orcan logs
 ```
 
 Więcej o limitach: [Bezpieczeństwo](../reference/security.md).

@@ -22,6 +22,25 @@ require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
 require_file "docker-compose.ttyd.yml"
 require_file "Makefile"
+require_file "install.sh"
+require_file "bin/orcan"
+require_file "cli/orcan.sh"
+require_file "cli/lib/common.sh"
+require_file "cli/lib/log.sh"
+require_file "cli/lib/paths.sh"
+require_file "cli/lib/deps.sh"
+require_file "cli/lib/compose.sh"
+require_file "cli/lib/git.sh"
+require_file "cli/lib/image.sh"
+require_file "cli/commands/init.sh"
+require_file "cli/commands/sync.sh"
+require_file "cli/commands/up.sh"
+require_file "cli/commands/build.sh"
+require_file "cli/commands/pull.sh"
+require_file "cli/commands/publish.sh"
+require_file "cli/commands/doctor.sh"
+require_file "cli/commands/update.sh"
+require_file "cli/commands/uninstall.sh"
 require_file "VERSION"
 require_file "CHANGELOG.md"
 require_file "requirements-docs.txt"
@@ -120,6 +139,13 @@ for script in \
     scripts/repository/check-product-name.sh \
     scripts/repository/docs-mike.sh \
     scripts/repository/validate.sh \
+    install.sh \
+    bin/orcan \
+    cli/orcan.sh \
+    cli/lib/image.sh \
+    cli/commands/build.sh \
+    cli/commands/pull.sh \
+    cli/commands/publish.sh \
     tests/smoke/test-container.sh \
     tests/integration/test-path-parity.sh
 do
@@ -144,8 +170,7 @@ for script in \
 do
     if [[ -f "${script}" ]]; then
         PYTHONPATH="${ROOT_DIR}/docker/rootfs/usr/local/lib${PYTHONPATH:+:$PYTHONPATH}" \
-            PYTHONDONTWRITEBYTECODE=1 \
-            python3 -m py_compile "${script}"
+            python3 -c "import ast, pathlib; ast.parse(pathlib.Path('${script}').read_text(encoding='utf-8'))"
         printf 'Syntax OK: %s\n' "${script}"
     fi
 done

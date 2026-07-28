@@ -20,7 +20,7 @@ make docs-check
 make test
 ```
 
-Runs `tests/smoke/test-container.sh` after `make build`. Expects the **full** image (`agent` present). Not run in CI (image build is too heavy).
+Runs `tests/smoke/test-container.sh` after `orcan build`. Expects the **full** image (`agent` present). Not run in CI (image build is too heavy).
 
 ## Path parity
 

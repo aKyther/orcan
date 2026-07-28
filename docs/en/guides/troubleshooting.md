@@ -6,51 +6,51 @@ Lists common failures and how to diagnose them on the **host**.
 
 ## Before you start
 
-From the Orcan repo:
+From the Orcan install (or git checkout):
 
 ```bash
-make validate
-make path-check
-make config
+orcan doctor
+orcan context show
+docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
 ```
 
-`make config` prints the resolved Compose file (needs generated `.orcan` files).
+The `docker compose config` command prints the resolved Compose file (needs generated `.orcan` files from `orcan sync`).
 
 ## Browser terminal will not open
 
-1. Confirm the container is up: `make logs`
-2. Confirm the URL: `make terminal-url` (default `http://localhost:7681`)
-3. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `make env` and recreate
+1. Confirm the container is up: `orcan logs`
+2. Confirm the URL: `orcan url` (default `http://localhost:7681`)
+3. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `orcan sync` and recreate
 
 ## Launcher is empty / wrong projects
 
 1. Check `orcan.config.json` has `workspaces` with absolute `projects[].path`
-2. Run `make env` (terminal targets do not refresh config)
-3. `make down && make terminal-docker`
+2. Run `orcan sync` (terminal targets do not refresh config)
+3. `orcan down && orcan up`
 
-Do **not** pass `PROJECT_DIR=…` on `make terminal`. Switch projects by editing config + `make env`.
+Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing config + `orcan sync`.
 
-## `make env` / `require-generated` fails
+## `orcan sync` / `require-generated` fails
 
 | Message | Fix |
 | --- | --- |
-| `.env` missing | `make env` or `make setup` |
-| Generated files stale | Config is newer than `.orcan/*` — run `make env` |
+| `.env` missing | `orcan sync` or `orcan init` |
+| Generated files stale | Config is newer than `.orcan/*` — run `orcan sync` |
 | Invalid `PROJECT_DIR` | Absolute path; avoid `/`, `/home`, `/etc` |
 
 ## Agent or Claude missing
 
-- Full image: `make build` then recreate container
-- Claude-only: `IMAGE_LOCAL=orcan:claude` — `agent` is not installed (expected)
+- Full image: `orcan build` then recreate container
+- Claude-only: `orcan build --claude` then `IMAGE_LOCAL=orcan:<VERSION>-claude orcan up` — `agent` is not installed (expected)
 - Auth lives under `$ORCAN_DATA` (`~/.config/orcan`)
 
 ## Docker socket errors inside the container
 
-Use `make terminal-docker`. Plain `make terminal` does not mount the socket.
+Use `orcan up --with-docker`. Plain `orcan up` does not mount the socket.
 
 ## Path parity / nested Compose fails
 
-See [Path parity](../concepts/path-parity.md). Confirm mounts with `make path-check`.
+See [Path parity](../concepts/path-parity.md). Confirm mounts with `orcan context show`.
 
 ## tmux keys do not work in the browser
 
@@ -75,10 +75,10 @@ An older layout could create a root-owned directory. Fix ownership or replace wi
 ## Diagnostics checklist
 
 ```bash
-make validate
-make path-check
+orcan doctor
+orcan context show
 docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
-make logs
+orcan logs
 ```
 
 More on limits: [Security](../reference/security.md).

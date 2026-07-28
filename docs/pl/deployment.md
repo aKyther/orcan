@@ -10,23 +10,23 @@ Orcan **nie** jest wdrażany jako obraz z GHCR.
 
 1. Sklonuj tag release lub `main`
 2. Skonfiguruj `orcan.config.json`
-3. `make env`
-4. `make build` (lub `make build-claude`)
-5. `make terminal` albo `make terminal-docker`
+3. `orcan sync`
+4. `orcan build` (lub `orcan build --claude`)
+5. `orcan up` albo `orcan up --with-docker`
 
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
 git checkout v0.1.0
-make setup PROJECT_DIR=/absolute/path/to/your/repo
-make env
-make build
-make terminal-docker
+orcan init /absolute/path/to/your/repo
+orcan sync
+orcan build
+orcan up
 ```
 
 ### Wiele hostów
 
-Na każdym hoście: ten sam tag + `make build`, **albo** (opcjonalnie) własny rejestr przez `make publish` / `make pull`. CI nie publikuje obrazów.
+Na każdym hoście: `orcan build` (pull pasującej `VERSION`, albo lokalny build przy braku — nigdy nie publikuje). CI nie publikuje obrazów.
 
 ## Strona dokumentacji (wersje, mike)
 

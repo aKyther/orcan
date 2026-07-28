@@ -1,5 +1,5 @@
 ---
-description: Typowe workflowy Orcana — najpierw scenariusze dnia, potem komendy Make.
+description: Typowe workflowy Orcana — najpierw scenariusze dnia, potem komendy CLI `orcan`.
 ---
 
 # Typowe workflowy
@@ -14,13 +14,13 @@ Masz już skonfigurowane workspace'y. Chcesz terminal w przeglądarce i wczorajs
 
 ```bash
 cd /absolute/path/to/orcan
-make terminal-docker
+orcan up
 ```
 
 Otwórz `http://localhost:7681` i wybierz workspace.
 
 !!! note
-    `make terminal*` **nie** uruchamia `make env`. Jeśli zmieniłeś `orcan.config.json`, najpierw zastosuj konfigurację.
+    `orcan up` **nie** uruchamia `orcan sync`. Jeśli zmieniłeś `orcan.config.json`, najpierw zastosuj konfigurację.
 
 ## Scenariusz: przełączenie klienta lub linii produktu
 
@@ -28,28 +28,38 @@ Otwórz `http://localhost:7681` i wybierz workspace.
 **Podejście:** edytuj listę workspace'ów (lub włącz inny), zastosuj konfigurację, odtwórz kontener.
 
 ```bash
-make config-wizard    # albo edytuj orcan.config.json
-make env
-make init-project-all # opcjonalne seedy w każdej ścieżce projektu
-make down
-make terminal-docker
+orcan context wizard    # albo edytuj orcan.config.json
+orcan sync
+orcan down
+orcan up
 ```
 
 ## Scenariusz: bezpieczniejszy terminal bez socketa Dockera hosta
 
-**Kompromis:** brak Docker-from-Docker; mniejszy blast radius.
+**Kompromis:** brak Docker-from-Docker; mniejszy blast radius. To jest **domyślne**.
 
 ```bash
-make terminal
+orcan up
 ```
 
-## Scenariusz: tylko Claude
+## Scenariusz: terminal z socketem Dockera hosta (DinD)
 
-**Idea:** mniejszy obraz, gdy Cursor CLI nie jest potrzebny.
+**Kiedy:** zagnieżdżony Compose / Docker z wnętrza kontenera.
 
 ```bash
-make build-claude
-IMAGE_LOCAL=orcan:claude make terminal-docker
+orcan up --with-docker
+```
+
+## Scenariusz: zainstaluj tylko jednego agenta
+
+**Idea:** nie instaluj agenta, którego nie użyjesz (mniejszy obraz, te same tagi).
+
+```bash
+orcan build --claude   # → orcan:<VERSION>-claude
+IMAGE_LOCAL=orcan:0.1.1-claude orcan up
+# albo
+orcan build --cursor   # → orcan:<VERSION>-cursor
+IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
 ```
 
 ## Scenariusz: rebuild po zmianach Dockerfile lub rootfs
@@ -57,11 +67,11 @@ IMAGE_LOCAL=orcan:claude make terminal-docker
 **Idea:** opis kontekstu ten sam; zmienił się **obraz narzędzi**.
 
 ```bash
-make rebuild          # pełny
+orcan build --force       # pełny obraz; pomiń pull, zbuduj lokalnie
 # albo
-make rebuild-claude
-make down
-make terminal-docker
+orcan build --claude --force
+orcan down
+orcan up
 ```
 
 ## Scenariusz: weryfikacja path parity
@@ -69,7 +79,7 @@ make terminal-docker
 **Dlaczego:** zagnieżdżony Docker działa tylko przy zgodnych ścieżkach bezwzględnych.
 
 ```bash
-make path-check
+orcan context show
 ```
 
 ## Wewnątrz kontenera
@@ -89,9 +99,8 @@ Klawisze launchera: numer workspace'a, `s` = status, `i` = wskazówka init, `q` 
 ## Stop, czyszczenie, odinstalowanie
 
 ```bash
-make down                 # zatrzymaj; zachowaj ~/.config/orcan
-make clean                # styl compose down
-make clean-data           # DESTRUKCYJNE: usuwa ORCAN_DATA (wpisz yes)
+orcan down                 # zatrzymaj; zachowaj ~/.config/orcan
+orcan uninstall --purge-data           # DESTRUKCYJNE: usuwa ORCAN_DATA (wpisz yes)
 ```
 
 Pełne usunięcie: [Odinstalowanie](#odinstalowanie).
@@ -100,10 +109,10 @@ Pełne usunięcie: [Odinstalowanie](#odinstalowanie).
 
 ```bash
 cd /absolute/path/to/orcan
-make down
-make clean-data
+orcan down
+orcan uninstall --purge-data
 docker images 'orcan*'
-docker rmi orcan:latest orcan:full orcan:claude   # opcjonalnie
+docker rmi orcan:latest 'orcan:*'   # opcjonalnie: usuń lokalne tagi
 rm -rf /absolute/path/to/orcan                    # opcjonalnie
 ```
 
@@ -113,16 +122,15 @@ Zamontowane repo projektów zostają, dopóki sam ich nie usuniesz.
 
 ```bash
 cd /absolute/path/to/orcan
-git fetch
-git checkout vX.Y.Z       # albo main
-make env                  # gdy zmienił się schemat konfiguracji
-make rebuild              # gdy zmienił się Dockerfile/rootfs
-make down && make terminal-docker
+orcan update                # albo: git fetch && git checkout vX.Y.Z
+orcan sync                  # gdy zmienił się schemat konfiguracji
+orcan build --force         # gdy zmienił się Dockerfile/rootfs
+orcan down && orcan up
 ```
 
 ## Zobacz też
 
 - [Szybki start](../getting-started/quickstart.md)  
 - [Rozwiązywanie problemów](troubleshooting.md)  
-- [Referencja Makefile](../reference/makefile.md)  
+- [Referencja CLI](../reference/cli.md)  
 - [FAQ](../faq.md)

@@ -60,7 +60,7 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 ## Tabs and admonitions
 
 - Tabs (`=== "…"`): use for mutually exclusive choices (e.g. full vs Claude-only image).
-- `!!! note` — rituals users overlook (`make env` before `terminal*`).
+- `!!! note` — rituals users overlook (`orcan sync` before `terminal*`).
 - `!!! tip` — shortcuts and cross-links.
 - `!!! warning` — security, destructive targets (`clean-data`), ttyd without auth.
 

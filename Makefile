@@ -1,282 +1,58 @@
 SHELL := /bin/bash
 
+# Maintainer Makefile — end users should use the `orcan` CLI (see README / install.sh).
+# User-facing targets below print a deprecation hint and forward to ./bin/orcan when present.
+
 COMPOSE_FILE := docker-compose.yml
 COMPOSE_PROJECTS_FILE := .orcan/compose-projects.generated.yml
 COMPOSE_DOCKER_FILE := docker-compose.docker.yml
 COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
-COMPOSE := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE)
-COMPOSE_BUILD := docker compose -f $(COMPOSE_FILE)
-COMPOSE_TTYD := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE)
-COMPOSE_TTYD_DOCKER := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROJECTS_FILE) -f $(COMPOSE_TTYD_FILE) -f $(COMPOSE_DOCKER_FILE)
 
-# Used by make env / make setup / make config-scaffold only — not by make terminal*.
-PROJECT_DIR ?= $(CURDIR)
-# Optional config path for make env (if empty, discovers orcan.config.json).
-CONFIG ?=
+ORCAN := ./bin/orcan
+HOST_PYTHON := ./scripts/repository/python.sh
+ORCAN_VERSION_FILE := $(shell tr -d '[:space:]' < VERSION 2>/dev/null || echo dev)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup env build rebuild build-claude rebuild-claude terminal terminal-docker terminal-url \
-	down logs config init-project init-project-dry-run init-project-all init-project-all-dry-run \
-	clean clean-volumes clean-data \
-	docs docs-venv docs-serve docs-check docs-publish docs-deploy docs-mike-dev docs-mike-release test test-host validate path-check validate-project require-generated require-env \
-	config-init config-scaffold config-show config-wizard \
+.PHONY: help deprecate-user \
+	validate test test-host test-path-parity \
+	docs docs-venv docs-serve docs-check docs-publish docs-deploy docs-mike-dev docs-mike-release \
+	version bump-patch bump-minor bump-major release-tag release-push release \
 	registry-show registry-login publish pull \
-	version bump-patch bump-minor bump-major release-tag release-push release
+	setup env build rebuild build-claude rebuild-claude build-cursor rebuild-cursor \
+	terminal terminal-docker terminal-url \
+	down logs config init-project init-project-dry-run init-project-all init-project-all-dry-run \
+	clean clean-volumes clean-data path-check require-generated require-env \
+	config-init config-scaffold config-show config-wizard validate-project
 
-HOST_PYTHON := ./scripts/repository/python.sh
+deprecate-user:
+	@printf 'Note: prefer the orcan CLI (./bin/orcan … or install.sh). Make remains for maintainers.\n' >&2
 
-help: ## Show available Make targets
-	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make <target>\n\nTargets:\n"} \
-		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
-	@printf '\nFirst run: make setup PROJECT_DIR=/absolute/path/to/repo\n'
-	@printf 'Or wizard:  make config-wizard\n'
-	@printf 'Images:     make build  (Claude+Cursor → orcan:latest)\n'
-	@printf '            make build-claude  (Claude only → orcan:claude)\n'
-	@printf 'After orcan.config.json edits: make env && make init-project-all\n'
-	@printf 'Then: make down && make terminal-docker\n'
-	@printf 'Claude-only terminal: IMAGE_LOCAL=orcan:claude make terminal-docker\n'
-	@printf 'Release:    make bump-patch && commit VERSION+CHANGELOG+version displays && make release\n'
+help: ## Show maintainer targets (+ CLI pointer)
+	@printf 'Orcan — maintainer Makefile\n\n'
+	@printf 'End users: install the CLI, then use orcan (not make):\n'
+	@printf '  curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash\n'
+	@printf '  orcan init /absolute/path/to/repo && orcan build && orcan up\n\n'
+	@printf 'Maintainer targets:\n'
+	@awk 'BEGIN {FS = ":.*##"} \
+		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  %-22s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-ORCAN_VERSION_FILE := $(shell tr -d '[:space:]' < VERSION 2>/dev/null || echo dev)
+# ── Maintainer ───────────────────────────────────────────────────────────────
 
-setup: validate-project ## First run: create config if missing, refresh .env, show layout
-	@if [ -f orcan.config.json ]; then \
-		printf 'Using existing orcan.config.json\n'; \
-	else \
-		printf 'Creating orcan.config.json (workspace=%s)...\n' \
-			"$${WORKSPACE:-$$(basename "$(PROJECT_DIR)")}"; \
-		$(HOST_PYTHON) ./scripts/repository/config-scaffold.py \
-			--project-dir "$(PROJECT_DIR)" \
-			--workspace "$${WORKSPACE:-$$(basename "$(PROJECT_DIR)")}"; \
-	fi
-	@$(MAKE) env
-	@$(MAKE) config-show
-	@printf '\nNext:\n  make build\n  make terminal-docker    # browser terminal + Docker socket\n  make terminal           # browser terminal only\n  make path-check         # verify mounts\n'
-	@printf 'After editing orcan.config.json: make env   # regenerates .env + .orcan/* for Compose\n'
-	@printf '\nAdd another repo: make config-scaffold PROJECT_DIR=/path/to/repo WORKSPACE=name\n'
+validate: ## Validate repository layout and script syntax
+	@./scripts/repository/validate.sh
 
-validate-project:
-	@./scripts/repository/validate-project-dir.sh
+test-host: ## Host unit tests (config/apply/VERSION; no Docker image)
+	@./tests/host/run.sh
 
-require-generated: ## Fail fast if .env or generated runtime files are missing (no writes)
-	@./scripts/repository/require-generated.sh
+test: ## Run container smoke tests (builds image via orcan build)
+	@$(ORCAN) build
+	@./tests/smoke/test-container.sh
 
-require-env: ## Fail fast if .env is missing (for image build only)
-	@if [ ! -f .env ]; then \
-		printf 'Error: .env is missing.\n' >&2; \
-		printf 'Run:  make env\n' >&2; \
-		exit 1; \
-	fi
+test-path-parity: ## Path parity integration test
+	@$(ORCAN) build
+	@./tests/integration/test-path-parity.sh
 
-path-check: require-generated ## Show host/container project path parity (read-only)
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf 'Orchestrator (host):    %s  (orcan repo — where you run make)\n' "$$PROJECT_DIR"; \
-	printf 'Workspace (container):  %s (%s)\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}" "$${WORKSPACE_NAME:-}"; \
-	printf 'Workspace meta (host):  %s\n' "$${WORKSPACE_META_PATH:-}"; \
-	printf 'Container working_dir:  %s\n' "$${CONTAINER_PROJECT_DIR:-$${WORKSPACE_ROOT:-}}"; \
-	printf 'Runtime config:         %s\n' "$${ORCAN_CONFIG_HOST:-none}"; \
-	printf 'Compose project mounts: %s\n' "$${ORCAN_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}"; \
-	if [ -f "$${ORCAN_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" ]; then \
-		grep -E '^[[:space:]]+- ' "$${ORCAN_COMPOSE_PROJECTS:-$(COMPOSE_PROJECTS_FILE)}" | sed 's/^/  /'; \
-	fi; \
-	if [ -f "$${ORCAN_WORKSPACE_MANIFEST:-.orcan/workspace.manifest.json}" ]; then \
-		printf 'Workspace manifest:     %s\n' "$${ORCAN_WORKSPACE_MANIFEST:-.orcan/workspace.manifest.json}"; \
-		./scripts/repository/print-workspace-manifest.sh "$${ORCAN_WORKSPACE_MANIFEST:-.orcan/workspace.manifest.json}" | sed 's/^/  /'; \
-	fi; \
-	printf 'Path parity:            enabled\n'
-
-env: ## Create or refresh .env from host UID/GID and CONFIG/PROJECT_DIR
-	@CONFIG="$(CONFIG)" PROJECT_DIR="$(PROJECT_DIR)" ./scripts/repository/update-env.sh
-
-config-init: ## Copy full example orcan.config.json (optional; prefer make setup)
-	@if [ -f orcan.config.json ]; then \
-		printf 'orcan.config.json already exists\n'; \
-		printf '  edit:  $$EDITOR orcan.config.json\n'; \
-		printf '  show:  make config-show\n'; \
-	else \
-		cp orcan.config.example.json orcan.config.json; \
-		printf 'Created orcan.config.json from example\n'; \
-		printf '  edit paths, then: make env && make path-check\n'; \
-	fi
-
-config-scaffold: validate-project ## Add workspace/project to orcan.config.json from PROJECT_DIR
-	@$(HOST_PYTHON) ./scripts/repository/config-scaffold.py \
-		--project-dir "$(PROJECT_DIR)" \
-		$(if $(WORKSPACE),--workspace "$(WORKSPACE)",) \
-		$(if $(FORCE),--force,)
-
-config-show: ## List workspaces in orcan config and runtime manifest
-	@$(HOST_PYTHON) ./scripts/repository/config-show.py
-
-config-wizard: ## Interactive create/edit orcan.config.json
-	@$(HOST_PYTHON) ./scripts/repository/config-wizard.py
-
-build: require-env ## Build full image (Claude + Cursor) → orcan:latest
-	@set -a; . ./.env; set +a; \
-	ORCAN_VERSION="$(ORCAN_VERSION_FILE)" IMAGE_LOCAL=$${IMAGE_LOCAL:-orcan:latest} INSTALL_CURSOR=1 \
-		$(COMPOSE_BUILD) build; \
-	docker tag "$${IMAGE_LOCAL:-orcan:latest}" orcan:full 2>/dev/null || true; \
-	docker tag "$${IMAGE_LOCAL:-orcan:latest}" "orcan:$(ORCAN_VERSION_FILE)" 2>/dev/null || true; \
-	printf 'Built full variant (Claude + Cursor): %s (v%s)\n' "$${IMAGE_LOCAL:-orcan:latest}" "$(ORCAN_VERSION_FILE)"
-
-rebuild: require-env ## Rebuild full image without cache → orcan:latest
-	@set -a; . ./.env; set +a; \
-	ORCAN_VERSION="$(ORCAN_VERSION_FILE)" IMAGE_LOCAL=$${IMAGE_LOCAL:-orcan:latest} INSTALL_CURSOR=1 \
-		$(COMPOSE_BUILD) build --no-cache; \
-	docker tag "$${IMAGE_LOCAL:-orcan:latest}" orcan:full 2>/dev/null || true; \
-	docker tag "$${IMAGE_LOCAL:-orcan:latest}" "orcan:$(ORCAN_VERSION_FILE)" 2>/dev/null || true; \
-	printf 'Rebuilt full variant: %s (v%s)\n' "$${IMAGE_LOCAL:-orcan:latest}" "$(ORCAN_VERSION_FILE)"
-
-build-claude: require-env ## Build Claude-only image → orcan:claude
-	@set -a; . ./.env; set +a; \
-	ORCAN_VERSION="$(ORCAN_VERSION_FILE)" IMAGE_LOCAL=orcan:claude INSTALL_CURSOR=0 \
-		$(COMPOSE_BUILD) build; \
-	docker tag orcan:claude "orcan:$(ORCAN_VERSION_FILE)-claude" 2>/dev/null || true; \
-	printf 'Built Claude-only variant: orcan:claude (v%s)\n' "$(ORCAN_VERSION_FILE)"
-
-rebuild-claude: require-env ## Rebuild Claude-only image without cache → orcan:claude
-	@set -a; . ./.env; set +a; \
-	ORCAN_VERSION="$(ORCAN_VERSION_FILE)" IMAGE_LOCAL=orcan:claude INSTALL_CURSOR=0 \
-		$(COMPOSE_BUILD) build --no-cache; \
-	docker tag orcan:claude "orcan:$(ORCAN_VERSION_FILE)-claude" 2>/dev/null || true; \
-	printf 'Rebuilt Claude-only variant: orcan:claude (v%s)\n' "$(ORCAN_VERSION_FILE)"
-
-version: ## Show product VERSION and local image tag names
-	@./scripts/repository/release.sh show
-
-bump-patch: ## Bump VERSION patch (x.y.Z)
-	@./scripts/repository/release.sh bump patch
-
-bump-minor: ## Bump VERSION minor (x.Y.0)
-	@./scripts/repository/release.sh bump minor
-
-bump-major: ## Bump VERSION major (X.0.0)
-	@./scripts/repository/release.sh bump major
-
-release-tag: ## Create annotated git tag vX.Y.Z from VERSION (clean tree)
-	@./scripts/repository/release.sh tag
-
-release-push: ## Push version tag to origin (triggers GitHub Release)
-	@./scripts/repository/release.sh push-tag
-
-release: ## Tag vX.Y.Z + push → GitHub Release (clone + make build; no image publish)
-	@./scripts/repository/release.sh release
-
-registry-show: ## Show local/remote image names for publish/pull
-	@./scripts/repository/registry.sh show
-
-registry-login: ## Log in to container registry (GitLab; prompts for user/token)
-	@./scripts/repository/registry.sh login
-
-publish: ## Tag and push image to IMAGE_REGISTRY/IMAGE_REPOSITORY:IMAGE_TAG
-	@./scripts/repository/registry.sh publish
-
-pull: ## Pull published image and retag as orcan:latest
-	@./scripts/repository/registry.sh pull
-
-terminal: require-generated ## Start browser terminal (no Docker socket; does not run make env)
-	-$(COMPOSE_TTYD_DOCKER) down
-	$(COMPOSE_TTYD) up -d
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready. Open in your browser:\n  http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"; \
-	printf '  Launcher → workspace → tmux\n'; \
-	if [ -n "$${WORKSPACE_NAME:-}" ]; then \
-		printf '  Workspace: %s\n' "$${WORKSPACE_NAME}"; \
-		printf '  Start dir (container): %s\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}"; \
-		printf '  Meta on host: %s\n' "$${WORKSPACE_META_PATH:-}"; \
-	fi; \
-	printf '\nStop with: make down\n'
-
-terminal-docker: require-generated ## Start browser terminal + Docker socket (does not run make env)
-	@if [ ! -S /var/run/docker.sock ]; then \
-		echo "Error: /var/run/docker.sock not found. Docker Engine is required for terminal-docker."; \
-		exit 1; \
-	fi
-	-$(COMPOSE_TTYD) down
-	$(COMPOSE_TTYD_DOCKER) up -d
-	@if ! $(COMPOSE_TTYD_DOCKER) exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then \
-		echo "Docker socket missing in container; forcing recreate..."; \
-		$(COMPOSE_TTYD_DOCKER) up -d --force-recreate; \
-		if ! $(COMPOSE_TTYD_DOCKER) exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then \
-			echo "Error: /var/run/docker.sock is not mounted in the container."; \
-			exit 1; \
-		fi; \
-	fi
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf '\nTerminal ready (Docker socket enabled). Open in your browser:\n  http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"; \
-	printf '  Launcher → workspace → tmux\n'; \
-	if [ -n "$${WORKSPACE_NAME:-}" ]; then \
-		printf '  Workspace: %s\n' "$${WORKSPACE_NAME}"; \
-		printf '  Start dir (container): %s\n' "$${WORKSPACE_ROOT:-$${CONTAINER_PROJECT_DIR:-}}"; \
-		printf '  Meta on host: %s\n' "$${WORKSPACE_META_PATH:-}"; \
-	fi; \
-	printf '\nStop with: make down\n'
-
-terminal-url: require-generated ## Print the browser terminal URL
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	printf 'http://localhost:%s\n' "$${TTYD_HOST_PORT:-7681}"
-
-down: ## Stop containers without removing volumes
-	-$(COMPOSE_TTYD) down
-	-$(COMPOSE_TTYD_DOCKER) down
-
-logs: ## Follow container logs
-	@if $(COMPOSE_TTYD_DOCKER) ps -q orcan 2>/dev/null | grep -q .; then \
-		$(COMPOSE_TTYD_DOCKER) logs -f; \
-	elif $(COMPOSE_TTYD) ps -q orcan 2>/dev/null | grep -q .; then \
-		$(COMPOSE_TTYD) logs -f; \
-	else \
-		echo "No running orcan container. Start with make terminal or make terminal-docker."; \
-		exit 1; \
-	fi
-
-config: require-generated ## Validate and print the resolved Compose config
-	@echo "=== terminal (make terminal) ==="
-	$(COMPOSE_TTYD) config
-	@echo ""
-	@echo "=== terminal-docker (make terminal-docker) ==="
-	$(COMPOSE_TTYD_DOCKER) config
-
-init-project: require-generated ## Create missing Cursor/Claude project files in PROJECT_DIR
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	$(COMPOSE) run --rm --name orcan-init-project orcan cursor-init-project "$$PROJECT_DIR"
-
-init-project-dry-run: require-generated ## Show project files that would be created in PROJECT_DIR
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	$(COMPOSE) run --rm --name orcan-init-project-dry orcan cursor-init-project --dry-run "$$PROJECT_DIR"
-
-init-project-all: require-generated ## Seed ignores/templates into every projects[].path (missing-only)
-	$(COMPOSE) run --rm --name orcan-init-projects orcan orcan-init-projects
-
-init-project-all-dry-run: require-generated ## Dry-run init for every configured project path
-	$(COMPOSE) run --rm --name orcan-init-projects-dry orcan orcan-init-projects --dry-run
-
-clean: ## Stop containers (keeps host data under ORCAN_DATA)
-	-$(COMPOSE_TTYD) down --remove-orphans
-	-$(COMPOSE_TTYD_DOCKER) down --remove-orphans
-
-clean-data: ## Delete host data under ORCAN_DATA (~/.config/orcan) — Cursor/Claude login, caches
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	data="$${ORCAN_DATA:-$${HOME}/.config/orcan}"; \
-	printf 'WARNING: This deletes host data: %s\n' "$$data"; \
-	printf '  (Cursor/Claude login, caches, shell history)\n'; \
-	read -r -p "Type 'yes' to continue: " answer; \
-	if [ "$$answer" = "yes" ]; then \
-		$(COMPOSE_TTYD) down --remove-orphans 2>/dev/null || true; \
-		$(COMPOSE_TTYD_DOCKER) down --remove-orphans 2>/dev/null || true; \
-		rm -rf "$$data"; \
-		printf 'Removed %s\n' "$$data"; \
-		printf 'Next: make env && make terminal-docker\n'; \
-	else \
-		echo "Aborted."; \
-		exit 1; \
-	fi
-
-clean-volumes: clean-data ## Alias for clean-data (named Docker volumes are no longer used)
-	@printf 'Hint: old Docker named volumes (if any) can be removed with: docker volume prune\n'
-
-# Docs helpers: prefer .venv-docs + requirements-docs.txt (gitignored venv).
 DOCS_VENV := .venv-docs
 DOCS_PIP := $(DOCS_VENV)/bin/pip
 DOCS_MKDOCS := $(DOCS_VENV)/bin/mkdocs
@@ -300,33 +76,159 @@ docs-check: docs-venv ## Strict docs build + product-name check
 	@$(DOCS_MKDOCS) build --strict
 	@printf 'docs-check OK\n'
 
-docs-mike-dev: docs-venv ## Deploy mike alias "dev" (DOCS_MIKE_PUSH=0 for local-only)
+docs-mike-dev: docs-venv ## Deploy mike alias "dev"
 	@./scripts/repository/docs-mike.sh dev
 
-docs-mike-release: docs-venv ## Deploy mike version from VERSION + latest (DOCS_MIKE_PUSH=0 local-only)
+docs-mike-release: docs-venv ## Deploy mike version from VERSION + latest
 	@./scripts/repository/docs-mike.sh release "$$(tr -d '[:space:]' < VERSION)"
 
-docs-publish: ## Trigger CI docs deploy (main→dev; tags→release via Release workflow)
+docs-publish: ## Trigger CI docs deploy
 	@if ! command -v gh >/dev/null 2>&1; then \
 		printf 'gh CLI required, or run: make docs-mike-dev / docs-mike-release\n' >&2; \
-		printf 'Site: https://akyther.github.io/orcan/latest/\n' >&2; \
 		exit 1; \
 	fi
-	@printf 'Tip: versioned docs publish on git tags via Release workflow.\n'
-	@printf 'Push to main updates the "dev" docs alias.\n'
 	@gh workflow run ci.yml
 	@printf 'Triggered CI (checks + docs-dev on main).\n'
 
 docs-deploy: docs-publish ## Alias for docs-publish
 
-validate: ## Validate repository layout and script syntax
-	@./scripts/repository/validate.sh
+version: ## Show product VERSION
+	@./scripts/repository/release.sh show
 
-test-host: ## Host unit tests (config/apply/VERSION; no Docker image)
-	@./tests/host/run.sh
+bump-patch: ## Bump VERSION patch
+	@./scripts/repository/release.sh bump patch
 
-test: build ## Run container smoke tests
-	@./tests/smoke/test-container.sh
+bump-minor: ## Bump VERSION minor
+	@./scripts/repository/release.sh bump minor
 
-test-path-parity: build ## Run host-container path parity integration test (requires Docker)
-	@./tests/integration/test-path-parity.sh
+bump-major: ## Bump VERSION major
+	@./scripts/repository/release.sh bump major
+
+release-tag: ## Create annotated git tag from VERSION
+	@./scripts/repository/release.sh tag
+
+release-push: ## Push version tag to origin
+	@./scripts/repository/release.sh push-tag
+
+release: ## Tag + push → GitHub Release
+	@./scripts/repository/release.sh release
+
+registry-show: ## Show local/remote image names
+	@./scripts/repository/registry.sh show
+
+registry-login: ## Log in to container registry
+	@./scripts/repository/registry.sh login
+
+publish: ## Push image to registry (or: orcan publish)
+	@./scripts/repository/registry.sh publish
+
+pull: ## Pull published image → orcan:latest (or: orcan pull)
+	@./scripts/repository/registry.sh pull
+
+# ── Deprecated user forwards → orcan CLI ─────────────────────────────────────
+
+setup: deprecate-user ## (deprecated) → orcan init
+	@$(ORCAN) init $(if $(PROJECT_DIR),$(PROJECT_DIR),)
+
+env: deprecate-user ## (deprecated) → orcan sync
+	@$(ORCAN) sync
+
+path-check: deprecate-user ## (deprecated) → orcan context show
+	@$(ORCAN) context show
+
+config-show: deprecate-user ## (deprecated) → orcan context show
+	@$(ORCAN) context show
+
+config-wizard: deprecate-user ## (deprecated) → orcan context wizard
+	@$(ORCAN) context wizard
+
+config-scaffold: deprecate-user ## (deprecated) → orcan context add
+	@$(ORCAN) context add "$(PROJECT_DIR)" $(if $(WORKSPACE),--workspace "$(WORKSPACE)",) $(if $(FORCE),--force,)
+
+config-init: deprecate-user ## (deprecated) copy example config into ORCAN_HOME
+	@home="$${ORCAN_HOME:-$${XDG_CONFIG_HOME:-$$HOME/.config}/orcan/home}"; \
+	mkdir -p "$$home"; \
+	if [ -f "$$home/orcan.config.json" ]; then \
+		printf 'already exists: %s/orcan.config.json\n' "$$home"; \
+	else \
+		cp orcan.config.example.json "$$home/orcan.config.json"; \
+		printf 'created %s/orcan.config.json — edit paths, then: orcan sync\n' "$$home"; \
+	fi
+
+build: deprecate-user ## (deprecated) → orcan build
+	@$(ORCAN) build
+
+rebuild: deprecate-user ## (deprecated) → orcan build --no-cache
+	@$(ORCAN) build --no-cache
+
+build-claude: deprecate-user ## (deprecated) → orcan build --claude
+	@$(ORCAN) build --claude
+
+rebuild-claude: deprecate-user ## (deprecated) → orcan build --claude --no-cache
+	@$(ORCAN) build --claude --no-cache
+
+build-cursor: deprecate-user ## (deprecated) → orcan build --cursor
+	@$(ORCAN) build --cursor
+
+rebuild-cursor: deprecate-user ## (deprecated) → orcan build --cursor --no-cache
+	@$(ORCAN) build --cursor --no-cache
+
+terminal: deprecate-user ## (deprecated) → orcan up
+	@$(ORCAN) up
+
+terminal-docker: deprecate-user ## (deprecated) → orcan up --with-docker
+	@$(ORCAN) up --with-docker
+
+terminal-url: deprecate-user ## (deprecated) → orcan url
+	@$(ORCAN) url
+
+down: deprecate-user ## (deprecated) → orcan down
+	@$(ORCAN) down
+
+logs: deprecate-user ## (deprecated) → orcan logs
+	@$(ORCAN) logs
+
+init-project-all: deprecate-user ## (deprecated) → orcan seed --all
+	@$(ORCAN) seed --all
+
+init-project-all-dry-run: deprecate-user ## (deprecated) → orcan seed --all --dry-run
+	@$(ORCAN) seed --all --dry-run
+
+init-project: deprecate-user ## (deprecated) → orcan seed
+	@$(ORCAN) seed
+
+init-project-dry-run: deprecate-user ## (deprecated) → orcan seed --dry-run
+	@$(ORCAN) seed --dry-run
+
+clean: deprecate-user ## (deprecated) → orcan down
+	@$(ORCAN) down
+
+clean-data: deprecate-user ## (deprecated) → orcan uninstall --purge-data
+	@$(ORCAN) uninstall --purge-data
+
+clean-volumes: clean-data ## Alias for clean-data
+
+require-generated: ## Fail if generated runtime files missing
+	@ORCAN_HOME="$${ORCAN_HOME:-$$PWD}" ORCAN_ROOT="$$PWD" ./scripts/repository/require-generated.sh
+
+require-env: ## Fail if .env missing
+	@home="$${ORCAN_HOME:-$$PWD}"; \
+	if [ ! -f "$$home/.env" ]; then \
+		printf 'Error: .env is missing.\n' >&2; \
+		printf 'Run:  orcan sync\n' >&2; \
+		exit 1; \
+	fi
+
+config: require-generated ## Print resolved Compose configs
+	@$(ORCAN) sync >/dev/null
+	@set -a; . "$${ORCAN_HOME:-$$PWD}/.env"; set +a; \
+	printf '=== orcan up ===\n'; \
+	docker compose --env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
+		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml config; \
+	printf '\n=== orcan up --with-docker ===\n'; \
+	docker compose --env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
+		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml \
+		-f docker-compose.docker.yml config
+
+validate-project:
+	@./scripts/repository/validate-project-dir.sh

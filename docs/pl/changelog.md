@@ -12,7 +12,7 @@ Pełny plik Keep a Changelog leży w katalogu głównym repozytorium:
 | --- | --- |
 | Tag git `v0.1.0` | Wydanie źródeł |
 | Lokalny obraz `orcan:0.1.0` | Zbudowany na Twojej maszynie z tego tagu |
-| GitHub Release | Notatki + przypomnienie instalacji (`git checkout` + `make build`) |
+| GitHub Release | Notatki + przypomnienie instalacji (`git checkout` + `orcan build`) |
 
 CI nie publikuje obrazów kontenerów.
 

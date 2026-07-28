@@ -34,7 +34,7 @@ load_project_dir() {
         fi
     fi
 
-    printf 'Error: PROJECT_DIR is not set. Run make env PROJECT_DIR=/absolute/path/to/project\n' >&2
+    printf 'Error: PROJECT_DIR is not set. Run orcan sync (or set PROJECT_DIR in .env)\n' >&2
     return 1
 }
 

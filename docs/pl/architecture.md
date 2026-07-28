@@ -45,7 +45,7 @@ flowchart TB
 
 ### Dlaczego host trzyma konfigurację
 
-Konfiguracja musi działać bez obrazu (wizard, testy hosta w CI, `make env`). Stdlib JSON trzyma stronę hosta cienką. YAML Compose zostaje tylko dla Dockera.
+Konfiguracja musi działać bez obrazu (wizard, testy hosta w CI, `orcan sync`). Stdlib JSON trzyma stronę hosta cienką. YAML Compose zostaje tylko dla Dockera.
 
 ### Dlaczego obraz trzyma toolchain
 
@@ -81,7 +81,7 @@ Dlaczego nie sam SSH? Ścieżka przeglądarki to domyślna powierzchnia produktu
 
 W **rootcie workspace'a** Orcan utrzymuje mały pack (manifest, wspólne `AGENTS.md` / `CLAUDE.md`, ignores). Odpowiada na: „czym jest ten kontekst?”
 
-Zamontowane **checkouty git** nie są przepisywane przy każdym starcie. Seed plików w każdym `projects[].path` jest jawny (`make init-project-all`). Chroni to repo klientów przed niespodziewanymi diffami, a nadal pozwala na wspólny kontekst nad nimi.
+Zamontowane **checkouty git** nie są przepisywane przy każdym starcie. Seed plików w każdym `projects[].path` jest jawny (`orcan seed --all`). Chroni to repo klientów przed niespodziewanymi diffami, a nadal pozwala na wspólny kontekst nad nimi.
 
 ## Granica produktu
 

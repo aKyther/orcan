@@ -18,42 +18,51 @@ Read [Why Orcan?](why-orcan.md) and [Core Ideas](ideas/core-ideas.md) before the
 
 ## How do I switch projects?
 
-Edit `orcan.config.json` (or `make config-wizard`), then:
+Edit `orcan.config.json` (or `orcan context wizard`), then:
 
 ```bash
-make env
-make down && make terminal-docker
+orcan sync
+orcan down && orcan up
 ```
 
-Do **not** pass `PROJECT_DIR=…` to `make terminal*`.
+Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
-## Why does `make terminal` ignore my config edits?
+## Why does `orcan up` ignore my config edits?
 
-`make terminal*` does not run `make env`. Always apply config first.
+`orcan up` does not run `orcan sync`. Always apply config first.
 
-## Full image vs Claude-only?
+## Which agents are installed?
 
-=== "Full (default)"
+By default the image includes **both** agents (`orcan:latest` / `orcan:<VERSION>`). To skip installing an agent you will not use, build a **separate local tag** (no registry pull; does not overwrite `latest`):
 
-    ```bash
-    make build
-    make terminal-docker
-    ```
-
-    Image: `orcan:latest` — Claude + Cursor (`agent`).
-
-=== "Claude only"
+=== "Both (default)"
 
     ```bash
-    make build-claude
-    IMAGE_LOCAL=orcan:claude make terminal-docker
+    orcan build
+    orcan up
     ```
 
-    Image: `orcan:claude` — Claude only (`agent` is not installed).
+=== "Claude Code only"
+
+    ```bash
+    orcan build --claude
+    IMAGE_LOCAL=orcan:0.1.1-claude orcan up   # use your VERSION from the build output
+    ```
+
+    Tag: `orcan:<VERSION>-claude`. Cursor CLI is not installed.
+
+=== "Cursor CLI only"
+
+    ```bash
+    orcan build --cursor
+    IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
+    ```
+
+    Tag: `orcan:<VERSION>-cursor`. Claude Code is not installed.
 
 ## Is there a published Docker image?
 
-**No** (not from CI). Clone the repo and `make build`. Optional private registry helpers exist for advanced use.
+**Not from CI.** Registry holds **both-agents** as `orcan:<VERSION>` / `:latest`. Single-agent `-<claude|cursor>` tags are local only. `orcan publish` pushes only both-agents images.
 
 ## Where is my login / cache data?
 
@@ -65,7 +74,7 @@ Under `$ORCAN_DATA` (default `~/.config/orcan`):
 | `cursor/` | Cursor CLI home |
 | `cache/` | Tool caches (ruff, pip, uv, …) |
 
-After `make rebuild` / restart, you should **not** need to `/login` again unless you wiped `$ORCAN_DATA` or never completed login while the volume was mounted.
+After `orcan build --force` / restart, you should **not** need to `/login` again unless you wiped `$ORCAN_DATA` or never completed login while the volume was mounted.
 
 ## Can I turn off tmux?
 
@@ -74,18 +83,18 @@ Not as a supported switch. The launcher starts tmux. Use multiple tmux windows/p
 ## How do I update?
 
 ```bash
-git fetch && git checkout vX.Y.Z   # or: main
-make env                           # when config schema changed
-make rebuild                       # when Dockerfile/rootfs changed
-make down && make terminal-docker
+orcan update                         # or: git fetch && git checkout vX.Y.Z
+orcan sync                           # when config schema changed
+orcan build --force                  # when Dockerfile/rootfs changed
+orcan down && orcan up
 ```
 
 ## How do I uninstall? { #uninstall }
 
 ```bash
 cd /absolute/path/to/orcan
-make down
-make clean-data          # destructive: deletes ~/.config/orcan (type yes)
+orcan down
+orcan uninstall --purge-data          # destructive: deletes ~/.config/orcan (type yes)
 docker images 'orcan*'   # optional: docker rmi …
 # then remove the git clone directory if you no longer need it
 ```
@@ -94,7 +103,7 @@ Details: [Workflows — uninstall](guides/workflows.md#uninstall).
 
 ## How do I report a bug?
 
-Open a GitHub Issue with OS, Docker version, the Make target you ran, and relevant logs (`make logs`, `make path-check`):
+Open a GitHub Issue with OS, Docker version, the `orcan` command you ran, and relevant logs (`orcan logs`, `orcan doctor`, `orcan context show`):
 
 https://github.com/aKyther/orcan/issues
 

@@ -6,7 +6,7 @@ description: Path parity — te same ścieżki bezwzględne na hoście i w konte
 
 ## Problem
 
-Uruchamiasz Dockera **wewnątrz** kontenera Orcana (`make terminal-docker`). Daemon, który tworzy zagnieżdżone kontenery, to nadal daemon **hosta**. Bind mounty są rozwiązywane na hoście.
+Uruchamiasz Dockera **wewnątrz** kontenera Orcana (`orcan up`). Daemon, który tworzy zagnieżdżone kontenery, to nadal daemon **hosta**. Bind mounty są rozwiązywane na hoście.
 
 Gdyby ścieżka w Orcanie była `/workspace/app`, a checkout na hoście `/home/you/code/app`, zagnieżdżony Compose zamontowałby zły katalog — albo nic.
 
@@ -24,7 +24,7 @@ UX workspace'a nadal używa krótkich symlinków pod `/home/developer/workspaces
 
 ## Jak to działa
 
-`make env` zapisuje mounty do `.orcan/compose-projects.generated.yml`:
+`orcan sync` zapisuje mounty do `.orcan/compose-projects.generated.yml`:
 
 ```yaml
 # koncepcyjnie
@@ -35,7 +35,7 @@ volumes:
 ## Sprawdzenie (komendy na końcu)
 
 ```bash
-make path-check
+orcan context show
 ```
 
 Test integracyjny (wymaga socketa Dockera):
@@ -50,4 +50,4 @@ make test-path-parity
 | --- | --- |
 | Względne `projects[].path` | Odrzucenie lub zepsute mounty |
 | Założenie `/workspace` | Stary wzorzec — nieużywany |
-| Ręczna edycja wygenerowanego Compose | Nadpisane przez `make env` |
+| Ręczna edycja wygenerowanego Compose | Nadpisane przez `orcan sync` |

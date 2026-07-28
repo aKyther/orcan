@@ -377,26 +377,35 @@ USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
 # ------------------------------------------------------------------------------
-# AI CLIs — always Claude Code; Cursor (agent) optional via INSTALL_CURSOR
+# AI CLIs — INSTALL_CLAUDE / INSTALL_CURSOR (default: both → variant full)
 # ------------------------------------------------------------------------------
-# Variants:
-#   INSTALL_CURSOR=1 (default) → full (Claude + Cursor) — typically tagged orcan:latest
-#   INSTALL_CURSOR=0           → Claude only — typically tagged orcan:claude
+# Image tags: orcan:latest + orcan:<VERSION> (both agents);
+#             orcan:<VERSION>-claude / -cursor (local single-agent builds).
+# Slim builds: orcan build --claude|--cursor (skip pull; do not publish).
 
 ARG INSTALL_CURSOR=1
+ARG INSTALL_CLAUDE=1
 ARG ORCAN_VERSION=dev
 
 RUN set -eux; \
-    for attempt in 1 2 3; do \
-        if curl -fsSL https://claude.ai/install.sh | bash; then break; fi; \
-        echo "Claude install attempt ${attempt} failed, retrying..." >&2; \
-        sleep 10; \
-    done; \
-    claude --version
+    if [ "${INSTALL_CLAUDE}" = "1" ] || [ "${INSTALL_CLAUDE}" = "true" ]; then \
+        for attempt in 1 2 3; do \
+            if curl -fsSL https://claude.ai/install.sh | bash; then break; fi; \
+            echo "Claude install attempt ${attempt} failed, retrying..." >&2; \
+            sleep 10; \
+        done; \
+        claude --version; \
+    else \
+        printf 'Skipping Claude Code (INSTALL_CLAUDE=%s)\n' "${INSTALL_CLAUDE}" >&2; \
+    fi
 # Claude config lives under ~/.claude (bind: $ORCAN_DATA/claude).
 
 RUN set -eux; \
-    if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then \
+    cursor_on=0; \
+    claude_on=0; \
+    if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then cursor_on=1; fi; \
+    if [ "${INSTALL_CLAUDE}" = "1" ] || [ "${INSTALL_CLAUDE}" = "true" ]; then claude_on=1; fi; \
+    if [ "${cursor_on}" = "1" ]; then \
         for attempt in 1 2 3; do \
             if curl -fsSL https://cursor.com/install | bash; then break; fi; \
             echo "Cursor install attempt ${attempt} failed, retrying..." >&2; \
@@ -405,12 +414,20 @@ RUN set -eux; \
         agent --version; \
         rm -rf "${HOME}/.cursor"; \
         mkdir -p "${HOME}/.cursor"; \
-        printf 'full' > /tmp/orcan-variant; \
     else \
         printf 'Skipping Cursor CLI (INSTALL_CURSOR=%s)\n' "${INSTALL_CURSOR}" >&2; \
+    fi; \
+    if [ "${cursor_on}" = "1" ] && [ "${claude_on}" = "1" ]; then \
+        printf 'full' > /tmp/orcan-variant; \
+    elif [ "${claude_on}" = "1" ]; then \
         printf 'claude' > /tmp/orcan-variant; \
+    elif [ "${cursor_on}" = "1" ]; then \
+        printf 'cursor' > /tmp/orcan-variant; \
+    else \
+        echo "Error: at least one of INSTALL_CLAUDE / INSTALL_CURSOR must be enabled" >&2; \
+        exit 1; \
     fi
-# Empty ~/.cursor so the first volume mount stays writable; seeded at runtime (full).
+# Empty ~/.cursor so the first volume mount stays writable; seeded at runtime (full/cursor).
 
 USER root
 ARG ORCAN_VERSION=dev

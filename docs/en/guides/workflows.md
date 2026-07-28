@@ -1,5 +1,5 @@
 ---
-description: Typical Orcan workflows — day scenarios first, then the Make commands that support them.
+description: Typical Orcan workflows — day scenarios first, then the orcan CLI commands that support them.
 ---
 
 # Typical workflows
@@ -14,13 +14,13 @@ You already configured workspaces. You want the browser terminal and yesterday�
 
 ```bash
 cd /absolute/path/to/orcan
-make terminal-docker
+orcan up
 ```
 
 Open `http://localhost:7681` and pick a workspace.
 
 !!! note
-    `make terminal*` does **not** run `make env`. If you changed `orcan.config.json`, apply config first.
+    `orcan up` does **not** run `orcan sync`. If you changed `orcan.config.json`, apply config first.
 
 ## Scenario: switch customer or product line
 
@@ -28,28 +28,38 @@ Open `http://localhost:7681` and pick a workspace.
 **Approach:** edit the workspace list (or enable another workspace), apply config, recreate the container.
 
 ```bash
-make config-wizard    # or edit orcan.config.json
-make env
-make init-project-all # optional seeds into each project path
-make down
-make terminal-docker
+orcan context wizard    # or edit orcan.config.json
+orcan sync
+orcan down
+orcan up
 ```
 
 ## Scenario: safer terminal without host Docker socket
 
-**Trade-off:** no Docker-from-Docker; smaller blast radius.
+**Trade-off:** no Docker-from-Docker; smaller blast radius. This is the **default**.
 
 ```bash
-make terminal
+orcan up
 ```
 
-## Scenario: Claude only
+## Scenario: terminal with host Docker socket (DinD)
 
-**Idea:** smaller image when Cursor CLI is not needed.
+**When:** nested Compose / Docker from inside the container.
 
 ```bash
-make build-claude
-IMAGE_LOCAL=orcan:claude make terminal-docker
+orcan up --with-docker
+```
+
+## Scenario: install only one agent
+
+**Idea:** skip installing an agent you will not use (smaller image, same tags).
+
+```bash
+orcan build --claude   # → orcan:<VERSION>-claude
+IMAGE_LOCAL=orcan:0.1.1-claude orcan up
+# or
+orcan build --cursor   # → orcan:<VERSION>-cursor
+IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
 ```
 
 ## Scenario: rebuild after Dockerfile or rootfs changes
@@ -57,11 +67,11 @@ IMAGE_LOCAL=orcan:claude make terminal-docker
 **Idea:** context description stayed the same; the **tooling image** changed.
 
 ```bash
-make rebuild          # full
+orcan build --force       # full image; skip pull, rebuild locally
 # or
-make rebuild-claude
-make down
-make terminal-docker
+orcan build --claude --force
+orcan down
+orcan up
 ```
 
 ## Scenario: verify path parity
@@ -69,7 +79,7 @@ make terminal-docker
 **Why:** nested Docker only works if absolute paths match.
 
 ```bash
-make path-check
+orcan context show
 ```
 
 ## Inside the container
@@ -89,9 +99,8 @@ Launcher keys: workspace number, `s` = status, `i` = init hint, `q` = quit.
 ## Stop, clean, uninstall
 
 ```bash
-make down                 # stop; keep ~/.config/orcan
-make clean                # compose down style
-make clean-data           # DESTRUCTIVE: deletes ORCAN_DATA (type yes)
+orcan down                 # stop; keep ~/.config/orcan
+orcan uninstall --purge-data           # DESTRUCTIVE: deletes ORCAN_DATA (type yes)
 ```
 
 Full removal: [Uninstall](#uninstall).
@@ -100,10 +109,10 @@ Full removal: [Uninstall](#uninstall).
 
 ```bash
 cd /absolute/path/to/orcan
-make down
-make clean-data
+orcan down
+orcan uninstall --purge-data
 docker images 'orcan*'
-docker rmi orcan:latest orcan:full orcan:claude   # optional
+docker rmi orcan:latest 'orcan:*'   # optional: drop local tags
 rm -rf /absolute/path/to/orcan                    # optional
 ```
 
@@ -113,16 +122,15 @@ Mounted project repos are untouched unless you delete them yourself.
 
 ```bash
 cd /absolute/path/to/orcan
-git fetch
-git checkout vX.Y.Z       # or main
-make env                  # if config schema changed
-make rebuild              # if Dockerfile/rootfs changed
-make down && make terminal-docker
+orcan update                # or: git fetch && git checkout vX.Y.Z
+orcan sync                  # if config schema changed
+orcan build --force         # if Dockerfile/rootfs changed
+orcan down && orcan up
 ```
 
 ## See also
 
 - [Quick Start](../getting-started/quickstart.md)  
 - [Troubleshooting](troubleshooting.md)  
-- [Makefile reference](../reference/makefile.md)  
+- [CLI reference](../reference/cli.md)  
 - [FAQ](../faq.md)

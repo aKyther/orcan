@@ -22,7 +22,7 @@ Orcan nie zarządza „Gitem” jako produktem. Zarządza **kontekstem**.
 - **Workspace** to nazwany zbiór projektów, które należą do siebie.
 - **Context** to odtwarzalne środowisko wokół tego zbioru: mounty, wspólne instrukcje, ignores oraz sesja terminala w przeglądarce.
 
-Konfiguracja opisuje te relacje. Make i Docker je stosują. Agenci i ludzie dzielą ten sam układ.
+Konfiguracja opisuje te relacje. `orcan sync` i Docker je stosują. Agenci i ludzie dzielą ten sam układ.
 
 ## Dzień pracy
 
@@ -54,24 +54,24 @@ graph TD
 3. [Model mentalny](ideas/mental-model.md) — jak elementy się łączą  
 4. [Szybki start](getting-started/quickstart.md) — uruchom, gdy rozumiesz ideę  
 
-Strony referencyjne (Makefile, zmienne, Compose) są **po** tym łuku.
+Strony referencyjne (CLI, zmienne, Compose) są **po** tym łuku.
 
 ## Spróbuj (po idei)
 
 ```bash
 git clone https://github.com/aKyther/orcan.git
 cd orcan
-make setup PROJECT_DIR=/absolute/path/to/your/repo   # zawiera make env raz
-make env                                             # .env + .orcan/* dla Compose
-make build
-make terminal-docker
+orcan init /absolute/path/to/your/repo   # zawiera orcan sync raz
+orcan sync                                             # .env + .orcan/* dla Compose
+orcan build
+orcan up
 ```
 
-Otwórz `http://localhost:7681`, wybierz workspace, potem uruchom `agent` lub `claude`. Po zmianach konfiguracji zawsze `make env` przed odtworzeniem.
+Otwórz `http://localhost:7681`, wybierz workspace, potem uruchom `agent` lub `claude`. Po zmianach konfiguracji zawsze `orcan sync` przed odtworzeniem.
 
 ## Status
 
-Wersja **0.1.1** (zobacz [Changelog](changelog.md)). Dystrybucja: **git clone + Makefile**. Obrazy budujesz lokalnie. CI nie publikuje obrazów kontenerów.
+Wersja **0.2.0** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
 
 ## Zobacz też
 

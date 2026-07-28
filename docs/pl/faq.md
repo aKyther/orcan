@@ -18,42 +18,52 @@ Zanim przejdziesz dalej w FAQ, przeczytaj [Dlaczego Orcan?](why-orcan.md) oraz [
 
 ## Jak przełączyć projekty?
 
-Edytuj `orcan.config.json` (lub `make config-wizard`), potem:
+Edytuj `orcan.config.json` (lub `orcan context wizard`), potem:
 
 ```bash
-make env
-make down && make terminal-docker
+orcan sync
+orcan down && orcan up
 ```
 
-**Nie** przekazuj `PROJECT_DIR=…` do `make terminal*`.
+**Nie** przekazuj `PROJECT_DIR=…` do `orcan up`.
 
-## Dlaczego `make terminal` ignoruje zmiany w konfiguracji?
+## Dlaczego `orcan up` ignoruje zmiany w konfiguracji?
 
-`make terminal*` nie uruchamia `make env`. Najpierw zawsze zastosuj konfigurację.
+`orcan up` nie uruchamia `orcan sync`. Najpierw zawsze zastosuj konfigurację.
 
-## Pełny obraz vs tylko Claude?
+## Którzy agenci są zainstalowani?
 
-=== "Pełny (domyślny)"
+Domyślnie obraz ma **obu** agentów (`orcan:latest` / `orcan:<VERSION>`). Żeby pominąć agenta, którego nie użyjesz, zbuduj **osobny lokalny tag** (bez pull; nie nadpisuje `latest`):
 
-    ```bash
-    make build
-    make terminal-docker
-    ```
-
-    Obraz: `orcan:latest` — Claude + Cursor (`agent`).
-
-=== "Tylko Claude"
+=== "Oba (domyślnie)"
 
     ```bash
-    make build-claude
-    IMAGE_LOCAL=orcan:claude make terminal-docker
+    orcan build
+    orcan up
     ```
 
-    Obraz: `orcan:claude` — tylko Claude (`agent` nie jest zainstalowany).
+=== "Tylko Claude Code"
+
+    ```bash
+    orcan build --claude
+    IMAGE_LOCAL=orcan:0.1.1-claude orcan up   # VERSION z outputu builda
+    ```
+
+    Tag: `orcan:<VERSION>-claude`. Cursor CLI nie jest zainstalowany.
+
+=== "Tylko Cursor CLI"
+
+    ```bash
+    orcan build --cursor
+    IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
+    ```
+
+    Tag: `orcan:<VERSION>-cursor`. Claude Code nie jest zainstalowany.
 
 ## Czy jest opublikowany obraz Docker?
 
-**Nie** (nie z CI). Sklonuj repozytorium i uruchom `make build`. Opcjonalne helpery prywatnego rejestru istnieją do zaawansowanego użycia.
+**Nie** (nie z CI). W rejestrze obraz z **oboma agentami** jako `orcan:<VERSION>` / `:latest`. Tagi `-<claude|cursor>` tylko lokalnie. `orcan publish` pcha tylko obraz z oboma agentami.
+
 
 ## Gdzie są dane logowania / cache?
 
@@ -65,7 +75,7 @@ Pod `$ORCAN_DATA` (domyślnie `~/.config/orcan`):
 | `cursor/` | Home CLI Cursor |
 | `cache/` | Cache narzędzi (ruff, pip, uv, …) |
 
-Po `make rebuild` / restarcie **nie** powinieneś musieć ponownie robić `/login`, chyba że wyczyściłeś `$ORCAN_DATA` albo nigdy nie dokończyłeś logowania przy zamontowanym volume.
+Po `orcan build --force` / restarcie **nie** powinieneś musieć ponownie robić `/login`, chyba że wyczyściłeś `$ORCAN_DATA` albo nigdy nie dokończyłeś logowania przy zamontowanym volume.
 
 ## Czy mogę wyłączyć tmux?
 
@@ -74,18 +84,18 @@ Nie jako obsługiwany przełącznik. Launcher startuje tmux. Zamiast tego używa
 ## Jak zaktualizować?
 
 ```bash
-git fetch && git checkout vX.Y.Z   # albo: main
-make env                           # gdy zmienił się schemat konfiguracji
-make rebuild                       # gdy zmienił się Dockerfile/rootfs
-make down && make terminal-docker
+orcan update                         # albo: git fetch && git checkout vX.Y.Z
+orcan sync                           # gdy zmienił się schemat konfiguracji
+orcan build --force                  # gdy zmienił się Dockerfile/rootfs
+orcan down && orcan up
 ```
 
 ## Jak odinstalować? { #uninstall }
 
 ```bash
 cd /absolute/path/to/orcan
-make down
-make clean-data          # destrukcyjne: usuwa ~/.config/orcan (wpisz yes)
+orcan down
+orcan uninstall --purge-data          # destrukcyjne: usuwa ~/.config/orcan (wpisz yes)
 docker images 'orcan*'   # opcjonalnie: docker rmi …
 # potem usuń katalog clone'a, jeśli go nie potrzebujesz
 ```
@@ -94,7 +104,7 @@ Szczegóły: [Workflowy — odinstalowanie](guides/workflows.md#odinstalowanie).
 
 ## Jak zgłosić błąd?
 
-Otwórz Issue na GitHubie: system, wersja Dockera, target Make oraz logi (`make logs`, `make path-check`):
+Otwórz Issue na GitHubie: system, wersja Dockera, komenda `orcan`, którą uruchomiłeś, oraz logi (`orcan logs`, `orcan doctor`, `orcan context show`):
 
 https://github.com/aKyther/orcan/issues
 

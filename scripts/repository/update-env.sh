@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 # Create or refresh .env from host identity + optional orcan.config.json.
 # Host-only: do not copy this into the Docker image.
+#
+# ORCAN_ROOT = install/clone (scripts, compose, Dockerfile)
+# ORCAN_HOME = user config + .env + .orcan/* (defaults to ORCAN_ROOT for legacy)
 
 set -Eeuo pipefail
 
-ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "${ROOT_DIR}"
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ORCAN_ROOT="${ORCAN_ROOT:-$(cd -- "${SCRIPT_DIR}/../.." && pwd)}"
+ORCAN_HOME="${ORCAN_HOME:-${ORCAN_ROOT}}"
+mkdir -p "${ORCAN_HOME}"
+cd "${ORCAN_HOME}"
 
 # shellcheck source=validate-project-dir.sh
-source "${ROOT_DIR}/scripts/repository/validate-project-dir.sh"
+source "${ORCAN_ROOT}/scripts/repository/validate-project-dir.sh"
 
-REQUESTED_PROJECT_DIR="${PROJECT_DIR:-${ROOT_DIR}}"
+REQUESTED_PROJECT_DIR="${PROJECT_DIR:-${ORCAN_HOME}}"
 CONFIG="${CONFIG:-}"
 USER_UID="$(id -u)"
 USER_GID="$(id -g)"
@@ -20,8 +26,20 @@ if [[ -S /var/run/docker.sock ]]; then
     DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
 fi
 
+# Seed .env.example into home when using a split ORCAN_HOME.
+if [[ ! -f "${ORCAN_HOME}/.env.example" && -f "${ORCAN_ROOT}/.env.example" ]]; then
+    cp -- "${ORCAN_ROOT}/.env.example" "${ORCAN_HOME}/.env.example"
+fi
+
 if [[ ! -f .env ]]; then
-    cp .env.example .env
+    if [[ -f .env.example ]]; then
+        cp .env.example .env
+    elif [[ -f "${ORCAN_ROOT}/.env.example" ]]; then
+        cp -- "${ORCAN_ROOT}/.env.example" .env
+    else
+        printf 'Error: missing .env.example\n' >&2
+        exit 1
+    fi
 fi
 
 ensure_env_key() {
@@ -34,26 +52,30 @@ ensure_env_key() {
     fi
 }
 
-# Prefer explicit CONFIG, else orcan.config.json.
-if [[ -z "${CONFIG}" && -f "${ROOT_DIR}/orcan.config.json" ]]; then
-    CONFIG="${ROOT_DIR}/orcan.config.json"
+# Prefer explicit CONFIG, else orcan.config.json in home (or legacy root).
+if [[ -z "${CONFIG}" && -f "${ORCAN_HOME}/orcan.config.json" ]]; then
+    CONFIG="${ORCAN_HOME}/orcan.config.json"
+fi
+if [[ -z "${CONFIG}" && -f "${ORCAN_ROOT}/orcan.config.json" ]]; then
+    CONFIG="${ORCAN_ROOT}/orcan.config.json"
 fi
 
 apply_args=(
-    --root "${ROOT_DIR}"
+    --root "${ORCAN_HOME}"
     --project-dir "${REQUESTED_PROJECT_DIR}"
 )
 if [[ -n "${CONFIG}" ]]; then
     apply_args+=(--config "${CONFIG}")
 fi
 
-"${ROOT_DIR}/scripts/repository/python.sh" "${ROOT_DIR}/scripts/repository/apply-config.py" "${apply_args[@]}"
+"${ORCAN_ROOT}/scripts/repository/python.sh" \
+    "${ORCAN_ROOT}/scripts/repository/apply-config.py" "${apply_args[@]}"
 
 # Re-read paths written by apply-config, then validate default project path.
 # shellcheck disable=SC1091
 set -a
 # shellcheck source=/dev/null
-source "${ROOT_DIR}/.env"
+source "${ORCAN_HOME}/.env"
 set +a
 
 validate_project_dir "${PROJECT_DIR}"
@@ -62,7 +84,6 @@ ensure_env_key "USER_UID" "${USER_UID}"
 ensure_env_key "USER_GID" "${USER_GID}"
 ensure_env_key "DOCKER_GID" "${DOCKER_GID}"
 
-# Match host timezone (compose passes TZ=; /etc/localtime is also bind-mounted).
 detect_host_tz() {
     local tz=""
     if [[ -f /etc/timezone ]]; then
@@ -79,18 +100,14 @@ detect_host_tz() {
     fi
     printf '%s\n' "${tz}"
 }
-# Set TZ from the host only when missing/empty — keep an explicit .env override.
+
 if ! grep -qE '^TZ=.' .env; then
     ensure_env_key "TZ" "$(detect_host_tz)"
 fi
 
-# Host data root — always on (like poetry/pip under ~/.config).
-# Default: $HOME/.config/orcan. Override in .env only for a custom path.
-# Do not overwrite an existing non-empty ORCAN_DATA.
 if [[ -z "${ORCAN_DATA:-}" ]]; then
     ORCAN_DATA="${HOME}/.config/orcan"
 fi
-# Persist absolute path in .env when missing or empty (make env always enables it).
 if ! grep -qE '^ORCAN_DATA=.' .env; then
     ensure_env_key "ORCAN_DATA" "${ORCAN_DATA}"
 fi
@@ -120,13 +137,14 @@ fi
 
 printf '.env updated (USER_UID=%s USER_GID=%s DOCKER_GID=%s TZ=%s)\n' \
     "${USER_UID}" "${USER_GID}" "${DOCKER_GID}" "$(grep -E '^TZ=' .env | cut -d= -f2-)"
+printf 'ORCAN_HOME=%s\n' "${ORCAN_HOME}"
+printf 'ORCAN_ROOT=%s\n' "${ORCAN_ROOT}"
 printf 'PROJECT_DIR=%s\n' "${PROJECT_DIR}"
 printf 'ORCAN_DATA=%s (host config/cache — created if missing)\n' "${ORCAN_DATA}"
 if [[ -n "${CONFIG}" ]]; then
     printf 'CONFIG=%s\n' "${CONFIG}"
 fi
-if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ROOT_DIR}/.orcan/compose-projects.generated.yml}" ]]; then
-    printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ROOT_DIR}/.orcan/compose-projects.generated.yml}"
+if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/.orcan/compose-projects.generated.yml}" ]]; then
+    printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/.orcan/compose-projects.generated.yml}"
 fi
-printf 'Next: make init-project-all  # seed per-repo ignores (missing-only)\n'
-printf '      make down && make terminal-docker\n'
+printf 'Next: orcan down && orcan up\n'
