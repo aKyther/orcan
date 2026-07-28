@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Host Makefile, container CLIs, and orcan.config.json — Orcan has no REST API.">
+        <meta name="description" content="orcan CLI on the host, container CLIs, and orcan.config.json — Orcan has no REST API.">
       
       
         <meta name="author" content="Orcan contributors">
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Host Makefile, container CLIs, and orcan.config.json — Orcan has no REST API.">
+  <meta name="description" content="orcan CLI on the host, container CLIs, and orcan.config.json — Orcan has no REST API.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Host and container interface — Orcan">
-  <meta property="og:description" content="Host Makefile, container CLIs, and orcan.config.json — Orcan has no REST API.">
+  <meta property="og:description" content="orcan CLI on the host, container CLIs, and orcan.config.json — Orcan has no REST API.">
   <meta property="og:url" content="https://akyther.github.io/orcan/dev/interface/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Host and container interface — Orcan">
-  <meta name="twitter:description" content="Host Makefile, container CLIs, and orcan.config.json — Orcan has no REST API.">
+  <meta name="twitter:description" content="orcan CLI on the host, container CLIs, and orcan.config.json — Orcan has no REST API.">
 
   </head>
   
@@ -966,6 +966,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reference/makefile/" class="md-nav__link">
         
   
@@ -973,7 +1001,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1194,10 +1222,21 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#host-make" class="md-nav__link">
+  <a href="#host-orcan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Host (Make)
+        Host (orcan)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maintainer-make" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maintainer Make
       
     </span>
   </a>
@@ -1534,10 +1573,21 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#host-make" class="md-nav__link">
+  <a href="#host-orcan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Host (Make)
+        Host (orcan)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maintainer-make" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maintainer Make
       
     </span>
   </a>
@@ -1611,22 +1661,23 @@
 
 
 <h1 id="host-and-container-interface">Host and container interface<a class="headerlink" href="#host-and-container-interface" title="Permanent link">&para;</a></h1>
-<p>This is the <strong>contract</strong> surface after you know the mental model: Make on the host, CLIs in the container, JSON config. Orcan has <strong>no HTTP / REST API</strong>.</p>
+<p>This is the <strong>contract</strong> surface after you know the mental model: <code>orcan</code> on the host, CLIs in the container, JSON config. Orcan has <strong>no HTTP / REST API</strong>.</p>
 <p>The supported public interfaces are:</p>
 <ol>
-<li><strong>Host Makefile</strong> — configure, build, run, test, docs, release</li>
+<li><strong><code>orcan</code> CLI</strong> — configure, build, run, diagnose (see <a href="../reference/cli/">CLI reference</a>)</li>
 <li><strong>Container CLIs</strong> — <code>agent</code>, <code>claude</code>, and <code>orcan-*</code> helpers</li>
 <li><strong>Config file</strong> — <code>orcan.config.json</code> (validated by host scripts; see JSON Schema below)</li>
 </ol>
-<h2 id="host-make">Host (Make)<a class="headerlink" href="#host-make" title="Permanent link">&para;</a></h2>
-<p>Canonical list: <a href="../reference/makefile/">Makefile reference</a>.</p>
-<p>High-signal targets:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>setup<span class="w"> </span><span class="p">|</span><span class="w"> </span>config-wizard<span class="w"> </span><span class="p">|</span><span class="w"> </span>env
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>build<span class="w"> </span><span class="p">|</span><span class="w"> </span>build-claude
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>terminal<span class="w"> </span><span class="p">|</span><span class="w"> </span>terminal-docker
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>make<span class="w"> </span>validate<span class="w"> </span><span class="p">|</span><span class="w"> </span>docs-check<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nb">test</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>make<span class="w"> </span>release
+<h2 id="host-orcan">Host (<code>orcan</code>)<a class="headerlink" href="#host-orcan" title="Permanent link">&para;</a></h2>
+<p>High-signal commands:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>init<span class="w"> </span><span class="p">|</span><span class="w"> </span>sync<span class="w"> </span><span class="p">|</span><span class="w"> </span>context<span class="w"> </span>wizard<span class="w"> </span><span class="p">|</span><span class="w"> </span>context<span class="w"> </span>show
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>build<span class="w"> </span><span class="o">[</span>--claude<span class="p">|</span>--cursor<span class="o">]</span><span class="w"> </span><span class="o">[</span>--force<span class="o">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>orcan<span class="w"> </span>up<span class="w"> </span><span class="p">|</span><span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span><span class="p">|</span><span class="w"> </span>down
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>orcan<span class="w"> </span>logs<span class="w"> </span><span class="p">|</span><span class="w"> </span>doctor<span class="w"> </span><span class="p">|</span><span class="w"> </span>url
 </span></code></pre></div>
+<p>User ritual: <code>orcan init</code> → <code>orcan build</code> → <code>orcan up</code>. After config edits: <code>orcan sync &amp;&amp; orcan down &amp;&amp; orcan up</code>.</p>
+<h2 id="maintainer-make">Maintainer Make<a class="headerlink" href="#maintainer-make" title="Permanent link">&para;</a></h2>
+<p>The git checkout also ships a <strong>Makefile</strong> for docs, tests, and release — not for day-to-day use. See <a href="../reference/makefile/">Makefile reference</a> and <a href="../development/overview/">Development overview</a>.</p>
 <h2 id="container-helpers">Container helpers<a class="headerlink" href="#container-helpers" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1654,7 +1705,7 @@
 </tr>
 <tr>
 <td><code>orcan-init-projects</code></td>
-<td>Seed project templates</td>
+<td>Optional: seed project templates (advanced)</td>
 </tr>
 <tr>
 <td><code>orcan-session-brief</code></td>
@@ -1697,7 +1748,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:08:21 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
   </span>
 
     

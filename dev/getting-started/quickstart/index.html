@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Clone Orcan, build the image, and open the browser terminal — after you understand the product idea.">
+        <meta name="description" content="Install the orcan CLI, sync config, build the image, open the browser terminal.">
       
       
         <meta name="author" content="Orcan contributors">
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Clone Orcan, build the image, and open the browser terminal — after you understand the product idea.">
+  <meta name="description" content="Install the orcan CLI, sync config, build the image, open the browser terminal.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Quick Start — Orcan">
-  <meta property="og:description" content="Clone Orcan, build the image, and open the browser terminal — after you understand the product idea.">
+  <meta property="og:description" content="Install the orcan CLI, sync config, build the image, open the browser terminal.">
   <meta property="og:url" content="https://akyther.github.io/orcan/dev/getting-started/quickstart/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Quick Start — Orcan">
-  <meta name="twitter:description" content="Clone Orcan, build the image, and open the browser terminal — after you understand the product idea.">
+  <meta name="twitter:description" content="Install the orcan CLI, sync config, build the image, open the browser terminal.">
 
   </head>
   
@@ -776,10 +776,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#steps-host" class="md-nav__link">
+  <a href="#install-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Steps (host)
+        Install the CLI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
       
     </span>
   </a>
@@ -1079,6 +1090,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/makefile/" class="md-nav__link">
         
   
@@ -1086,7 +1125,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1567,10 +1606,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#steps-host" class="md-nav__link">
+  <a href="#install-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Steps (host)
+        Install the CLI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
       
     </span>
   </a>
@@ -1661,17 +1711,22 @@
 <li>Docker is running  </li>
 <li>Absolute path to at least one git repo to mount  </li>
 </ul>
-<h2 id="steps-host">Steps (host)<a class="headerlink" href="#steps-host" title="Permanent link">&para;</a></h2>
-<p>Config is JSON. Docker only sees what <strong><code>make env</code></strong> writes (<code>.env</code> + <code>.orcan/*</code>).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>setup<span class="w"> </span><span class="nv">PROJECT_DIR</span><span class="o">=</span>/absolute/path/to/your/repo<span class="w">   </span><span class="c1"># scaffold config if needed, then make env</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>env<span class="w">                                             </span><span class="c1"># refresh .env + .orcan/* for Compose (safe to re-run)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>make<span class="w"> </span>build
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>make<span class="w"> </span>terminal-docker
+<h2 id="install-the-cli">Install the CLI<a class="headerlink" href="#install-the-cli" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/aKyther/orcan/main/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+</span></code></pre></div>
+<p>Ensure <code>~/.local/bin</code> is on your <code>PATH</code>, then:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>doctor
+</span></code></pre></div>
+<h2 id="steps">Steps<a class="headerlink" href="#steps" title="Permanent link">&para;</a></h2>
+<p>Config is JSON under <code>~/.config/orcan/home/</code>. Docker only sees what <strong><code>orcan sync</code></strong> writes (<code>.env</code> + <code>.orcan/*</code>).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>init<span class="w"> </span>/absolute/path/to/your/repo<span class="w">   </span><span class="c1"># scaffold + sync</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>sync<span class="w">                               </span><span class="c1"># refresh after later edits (safe to re-run)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>build
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>make setup</code> already runs <code>make env</code> once. Keep <code>make env</code> in the habit: <strong>every</strong> config edit needs it before <code>make build</code> / <code>make terminal*</code>. Those targets do <strong>not</strong> regenerate runtime files.</p>
+<p><code>orcan init</code> already runs <code>sync</code> once. Keep <code>orcan sync</code> in the habit: <strong>every</strong> config edit needs it before <code>orcan build</code> / <code>orcan up</code>. Those commands do <strong>not</strong> regenerate runtime files.</p>
 </div>
 <p>Open the URL printed in the terminal (default <code>http://localhost:7681</code>).</p>
 <h2 id="in-the-browser">In the browser<a class="headerlink" href="#in-the-browser" title="Permanent link">&para;</a></h2>
@@ -1680,9 +1735,9 @@
 <li>You land in <strong>tmux</strong> with <strong>zsh</strong>.  </li>
 <li>Check tools:</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>agent<span class="w"> </span>--version
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>claude<span class="w"> </span>--version
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nb">pwd</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>agent<span class="w"> </span>--version
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>claude<span class="w"> </span>--version
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">pwd</span>
 </span></code></pre></div>
 <h2 id="expected-result">Expected result<a class="headerlink" href="#expected-result" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1701,27 +1756,28 @@
 <tbody>
 <tr>
 <td>Port 7681 busy</td>
-<td>Set <code>ttyd.host_port</code> in config, then <code>make env</code></td>
+<td>Set <code>ttyd.host_port</code> in config, then <code>orcan sync</code></td>
 </tr>
 <tr>
 <td>Empty launcher</td>
-<td>Check <code>orcan.config.json</code> workspaces, then <code>make env</code></td>
+<td>Check workspaces in config, then <code>orcan sync</code></td>
 </tr>
 <tr>
 <td>Socket errors with Docker-in-Docker</td>
-<td>Use <code>make terminal-docker</code> (not <code>make terminal</code>)</td>
+<td>Use <code>orcan up --with-docker</code></td>
 </tr>
 </tbody>
 </table>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
-<p>After you edit <code>orcan.config.json</code>, run <code>make env</code> before recreating the container. <code>make terminal*</code> does <strong>not</strong> refresh config. See <a href="../../guides/workflows/">Workflows</a>.</p>
+<p>After you edit <code>orcan.config.json</code>, run <code>orcan sync</code> before recreating the container. <code>orcan up</code> does <strong>not</strong> refresh config. See <a href="../../guides/workflows/">Workflows</a>.</p>
 </div>
 <p>Image variants: <a href="../installation/">Installation</a> and <a href="../../faq/">FAQ</a>.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../installation/">Installation</a>  </li>
 <li><a href="../configuration/">Configuration</a>  </li>
+<li><a href="../../reference/cli/">CLI reference</a>  </li>
 <li><a href="../../ideas/mental-model/">Mental Model</a></li>
 </ul>
 
@@ -1746,7 +1802,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:42:59 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
   </span>
 
     

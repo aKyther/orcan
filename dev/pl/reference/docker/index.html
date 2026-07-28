@@ -966,6 +966,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../makefile/" class="md-nav__link">
         
   
@@ -973,7 +1001,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1640,30 +1668,59 @@
 <li>Multi-stage pobieranie narzędzi (Node, Go, Rust, uv)</li>
 <li>Użytkownik nie-root <code>developer</code></li>
 <li>Wejście: <code>docker-entrypoint</code></li>
-<li>Warianty przez build-arg <code>INSTALL_CURSOR</code> oraz plik <code>/etc/orcan/variant</code></li>
 </ul>
 <table>
 <thead>
 <tr>
 <th>Tag</th>
-<th>Build</th>
-<th>Zawartość</th>
+<th>Rola</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>orcan:latest</code> (+ <code>orcan:full</code>)</td>
-<td><code>make build</code></td>
-<td>Claude + Cursor</td>
+<td><code>orcan:latest</code></td>
+<td>Obaj agenci — to, co Compose uruchamia domyślnie</td>
 </tr>
 <tr>
-<td><code>orcan:claude</code></td>
-<td><code>make build-claude</code></td>
-<td>Tylko Claude</td>
+<td><code>orcan:&lt;VERSION&gt;</code></td>
+<td>Ten sam obraz (rejestr + lokalny pin)</td>
+</tr>
+<tr>
+<td><code>orcan:&lt;VERSION&gt;-claude</code></td>
+<td>Tylko lokalnie — Claude Code, bez Cursor</td>
+</tr>
+<tr>
+<td><code>orcan:&lt;VERSION&gt;-cursor</code></td>
+<td>Tylko lokalnie — Cursor CLI, bez Claude</td>
 </tr>
 </tbody>
 </table>
-<p>Etykieta wersji: <code>ORCAN_VERSION</code> / <code>/etc/orcan/version</code>.</p>
+<p>Wybór agenta:</p>
+<table>
+<thead>
+<tr>
+<th>Flaga</th>
+<th>Efekt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(brak)</td>
+<td>Pull <code>orcan:&lt;VERSION&gt;</code> jeśli jest, inaczej build obu → <code>latest</code> + <code>&lt;VERSION&gt;</code></td>
+</tr>
+<tr>
+<td><code>--claude</code></td>
+<td>Bez pull; build <code>orcan:&lt;VERSION&gt;-claude</code> (nie rusza <code>latest</code>)</td>
+</tr>
+<tr>
+<td><code>--cursor</code></td>
+<td>Bez pull; build <code>orcan:&lt;VERSION&gt;-cursor</code></td>
+</tr>
+</tbody>
+</table>
+<p>Potem: <code>IMAGE_LOCAL=orcan:&lt;VERSION&gt;-claude orcan up</code> (albo <code>IMAGE_LOCAL</code> w <code>.env</code>). <code>/etc/orcan/variant</code>: <code>full</code> / <code>claude</code> / <code>cursor</code>. <code>orcan publish</code> pcha tylko tagi z oboma agentami.</p>
+<p>Build-argi: <code>INSTALL_CLAUDE</code> / <code>INSTALL_CURSOR</code> (domyślnie oba <code>1</code>).
+Etykieta wersji: <code>ORCAN_VERSION</code> / <code>/etc/orcan/version</code>.</p>
 <h2 id="pliki-compose">Pliki Compose<a class="headerlink" href="#pliki-compose" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1725,7 +1782,7 @@
 </table>
 <p>Nazwane wolumeny Dockera <strong>nie</strong> są używane do tych danych.</p>
 <h2 id="opcjonalny-prywatny-rejestr">Opcjonalny prywatny rejestr<a class="headerlink" href="#opcjonalny-prywatny-rejestr" title="Permanent link">&para;</a></h2>
-<p>CI <strong>nie</strong> publikuje obrazów. Dla własnego rejestru zobacz <a href="../makefile/#opcjonalny-prywatny-rejestr">Makefile — opcjonalny prywatny rejestr</a>.</p>
+<p>CI <strong>nie</strong> publikuje obrazów. Dla własnego rejestru użyj <code>orcan pull</code> / <code>orcan publish</code> (zobacz <a href="../cli/">Referencja CLI</a>). Helpery maintainerów: <a href="../makefile/#opcjonalny-prywatny-rejestr">Makefile — opcjonalny rejestr</a>.</p>
 <h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../makefile/">Referencja Makefile</a></li>
@@ -1755,7 +1812,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:30:45 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
   </span>
 
     
@@ -1802,7 +1859,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Stopka" >
         
           
-          <a href="../makefile/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Makefile">
+          <a href="../makefile/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Makefile (maintainers)">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1812,7 +1869,7 @@
                 Poprzednia strona
               </span>
               <div class="md-ellipsis">
-                Makefile
+                Makefile (maintainers)
               </div>
             </div>
           </a>

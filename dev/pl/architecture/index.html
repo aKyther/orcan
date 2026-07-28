@@ -18,7 +18,7 @@
         <link rel="prev" href="../guides/troubleshooting/">
       
       
-        <link rel="next" href="../reference/makefile/">
+        <link rel="next" href="../reference/cli/">
       
       
         
@@ -1140,6 +1140,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reference/makefile/" class="md-nav__link">
         
   
@@ -1147,7 +1175,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1809,7 +1837,7 @@
   pack --&gt; clis</code></pre>
 <p><strong>Podpis:</strong> Host zamienia konfigurację na mounty i env. Kontener zamienia to w sesję i pliki czytelne dla agentów. Modele zostają w każdym CLI.</p>
 <h3 id="dlaczego-host-trzyma-konfiguracje">Dlaczego host trzyma konfigurację<a class="headerlink" href="#dlaczego-host-trzyma-konfiguracje" title="Permanent link">&para;</a></h3>
-<p>Konfiguracja musi działać bez obrazu (wizard, testy hosta w CI, <code>make env</code>). Stdlib JSON trzyma stronę hosta cienką. YAML Compose zostaje tylko dla Dockera.</p>
+<p>Konfiguracja musi działać bez obrazu (wizard, testy hosta w CI, <code>orcan sync</code>). Stdlib JSON trzyma stronę hosta cienką. YAML Compose zostaje tylko dla Dockera.</p>
 <h3 id="dlaczego-obraz-trzyma-toolchain">Dlaczego obraz trzyma toolchain<a class="headerlink" href="#dlaczego-obraz-trzyma-toolchain" title="Permanent link">&para;</a></h3>
 <p>Cursor CLI, Claude Code, toolchainy językowe i domyślne shella są duże i wspólne. Pieczenie ich w obrazie nie zaśmieca laptopów — a <strong>źródła</strong> projektów zostają na hoście przez mounty.</p>
 <h2 id="path-parity-i-linki-workspace">Path parity i linki workspace<a class="headerlink" href="#path-parity-i-linki-workspace" title="Permanent link">&para;</a></h2>
@@ -1844,7 +1872,7 @@
 <p>Dlaczego nie sam SSH? Ścieżka przeglądarki to domyślna powierzchnia produktu: jeden URL, jeden launcher, przewidywalny układ tmux. Dlaczego nie bez tmux? Wiele paneli/okien to sposób pracy nad projektami w jednym kontekście; Orcan to standaryzuje zamiast wymyślać nowy multiplekser.</p>
 <h2 id="context-pack-vs-seedy-projektow">Context pack vs seedy projektów<a class="headerlink" href="#context-pack-vs-seedy-projektow" title="Permanent link">&para;</a></h2>
 <p>W <strong>rootcie workspace'a</strong> Orcan utrzymuje mały pack (manifest, wspólne <code>AGENTS.md</code> / <code>CLAUDE.md</code>, ignores). Odpowiada na: „czym jest ten kontekst?”</p>
-<p>Zamontowane <strong>checkouty git</strong> nie są przepisywane przy każdym starcie. Seed plików w każdym <code>projects[].path</code> jest jawny (<code>make init-project-all</code>). Chroni to repo klientów przed niespodziewanymi diffami, a nadal pozwala na wspólny kontekst nad nimi.</p>
+<p>Zamontowane <strong>checkouty git</strong> nie są przepisywane przy każdym starcie. Seed plików w każdym <code>projects[].path</code> jest jawny (<code>orcan seed --all</code>). Chroni to repo klientów przed niespodziewanymi diffami, a nadal pozwala na wspólny kontekst nad nimi.</p>
 <h2 id="granica-produktu">Granica produktu<a class="headerlink" href="#granica-produktu" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1938,7 +1966,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:08:21 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
   </span>
 
     
@@ -2002,13 +2030,13 @@
         
         
           
-          <a href="../reference/makefile/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Makefile">
+          <a href="../reference/cli/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: CLI">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Następna strona
               </span>
               <div class="md-ellipsis">
-                Makefile
+                CLI
               </div>
             </div>
             <div class="md-footer__button md-icon">

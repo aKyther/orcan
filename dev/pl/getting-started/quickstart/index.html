@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Sklonuj Orcana, zbuduj obraz i otwórz terminal — gdy już rozumiesz ideę produktu.">
+        <meta name="description" content="Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz, otwórz terminal.">
       
       
         <meta name="author" content="Orcan contributors">
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Sklonuj Orcana, zbuduj obraz i otwórz terminal — gdy już rozumiesz ideę produktu.">
+  <meta name="description" content="Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz, otwórz terminal.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Szybki start — Orcan">
-  <meta property="og:description" content="Sklonuj Orcana, zbuduj obraz i otwórz terminal — gdy już rozumiesz ideę produktu.">
+  <meta property="og:description" content="Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz, otwórz terminal.">
   <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/getting-started/quickstart/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Szybki start — Orcan">
-  <meta name="twitter:description" content="Sklonuj Orcana, zbuduj obraz i otwórz terminal — gdy już rozumiesz ideę produktu.">
+  <meta name="twitter:description" content="Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz, otwórz terminal.">
 
   </head>
   
@@ -776,10 +776,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#kroki-host" class="md-nav__link">
+  <a href="#zainstaluj-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Kroki (host)
+        Zainstaluj CLI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kroki" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kroki
       
     </span>
   </a>
@@ -809,10 +820,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#czeste-problemy" class="md-nav__link">
+  <a href="#typowe-problemy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Częste problemy
+        Typowe problemy
       
     </span>
   </a>
@@ -1079,6 +1090,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/makefile/" class="md-nav__link">
         
   
@@ -1086,7 +1125,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1567,10 +1606,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#kroki-host" class="md-nav__link">
+  <a href="#zainstaluj-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Kroki (host)
+        Zainstaluj CLI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kroki" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kroki
       
     </span>
   </a>
@@ -1600,10 +1650,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#czeste-problemy" class="md-nav__link">
+  <a href="#typowe-problemy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Częste problemy
+        Typowe problemy
       
     </span>
   </a>
@@ -1661,17 +1711,22 @@
 <li>Docker działa  </li>
 <li>Bezwzględna ścieżka do co najmniej jednego repo git do zamontowania  </li>
 </ul>
-<h2 id="kroki-host">Kroki (host)<a class="headerlink" href="#kroki-host" title="Permanent link">&para;</a></h2>
-<p>Konfiguracja to JSON. Docker widzi tylko to, co zapisze <strong><code>make env</code></strong> (<code>.env</code> + <code>.orcan/*</code>).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>setup<span class="w"> </span><span class="nv">PROJECT_DIR</span><span class="o">=</span>/absolute/path/to/your/repo<span class="w">   </span><span class="c1"># scaffold konfiguracji w razie potrzeby, potem make env</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>env<span class="w">                                             </span><span class="c1"># odśwież .env + .orcan/* dla Compose (bezpieczne ponowić)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>make<span class="w"> </span>build
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>make<span class="w"> </span>terminal-docker
+<h2 id="zainstaluj-cli">Zainstaluj CLI<a class="headerlink" href="#zainstaluj-cli" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/aKyther/orcan/main/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+</span></code></pre></div>
+<p>Upewnij się, że <code>~/.local/bin</code> jest na <code>PATH</code>, potem:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>doctor
+</span></code></pre></div>
+<h2 id="kroki">Kroki<a class="headerlink" href="#kroki" title="Permanent link">&para;</a></h2>
+<p>Konfiguracja to JSON w <code>~/.config/orcan/home/</code>. Docker widzi tylko to, co zapisze <strong><code>orcan sync</code></strong> (<code>.env</code> + <code>.orcan/*</code>).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>init<span class="w"> </span>/absolute/path/to/your/repo<span class="w">   </span><span class="c1"># scaffold + sync</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>sync<span class="w">                               </span><span class="c1"># odśwież po późniejszych edycjach</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>build
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>make setup</code> już raz uruchamia <code>make env</code>. Trzymaj <code>make env</code> w nawyku: <strong>każda</strong> edycja konfiguracji wymaga go przed <code>make build</code> / <code>make terminal*</code>. Te cele <strong>nie</strong> regenerują plików runtime.</p>
+<p><code>orcan init</code> już raz uruchamia <code>sync</code>. Trzymaj <code>orcan sync</code> w nawyku: <strong>każda</strong> edycja konfiguracji wymaga go przed <code>orcan build</code> / <code>orcan up</code>. Te komendy <strong>nie</strong> regenerują plików runtime.</p>
 </div>
 <p>Otwórz URL wypisany w terminalu (domyślnie <code>http://localhost:7681</code>).</p>
 <h2 id="w-przegladarce">W przeglądarce<a class="headerlink" href="#w-przegladarce" title="Permanent link">&para;</a></h2>
@@ -1680,48 +1735,49 @@
 <li>Trafiasz do <strong>tmux</strong> z <strong>zsh</strong>.  </li>
 <li>Sprawdź narzędzia:</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>agent<span class="w"> </span>--version
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>claude<span class="w"> </span>--version
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nb">pwd</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>agent<span class="w"> </span>--version
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>claude<span class="w"> </span>--version
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">pwd</span>
 </span></code></pre></div>
 <h2 id="oczekiwany-wynik">Oczekiwany wynik<a class="headerlink" href="#oczekiwany-wynik" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Ciemny terminal w przeglądarce  </li>
-<li>Launcher listuje workspace'y  </li>
+<li>Przeglądarka pokazuje ciemny terminal  </li>
+<li>Launcher listuje Twoje workspace'y  </li>
 <li><code>agent</code> i/lub <code>claude</code> odpowiadają na <code>--version</code>  </li>
 </ul>
-<h2 id="czeste-problemy">Częste problemy<a class="headerlink" href="#czeste-problemy" title="Permanent link">&para;</a></h2>
+<h2 id="typowe-problemy">Typowe problemy<a class="headerlink" href="#typowe-problemy" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Problem</th>
-<th>Rozwiązanie</th>
+<th>Fix</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Port 7681 zajęty</td>
-<td>Ustaw <code>ttyd.host_port</code> w konfiguracji, potem <code>make env</code></td>
+<td>Ustaw <code>ttyd.host_port</code> w configu, potem <code>orcan sync</code></td>
 </tr>
 <tr>
 <td>Pusty launcher</td>
-<td>Sprawdź workspace'y w <code>orcan.config.json</code>, potem <code>make env</code></td>
+<td>Sprawdź workspace'y w configu, potem <code>orcan sync</code></td>
 </tr>
 <tr>
-<td>Błędy socketa przy Docker-in-Docker</td>
-<td>Użyj <code>make terminal-docker</code> (nie <code>make terminal</code>)</td>
+<td>Błędy socketu Docker-in-Docker</td>
+<td>Użyj <code>orcan up --with-docker</code></td>
 </tr>
 </tbody>
 </table>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
-<p>Po edycji <code>orcan.config.json</code> uruchom <code>make env</code> przed odtworzeniem kontenera. <code>make terminal*</code> <strong>nie</strong> odświeża konfiguracji. Zobacz <a href="../../guides/workflows/">Workflowy</a>.</p>
+<p>Po edycji <code>orcan.config.json</code> uruchom <code>orcan sync</code> przed odtworzeniem kontenera. <code>orcan up</code> <strong>nie</strong> odświeża konfiguracji. Zobacz <a href="../../guides/workflows/">Workflowy</a>.</p>
 </div>
 <p>Warianty obrazu: <a href="../installation/">Instalacja</a> i <a href="../../faq/">FAQ</a>.</p>
 <h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../installation/">Instalacja</a>  </li>
 <li><a href="../configuration/">Konfiguracja</a>  </li>
+<li><a href="../../reference/cli/">Referencja CLI</a>  </li>
 <li><a href="../../ideas/mental-model/">Model mentalny</a></li>
 </ul>
 
@@ -1746,7 +1802,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:42:59 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
   </span>
 
     

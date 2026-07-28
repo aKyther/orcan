@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://akyther.github.io/orcan/dev/reference/makefile/">
       
       
-        <link rel="prev" href="../../architecture/">
+        <link rel="prev" href="../cli/">
       
       
         <link rel="next" href="../docker/">
@@ -33,7 +33,7 @@
     
     
       
-        <title>Makefile - Orcan</title>
+        <title>Makefile (maintainers) - Orcan</title>
       
     
     
@@ -69,12 +69,12 @@
   
   <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Makefile — Orcan">
+  <meta property="og:title" content="Makefile (maintainers) — Orcan">
   <meta property="og:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
   <meta property="og:url" content="https://akyther.github.io/orcan/dev/reference/makefile/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Makefile — Orcan">
+  <meta name="twitter:title" content="Makefile (maintainers) — Orcan">
   <meta name="twitter:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
 
   </head>
@@ -96,7 +96,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#makefile-reference" class="md-skip">
+        <a href="#makefile-maintainers" class="md-skip">
           Skip to content
         </a>
       
@@ -147,7 +147,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Makefile
+              Makefile (maintainers)
             
           </span>
         </div>
@@ -963,6 +963,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -982,7 +1010,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1000,7 +1028,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1026,109 +1054,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#configure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configure
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#images" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Images
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Run
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#project-seeds" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Project seeds
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#docs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Docs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quality" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quality
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#release" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Release
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Clean
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#optional-private-registry" class="md-nav__link">
     <span class="md-ellipsis">
       
         Optional private registry
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#renamed-targets-migration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Renamed targets (migration)
       
     </span>
   </a>
@@ -1600,109 +1529,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#configure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configure
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#images" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Images
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Run
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#project-seeds" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Project seeds
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#docs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Docs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quality" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quality
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#release" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Release
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Clean
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#optional-private-registry" class="md-nav__link">
     <span class="md-ellipsis">
       
         Optional private registry
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#renamed-targets-migration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Renamed targets (migration)
       
     </span>
   </a>
@@ -1742,308 +1572,80 @@
   
 
 
-<h1 id="makefile-reference">Makefile reference<a class="headerlink" href="#makefile-reference" title="Permanent link">&para;</a></h1>
-<p>Use this page when you already understand the product idea and need the full host command surface. For the story, start at <a href="../../">Home</a> or <a href="../../why-orcan/">Why Orcan?</a>.</p>
-<p>Run from the Orcan repository root on the <strong>host</strong>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Keep this page aligned with <code>make help</code>. Prefer documenting every <code>##</code>-annotated target.</p>
-</div>
-<h2 id="configure">Configure<a class="headerlink" href="#configure" title="Permanent link">&para;</a></h2>
+<h1 id="makefile-maintainers">Makefile (maintainers)<a class="headerlink" href="#makefile-maintainers" title="Permanent link">&para;</a></h1>
+<p>End users use the <strong><code>orcan</code> CLI</strong> — see <a href="../cli/">CLI reference</a>. Image lifecycle on the host is:</p>
 <table>
 <thead>
 <tr>
-<th>Target</th>
-<th>Purpose</th>
+<th>User need</th>
+<th>Command</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>make setup</code></td>
-<td>First run: scaffold config if needed → <code>env</code> → show layout</td>
+<td>Pull or build</td>
+<td><code>orcan build</code> (pull <code>VERSION</code>, local build on miss — <strong>never publishes</strong>)</td>
 </tr>
 <tr>
-<td><code>make config-wizard</code></td>
-<td>Interactive edit of <code>orcan.config.json</code></td>
+<td>Force local rebuild</td>
+<td><code>orcan build --force</code> or <code>--no-cache</code></td>
 </tr>
 <tr>
-<td><code>make config-scaffold</code></td>
-<td>Add project from <code>PROJECT_DIR</code></td>
+<td>Pull registry only</td>
+<td><code>orcan pull</code></td>
 </tr>
 <tr>
-<td><code>make config-init</code></td>
-<td>Copy example config file</td>
-</tr>
-<tr>
-<td><code>make config-show</code></td>
-<td>Print workspaces</td>
-</tr>
-<tr>
-<td><code>make env</code></td>
-<td>Apply config → <code>.env</code> + <code>.orcan/*</code> that Compose / <code>terminal*</code> consume</td>
-</tr>
-<tr>
-<td><code>make require-generated</code></td>
-<td>Fail if <code>.env</code> / generated runtime files are missing (no writes)</td>
-</tr>
-<tr>
-<td><code>make require-env</code></td>
-<td>Fail if <code>.env</code> is missing (image build)</td>
+<td>Push to registry</td>
+<td><code>orcan publish</code> (<strong>manual</strong>, maintainers)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="images">Images<a class="headerlink" href="#images" title="Permanent link">&para;</a></h2>
+<p>This repository ships a Makefile only for <strong>maintainers</strong> working in a git checkout:</p>
 <table>
 <thead>
 <tr>
 <th>Target</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make build</code></td>
-<td>Full image → <code>orcan:latest</code> (Claude + Cursor)</td>
-</tr>
-<tr>
-<td><code>make build-claude</code></td>
-<td>Claude-only → <code>orcan:claude</code></td>
-</tr>
-<tr>
-<td><code>make rebuild</code> / <code>make rebuild-claude</code></td>
-<td>Rebuild without cache</td>
-</tr>
-</tbody>
-</table>
-<h2 id="run">Run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Target</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make terminal</code></td>
-<td>Browser terminal <strong>without</strong> Docker socket</td>
-</tr>
-<tr>
-<td><code>make terminal-docker</code></td>
-<td>Browser terminal <strong>with</strong> Docker socket</td>
-</tr>
-<tr>
-<td><code>make terminal-url</code></td>
-<td>Print URL</td>
-</tr>
-<tr>
-<td><code>make down</code></td>
-<td>Stop containers</td>
-</tr>
-<tr>
-<td><code>make logs</code></td>
-<td>Follow logs</td>
-</tr>
-<tr>
-<td><code>make path-check</code></td>
-<td>Show path parity summary</td>
-</tr>
-<tr>
-<td><code>make config</code></td>
-<td>Print resolved Compose config</td>
-</tr>
-</tbody>
-</table>
-<p><code>make terminal*</code> does <strong>not</strong> run <code>make env</code>.</p>
-<h2 id="project-seeds">Project seeds<a class="headerlink" href="#project-seeds" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Target</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make init-project</code></td>
-<td>Seed <code>PROJECT_DIR</code> (missing-only)</td>
-</tr>
-<tr>
-<td><code>make init-project-dry-run</code></td>
-<td>Preview seeds for <code>PROJECT_DIR</code></td>
-</tr>
-<tr>
-<td><code>make init-project-all</code></td>
-<td>Seed every configured project path</td>
-</tr>
-<tr>
-<td><code>make init-project-all-dry-run</code></td>
-<td>Preview seeds for every project path</td>
-</tr>
-</tbody>
-</table>
-<h2 id="docs">Docs<a class="headerlink" href="#docs" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Target</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make docs</code></td>
-<td>Build MkDocs → <code>./site</code> (strict)</td>
-</tr>
-<tr>
-<td><code>make docs-serve</code></td>
-<td>Local docs server</td>
-</tr>
-<tr>
-<td><code>make docs-check</code></td>
-<td>Strict build + product-name check</td>
-</tr>
-<tr>
-<td><code>make docs-mike-dev</code></td>
-<td>Deploy mike alias <code>dev</code></td>
-</tr>
-<tr>
-<td><code>make docs-mike-release</code></td>
-<td>Deploy <code>VERSION</code> + alias <code>latest</code> via mike</td>
-</tr>
-<tr>
-<td><code>make docs-publish</code></td>
-<td>Trigger CI (main → docs <code>dev</code>)</td>
-</tr>
-<tr>
-<td><code>make docs-deploy</code></td>
-<td>Alias for <code>docs-publish</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="quality">Quality<a class="headerlink" href="#quality" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Target</th>
-<th>Purpose</th>
+<th>Role</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>make validate</code></td>
-<td>Layout, script syntax, Compose config</td>
+<td>Layout + script syntax</td>
 </tr>
 <tr>
 <td><code>make test-host</code></td>
-<td>Host unit tests (no Docker image)</td>
+<td>Host unit tests</td>
 </tr>
 <tr>
-<td><code>make test</code></td>
-<td>Smoke tests (builds full image; <strong>not</strong> in CI)</td>
+<td><code>make test</code> / <code>make test-path-parity</code></td>
+<td>Container tests (needs Docker)</td>
 </tr>
 <tr>
-<td><code>make test-path-parity</code></td>
-<td>Path parity integration test (<strong>not</strong> in CI)</td>
+<td><code>make docs</code> / <code>docs-serve</code> / <code>docs-check</code></td>
+<td>MkDocs</td>
+</tr>
+<tr>
+<td><code>make docs-mike-dev</code> / <code>docs-mike-release</code></td>
+<td>Versioned docs deploy</td>
+</tr>
+<tr>
+<td><code>make bump-*</code> / <code>release</code></td>
+<td>Version + GitHub Release</td>
+</tr>
+<tr>
+<td><code>make registry-*</code></td>
+<td>Low-level registry helpers (prefer <code>orcan publish</code> / <code>orcan pull</code>)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="release">Release<a class="headerlink" href="#release" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Target</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make version</code></td>
-<td>Show <code>VERSION</code> and local image tag names</td>
-</tr>
-<tr>
-<td><code>make bump-patch</code> / <code>bump-minor</code> / <code>bump-major</code></td>
-<td>Bump SemVer</td>
-</tr>
-<tr>
-<td><code>make release-tag</code></td>
-<td>Create annotated git tag <code>vX.Y.Z</code> (clean tree)</td>
-</tr>
-<tr>
-<td><code>make release-push</code></td>
-<td>Push version tag to origin</td>
-</tr>
-<tr>
-<td><code>make release</code></td>
-<td>Tag + push → GitHub Release (<strong>no</strong> image publish)</td>
-</tr>
-</tbody>
-</table>
-<h2 id="clean">Clean<a class="headerlink" href="#clean" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Target</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make clean</code></td>
-<td>Stop containers; keep <code>$ORCAN_DATA</code></td>
-</tr>
-<tr>
-<td><code>make clean-data</code></td>
-<td><strong>Destructive</strong> delete <code>$ORCAN_DATA</code> (confirm <code>yes</code>)</td>
-</tr>
-<tr>
-<td><code>make clean-volumes</code></td>
-<td>Alias for <code>clean-data</code></td>
-</tr>
-</tbody>
-</table>
+<p>Deprecated user Make targets (<code>setup</code>, <code>env</code>, <code>terminal-docker</code>, <code>rebuild</code>, …) forward to <code>./bin/orcan</code> with a deprecation note. <strong>Do not document them to end users</strong> — use <code>orcan</code> directly.</p>
 <h2 id="optional-private-registry">Optional private registry<a class="headerlink" href="#optional-private-registry" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Target</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make registry-show</code></td>
-<td>Show local/remote image names</td>
-</tr>
-<tr>
-<td><code>make registry-login</code></td>
-<td>Log in to container registry</td>
-</tr>
-<tr>
-<td><code>make publish</code> / <code>make pull</code></td>
-<td>Manual image push/pull (not used by CI)</td>
-</tr>
-</tbody>
-</table>
-<h2 id="renamed-targets-migration">Renamed targets (migration)<a class="headerlink" href="#renamed-targets-migration" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Old</th>
-<th>New</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make shell</code></td>
-<td><code>make terminal</code></td>
-</tr>
-<tr>
-<td><code>make shell-docker</code></td>
-<td><code>make terminal-docker</code></td>
-</tr>
-</tbody>
-</table>
+<p>CI does <strong>not</strong> publish container images. Maintainers may push manually:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--force<span class="w">          </span><span class="c1"># ensure local image exists</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>publish<span class="w">                </span><span class="c1"># or: make registry-login &amp;&amp; ./scripts/repository/registry.sh publish</span>
+</span></code></pre></div>
+<p>Configure <code>IMAGE_REGISTRY</code>, <code>IMAGE_REPOSITORY</code>, and <code>IMAGE_TAG</code> in <code>.env</code> (via <code>orcan sync</code>). See <a href="../environment/">Environment variables</a>.</p>
 
 
 
@@ -2066,7 +1668,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:42:59 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
   </span>
 
     
@@ -2113,7 +1715,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../../architecture/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Architecture">
+          <a href="../cli/" class="md-footer__link md-footer__link--prev" aria-label="Previous: CLI">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2123,7 +1725,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Architecture
+                CLI
               </div>
             </div>
           </a>

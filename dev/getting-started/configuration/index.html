@@ -865,10 +865,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-make-env-writes" class="md-nav__link">
+  <a href="#what-orcan-sync-writes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What make env writes
+        What orcan sync writes
       
     </span>
   </a>
@@ -876,10 +876,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#seed-project-files-optional" class="md-nav__link">
+  <a href="#seed-into-git-checkouts-optional-rarely-needed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Seed project files (optional)
+        Seed into git checkouts (optional, rarely needed)
       
     </span>
   </a>
@@ -1107,6 +1107,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/makefile/" class="md-nav__link">
         
   
@@ -1114,7 +1142,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1656,10 +1684,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-make-env-writes" class="md-nav__link">
+  <a href="#what-orcan-sync-writes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What make env writes
+        What orcan sync writes
       
     </span>
   </a>
@@ -1667,10 +1695,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#seed-project-files-optional" class="md-nav__link">
+  <a href="#seed-into-git-checkouts-optional-rarely-needed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Seed project files (optional)
+        Seed into git checkouts (optional, rarely needed)
       
     </span>
   </a>
@@ -1720,14 +1748,14 @@
 </span></code></pre></div>
 <p>Template: <code>orcan.config.example.json</code>.</p>
 <p>After edits, always run:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>env
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>sync
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>make terminal*</code> does <strong>not</strong> run <code>make env</code>. Apply config first, then recreate the container.</p>
+<p><code>orcan up</code> does <strong>not</strong> run <code>orcan sync</code>. Apply config first, then recreate the container.</p>
 </div>
 <p>Then recreate the container if it is already running:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>terminal-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="shape-example">Shape (example)<a class="headerlink" href="#shape-example" title="Permanent link">&para;</a></h2>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
@@ -1802,10 +1830,10 @@
 </table>
 <h3 id="raising-resources">Raising resources<a class="headerlink" href="#raising-resources" title="Permanent link">&para;</a></h3>
 <p>Edit <code>resources</code> in <code>orcan.config.json</code> (for example <code>cpus: 8</code>, <code>memory: "16g"</code>), then:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>env
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>make<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>terminal-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>sync
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
-<p>If <code>.env</code> already has <code>CPUS</code> / <code>MEMORY</code> set, <code>make env</code> keeps those values. Change them in <code>.env</code> too, or remove the keys so config wins on the next <code>make env</code>.</p>
+<p>If <code>.env</code> already has <code>CPUS</code> / <code>MEMORY</code> set, <code>orcan sync</code> keeps those values. Change them in <code>.env</code> too, or remove the keys so config wins on the next <code>orcan sync</code>.</p>
 <h2 id="ways-to-edit">Ways to edit<a class="headerlink" href="#ways-to-edit" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1816,15 +1844,15 @@
 </thead>
 <tbody>
 <tr>
-<td><code>make config-wizard</code></td>
+<td><code>orcan context wizard</code></td>
 <td>Interactive create/edit</td>
 </tr>
 <tr>
-<td><code>make config-scaffold PROJECT_DIR=…</code></td>
+<td><code>orcan context add /abs/path</code></td>
 <td>Add one project non-interactively</td>
 </tr>
 <tr>
-<td><code>make setup PROJECT_DIR=…</code></td>
+<td><code>orcan init /abs/path</code></td>
 <td>First run</td>
 </tr>
 <tr>
@@ -1834,11 +1862,10 @@
 </tbody>
 </table>
 <p>Show current layout:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>config-show
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>make<span class="w"> </span>path-check
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
 </span></code></pre></div>
-<h2 id="what-make-env-writes">What <code>make env</code> writes<a class="headerlink" href="#what-make-env-writes" title="Permanent link">&para;</a></h2>
-<p><code>orcan.config.json</code> is the story you edit. <strong><code>make env</code></strong> is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.</p>
+<h2 id="what-orcan-sync-writes">What <code>orcan sync</code> writes<a class="headerlink" href="#what-orcan-sync-writes" title="Permanent link">&para;</a></h2>
+<p><code>orcan.config.json</code> is the story you edit (default under <code>~/.config/orcan/home/</code>). <strong><code>orcan sync</code></strong> is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.</p>
 <table>
 <thead>
 <tr>
@@ -1870,11 +1897,11 @@
 </tbody>
 </table>
 <p>Do not commit <code>.env</code> or <code>.orcan/</code> (gitignored).</p>
-<h2 id="seed-project-files-optional">Seed project files (optional)<a class="headerlink" href="#seed-project-files-optional" title="Permanent link">&para;</a></h2>
-<p>Orcan does <strong>not</strong> rewrite every mounted repo on startup. To seed ignores/templates once:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>init-project-all
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># or dry-run:</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>make<span class="w"> </span>init-project-all-dry-run
+<h2 id="seed-into-git-checkouts-optional-rarely-needed">Seed into git checkouts (optional, rarely needed)<a class="headerlink" href="#seed-into-git-checkouts-optional-rarely-needed" title="Permanent link">&para;</a></h2>
+<p>The <strong>workspace</strong> already gets a context pack on container start (<code>AGENTS.md</code>, ignores, <code>.cursor/rules/</code>). You do <strong>not</strong> need <code>orcan seed</code> for that.</p>
+<p><code>orcan seed</code> only copies the same kind of files <strong>into each mounted git repo</strong>. Skip it unless you want those files inside the checkouts themselves (e.g. to commit them):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>seed<span class="w"> </span>--all
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>seed<span class="w"> </span>--all<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Full field rules and rejected keys: <a href="../../reference/configuration/">Configuration reference</a>.</p>
 
@@ -1899,7 +1926,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:42:59 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
   </span>
 
     

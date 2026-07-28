@@ -770,10 +770,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pobierz-kod" class="md-nav__link">
+  <a href="#zainstaluj-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pobierz kod
+        Zainstaluj CLI
       
     </span>
   </a>
@@ -792,10 +792,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#zbuduj-obraz" class="md-nav__link">
+  <a href="#budowa-obrazu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Zbuduj obraz
+        Budowa obrazu
       
     </span>
   </a>
@@ -825,21 +825,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#czeste-problemy" class="md-nav__link">
+  <a href="#typowe-problemy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Częste problemy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zobacz-tez" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zobacz też
+        Typowe problemy
       
     </span>
   </a>
@@ -1123,6 +1112,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/makefile/" class="md-nav__link">
         
   
@@ -1130,7 +1147,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1633,10 +1650,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pobierz-kod" class="md-nav__link">
+  <a href="#zainstaluj-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pobierz kod
+        Zainstaluj CLI
       
     </span>
   </a>
@@ -1655,10 +1672,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#zbuduj-obraz" class="md-nav__link">
+  <a href="#budowa-obrazu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Zbuduj obraz
+        Budowa obrazu
       
     </span>
   </a>
@@ -1688,21 +1705,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#czeste-problemy" class="md-nav__link">
+  <a href="#typowe-problemy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Częste problemy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zobacz-tez" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zobacz też
+        Typowe problemy
       
     </span>
   </a>
@@ -1744,7 +1750,7 @@
 
 <h1 id="instalacja">Instalacja<a class="headerlink" href="#instalacja" title="Permanent link">&para;</a></h1>
 <h2 id="dlaczego-te-wymagania">Dlaczego te wymagania<a class="headerlink" href="#dlaczego-te-wymagania" title="Permanent link">&para;</a></h2>
-<p>Orcan izoluje toolchainy agentów w Dockerze, żeby host został cienki. Ten wybór wymaga Docker Compose, Make (cienkie UI hosta), Gita (klon tego repo i Twoich projektów) oraz Pythona 3 (skrypty konfiguracji na hoście).</p>
+<p>Orcan izoluje toolchainy agentów w Dockerze, żeby host został cienki. Ten wybór wymaga Docker Compose, Gita (klon instalacji i Twoich projektów), Pythona 3 (skrypty konfiguracji na hoście) oraz Bash (CLI <code>orcan</code>).</p>
 <p>Jeśli nie chcesz Dockera, Orcan nie jest właściwym narzędziem — zobacz <a href="../../why-orcan/">Dlaczego Orcan?</a>.</p>
 <h2 id="zanim-zaczniesz">Zanim zaczniesz<a class="headerlink" href="#zanim-zaczniesz" title="Permanent link">&para;</a></h2>
 <p>Orcan działa na maszynie z Dockerem. Większość osób używa Linuksa lub WSL2.</p>
@@ -1762,16 +1768,16 @@
 <td>Z Compose v2 (<code>docker compose</code>)</td>
 </tr>
 <tr>
-<td>Make</td>
-<td>GNU Make</td>
-</tr>
-<tr>
 <td>Git</td>
-<td>Do sklonowania tego repozytorium</td>
+<td>Do klonowania instalacji i projektów</td>
 </tr>
 <tr>
 <td>Python 3</td>
-<td>Do skryptów konfiguracji na hoście (<code>make env</code>, wizard)</td>
+<td>Skrypty konfiguracji na hoście — <code>orcan sync</code>, <code>init</code>, <code>context</code> (wizard). Tylko stdlib; bez pip.</td>
+</tr>
+<tr>
+<td>Bash</td>
+<td>Launcher CLI</td>
 </tr>
 </tbody>
 </table>
@@ -1797,47 +1803,57 @@
 <p>Sprawdź wersje:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>docker<span class="w"> </span>version
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>version
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>--version
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>python3<span class="w"> </span>--version
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>python3<span class="w"> </span>--version
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>bash<span class="w"> </span>--version
 </span></code></pre></div>
-<h2 id="pobierz-kod">Pobierz kod<a class="headerlink" href="#pobierz-kod" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/aKyther/orcan.git
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>orcan
+<h2 id="zainstaluj-cli">Zainstaluj CLI<a class="headerlink" href="#zainstaluj-cli" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/aKyther/orcan/main/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>doctor
 </span></code></pre></div>
+<p>Z checkoutu gita tego repozytorium możesz też uruchomić <code>./bin/orcan</code> bez instalacji.</p>
 <h2 id="pierwsza-konfiguracja">Pierwsza konfiguracja<a class="headerlink" href="#pierwsza-konfiguracja" title="Permanent link">&para;</a></h2>
-<p>Opisz workspace'y w <code>orcan.config.json</code>, potem <strong>zmaterializuj</strong> pliki, które czyta Compose:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>setup<span class="w"> </span><span class="nv">PROJECT_DIR</span><span class="o">=</span>/absolute/path/to/your/repo
+<p>Opisz workspace'y w <code>~/.config/orcan/home/orcan.config.json</code>, potem <strong>zmaterializuj</strong> pliki, które czyta Compose:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>init<span class="w"> </span>/absolute/path/to/your/repo
 </span></code></pre></div>
-<p><code>make setup</code> tworzy konfigurację, gdy jej brakuje, i uruchamia <strong><code>make env</code></strong> (zapisuje <code>.env</code> + <code>.orcan/*</code>). Po każdej kolejnej edycji konfiguracji ponów <code>make env</code> — <code>make build</code> / <code>make terminal*</code> tylko je konsumują; nie regenerują ich.</p>
+<p><code>orcan init</code> tworzy konfigurację, gdy jej brakuje, i uruchamia <strong><code>orcan sync</code></strong> (zapisuje <code>.env</code> + <code>.orcan/*</code> pod <code>ORCAN_HOME</code>). Po każdej kolejnej edycji konfiguracji ponów <code>orcan sync</code> — <code>orcan build</code> / <code>orcan up</code> tylko je konsumują; nie regenerują ich.</p>
 <p>Albo użyj wizarda:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>config-wizard
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>make<span class="w"> </span>env
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>wizard
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>orcan<span class="w"> </span>sync
 </span></code></pre></div>
-<h2 id="zbuduj-obraz">Zbuduj obraz<a class="headerlink" href="#zbuduj-obraz" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Pełny (domyślny)</label><label for="__tabbed_1_2">Tylko Claude</label></div>
+<h2 id="budowa-obrazu">Budowa obrazu<a class="headerlink" href="#budowa-obrazu" title="Permanent link">&para;</a></h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Obaj agenci (domyślnie)</label><label for="__tabbed_1_2">Tylko Claude Code (bez pull)</label><label for="__tabbed_1_3">Tylko Cursor CLI (bez pull)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>build
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>build
 </span></code></pre></div>
-<p>Tag: <code>orcan:latest</code> (także <code>orcan:full</code>) — Claude Code + Cursor CLI.</p>
+<p>Tagi: <code>orcan:latest</code> oraz <code>orcan:&lt;VERSION&gt;</code>.</p>
 </div>
 <div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>build-claude
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:claude<span class="w"> </span>make<span class="w"> </span>terminal-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-claude<span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
-<p>Tag: <code>orcan:claude</code> — tylko Claude.</p>
+<p>Tag: <code>orcan:&lt;VERSION&gt;-claude</code> (nie nadpisuje <code>latest</code>).</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--cursor
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-cursor<span class="w"> </span>orcan<span class="w"> </span>up
+</span></code></pre></div>
+<p>Tag: <code>orcan:&lt;VERSION&gt;-cursor</code>.</p>
 </div>
 </div>
 </div>
 <h2 id="oczekiwany-wynik">Oczekiwany wynik<a class="headerlink" href="#oczekiwany-wynik" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Istnieją <code>.env</code> oraz <code>.orcan/</code></li>
-<li>Lokalny obraz <code>orcan:latest</code> (lub <code>orcan:claude</code>) istnieje</li>
-<li><code>make path-check</code> wypisuje ścieżki workspace'ów</li>
+<li>Config i <code>.env</code> istnieją pod <code>~/.config/orcan/home/</code></li>
+<li>Lokalny obraz <code>orcan:latest</code> istnieje</li>
+<li><code>orcan context show</code> wypisuje ścieżki workspace'ów</li>
 </ul>
 <h2 id="odinstalowanie">Odinstalowanie<a class="headerlink" href="#odinstalowanie" title="Permanent link">&para;</a></h2>
-<p>Zobacz <a href="../../guides/workflows/#odinstalowanie">Workflowy — odinstalowanie</a> lub <a href="../../faq/#uninstall">FAQ</a>.</p>
-<h2 id="czeste-problemy">Częste problemy<a class="headerlink" href="#czeste-problemy" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>uninstall<span class="w">              </span><span class="c1"># usuń launcher + klon instalacji</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span><span class="c1"># także usuń ORCAN_DATA po potwierdzeniu</span>
+</span></code></pre></div>
+<p>Zobacz <a href="../../guides/workflows/#uninstall">Workflowy — uninstall</a> lub <a href="../../faq/#uninstall">FAQ</a>.</p>
+<h2 id="typowe-problemy">Typowe problemy<a class="headerlink" href="#typowe-problemy" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1851,23 +1867,20 @@
 <td>Dodaj użytkownika do grupy <code>docker</code> albo użyj rootless Docker</td>
 </tr>
 <tr>
-<td><code>make env</code> pada na <code>PROJECT_DIR</code></td>
+<td><code>orcan sync</code> pada na <code>PROJECT_DIR</code></td>
 <td>Użyj ścieżki <strong>bezwzględnej</strong>; nie używaj <code>/</code>, <code>/home</code> ani <code>/etc</code> jako projektu</td>
 </tr>
 <tr>
 <td>Wolny pierwszy build</td>
 <td>Normalne — obraz instaluje toolchainy i CLI</td>
 </tr>
+<tr>
+<td><code>orcan: command not found</code></td>
+<td>Dodaj <code>~/.local/bin</code> do <code>PATH</code> albo ponów <code>install.sh</code></td>
+</tr>
 </tbody>
 </table>
-<p>Dalej: <a href="../quickstart/">Szybki start</a>.</p>
-<h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../quickstart/">Szybki start</a></li>
-<li><a href="../configuration/">Konfiguracja</a></li>
-<li><a href="../../deployment/">Wdrożenie</a></li>
-<li><a href="../../reference/security/">Bezpieczeństwo</a></li>
-</ul>
+<p>Dalej: <a href="../quickstart/">Szybki start</a> · <a href="../../reference/cli/">Referencja CLI</a>.</p>
 
 
 
@@ -1890,7 +1903,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:42:59 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
   </span>
 
     

@@ -966,6 +966,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../makefile/" class="md-nav__link">
         
   
@@ -973,7 +1001,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1637,15 +1665,15 @@
 <p>Orcan to wygodna izolacja, <strong>nie</strong> twarda granica bezpieczeństwa.</p>
 <ul>
 <li>Bind mounty dają kontenerowi zapis do Twoich projektów</li>
-<li><code>make terminal-docker</code> montuje <code>/var/run/docker.sock</code> → silny dostęp do hosta</li>
+<li><code>orcan up --with-docker</code> montuje <code>/var/run/docker.sock</code> → silny dostęp do hosta</li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Używaj <code>terminal-docker</code> tylko gdy potrzebujesz Docker-from-Docker. Preferuj <code>make terminal</code>, gdy nie potrzebujesz.</p>
+<p>Używaj <code>orcan up --with-docker</code> tylko gdy potrzebujesz Docker-from-Docker. Preferuj zwykłe <code>orcan up</code> bez socketa.</p>
 </div>
 <h2 id="dane-na-hoscie">Dane na hoście<a class="headerlink" href="#dane-na-hoscie" title="Permanent link">&para;</a></h2>
 <p>Logowania i cache leżą pod <code>$ORCAN_DATA</code> (domyślnie <code>~/.config/orcan</code>). Traktuj ten katalog jako wrażliwy.</p>
-<p><code>make clean-data</code> usuwa go po potwierdzeniu.</p>
+<p><code>orcan uninstall --purge-data</code> usuwa go po potwierdzeniu.</p>
 <h2 id="terminal-w-przegladarce">Terminal w przeglądarce<a class="headerlink" href="#terminal-w-przegladarce" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -1687,7 +1715,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 13:06:39 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
   </span>
 
     

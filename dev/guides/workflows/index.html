@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Typical Orcan workflows — day scenarios first, then the Make commands that support them.">
+        <meta name="description" content="Typical Orcan workflows — day scenarios first, then the orcan CLI commands that support them.">
       
       
         <meta name="author" content="Orcan contributors">
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Typical Orcan workflows — day scenarios first, then the Make commands that support them.">
+  <meta name="description" content="Typical Orcan workflows — day scenarios first, then the orcan CLI commands that support them.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Workflows — Orcan">
-  <meta property="og:description" content="Typical Orcan workflows — day scenarios first, then the Make commands that support them.">
+  <meta property="og:description" content="Typical Orcan workflows — day scenarios first, then the orcan CLI commands that support them.">
   <meta property="og:url" content="https://akyther.github.io/orcan/dev/guides/workflows/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Workflows — Orcan">
-  <meta name="twitter:description" content="Typical Orcan workflows — day scenarios first, then the Make commands that support them.">
+  <meta name="twitter:description" content="Typical Orcan workflows — day scenarios first, then the orcan CLI commands that support them.">
 
   </head>
   
@@ -915,10 +915,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scenario-claude-only" class="md-nav__link">
+  <a href="#scenario-terminal-with-host-docker-socket-dind" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario: Claude only
+        Scenario: terminal with host Docker socket (DinD)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scenario-install-only-one-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario: install only one agent
       
     </span>
   </a>
@@ -1134,6 +1145,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/makefile/" class="md-nav__link">
         
   
@@ -1141,7 +1180,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1644,10 +1683,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scenario-claude-only" class="md-nav__link">
+  <a href="#scenario-terminal-with-host-docker-socket-dind" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario: Claude only
+        Scenario: terminal with host Docker socket (DinD)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scenario-install-only-one-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario: install only one agent
       
     </span>
   </a>
@@ -1770,42 +1820,48 @@
 <p>You already configured workspaces. You want the browser terminal and yesterday’s mounts.</p>
 <p><strong>Idea:</strong> recreate the session without regenerating config.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>terminal-docker
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <p>Open <code>http://localhost:7681</code> and pick a workspace.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>make terminal*</code> does <strong>not</strong> run <code>make env</code>. If you changed <code>orcan.config.json</code>, apply config first.</p>
+<p><code>orcan up</code> does <strong>not</strong> run <code>orcan sync</code>. If you changed <code>orcan.config.json</code>, apply config first.</p>
 </div>
 <h2 id="scenario-switch-customer-or-product-line">Scenario: switch customer or product line<a class="headerlink" href="#scenario-switch-customer-or-product-line" title="Permanent link">&para;</a></h2>
 <p><strong>Problem:</strong> another set of repos is today’s context.<br />
 <strong>Approach:</strong> edit the workspace list (or enable another workspace), apply config, recreate the container.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>config-wizard<span class="w">    </span><span class="c1"># or edit orcan.config.json</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>make<span class="w"> </span>env
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>make<span class="w"> </span>init-project-all<span class="w"> </span><span class="c1"># optional seeds into each project path</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>make<span class="w"> </span>down
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>make<span class="w"> </span>terminal-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>wizard<span class="w">    </span><span class="c1"># or edit orcan.config.json</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>sync
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>down
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="scenario-safer-terminal-without-host-docker-socket">Scenario: safer terminal without host Docker socket<a class="headerlink" href="#scenario-safer-terminal-without-host-docker-socket" title="Permanent link">&para;</a></h2>
-<p><strong>Trade-off:</strong> no Docker-from-Docker; smaller blast radius.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>terminal
+<p><strong>Trade-off:</strong> no Docker-from-Docker; smaller blast radius. This is the <strong>default</strong>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
-<h2 id="scenario-claude-only">Scenario: Claude only<a class="headerlink" href="#scenario-claude-only" title="Permanent link">&para;</a></h2>
-<p><strong>Idea:</strong> smaller image when Cursor CLI is not needed.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>build-claude
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:claude<span class="w"> </span>make<span class="w"> </span>terminal-docker
+<h2 id="scenario-terminal-with-host-docker-socket-dind">Scenario: terminal with host Docker socket (DinD)<a class="headerlink" href="#scenario-terminal-with-host-docker-socket-dind" title="Permanent link">&para;</a></h2>
+<p><strong>When:</strong> nested Compose / Docker from inside the container.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
+</span></code></pre></div>
+<h2 id="scenario-install-only-one-agent">Scenario: install only one agent<a class="headerlink" href="#scenario-install-only-one-agent" title="Permanent link">&para;</a></h2>
+<p><strong>Idea:</strong> skip installing an agent you will not use (smaller image, same tags).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude<span class="w">   </span><span class="c1"># → orcan:&lt;VERSION&gt;-claude</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-claude<span class="w"> </span>orcan<span class="w"> </span>up
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># or</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>orcan<span class="w"> </span>build<span class="w"> </span>--cursor<span class="w">   </span><span class="c1"># → orcan:&lt;VERSION&gt;-cursor</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-cursor<span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="scenario-rebuild-after-dockerfile-or-rootfs-changes">Scenario: rebuild after Dockerfile or rootfs changes<a class="headerlink" href="#scenario-rebuild-after-dockerfile-or-rootfs-changes" title="Permanent link">&para;</a></h2>
 <p><strong>Idea:</strong> context description stayed the same; the <strong>tooling image</strong> changed.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>rebuild<span class="w">          </span><span class="c1"># full</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># or</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>make<span class="w"> </span>rebuild-claude
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>make<span class="w"> </span>down
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>make<span class="w"> </span>terminal-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--force<span class="w">       </span><span class="c1"># full image; skip pull, rebuild locally</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># or</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude<span class="w"> </span>--force
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>orcan<span class="w"> </span>down
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="scenario-verify-path-parity">Scenario: verify path parity<a class="headerlink" href="#scenario-verify-path-parity" title="Permanent link">&para;</a></h2>
 <p><strong>Why:</strong> nested Docker only works if absolute paths match.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>path-check
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
 </span></code></pre></div>
 <h2 id="inside-the-container">Inside the container<a class="headerlink" href="#inside-the-container" title="Permanent link">&para;</a></h2>
 <table>
@@ -1848,33 +1904,31 @@
 </table>
 <p>Launcher keys: workspace number, <code>s</code> = status, <code>i</code> = init hint, <code>q</code> = quit.</p>
 <h2 id="stop-clean-uninstall">Stop, clean, uninstall<a class="headerlink" href="#stop-clean-uninstall" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>down<span class="w">                 </span><span class="c1"># stop; keep ~/.config/orcan</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>make<span class="w"> </span>clean<span class="w">                </span><span class="c1"># compose down style</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>make<span class="w"> </span>clean-data<span class="w">           </span><span class="c1"># DESTRUCTIVE: deletes ORCAN_DATA (type yes)</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>down<span class="w">                 </span><span class="c1"># stop; keep ~/.config/orcan</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w">           </span><span class="c1"># DESTRUCTIVE: deletes ORCAN_DATA (type yes)</span>
 </span></code></pre></div>
 <p>Full removal: <a href="#uninstall">Uninstall</a>.</p>
 <h2 id="uninstall">Uninstall<a class="headerlink" href="#uninstall" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>down
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>make<span class="w"> </span>clean-data
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>docker<span class="w"> </span>images<span class="w"> </span><span class="s1">&#39;orcan*&#39;</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>docker<span class="w"> </span>rmi<span class="w"> </span>orcan:latest<span class="w"> </span>orcan:full<span class="w"> </span>orcan:claude<span class="w">   </span><span class="c1"># optional</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>rm<span class="w"> </span>-rf<span class="w"> </span>/absolute/path/to/orcan<span class="w">                    </span><span class="c1"># optional</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan<span class="w"> </span>down
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>docker<span class="w"> </span>images<span class="w"> </span><span class="s1">&#39;orcan*&#39;</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>docker<span class="w"> </span>rmi<span class="w"> </span>orcan:latest<span class="w"> </span><span class="s1">&#39;orcan:*&#39;</span><span class="w">   </span><span class="c1"># optional: drop local tags</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>rm<span class="w"> </span>-rf<span class="w"> </span>/absolute/path/to/orcan<span class="w">                    </span><span class="c1"># optional</span>
 </span></code></pre></div>
 <p>Mounted project repos are untouched unless you delete them yourself.</p>
 <h2 id="upgrade-orcan">Upgrade Orcan<a class="headerlink" href="#upgrade-orcan" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>git<span class="w"> </span>fetch
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>git<span class="w"> </span>checkout<span class="w"> </span>vX.Y.Z<span class="w">       </span><span class="c1"># or main</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>make<span class="w"> </span>env<span class="w">                  </span><span class="c1"># if config schema changed</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>make<span class="w"> </span>rebuild<span class="w">              </span><span class="c1"># if Dockerfile/rootfs changed</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>make<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>terminal-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>orcan<span class="w"> </span>update<span class="w">                </span><span class="c1"># or: git fetch &amp;&amp; git checkout vX.Y.Z</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>orcan<span class="w"> </span>sync<span class="w">                  </span><span class="c1"># if config schema changed</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>orcan<span class="w"> </span>build<span class="w"> </span>--force<span class="w">         </span><span class="c1"># if Dockerfile/rootfs changed</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../getting-started/quickstart/">Quick Start</a>  </li>
 <li><a href="../troubleshooting/">Troubleshooting</a>  </li>
-<li><a href="../../reference/makefile/">Makefile reference</a>  </li>
+<li><a href="../../reference/cli/">CLI reference</a>  </li>
 <li><a href="../../faq/">FAQ</a></li>
 </ul>
 
@@ -1899,7 +1953,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:08:21 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
   </span>
 
     

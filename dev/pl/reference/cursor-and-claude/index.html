@@ -966,6 +966,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../makefile/" class="md-nav__link">
         
   
@@ -973,7 +1001,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1673,7 +1701,7 @@
 <tr>
 <td>Zamontowane projekty</td>
 <td>Twoje repozytoria git</td>
-<td>Opcjonalne seedy przez <code>make init-project</code> / <code>init-project-all</code></td>
+<td>Opcjonalne <code>orcan seed</code> — <strong>nie wymagane</strong>; pack workspace wystarcza</td>
 </tr>
 </tbody>
 </table>
@@ -1683,8 +1711,8 @@
 <p>Reguły deny Claude Code używają tylko <code>Read(path)</code> i <code>Edit(path)</code>. Formy <code>Write(...)</code> są przestarzałe (Claude ostrzega i je ignoruje; <code>Edit</code> obejmuje wszystkie narzędzia edycji plików). Szablony Orcan i <code>init-ai-statusline</code> trzymają <code>Edit(**/.env)</code> (i pokrewne) bez <code>Write(...)</code>.</p>
 <h2 id="workspace-vs-projekt">Workspace vs projekt<a class="headerlink" href="#workspace-vs-projekt" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Context pack <strong>workspace'a</strong>: zapisywany pod <code>/home/developer/workspaces/&lt;name&gt;/</code> przez <code>init-workspace</code></li>
-<li>Pliki <strong>projektu</strong>: tylko gdy uruchomisz cele init-project</li>
+<li>Context pack <strong>workspace'a</strong>: zapisywany pod <code>/home/developer/workspaces/&lt;name&gt;/</code> przez <code>init-workspace</code> (automatycznie przy starcie)</li>
+<li>Pliki <strong>projektu</strong> w checkoutach git: tylko jeśli uruchomisz <code>orcan seed</code> (opcjonalnie)</li>
 </ul>
 <p>Zobacz <a href="../../architecture/">Architektura</a>.</p>
 <h2 id="status-line">Status line<a class="headerlink" href="#status-line" title="Permanent link">&para;</a></h2>
@@ -1720,7 +1748,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 14:30:45 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
   </span>
 
     
