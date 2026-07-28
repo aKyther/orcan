@@ -122,7 +122,8 @@ Mounted project repos are untouched unless you delete them yourself.
 
 ```bash
 cd /absolute/path/to/orcan
-orcan update                # or: git fetch && git checkout vX.Y.Z
+orcan update                # newest GitHub Release tag (vX.Y.Z)
+# orcan update --main       # follow main instead
 orcan sync                  # if config schema changed
 orcan build --force         # if Dockerfile/rootfs changed
 orcan down && orcan up

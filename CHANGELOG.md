@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-28
+
+### Changed
+
+- Config wizard UX: numbered steps, clearer summary, fewer confirmation prompts (path errors re-prompt directly; optional tmux/ttyd behind one question)
+- Soft update hint on `orcan up` when a newer release tag exists (cached ~12h; `ORCAN_NO_UPDATE_CHECK=1` to skip)
+- `orcan update` checks out the newest SemVer release tag (`vX.Y.Z`); use `--main` for bleeding edge
+- `install.sh`: numbered progress steps; appends `~/.local/bin` to shell rc automatically (idempotent; `ORCAN_SKIP_PATH=1` to skip)
+
 ## [0.2.0] - 2026-07-28
 
 ### Added
@@ -76,7 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI (validate + MkDocs → `gh-pages`)
 - SemVer releases via `VERSION` + git tags → GitHub Releases (no image registry)
 
-[Unreleased]: https://github.com/aKyther/orcan/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/aKyther/orcan/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/aKyther/orcan/releases/tag/v0.2.1
 [0.2.0]: https://github.com/aKyther/orcan/releases/tag/v0.2.0
 [0.1.1]: https://github.com/aKyther/orcan/releases/tag/v0.1.1
 [0.1.0]: https://github.com/aKyther/orcan/releases/tag/v0.1.0

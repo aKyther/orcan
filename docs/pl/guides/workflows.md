@@ -122,7 +122,8 @@ Zamontowane repo projektów zostają, dopóki sam ich nie usuniesz.
 
 ```bash
 cd /absolute/path/to/orcan
-orcan update                # albo: git fetch && git checkout vX.Y.Z
+orcan update                # najnowszy tag GitHub Release (vX.Y.Z)
+# orcan update --main       # zamiast tego śledź main
 orcan sync                  # gdy zmienił się schemat konfiguracji
 orcan build --force         # gdy zmienił się Dockerfile/rootfs
 orcan down && orcan up

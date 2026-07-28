@@ -28,7 +28,7 @@ Commands:
   publish      Manual push of both-agents orcan:latest (not part of build)
   url          Print browser terminal URL
   logs         Follow container logs
-  update       Update the orcan install from Git
+  update       Checkout newest release tag (or --main)
   doctor       Check host dependencies and config
   uninstall    Remove the CLI install (optional --purge-data)
   version      Print version

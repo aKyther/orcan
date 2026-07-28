@@ -84,7 +84,7 @@ Nie jako obsługiwany przełącznik. Launcher startuje tmux. Zamiast tego używa
 ## Jak zaktualizować?
 
 ```bash
-orcan update                         # albo: git fetch && git checkout vX.Y.Z
+orcan update                         # najnowszy tag release vX.Y.Z
 orcan sync                           # gdy zmienił się schemat konfiguracji
 orcan build --force                  # gdy zmienił się Dockerfile/rootfs
 orcan down && orcan up

@@ -83,7 +83,7 @@ Not as a supported switch. The launcher starts tmux. Use multiple tmux windows/p
 ## How do I update?
 
 ```bash
-orcan update                         # or: git fetch && git checkout vX.Y.Z
+orcan update                         # newest release tag vX.Y.Z
 orcan sync                           # when config schema changed
 orcan build --force                  # when Dockerfile/rootfs changed
 orcan down && orcan up

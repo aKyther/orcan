@@ -69,7 +69,7 @@ orcan_cmd_doctor() {
     if [[ ":${PATH}:" == *":${local_bin}:"* ]]; then
         check "~/.local/bin on PATH" "1"
     else
-        check "~/.local/bin on PATH" "0" "export PATH=\"\$HOME/.local/bin:\$PATH\""
+        check "~/.local/bin on PATH" "0" "open a new shell or: export PATH=\"\$HOME/.local/bin:\$PATH\" (install.sh updates shell rc)"
     fi
     if orcan_have orcan; then
         check "orcan on PATH" "1" "$(command -v orcan)"
@@ -78,6 +78,8 @@ orcan_cmd_doctor() {
     fi
 
     printf '\n'
+    orcan_maybe_hint_update
+
     if (( fail > 0 )); then
         orcan_error "${fail} check(s) failed, ${pass} passed"
         return 1

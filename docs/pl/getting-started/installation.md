@@ -115,6 +115,6 @@ Zobacz [Workflowy — uninstall](../guides/workflows.md#uninstall) lub [FAQ](../
 | Docker permission denied | Dodaj użytkownika do grupy `docker` albo użyj rootless Docker |
 | `orcan sync` pada na `PROJECT_DIR` | Użyj ścieżki **bezwzględnej**; nie używaj `/`, `/home` ani `/etc` jako projektu |
 | Wolny pierwszy build | Normalne — obraz instaluje toolchainy i CLI |
-| `orcan: command not found` | Dodaj `~/.local/bin` do `PATH` albo ponów `install.sh` |
+| `orcan: command not found` | Otwórz nowy shell albo `export PATH="$HOME/.local/bin:$PATH"`; ponów `install.sh` jeśli trzeba |
 
 Dalej: [Szybki start](quickstart.md) · [Referencja CLI](../reference/cli.md).

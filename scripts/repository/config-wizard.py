@@ -39,12 +39,17 @@ def die(msg: str) -> None:
     raise SystemExit(1)
 
 
-def info(msg: str) -> None:
+def info(msg: str = "") -> None:
     print(msg)
 
 
 def warn(msg: str) -> None:
-    print(f"Warning: {msg}", file=sys.stderr)
+    print(f"  ! {msg}", file=sys.stderr)
+
+
+def step(num: int, title: str) -> None:
+    info()
+    info(f"── {num}. {title} ──")
 
 
 def ask(prompt: str, default: str | None = None) -> str:
@@ -70,19 +75,17 @@ def ask_yes_no(prompt: str, *, default: bool = True) -> bool:
             return True
         if raw in {"n", "no"}:
             return False
-        warn("Please answer y or n.")
+        warn("answer y or n")
 
 
 def ask_choice(prompt: str, choices: list[str], *, default: str) -> str:
-    labels = "/".join(
-        c.upper() if c == default else c for c in choices
-    )
+    labels = "/".join(c.upper() if c == default else c for c in choices)
     while True:
         raw = ask(f"{prompt} ({labels})", default).lower()
         for c in choices:
             if raw == c or raw == c[0]:
                 return c
-        warn(f"Choose one of: {', '.join(choices)}")
+        warn(f"choose: {', '.join(choices)}")
 
 
 def validate_name(name: str, *, label: str) -> str | None:
@@ -91,8 +94,8 @@ def validate_name(name: str, *, label: str) -> str | None:
         return f"{label} cannot be empty"
     if not NAME_RE.match(name):
         return (
-            f"{label} must match {NAME_RE.pattern} "
-            "(letters, digits, _ and -; start with alphanumeric)"
+            f"{label}: letters, digits, _ and - only "
+            "(must start with alphanumeric)"
         )
     return None
 
@@ -102,14 +105,14 @@ def validate_project_path(path_str: str) -> tuple[str | None, Path | None]:
     if not path_str:
         return "path cannot be empty", None
     if "~" in path_str:
-        return "path must not contain ~ (use an absolute path)", None
+        return "use an absolute path (no ~)", None
     p = Path(path_str)
     if not p.is_absolute():
         return f"path must be absolute (got: {path_str})", None
     if not p.exists():
-        return f"path does not exist: {path_str}", None
+        return f"does not exist: {path_str}", None
     if not p.is_dir():
-        return f"path is not a directory: {path_str}", None
+        return f"not a directory: {path_str}", None
     try:
         resolved = p.resolve()
     except OSError as exc:
@@ -120,7 +123,7 @@ def validate_project_path(path_str: str) -> tuple[str | None, Path | None]:
     if resolved == home:
         return f"refusing to mount entire home: {resolved}", None
     if not os.access(resolved, os.R_OK):
-        return f"path is not readable: {resolved}", None
+        return f"not readable: {resolved}", None
     return None, resolved
 
 
@@ -140,21 +143,31 @@ def ask_project_path(prompt: str, *, default: str = "") -> str:
         err, resolved = validate_project_path(raw)
         if err:
             warn(err)
-            if not ask_yes_no("Try again?", default=True):
-                die("cancelled")
             continue
         assert resolved is not None
         return str(resolved)
 
 
-def ask_project(*, default_name: str = "", default_path: str = "") -> dict[str, str]:
-    name = ask_name("  Project name", default=default_name, label="project name")
-    path = ask_project_path("  Project path (absolute)", default=default_path)
+def ask_project(
+    *,
+    default_name: str = "",
+    default_path: str = "",
+    index: int | None = None,
+) -> dict[str, str]:
+    prefix = f"  [{index}] " if index is not None else "  "
+    name = ask_name(
+        f"{prefix}Project name",
+        default=default_name,
+        label="project name",
+    )
+    path = ask_project_path(
+        f"{prefix}Project path (absolute)",
+        default=default_path,
+    )
     basename = Path(path).name
     if basename != name:
-        # User-chosen name wins; only switch if they explicitly decline to keep it.
         keep = ask_yes_no(
-            f"  Keep project name {name!r}? (folder is {basename!r})",
+            f"{prefix}Keep name {name!r}? (folder is {basename!r})",
             default=True,
         )
         if not keep:
@@ -162,48 +175,65 @@ def ask_project(*, default_name: str = "", default_path: str = "") -> dict[str, 
             if err:
                 warn(f"{err} — keeping {name!r}")
             else:
-                info(f"  Using folder name {basename!r} as project name.")
+                info(f"{prefix}Using folder name {basename!r}.")
                 name = basename
     return {"name": name, "path": path}
 
 
-def ask_new_workspace(*, prompt_confirm: bool = False) -> dict[str, Any] | None:
-    """Collect one workspace. Skip confirm when the caller already asked."""
-    if prompt_confirm and not ask_yes_no("Create a workspace?", default=True):
-        return None
-    name = ask_name("Workspace name", label="workspace name")
+def ask_new_workspace(*, index: int | None = None) -> dict[str, Any]:
+    """Collect one workspace (caller already decided to add it)."""
+    if index is not None:
+        info(f"Workspace {index}")
+    name = ask_name("  Workspace name", label="workspace name")
     projects: list[dict[str, str]] = []
-    info(f"Add at least one project to workspace {name!r}.")
+    info(f"  Add projects for {name!r} (at least one).")
     while True:
-        if projects:
-            if not ask_yes_no(
-                f"Add another project to workspace {name!r}?",
-                default=False,
-            ):
-                break
-        projects.append(ask_project())
+        n = len(projects) + 1
+        if projects and not ask_yes_no(
+            f"  Add another project to {name!r}?",
+            default=False,
+        ):
+            break
+        projects.append(ask_project(index=n))
+    info(f"  ✓ workspace {name!r}: {len(projects)} project(s)")
     return {"name": name, "projects": projects}
 
 
-def summarize(cfg: dict[str, Any]) -> None:
+def summarize(cfg: dict[str, Any], *, title: str = "Summary") -> None:
     workspaces = cfg.get("workspaces") or []
-    info("")
-    info("Current config:")
+    info()
+    info(f"── {title} ──")
     if not workspaces:
         info("  (no workspaces)")
         return
     for i, ws in enumerate(workspaces, 1):
         if not isinstance(ws, dict):
             continue
-        info(f"  {i}. workspace {ws.get('name', '?')}")
+        info(f"  {i}. {ws.get('name', '?')}")
         for p in ws.get("projects") or []:
             if isinstance(p, dict):
-                info(f"       - {p.get('name')}: {p.get('path')}")
+                info(f"       • {p.get('name')}  →  {p.get('path')}")
+    tmux = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else None
+    ttyd = cfg.get("ttyd") if isinstance(cfg.get("ttyd"), dict) else None
+    if tmux:
+        info(
+            f"  tmux: {tmux.get('initial_windows', '?')} windows, "
+            f"prefix {tmux.get('window_prefix', '?')!r}"
+        )
+    if ttyd:
+        info(
+            f"  ttyd: host port {ttyd.get('host_port', '?')}, "
+            f"font {ttyd.get('font_size', '?')}"
+        )
 
 
-def edit_project(proj: dict[str, Any]) -> dict[str, Any] | None:
-    info(f"  Project: {proj.get('name')} @ {proj.get('path')}")
-    action = ask_choice("  Keep, change, or delete this project?", ["keep", "change", "delete"], default="keep")
+def edit_project(proj: dict[str, Any], *, index: int) -> dict[str, Any] | None:
+    info(f"  [{index}] {proj.get('name')}  →  {proj.get('path')}")
+    action = ask_choice(
+        "      Action",
+        ["keep", "change", "delete"],
+        default="keep",
+    )
     if action == "keep":
         return dict(proj)
     if action == "delete":
@@ -211,20 +241,21 @@ def edit_project(proj: dict[str, Any]) -> dict[str, Any] | None:
     return ask_project(
         default_name=str(proj.get("name") or ""),
         default_path=str(proj.get("path") or ""),
+        index=index,
     )
 
 
 def ask_more_projects(name: str, projects: list[dict[str, str]]) -> list[dict[str, str]]:
-    """Prompt to append projects while staying in the same workspace."""
-    while ask_yes_no(f"Add another project to workspace {name!r}?", default=False):
-        projects.append(ask_project())
+    while ask_yes_no(f"  Add another project to {name!r}?", default=False):
+        projects.append(ask_project(index=len(projects) + 1))
     return projects
 
 
-def edit_workspace(ws: dict[str, Any]) -> dict[str, Any] | None:
-    info(f"Workspace: {ws.get('name')}")
+def edit_workspace(ws: dict[str, Any], *, index: int) -> dict[str, Any] | None:
+    info()
+    info(f"Workspace {index}: {ws.get('name')}")
     action = ask_choice(
-        "Keep, change, or delete this workspace?",
+        "  Action",
         ["keep", "change", "delete"],
         default="keep",
     )
@@ -240,89 +271,77 @@ def edit_workspace(ws: dict[str, Any]) -> dict[str, Any] | None:
         return {"name": name, "projects": projects_out}
 
     name = ask_name(
-        "Workspace name",
+        "  Workspace name",
         default=str(ws.get("name") or ""),
         label="workspace name",
     )
     projects_out: list[dict[str, str]] = []
-    for proj in ws.get("projects") or []:
+    for i, proj in enumerate(ws.get("projects") or [], 1):
         if not isinstance(proj, dict):
             continue
-        edited = edit_project(proj)
+        edited = edit_project(proj, index=i)
         if edited is not None:
             projects_out.append(edited)
     ask_more_projects(name, projects_out)
     if not projects_out:
-        warn("Workspace must have at least one project.")
-        if ask_yes_no("Add a project now?", default=True):
-            projects_out.append(ask_project())
+        warn("workspace needs at least one project")
+        if ask_yes_no("  Add a project now?", default=True):
+            projects_out.append(ask_project(index=1))
             ask_more_projects(name, projects_out)
         else:
-            warn("Dropping empty workspace.")
+            warn("dropping empty workspace")
             return None
     return {"name": name, "projects": projects_out}
 
 
 def edit_existing(cfg: dict[str, Any]) -> dict[str, Any]:
-    summarize(cfg)
-    info("")
-    info("Review each workspace (keep / change / delete).")
+    summarize(cfg, title="Current config")
+    step(1, "Review workspaces")
+    info("For each: keep (Enter), change, or delete.")
     new_workspaces: list[dict[str, Any]] = []
-    for ws in cfg.get("workspaces") or []:
+    for i, ws in enumerate(cfg.get("workspaces") or [], 1):
         if not isinstance(ws, dict):
             continue
-        edited = edit_workspace(ws)
+        edited = edit_workspace(ws, index=i)
         if edited is not None:
             new_workspaces.append(edited)
+    step(2, "More workspaces?")
     while ask_yes_no("Add another workspace?", default=False):
-        created = ask_new_workspace(prompt_confirm=False)
-        if created:
-            new_workspaces.append(created)
+        created = ask_new_workspace(index=len(new_workspaces) + 1)
+        new_workspaces.append(created)
     if not new_workspaces:
-        die("config must contain at least one workspace — nothing saved")
+        die("need at least one workspace — nothing saved")
     out = dict(cfg)
     out["workspaces"] = new_workspaces
     return out
 
 
-def create_fresh() -> dict[str, Any]:
-    info("No orcan config found — building a new orcan.config.json")
-    workspaces: list[dict[str, Any]] = []
-    while True:
-        # First workspace is implied; later ones already confirmed by
-        # "Add another workspace?" — never re-ask "Create a workspace?".
-        label = "first" if not workspaces else "next"
-        info(f"\nConfigure the {label} workspace.")
-        created = ask_new_workspace(prompt_confirm=False)
-        if created:
-            workspaces.append(created)
-        elif not workspaces:
-            warn("You need at least one workspace.")
-            if not ask_yes_no("Try again?", default=True):
-                die("cancelled")
-            continue
-        if not ask_yes_no("Add another workspace?", default=False):
-            break
-    cfg: dict[str, Any] = {"workspaces": workspaces}
-    if ask_yes_no("Configure tmux defaults (windows / prefix)?", default=False):
-        windows = ask("Initial tmux windows per workspace", "3")
+def ask_optional_settings(cfg: dict[str, Any]) -> None:
+    step(2, "Optional settings")
+    info("Defaults are fine for most people (tmux + browser terminal).")
+    if not ask_yes_no("Customize tmux or ttyd?", default=False):
+        cfg["tmux"] = dict(DEFAULT_TMUX)
+        cfg["ttyd"] = dict(DEFAULT_TTYD)
+        info("  Using defaults (3 tmux windows, ttyd port 7681).")
+        return
+
+    if ask_yes_no("  Change tmux (windows / prefix)?", default=False):
+        windows = ask("  Initial tmux windows per workspace", "3")
         try:
             n = int(windows)
-            if n < 1:
-                n = 1
-            if n > 9:
-                n = 9
+            n = max(1, min(9, n))
         except ValueError:
             n = 3
-            warn("Invalid number — using 3")
-        prefix = ask("Window name prefix", "tab") or "tab"
+            warn("invalid number — using 3")
+        prefix = ask("  Window name prefix", "tab") or "tab"
         cfg["tmux"] = {"initial_windows": n, "window_prefix": prefix}
     else:
         cfg["tmux"] = dict(DEFAULT_TMUX)
-    if ask_yes_no("Configure ttyd (port / font)?", default=False):
-        port = ask("ttyd container port", "7681")
-        host_port = ask("ttyd host port", port)
-        font = ask("ttyd font size", "22")
+
+    if ask_yes_no("  Change ttyd (port / font)?", default=False):
+        port = ask("  ttyd container port", "7681")
+        host_port = ask("  ttyd host port", port)
+        font = ask("  ttyd font size", "22")
         try:
             cfg["ttyd"] = {
                 "port": int(port),
@@ -332,10 +351,24 @@ def create_fresh() -> dict[str, Any]:
                 "theme": DEFAULT_TTYD["theme"],
             }
         except ValueError:
-            warn("Invalid ttyd numbers — using defaults")
+            warn("invalid ttyd numbers — using defaults")
             cfg["ttyd"] = dict(DEFAULT_TTYD)
     else:
         cfg["ttyd"] = dict(DEFAULT_TTYD)
+
+
+def create_fresh() -> dict[str, Any]:
+    info("No config yet — let's create orcan.config.json")
+    step(1, "Workspaces")
+    info("A workspace is a named set of project folders (one tmux session).")
+    workspaces: list[dict[str, Any]] = []
+    while True:
+        created = ask_new_workspace(index=len(workspaces) + 1)
+        workspaces.append(created)
+        if not ask_yes_no("Add another workspace?", default=False):
+            break
+    cfg: dict[str, Any] = {"workspaces": workspaces}
+    ask_optional_settings(cfg)
     return cfg
 
 
@@ -368,7 +401,7 @@ def main() -> None:
     parser.add_argument(
         "--root",
         default=str(ROOT),
-        help="Repository root (default: orcan repo)",
+        help="ORCAN_HOME / repo root (default: ORCAN_HOME or orcan repo)",
     )
     parser.add_argument(
         "--config",
@@ -382,7 +415,7 @@ def main() -> None:
         die("config wizard needs an interactive TTY (run in a terminal)")
 
     info("orcan config wizard")
-    info("──────────────────")
+    info("───────────────────")
 
     if args.config:
         existing = Path(args.config)
@@ -391,13 +424,12 @@ def main() -> None:
         if not existing.is_file():
             die(f"config not found: {existing}")
     else:
-        found = discover_config(root)
-        existing = found
+        existing = discover_config(root)
 
     if existing and existing.is_file():
-        info(f"Found: {existing}")
+        info(f"Config: {existing}")
         cfg = load_config(existing)
-        if not ask_yes_no("Edit this config interactively?", default=True):
+        if not ask_yes_no("Edit this config?", default=True):
             info("Cancelled — no changes.")
             return
         cfg = edit_existing(cfg)
@@ -407,16 +439,19 @@ def main() -> None:
         out_path = default_write_path(root)
 
     ensure_unique_names(cfg)
-    summarize(cfg)
-    info("")
-    if not ask_yes_no(f"Write {out_path}?", default=True):
+    summarize(cfg, title="Review before save")
+    info()
+    info(f"Will write: {out_path}")
+    if not ask_yes_no("Save?", default=True):
         info("Cancelled — nothing written.")
         return
 
     dump_config(out_path, cfg)
-    info(f"Wrote {out_path}")
-    info("Next: orcan sync")
-    info("      orcan up")
+    info()
+    info(f"Saved {out_path}")
+    info("Next:")
+    info("  orcan sync")
+    info("  orcan up")
 
 
 if __name__ == "__main__":

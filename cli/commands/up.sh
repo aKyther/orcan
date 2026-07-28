@@ -29,6 +29,7 @@ orcan_cmd_up() {
     orcan_require_docker
     orcan_require_generated
     orcan_load_env
+    orcan_maybe_hint_update
 
     local port="${TTYD_HOST_PORT:-7681}"
 
