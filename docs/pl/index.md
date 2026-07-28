@@ -16,7 +16,7 @@ Po kilku miesiącach kosztowna nie jest komenda `git clone`. Kosztowne jest **od
 
 ## Rozwiązanie
 
-Orcan nie zarządza „Gitem” jako produktem. Zarządza **kontekstem**.
+Orcan nie zarządza produktami. Zarządza **kontekstem**.
 
 - **Project** to jeden checkout (ścieżka bezwzględna).
 - **Workspace** to nazwany zbiór projektów, które należą do siebie.

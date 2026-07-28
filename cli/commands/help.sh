@@ -14,7 +14,10 @@ Commands:
   context show             List workspaces
   context wizard           Interactive config editor
   context add PATH         Add a project (optional --workspace NAME)
-  up [--with-docker]       Start browser terminal (add socket with --with-docker)
+  up [--with-docker] [--with-git]
+                           Start browser terminal
+                           --with-docker: mount Docker socket
+                           --with-git: mount host ~/.ssh (+ agent) for push/pull
   down                     Stop containers
   build [--claude|--cursor] [--force]
                            Both agents → orcan:latest + orcan:<VERSION>.

@@ -72,6 +72,18 @@ tmux is started by the launcher (`cursor-ttyd` → `cursor-launcher`), not by a 
 
 An older layout could create a root-owned directory. Fix ownership or replace with a normal file, then update Orcan and recreate the container.
 
+Orcan does **not** mount host `~/.gitconfig`. Instead `orcan sync` copies `user.name` / `user.email` into `.env` (`GIT_AUTHOR_*` / `GIT_COMMITTER_*`) so commits inside the container match the host author.
+
+For `git push` / `git pull` over SSH:
+
+```bash
+orcan up --with-git
+# combine with DinD:
+orcan up --with-docker --with-git
+```
+
+That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is set). Plain `orcan up` does not.
+
 ## Diagnostics checklist
 
 ```bash

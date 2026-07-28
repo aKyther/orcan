@@ -31,6 +31,12 @@ orcan down && orcan up
 
 `orcan up` nie uruchamia `orcan sync`. Najpierw zawsze zastosuj konfigurację.
 
+## Czy mogę commitować i pushować z kontenera?
+
+**Autor commitów:** tak po `orcan sync` — hostowe `user.name` / `user.email` trafiają do `GIT_AUTHOR_*` w kontenerze.
+
+**Push/pull po SSH:** startuj z `orcan up --with-git` (montuje `~/.ssh` oraz agenta SSH, gdy jest dostępny). Razem z DinD: `orcan up --with-docker --with-git`. Zwykłe `orcan up` nie podpina kluczy. Zobacz [Szybki start](getting-started/quickstart.md#git-w-kontenerze) i [Bezpieczeństwo](reference/security.md).
+
 ## Którzy agenci są zainstalowani?
 
 Domyślnie obraz ma **obu** agentów (`orcan:latest` / `orcan:<VERSION>`). Żeby pominąć agenta, którego nie użyjesz, zbuduj **osobny lokalny tag** (bez pull; nie nadpisuje `latest`):

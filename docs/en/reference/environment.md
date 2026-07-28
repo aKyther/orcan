@@ -12,8 +12,10 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 | `PROJECT_DIR` | Orcan install path (where you run `orcan`) |
 | `CONTAINER_PROJECT_DIR` / `WORKSPACE_*` | Primary workspace paths |
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Runtime config mount |
-| `ORCAN_COMPOSE_PROJECTS` | Generated Compose overlay |
+| `ORCAN_COMPOSE_PROJECTS` | Generated Compose overlay (project mounts) |
 | `ORCAN_DATA` | Host data root (default `$HOME/.config/orcan`) |
+| `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Host `git config --global` identity for in-container commits |
+| `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Same as author (kept in sync) |
 
 ## Seeded once (kept on later `orcan sync`)
 
@@ -45,6 +47,8 @@ Edit via `orcan.config.json` (`resources`, `ttyd`) then `orcan sync` for new mac
 | `ORCAN_VARIANT` | `full` or `claude` (from `/etc/orcan/variant`) |
 | `ORCAN_VERSION` | From `/etc/orcan/version` |
 | `HISTFILE` | `/command-history/.zsh_history` (bind: `$ORCAN_DATA/shell-history`) |
+| `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Same commit identity as the host user |
+| `SSH_AUTH_SOCK` | Host agent (only with `orcan up --with-git`) |
 
 ### Devtool cache hygiene
 

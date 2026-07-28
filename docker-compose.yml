@@ -44,6 +44,11 @@ services:
       ORCAN_CONFIG: ${ORCAN_CONFIG:-/etc/orcan/config.json}
       ORCAN_DATA: ${ORCAN_DATA}
       TZ: ${TZ:-UTC}
+      # Host git identity (orcan sync → .env). Same author/committer as host commits.
+      GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-}
+      GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-}
+      GIT_COMMITTER_NAME: ${GIT_COMMITTER_NAME:-${GIT_AUTHOR_NAME:-}}
+      GIT_COMMITTER_EMAIL: ${GIT_COMMITTER_EMAIL:-${GIT_AUTHOR_EMAIL:-}}
     volumes:
       - ${ORCAN_CONFIG_HOST:-./.orcan/runtime-config.json}:/etc/orcan/config.json:ro
       - /etc/localtime:/etc/localtime:ro

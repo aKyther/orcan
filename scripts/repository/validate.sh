@@ -195,6 +195,16 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
     docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
     docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
+    # Optional --with-git overlay (generated on demand; stub for config check)
+    mkdir -p .orcan
+    cat >.orcan/compose-git.generated.yml <<'YAML'
+# validate stub — real overlay is written by: orcan up --with-git
+services:
+  orcan:
+    environment:
+      ORCAN_WITH_GIT_STUB: "1"
+YAML
+    docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f .orcan/compose-git.generated.yml -f docker-compose.ttyd.yml config --quiet
     printf 'Compose config OK\n'
 else
     printf 'Skip: Docker daemon not available for compose config\n'

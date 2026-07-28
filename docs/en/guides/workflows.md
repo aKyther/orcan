@@ -50,6 +50,16 @@ orcan up
 orcan up --with-docker
 ```
 
+## Scenario: git push/pull from inside the container
+
+**When:** commits already match the host identity (via `orcan sync`); you also need SSH keys or an agent for remotes.
+
+```bash
+orcan up --with-git
+# with DinD:
+orcan up --with-docker --with-git
+```
+
 ## Scenario: install only one agent
 
 **Idea:** skip installing an agent you will not use (smaller image, same tags).

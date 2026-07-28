@@ -20,7 +20,7 @@ Commands:
   init         First-run setup (scaffold config, sync, show)
   sync         Apply orcan.config.json → .env + .orcan/* for Compose
   context      Manage context (show | wizard | add)
-  up           Start browser terminal (use --with-docker for socket)
+  up           Start browser terminal (--with-docker / --with-git)
   down         Stop containers
   build        Both agents → orcan:latest + orcan:<VERSION> (pull or build)
                (--claude/--cursor → orcan:<VERSION>-claude|cursor, no pull)

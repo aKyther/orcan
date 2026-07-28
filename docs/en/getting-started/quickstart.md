@@ -39,6 +39,20 @@ orcan up
 
 Open the URL printed in the terminal (default `http://localhost:7681`).
 
+## Git inside the container
+
+`orcan sync` copies your host `git config --global` identity (`user.name` / `user.email`) so commits inside match the host author.
+
+Plain `orcan up` does **not** mount SSH keys. To push/pull over SSH from inside:
+
+```bash
+orcan up --with-git
+# optional DinD at the same time:
+orcan up --with-docker --with-git
+```
+
+That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is set). Both flags are optional and print a security warning — agents in the container can use the mounted socket/keys. Details: [Workflows](../guides/workflows.md), [Security](../reference/security.md).
+
 ## In the browser
 
 1. Pick a **workspace** from the launcher (or press Enter for the default).  
@@ -64,6 +78,7 @@ pwd
 | Port 7681 busy | Set `ttyd.host_port` in config, then `orcan sync` |
 | Empty launcher | Check workspaces in config, then `orcan sync` |
 | Socket errors with Docker-in-Docker | Use `orcan up --with-docker` |
+| `git push` fails (SSH) inside the container | Use `orcan up --with-git` |
 
 !!! tip
     After you edit `orcan.config.json`, run `orcan sync` before recreating the container. `orcan up` does **not** refresh config. See [Workflows](../guides/workflows.md).

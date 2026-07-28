@@ -56,7 +56,7 @@ Open `http://localhost:7681`. After any config edit: `orcan sync && orcan down &
 | --- | --- |
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `.orcan/*` |
 | `orcan context wizard` | Interactive config |
-| `orcan up` / `orcan up --with-docker` / `orcan down` | Start (optional DinD) / stop browser terminal |
+| `orcan up` / `orcan up --with-docker` / `orcan up --with-git` / `orcan down` | Start (optional DinD / host SSH) / stop browser terminal |
 | `orcan build [--claude\|--cursor]` | Both → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor` |
 | `orcan publish` | Manual image push (maintainers) |
 | `orcan update` | Newest release tag `vX.Y.Z` (`--main` for bleeding edge) |

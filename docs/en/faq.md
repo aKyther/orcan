@@ -31,6 +31,12 @@ Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
 `orcan up` does not run `orcan sync`. Always apply config first.
 
+## Can I commit and push from inside the container?
+
+**Commit author:** yes after `orcan sync` — host `user.name` / `user.email` become `GIT_AUTHOR_*` in the container.
+
+**Push/pull over SSH:** start with `orcan up --with-git` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --with-docker --with-git`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
+
 ## Which agents are installed?
 
 By default the image includes **both** agents (`orcan:latest` / `orcan:<VERSION>`). To skip installing an agent you will not use, build a **separate local tag** (no registry pull; does not overwrite `latest`):

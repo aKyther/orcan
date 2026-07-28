@@ -50,6 +50,16 @@ orcan up
 orcan up --with-docker
 ```
 
+## Scenariusz: git push/pull z kontenera
+
+**Kiedy:** commity już mają tożsamość hosta (`orcan sync`); potrzebujesz też kluczy SSH lub agenta do remote'ów.
+
+```bash
+orcan up --with-git
+# z DinD:
+orcan up --with-docker --with-git
+```
+
 ## Scenariusz: zainstaluj tylko jednego agenta
 
 **Idea:** nie instaluj agenta, którego nie użyjesz (mniejszy obraz, te same tagi).

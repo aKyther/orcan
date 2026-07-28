@@ -121,6 +121,7 @@ orcan context show
 | `.env` | Zmienne Compose i Make |
 | `.orcan/runtime-config.json` | Montowany do kontenera jako `/etc/orcan/config.json` |
 | `.orcan/compose-projects.generated.yml` | Dodatkowe bind mounty |
+| `.orcan/compose-git.generated.yml` | Tworzone przez `orcan up --with-git` (mounty SSH) |
 | `.orcan/workspaces/<name>/` | Meta workspace'a po stronie hosta |
 | Drzewo `$ORCAN_DATA` | Domyślnie `~/.config/orcan` (home Cursor/Claude, cache) |
 

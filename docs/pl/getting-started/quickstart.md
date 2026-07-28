@@ -39,6 +39,20 @@ orcan up
 
 Otwórz URL wypisany w terminalu (domyślnie `http://localhost:7681`).
 
+## Git w kontenerze
+
+`orcan sync` kopiuje tożsamość z hostowego `git config --global` (`user.name` / `user.email`), żeby commity w środku miały tego samego autora co na hoście.
+
+Zwykłe `orcan up` **nie** montuje kluczy SSH. Do push/pull po SSH z kontenera:
+
+```bash
+orcan up --with-git
+# opcjonalnie DinD jednocześnie:
+orcan up --with-docker --with-git
+```
+
+Montuje hostowy `~/.ssh` tylko do odczytu (oraz agenta SSH, gdy `SSH_AUTH_SOCK` jest ustawiony). Obie flagi są opcjonalne i wypisują ostrzeżenie bezpieczeństwa — agenci w kontenerze mogą użyć zamontowanego socketa/kluczy. Szczegóły: [Workflowy](../guides/workflows.md), [Bezpieczeństwo](../reference/security.md).
+
 ## W przeglądarce
 
 1. Wybierz **workspace** z launchera (lub Enter dla domyślnego).  
@@ -64,6 +78,7 @@ pwd
 | Port 7681 zajęty | Ustaw `ttyd.host_port` w configu, potem `orcan sync` |
 | Pusty launcher | Sprawdź workspace'y w configu, potem `orcan sync` |
 | Błędy socketu Docker-in-Docker | Użyj `orcan up --with-docker` |
+| `git push` pada (SSH) w kontenerze | Użyj `orcan up --with-git` |
 
 !!! tip
     Po edycji `orcan.config.json` uruchom `orcan sync` przed odtworzeniem kontenera. `orcan up` **nie** odświeża konfiguracji. Zobacz [Workflowy](../guides/workflows.md).
