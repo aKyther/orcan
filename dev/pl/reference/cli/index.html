@@ -6,23 +6,23 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Opisz workspace'y i projekty w orcan.config.json — najpierw historia kontekstu, potem zastosowanie.">
+        <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
       
       
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/getting-started/configuration/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/reference/cli/">
       
       
-        <link rel="prev" href="../quickstart/">
+        <link rel="prev" href="../../architecture/">
       
       
-        <link rel="next" href="../../guides/workflows/">
+        <link rel="next" href="../makefile/">
       
       
         
-          <link rel="alternate" href="../../../getting-started/configuration/" hreflang="en">
+          <link rel="alternate" href="../../../reference/cli/" hreflang="en">
         
           <link rel="alternate" href="./" hreflang="pl">
         
@@ -33,7 +33,7 @@
     
     
       
-        <title>Przewodnik po konfiguracji - Orcan</title>
+        <title>CLI - Orcan</title>
       
     
     
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Opisz workspace'y i projekty w orcan.config.json — najpierw historia kontekstu, potem zastosowanie.">
+  <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Przewodnik po konfiguracji — Orcan">
-  <meta property="og:description" content="Opisz workspace'y i projekty w orcan.config.json — najpierw historia kontekstu, potem zastosowanie.">
-  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/getting-started/configuration/">
+  <meta property="og:title" content="CLI — Orcan">
+  <meta property="og:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/reference/cli/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Przewodnik po konfiguracji — Orcan">
-  <meta name="twitter:description" content="Opisz workspace'y i projekty w orcan.config.json — najpierw historia kontekstu, potem zastosowanie.">
+  <meta name="twitter:title" content="CLI — Orcan">
+  <meta name="twitter:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
 
   </head>
   
@@ -96,7 +96,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#konfiguracja" class="md-skip">
+        <a href="#referencja-cli" class="md-skip">
           Przejdź do treści
         </a>
       
@@ -147,7 +147,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Przewodnik po konfiguracji
+              CLI
             
           </span>
         </div>
@@ -204,7 +204,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../getting-started/configuration/" hreflang="en" class="md-select__link">
+            <a href="../../../reference/cli/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -620,8 +620,6 @@
       
   
   
-    
-  
   
   
     
@@ -634,11 +632,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
@@ -659,7 +659,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -677,7 +677,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../installation/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -705,7 +705,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -730,37 +730,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Przewodnik po konfiguracji
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -776,131 +749,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Spis treści
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#dlaczego-plik-konfiguracji" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dlaczego plik konfiguracji
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zrodo-prawdy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Źródło prawdy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ksztat-przykad" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Kształt (przykład)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Kształt (przykład)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#uwagi-do-pol" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Uwagi do pól
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#podnoszenie-zasobow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Podnoszenie zasobów
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sposoby-edycji" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Sposoby edycji
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#co-zapisuje-orcan-sync" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Co zapisuje orcan sync
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#seed-do-checkoutow-git-opcjonalnie-rzadko-potrzebne" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Seed do checkoutów git (opcjonalnie, rzadko potrzebne)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zobacz-tez" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zobacz też
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1061,8 +909,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -1073,13 +923,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
         
           
           <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
@@ -1100,7 +948,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1115,10 +963,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../reference/cli/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1134,6 +1009,98 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Spis treści
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#instalacja" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instalacja
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zaleznosci-hosta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zależności hosta
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#komendy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Komendy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Komendy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opcjonalne" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Opcjonalne
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rytua" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rytuał
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#make-dla-maintainerow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Make dla maintainerów
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1146,7 +1113,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/makefile/" class="md-nav__link">
+      <a href="../makefile/" class="md-nav__link">
         
   
   
@@ -1174,7 +1141,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/docker/" class="md-nav__link">
+      <a href="../docker/" class="md-nav__link">
         
   
   
@@ -1202,7 +1169,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/configuration/" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
@@ -1230,7 +1197,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/environment/" class="md-nav__link">
+      <a href="../environment/" class="md-nav__link">
         
   
   
@@ -1258,7 +1225,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/cursor-and-claude/" class="md-nav__link">
+      <a href="../cursor-and-claude/" class="md-nav__link">
         
   
   
@@ -1286,7 +1253,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/security/" class="md-nav__link">
+      <a href="../security/" class="md-nav__link">
         
   
   
@@ -1623,10 +1590,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#dlaczego-plik-konfiguracji" class="md-nav__link">
+  <a href="#instalacja" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dlaczego plik konfiguracji
+        Instalacja
       
     </span>
   </a>
@@ -1634,10 +1601,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#zrodo-prawdy" class="md-nav__link">
+  <a href="#zaleznosci-hosta" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Źródło prawdy
+        Zależności hosta
       
     </span>
   </a>
@@ -1645,33 +1612,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ksztat-przykad" class="md-nav__link">
+  <a href="#komendy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Kształt (przykład)
+        Komendy
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Kształt (przykład)">
+    <nav class="md-nav" aria-label="Komendy">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#uwagi-do-pol" class="md-nav__link">
+  <a href="#opcjonalne" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Uwagi do pól
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#podnoszenie-zasobow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Podnoszenie zasobów
+        Opcjonalne
       
     </span>
   </a>
@@ -1684,10 +1640,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sposoby-edycji" class="md-nav__link">
+  <a href="#rytua" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sposoby edycji
+        Rytuał
       
     </span>
   </a>
@@ -1695,32 +1651,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#co-zapisuje-orcan-sync" class="md-nav__link">
+  <a href="#make-dla-maintainerow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Co zapisuje orcan sync
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#seed-do-checkoutow-git-opcjonalnie-rzadko-potrzebne" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Seed do checkoutów git (opcjonalnie, rzadko potrzebne)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#zobacz-tez" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Zobacz też
+        Make dla maintainerów
       
     </span>
   </a>
@@ -1744,7 +1678,7 @@
 
 
   
-    <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/getting-started/configuration.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/reference/cli.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -1753,186 +1687,173 @@
     
       
     
-    <a href="https://github.com/aKyther/orcan/raw/main/docs/pl/getting-started/configuration.md" title="Zobacz kod źródłowy tej strony" class="md-content__button md-icon">
+    <a href="https://github.com/aKyther/orcan/raw/main/docs/pl/reference/cli.md" title="Zobacz kod źródłowy tej strony" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
     </a>
   
 
 
-<h1 id="konfiguracja">Konfiguracja<a class="headerlink" href="#konfiguracja" title="Permanent link">&para;</a></h1>
-<h2 id="dlaczego-plik-konfiguracji">Dlaczego plik konfiguracji<a class="headerlink" href="#dlaczego-plik-konfiguracji" title="Permanent link">&para;</a></h2>
-<p>Twoja praca multi-repo to <strong>historia</strong>: które projekty tworzą który workspace. <code>orcan.config.json</code> to ta historia w danych. Make nie wymyśla układu; stosuje to, co opiszesz.</p>
-<p>Jeśli Project / Workspace / Context są niejasne, najpierw przeczytaj <a href="../../ideas/core-ideas/">Idee podstawowe</a>.</p>
-<h2 id="zrodo-prawdy">Źródło prawdy<a class="headerlink" href="#zrodo-prawdy" title="Permanent link">&para;</a></h2>
-<p>Konfiguracja hosta to <strong>tylko JSON</strong>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan.config.json
+<h1 id="referencja-cli">Referencja CLI<a class="headerlink" href="#referencja-cli" title="Permanent link">&para;</a></h1>
+<p>Publiczny interfejs Orcan to komenda <strong><code>orcan</code></strong> (Bash). Cele Make zostają tylko dla <strong>maintainerów</strong> (docs, testy, release).</p>
+<h2 id="instalacja">Instalacja<a class="headerlink" href="#instalacja" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/aKyther/orcan/main/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
 </span></code></pre></div>
-<p>Szablon: <code>orcan.config.example.json</code>.</p>
-<p>Po edycji zawsze uruchom:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>sync
-</span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code>orcan up</code> <strong>nie</strong> uruchamia <code>orcan sync</code>. Najpierw zastosuj konfigurację, potem odtwórz kontener.</p>
-</div>
-<p>Potem odtwórz kontener, jeśli już działa:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
-</span></code></pre></div>
-<h2 id="ksztat-przykad">Kształt (przykład)<a class="headerlink" href="#ksztat-przykad" title="Permanent link">&para;</a></h2>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;workspaces&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;myapp&quot;</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nt">&quot;projects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">          </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backend&quot;</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">          </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/myapp/backend&quot;</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">        </span><span class="p">},</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">          </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;frontend&quot;</span><span class="p">,</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">          </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/myapp/frontend&quot;</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="p">]</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">  </span><span class="p">],</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="nt">&quot;tmux&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">    </span><span class="nt">&quot;initial_windows&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span><span class="nt">&quot;window_prefix&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tab&quot;</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">  </span><span class="p">},</span>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">  </span><span class="nt">&quot;ttyd&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">    </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7681</span><span class="p">,</span>
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">    </span><span class="nt">&quot;host_port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7681</span><span class="p">,</span>
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">    </span><span class="nt">&quot;font_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">22</span><span class="p">,</span>
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="nt">&quot;theme&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dark&quot;</span>
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">  </span><span class="p">},</span>
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">  </span><span class="nt">&quot;resources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="nt">&quot;cpus&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">    </span><span class="nt">&quot;memory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4g&quot;</span><span class="p">,</span>
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">    </span><span class="nt">&quot;shm_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;512m&quot;</span><span class="p">,</span>
-</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">    </span><span class="nt">&quot;tmpfs_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;512m&quot;</span>
-</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="p">}</span>
-</span></code></pre></div>
-<p>Domyślne limity są celowo lekkie (typowy laptop). Podnieś je, gdy maszyna ma zapas — poniżej.</p>
-<h3 id="uwagi-do-pol">Uwagi do pól<a class="headerlink" href="#uwagi-do-pol" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
-<th>Pole</th>
-<th>Znaczenie</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>workspaces[].name</code></td>
-<td>Nazwa sesji tmux oraz folder pod <code>/home/developer/workspaces/</code></td>
-</tr>
-<tr>
-<td><code>projects[].name</code></td>
-<td>Nazwa symlinku wewnątrz workspace'a</td>
-</tr>
-<tr>
-<td><code>projects[].path</code></td>
-<td>Bezwzględna ścieżka hosta (ta sama w kontenerze — path parity)</td>
-</tr>
-<tr>
-<td><code>tmux.*</code></td>
-<td>Okna tworzone przy starcie sesji</td>
-</tr>
-<tr>
-<td><code>ttyd.*</code></td>
-<td>Port i wygląd terminala w przeglądarce</td>
-</tr>
-<tr>
-<td><code>resources.*</code></td>
-<td>Limity CPU / pamięci / shm / tmpfs kontenera</td>
-</tr>
-</tbody>
-</table>
-<h3 id="podnoszenie-zasobow">Podnoszenie zasobów<a class="headerlink" href="#podnoszenie-zasobow" title="Permanent link">&para;</a></h3>
-<p>Edytuj <code>resources</code> w <code>orcan.config.json</code> (np. <code>cpus: 8</code>, <code>memory: "16g"</code>), potem:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>sync
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
-</span></code></pre></div>
-<p>Jeśli <code>.env</code> ma już <code>CPUS</code> / <code>MEMORY</code>, <code>orcan sync</code> ich nie nadpisze. Zmień je też w <code>.env</code>, albo usuń klucze, żeby config wygrał przy następnym <code>orcan sync</code>.</p>
-<h2 id="sposoby-edycji">Sposoby edycji<a class="headerlink" href="#sposoby-edycji" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Polecenie</th>
-<th>Kiedy użyć</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>orcan context wizard</code></td>
-<td>Interaktywne tworzenie/edycja</td>
-</tr>
-<tr>
-<td><code>orcan context add /abs/path</code></td>
-<td>Dodanie jednego projektu bez interakcji</td>
-</tr>
-<tr>
-<td><code>orcan init /abs/path</code></td>
-<td>Pierwszy uruchomienie</td>
-</tr>
-<tr>
-<td>Ręczna edycja JSON</td>
-<td>Znasz schemat</td>
-</tr>
-</tbody>
-</table>
-<p>Pokaż bieżący układ:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
-</span></code></pre></div>
-<h2 id="co-zapisuje-orcan-sync">Co zapisuje <code>orcan sync</code><a class="headerlink" href="#co-zapisuje-orcan-sync" title="Permanent link">&para;</a></h2>
-<p><code>orcan.config.json</code> to historia, którą edytujesz. <strong><code>orcan sync</code></strong> to to, co Docker / Compose może łyknąć: odświeża pliki runtime hosta z tego JSON (+ UID/GID). Bez tego mounty i env zostają stare albo w ogóle ich nie ma.</p>
-<table>
-<thead>
-<tr>
-<th>Wynik</th>
+<th>Ścieżka</th>
 <th>Rola</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>.env</code></td>
-<td>Zmienne Compose i Make</td>
+<td><code>~/.local/share/orcan</code></td>
+<td>Klon gita (<code>ORCAN_ROOT</code>)</td>
 </tr>
 <tr>
-<td><code>.orcan/runtime-config.json</code></td>
-<td>Montowany do kontenera jako <code>/etc/orcan/config.json</code></td>
+<td><code>~/.local/bin/orcan</code></td>
+<td>Launcher</td>
 </tr>
 <tr>
-<td><code>.orcan/compose-projects.generated.yml</code></td>
-<td>Dodatkowe bind mounty</td>
+<td><code>~/.config/orcan/home</code></td>
+<td>Config + <code>.env</code> + <code>.orcan/*</code> (<code>ORCAN_HOME</code>) — <strong>zawsze</strong> domyślne</td>
 </tr>
 <tr>
-<td><code>.orcan/workspaces/&lt;name&gt;/</code></td>
-<td>Meta workspace'a po stronie hosta</td>
-</tr>
-<tr>
-<td>Drzewo <code>$ORCAN_DATA</code></td>
-<td>Domyślnie <code>~/.config/orcan</code> (home Cursor/Claude, cache)</td>
+<td><code>~/.config/orcan</code></td>
+<td>Dane narzędzi / loginy (<code>ORCAN_DATA</code>)</td>
 </tr>
 </tbody>
 </table>
-<p>Nie commituj <code>.env</code> ani <code>.orcan/</code> (są w gitignore).</p>
-<h2 id="seed-do-checkoutow-git-opcjonalnie-rzadko-potrzebne">Seed do checkoutów git (opcjonalnie, rzadko potrzebne)<a class="headerlink" href="#seed-do-checkoutow-git-opcjonalnie-rzadko-potrzebne" title="Permanent link">&para;</a></h2>
-<p><strong>Workspace</strong> i tak dostaje context pack przy starcie kontenera (<code>AGENTS.md</code>, ignores, <code>.cursor/rules/</code>). Do tego <strong><code>orcan seed</code> nie jest potrzebny</strong>.</p>
-<p><code>orcan seed</code> tylko kopiuje podobne pliki <strong>do każdego zamontowanego repo</strong>. Pomiń, chyba że chcesz je mieć w samym checkoucie (np. żeby je commitować):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>seed<span class="w"> </span>--all
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>seed<span class="w"> </span>--all<span class="w"> </span>--dry-run
+<p>Nadpisz tylko gdy trzeba: <code>ORCAN_HOME=/path</code> albo <code>ORCAN_USE_CWD=1</code> (użyj <code>./orcan.config.json</code> w bieżącym katalogu).</p>
+<h2 id="zaleznosci-hosta">Zależności hosta<a class="headerlink" href="#zaleznosci-hosta" title="Permanent link">&para;</a></h2>
+<p>Komenda <code>orcan</code> to <strong>Bash</strong>, ale konfiguracja na hoście idzie przez <strong>Python 3</strong> (sama stdlib — bez pip/venv):</p>
+<table>
+<thead>
+<tr>
+<th>Potrzeba</th>
+<th>Używane przez</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bash, Git</td>
+<td>CLI, instalacja, <code>orcan update</code></td>
+</tr>
+<tr>
+<td><strong>Python 3</strong></td>
+<td><code>orcan sync</code>, <code>init</code>, <code>context</code> (wizard / show / add)</td>
+</tr>
+<tr>
+<td>Docker Compose v2</td>
+<td><code>orcan build</code>, <code>up</code>, <code>down</code>, …</td>
+</tr>
+</tbody>
+</table>
+<p>Sprawdź: <code>orcan doctor</code>. Szczegóły: <a href="../../getting-started/installation/">Instalacja</a>.</p>
+<h2 id="komendy">Komendy<a class="headerlink" href="#komendy" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Komenda</th>
+<th>Rola</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>orcan init [PATH]</code></td>
+<td>Pierwszy start: scaffold, sync, show</td>
+</tr>
+<tr>
+<td><code>orcan sync</code></td>
+<td>Zastosuj <code>orcan.config.json</code> → <code>.env</code> + <code>.orcan/*</code></td>
+</tr>
+<tr>
+<td><code>orcan context show</code></td>
+<td>Lista workspace'ów + path parity</td>
+</tr>
+<tr>
+<td><code>orcan context wizard</code></td>
+<td>Interaktywny edytor konfiguracji</td>
+</tr>
+<tr>
+<td><code>orcan context add PATH</code></td>
+<td>Dodaj projekt (<code>--workspace</code>, <code>--force</code>)</td>
+</tr>
+<tr>
+<td><code>orcan up [--with-docker]</code></td>
+<td>Start terminala (socket tylko z <code>--with-docker</code>)</td>
+</tr>
+<tr>
+<td><code>orcan down</code></td>
+<td>Stop kontenerów</td>
+</tr>
+<tr>
+<td><code>orcan build [--claude|--cursor] [--force] [--no-cache]</code></td>
+<td>Obaj agenci → <code>orcan:latest</code> + <code>orcan:&lt;VERSION&gt;</code> (pull lub build). <code>--claude</code> / <code>--cursor</code> → <code>orcan:&lt;VERSION&gt;-claude\|cursor</code> (bez pull; nie nadpisuje <code>latest</code>). Nigdy nie publikuje</td>
+</tr>
+<tr>
+<td><code>orcan pull</code></td>
+<td>Pull obu agentów <code>orcan:&lt;VERSION&gt;</code> → <code>orcan:latest</code></td>
+</tr>
+<tr>
+<td><code>orcan publish</code></td>
+<td>Push obu agentów <code>orcan:latest</code> (<strong>ręcznie</strong>; nie <code>-claude</code>/<code>-cursor</code>)</td>
+</tr>
+<tr>
+<td><code>orcan url</code></td>
+<td>URL terminala</td>
+</tr>
+<tr>
+<td><code>orcan logs</code></td>
+<td>Logi</td>
+</tr>
+<tr>
+<td><code>orcan update</code></td>
+<td><code>git pull</code> instalacji</td>
+</tr>
+<tr>
+<td><code>orcan doctor</code></td>
+<td>Raport zdrowia hosta / configu</td>
+</tr>
+<tr>
+<td><code>orcan uninstall [--purge-data]</code></td>
+<td>Usuń CLI (opcjonalnie <code>ORCAN_DATA</code>)</td>
+</tr>
+<tr>
+<td><code>orcan version</code> / <code>orcan help</code></td>
+<td>Wersja / pomoc</td>
+</tr>
+</tbody>
+</table>
+<h3 id="opcjonalne">Opcjonalne<a class="headerlink" href="#opcjonalne" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Komenda</th>
+<th>Rola</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>orcan seed [--all] [--dry-run]</code></td>
+<td>Szablony/ignores w checkoutach git — <strong>rzadko potrzebne</strong>; pack workspace wystarcza</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rytua">Rytuał<a class="headerlink" href="#rytua" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>init
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>build
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
-<p>Pełne reguły pól i odrzucane klucze: <a href="../../reference/configuration/">Referencja konfiguracji</a>.</p>
-<h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../../reference/configuration/">Referencja konfiguracji</a></li>
-<li><a href="../../reference/environment/">Zmienne środowiskowe</a></li>
-<li><a href="../../concepts/workspaces/">Workspaces</a></li>
-<li><a href="../quickstart/">Szybki start</a></li>
-</ul>
+<p>Po edycji konfiguracji:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># edytuj ~/.config/orcan/home/orcan.config.json</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>sync
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
+</span></code></pre></div>
+<p><code>orcan up</code> <strong>nie</strong> uruchamia <code>sync</code>.</p>
+<h2 id="make-dla-maintainerow">Make dla maintainerów<a class="headerlink" href="#make-dla-maintainerow" title="Permanent link">&para;</a></h2>
+<p>Z checkoutu gita: <code>make validate</code>, <code>make test-host</code>, <code>make docs*</code>, <code>make release*</code>, <code>make registry-*</code>. Zobacz <a href="../../development/overview/">Development</a>.</p>
 
 
 
@@ -1965,7 +1886,7 @@
     <span class="md-icon" title="Utworzony">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 13:06:39 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
   </span>
 
     
@@ -2002,7 +1923,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Stopka" >
         
           
-          <a href="../quickstart/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Szybki start">
+          <a href="../../architecture/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Architektura">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2012,20 +1933,20 @@
                 Poprzednia strona
               </span>
               <div class="md-ellipsis">
-                Szybki start
+                Architektura
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../guides/workflows/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Przepływy pracy">
+          <a href="../makefile/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Makefile (maintainers)">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Następna strona
               </span>
               <div class="md-ellipsis">
-                Przepływy pracy
+                Makefile (maintainers)
               </div>
             </div>
             <div class="md-footer__button md-icon">

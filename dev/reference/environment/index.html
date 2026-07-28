@@ -966,6 +966,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../makefile/" class="md-nav__link">
         
   
@@ -973,7 +1001,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1110,10 +1138,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#always-managed-by-make-env" class="md-nav__link">
+  <a href="#always-managed-by-orcan-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Always managed by make env
+        Always managed by orcan sync
       
     </span>
   </a>
@@ -1121,10 +1149,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#seeded-once-kept-on-later-make-env" class="md-nav__link">
+  <a href="#seeded-once-kept-on-later-orcan-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Seeded once (kept on later make env)
+        Seeded once (kept on later orcan sync)
       
     </span>
   </a>
@@ -1562,10 +1590,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#always-managed-by-make-env" class="md-nav__link">
+  <a href="#always-managed-by-orcan-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Always managed by make env
+        Always managed by orcan sync
       
     </span>
   </a>
@@ -1573,10 +1601,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#seeded-once-kept-on-later-make-env" class="md-nav__link">
+  <a href="#seeded-once-kept-on-later-orcan-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Seeded once (kept on later make env)
+        Seeded once (kept on later orcan sync)
       
     </span>
   </a>
@@ -1667,8 +1695,8 @@
 
 
 <h1 id="environment-variables">Environment variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h1>
-<p>Use this page when debugging <code>.env</code> or Compose. Prefer editing <code>orcan.config.json</code> for new setups, then <code>make env</code>. Do not commit <code>.env</code>.</p>
-<h2 id="always-managed-by-make-env">Always managed by <code>make env</code><a class="headerlink" href="#always-managed-by-make-env" title="Permanent link">&para;</a></h2>
+<p>Use this page when debugging <code>.env</code> or Compose. Prefer editing <code>orcan.config.json</code> for new setups, then <code>orcan sync</code>. Do not commit <code>.env</code>.</p>
+<h2 id="always-managed-by-orcan-sync">Always managed by <code>orcan sync</code><a class="headerlink" href="#always-managed-by-orcan-sync" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1683,7 +1711,7 @@
 </tr>
 <tr>
 <td><code>DOCKER_GID</code></td>
-<td>Group for Docker socket (<code>terminal-docker</code>)</td>
+<td>Group for Docker socket (<code>orcan up --with-docker</code>)</td>
 </tr>
 <tr>
 <td><code>TZ</code></td>
@@ -1691,7 +1719,7 @@
 </tr>
 <tr>
 <td><code>PROJECT_DIR</code></td>
-<td>Orcan repo path (where you run Make)</td>
+<td>Orcan install path (where you run <code>orcan</code>)</td>
 </tr>
 <tr>
 <td><code>CONTAINER_PROJECT_DIR</code> / <code>WORKSPACE_*</code></td>
@@ -1711,7 +1739,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="seeded-once-kept-on-later-make-env">Seeded once (kept on later <code>make env</code>)<a class="headerlink" href="#seeded-once-kept-on-later-make-env" title="Permanent link">&para;</a></h2>
+<h2 id="seeded-once-kept-on-later-orcan-sync">Seeded once (kept on later <code>orcan sync</code>)<a class="headerlink" href="#seeded-once-kept-on-later-orcan-sync" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1730,7 +1758,7 @@
 </tr>
 </tbody>
 </table>
-<p>Edit via <code>orcan.config.json</code> (<code>resources</code>, <code>ttyd</code>) then <code>make env</code> for new machines; existing <code>.env</code> values may be preserved depending on <code>update-env.sh</code> rules — prefer config file as source of truth for new setups.</p>
+<p>Edit via <code>orcan.config.json</code> (<code>resources</code>, <code>ttyd</code>) then <code>orcan sync</code> for new machines; existing <code>.env</code> values may be preserved depending on <code>update-env.sh</code> rules — prefer config file as source of truth for new setups.</p>
 <h2 id="image-selection">Image selection<a class="headerlink" href="#image-selection" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1742,11 +1770,11 @@
 <tbody>
 <tr>
 <td><code>IMAGE_LOCAL</code></td>
-<td>Image Compose runs (<code>orcan:latest</code> or <code>orcan:claude</code>)</td>
+<td>Image Compose runs (default <code>orcan:latest</code>)</td>
 </tr>
 <tr>
-<td><code>INSTALL_CURSOR</code></td>
-<td>Build-arg only (<code>1</code> full / <code>0</code> Claude-only)</td>
+<td><code>INSTALL_CURSOR</code> / <code>INSTALL_CLAUDE</code></td>
+<td>Build-args (<code>1</code>/<code>0</code>); default both on</td>
 </tr>
 <tr>
 <td><code>ORCAN_VERSION</code></td>
@@ -1765,7 +1793,7 @@
 <tbody>
 <tr>
 <td><code>IMAGE_REGISTRY</code> / <code>IMAGE_REPOSITORY</code> / <code>IMAGE_TAG</code></td>
-<td><code>make publish</code> / <code>pull</code></td>
+<td><code>orcan publish</code> / <code>orcan pull</code></td>
 </tr>
 </tbody>
 </table>
@@ -1844,7 +1872,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:42:59 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
   </span>
 
     

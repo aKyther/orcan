@@ -954,10 +954,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#make-env-require-generated-fails" class="md-nav__link">
+  <a href="#orcan-sync-require-generated-fails" class="md-nav__link">
     <span class="md-ellipsis">
       
-        make env / require-generated fails
+        orcan sync / require-generated fails
       
     </span>
   </a>
@@ -1156,6 +1156,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/makefile/" class="md-nav__link">
         
   
@@ -1163,7 +1191,7 @@
   <span class="md-ellipsis">
     
   
-    Makefile
+    Makefile (maintainers)
   
 
     
@@ -1677,10 +1705,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#make-env-require-generated-fails" class="md-nav__link">
+  <a href="#orcan-sync-require-generated-fails" class="md-nav__link">
     <span class="md-ellipsis">
       
-        make env / require-generated fails
+        orcan sync / require-generated fails
       
     </span>
   </a>
@@ -1812,26 +1840,26 @@
 <h2 id="what-this-does">What this does<a class="headerlink" href="#what-this-does" title="Permanent link">&para;</a></h2>
 <p>Lists common failures and how to diagnose them on the <strong>host</strong>.</p>
 <h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
-<p>From the Orcan repo:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>validate
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>path-check
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>config
+<p>From the Orcan install (or git checkout):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>doctor
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>.orcan/compose-projects.generated.yml<span class="w"> </span>config
 </span></code></pre></div>
-<p><code>make config</code> prints the resolved Compose file (needs generated <code>.orcan</code> files).</p>
+<p>The <code>docker compose config</code> command prints the resolved Compose file (needs generated <code>.orcan</code> files from <code>orcan sync</code>).</p>
 <h2 id="browser-terminal-will-not-open">Browser terminal will not open<a class="headerlink" href="#browser-terminal-will-not-open" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Confirm the container is up: <code>make logs</code></li>
-<li>Confirm the URL: <code>make terminal-url</code> (default <code>http://localhost:7681</code>)</li>
-<li>If the port is busy, change <code>ttyd.host_port</code> in <code>orcan.config.json</code>, then <code>make env</code> and recreate</li>
+<li>Confirm the container is up: <code>orcan logs</code></li>
+<li>Confirm the URL: <code>orcan url</code> (default <code>http://localhost:7681</code>)</li>
+<li>If the port is busy, change <code>ttyd.host_port</code> in <code>orcan.config.json</code>, then <code>orcan sync</code> and recreate</li>
 </ol>
 <h2 id="launcher-is-empty-wrong-projects">Launcher is empty / wrong projects<a class="headerlink" href="#launcher-is-empty-wrong-projects" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Check <code>orcan.config.json</code> has <code>workspaces</code> with absolute <code>projects[].path</code></li>
-<li>Run <code>make env</code> (terminal targets do not refresh config)</li>
-<li><code>make down &amp;&amp; make terminal-docker</code></li>
+<li>Run <code>orcan sync</code> (terminal targets do not refresh config)</li>
+<li><code>orcan down &amp;&amp; orcan up</code></li>
 </ol>
-<p>Do <strong>not</strong> pass <code>PROJECT_DIR=…</code> on <code>make terminal</code>. Switch projects by editing config + <code>make env</code>.</p>
-<h2 id="make-env-require-generated-fails"><code>make env</code> / <code>require-generated</code> fails<a class="headerlink" href="#make-env-require-generated-fails" title="Permanent link">&para;</a></h2>
+<p>Do <strong>not</strong> pass <code>PROJECT_DIR=…</code> on <code>orcan up</code>. Switch projects by editing config + <code>orcan sync</code>.</p>
+<h2 id="orcan-sync-require-generated-fails"><code>orcan sync</code> / <code>require-generated</code> fails<a class="headerlink" href="#orcan-sync-require-generated-fails" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1842,11 +1870,11 @@
 <tbody>
 <tr>
 <td><code>.env</code> missing</td>
-<td><code>make env</code> or <code>make setup</code></td>
+<td><code>orcan sync</code> or <code>orcan init</code></td>
 </tr>
 <tr>
 <td>Generated files stale</td>
-<td>Config is newer than <code>.orcan/*</code> — run <code>make env</code></td>
+<td>Config is newer than <code>.orcan/*</code> — run <code>orcan sync</code></td>
 </tr>
 <tr>
 <td>Invalid <code>PROJECT_DIR</code></td>
@@ -1856,14 +1884,14 @@
 </table>
 <h2 id="agent-or-claude-missing">Agent or Claude missing<a class="headerlink" href="#agent-or-claude-missing" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Full image: <code>make build</code> then recreate container</li>
-<li>Claude-only: <code>IMAGE_LOCAL=orcan:claude</code> — <code>agent</code> is not installed (expected)</li>
+<li>Full image: <code>orcan build</code> then recreate container</li>
+<li>Claude-only: <code>orcan build --claude</code> then <code>IMAGE_LOCAL=orcan:&lt;VERSION&gt;-claude orcan up</code> — <code>agent</code> is not installed (expected)</li>
 <li>Auth lives under <code>$ORCAN_DATA</code> (<code>~/.config/orcan</code>)</li>
 </ul>
 <h2 id="docker-socket-errors-inside-the-container">Docker socket errors inside the container<a class="headerlink" href="#docker-socket-errors-inside-the-container" title="Permanent link">&para;</a></h2>
-<p>Use <code>make terminal-docker</code>. Plain <code>make terminal</code> does not mount the socket.</p>
+<p>Use <code>orcan up --with-docker</code>. Plain <code>orcan up</code> does not mount the socket.</p>
 <h2 id="path-parity-nested-compose-fails">Path parity / nested Compose fails<a class="headerlink" href="#path-parity-nested-compose-fails" title="Permanent link">&para;</a></h2>
-<p>See <a href="../../concepts/path-parity/">Path parity</a>. Confirm mounts with <code>make path-check</code>.</p>
+<p>See <a href="../../concepts/path-parity/">Path parity</a>. Confirm mounts with <code>orcan context show</code>.</p>
 <h2 id="tmux-keys-do-not-work-in-the-browser">tmux keys do not work in the browser<a class="headerlink" href="#tmux-keys-do-not-work-in-the-browser" title="Permanent link">&para;</a></h2>
 <p>Focus the terminal pane. Use tmux prefix (see image defaults under <code>/etc/tmux</code>). Right-click uses the browser menu (tmux mouse menus are unbound on purpose).</p>
 <h2 id="long-url-wraps-and-is-hard-to-click">Long URL wraps and is hard to click<a class="headerlink" href="#long-url-wraps-and-is-hard-to-click" title="Permanent link">&para;</a></h2>
@@ -1875,10 +1903,10 @@
 <h2 id="host-gitconfig-became-a-directory">Host <code>~/.gitconfig</code> became a directory<a class="headerlink" href="#host-gitconfig-became-a-directory" title="Permanent link">&para;</a></h2>
 <p>An older layout could create a root-owned directory. Fix ownership or replace with a normal file, then update Orcan and recreate the container.</p>
 <h2 id="diagnostics-checklist">Diagnostics checklist<a class="headerlink" href="#diagnostics-checklist" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>validate
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>make<span class="w"> </span>path-check
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>doctor
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>.orcan/compose-projects.generated.yml<span class="w"> </span>config
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>make<span class="w"> </span>logs
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>orcan<span class="w"> </span>logs
 </span></code></pre></div>
 <p>More on limits: <a href="../../reference/security/">Security</a>.</p>
 
@@ -1903,7 +1931,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:37:02 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
   </span>
 
     
