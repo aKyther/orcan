@@ -1084,6 +1084,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Rytuał">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flagi-orcan-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flagi orcan up
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1648,6 +1665,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Rytuał">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flagi-orcan-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flagi orcan up
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1781,8 +1815,8 @@
 <td>Dodaj projekt (<code>--workspace</code>, <code>--force</code>)</td>
 </tr>
 <tr>
-<td><code>orcan up [--with-docker]</code></td>
-<td>Start terminala (socket tylko z <code>--with-docker</code>); podpowiada, gdy jest nowszy release</td>
+<td><code>orcan up [--with-docker] [--with-git]</code></td>
+<td>Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release</td>
 </tr>
 <tr>
 <td><code>orcan down</code></td>
@@ -1852,6 +1886,31 @@
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <p><code>orcan up</code> <strong>nie</strong> uruchamia <code>sync</code>.</p>
+<h3 id="flagi-orcan-up">Flagi <code>orcan up</code><a class="headerlink" href="#flagi-orcan-up" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Flaga</th>
+<th>Efekt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>(brak)</em></td>
+<td>Tylko terminal w przeglądarce — bez socketa Dockera, bez hostowego SSH</td>
+</tr>
+<tr>
+<td><code>--with-docker</code></td>
+<td>Montuje <code>/var/run/docker.sock</code> (Docker-from-Docker)</td>
+</tr>
+<tr>
+<td><code>--with-git</code></td>
+<td>Montuje hostowy <code>~/.ssh</code> tylko do odczytu (+ agent SSH, gdy <code>SSH_AUTH_SOCK</code> jest ustawiony) do push/pull</td>
+</tr>
+</tbody>
+</table>
+<p>Flagi łączą się: <code>orcan up --with-docker --with-git</code>.</p>
+<p>Tożsamość <strong>autora</strong> Gita zawsze synchronizuje <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> z hostowego <code>user.name</code> / <code>user.email</code>). Klucze SSH są podpinane tylko przez <code>--with-git</code>. Obie opcjonalne flagi wypisują ostrzeżenie bezpieczeństwa — agenci w środku mogą użyć zamontowanego socketa lub kluczy. Zobacz <a href="../security/">Bezpieczeństwo</a> i <a href="../../guides/workflows/">Workflowy</a>.</p>
 <h2 id="make-dla-maintainerow">Make dla maintainerów<a class="headerlink" href="#make-dla-maintainerow" title="Permanent link">&para;</a></h2>
 <p>Z checkoutu gita: <code>make validate</code>, <code>make test-host</code>, <code>make docs*</code>, <code>make release*</code>, <code>make registry-*</code>. Zobacz <a href="../../development/overview/">Development</a>.</p>
 
@@ -1876,7 +1935,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:44:04 UTC">28 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 20:07:18 UTC">28 lipca 2026</span>
   </span>
 
     
