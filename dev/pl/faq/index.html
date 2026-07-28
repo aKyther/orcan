@@ -1876,6 +1876,7 @@
 <h2 id="czy-moge-commitowac-i-pushowac-z-kontenera">Czy mogę commitować i pushować z kontenera?<a class="headerlink" href="#czy-moge-commitowac-i-pushowac-z-kontenera" title="Permanent link">&para;</a></h2>
 <p><strong>Autor commitów:</strong> tak po <code>orcan sync</code> — hostowe <code>user.name</code> / <code>user.email</code> trafiają do <code>GIT_AUTHOR_*</code> w kontenerze.</p>
 <p><strong>Push/pull po SSH:</strong> startuj z <code>orcan up --with-git</code> (montuje <code>~/.ssh</code> oraz agenta SSH, gdy jest dostępny). Razem z DinD: <code>orcan up --with-docker --with-git</code>. Zwykłe <code>orcan up</code> nie podpina kluczy. Zobacz <a href="../getting-started/quickstart/#git-w-kontenerze">Szybki start</a> i <a href="../reference/security/">Bezpieczeństwo</a>.</p>
+<p><strong>Worktree:</strong> opcjonalne. Domyślnie montujesz zwykłą ścieżkę klona; zaawansowana pomoc w wizardzie albo <code>orcan context worktree</code>, gdy chcesz osobny checkout pod <code>$ORCAN_DATA/worktrees</code>. Zobacz <a href="../concepts/workspaces/#git-worktree">Workspace'y</a>.</p>
 <h2 id="ktorzy-agenci-sa-zainstalowani">Którzy agenci są zainstalowani?<a class="headerlink" href="#ktorzy-agenci-sa-zainstalowani" title="Permanent link">&para;</a></h2>
 <p>Domyślnie obraz ma <strong>obu</strong> agentów (<code>orcan:latest</code> / <code>orcan:&lt;VERSION&gt;</code>). Żeby pominąć agenta, którego nie użyjesz, zbuduj <strong>osobny lokalny tag</strong> (bez pull; nie nadpisuje <code>latest</code>):</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Oba (domyślnie)</label><label for="__tabbed_1_2">Tylko Claude Code</label><label for="__tabbed_1_3">Tylko Cursor CLI</label></div>
@@ -1941,7 +1942,7 @@
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>docker<span class="w"> </span>images<span class="w"> </span><span class="s1">&#39;orcan*&#39;</span><span class="w">   </span><span class="c1"># opcjonalnie: docker rmi …</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># potem usuń katalog clone&#39;a, jeśli go nie potrzebujesz</span>
 </span></code></pre></div>
-<p>Szczegóły: <a href="../guides/workflows/#odinstalowanie">Workflowy — odinstalowanie</a>.</p>
+<p>Szczegóły: <a href="../guides/workflows/#uninstall">Workflowy — odinstalowanie</a>.</p>
 <h2 id="jak-zgosic-bad">Jak zgłosić błąd?<a class="headerlink" href="#jak-zgosic-bad" title="Permanent link">&para;</a></h2>
 <p>Otwórz Issue na GitHubie: system, wersja Dockera, komenda <code>orcan</code>, którą uruchomiłeś, oraz logi (<code>orcan logs</code>, <code>orcan doctor</code>, <code>orcan context show</code>):</p>
 <p>https://github.com/aKyther/orcan/issues</p>
@@ -1980,7 +1981,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 20:07:18 UTC">28 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 21:21:49 UTC">28 lipca 2026</span>
   </span>
 
     
