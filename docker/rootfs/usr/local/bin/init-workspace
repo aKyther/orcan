@@ -64,6 +64,7 @@ def seed_agent_ignores(root: Path) -> None:
 def write_agents_md(root: Path, ws: dict, projects: list) -> None:
     name = ws.get("name") or "workspace"
     session = ws.get("tmux_session") or name
+    has_context_assertions = (root / "CONTEXT-ASSERTIONS.md").is_file()
     rows = []
     for item in projects:
         pname = (item.get("name") or "").strip() or "?"
@@ -76,6 +77,44 @@ def write_agents_md(root: Path, ws: dict, projects: list) -> None:
         rows.append(f"| `{pname}` | `{path}` | `{link}` |")
     if not rows:
         rows.append("| — | — | — |")
+
+    context_pack_rows = [
+        "| `.manifest.json` | Paths / symlinks (source of truth) |",
+        "| `AGENTS.md` / `CLAUDE.md` | This file (behaviour) |",
+        "| `.cursorignore` / `.cursorindexingignore` | Cursor exclusions |",
+        "| `.claudeignore` / `.claude/settings.json` | Claude exclusions + denies |",
+        "| `.cursor/rules/` | Lasting Cursor rules |",
+        "| `.orcan/session-brief.md` | Optional handoff (only if created) |",
+    ]
+    if has_context_assertions:
+        context_pack_rows.append(
+            "| `CONTEXT-ASSERTIONS.md` | Compiled, human-approved context (if any matched) |"
+        )
+
+    read_first = [
+        "1. **This file** — how to behave in this workspace.",
+        "2. **`.manifest.json`** — projects, paths, symlinks (source of truth).",
+        "3. **`.orcan/session-brief.md`** — **if it exists, read it before coding**",
+        "   (shared handoff; create with `orcan-session-brief` / `brief`).",
+    ]
+    step = 4
+    if has_context_assertions:
+        read_first.append(
+            f"{step}. **`CONTEXT-ASSERTIONS.md`** — human-approved context selected for this"
+        )
+        read_first.append(
+            "   workspace's current repos/branches; each item states why it was selected."
+        )
+        step += 1
+    read_first.append(
+        f"{step}. After `cd <project>/` — that repo's `AGENTS.md` / `.cursor/rules/` if present."
+    )
+    step += 1
+    read_first.append(
+        f"{step}. Respect `.cursorignore` / `.claudeignore` (and Claude `.claude/settings.json` denies)."
+    )
+    step += 1
+    read_first.append(f"{step}. Check pack health anytime: `orcan-context-status`.")
 
     body = "\n".join(
         [
@@ -93,22 +132,11 @@ def write_agents_md(root: Path, ws: dict, projects: list) -> None:
             "",
             "| File | Role |",
             "| --- | --- |",
-            "| `.manifest.json` | Paths / symlinks (source of truth) |",
-            "| `AGENTS.md` / `CLAUDE.md` | This file (behaviour) |",
-            "| `.cursorignore` / `.cursorindexingignore` | Cursor exclusions |",
-            "| `.claudeignore` / `.claude/settings.json` | Claude exclusions + denies |",
-            "| `.cursor/rules/` | Lasting Cursor rules |",
-            "| `.orcan/session-brief.md` | Optional handoff (only if created) |",
+            *context_pack_rows,
             "",
             "## Read first (in order)",
             "",
-            "1. **This file** — how to behave in this workspace.",
-            "2. **`.manifest.json`** — projects, paths, symlinks (source of truth).",
-            "3. **`.orcan/session-brief.md`** — **if it exists, read it before coding**",
-            "   (shared handoff; create with `orcan-session-brief` / `brief`).",
-            "4. After `cd <project>/` — that repo's `AGENTS.md` / `.cursor/rules/` if present.",
-            "5. Respect `.cursorignore` / `.claudeignore` (and Claude `.claude/settings.json` denies).",
-            "6. Check pack health anytime: `orcan-context-status`.",
+            *read_first,
             "",
             "## How to work",
             "",
@@ -120,6 +148,10 @@ def write_agents_md(root: Path, ws: dict, projects: list) -> None:
             "- Do not invent tools; use what is in the environment (`rg`, `jq`, `uv`, `make`, …).",
             "- Python deps: prefer `uv` / `uvx` — do not `pip install` into system Python.",
             "- Run available checks before claiming success; label what you did not run.",
+            "- Learned something durably true about a project? Draft it with",
+            "  `orcan-context-propose --project NAME --text \"...\" --justification \"...\"`",
+            "  (ask before running it). It only ever proposes — a human still decides",
+            "  with `orcan-context-review`; nothing is accepted automatically.",
             "",
             "## Secrets",
             "",

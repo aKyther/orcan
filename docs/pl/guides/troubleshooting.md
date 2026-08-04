@@ -22,6 +22,15 @@ docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml co
 2. Potwierdź URL: `orcan url` (domyślnie `http://localhost:7681`)
 3. Jeśli port jest zajęty, zmień `ttyd.host_port` w `orcan.config.json`, potem `orcan sync` i odtwórz kontener
 
+## Częste „reconnecting” na telefonie / LTE
+
+Handoffy sieci komórkowej zrywają WebSocket ttyd — to oczekiwane. Procesy w tmux przeżywają.
+
+- Po reconnect `agent-launcher` auto-reattachuje ostatni workspace (Enter w trakcie odliczania → menu).
+- Wyłączenie auto-reattach: `ORCAN_AUTO_REATTACH=0` w kontenerze.
+- Preferuj Tailscale / VPN zamiast publicznego portu; na LTE i tak bywają krótkie reconnecty.
+- Opcjonalnie: `ttyd.ping_interval` / `TTYD_PING_INTERVAL` (domyślnie `20`).
+
 ## Launcher jest pusty / złe projekty
 
 1. Sprawdź, że `orcan.config.json` ma `workspaces` z bezwzględnymi `projects[].path`

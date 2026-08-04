@@ -32,6 +32,8 @@ volumes:
   - /absolute/path/to/app:/absolute/path/to/app
 ```
 
+If a project path is itself a git worktree, `orcan sync` also mounts its main repo's **`.git` directory** at parity — a worktree's own `.git` is just a pointer into that shared git dir, and without it visible too, every git command inside the worktree fails with `fatal: not a git repository`. This is resolved by reading the worktree's `.git` pointer directly, so it works for any worktree (`orcan context worktree create` or a bare `git worktree add`), not only ones Orcan tracked itself. Only `.git` is mounted — never the main checkout's working-tree files — so a feature-branch worktree still can't see or edit the main branch's actual files; that boundary is the whole point of `orcan context worktree create` in the first place.
+
 ## Check (commands last)
 
 ```bash

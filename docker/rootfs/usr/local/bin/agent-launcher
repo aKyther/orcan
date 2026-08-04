@@ -7,12 +7,50 @@ set -Eeuo pipefail
 
 ORCAN_CONFIG="${ORCAN_CONFIG:-/etc/orcan/config.json}"
 PROJECT_DIR="${PROJECT_DIR:-}"
+LAST_WORKSPACE_FILE="${HOME}/.cache/orcan/last-workspace"
+AUTO_REATTACH_SECS="${ORCAN_AUTO_REATTACH_SECS:-2}"
 
 declare -a WS_NAMES=()
 declare -a WS_ROOTS=()
 declare -a WS_SESSIONS=()
 declare -a WS_REPOS=()
 declare -a WS_HINTS=()
+
+save_last_workspace() {
+    local session="$1" root="$2" label="$3"
+    mkdir -p "$(dirname "${LAST_WORKSPACE_FILE}")"
+    printf '%s\t%s\t%s\n' "${session}" "${root}" "${label}" > "${LAST_WORKSPACE_FILE}"
+}
+
+# Auto-reattach after ttyd WebSocket drops (new PTY → new launcher).
+# Enter during countdown → menu. ORCAN_AUTO_REATTACH=0 disables.
+try_auto_reattach() {
+    local session root label secs
+    [[ "${ORCAN_AUTO_REATTACH:-1}" != "0" ]] || return 1
+    [[ -f "${LAST_WORKSPACE_FILE}" ]] || return 1
+
+    IFS=$'\t' read -r session root label < "${LAST_WORKSPACE_FILE}" || return 1
+    [[ -n "${session}" && -n "${root}" ]] || return 1
+    label="${label:-${session}}"
+    [[ -d "${root}" ]] || return 1
+    tmux has-session -t "=${session}" 2>/dev/null || return 1
+
+    secs="${AUTO_REATTACH_SECS}"
+    [[ "${secs}" =~ ^[0-9]+$ ]] || secs=2
+    if (( secs < 1 )); then
+        secs=1
+    fi
+
+    clear 2>/dev/null || true
+    printf 'Reconnecting to %s in %ss… (Enter = menu)\n' "${label}" "${secs}"
+    if read -t "${secs}" -r _; then
+        return 1
+    fi
+
+    printf 'Attaching session %s (%s)…\n' "${session}" "${label}"
+    cursor-tmux-workspace-attach "${session}" "${root}" "${label}" || true
+    return 0
+}
 
 load_workspaces() {
     WS_NAMES=()
@@ -69,6 +107,7 @@ print_menu() {
     printf '────────────────────────────\n'
     printf 'All sessions are started in the background.\n'
     printf 'In tmux: Ctrl+Space w (or s) = switch session · d = detach → menu\n'
+    printf 'After ttyd reconnect: auto-reattach to last workspace (Enter during countdown = menu).\n'
     printf 'After make env: make init-project-all  (per-repo ignores)\n'
     printf 's) context status   i) init hint   r) refresh   q) quit\n'
     printf '\n'
@@ -115,6 +154,7 @@ attach_workspace() {
     fi
 
     ensure_sessions
+    save_last_workspace "${session}" "${root}" "${name}"
     printf 'Attaching session %s (%s)…\n' "${session}" "${name}"
     # Do not exec — after detach, return to this menu.
     cursor-tmux-workspace-attach "${session}" "${root}" "${name}" || true
@@ -124,11 +164,15 @@ fallback_single_repo() {
     [[ -n "${PROJECT_DIR}" && -d "${PROJECT_DIR}" ]] || return 1
     local name
     name="$(basename "${PROJECT_DIR}")"
+    save_last_workspace "${name}" "${PROJECT_DIR}" "${name}"
     cursor-tmux-workspace-attach "${name}" "${PROJECT_DIR}" "${name}" || true
 }
 
 main() {
     local choice index
+
+    # Once per ttyd client: recover last workspace after WebSocket reconnect.
+    try_auto_reattach || true
 
     while true; do
         if ! load_workspaces; then

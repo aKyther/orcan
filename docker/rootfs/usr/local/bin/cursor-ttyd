@@ -5,8 +5,8 @@
 set -Eeuo pipefail
 
 TTYD_PORT="${TTYD_PORT:-7681}"
-# xterm.js default is ~15px; 22 reads better on phone browsers.
-TTYD_FONT_SIZE="${TTYD_FONT_SIZE:-22}"
+# xterm.js default is ~15px; 19 is a readable phone/desktop balance.
+TTYD_FONT_SIZE="${TTYD_FONT_SIZE:-19}"
 if [[ -z "${TTYD_FONT_FAMILY:-}" ]]; then
     TTYD_FONT_FAMILY="Menlo, Monaco, 'Courier New', monospace"
 fi
@@ -33,14 +33,21 @@ resolve_theme() {
 
 THEME_JSON="$(resolve_theme)"
 
-printf 'ttyd ready: http://0.0.0.0:%s (launcher + tmux + zsh, fontSize=%s)\n' \
-    "${TTYD_PORT}" "${TTYD_FONT_SIZE}" >&2
+# WebSocket ping; ~20s keeps typical cellular NAT (~30s) without noisy 5s defaults.
+TTYD_PING_INTERVAL="${TTYD_PING_INTERVAL:-20}"
+if ! [[ "${TTYD_PING_INTERVAL}" =~ ^[0-9]+$ ]] || (( TTYD_PING_INTERVAL < 1 )); then
+    TTYD_PING_INTERVAL=20
+fi
+
+printf 'ttyd ready: http://0.0.0.0:%s (launcher + tmux + zsh, fontSize=%s, ping=%ss)\n' \
+    "${TTYD_PORT}" "${TTYD_FONT_SIZE}" "${TTYD_PING_INTERVAL}" >&2
 printf 'WARNING: Do not expose this port to the public Internet without authentication and TLS.\n' >&2
 
 exec ttyd \
     --writable \
     --interface 0.0.0.0 \
     --port "${TTYD_PORT}" \
+    --ping-interval "${TTYD_PING_INTERVAL}" \
     --client-option "fontSize=${TTYD_FONT_SIZE}" \
     --client-option "fontFamily=${TTYD_FONT_FAMILY}" \
     --client-option "theme=${THEME_JSON}" \

@@ -61,7 +61,7 @@ orcan down && orcan up
   "ttyd": {
     "port": 7681,
     "host_port": 7681,
-    "font_size": 22,
+    "font_size": 19,
     "theme": "dark"
   },
   "resources": {
@@ -83,7 +83,7 @@ Defaults stay light on purpose (typical laptop). Raise them when the machine can
 | `projects[].name` | Symlink name inside the workspace |
 | `projects[].path` | Absolute host path (same path inside the container — path parity) |
 | `tmux.*` | Windows created when a session starts |
-| `ttyd.*` | Browser terminal port and look |
+| `ttyd.*` | Browser terminal port, look, and `ping_interval` (WebSocket keepalive) |
 | `resources.*` | Container CPU / memory / shm / tmpfs limits |
 
 ### Raising resources

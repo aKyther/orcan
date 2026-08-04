@@ -73,9 +73,16 @@
       "properties": {
         "port": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 7681 },
         "host_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-        "font_size": { "type": "integer", "minimum": 8, "default": 22 },
+        "font_size": { "type": "integer", "minimum": 8, "default": 19 },
         "font_family": { "type": "string" },
-        "theme": { "type": "string", "default": "dark" }
+        "theme": { "type": "string", "default": "dark" },
+        "ping_interval": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 20,
+          "description": "ttyd WebSocket ping interval in seconds (TTYD_PING_INTERVAL)"
+        }
       }
     },
     "resources": {

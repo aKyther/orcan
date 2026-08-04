@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -67,6 +68,75 @@ class EnsureEnvKeyTests(unittest.TestCase):
             self.assertNotIn("CPUS=99", text)
 
 
+def _init_repo(path: Path) -> None:
+    import subprocess
+
+    env = dict(os.environ)
+    env["GIT_AUTHOR_NAME"] = env["GIT_COMMITTER_NAME"] = "t"
+    env["GIT_AUTHOR_EMAIL"] = env["GIT_COMMITTER_EMAIL"] = "t@example.com"
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "--quiet", "-b", "main"], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=path, check=True, capture_output=True)
+    (path / "f").write_text("x\n", encoding="utf-8")
+    subprocess.run(["git", "add", "f"], cwd=path, check=True, capture_output=True, env=env)
+    subprocess.run(["git", "commit", "-m", "init"], cwd=path, check=True, capture_output=True, env=env)
+
+
+def _add_worktree(main_repo: Path, worktree_path: Path, branch: str) -> None:
+    import subprocess
+
+    subprocess.run(
+        ["git", "worktree", "add", "-b", branch, str(worktree_path)],
+        cwd=main_repo, check=True, capture_output=True,
+    )
+
+
+class WorktreeGitDirPathsTests(unittest.TestCase):
+    """A git worktree's `.git` is a pointer file into its main checkout's
+    git dir — without that shared .git dir also mounted, git commands inside
+    the worktree fail with "not a git repository". worktree_git_dir_paths()
+    closes that gap by reading the pointer directly, for any worktree
+    regardless of how it was created — and mounts *only* `.git`, never the
+    main checkout's working-tree files, to keep worktree isolation intact."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def test_plain_repo_is_ignored(self) -> None:
+        repo = self.root / "plain-repo"
+        _init_repo(repo)
+        result = apply_config.worktree_git_dir_paths({str(repo)})
+        self.assertEqual(result, set())
+
+    def test_non_git_directory_is_ignored(self) -> None:
+        plain = self.root / "not-a-repo"
+        plain.mkdir()
+        result = apply_config.worktree_git_dir_paths({str(plain)})
+        self.assertEqual(result, set())
+
+    def test_real_worktree_resolves_to_main_repos_git_dir_only(self) -> None:
+        main_repo = self.root / "main-checkout"
+        _init_repo(main_repo)
+        worktree = self.root / "elsewhere" / "linked-worktree"
+        worktree.parent.mkdir(parents=True)
+        _add_worktree(main_repo, worktree, "feat-x")
+
+        result = apply_config.worktree_git_dir_paths({str(worktree)})
+        self.assertEqual(result, {str((main_repo / ".git").resolve())})
+        # Isolation: the main checkout root itself must never be the mount target.
+        self.assertNotIn(str(main_repo.resolve()), result)
+
+    def test_malformed_git_file_does_not_raise(self) -> None:
+        fake = self.root / "fake-worktree"
+        fake.mkdir()
+        (fake / ".git").write_text("not a real pointer\n", encoding="utf-8")
+        result = apply_config.worktree_git_dir_paths({str(fake)})
+        self.assertEqual(result, set())
+
+
 class ApplyConfigE2ETests(unittest.TestCase):
     def test_apply_writes_runtime_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -89,7 +159,7 @@ class ApplyConfigE2ETests(unittest.TestCase):
                 "ttyd": {
                     "port": 7681,
                     "host_port": 7681,
-                    "font_size": 22,
+                    "font_size": 19,
                     "font_family": "monospace",
                     "theme": "dark",
                 },
@@ -137,6 +207,50 @@ class ApplyConfigE2ETests(unittest.TestCase):
             env_text = env.read_text(encoding="utf-8")
             self.assertIn("WORKSPACE_NAME=demo", env_text)
             self.assertIn("ORCAN_COMPOSE_PROJECTS=", env_text)
+
+    def test_worktree_project_also_mounts_main_repos_git_dir_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            main_repo = root / "main-checkout"
+            _init_repo(main_repo)
+            worktree_path = root / "elsewhere" / "linked-worktree"
+            worktree_path.parent.mkdir(parents=True)
+            _add_worktree(main_repo, worktree_path, "feat-x")
+
+            (root / ".env.example").write_text(
+                "USER_UID=1000\nUSER_GID=1000\n", encoding="utf-8"
+            )
+            cfg = {
+                "workspaces": [
+                    {
+                        "name": "demo",
+                        "projects": [{"name": "app", "path": str(worktree_path)}],
+                    }
+                ]
+            }
+            (root / "orcan.config.json").write_text(
+                json.dumps(cfg, indent=2) + "\n", encoding="utf-8"
+            )
+
+            old_argv = sys.argv
+            try:
+                sys.argv = [
+                    "apply-config.py",
+                    "--root", str(root),
+                    "--config", str(root / "orcan.config.json"),
+                ]
+                apply_config.main()
+            finally:
+                sys.argv = old_argv
+
+            compose_text = (root / ".orcan" / "compose-projects.generated.yml").read_text(encoding="utf-8")
+            self.assertIn(str(worktree_path.resolve()), compose_text)
+            self.assertIn(str((main_repo / ".git").resolve()), compose_text)
+            # Isolation: never a bare mount of the main checkout's own root
+            # (only its .git dir — a substring check on the root alone would
+            # false-positive against the .git line above, so check the exact
+            # "path:path" mapping line the main checkout root would produce).
+            self.assertNotIn(f"{main_repo.resolve()}:{main_repo.resolve()}", compose_text)
 
 
 if __name__ == "__main__":
