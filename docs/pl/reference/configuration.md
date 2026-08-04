@@ -46,7 +46,7 @@ Nie używaj: `projects_dir`, `default_project`, `default_workspace`, projektowe 
 
 | Polecenie | Rola |
 | --- | --- |
-| `orcan context wizard` | Edytor interaktywny |
+| `orcan init` | Edytor interaktywny |
 | `orcan context add` | Dodawanie bez interakcji |
 | `orcan context add --from-worktree` | Dodanie istniejącego git worktree |
 | `orcan context worktrees` | Lista worktree dla repo |

@@ -18,7 +18,7 @@ Read [Why Orcan?](why-orcan.md) and [Core Ideas](ideas/core-ideas.md) before the
 
 ## How do I switch projects?
 
-Edit `orcan.config.json` (or `orcan context wizard`), then:
+Edit `orcan.config.json` (or `orcan init`), then:
 
 ```bash
 orcan sync

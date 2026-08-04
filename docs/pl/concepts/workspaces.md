@@ -68,7 +68,7 @@ Pierwszy włączony workspace napędza `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR
 Worktree to **opcjonalna, zaawansowana pomoc**: gdy chcesz drugi checkout bez ruszania klona od `main` / `pull`. Orcan może je tworzyć pod `$ORCAN_DATA/worktrees/<workspace>/<project>/` i zapisać w `manifest.json`.
 
 ```bash
-orcan context wizard   # montuj ścieżki; opcjonalnie utwórz/wybierz worktree
+orcan init   # montuj ścieżki; opcjonalnie utwórz/wybierz worktree
 
 # Bez interakcji (jedno repo):
 orcan context worktree create --repo /abs/repo --branch topic --workspace my-ws --project backend

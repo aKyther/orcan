@@ -28,7 +28,7 @@ Przeczytaj też root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AG
 ## Rytuał (host)
 
 ```bash
-orcan context wizard          # or edit orcan.config.json
+orcan init          # or edit orcan.config.json
 orcan sync
 orcan build                  # when image inputs change
 orcan up        # daily; does NOT run orcan sync
