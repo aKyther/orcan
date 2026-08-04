@@ -55,7 +55,7 @@ orcan up --with-docker --with-git
 
 That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is set). Both flags are optional and print a security warning — agents in the container can use the mounted socket/keys. Details: [Workflows](../guides/workflows.md), [Security](../reference/security.md).
 
-`orcan context wizard` — add a workspace and project paths. Default: mount the folder as-is. Optionally (advanced) create or pick a git worktree. See [Workspaces](../concepts/workspaces.md#git-worktrees).
+`orcan init` — add a workspace and project paths. Run it from inside the repo you want to mount and it suggests the current directory as the workspace/project (Enter-Enter to accept, like `uv init`/`poetry init`). Default: mount the folder as-is. Optionally (advanced) create or pick a git worktree. See [Workspaces](../concepts/workspaces.md#git-worktrees).
 
 ## In the browser
 

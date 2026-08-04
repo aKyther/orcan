@@ -4,6 +4,7 @@
 set -Eeuo pipefail
 
 INIT_SCRIPT="${INIT_CURSOR_HOME_SCRIPT:-/usr/local/bin/init-cursor-home}"
+INIT_CLAUDE_HOME_SCRIPT="${INIT_CLAUDE_HOME_SCRIPT:-/usr/local/bin/init-claude-home}"
 AI_STATUSLINE_SCRIPT="${INIT_AI_STATUSLINE_SCRIPT:-/usr/local/bin/init-ai-statusline}"
 WORKSPACE_SCRIPT="${INIT_WORKSPACE_SCRIPT:-/usr/local/bin/init-workspace}"
 
@@ -124,6 +125,14 @@ run_init() {
     "${INIT_SCRIPT}"
 }
 
+run_init_claude_home() {
+    # Claude Code is present in every variant (full and claude-only).
+    if [[ ! -x "${INIT_CLAUDE_HOME_SCRIPT}" ]]; then
+        return 0
+    fi
+    "${INIT_CLAUDE_HOME_SCRIPT}" || true
+}
+
 run_init_ai_statusline() {
     if [[ ! -x "${AI_STATUSLINE_SCRIPT}" ]]; then
         return 0
@@ -231,6 +240,7 @@ main() {
     fix_named_volume_permissions
     persist_claude_config
     run_init
+    run_init_claude_home
     run_init_ai_statusline
     ensure_shell_home
     run_init_workspace

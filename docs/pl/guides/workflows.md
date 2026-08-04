@@ -50,7 +50,7 @@ Alias: `orcan go-in` (to samo co `enter`). Domyślna nazwa kontenera to `orcan-1
 **Podejście:** edytuj listę workspace'ów (lub włącz inny), zastosuj konfigurację, odtwórz kontener.
 
 ```bash
-orcan context wizard    # albo edytuj orcan.config.json
+orcan init    # albo edytuj orcan.config.json
 orcan sync
 orcan down
 orcan up

@@ -26,6 +26,10 @@ Zobacz [Architektura](../architecture.md).
 
 Opcjonalne użycie AI w statusie tmux: `init-ai-statusline` + `orcan-ai-statusline` (hooki dla Claude/Cursor). Celowo cienkie.
 
+## Context Assertions: Claude tworzy, Cursor czyta
+
+`orcan context hook enable` (wsadowa Reflection, szkicująca kandydatów na Context Assertions) jest Claude-only — patrz ["Wsadowa, zautomatyzowana Reflection"](../ideas/context-assertions.md#wsadowa-zautomatyzowana-reflection), dlaczego własny hook `stop` Cursora nie jest tu podpięty. Cursor i tak dostaje ten sam skompilowany `CONTEXT-ASSERTIONS.md`, bo `init-workspace` pisze `AGENTS.md` (Cursor) i `CLAUDE.md` (Claude) z identyczną treścią — bez osobnej ścieżki do utrzymania dla Cursora.
+
 ## To repozytorium
 
 Gdy rozwijasz **samego Orcana**, przeczytaj też root `AGENTS.md` oraz `.cursor/rules/` — dotyczą repo Orcana, nie każdego zamontowanego projektu klienta.

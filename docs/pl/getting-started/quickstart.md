@@ -55,7 +55,7 @@ orcan up --with-docker --with-git
 
 Montuje hostowy `~/.ssh` tylko do odczytu (oraz agenta SSH, gdy `SSH_AUTH_SOCK` jest ustawiony). Obie flagi są opcjonalne i wypisują ostrzeżenie bezpieczeństwa — agenci w kontenerze mogą użyć zamontowanego socketa/kluczy. Szczegóły: [Workflowy](../guides/workflows.md), [Bezpieczeństwo](../reference/security.md).
 
-`orcan context wizard` — dodaj workspace i ścieżki projektów. Domyślnie: montuj folder jak leży. Opcjonalnie (zaawansowane) utwórz lub wybierz git worktree. Zobacz [Workspace'y](../concepts/workspaces.md#git-worktree).
+`orcan init` — dodaj workspace i ścieżki projektów. Odpalone z wnętrza repo, które chcesz zamontować, podpowiada bieżący katalog jako workspace/projekt (Enter-Enter, jak `uv init`/`poetry init`). Domyślnie: montuj folder jak leży. Opcjonalnie (zaawansowane) utwórz lub wybierz git worktree. Zobacz [Workspace'y](../concepts/workspaces.md#git-worktree).
 
 ## W przeglądarce
 

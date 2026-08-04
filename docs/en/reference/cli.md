@@ -24,7 +24,7 @@ The `orcan` command is **Bash**, but config work on the host uses **Python 3** (
 | Need | Used by |
 | --- | --- |
 | Bash, Git | CLI, install, `orcan update` |
-| **Python 3** | `orcan sync`, `init`, `context` (wizard / show / add) |
+| **Python 3** | `orcan sync`, `init`, `context` (show / add / hook) |
 | Docker Compose v2 | `orcan build`, `up`, `down`, … |
 
 Check with `orcan doctor`. Details: [Installation](../getting-started/installation.md).
@@ -33,10 +33,10 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 
 | Command | Role |
 | --- | --- |
-| `orcan init [PATH]` | First run: scaffold config, sync, show |
+| `orcan init` | No PATH: interactive config wizard (create/edit) + sync + show |
+| `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `.orcan/*` |
 | `orcan context show` | List workspaces + path-parity summary |
-| `orcan context wizard` | Interactive config editor |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
 | `orcan context add --from-worktree REPO SELECTOR` | Add an existing git worktree (selector: branch, index, or path) |
 | `orcan context worktrees [REPO]` | List git worktrees (`git worktree list`) |
@@ -46,6 +46,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context assert propose …` | Reflection: draft a Context Assertion (content + justification + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, or `accepted` → `retired` — never automatic |
 | `orcan context assert list\|show\|select\|root` | Inspect the store; `select` previews what `orcan sync` would compile |
+| `orcan context hook enable\|disable\|status [PATH ...] [--all]` | Toggle the opt-in Claude `Stop` hook (batched Reflection) in `.claude/settings.json`; immediate, no `orcan sync` |
 | *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. See [Context Assertions](../ideas/context-assertions.md) |
 | `orcan up [--with-docker] [--with-git]` | Start browser terminal (socket / host SSH only with flags); hints if a newer release exists |
 | `orcan down` | Stop containers |

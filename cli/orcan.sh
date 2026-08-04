@@ -17,9 +17,10 @@ Usage:
   orcan <command> [arguments]
 
 Commands:
-  init         First-run setup (scaffold config, sync, show)
+  init         No PATH: interactive config wizard (create/edit) + sync + show
+               PATH: non-interactive scaffold (scripts/CI) + sync + show
   sync         Apply orcan.config.json → .env + .orcan/* for Compose
-  context      Manage context (show | wizard | add)
+  context      Manage context (show | add | worktrees | worktree | assert | hook)
   up           Start browser terminal (--with-docker / --with-git)
   down         Stop containers
   build        Both agents → orcan:latest + orcan:<VERSION> (pull or build)
@@ -36,6 +37,7 @@ Commands:
   help         Show this help
 
 Examples:
+  orcan init                       # interactive wizard
   orcan init /absolute/path/to/repo
   orcan sync
   orcan up

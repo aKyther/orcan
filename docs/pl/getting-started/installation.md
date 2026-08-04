@@ -20,7 +20,7 @@ Orcan działa na maszynie z Dockerem. Większość osób używa Linuksa lub WSL2
 | --- | --- |
 | Docker Engine | Z Compose v2 (`docker compose`) |
 | Git | Do klonowania instalacji i projektów |
-| Python 3 | Skrypty konfiguracji na hoście — `orcan sync`, `init`, `context` (wizard). Tylko stdlib; bez pip. |
+| Python 3 | Skrypty konfiguracji na hoście — `orcan sync`, `init` (w tym kreator), `context`. Tylko stdlib; bez pip. |
 | Bash | Launcher CLI |
 
 Opcjonalnie:
@@ -70,7 +70,7 @@ orcan init /absolute/path/to/your/repo
 Albo użyj wizarda:
 
 ```bash
-orcan context wizard
+orcan init
 orcan sync
 ```
 
