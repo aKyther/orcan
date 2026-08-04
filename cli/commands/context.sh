@@ -26,8 +26,7 @@ orcan_cmd_context() {
             fi
             ;;
         wizard)
-            ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-wizard.py" "$@"
-            orcan_info "run: orcan sync"
+            orcan_die "moved: run 'orcan init' instead (no PATH → interactive wizard; run again anytime to add more)"
             ;;
         worktrees)
             local repo="${1:-${PWD}}"
@@ -63,10 +62,41 @@ orcan_cmd_context() {
         assert)
             orcan_context_assert "$@"
             ;;
+        hook)
+            orcan_context_hook "$@"
+            ;;
         *)
-            orcan_usage_error "usage: orcan context <show|wizard|add|worktrees|worktree|assert>"
+            orcan_usage_error "usage: orcan context <show|add|worktrees|worktree|assert|hook> (wizard moved to: orcan init)"
             ;;
     esac
+}
+
+orcan_context_hook() {
+    local action="${1:-}"
+    shift || true
+
+    case "${action}" in
+        enable | disable | status) ;;
+        -h | --help | "")
+            printf 'usage: orcan context hook <enable|disable|status> [PATH ...] [--all] [--dry-run]\n'
+            printf '  Toggle the optional Claude Code Stop hook (orcan-context-reflect) in a\n'
+            printf "  project's .claude/settings.json. Takes effect immediately — no orcan sync.\n"
+            printf '  PATH: one or more project directories (default: current directory)\n'
+            printf '  --all: every project in %s\n' "${ORCAN_CONFIG_FILE}"
+            printf '\n'
+            printf '  Claude-only by design: Cursor CLI has no reliably wired stop-hook here\n'
+            printf '  to fire this. Cursor still benefits — it reads the same CONTEXT-\n'
+            printf '  ASSERTIONS.md (via AGENTS.md) that this hook helps populate, automatically,\n'
+            printf '  once orcan sync compiles it.\n'
+            return 0
+            ;;
+        *)
+            orcan_usage_error "usage: orcan context hook <enable|disable|status>"
+            ;;
+    esac
+
+    ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/claude_hook.py" \
+        "${action}" "$@" --config "${ORCAN_CONFIG_FILE}"
 }
 
 orcan_context_assert() {

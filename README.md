@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **0.4.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **0.4.1**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -25,7 +25,7 @@ Version **0.4.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the i
 | Tool | Role |
 | --- | --- |
 | Bash | `orcan` CLI dispatcher |
-| Python 3 | Host config: `sync`, `init`, `context` (wizard / show / add) — stdlib only, no pip |
+| Python 3 | Host config: `sync`, `init` (incl. wizard), `context` (show / add / hook) — stdlib only, no pip |
 | Git | Install clone + your projects |
 | Docker (Compose v2) | Image + browser terminal |
 
@@ -43,19 +43,19 @@ Adds `orcan` to `~/.local/bin` and appends that directory to your shell rc (`~/.
 
 ```bash
 orcan doctor
-orcan init /absolute/path/to/your/repo
+orcan init /absolute/path/to/your/repo   # or just `orcan init` for the interactive wizard
 orcan build
 orcan up
 ```
 
-Open `http://localhost:7681`. After any config edit: `orcan sync && orcan down && orcan up` (`up` does not run `sync`).
+Open `http://localhost:7681`. After any config edit: `orcan init && orcan down && orcan up` (`up` does not sync).
 
 ### Useful commands
 
 | Command | Role |
 | --- | --- |
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `.orcan/*` |
-| `orcan context wizard` | Interactive config |
+| `orcan init` | Interactive config wizard (no PATH: create or edit) |
 | `orcan up` / `orcan up --with-docker` / `orcan up --with-git` / `orcan down` | Start (optional DinD / host SSH) / stop browser terminal |
 | `orcan build [--claude\|--cursor]` | Both → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor` |
 | `orcan publish` | Manual image push (maintainers) |

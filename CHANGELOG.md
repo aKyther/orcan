@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-04
+
+### Added
+
+- `/do <rough draft>` slash command + `prompt-refiner` subagent, seeded into
+  every workspace's `~/.claude/{agents,commands}` at container start
+  (`docker/rootfs/opt/claude-defaults/`, copied by the new
+  `init-claude-home`, missing-only — same idiom as `init-cursor-home`).
+  `/do` hands your raw draft to the cheap `prompt-refiner` subagent (haiku),
+  which compiles it into a minimal `Goal:`/`Constraints:`/`Validation:`
+  prompt preserving intent exactly (no invented requirements, no scope
+  changes, defers to "inspect the repository" instead of guessing), then
+  executes the compiled version in the same turn — the raw draft is treated
+  as non-authoritative once refined. Not a token-saving mechanism (the raw
+  draft still enters the orchestrating agent's context the moment `/do`
+  fires) — see `orcan-prompt-clean` below for that case.
+- `orcan-prompt-clean` (container CLI): manual, out-of-session variant of
+  the same prompt-compiler instruction — pipe or type a rough draft, get
+  the compiled prompt on stdout, paste it yourself. Exists because Claude
+  Code's `UserPromptSubmit` hook can only add context alongside a prompt,
+  not replace it (anthropics/claude-code#27365), so true token savings need
+  the draft to never enter an interactive session's context at all.
+- `orcan init`/wizard: `uv init`/`poetry init`-style default — when the
+  current directory isn't already mounted anywhere in the config, it's
+  suggested as the workspace name and project path (Enter-Enter accepts it).
+  Pure logic in `suggest_cwd_project()` (`scripts/repository/config-wizard.py`),
+  wired into "create new config", "add workspace" and "add another
+  workspace" — never re-suggested once cwd is already registered in the
+  in-progress config.
+- `orcan init`/wizard: when the current directory *is* already registered,
+  it says so in one line (workspace/project name + path) and exits — `orcan
+  init` still runs `sync` right after, but doesn't force you through a
+  reconfigure flow. Answering "y" to "Change anything?" falls through to the
+  normal edit menu as before. (`find_cwd_match()`.)
+
+- `orcan context hook enable|disable|status [PATH ...] [--all] [--dry-run]`
+  (`scripts/repository/claude_hook.py`): host-side, stdlib-only toggle for
+  the optional Claude Code `Stop` hook (`orcan-context-reflect`, batched
+  Reflection). Merges/removes `hooks.Stop` in a project's
+  `.claude/settings.json` idempotently, backs up the file before writing,
+  takes effect immediately — no `orcan sync` needed, no container required.
+  Claude-only by design (Cursor CLI's own `stop` hook is not reliably wired
+  in headless mode as of this writing, and Cursor already sees Reflection's
+  output passively via the `AGENTS.md`/`CLAUDE.md` pack — see
+  `docs/en/ideas/context-assertions.md`). Replaces the old manual copy of
+  `docker/rootfs/opt/cursor-defaults/templates/claude/hooks.example.json`
+  (removed).
+
+### Changed
+
+- **Breaking:** `orcan context wizard` is gone. `orcan init` is now the one
+  entry point: with no `PATH` it launches the interactive config wizard
+  (create a new `orcan.config.json`, or edit an existing one — same as the
+  old `context wizard`); `orcan init PATH` keeps the previous non-interactive
+  scaffold for scripts/CI. Running `orcan context wizard` prints a pointer to
+  `orcan init` and exits non-zero.
+
 ## [0.4.0] - 2026-08-04
 
 ### Added

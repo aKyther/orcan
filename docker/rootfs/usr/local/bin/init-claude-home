@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Copy missing Claude Code home defaults (custom agents, slash commands) from
+# /opt/claude-defaults into ${HOME}/.claude. Idempotent: never overwrites
+# existing files. Mirrors init-cursor-home's pattern for ~/.cursor.
+
+set -Eeuo pipefail
+
+DEFAULTS_DIR="${CLAUDE_DEFAULTS_DIR:-/opt/claude-defaults}"
+CLAUDE_HOME="${CLAUDE_HOME:-${HOME:?HOME is not set}/.claude}"
+
+CREATED=0
+SKIPPED=0
+MISSING=0
+
+log() {
+    printf '%s\n' "$*"
+}
+
+ensure_dirs() {
+    mkdir -p "${CLAUDE_HOME}"
+}
+
+copy_missing_files() {
+    local source_file relative_path target_file
+
+    if [[ ! -d "${DEFAULTS_DIR}" ]]; then
+        log "Missing: defaults directory ${DEFAULTS_DIR}"
+        MISSING=1
+        return 0
+    fi
+
+    while IFS= read -r -d '' source_file; do
+        relative_path="${source_file#"${DEFAULTS_DIR}"/}"
+        target_file="${CLAUDE_HOME}/${relative_path}"
+
+        mkdir -p "$(dirname "${target_file}")"
+
+        if [[ -e "${target_file}" ]]; then
+            log "Skipped: ${target_file}"
+            SKIPPED=$((SKIPPED + 1))
+            continue
+        fi
+
+        cp -- "${source_file}" "${target_file}"
+        chmod u+rw -- "${target_file}" 2>/dev/null || true
+        log "Created: ${target_file}"
+        CREATED=$((CREATED + 1))
+    done < <(find "${DEFAULTS_DIR}" -type f -print0 | sort -z)
+}
+
+print_summary() {
+    log ""
+    log "Claude home init summary"
+    log "  source : ${DEFAULTS_DIR}"
+    log "  target : ${CLAUDE_HOME}"
+    log "  created: ${CREATED}"
+    log "  skipped: ${SKIPPED}"
+    if (( MISSING > 0 )); then
+        log "  status : defaults missing (noop)"
+    else
+        log "  status : ok"
+    fi
+}
+
+main() {
+    ensure_dirs
+    copy_missing_files
+    print_summary
+}
+
+main "$@"

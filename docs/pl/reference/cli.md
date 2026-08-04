@@ -24,7 +24,7 @@ Komenda `orcan` to **Bash**, ale konfiguracja na hoście idzie przez **Python 3*
 | Potrzeba | Używane przez |
 | --- | --- |
 | Bash, Git | CLI, instalacja, `orcan update` |
-| **Python 3** | `orcan sync`, `init`, `context` (wizard / show / add) |
+| **Python 3** | `orcan sync`, `init`, `context` (show / add / hook) |
 | Docker Compose v2 | `orcan build`, `up`, `down`, … |
 
 Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installation.md).
@@ -33,10 +33,10 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 
 | Komenda | Rola |
 | --- | --- |
-| `orcan init [PATH]` | Pierwszy start: scaffold, sync, show |
+| `orcan init` | Bez PATH: interaktywny kreator config (utwórz/edytuj) + sync + show |
+| `orcan init PATH` | Bez interakcji: scaffold jednego projektu (skrypty/CI) + sync + show |
 | `orcan sync` | Zastosuj `orcan.config.json` → `.env` + `.orcan/*` |
 | `orcan context show` | Lista workspace'ów + path parity |
-| `orcan context wizard` | Interaktywny edytor konfiguracji |
 | `orcan context add PATH` | Dodaj projekt (`--workspace`, `--force`) |
 | `orcan context add --from-worktree REPO SELECTOR` | Dodaj istniejący git worktree (selektor: branch, indeks lub ścieżka) |
 | `orcan context worktrees [REPO]` | Lista git worktree (`git worktree list`) |
@@ -46,6 +46,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context assert propose …` | Reflection: naszkicuj Context Assertion (treść + uzasadnienie + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, albo `accepted` → `retired` — nigdy automatycznie |
 | `orcan context assert list\|show\|select\|root` | Przegląd store'u; `select` pokazuje podgląd tego, co skompilowałby `orcan sync` |
+| `orcan context hook enable\|disable\|status [PATH ...] [--all]` | Włącz/wyłącz opcjonalny hook `Stop` Claude (wsadowa Reflection) w `.claude/settings.json`; natychmiast, bez `orcan sync` |
 | *(wewnątrz kontenera)* `orcan-context-propose` / `orcan-context-review` | Szkicowanie/review bez terminala hosta — zrzut do zamontowanej skrzynki, importowany przy najbliższym `orcan sync`. Patrz [Context Assertions](../ideas/context-assertions.md) |
 | `orcan up [--with-docker] [--with-git]` | Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release |
 | `orcan down` | Stop kontenerów |

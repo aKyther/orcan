@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Compile a rough draft into the smallest possible high-quality prompt.
+
+Manual "pre" step — run this yourself before pasting into a Claude Code
+session. Not a hook: Claude Code's UserPromptSubmit hook can only add
+context alongside your prompt, not replace its text (as of this writing;
+see anthropics/claude-code#27365), so this can't be automatic. Cost of
+being manual: you decide when it's worth the round-trip.
+
+Usage:
+  orcan-prompt-clean                 # type/paste a draft, Ctrl-D to send
+  orcan-prompt-clean < draft.txt      # from a file
+  echo "..." | orcan-prompt-clean     # from a pipe
+"""
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+
+INSTRUCTION = """You are a prompt compiler, not a task executor. Transform a rough user request into the smallest possible, high-quality prompt for a coding agent.
+
+Rules:
+- Preserve the user's intent exactly. Never invent requirements. Never change scope.
+- Remove repetition, filler, emotional language, and conversational phrasing.
+- Assume the target agent already knows the repository, its CLAUDE.md/AGENTS.md conventions, and its coding standards — do not restate anything it can infer from repository context.
+- Prefer concise, imperative sentences.
+- Produce the minimum number of tokens required to convey the request correctly.
+- Keep the same language as the draft — do not translate.
+- If information needed to act is missing, do not guess or invent it: explicitly instruct the target agent to inspect the repository to find it.
+- Do not explain your reasoning. Output only the compiled prompt — no preamble, no commentary, no surrounding quotes.
+
+Output format — exactly these sections, each starting on its own line; omit a section only if it is genuinely empty:
+
+Goal: <what to accomplish — imperative, one or two sentences>
+Constraints: <hard requirements, scope limits, things not to touch — bullet points if more than one>
+Validation: <how to confirm it worked — tests/behavior to check; instruct to inspect the repo if unknown>
+
+Draft:
+"""
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--model", default="haiku")
+    args = parser.parse_args()
+
+    if sys.stdin.isatty():
+        print("Type your draft. End with Ctrl-D on its own line.", file=sys.stderr)
+    draft = sys.stdin.read().strip()
+    if not draft:
+        print("orcan-prompt-clean: empty input, nothing to do", file=sys.stderr)
+        return 1
+
+    try:
+        result = subprocess.run(
+            ["claude", "-p", "--model", args.model, INSTRUCTION + draft],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"orcan-prompt-clean: model call failed: {exc}", file=sys.stderr)
+        return 1
+
+    if result.returncode != 0:
+        print(
+            f"orcan-prompt-clean: model exited {result.returncode}: "
+            f"{result.stderr.strip()[:200]}",
+            file=sys.stderr,
+        )
+        return 1
+
+    cleaned = result.stdout.strip()
+    if not cleaned:
+        print("orcan-prompt-clean: model returned nothing", file=sys.stderr)
+        return 1
+
+    print(cleaned)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
