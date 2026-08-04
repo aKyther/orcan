@@ -20,6 +20,10 @@ orcan_cmd_sync() {
         ORCAN_ROOT="${ORCAN_ROOT}" \
         "${ORCAN_SCRIPTS}/update-env.sh"
 
+    orcan_info "compiling context assertions → workspace context packs"
+    ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+        orcan_host_python "${ORCAN_SCRIPTS}/compile_context.py" "${ORCAN_HOME}"
+
     orcan_ok "sync complete"
     orcan_info "next: orcan up"
 }

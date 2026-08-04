@@ -363,6 +363,65 @@ def prune_stale_workspace_metas(repo_root: Path, active_names: set[str]) -> None
         shutil.rmtree(child)
 
 
+def main_repo_git_dir_from_worktree(project_path: Path) -> str | None:
+    """Resolve a git worktree's shared `.git` *directory* by reading its pointer.
+
+    A worktree's own `.git` is a plain *file* (not a directory) containing
+    `gitdir: <main-repo>/.git/worktrees/<name>`. A normal repo (or a
+    non-repo directory) has `.git` as a directory or nothing, so this only
+    ever fires for genuine worktrees.
+
+    Deliberately returns `<main-repo>/.git` only — never `<main-repo>`
+    itself. Git worktree operations (commit, push, log, branch, fetch) only
+    ever need the shared object database, refs, and per-worktree metadata
+    under `.git`; they never need the main checkout's actual working-tree
+    files. Mounting the whole main repo would let the agent browse and edit
+    the main branch's files from inside a feature-branch worktree, which
+    defeats the isolation `orcan context worktree create` exists to give —
+    "work on this branch" should not silently also mean "and see main".
+
+    Reads the pointer straight off disk instead of shelling out to `git`:
+    at `orcan sync` time the whole point is that git doesn't work yet inside
+    the worktree (its .git dir isn't mounted), so a git subprocess here
+    would be circular. This also means it works for *any* worktree
+    regardless of how it was created — a bare `git worktree add`, `orcan
+    context worktree create`, or one made by an older Orcan version.
+    """
+    git_file = project_path / ".git"
+    if not git_file.is_file():
+        return None
+    try:
+        first_line = git_file.read_text(encoding="utf-8").splitlines()[0]
+    except (OSError, IndexError, UnicodeDecodeError):
+        return None
+    if not first_line.startswith("gitdir:"):
+        return None
+    gitdir = Path(first_line.split(":", 1)[1].strip())
+    if not gitdir.is_absolute():
+        gitdir = (project_path / gitdir).resolve()
+    # Standard worktree layout: <main-repo>/.git/worktrees/<name>
+    if gitdir.parent.name == "worktrees" and gitdir.parent.parent.name == ".git":
+        return str(gitdir.parent.parent)  # <main-repo>/.git — not the working tree
+    return None
+
+
+def worktree_git_dir_paths(project_paths: set[str]) -> set[str]:
+    """`<main-repo>/.git` paths for every project path that is itself a git worktree.
+
+    Without that shared .git dir also mounted at the same host path, every
+    git command inside the worktree fails with "not a git repository",
+    because its `.git` pointer resolves to a path the container can't see.
+    Only `.git` is mounted, never the main checkout's working-tree files —
+    see main_repo_git_dir_from_worktree() for why that boundary matters.
+    """
+    extra: set[str] = set()
+    for raw in project_paths:
+        git_dir = main_repo_git_dir_from_worktree(Path(raw))
+        if git_dir:
+            extra.add(git_dir)
+    return extra
+
+
 def write_compose_projects(workspaces: list[dict], repo_root: Path) -> str:
     """One bind for all workspace metas + parity binds for every project path."""
     host_workspaces = ensure_dir(
@@ -381,6 +440,8 @@ def write_compose_projects(workspaces: list[dict], repo_root: Path) -> str:
     for ws in workspaces:
         for project in ws["projects"]:
             parity_paths.add(project["path"])
+
+    parity_paths |= worktree_git_dir_paths(parity_paths)
 
     for path in sorted(parity_paths):
         lines.append(f"      - {path}:{path}")
@@ -485,12 +546,13 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
         "ttyd": {
             "port": int(ttyd.get("port", 7681)),
             "host_port": int(ttyd.get("host_port", ttyd.get("port", 7681))),
-            "font_size": int(ttyd.get("font_size", 22)),
+            "font_size": int(ttyd.get("font_size", 19)),
             "font_family": str(
                 ttyd.get("font_family")
                 or "Menlo, Monaco, 'Courier New', monospace"
             ),
             "theme": str(ttyd.get("theme") or "dark"),
+            "ping_interval": max(1, int(ttyd.get("ping_interval", 20))),
         },
         "resources": {
             "cpus": resources.get("cpus", 2),
@@ -540,9 +602,10 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
         "ttyd": {
             "port": 7681,
             "host_port": 7681,
-            "font_size": 22,
+            "font_size": 19,
             "font_family": "Menlo, Monaco, 'Courier New', monospace",
             "theme": "dark",
+            "ping_interval": 20,
         },
         "resources": {
             "cpus": 2,
@@ -658,6 +721,9 @@ def main() -> None:
     ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_FAMILY", str(ttyd["font_family"]))
     ensure_env_key_unless_set(env_path, "TTYD_THEME", str(ttyd["theme"]))
+    ensure_env_key_unless_set(
+        env_path, "TTYD_PING_INTERVAL", str(ttyd.get("ping_interval", 20))
+    )
     ensure_env_key_unless_set(env_path, "CPUS", str(resources["cpus"]))
     ensure_env_key_unless_set(env_path, "MEMORY", str(resources["memory"]))
     ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))

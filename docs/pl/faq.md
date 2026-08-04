@@ -39,6 +39,12 @@ orcan down && orcan up
 
 **Nie.** ttyd jest świetne zdalnie / na telefonie. Lokalnie: `orcan enter` (lub `orcan go-in`) — domyślnie picker workspace’ów; `--tmux` / `--shell` na inne tryby. Zobacz [Workflowy — lokalny terminal](guides/workflows.md#local-terminal).
 
+## Dlaczego ttyd pokazuje „reconnecting” na LTE / w aucie?
+
+Zerwania WebSocketa przy handoffach sieci komórkowej są normalne. **Sesje tmux i agenci działają dalej** — odpada tylko klient w przeglądarce.
+
+Po reconnect launcher **auto-reattachuje** ostatni workspace (odliczanie 2s; Enter = menu). Wyłączenie: `ORCAN_AUTO_REATTACH=0` w środowisku kontenera. Ping domyślnie 20s (`TTYD_PING_INTERVAL` / `ttyd.ping_interval`).
+
 ## Czy mogę commitować i pushować z kontenera?
 
 **Autor commitów:** tak po `orcan sync` — hostowe `user.name` / `user.email` trafiają do `GIT_AUTHOR_*` w kontenerze.

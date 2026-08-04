@@ -22,6 +22,15 @@ The `docker compose config` command prints the resolved Compose file (needs gene
 2. Confirm the URL: `orcan url` (default `http://localhost:7681`)
 3. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `orcan sync` and recreate
 
+## Frequent “reconnecting” on phone / mobile network
+
+Cellular handoffs drop the ttyd WebSocket; that is expected. Processes inside tmux survive.
+
+- After reconnect, `agent-launcher` auto-reattaches to the last workspace (Enter during the countdown → menu).
+- Disable auto-reattach: `ORCAN_AUTO_REATTACH=0` on the container.
+- Prefer Tailscale / VPN over exposing the port; still expect brief reconnects on LTE.
+- Optional: `ttyd.ping_interval` / `TTYD_PING_INTERVAL` (default `20`).
+
 ## Launcher is empty / wrong projects
 
 1. Check `orcan.config.json` has `workspaces` with absolute `projects[].path`

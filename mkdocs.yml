@@ -16,7 +16,7 @@ copyright: >
   <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
 
 extra:
-  orcan_version: "0.3.2"
+  orcan_version: "0.4.0"
   version:
     provider: mike
     default: latest
@@ -178,6 +178,7 @@ nav:
   - Ideas:
       - Core Ideas: ideas/core-ideas.md
       - Mental Model: ideas/mental-model.md
+      - Context Assertions: ideas/context-assertions.md
   - Concepts:
       - Workspaces: concepts/workspaces.md
       - Path parity: concepts/path-parity.md

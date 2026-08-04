@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **0.3.2**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **0.4.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -73,6 +73,7 @@ Config lives in `~/.config/orcan/home/` by default (install clone: `~/.local/sha
 | Why Orcan? | [docs/en/why-orcan.md](docs/en/why-orcan.md) |
 | Core Ideas | [docs/en/ideas/core-ideas.md](docs/en/ideas/core-ideas.md) |
 | Mental Model | [docs/en/ideas/mental-model.md](docs/en/ideas/mental-model.md) |
+| Context Assertions | [docs/en/ideas/context-assertions.md](docs/en/ideas/context-assertions.md) |
 | Quickstart (source) | [docs/en/getting-started/quickstart.md](docs/en/getting-started/quickstart.md) |
 | CLI reference | [docs/en/reference/cli.md](docs/en/reference/cli.md) |
 | Development | [docs/en/development/overview.md](docs/en/development/overview.md) |

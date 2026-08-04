@@ -14,7 +14,7 @@ Also read root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AGENTS.m
 ## Goals
 
 - Workspaces + path-parity mounts
-- Context pack (ignores, AGENTS/CLAUDE)
+- Context pack (ignores, AGENTS/CLAUDE, Context Assertions)
 - Browser terminal: ttyd → launcher → tmux → zsh
 - Image variants: full (Claude+Cursor) and Claude-only
 
@@ -41,6 +41,7 @@ After config edits with a running container: `orcan sync && orcan down && orcan 
 | Change | Place |
 | --- | --- |
 | Host UX / targets | `Makefile`, `scripts/repository/` |
+| Context Assertions store / Applicability Layer | `scripts/repository/context_assertions.py`, `scripts/repository/compile_context.py` |
 | Container runtime | `docker/rootfs/usr/local/bin/` |
 | Image packages | `Dockerfile` |
 | Global agent defaults in image | `docker/rootfs/opt/cursor-defaults/` |
@@ -54,6 +55,7 @@ After config edits with a running container: `orcan sync && orcan down && orcan 
 | Why Orcan | [why-orcan.md](../why-orcan.md) |
 | Core Ideas | [ideas/core-ideas.md](../ideas/core-ideas.md) |
 | Mental Model | [ideas/mental-model.md](../ideas/mental-model.md) |
+| Context Assertions | [ideas/context-assertions.md](../ideas/context-assertions.md) |
 | Architecture | [architecture.md](../architecture.md) |
 | Config schema | [reference/configuration.md](../reference/configuration.md) |
 | Make targets | [reference/makefile.md](../reference/makefile.md) |
