@@ -6,25 +6,25 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Describe workspaces and projects in orcan.config.json — the story of your context, then how to apply it.">
+        <meta name="description" content="Context Assertions — human-approved, conditional statements the Context Compiler may include in a workspace's Context Pack, and why they are not "project knowledge".">
       
       
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/dev/getting-started/configuration/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/dev/ideas/context-assertions/">
       
       
-        <link rel="prev" href="../quickstart/">
+        <link rel="prev" href="../mental-model/">
       
       
-        <link rel="next" href="../../guides/workflows/">
+        <link rel="next" href="../../concepts/workspaces/">
       
       
         
           <link rel="alternate" href="./" hreflang="en">
         
-          <link rel="alternate" href="../../pl/getting-started/configuration/" hreflang="pl">
+          <link rel="alternate" href="../../pl/ideas/context-assertions/" hreflang="pl">
         
       
       
@@ -33,7 +33,7 @@
     
     
       
-        <title>Config guide - Orcan</title>
+        <title>Context Assertions - Orcan</title>
       
     
     
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Describe workspaces and projects in orcan.config.json — the story of your context, then how to apply it.">
+  <meta name="description" content="Context Assertions — human-approved, conditional statements the Context Compiler may include in a workspace's Context Pack, and why they are not "project knowledge".">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Config guide — Orcan">
-  <meta property="og:description" content="Describe workspaces and projects in orcan.config.json — the story of your context, then how to apply it.">
-  <meta property="og:url" content="https://akyther.github.io/orcan/dev/getting-started/configuration/">
+  <meta property="og:title" content="Context Assertions — Orcan">
+  <meta property="og:description" content="Context Assertions — human-approved, conditional statements the Context Compiler may include in a workspace's Context Pack, and why they are not "project knowledge".">
+  <meta property="og:url" content="https://akyther.github.io/orcan/dev/ideas/context-assertions/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Config guide — Orcan">
-  <meta name="twitter:description" content="Describe workspaces and projects in orcan.config.json — the story of your context, then how to apply it.">
+  <meta name="twitter:title" content="Context Assertions — Orcan">
+  <meta name="twitter:description" content="Context Assertions — human-approved, conditional statements the Context Compiler may include in a workspace's Context Pack, and why they are not "project knowledge".">
 
   </head>
   
@@ -96,7 +96,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#configuration" class="md-skip">
+        <a href="#context-assertions" class="md-skip">
           Skip to content
         </a>
       
@@ -147,7 +147,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Config guide
+              Context Assertions
             
           </span>
         </div>
@@ -210,7 +210,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../pl/getting-started/configuration/" hreflang="pl" class="md-select__link">
+            <a href="../../pl/ideas/context-assertions/" hreflang="pl" class="md-select__link">
               Polski
             </a>
           </li>
@@ -386,8 +386,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -398,13 +400,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -425,7 +425,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -443,7 +443,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../ideas/core-ideas/" class="md-nav__link">
+      <a href="../core-ideas/" class="md-nav__link">
         
   
   
@@ -471,7 +471,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../ideas/mental-model/" class="md-nav__link">
+      <a href="../mental-model/" class="md-nav__link">
         
   
   
@@ -496,10 +496,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../ideas/context-assertions/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context Assertions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -515,6 +542,147 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-problem-it-solves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The problem it solves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#applicability-not-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Applicability, not scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#identity-what-counts-as-the-same-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Identity: what counts as "the same project"?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#drafting-and-reviewing-without-leaving-the-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drafting and reviewing without leaving the session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batched-automated-reflection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batched, automated Reflection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compilation-an-artifact-not-a-document" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compilation: an artifact, not a document
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#no-database-plain-files-versioned-by-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No database — plain files, versioned by git
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-deliberately-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this deliberately does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-implemented-vs-proposed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status: implemented vs. proposed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -648,8 +816,6 @@
       
   
   
-    
-  
   
   
     
@@ -662,11 +828,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
@@ -687,7 +855,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -705,7 +873,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../installation/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -733,7 +901,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -758,37 +926,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Config guide
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -804,120 +945,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#why-a-config-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why a config file
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#source-of-truth" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Source of truth
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#shape-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Shape (example)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Shape (example)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#field-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Field notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#raising-resources" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Raising resources
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ways-to-edit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Ways to edit
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-orcan-sync-writes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What orcan sync writes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#seed-into-git-checkouts-optional-rarely-needed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Seed into git checkouts (optional, rarely needed)
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1668,10 +1695,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why-a-config-file" class="md-nav__link">
+  <a href="#the-problem-it-solves" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why a config file
+        The problem it solves
       
     </span>
   </a>
@@ -1679,10 +1706,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#source-of-truth" class="md-nav__link">
+  <a href="#applicability-not-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Source of truth
+        Applicability, not scope
       
     </span>
   </a>
@@ -1690,49 +1717,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#shape-example" class="md-nav__link">
+  <a href="#identity-what-counts-as-the-same-project" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Shape (example)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Shape (example)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#field-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Field notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#raising-resources" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Raising resources
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ways-to-edit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Ways to edit
+        Identity: what counts as "the same project"?
       
     </span>
   </a>
@@ -1740,10 +1728,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-orcan-sync-writes" class="md-nav__link">
+  <a href="#lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What orcan sync writes
+        Lifecycle
       
     </span>
   </a>
@@ -1751,10 +1739,76 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#seed-into-git-checkouts-optional-rarely-needed" class="md-nav__link">
+  <a href="#drafting-and-reviewing-without-leaving-the-session" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Seed into git checkouts (optional, rarely needed)
+        Drafting and reviewing without leaving the session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batched-automated-reflection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batched, automated Reflection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compilation-an-artifact-not-a-document" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compilation: an artifact, not a document
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#no-database-plain-files-versioned-by-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No database — plain files, versioned by git
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-deliberately-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this deliberately does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-implemented-vs-proposed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status: implemented vs. proposed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
       
     </span>
   </a>
@@ -1778,7 +1832,7 @@
 
 
   
-    <a href="https://github.com/aKyther/orcan/edit/main/docs/en/getting-started/configuration.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/aKyther/orcan/edit/main/docs/en/ideas/context-assertions.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -1787,195 +1841,155 @@
     
       
     
-    <a href="https://github.com/aKyther/orcan/raw/main/docs/en/getting-started/configuration.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/aKyther/orcan/raw/main/docs/en/ideas/context-assertions.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
     </a>
   
 
 
-<h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
-<h2 id="why-a-config-file">Why a config file<a class="headerlink" href="#why-a-config-file" title="Permanent link">&para;</a></h2>
-<p>Your multi-repo job is a <strong>story</strong>: which projects form which workspace. <code>orcan.config.json</code> is that story in data. Make does not invent your layout; it applies what you describe.</p>
-<p>If Project / Workspace / Context are unclear, read <a href="../../ideas/core-ideas/">Core Ideas</a> first.</p>
-<h2 id="source-of-truth">Source of truth<a class="headerlink" href="#source-of-truth" title="Permanent link">&para;</a></h2>
-<p>Host config is <strong>JSON only</strong>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan.config.json
-</span></code></pre></div>
-<p>Template: <code>orcan.config.example.json</code>.</p>
-<p>After edits, always run:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>sync
-</span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code>orcan up</code> does <strong>not</strong> run <code>orcan sync</code>. Apply config first, then recreate the container.</p>
-</div>
-<p>Then recreate the container if it is already running:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
-</span></code></pre></div>
-<h2 id="shape-example">Shape (example)<a class="headerlink" href="#shape-example" title="Permanent link">&para;</a></h2>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;workspaces&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;myapp&quot;</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nt">&quot;projects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">          </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backend&quot;</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">          </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/myapp/backend&quot;</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">        </span><span class="p">},</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">          </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;frontend&quot;</span><span class="p">,</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">          </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/myapp/frontend&quot;</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="p">]</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">  </span><span class="p">],</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="nt">&quot;tmux&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">    </span><span class="nt">&quot;initial_windows&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span><span class="nt">&quot;window_prefix&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tab&quot;</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">  </span><span class="p">},</span>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">  </span><span class="nt">&quot;ttyd&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">    </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7681</span><span class="p">,</span>
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">    </span><span class="nt">&quot;host_port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7681</span><span class="p">,</span>
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">    </span><span class="nt">&quot;font_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">19</span><span class="p">,</span>
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="nt">&quot;theme&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dark&quot;</span>
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">  </span><span class="p">},</span>
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">  </span><span class="nt">&quot;resources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="nt">&quot;cpus&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">    </span><span class="nt">&quot;memory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4g&quot;</span><span class="p">,</span>
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">    </span><span class="nt">&quot;shm_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;512m&quot;</span><span class="p">,</span>
-</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">    </span><span class="nt">&quot;tmpfs_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;512m&quot;</span>
-</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="p">}</span>
-</span></code></pre></div>
-<p>Defaults stay light on purpose (typical laptop). Raise them when the machine can spare more — see below.</p>
-<h3 id="field-notes">Field notes<a class="headerlink" href="#field-notes" title="Permanent link">&para;</a></h3>
+<h1 id="context-assertions">Context Assertions<a class="headerlink" href="#context-assertions" title="Permanent link">&para;</a></h1>
+<p>A <strong>Context Assertion</strong> is a small, human-approved statement — a rule, fact, hint, or policy — that the Context Compiler <em>may</em> include in a workspace's Context Pack, but only when it applies <strong>right now</strong>. Orcan stays a Context Manager: this is one more source the Compiler reads, not a memory system, not a knowledge base, not RAG.</p>
+<h2 id="the-problem-it-solves">The problem it solves<a class="headerlink" href="#the-problem-it-solves" title="Permanent link">&para;</a></h2>
+<p>The same repositories can mean different things in different workspaces:</p>
+<pre class="mermaid"><code>flowchart LR
+  subgraph A [Workspace A]
+    a1[backend] --- a2[contracts]
+    a3[frontend]
+  end
+  subgraph B [Workspace B]
+    b1[backend] --- b2[contracts]
+    b3[mobile]
+  end</code></pre>
+<p><code>backend</code> and <code>contracts</code> are the same two checkouts in both workspaces — but the decisions, constraints, and procedures that hold in Workspace A are not guaranteed to hold in Workspace B. A model that files a note under "the <code>contracts</code> project" and hands it to every workspace that happens to mount <code>contracts</code> would be wrong half the time.</p>
+<p>Context Assertions fix this by separating two things that look similar but are not:</p>
+<ul>
+<li><strong>Where a statement is filed</strong> — its <em>anchor</em>, a project path, purely organisational (where the record physically lives, versioned with the rest of the store).</li>
+<li><strong>When a statement applies</strong> — its <em>applicability</em>, a predicate evaluated fresh for every workspace, every time.</li>
+</ul>
+<p>Filing location never decides applicability. Only the predicate does.</p>
+<h2 id="applicability-not-scope">Applicability, not scope<a class="headerlink" href="#applicability-not-scope" title="Permanent link">&para;</a></h2>
+<p>A single <code>scope</code> field cannot express "applies to workspace A" and "applies whenever <code>backend</code> and <code>contracts</code> are mounted together, regardless of workspace name" at the same time — real conditions need composing. Applicability is a small predicate built from atoms, combined as <em>AND across atom types, OR within an atom's list</em>:</p>
 <table>
 <thead>
 <tr>
-<th>Field</th>
-<th>Meaning</th>
+<th>Atom</th>
+<th>Answers</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>workspaces[].name</code></td>
-<td>tmux session name and folder under <code>/home/developer/workspaces/</code></td>
+<td><code>workspace</code></td>
+<td>Is the workspace named one of these?</td>
 </tr>
 <tr>
-<td><code>projects[].name</code></td>
-<td>Symlink name inside the workspace</td>
+<td><code>repo_set_all_of</code> / <code>any_of</code> / <code>none_of</code></td>
+<td>Are these projects present / absent, together?</td>
 </tr>
 <tr>
-<td><code>projects[].path</code></td>
-<td>Absolute host path (same path inside the container — path parity)</td>
+<td><code>branch</code></td>
+<td>Does a qualifying project's branch match one of these globs?</td>
 </tr>
 <tr>
-<td><code>tmux.*</code></td>
-<td>Windows created when a session starts</td>
-</tr>
-<tr>
-<td><code>ttyd.*</code></td>
-<td>Browser terminal port, look, and <code>ping_interval</code> (WebSocket keepalive)</td>
-</tr>
-<tr>
-<td><code>resources.*</code></td>
-<td>Container CPU / memory / shm / tmpfs limits</td>
+<td><code>valid_from</code> / <code>valid_until</code></td>
+<td>Are we inside this date window?</td>
 </tr>
 </tbody>
 </table>
-<h3 id="raising-resources">Raising resources<a class="headerlink" href="#raising-resources" title="Permanent link">&para;</a></h3>
-<p>Edit <code>resources</code> in <code>orcan.config.json</code> (for example <code>cpus: 8</code>, <code>memory: "16g"</code>), then:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>sync
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
+<p>No predicate at all means "applies wherever this assertion's anchor project is mounted" — the common case needs no configuration.</p>
+<p>One honest limitation: only signals knowable <strong>before</strong> the agent starts (workspace name, mounted repos, branch) can gate an assertion in v1. What the agent will actually touch is only known <em>during</em> a session, so path-based applicability is out of scope until there is a declared-intent input to evaluate it against.</p>
+<h2 id="identity-what-counts-as-the-same-project">Identity: what counts as "the same project"?<a class="headerlink" href="#identity-what-counts-as-the-same-project" title="Permanent link">&para;</a></h2>
+<p>The anchor is a project, but a project is not the same thing as a filesystem path. <code>orcan context worktree create</code> checks out a branch of a repo at its <strong>own</strong> path (under <code>$ORCAN_DATA/worktrees/&lt;workspace&gt;/&lt;project&gt;/</code>) — a different directory from the main checkout, even though it is unmistakably the same repository.</p>
+<p>If the store keyed identity on the working-copy path, a branch worktree would silently get an empty store, disconnected from everything already accepted about that repo — the same anchor-vs-scope mistake this whole design exists to avoid, just one level down.</p>
+<p>Instead, identity is keyed on the repo's git <strong>common dir</strong> (<code>git rev-parse --git-common-dir</code>) — the object database every worktree of a repo shares, regardless of where each one happens to be checked out:</p>
+<pre class="mermaid"><code>flowchart TB
+  common[".git common dir (shared)"]
+  common --&gt; main["Main checkout\n/home/user/code/api"]
+  common --&gt; wt1["Worktree: feature-x\n$ORCAN_DATA/worktrees/ws-a/api"]
+  common --&gt; wt2["Worktree: release/1.0\n$ORCAN_DATA/worktrees/ws-b/api"]</code></pre>
+<p>All three resolve to the <strong>same</strong> <code>project_id</code>, hence the same store — the branch you happen to be on is not a different project, it's a different value of the <code>branch</code> atom in the Context Signature (see the table above). Write a release-only assertion once, anchored at whichever checkout is convenient, and it applies correctly everywhere that repo's identity shows up, gated by branch. A directory that isn't a git repo at all falls back to identity-by-path — stable, just not worktree-aware (Orcan projects are expected to be git repos anyway).</p>
+<h2 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  session[Session ends] --&gt; reflection[Reflection]
+  reflection --&gt;|content + draft applicability + justification| candidate[proposed]
+  candidate --&gt; review[Review Gate]
+  review --&gt;|accept| accepted[accepted]
+  review --&gt;|reject| rejected[rejected]
+  accepted --&gt;|retire| retired[retired]
+  accepted -.-&gt;|next compile matching signature| compile[Future Context Compilation]</code></pre>
+<p>Nothing reaches <code>accepted</code> automatically. A human review is required, and it is also where a too-broad or too-narrow draft predicate usually gets corrected — the reviewer, not the proposer, is best placed to know whether something is really workspace-specific or genuinely structural.</p>
+<h2 id="drafting-and-reviewing-without-leaving-the-session">Drafting and reviewing without leaving the session<a class="headerlink" href="#drafting-and-reviewing-without-leaving-the-session" title="Permanent link">&para;</a></h2>
+<p><code>orcan context assert propose|accept|reject|retire</code> (host CLI) is the ground truth, but typing full commands in a separate host terminal is real friction for something you want to do the moment you notice it, mid-conversation with an agent. Two in-container tools remove that friction <em>without</em> moving the accept decision anywhere but a human:</p>
+<ul>
+<li><strong><code>orcan-context-propose</code></strong> — callable by you or by the agent, right in the same tmux session. It never touches <code>$ORCAN_DATA/context</code> (still not mounted into the container); it drops a small JSON file into <code>&lt;workspace_root&gt;/.orcan/context-inbox/</code>. Run interactively, it asks immediately — <em>"Save this? [y]es / [e]dit scope / [n]o"</em> — and stamps your answer onto the drop file. Run non-interactively (e.g. by an automated post-task reflection step), it just queues the candidate with no decision yet. It also has a second mode for existing assertions: <code>--flag-existing ID --reason TEXT</code> marks an already-<code>accepted</code> assertion for a second look, without touching the store — it never mutates anything itself.</li>
+<li><strong><code>orcan-context-review</code></strong> — reads a host-generated <code>context-review-queue.json</code> (never the raw store) with two sections: <code>candidates</code> (new, still <code>proposed</code>) and <code>reconsider</code> (already-<code>accepted</code> assertions someone flagged). Candidates get <code>[y]es / [n]o / [s]kip</code>; reconsider items get <code>[k]eep / [r]etire / [s]kip</code> — "keep" never mutates the store, it just clears the flag. Your answers become decision files in <code>&lt;workspace_root&gt;/.orcan/context-decisions/</code>.</li>
+</ul>
+<p>Both directions are one-way drops into a mounted inbox — there is no live channel back to the host. <code>orcan sync</code> (<code>compile_context.py</code>) is what actually turns a drop into a real, git-versioned <code>propose()</code>/<code>accept()</code>/<code>reject()</code>/<code>retire()</code> call the next time it runs. In practice this means a decision you make feels instant in the conversation, but only takes effect in the store — and therefore in a future <code>CONTEXT-ASSERTIONS.md</code> — at the next sync. This asymmetry is intentional: it is the same boundary that keeps the agent from ever writing to the store directly, just made convenient enough that reviewing candidates costs one keystroke instead of a context switch.</p>
+<h2 id="batched-automated-reflection">Batched, automated Reflection<a class="headerlink" href="#batched-automated-reflection" title="Permanent link">&para;</a></h2>
+<p>Reflection does not have to be triggered by a human noticing something — but firing a model call after <em>every single turn</em> is both wasteful and noisy. <code>orcan-context-reflect</code> batches instead: it is wired as an <strong>opt-in</strong> Claude Code <code>Stop</code> hook (<code>docker/rootfs/opt/cursor-defaults/templates/claude/hooks.example.json</code> — copy it into a workspace's or your global <code>.claude/settings.json</code> to enable it; Orcan never adds it for you). The hook fires after every completed turn, but does almost nothing on most of them:</p>
+<ul>
+<li>A per-<code>session_id</code> counter and transcript-line offset live in <code>&lt;workspace_root&gt;/.orcan/reflection-state.json</code>. Tracking is keyed by session id because a line offset from one session's transcript is meaningless for another's.</li>
+<li>Below the threshold (default 20 completed turns), the hook just increments the counter and exits — no model call, near-zero cost.</li>
+<li>At the threshold, it resets the counter, reads only the <em>new</em> transcript lines since last time, reads the workspace's current <code>CONTEXT-ASSERTIONS.md</code> (exactly what the agent itself already sees — no separate host round-trip needed), and asks a lightweight model (<code>claude -p --model haiku</code> by default) to return a small JSON action list: <code>propose</code> for new candidates, <code>flag_existing</code> for assertions that now look stale. Each action is dispatched through the <em>same</em> <code>orcan-context-propose</code> used for manual drafting — always <code>--queue</code>, never a decision attached, so a human still reviews it.</li>
+<li>A manual escape hatch always works too: run <code>orcan-context-reflect --force</code> (feeding it the same session id/transcript path/cwd) to reflect immediately regardless of the counter — useful since a session that ends before reaching the threshold would otherwise never trigger one automatically.</li>
+</ul>
+<p>The threshold check happens entirely before any model is invoked, so most <code>Stop</code> events cost a few milliseconds of file I/O and nothing else. And — worth repeating, because it's the one rule this entire design does not bend on — the reflection pass can <em>propose</em> and can <em>flag</em>, but it can never accept, reject, or retire anything itself.</p>
+<p>This also means an <strong>automated Reflection step is fully compatible with the model</strong>: something running after each task can compare the session against the existing accepted assertions, decide what's genuinely new, and call <code>orcan-context-propose --queue</code> for anything worth surfacing — with zero manual effort up to that point. The one thing it must never do is attach a decision itself; only a human answering <code>orcan-context-review</code> (or the interactive propose prompt) can turn a candidate into standing truth. Removing that one checkpoint reopens exactly the failure mode this whole design exists to prevent: a session's misunderstanding compiling into the <em>next</em> session's "established fact", with no corrective step in between.</p>
+<h2 id="compilation-an-artifact-not-a-document">Compilation: an artifact, not a document<a class="headerlink" href="#compilation-an-artifact-not-a-document" title="Permanent link">&para;</a></h2>
+<p><code>orcan sync</code> runs the <strong>Applicability Layer</strong> for every enabled workspace: it builds a <strong>Context Signature</strong> (workspace name, the repos actually mounted, each repo's current branch) and matches it against every <code>accepted</code> assertion anchored to a project in that workspace. Matches are rendered into <code>CONTEXT-ASSERTIONS.md</code> at the workspace root — visible to <code>AGENTS.md</code> / <code>CLAUDE.md</code> alongside the rest of the context pack, but only when something matched (no dangling empty file otherwise).</p>
+<p>Every rendered item carries two distinct justifications:</p>
+<ul>
+<li><strong>Problem it solves</strong> — the author's reason the assertion exists at all.</li>
+<li><strong>Selected because</strong> — the mechanical reason it matched <em>this</em> signature (e.g. <code>workspace=customer-a</code>).</li>
+</ul>
+<p>If the Compiler cannot state both, the item does not belong in the pack. This is why a Context Pack is a compiled artifact with a paper trail, not a growing pile of notes — and why there is a hard cap on how many assertions one compilation includes, forcing prioritisation instead of accumulation.</p>
+<h2 id="no-database-plain-files-versioned-by-git">No database — plain files, versioned by git<a class="headerlink" href="#no-database-plain-files-versioned-by-git" title="Permanent link">&para;</a></h2>
+<p>There is no SQLite, no vector store, no server. Each project anchor is one directory:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$ORCAN_DATA/context/&lt;project-id&gt;/
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── .git/            ← history = version history (every change is a commit)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── index.json        ← flat index (id → title/status/kind/dates) for fast list/select
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>└── objects/
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    ├── &lt;id-1&gt;.json    ← one full Context Assertion record
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    └── &lt;id-2&gt;.json
 </span></code></pre></div>
-<p>If <code>.env</code> already has <code>CPUS</code> / <code>MEMORY</code> set, <code>orcan sync</code> keeps those values. Change them in <code>.env</code> too, or remove the keys so config wins on the next <code>orcan sync</code>.</p>
-<h2 id="ways-to-edit">Ways to edit<a class="headerlink" href="#ways-to-edit" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Command</th>
-<th>Use when</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>orcan context wizard</code></td>
-<td>Interactive create/edit</td>
-</tr>
-<tr>
-<td><code>orcan context add /abs/path</code></td>
-<td>Add one project non-interactively</td>
-</tr>
-<tr>
-<td><code>orcan context add --from-worktree /abs/repo SELECTOR</code></td>
-<td>Add an existing git worktree</td>
-</tr>
-<tr>
-<td><code>orcan context worktrees [/abs/repo]</code></td>
-<td>List worktrees for a repo</td>
-</tr>
-<tr>
-<td><code>orcan context worktree create --repo … --branch …</code></td>
-<td>Create a worktree and pin it</td>
-</tr>
-<tr>
-<td><code>orcan init /abs/path</code></td>
-<td>First run</td>
-</tr>
-<tr>
-<td>Hand-edit JSON</td>
-<td>You know the schema</td>
-</tr>
-</tbody>
-</table>
-<p>Show current layout:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
-</span></code></pre></div>
-<h2 id="what-orcan-sync-writes">What <code>orcan sync</code> writes<a class="headerlink" href="#what-orcan-sync-writes" title="Permanent link">&para;</a></h2>
-<p><code>orcan.config.json</code> is the story you edit (default under <code>~/.config/orcan/home/</code>). <strong><code>orcan sync</code></strong> is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.</p>
-<table>
-<thead>
-<tr>
-<th>Output</th>
-<th>Role</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>.env</code></td>
-<td>Compose and Make variables</td>
-</tr>
-<tr>
-<td><code>.orcan/runtime-config.json</code></td>
-<td>Mounted into the container as <code>/etc/orcan/config.json</code></td>
-</tr>
-<tr>
-<td><code>.orcan/compose-projects.generated.yml</code></td>
-<td>Extra bind mounts</td>
-</tr>
-<tr>
-<td><code>.orcan/compose-git.generated.yml</code></td>
-<td>Written by <code>orcan up --with-git</code> (SSH mounts)</td>
-</tr>
-<tr>
-<td><code>.orcan/workspaces/&lt;name&gt;/</code></td>
-<td>Host-backed workspace meta</td>
-</tr>
-<tr>
-<td><code>$ORCAN_DATA</code> tree</td>
-<td>Default <code>~/.config/orcan</code> (Cursor/Claude home, caches)</td>
-</tr>
-</tbody>
-</table>
-<p>Do not commit <code>.env</code> or <code>.orcan/</code> (gitignored).</p>
-<h2 id="seed-into-git-checkouts-optional-rarely-needed">Seed into git checkouts (optional, rarely needed)<a class="headerlink" href="#seed-into-git-checkouts-optional-rarely-needed" title="Permanent link">&para;</a></h2>
-<p>The <strong>workspace</strong> already gets a context pack on container start (<code>AGENTS.md</code>, ignores, <code>.cursor/rules/</code>). You do <strong>not</strong> need <code>orcan seed</code> for that.</p>
-<p><code>orcan seed</code> only copies the same kind of files <strong>into each mounted git repo</strong>. Skip it unless you want those files inside the checkouts themselves (e.g. to commit them):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>seed<span class="w"> </span>--all
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>seed<span class="w"> </span>--all<span class="w"> </span>--dry-run
-</span></code></pre></div>
-<p>Full field rules and rejected keys: <a href="../../reference/configuration/">Configuration reference</a>.</p>
+<p>That is the entire "database". It is a deliberate MVP constraint, not a placeholder for one: files + git + a simple index, so the whole mechanism stays inspectable with <code>cat</code> and <code>git log</code>, and any future storage upgrade is an implementation detail behind the same functions, not a redesign.</p>
+<h2 id="what-this-deliberately-does-not-do">What this deliberately does not do<a class="headerlink" href="#what-this-deliberately-does-not-do" title="Permanent link">&para;</a></h2>
+<ul>
+<li>No embeddings, vector search, or LLM ranking — matching is a handful of mechanical predicate checks.</li>
+<li>No automatic acceptance — proposing (even from an automated batched Reflection pass) never implies applying; only a human decision, interactive or queued, can turn a candidate into <code>accepted</code>, keep something, or retire it.</li>
+<li>No live recompilation — drafting and deciding can happen inline, in-session, but the Applicability Layer and the Context Pack it produces only ever refresh at the next <code>orcan sync</code>; a running session cannot trigger one.</li>
+<li>No automated conflict resolution between assertions — v1 relies on every matched item being rendered together, visibly, for a human or agent to notice contradictions.</li>
+<li>No autonomous retirement — the automated Reflection pass can <em>flag</em> an assertion as possibly stale, but retiring it is always a human's <code>[r]etire</code> in <code>orcan-context-review</code>, never automatic.</li>
+</ul>
+<h2 id="status-implemented-vs-proposed">Status: implemented vs. proposed<a class="headerlink" href="#status-implemented-vs-proposed" title="Permanent link">&para;</a></h2>
+<p><strong>Implemented (RFC-0001) — in code today:</strong></p>
+<ul>
+<li>The Context Assertion record: content, <code>kind</code> (presentational only: rule/fact/hint/policy/…), <code>justification</code>, <code>applicability</code> predicate, lifecycle status.</li>
+<li>The store: <code>scripts/repository/context_assertions.py</code> — propose / accept / reject / retire, git-versioned per anchor under <code>$ORCAN_DATA/context/&lt;project-id&gt;/</code>.</li>
+<li>Identity keyed on git common-dir, so a repo's main checkout and its worktrees share one store (see "Identity" above).</li>
+<li>The Applicability Layer: <code>select_for_workspace()</code> — matches <code>workspace</code> / <code>repo_set_*</code> / <code>branch</code> / <code>valid_from</code>-<code>valid_until</code> against a Context Signature built from <code>runtime-config.json</code> + <code>git branch --show-current</code>.</li>
+<li>The Compiler hook: <code>scripts/repository/compile_context.py</code>, run by <code>orcan sync</code>, renders <code>CONTEXT-ASSERTIONS.md</code> at the workspace root; <code>docker/rootfs/usr/local/bin/init-workspace</code> surfaces it from the generated <code>AGENTS.md</code>/<code>CLAUDE.md</code> when present.</li>
+<li>CLI: <code>orcan context assert propose|list|show|accept|reject|retire|select|root</code> (host).</li>
+<li>In-container inbox: <code>orcan-context-propose</code> / <code>orcan-context-review</code> drop JSON files into <code>&lt;workspace_root&gt;/.orcan/context-inbox/</code> and <code>context-decisions/</code>; <code>compile_context.py</code> imports them (with quarantine for anything malformed or unresolvable) and regenerates <code>context-review-queue.json</code> on every <code>orcan sync</code>, before compiling. See "Drafting and reviewing without leaving the session" above.</li>
+<li>Reconsideration: <code>orcan-context-propose --flag-existing ID --reason TEXT</code> marks an already-<code>accepted</code> assertion for a second look, tracked in <code>&lt;workspace_root&gt;/.orcan/context-flags/</code>; <code>orcan-context-review</code> offers <code>[k]eep</code>/<code>[r]etire</code> for it.</li>
+<li>Batched automated Reflection: <code>orcan-context-reflect</code>, an opt-in <code>Stop</code> hook (template: <code>docker/rootfs/opt/cursor-defaults/templates/claude/hooks.example.json</code>) that batches by a per-session turn counter (default 20) before calling a lightweight model and dispatching through the same propose tool. See "Batched, automated Reflection" above.</li>
+</ul>
+<p><strong>Implemented (RFC-0002 — extending the record, not a new subsystem):</strong></p>
+<p>The question behind RFC-0002 was whether Orcan needs a separate, self-deepening "understanding" system on top of RFC-0001. Verdict: no — that would require the system itself to interpret and infer, which is exactly the reasoning Orcan must not do. The accepted direction was a small, disciplined <em>extension</em> of the existing Context Assertion record — now implemented:</p>
+<ul>
+<li><strong>Typed relationships</strong> — <code>relations: [{type, target_id, target_project}]</code> on the record (<code>normalize_relations()</code> in <code>context_assertions.py</code>), a closed, small vocabulary: <code>depends_on</code>, <code>risk_of</code>, <code>supersedes</code>, <code>conflicts_with</code>. Free-text "related to" was explicitly rejected — an open vocabulary is just notes again. A relation always lives on the <em>source</em> assertion and is validated against an existing target at propose/accept time; it never mutates the target.</li>
+<li><strong>Epistemic status</strong> — <code>epistemic_status: fact | interpretation | hypothesis | conclusion</code> (default <code>fact</code>), set at propose time and correctable only by a human at Review (<code>accept(..., edited_epistemic_status=...)</code>), never inferred authoritatively by the system. "Understanding" itself is still not a stored level — it's what a human (or agent) does when reading a well-labelled, related set of these; the store's job is only to make that easy.</li>
+<li><strong><code>criticality</code></strong> — <code>normal</code> | <code>high</code>, same pattern: proposed, human-correctable at accept time.</li>
+<li><strong>Bounded 1-hop traversal</strong> — <code>select_for_workspace()</code> pulls in an <code>accepted</code> relation target after normal applicability matching, but only when the target's own project is mounted in <em>this</em> workspace, only if not already selected, and never past the same overall <code>limit</code>. No recursion — a target's own relations are never followed a second hop.</li>
+<li>Reflection can draft all of this too: the model may suggest <code>epistemic_status</code>, <code>criticality</code>, and <code>relations</code> on a <code>propose</code> action — always referencing an id already visible in the current <code>CONTEXT-ASSERTIONS.md</code>, always within the same project (automated Reflection never guesses at another project's name; cross-project relations still work from the interactive/host paths, where a project name is given explicitly). A human still corrects or accepts every field before it's <code>accepted</code>.</li>
+</ul>
+<p>None of this needed a new store, a new CLI surface, or a new file location — it's additional fields on the same records, in the same files, surfaced through the same propose/review flow.</p>
+<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../reference/cli/">CLI reference</a> — <code>orcan context assert propose|list|show|accept|reject|retire|select</code></li>
+<li><a href="../core-ideas/">Core Ideas</a> — Project, Workspace, Context</li>
+<li><a href="../mental-model/">Mental Model</a></li>
+</ul>
 
 
 
@@ -2008,7 +2022,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 13:06:39 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 4, 2026 08:09:55 UTC">August 4, 2026</span>
   </span>
 
     
@@ -2045,7 +2059,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../quickstart/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Quick Start">
+          <a href="../mental-model/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Mental Model">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2055,20 +2069,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Quick Start
+                Mental Model
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../guides/workflows/" class="md-footer__link md-footer__link--next" aria-label="Next: Workflows">
+          <a href="../../concepts/workspaces/" class="md-footer__link md-footer__link--next" aria-label="Next: Workspaces">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Workflows
+                Workspaces
               </div>
             </div>
             <div class="md-footer__button md-icon">
