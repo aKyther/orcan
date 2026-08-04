@@ -1266,6 +1266,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#context-assertions-claude-authors-cursor-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context Assertions: Claude authors, Cursor reads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#this-repository" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1684,6 +1695,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#context-assertions-claude-authors-cursor-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context Assertions: Claude authors, Cursor reads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#this-repository" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1773,6 +1795,8 @@
 <p>See <a href="../../architecture/">Architecture</a>.</p>
 <h2 id="status-line">Status line<a class="headerlink" href="#status-line" title="Permanent link">&para;</a></h2>
 <p>Optional AI usage in tmux status: <code>init-ai-statusline</code> + <code>orcan-ai-statusline</code> (hooks for Claude/Cursor). Thin by design.</p>
+<h2 id="context-assertions-claude-authors-cursor-reads">Context Assertions: Claude authors, Cursor reads<a class="headerlink" href="#context-assertions-claude-authors-cursor-reads" title="Permanent link">&para;</a></h2>
+<p><code>orcan context hook enable</code> (batched Reflection that drafts Context Assertion candidates) is Claude-only — see <a href="../../ideas/context-assertions/#batched-automated-reflection">"Batched, automated Reflection"</a> for why Cursor's own <code>stop</code> hook isn't wired in. Cursor still ends up with the same compiled <code>CONTEXT-ASSERTIONS.md</code>, because <code>init-workspace</code> writes <code>AGENTS.md</code> (Cursor) and <code>CLAUDE.md</code> (Claude) with identical content — no separate Cursor path to maintain.</p>
 <h2 id="this-repository">This repository<a class="headerlink" href="#this-repository" title="Permanent link">&para;</a></h2>
 <p>When you develop <strong>Orcan itself</strong>, also read root <code>AGENTS.md</code> and <code>.cursor/rules/</code> — those are for the Orcan repo, not for every mounted customer project.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
@@ -1802,7 +1826,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 4, 2026 13:02:06 UTC">August 4, 2026</span>
   </span>
 
     
