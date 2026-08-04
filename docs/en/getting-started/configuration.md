@@ -101,7 +101,7 @@ If `.env` already has `CPUS` / `MEMORY` set, `orcan sync` keeps those values. Ch
 
 | Command | Use when |
 | --- | --- |
-| `orcan context wizard` | Interactive create/edit |
+| `orcan init` | Interactive create/edit |
 | `orcan context add /abs/path` | Add one project non-interactively |
 | `orcan context add --from-worktree /abs/repo SELECTOR` | Add an existing git worktree |
 | `orcan context worktrees [/abs/repo]` | List worktrees for a repo |

@@ -58,10 +58,13 @@ require_file "tests/host/test_version.py"
 require_file "scripts/repository/config-scaffold.py"
 require_file "scripts/repository/config-show.py"
 require_file "scripts/repository/config-wizard.py"
+require_file "tests/host/test_config_wizard.py"
 require_file "scripts/repository/config_io.py"
 require_file "scripts/repository/git_worktrees.py"
 require_file "scripts/repository/managed_workspace.py"
 require_file "tests/host/test_git_worktrees.py"
+require_file "scripts/repository/claude_hook.py"
+require_file "tests/host/test_claude_hook.py"
 require_file "scripts/repository/python.sh"
 require_file "scripts/repository/release.sh"
 require_file "scripts/repository/check-product-name.sh"
@@ -78,6 +81,10 @@ require_file "docker/rootfs/opt/cursor-defaults/skills/focused-implementation/SK
 require_file "docker/rootfs/opt/cursor-defaults/skills/final-review/SKILL.md"
 require_file "docker/rootfs/usr/local/bin/docker-entrypoint"
 require_file "docker/rootfs/usr/local/bin/init-cursor-home"
+require_file "docker/rootfs/usr/local/bin/init-claude-home"
+require_file "docker/rootfs/usr/local/bin/orcan-prompt-clean"
+require_file "docker/rootfs/opt/claude-defaults/agents/prompt-refiner.md"
+require_file "docker/rootfs/opt/claude-defaults/commands/do.md"
 require_file "docker/rootfs/usr/local/bin/init-ai-statusline"
 require_file "docker/rootfs/usr/local/bin/orcan-ai-statusline"
 require_file "docker/rootfs/usr/local/bin/cursor-init-project"
@@ -128,6 +135,7 @@ for script in \
     docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
     docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces \
     docker/rootfs/usr/local/bin/init-workspace \
+    docker/rootfs/usr/local/bin/init-claude-home \
     docker/rootfs/etc/tmux/scripts/status-left.sh \
     docker/rootfs/etc/tmux/scripts/status-right.sh \
     docker/rootfs/etc/tmux/scripts/window-name.sh \
@@ -167,6 +175,7 @@ for script in \
     docker/rootfs/usr/local/bin/init-ai-statusline \
     docker/rootfs/usr/local/bin/orcan-workspaces \
     docker/rootfs/usr/local/bin/orcan-context-status \
+    docker/rootfs/usr/local/bin/orcan-prompt-clean \
     docker/rootfs/usr/local/lib/orcan/workspaces.py \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \

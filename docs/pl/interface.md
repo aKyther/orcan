@@ -17,7 +17,7 @@ Obsługiwane interfejsy publiczne:
 Najważniejsze komendy:
 
 ```bash
-orcan init | sync | context wizard | context show
+orcan init | sync | context show
 orcan build [--claude|--cursor] [--force]
 orcan up | up --with-docker | up --with-git | down
 orcan logs | doctor | url

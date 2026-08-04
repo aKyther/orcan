@@ -284,6 +284,7 @@ COPY docker/rootfs/ /
 RUN chmod 0755 \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
+        /usr/local/bin/init-claude-home \
         /usr/local/bin/init-ai-statusline \
         /usr/local/bin/orcan-ai-statusline \
         /usr/local/bin/init-workspace \
@@ -295,6 +296,7 @@ RUN chmod 0755 \
         /usr/local/bin/orcan-context-propose \
         /usr/local/bin/orcan-context-review \
         /usr/local/bin/orcan-context-reflect \
+        /usr/local/bin/orcan-prompt-clean \
         /usr/local/bin/cursor-ttyd \
         /usr/local/bin/agent-launcher \
         /usr/local/bin/cursor-tmux-workspace-attach \

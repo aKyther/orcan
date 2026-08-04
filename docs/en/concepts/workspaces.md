@@ -68,7 +68,7 @@ A **git worktree** is another checkout of the same repository (separate path, us
 Worktrees are **optional advanced help**: useful when you want a second checkout without touching the clone you use for `main` / pulls. Orcan can create those under `$ORCAN_DATA/worktrees/<workspace>/<project>/` and record them in `manifest.json`.
 
 ```bash
-orcan context wizard   # mount paths; optionally create/pick a worktree per project
+orcan init   # mount paths; optionally create/pick a worktree per project
 
 # Non-interactive (one repo):
 orcan context worktree create --repo /abs/repo --branch topic --workspace my-ws --project backend

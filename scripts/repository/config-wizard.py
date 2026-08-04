@@ -152,6 +152,39 @@ def validate_project_path(path_str: str) -> tuple[str | None, Path | None]:
     return None, resolved
 
 
+def find_cwd_match(cfg: dict[str, Any]) -> tuple[str, str, str] | None:
+    """(workspace, project, path) if the current directory is already
+    mounted somewhere in cfg — the mirror image of suggest_cwd_project."""
+    try:
+        cwd = str(Path.cwd().resolve())
+    except OSError:
+        return None
+    for ws in cfg.get("workspaces") or []:
+        if not isinstance(ws, dict):
+            continue
+        ws_name = str(ws.get("name") or "")
+        for p in ws.get("projects") or []:
+            if isinstance(p, dict) and str(p.get("path") or "") == cwd:
+                return ws_name, str(p.get("name") or ""), cwd
+    return None
+
+
+def suggest_cwd_project(cfg: dict[str, Any] | None) -> tuple[str, str] | None:
+    """uv/poetry-style default: suggest the current directory as the next
+    project, so Enter-Enter accepts it. None if cwd fails the usual path
+    checks, or is already mounted somewhere in cfg."""
+    err, resolved = validate_project_path(str(Path.cwd()))
+    if err or resolved is None:
+        return None
+    for ws in (cfg or {}).get("workspaces") or []:
+        if not isinstance(ws, dict):
+            continue
+        for p in ws.get("projects") or []:
+            if isinstance(p, dict) and str(p.get("path") or "") == str(resolved):
+                return None
+    return resolved.name, str(resolved)
+
+
 def ask_name(prompt: str, *, default: str = "", label: str = "name") -> str:
     while True:
         raw = ask(prompt, default or None)
@@ -426,14 +459,21 @@ def ask_project(
     return {"name": name, "path": final_path}
 
 
-def ask_new_workspace(*, another: bool = False) -> dict[str, Any]:
+def ask_new_workspace(*, another: bool = False, cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     """Collect one workspace: a name + project paths (worktree optional per project)."""
     if another:
         heading("Another workspace")
     else:
         heading("New workspace")
+    suggestion = suggest_cwd_project(cfg)
     info("  Workspace = name for this whole set of folders (e.g. myapp, client-a).")
-    name = ask_name("  Workspace name", label="workspace name")
+    if suggestion:
+        info(f"  Detected current directory ({suggestion[1]}) — suggested below, Enter to accept.")
+    name = ask_name(
+        "  Workspace name",
+        default=suggestion[0] if suggestion else "",
+        label="workspace name",
+    )
     projects: list[dict[str, str]] = []
     info(f"  Workspace {name!r} is set. Next: add project folders into it.")
     info("  Tip: Enter accepts defaults; you need at least one project.")
@@ -446,7 +486,13 @@ def ask_new_workspace(*, another: bool = False) -> dict[str, Any]:
                 break
             projects.append(ask_project(workspace=name, another=True))
         else:
-            projects.append(ask_project(workspace=name, another=False))
+            projects.append(
+                ask_project(
+                    workspace=name,
+                    another=False,
+                    default_path=suggestion[1] if suggestion else "",
+                )
+            )
     info(f"  ✓ workspace {name!r} has {len(projects)} project(s)")
     return {"name": name, "projects": projects}
 
@@ -586,7 +632,7 @@ def edit_existing(cfg: dict[str, Any]) -> dict[str, Any]:
             new_workspaces.append(edited)
     heading("Add more?")
     while ask_yes_no("Add another workspace?", default=False):
-        created = ask_new_workspace(another=True)
+        created = ask_new_workspace(another=True, cfg={"workspaces": new_workspaces})
         new_workspaces.append(created)
     if not new_workspaces:
         die("need at least one workspace — nothing saved")
@@ -655,10 +701,10 @@ def print_next_steps() -> None:
 def create_fresh() -> dict[str, Any]:
     info("No config yet — creating your first workspace.")
     print_orientation()
-    workspaces: list[dict[str, Any]] = [ask_new_workspace(another=False)]
+    cfg: dict[str, Any] = {"workspaces": []}
+    cfg["workspaces"].append(ask_new_workspace(another=False, cfg=cfg))
     while ask_yes_no("Add another workspace?", default=False):
-        workspaces.append(ask_new_workspace(another=True))
-    cfg: dict[str, Any] = {"workspaces": workspaces}
+        cfg["workspaces"].append(ask_new_workspace(another=True, cfg=cfg))
     ask_optional_settings(cfg)
     return cfg
 
@@ -736,7 +782,7 @@ def top_menu(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
         default="add",
     )
     if action == "add":
-        created = ask_new_workspace(another=bool(cfg.get("workspaces")))
+        created = ask_new_workspace(another=bool(cfg.get("workspaces")), cfg=cfg)
         ws_name = str(created.get("name") or "")
         workspaces = [
             ws
@@ -815,6 +861,17 @@ def main() -> None:
     if existing and existing.is_file():
         info(f"Config file: {existing}")
         cfg = load_config(existing)
+        match = find_cwd_match(cfg)
+        if match:
+            ws_name, proj_name, cwd_path = match
+            info(
+                f"✓ this directory is already configured: "
+                f"workspace {ws_name!r}, project {proj_name!r} ({cwd_path})"
+            )
+            if not ask_yes_no("Change anything?", default=False):
+                info("Nothing to do here — orcan init still runs sync next.")
+                return
+            info()
         summarize(cfg, title="What you have now")
         cfg = top_menu(cfg, existing)
         out_path = existing

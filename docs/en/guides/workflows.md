@@ -50,7 +50,7 @@ Alias: `orcan go-in` (same as `enter`). Default container name is `orcan-1` (`OR
 **Approach:** edit the workspace list (or enable another workspace), apply config, recreate the container.
 
 ```bash
-orcan context wizard    # or edit orcan.config.json
+orcan init    # or edit orcan.config.json
 orcan sync
 orcan down
 orcan up

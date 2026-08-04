@@ -18,7 +18,7 @@ Zanim przejdziesz dalej w FAQ, przeczytaj [Dlaczego Orcan?](why-orcan.md) oraz [
 
 ## Jak przełączyć projekty?
 
-Edytuj `orcan.config.json` (lub `orcan context wizard`), potem:
+Edytuj `orcan.config.json` (lub `orcan init`), potem:
 
 ```bash
 orcan sync

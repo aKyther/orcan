@@ -9,10 +9,11 @@ Usage:
   orcan <command> [arguments]
 
 Commands:
-  init [PATH]              First-run setup (scaffold + sync + show)
+  init [PATH]              No PATH: interactive config wizard (create or edit)
+                           PATH: non-interactive scaffold (scripts/CI)
+                           Either way: scaffold/wizard + sync + show
   sync                     Materialise .env + .orcan/* for Compose
   context show             List workspaces
-  context wizard           Interactive config editor
   context add PATH         Add a project (optional --workspace NAME)
   context add --from-worktree REPO SELECTOR
                            Add an existing git worktree as a project
@@ -23,6 +24,9 @@ Commands:
                            Context Assertions: propose/review candidates for
                            CONTEXT-ASSERTIONS.md, compiled by `orcan sync`
                            (orcan context assert --help for details)
+  context hook enable|disable|status [PATH ...] [--all]
+                           Toggle the optional Claude Code Stop hook
+                           (batched Reflection drafting) — immediate, no sync
   up [--with-docker] [--with-git]
                            Start browser terminal
                            --with-docker: mount Docker socket
@@ -49,9 +53,9 @@ Optional:
                            workspace pack is enough — see docs)
 
 Ritual:
-  orcan init /path/to/repo
+  orcan init                 # interactive wizard (or: orcan init /path/to/repo)
   orcan build && orcan up
-  # after config edits: orcan sync && orcan down && orcan up
+  # after config edits: orcan init && orcan down && orcan up
 
 Install home:  ORCAN_ROOT (clone)
 User config:   ORCAN_HOME (default ~/.config/orcan/home)
