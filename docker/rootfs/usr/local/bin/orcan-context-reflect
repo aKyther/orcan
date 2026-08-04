@@ -1,0 +1,299 @@
+#!/usr/bin/env python3
+"""Batched, automated Reflection for Context Assertions (RFC-0001/0002).
+
+Wired as an *opt-in* Claude Code `Stop` hook (async, non-blocking — see
+docker/rootfs/opt/cursor-defaults/templates/claude/hooks.example.json). Fires
+after every completed turn, but does almost nothing on most of them: it only
+calls a model when a per-session turn counter reaches --threshold (default
+20), or when run by hand with --force (e.g. "run orcan analysis now").
+
+When it does fire, it:
+  1. Reads only the *new* transcript lines since the last time this session
+     reflected (tracked in <workspace_root>/.orcan/reflection-state.json,
+     keyed by session_id — offsets from one session's transcript are
+     meaningless for another).
+  2. Reads the workspace's current CONTEXT-ASSERTIONS.md (exactly what the
+     agent itself already sees) as "what's already known".
+  3. Asks a lightweight model (`claude -p --model haiku` by default) to
+     compare the two and propose at most a handful of actions: new candidates
+     worth drafting, or existing ids that now look stale and worth a second
+     look.
+  4. Dispatches each action through the *existing* orcan-context-propose
+     tool — --queue for new candidates, --flag-existing for reconsideration.
+
+This script never accepts, rejects, or retires anything itself. It only ever
+queues — the same human decision point (interactive prompt or
+orcan-context-review) that everything else in this system goes through.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "/usr/local/lib")
+
+from orcan.workspaces import iter_workspaces, load_config  # noqa: E402
+
+PROPOSE_BIN = Path(__file__).resolve().parent / "orcan-context-propose"
+STATE_NAME = "reflection-state.json"
+MAX_TRANSCRIPT_CHARS = 8000
+
+
+def warn(msg: str) -> None:
+    print(f"orcan-context-reflect: {msg}", file=sys.stderr)
+
+
+def resolve_workspace_root(cwd: str) -> Path | None:
+    raw = cwd or os.environ.get("ORCAN_WORKSPACE_ROOT") or str(Path.cwd())
+    root = Path(raw)
+    if not root.is_dir():
+        return None
+    return root.resolve()
+
+
+def find_current_workspace(root: Path) -> dict | None:
+    try:
+        cfg = load_config(None)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    for ws in iter_workspaces(cfg):
+        if ws["root"] and Path(ws["root"]).resolve() == root:
+            return ws
+    return None
+
+
+def infer_project(ws: dict, cwd: str) -> str | None:
+    projects = [p for p in (ws.get("projects") or []) if isinstance(p, dict) and p.get("name")]
+    if not cwd:
+        return projects[0]["name"] if len(projects) == 1 else None
+    cwd_path = str(Path(cwd).resolve())
+    for p in projects:
+        for key in ("workspace_path", "path"):
+            anchor = p.get(key)
+            if anchor and (cwd_path == anchor or cwd_path.startswith(anchor.rstrip("/") + "/")):
+                return str(p["name"])
+    return projects[0]["name"] if len(projects) == 1 else None
+
+
+def load_state(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def save_state(path: Path, state: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+
+def read_new_lines(transcript_path: Path, from_line: int) -> tuple[list[str], int]:
+    if not transcript_path.is_file():
+        return [], from_line
+    lines = transcript_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    if from_line < 0 or from_line > len(lines):
+        from_line = 0  # transcript rotated/shrunk — restart rather than crash
+    return lines[from_line:], len(lines)
+
+
+def build_prompt(transcript_slice: str, existing_context: str, project: str) -> str:
+    return f"""You are a lightweight reflection pass for a coding assistant's context store.
+Below is a slice of the raw session transcript (JSONL, one event per line) since the
+last reflection, and the context already accepted for project "{project}" (each item's
+id is shown as `id: ...` — reuse those exact ids, never invent one).
+
+Decide if anything from the transcript is durably true and worth remembering for
+FUTURE sessions on this project — not one-off chatter, not anything already covered
+below. Also decide if anything already-accepted now looks outdated or contradicted
+by what just happened.
+
+Output ONLY a JSON array (no prose, no markdown fences). Each element is one of:
+  {{"action": "propose", "title": "...", "content": "...", "justification": "...",
+    "kind": "fact", "epistemic_status": "fact", "criticality": "normal",
+    "relations": [{{"type": "depends_on", "target_id": "..."}}]}}
+  {{"action": "flag_existing", "id": "...", "reason": "..."}}
+
+Notes on the optional "propose" fields — omit any you're not confident about,
+a human reviews and can correct all of them before anything is accepted:
+  - epistemic_status: one of fact | interpretation | hypothesis | conclusion.
+    Use "hypothesis" for an untested guess, "interpretation" for a judgment
+    call about otherwise-neutral facts, "fact" only for something verifiable.
+  - criticality: normal | high — "high" only for something risky to miss.
+  - relations: type is one of depends_on | risk_of | supersedes | conflicts_with;
+    target_id MUST be an id already shown in "Already accepted" below — never
+    reference an id from outside that list.
+
+If there is nothing worth surfacing, output exactly: []
+Be selective — a handful of items at most, only things a human would actually want
+to review, never routine narration of what tools were called.
+
+=== Already accepted for this project ===
+{existing_context}
+
+=== New transcript slice ===
+{transcript_slice}
+"""
+
+
+def extract_json_array(raw: str) -> list[dict]:
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.startswith("json"):
+            text = text[4:]
+    start, end = text.find("["), text.rfind("]")
+    if start == -1 or end == -1 or end < start:
+        return []
+    try:
+        data = json.loads(text[start : end + 1])
+    except json.JSONDecodeError:
+        return []
+    return data if isinstance(data, list) else []
+
+
+def dispatch(action: dict, *, workspace_root: Path, project: str) -> None:
+    kind = action.get("action")
+    common_env = dict(os.environ)
+    if kind == "propose":
+        content = str(action.get("content") or "").strip()
+        justification = str(action.get("justification") or "").strip()
+        if not content or not justification:
+            return
+        args = [
+            sys.executable, str(PROPOSE_BIN),
+            "--workspace-root", str(workspace_root),
+            "--project", project,
+            "--text", content,
+            "--justification", justification,
+            "--title", str(action.get("title") or ""),
+            "--kind", str(action.get("kind") or "fact"),
+            "--queue",
+            "--source", "reflection",
+        ]
+        epistemic_status = str(action.get("epistemic_status") or "").strip()
+        if epistemic_status:
+            args += ["--epistemic-status", epistemic_status]
+        criticality = str(action.get("criticality") or "").strip()
+        if criticality:
+            args += ["--criticality", criticality]
+        # Automated Reflection only relates within the same project it is
+        # already drafting for — it never guesses at another project's name.
+        for rel in action.get("relations") or []:
+            if not isinstance(rel, dict):
+                continue
+            rel_type = str(rel.get("type") or "").strip()
+            target_id = str(rel.get("target_id") or "").strip()
+            if rel_type and target_id:
+                args += ["--relation", f"{rel_type}:{target_id}:{project}"]
+    elif kind == "flag_existing":
+        flag_id = str(action.get("id") or "").strip()
+        reason = str(action.get("reason") or "").strip()
+        if not flag_id or not reason:
+            return
+        args = [
+            sys.executable, str(PROPOSE_BIN),
+            "--workspace-root", str(workspace_root),
+            "--project", project,
+            "--flag-existing", flag_id,
+            "--reason", reason,
+        ]
+    else:
+        return
+    subprocess.run(args, capture_output=True, text=True, env=common_env, stdin=subprocess.DEVNULL)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--session-id", default="")
+    parser.add_argument("--transcript-path", default="")
+    parser.add_argument("--cwd", default="")
+    parser.add_argument("--force", action="store_true", help="Skip the turn-count threshold (manual trigger)")
+    parser.add_argument("--threshold", type=int, default=20)
+    parser.add_argument("--model", default="haiku")
+    args = parser.parse_args()
+
+    session_id, transcript_path, cwd = args.session_id, args.transcript_path, args.cwd
+    if not (session_id and transcript_path) and not sys.stdin.isatty():
+        try:
+            hook_payload = json.loads(sys.stdin.read())
+        except (json.JSONDecodeError, ValueError):
+            hook_payload = {}
+        session_id = session_id or str(hook_payload.get("session_id") or "")
+        transcript_path = transcript_path or str(hook_payload.get("transcript_path") or "")
+        cwd = cwd or str(hook_payload.get("cwd") or "")
+
+    if not session_id or not transcript_path:
+        warn("need --session-id and --transcript-path (or hook JSON on stdin) — skipping")
+        return 0  # never fail a hook loudly; this is best-effort automation
+
+    workspace_root = resolve_workspace_root(cwd)
+    if workspace_root is None:
+        return 0
+
+    state_path = workspace_root / ".orcan" / STATE_NAME
+    state = load_state(state_path)
+    session_state = state.setdefault(session_id, {"turns_since_reflection": 0, "last_transcript_line": 0})
+
+    if not args.force:
+        session_state["turns_since_reflection"] = int(session_state.get("turns_since_reflection", 0)) + 1
+        if session_state["turns_since_reflection"] < args.threshold:
+            save_state(state_path, state)
+            return 0
+
+    session_state["turns_since_reflection"] = 0
+    from_line = int(session_state.get("last_transcript_line", 0))
+    new_lines, total_lines = read_new_lines(Path(transcript_path), from_line)
+    session_state["last_transcript_line"] = total_lines
+    save_state(state_path, state)
+
+    if not new_lines:
+        return 0
+
+    ws = find_current_workspace(workspace_root)
+    if ws is None:
+        return 0
+    project = infer_project(ws, cwd)
+    if project is None:
+        warn("could not infer a single project for this workspace — skipping")
+        return 0
+
+    pack_path = workspace_root / "CONTEXT-ASSERTIONS.md"
+    existing_context = pack_path.read_text(encoding="utf-8") if pack_path.is_file() else "(none yet)"
+
+    transcript_slice = "\n".join(new_lines)
+    if len(transcript_slice) > MAX_TRANSCRIPT_CHARS:
+        transcript_slice = transcript_slice[-MAX_TRANSCRIPT_CHARS:]
+
+    prompt = build_prompt(transcript_slice, existing_context, project)
+
+    try:
+        result = subprocess.run(
+            ["claude", "-p", "--model", args.model, prompt],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        warn(f"reflection model call failed: {exc}")
+        return 0
+
+    if result.returncode != 0:
+        warn(f"reflection model call exited {result.returncode}: {result.stderr.strip()[:200]}")
+        return 0
+
+    actions = extract_json_array(result.stdout)
+    for action in actions[:5]:  # hard cap — this is a suggestion pass, not a firehose
+        if isinstance(action, dict):
+            dispatch(action, workspace_root=workspace_root, project=project)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

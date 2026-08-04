@@ -169,6 +169,7 @@ ORCAN_DATA_SUBDIRS=(
     shell-history
     worktrees
     dotfiles
+    context
 )
 mkdir -p "${ORCAN_DATA}"
 for sub in "${ORCAN_DATA_SUBDIRS[@]}"; do

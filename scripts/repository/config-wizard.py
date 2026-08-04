@@ -28,9 +28,10 @@ DEFAULT_TMUX = {"initial_windows": 3, "window_prefix": "tab"}
 DEFAULT_TTYD = {
     "port": 7681,
     "host_port": 7681,
-    "font_size": 22,
+    "font_size": 19,
     "font_family": "Menlo, Monaco, 'Courier New', monospace",
     "theme": "dark",
+    "ping_interval": 20,
 }
 
 
@@ -619,7 +620,7 @@ def ask_optional_settings(cfg: dict[str, Any]) -> None:
     if ask_yes_no("  Change ttyd (port / font)?", default=False):
         port = ask("  ttyd container port", "7681")
         host_port = ask("  ttyd host port", port)
-        font = ask("  ttyd font size", "22")
+        font = ask("  ttyd font size", "19")
         try:
             cfg["ttyd"] = {
                 "port": int(port),
@@ -627,6 +628,7 @@ def ask_optional_settings(cfg: dict[str, Any]) -> None:
                 "font_size": int(font),
                 "font_family": DEFAULT_TTYD["font_family"],
                 "theme": DEFAULT_TTYD["theme"],
+                "ping_interval": DEFAULT_TTYD["ping_interval"],
             }
         except ValueError:
             warn("invalid ttyd numbers — using defaults")

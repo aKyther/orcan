@@ -43,6 +43,10 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context worktree create …` | Utwórz worktree (managed pod `$ORCAN_DATA/worktrees` przy `--workspace`) i podepnij |
 | `orcan context worktree remove --path PATH` | Usuń jeden managed worktree |
 | `orcan context worktree remove --workspace NAME` | Usuń wszystkie managed worktree workspace'a (i wypnij z configu) |
+| `orcan context assert propose …` | Reflection: naszkicuj Context Assertion (treść + uzasadnienie + applicability); status `proposed` |
+| `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, albo `accepted` → `retired` — nigdy automatycznie |
+| `orcan context assert list\|show\|select\|root` | Przegląd store'u; `select` pokazuje podgląd tego, co skompilowałby `orcan sync` |
+| *(wewnątrz kontenera)* `orcan-context-propose` / `orcan-context-review` | Szkicowanie/review bez terminala hosta — zrzut do zamontowanej skrzynki, importowany przy najbliższym `orcan sync`. Patrz [Context Assertions](../ideas/context-assertions.md) |
 | `orcan up [--with-docker] [--with-git]` | Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release |
 | `orcan down` | Stop kontenerów |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Obaj agenci → `orcan:latest` + `orcan:<VERSION>` (pull lub build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (bez pull; nie nadpisuje `latest`). Nigdy nie publikuje |

@@ -32,6 +32,8 @@ volumes:
   - /absolute/path/to/app:/absolute/path/to/app
 ```
 
+Jeśli ścieżka projektu sama jest git worktree, `orcan sync` montuje z zachowaniem parity także **katalog `.git`** jej głównego repo — `.git` worktree to tylko plik-wskaźnik do tego współdzielonego katalogu gita, a bez jego zamontowania każda komenda gita wewnątrz worktree kończy się `fatal: not a git repository`. Rozwiązane przez odczyt wskaźnika `.git` worktree wprost z dysku — działa dla każdego worktree (`orcan context worktree create` albo goły `git worktree add`), nie tylko tych śledzonych przez samego Orcana. Montowany jest tylko `.git` — nigdy pliki working-tree głównego checkoutu — więc worktree feature-brancha nadal nie widzi i nie może edytować plików main brancha; to jest cały sens istnienia `orcan context worktree create`.
+
 ## Sprawdzenie (komendy na końcu)
 
 ```bash

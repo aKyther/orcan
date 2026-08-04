@@ -60,8 +60,60 @@ orcan_cmd_context() {
         add)
             orcan_context_add "$@"
             ;;
+        assert)
+            orcan_context_assert "$@"
+            ;;
         *)
-            orcan_usage_error "usage: orcan context <show|wizard|add|worktrees|worktree>"
+            orcan_usage_error "usage: orcan context <show|wizard|add|worktrees|worktree|assert>"
+            ;;
+    esac
+}
+
+orcan_context_assert() {
+    local sub="${1:-}"
+    shift || true
+    case "${sub}" in
+        propose | list | show | accept | reject | retire | select | root)
+            ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+                orcan_host_python "${ORCAN_SCRIPTS}/context_assertions.py" "${sub}" "$@"
+            ;;
+        -h | --help | "")
+            cat <<'EOF'
+usage: orcan context assert <command> [arguments]
+
+  propose --project PATH (--file PATH|-|--text STRING) --justification TEXT
+          [--title T] [--kind rule|fact|hint|policy] [applicability flags]
+                          Reflection: draft a candidate (status: proposed)
+  list --project PATH [--status proposed|accepted|rejected|retired]
+                          List assertions anchored to a project
+  show --project PATH ID
+                          Print one assertion (full record)
+  accept --project PATH ID [--edit-content PATH] [--edit-justification TEXT]
+         [--override-applicability [applicability flags]]
+                          Review Gate: proposed -> accepted (never automatic)
+  reject --project PATH ID
+                          Review Gate: proposed -> rejected
+  retire --project PATH ID
+                          accepted -> retired
+  select --workspace NAME --project PATH [--project PATH ...] [--limit N]
+                          Applicability Layer preview — what `orcan sync`
+                          would compile into CONTEXT-ASSERTIONS.md
+  root                    Print $ORCAN_DATA/context
+
+  Applicability flags (propose / accept --override-applicability):
+    --workspace NAME (repeatable)          --repo-all-of NAME (repeatable)
+    --repo-any-of NAME (repeatable)        --repo-none-of NAME (repeatable)
+    --branch GLOB (repeatable)             --valid-from / --valid-until YYYY-MM-DD
+
+Store: $ORCAN_DATA/context/<project-id>/ (git-versioned, one repo per anchor).
+Anchoring is organisational only — it never decides when an assertion
+applies; the applicability predicate does. Agents never read this store
+directly — only the compiled CONTEXT-ASSERTIONS.md in each workspace's
+context pack (RFC-0001: Context Assertions / Applicability Layer).
+EOF
+            ;;
+        *)
+            orcan_usage_error "usage: orcan context assert <propose|list|show|accept|reject|retire|select|root>"
             ;;
     esac
 }

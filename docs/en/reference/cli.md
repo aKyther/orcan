@@ -43,6 +43,10 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context worktree create …` | Create a worktree (managed under `$ORCAN_DATA/worktrees` when `--workspace` is set) and pin it |
 | `orcan context worktree remove --path PATH` | Remove one managed worktree |
 | `orcan context worktree remove --workspace NAME` | Remove all managed worktrees for a workspace (and unpin from config) |
+| `orcan context assert propose …` | Reflection: draft a Context Assertion (content + justification + applicability); status `proposed` |
+| `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, or `accepted` → `retired` — never automatic |
+| `orcan context assert list\|show\|select\|root` | Inspect the store; `select` previews what `orcan sync` would compile |
+| *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. See [Context Assertions](../ideas/context-assertions.md) |
 | `orcan up [--with-docker] [--with-git]` | Start browser terminal (socket / host SSH only with flags); hints if a newer release exists |
 | `orcan down` | Stop containers |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Both agents → `orcan:latest` + `orcan:<VERSION>` (pull or build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (no pull; does not overwrite `latest`). Never publishes |

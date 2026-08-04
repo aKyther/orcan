@@ -19,6 +19,10 @@ Commands:
   context worktrees [REPO] List git worktrees for a repo (default: cwd)
   context worktree create  Create a worktree (+ optional managed path) and pin it
   context worktree remove  Remove a managed worktree (--path or --workspace)
+  context assert propose|list|show|accept|reject|retire|select
+                           Context Assertions: propose/review candidates for
+                           CONTEXT-ASSERTIONS.md, compiled by `orcan sync`
+                           (orcan context assert --help for details)
   up [--with-docker] [--with-git]
                            Start browser terminal
                            --with-docker: mount Docker socket
