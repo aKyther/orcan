@@ -39,6 +39,12 @@ Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
 **No.** ttyd is great for remote / phone. Locally use `orcan enter` (or `orcan go-in`) — workspace picker by default; `--tmux` / `--shell` for other modes. See [Workflows — local terminal](guides/workflows.md#local-terminal).
 
+## Why does ttyd say “reconnecting” on mobile / in the car?
+
+WebSocket drops on cellular handoffs are normal. **tmux sessions and agents keep running** — only the browser client reconnects.
+
+After reconnect, the launcher **auto-reattaches** to the last workspace (2s countdown; press Enter for the menu). Disable with `ORCAN_AUTO_REATTACH=0` in the container environment. Ping interval defaults to 20s (`TTYD_PING_INTERVAL` / `ttyd.ping_interval`).
+
 ## Can I commit and push from inside the container?
 
 **Commit author:** yes after `orcan sync` — host `user.name` / `user.email` become `GIT_AUTHOR_*` in the container.

@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+"""Draft a Context Assertion candidate from inside a workspace (RFC-0001/0002).
+
+This never touches $ORCAN_DATA/context directly — that store is host-only.
+It drops a small JSON file into <workspace_root>/.orcan/context-inbox/, which
+`orcan sync` (host-side, scripts/repository/compile_context.py) picks up and
+turns into a real, git-versioned proposal via context_assertions.propose().
+
+Two things you can propose:
+  - A new candidate: (--file PATH|-|--text STRING) + --justification.
+    Interactive (default, when stdin is a TTY): asks right here whether to
+    accept, narrow the scope, or drop it — the decision travels with the
+    drop file and is applied at the *next* `orcan sync` (there is no live
+    channel back to the host; this is a queued decision, not an instant one).
+    Queued (--queue, or non-interactive/background use — e.g. an automated
+    post-task reflection step): writes the candidate with no decision yet,
+    for later review with `orcan-context-review`.
+  - A "reconsider" flag on an already-accepted assertion: --flag-existing ID
+    + --reason TEXT. Never mutates the store itself — it only marks that id
+    for human attention; `orcan-context-review` offers [k]eep/[r]etire for it.
+
+Usage:
+  orcan-context-propose --project NAME (--file PATH|-|--text STRING) \
+      --justification TEXT [--title T] [--kind rule|fact|hint|policy] \
+      [applicability flags] [--queue] [--source manual|reflection]
+  orcan-context-propose --project NAME --flag-existing ID --reason TEXT
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import uuid
+from pathlib import Path
+
+sys.path.insert(0, "/usr/local/lib")
+
+from orcan.workspaces import iter_workspaces, load_config  # noqa: E402
+
+
+def die(msg: str) -> int:
+    print(f"Error: {msg}", file=sys.stderr)
+    return 1
+
+
+def resolve_workspace_root(explicit: str) -> Path | None:
+    raw = explicit or os.environ.get("ORCAN_WORKSPACE_ROOT") or str(Path.cwd())
+    root = Path(raw)
+    if not root.is_dir():
+        return None
+    return root.resolve()
+
+
+def find_current_workspace(root: Path) -> dict | None:
+    try:
+        cfg = load_config(None)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    for ws in iter_workspaces(cfg):
+        if ws["root"] and Path(ws["root"]).resolve() == root:
+            return ws
+    return None
+
+
+def find_project(ws: dict, name: str) -> dict | None:
+    for item in ws.get("projects") or []:
+        if isinstance(item, dict) and str(item.get("name") or "") == name:
+            return item
+    return None
+
+
+def read_content(raw: str) -> str:
+    if raw == "-":
+        return sys.stdin.read()
+    p = Path(raw)
+    if not p.is_file():
+        raise SystemExit(die(f"no such file: {p}"))
+    return p.read_text(encoding="utf-8")
+
+
+def build_applicability(args: argparse.Namespace) -> dict:
+    out: dict = {}
+    if args.workspace:
+        out["workspace"] = args.workspace
+    if args.repo_all_of:
+        out["repo_set_all_of"] = args.repo_all_of
+    if args.repo_any_of:
+        out["repo_set_any_of"] = args.repo_any_of
+    if args.repo_none_of:
+        out["repo_set_none_of"] = args.repo_none_of
+    if args.branch:
+        out["branch"] = args.branch
+    if args.valid_from:
+        out["valid_from"] = args.valid_from
+    if args.valid_until:
+        out["valid_until"] = args.valid_until
+    return out
+
+
+def build_relations(raw: list[str], ws: dict) -> list[dict]:
+    """Parse repeatable --relation TYPE:TARGET_ID:PROJECT_NAME, resolving the
+    project name to an absolute path via this workspace's project list (the
+    container only ever knows projects by name, never by host path)."""
+    out: list[dict] = []
+    for spec in raw:
+        parts = spec.split(":", 2)
+        if len(parts) != 3:
+            raise SystemExit(die(f"--relation must be TYPE:TARGET_ID:PROJECT_NAME, got {spec!r}"))
+        rel_type, target_id, project_name = (p.strip() for p in parts)
+        target_project = find_project(ws, project_name)
+        if target_project is None:
+            names = ", ".join(str(p.get("name")) for p in ws.get("projects") or [])
+            raise SystemExit(die(f"--relation target project {project_name!r} not in this workspace. Known: {names or '(none)'}"))
+        out.append({"type": rel_type, "target_id": target_id, "target_project": str(target_project.get("path"))})
+    return out
+
+
+def prompt_decision(
+    title: str,
+    content: str,
+    justification: str,
+    applicability: dict,
+    *,
+    epistemic_status: str = "",
+    criticality: str = "",
+    relations: list[dict] | None = None,
+) -> tuple[str | None, dict]:
+    print()
+    print(f"Proposed: {title!r}")
+    print(f"  {content}")
+    print(f"  Problem it solves: {justification}")
+    print(f"  Applicability: {applicability or '(unconditional under this project)'}")
+    print(f"  Epistemic status: {epistemic_status or 'fact'}  Criticality: {criticality or 'normal'}")
+    if relations:
+        print(f"  Relations: {relations}")
+    while True:
+        choice = input("Save this? [y]es / [e]dit scope / [n]o: ").strip().lower()
+        if choice in ("y", "yes"):
+            return "accept", applicability
+        if choice in ("n", "no"):
+            return "reject", applicability
+        if choice in ("e", "edit"):
+            ws_scope = input("Limit to workspace name (Enter = no restriction): ").strip()
+            if ws_scope:
+                applicability = dict(applicability)
+                applicability["workspace"] = [ws_scope]
+            continue
+        print("Please answer y, e, or n.")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--workspace-root", default="", help="Defaults to $ORCAN_WORKSPACE_ROOT or cwd")
+    parser.add_argument("--project", required=True, help="Project name as it appears in this workspace")
+    parser.add_argument("--file", default="", help="Read content from a file ('-' for stdin)")
+    parser.add_argument("--text", default="")
+    parser.add_argument("--title", default="")
+    parser.add_argument("--kind", default="fact")
+    parser.add_argument("--justification", default="")
+    parser.add_argument("--flag-existing", default="", help="Assertion id to flag for reconsideration instead of proposing new content")
+    parser.add_argument("--reason", default="", help="Why the flagged assertion should be reconsidered (required with --flag-existing)")
+    parser.add_argument("--source", default="manual", choices=("manual", "reflection"))
+    parser.add_argument("--queue", action="store_true", help="Skip the interactive prompt; leave undecided for orcan-context-review")
+    parser.add_argument("--workspace", action="append", default=[])
+    parser.add_argument("--repo-all-of", action="append", default=[])
+    parser.add_argument("--repo-any-of", action="append", default=[])
+    parser.add_argument("--repo-none-of", action="append", default=[])
+    parser.add_argument("--branch", action="append", default=[])
+    parser.add_argument("--valid-from", default="")
+    parser.add_argument("--valid-until", default="")
+    parser.add_argument("--epistemic-status", default="", help="fact|interpretation|hypothesis|conclusion (default: fact)")
+    parser.add_argument("--criticality", default="", help="normal|high (default: normal)")
+    parser.add_argument(
+        "--relation",
+        action="append",
+        default=[],
+        metavar="TYPE:TARGET_ID:PROJECT_NAME",
+        help="Repeatable. TYPE one of depends_on|risk_of|supersedes|conflicts_with; PROJECT_NAME is a project in this workspace",
+    )
+    args = parser.parse_args()
+
+    if not args.flag_existing and not args.file and not args.text:
+        return die("one of --file, --text, or --flag-existing is required")
+
+    root = resolve_workspace_root(args.workspace_root)
+    if root is None:
+        return die("could not resolve workspace root ($ORCAN_WORKSPACE_ROOT or cwd)")
+
+    ws = find_current_workspace(root)
+    if ws is None:
+        return die(f"no configured workspace found for root: {root}")
+
+    project = find_project(ws, args.project)
+    if project is None:
+        names = ", ".join(str(p.get("name")) for p in ws.get("projects") or [])
+        return die(f"unknown project {args.project!r} in workspace {ws['name']!r}. Known: {names or '(none)'}")
+
+    if args.flag_existing:
+        reason = args.reason.strip()
+        if not reason:
+            return die("--reason is required with --flag-existing")
+        payload = {
+            "project_name": args.project,
+            "flag_existing_id": args.flag_existing.strip(),
+            "reason": reason,
+        }
+        inbox = root / ".orcan" / "context-inbox"
+        inbox.mkdir(parents=True, exist_ok=True)
+        drop = inbox / f"{uuid.uuid4().hex[:12]}.json"
+        drop.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(f"Flagged {args.flag_existing!r} for reconsideration — visible in `orcan-context-review` after the next `orcan sync`: {drop.name}")
+        return 0
+
+    if not args.justification.strip():
+        return die("--justification is required: what problem does this solve?")
+
+    content = read_content(args.file) if args.file else args.text
+    content = content.strip()
+    if not content:
+        return die("content is empty")
+    justification = args.justification.strip()
+
+    applicability = build_applicability(args)
+    relations = build_relations(args.relation, ws)
+    title = args.title.strip() or content.splitlines()[0][:80]
+
+    decision: str | None = None
+    if not args.queue and sys.stdin.isatty():
+        decision, applicability = prompt_decision(
+            title, content, justification, applicability,
+            epistemic_status=args.epistemic_status, criticality=args.criticality, relations=relations,
+        )
+
+    payload = {
+        "project_name": args.project,
+        "title": title,
+        "content": content,
+        "kind": args.kind,
+        "justification": justification,
+        "applicability": applicability,
+        "epistemic_status": args.epistemic_status,
+        "criticality": args.criticality,
+        "relations": relations,
+        "decision": decision,
+        "source": args.source,
+    }
+
+    inbox = root / ".orcan" / "context-inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
+    drop = inbox / f"{uuid.uuid4().hex[:12]}.json"
+    drop.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    if decision == "accept":
+        print(f"Queued for the store, marked accept — applied at the next `orcan sync`: {drop.name}")
+    elif decision == "reject":
+        print(f"Queued for the store, marked reject — applied at the next `orcan sync`: {drop.name}")
+    else:
+        print(f"Queued as a candidate — review later with `orcan-context-review`: {drop.name}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-04
+
+### Added
+
+- Default ttyd font size `19` (was `22`).
+- ttyd reconnect resilience: `agent-launcher` auto-reattaches to the last
+  workspace after a WebSocket drop (2s countdown; Enter → menu;
+  `ORCAN_AUTO_REATTACH=0` to disable). `TTYD_PING_INTERVAL` /
+  `ttyd.ping_interval` defaults to 20s (was ttyd's built-in 5s).
+- Context Assertions (RFC-0001): `orcan context assert propose|list|show|accept|reject|retire|select` —
+  human-approved, conditional statements the Context Compiler may fold into a
+  workspace's Context Pack. Each assertion is anchored to a project (storage
+  only) and carries an applicability predicate (workspace / repo-set /
+  branch / date window) evaluated fresh per workspace at `orcan sync` time —
+  so the same repo can carry different, non-conflicting assertions across
+  different workspaces. No automatic acceptance; store is git-versioned
+  under `$ORCAN_DATA/context/<project-id>/`. `orcan sync` compiles matches
+  into `CONTEXT-ASSERTIONS.md` at the workspace root, surfaced from
+  `AGENTS.md`/`CLAUDE.md` when present. Identity is keyed by each repo's git
+  common-dir, not its working-copy path, so a branch worktree
+  (`orcan context worktree create`) shares its store with the main
+  checkout — refined by the existing `branch` applicability atom — instead
+  of starting from an empty one. `orcan-context-propose` / `orcan-context-review`
+  (in-container) let you draft and decide without a host terminal: they drop
+  JSON files into a mounted inbox (`<workspace_root>/.orcan/context-inbox/`,
+  `context-decisions/`); `orcan sync` imports them (quarantining anything
+  malformed or unresolvable instead of failing) and regenerates
+  `context-review-queue.json` before compiling. Proposing — interactively or
+  from an automated post-task reflection step — never implies acceptance;
+  only a human decision (immediate or queued) does.
+  `orcan-context-propose --flag-existing ID --reason TEXT` marks an
+  already-`accepted` assertion for reconsideration without touching the
+  store; `orcan-context-review` offers `[k]eep`/`[r]etire` for it — retiring
+  is always a human decision, never automatic.
+  `orcan-context-reflect` adds batched, automated Reflection: an opt-in
+  Claude Code `Stop` hook (template:
+  `docker/rootfs/opt/cursor-defaults/templates/claude/hooks.example.json`,
+  not applied by default) that tracks a per-session turn counter and
+  transcript offset in `reflection-state.json`, stays a near-zero-cost no-op
+  below the threshold (default 20 turns), and at the threshold asks a
+  lightweight model (`claude -p --model haiku`) to compare recent activity
+  against the workspace's current `CONTEXT-ASSERTIONS.md` and queue
+  candidates/flags through the same propose tool — never accepting anything
+  itself. `--force` runs it on demand regardless of the counter.
+  RFC-0002 extends the Context Assertion record itself: `epistemic_status`
+  (`fact`/`interpretation`/`hypothesis`/`conclusion`), `criticality`
+  (`normal`/`high`), and typed `relations` (`depends_on`/`risk_of`/
+  `supersedes`/`conflicts_with`) to an existing accepted assertion — all
+  proposable (including by `orcan-context-reflect`) but only human-correctable
+  at accept time, never system-inferred. The Applicability Layer does one
+  bounded 1-hop traversal: a matched assertion's `accepted` relation targets
+  are pulled in too, but only when the target's project is mounted in the
+  same workspace, and never past the existing item-count limit. See
+  [docs/en/ideas/context-assertions.md](docs/en/ideas/context-assertions.md).
+
+### Fixed
+
+- Git worktree projects (`orcan context worktree create`, or any project
+  path that happens to be a linked worktree) now also bind-mount their main
+  repo's `.git` directory. A worktree's own `.git` is only a pointer file
+  into that shared git dir (object database, refs, per-worktree metadata);
+  without it mounted too, every git command inside the worktree failed with
+  `fatal: not a git repository`. `apply-config.py` resolves this by reading
+  the worktree's `.git` pointer directly (no `git` subprocess needed, since
+  git isn't usable there yet) — works for any worktree regardless of how it
+  was created, not only ones Orcan itself tracked. Deliberately mounts only
+  `<main-repo>/.git`, never the main checkout's working-tree files — a
+  feature-branch worktree must not also expose the main branch's checked-out
+  files, or `orcan context worktree create`'s isolation would be pointless.
+
 ## [0.3.2] - 2026-07-29
 
 ### Added
@@ -125,7 +195,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI (validate + MkDocs → `gh-pages`)
 - SemVer releases via `VERSION` + git tags → GitHub Releases (no image registry)
 
-[Unreleased]: https://github.com/aKyther/orcan/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/aKyther/orcan/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/aKyther/orcan/releases/tag/v0.4.0
 [0.3.2]: https://github.com/aKyther/orcan/releases/tag/v0.3.2
 [0.3.1]: https://github.com/aKyther/orcan/releases/tag/v0.3.1
 [0.3.0]: https://github.com/aKyther/orcan/releases/tag/v0.3.0

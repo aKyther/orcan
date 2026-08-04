@@ -61,7 +61,7 @@ orcan down && orcan up
   "ttyd": {
     "port": 7681,
     "host_port": 7681,
-    "font_size": 22,
+    "font_size": 19,
     "theme": "dark"
   },
   "resources": {
@@ -83,7 +83,7 @@ Domyślne limity są celowo lekkie (typowy laptop). Podnieś je, gdy maszyna ma 
 | `projects[].name` | Nazwa symlinku wewnątrz workspace'a |
 | `projects[].path` | Bezwzględna ścieżka hosta (ta sama w kontenerze — path parity) |
 | `tmux.*` | Okna tworzone przy starcie sesji |
-| `ttyd.*` | Port i wygląd terminala w przeglądarce |
+| `ttyd.*` | Port, wygląd i `ping_interval` (keepalive WebSocket) terminala w przeglądarce |
 | `resources.*` | Limity CPU / pamięci / shm / tmpfs kontenera |
 
 ### Podnoszenie zasobów
