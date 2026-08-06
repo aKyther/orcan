@@ -46,9 +46,9 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context assert propose …` | Reflection: draft a Context Assertion (content + justification + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, or `accepted` → `retired` — never automatic |
 | `orcan context assert list\|show\|select\|root` | Inspect the store; `select` previews what `orcan sync` would compile |
-| `orcan context hook enable\|disable\|status [PATH ...] [--all]` | Toggle the opt-in Claude `Stop` hook (batched Reflection) in `.claude/settings.json`; immediate, no `orcan sync` |
-| *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. See [Context Assertions](../ideas/context-assertions.md) |
-| `orcan up [--with-docker] [--with-git]` | Start browser terminal (socket / host SSH only with flags); hints if a newer release exists |
+| `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Toggle the opt-in Claude `Stop` hook (batched Reflection) in the workspace's generated root `.claude/settings.json` — where Claude Code sessions actually launch, not inside a project checkout; needs `orcan sync` to have run at least once, then immediate. With no `WORKSPACE`/`--all`, infers the workspace from cwd when it's inside a registered project |
+| *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. `orcan-context-review [--no-check]` pre-checks candidates against `CONTEXT-ASSERTIONS.md` for duplicates/conflicts (nudge only, never a gate). See [Context Assertions](../ideas/context-assertions.md) |
+| `orcan up [--with-docker] [--with-git]` | Start browser terminal (socket / host SSH only with flags); hints if a newer release exists; once ready, prints the workspace's Claude `Stop` hook status |
 | `orcan down` | Stop containers |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Both agents → `orcan:latest` + `orcan:<VERSION>` (pull or build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (no pull; does not overwrite `latest`). Never publishes |
 | `orcan pull` | Pull both-agents `orcan:<VERSION>` → `orcan:latest` |

@@ -7,6 +7,123 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-08-06
+
+### Added
+
+- `orcan init`/config-wizard UX pass, pure stdlib — no new dependency:
+  - Tab-completion for directory-path prompts (`readline`, directories only,
+    `~` preserved as typed rather than expanded on screen). Degrades to
+    plain `input()` if `readline` isn't available.
+  - ANSI colors: cyan/bold section headings, green `✓` for completed steps
+    (`success()`, indent-preserving — a `"  "`-prefixed message keeps its
+    indent *before* the mark), red for warnings/errors, yellow for the
+    project-adding sub-step (visually distinct from the workspace-adding
+    stage's cyan heading). Off automatically for `ORCAN_NO_COLOR` or a
+    non-tty stream — same convention as `cli/lib/log.sh`.
+  - Host-side (`scripts/repository/config-wizard.py`), so — unlike
+    container-side tools — this is live immediately, no `orcan build`/
+    container recreate needed.
+  - Tests: `tests/host/test_config_wizard.py` (`SuccessIndentTests`,
+    `ColorGatingTests`, `PathCompleterTests`).
+  - When creating a new managed worktree, offers a fast-forward-only
+    `git pull` of the source repo's currently-checked-out branch first
+    (default yes) — so a new worktree branches from fresh `HEAD`, not a
+    stale local `master`/`main`. Silent no-op on detached HEAD; a dirty
+    tree, missing upstream, or a non-fast-forward pull are reported and
+    skipped rather than failing the wizard. New
+    `git_worktrees.py::pull_current_branch()` /`current_branch()`,
+    `config-wizard.py::_offer_pull_before_worktree()`. Tests:
+    `tests/host/test_git_worktrees.py` (`PullCurrentBranchTests`, real
+    bare-remote fast-forward integration test), `test_config_wizard.py`
+    (`OfferPullBeforeWorktreeTests`).
+- Default `lazygit` config (`docker/rootfs/opt/orcan/lazygit-config.yml`,
+  missing-only copy to `~/.config/lazygit/config.yml` on container start,
+  same idiom as `/opt/orcan/gitconfig`): `git.paging.useConfig: true` so
+  lazygit reuses git's own `delta` pager instead of a separately specified
+  one (avoids the two configs drifting apart); `update.method: never` since
+  lazygit's version is pinned by the image's `LAZYGIT_VERSION` build arg,
+  not upgradable in place; `disableStartupPopups: true`. No nerd-font icons
+  set — the image doesn't bundle one, so `gui.nerdFontsVersion` stays unset.
+- `orcan-context-review`: best-effort duplicate/conflict pre-check before
+  showing pending candidates. One batched `claude -p --model haiku` call
+  (in-container only — `claude` isn't guaranteed on whatever host machine
+  `orcan` itself runs on) compares every pending candidate against
+  `CONTEXT-ASSERTIONS.md`; a flagged candidate gets one extra line
+  (`⚠ possibly duplicates existing: "..."` / `⚠ may conflict with existing:
+  "..."`) above its usual detail block. Purely informational — decision
+  mechanics (`[y]es/[n]o/[s]kip` → `.orcan/context-decisions/*.json` →
+  applied by the next `orcan sync`) are unchanged; the check never skips,
+  blocks, or decides anything, and silently no-ops if `claude` is missing,
+  the call fails/times out, or `CONTEXT-ASSERTIONS.md` doesn't exist yet.
+  Skip it with `--no-check`. Tests: `tests/host/test_context_review.py`.
+- `orcan-context-review`: consolidation offer, building on the pre-check
+  above. The same model call that flags a candidate `duplicate`/`conflict`
+  now also drafts a merged replacement (no second call). Accepting that
+  candidate triggers one more prompt — queue the drafted merge and flag the
+  overlapping existing item for retirement? A "yes" calls
+  `orcan-context-propose` twice more (a `--queue` proposal for the merged
+  text, tagged `--source consolidation` — new valid value alongside
+  `manual`/`reflection` — and a `--flag-existing` on the superseded item),
+  going through the same review cycle as any other drop; nothing merges or
+  retires immediately. Keeps the store a de-duplicated body of knowledge
+  instead of a purely linear log. Tests: `tests/host/test_context_review.py`.
+- `orcan sync`: prints a one-line summary per workspace after compiling —
+  `context: N assertion(s) compiled into CONTEXT-ASSERTIONS.md for workspace
+  '<name>'` (or `context: 0 assertions compiled for workspace '<name>'`).
+  Previously the only way to see what the Applicability Layer actually
+  matched was `orcan context assert select --workspace NAME --project PATH
+  [...]` (still there, still the tool for previewing *before* running sync).
+  `scripts/repository/compile_context.py::compile_workspace()`. Tests:
+  `tests/host/test_compile_context.py`.
+- `orcan-context-review`: reviews fresh, undecided drops straight from
+  `.orcan/context-inbox/` too, not only the host-generated
+  `context-review-queue.json` — no prior `orcan sync` needed for these,
+  since a propose drop already carries its full content. `[y]es/[n]o`
+  rewrites the drop's own `"decision"` field in place, exactly what
+  interactive `orcan-context-propose` already does by hand
+  (`docker/rootfs/usr/local/bin/orcan-context-propose`'s `prompt_decision()`
+  → `payload["decision"]`); `compile_context.py::_process_inbox()` already
+  honored that field (propose + accept/reject in one pass) — this was
+  previously only reachable one candidate at a time via the interactive
+  propose prompt, now `orcan-context-review` batches it. Collapses "sync →
+  review → sync" into "review → sync" for anything proposed in-container
+  (by hand or by the Reflection hook) that hasn't been synced yet. Queue-
+  based candidates (already imported, or proposed straight from the host)
+  and `reconsider` items are unaffected — those still need the prior sync,
+  since the container has no other way to see a store id or an existing
+  accepted item's content. Both sources merge into one reviewed list; the
+  header names how many came from each when both are present. New functions
+  in `orcan-context-review` itself: `load_inbox_candidates()`,
+  `write_inbox_decision()`. Tests: `tests/host/test_context_review.py`.
+
+### Fixed
+
+- `orcan context hook enable|disable|status`: retargeted from a project
+  checkout's `.claude/settings.json` to the workspace's generated root
+  `.claude/settings.json` (`scripts/repository/claude_hook.py`). Claude Code
+  loads hooks once, at launch, from the directory it was started in — and
+  every `orcan up` tmux window starts at the workspace root
+  (`cursor-tmux-workspace-attach -c "${WORKSPACE_ROOT}"`), never inside a
+  project checkout. The old per-project placement meant the `Stop` hook
+  (`orcan-context-reflect`, batched Reflection) never actually fired in the
+  default multi-window workflow. Command now takes workspace name(s)
+  (`--all` for every workspace) resolved via `.orcan/workspace.manifest.json`
+  instead of project paths; requires `orcan sync` to have run at least once
+  for that workspace. `orcan up`'s post-start summary now reports one
+  workspace-level hook status instead of a per-project list. Output lines
+  now also print the workspace's full generated-root path, not just its
+  name. With no `WORKSPACE`/`--all` given, the command now first tries to
+  infer the workspace from `cwd` (matching it against registered
+  `projects[].path` in the manifest — same idea as `orcan-context-reflect`'s
+  own project inference), so running it from inside a project checkout
+  scopes to just that project's workspace. If `cwd` matches nothing:
+  `status` (read-only) falls back to showing every configured workspace,
+  with an explicit `Note:` line so the listing never reads as if it were
+  about `cwd`; `enable`/`disable` (mutating) still require an explicit
+  target once there's more than one workspace, to avoid toggling the hook
+  everywhere by accident.
+
 ## [0.4.1] - 2026-08-04
 
 ### Added
@@ -252,7 +369,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI (validate + MkDocs → `gh-pages`)
 - SemVer releases via `VERSION` + git tags → GitHub Releases (no image registry)
 
-[Unreleased]: https://github.com/aKyther/orcan/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/aKyther/orcan/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/aKyther/orcan/releases/tag/v0.4.2
+[0.4.1]: https://github.com/aKyther/orcan/releases/tag/v0.4.1
 [0.4.0]: https://github.com/aKyther/orcan/releases/tag/v0.4.0
 [0.3.2]: https://github.com/aKyther/orcan/releases/tag/v0.3.2
 [0.3.1]: https://github.com/aKyther/orcan/releases/tag/v0.3.1
