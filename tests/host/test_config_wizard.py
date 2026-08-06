@@ -167,5 +167,122 @@ class MainAlreadyConfiguredTests(unittest.TestCase):
         self.assertEqual(self.config_path.read_text(), before)
 
 
+class SuccessIndentTests(unittest.TestCase):
+    """success() must keep a caller's leading indent before the checkmark,
+    not push the mark to column 0 and the indent after it."""
+
+    def _captured(self, msg: str) -> str:
+        buf = []
+        with patch("builtins.print", side_effect=lambda s: buf.append(s)), patch.object(
+            cw, "_COLOR", False
+        ):
+            cw.success(msg)
+        return buf[0]
+
+    def test_no_indent(self) -> None:
+        self.assertEqual(self._captured("saved config"), "✓ saved config")
+
+    def test_two_space_indent_preserved_before_mark(self) -> None:
+        self.assertEqual(self._captured("  will mount folder /x"), "  ✓ will mount folder /x")
+
+    def test_four_space_indent_preserved_before_mark(self) -> None:
+        self.assertEqual(self._captured("    project ready"), "    ✓ project ready")
+
+
+class ColorGatingTests(unittest.TestCase):
+    def test_paint_adds_escape_codes_when_color_on(self) -> None:
+        with patch.object(cw, "_COLOR", True):
+            self.assertEqual(cw._paint("31", "x"), "\033[31mx\033[0m")
+
+    def test_paint_is_plain_text_when_color_off(self) -> None:
+        with patch.object(cw, "_COLOR", False):
+            self.assertEqual(cw._paint("31", "x"), "x")
+
+
+class PathCompleterTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        (self.root / "workspaces").mkdir()
+        (self.root / "worktrees").mkdir()
+        (self.root / "afile.txt").write_text("x")
+
+    def _matches(self, text: str) -> list[str]:
+        out = []
+        state = 0
+        while True:
+            m = cw._path_completer(text, state)
+            if m is None:
+                break
+            out.append(m)
+            state += 1
+        return out
+
+    def test_completes_matching_subdirectories_with_trailing_slash(self) -> None:
+        matches = self._matches(f"{self.root}/wo")
+        self.assertEqual(
+            sorted(matches),
+            sorted([f"{self.root}/workspaces/", f"{self.root}/worktrees/"]),
+        )
+
+    def test_excludes_plain_files(self) -> None:
+        matches = self._matches(f"{self.root}/af")
+        self.assertEqual(matches, [])
+
+    def test_no_matches_returns_none_at_end(self) -> None:
+        self.assertIsNone(cw._path_completer(f"{self.root}/nope", 0))
+
+    def test_expands_tilde_for_listing_but_preserves_typed_prefix(self) -> None:
+        with patch.object(cw.os.path, "expanduser", return_value=str(self.root) + "/wo"):
+            matches = self._matches("~/wo")
+        # the returned completion keeps the "~" the user typed, not the
+        # expanded /home/... form
+        self.assertTrue(all(m.startswith("~/") for m in matches))
+
+
+class OfferPullBeforeWorktreeTests(unittest.TestCase):
+    """cw._offer_pull_before_worktree — the wizard-side wiring; git_worktrees'
+    own pull_current_branch() has its own real-git integration tests in
+    test_git_worktrees.py."""
+
+    def test_detached_head_skips_question_entirely(self) -> None:
+        import git_worktrees as gw
+
+        with patch.object(gw, "current_branch", return_value=""), patch(
+            "builtins.input"
+        ) as mock_input:
+            cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
+        mock_input.assert_not_called()
+
+    def test_declining_skips_pull(self) -> None:
+        import git_worktrees as gw
+
+        with patch.object(gw, "current_branch", return_value="main"), patch.object(
+            gw, "pull_current_branch"
+        ) as pull, patch("builtins.input", side_effect=["n"]):
+            cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
+        pull.assert_not_called()
+
+    def test_accepting_calls_pull_current_branch(self) -> None:
+        import git_worktrees as gw
+
+        with patch.object(gw, "current_branch", return_value="main"), patch.object(
+            gw, "pull_current_branch", return_value=(True, "Already up to date.")
+        ) as pull, patch("builtins.input", side_effect=["y"]):
+            cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
+        pull.assert_called_once_with(Path("/tmp/whatever"))
+
+    def test_default_enter_accepts_the_pull(self) -> None:
+        """ask_yes_no's default is True ("Y/n") — bare Enter should pull."""
+        import git_worktrees as gw
+
+        with patch.object(gw, "current_branch", return_value="main"), patch.object(
+            gw, "pull_current_branch", return_value=(True, "Already up to date.")
+        ) as pull, patch("builtins.input", side_effect=[""]):
+            cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
+        pull.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

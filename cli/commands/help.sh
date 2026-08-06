@@ -24,9 +24,10 @@ Commands:
                            Context Assertions: propose/review candidates for
                            CONTEXT-ASSERTIONS.md, compiled by `orcan sync`
                            (orcan context assert --help for details)
-  context hook enable|disable|status [PATH ...] [--all]
+  context hook enable|disable|status [WORKSPACE ...] [--all]
                            Toggle the optional Claude Code Stop hook
-                           (batched Reflection drafting) — immediate, no sync
+                           (batched Reflection drafting) in the workspace's
+                           generated root — needs `orcan sync` at least once
   up [--with-docker] [--with-git]
                            Start browser terminal
                            --with-docker: mount Docker socket

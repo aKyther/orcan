@@ -1,0 +1,14 @@
+# Default lazygit config for orcan (missing-only copy to ~/.config/lazygit/config.yml).
+
+git:
+  paging:
+    # Reuse git's own pager (delta, set in /opt/orcan/gitconfig) instead of
+    # respecifying delta flags here — one place to change, can't drift.
+    useConfig: true
+
+update:
+  # lazygit's version is pinned by the orcan image (LAZYGIT_VERSION in the
+  # Dockerfile) — an in-app update would just be overwritten on next rebuild.
+  method: never
+
+disableStartupPopups: true
