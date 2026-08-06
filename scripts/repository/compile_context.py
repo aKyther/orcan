@@ -325,11 +325,14 @@ def compile_workspace(ws: dict) -> None:
     if not projects_list:
         dest.unlink(missing_ok=True)
         return
-    items = ca.select_for_workspace(ws.get("name") or "workspace", projects_list)
+    name = ws.get("name") or "workspace"
+    items = ca.select_for_workspace(name, projects_list)
     if not items:
         dest.unlink(missing_ok=True)
+        print(f"context: 0 assertions compiled for workspace '{name}'")
         return
-    dest.write_text(render_markdown(ws.get("name") or "workspace", items) + "\n", encoding="utf-8")
+    dest.write_text(render_markdown(name, items) + "\n", encoding="utf-8")
+    print(f"context: {len(items)} assertion(s) compiled into CONTEXT-ASSERTIONS.md for workspace '{name}'")
 
 
 def main() -> None:

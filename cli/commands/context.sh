@@ -78,11 +78,18 @@ orcan_context_hook() {
     case "${action}" in
         enable | disable | status) ;;
         -h | --help | "")
-            printf 'usage: orcan context hook <enable|disable|status> [PATH ...] [--all] [--dry-run]\n'
+            printf 'usage: orcan context hook <enable|disable|status> [WORKSPACE ...] [--all] [--dry-run]\n'
             printf '  Toggle the optional Claude Code Stop hook (orcan-context-reflect) in a\n'
-            printf "  project's .claude/settings.json. Takes effect immediately — no orcan sync.\n"
-            printf '  PATH: one or more project directories (default: current directory)\n'
-            printf '  --all: every project in %s\n' "${ORCAN_CONFIG_FILE}"
+            printf "  workspace's generated root .claude/settings.json — where Claude Code\n"
+            printf '  sessions actually start (tmux windows always launch there, never inside\n'
+            printf '  a project checkout). Requires orcan sync to have run at least once for\n'
+            printf '  that workspace; the toggle itself then takes effect immediately.\n'
+            printf '  WORKSPACE: one or more workspace names\n'
+            printf '  --all: every workspace known to %s\n' "${ORCAN_RUNTIME_DIR}/workspace.manifest.json"
+            printf '  Default with no WORKSPACE/--all: infers the workspace from cwd (matched\n'
+            printf '  against registered project paths) if cwd is inside exactly one. Otherwise:\n'
+            printf '  status (read-only) shows every workspace, noting cwd matched nothing;\n'
+            printf '  enable/disable (mutating) error and ask for a name or --all.\n'
             printf '\n'
             printf '  Claude-only by design: Cursor CLI has no reliably wired stop-hook here\n'
             printf '  to fire this. Cursor still benefits — it reads the same CONTEXT-\n'
@@ -96,7 +103,7 @@ orcan_context_hook() {
     esac
 
     ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/claude_hook.py" \
-        "${action}" "$@" --config "${ORCAN_CONFIG_FILE}"
+        "${action}" "$@" --home "${ORCAN_HOME}"
 }
 
 orcan_context_assert() {

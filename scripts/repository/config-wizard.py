@@ -4,11 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import re
 import sys
 from pathlib import Path
 from typing import Any
+
+try:
+    import readline
+except ImportError:  # not available on every platform — degrade to plain input()
+    readline = None  # type: ignore[assignment]
 
 ROOT = Path(
     os.environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2]
@@ -35,8 +41,41 @@ DEFAULT_TTYD = {
 }
 
 
+# ANSI colors — pure stdlib, no library. Off for ORCAN_NO_COLOR or a non-tty
+# stream, same convention as cli/lib/log.sh's ORCAN_NO_COLOR / `[ -t 2 ]`.
+_COLOR = not os.environ.get("ORCAN_NO_COLOR") and sys.stdout.isatty()
+
+
+def _paint(code: str, text: str) -> str:
+    return f"\033[{code}m{text}\033[0m" if _COLOR else text
+
+
+def _bold(text: str) -> str:
+    return _paint("1", text)
+
+
+def _cyan(text: str) -> str:
+    return _paint("36", text)
+
+
+def _green(text: str) -> str:
+    return _paint("32", text)
+
+
+def _red(text: str) -> str:
+    return _paint("31", text)
+
+
+def _dim(text: str) -> str:
+    return _paint("2", text)
+
+
+def _yellow(text: str) -> str:
+    return _paint("33", text)
+
+
 def die(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
+    print(_red(f"Error: {msg}"), file=sys.stderr)
     raise SystemExit(1)
 
 
@@ -44,14 +83,22 @@ def info(msg: str = "") -> None:
     print(msg)
 
 
+def success(msg: str) -> None:
+    """Green checkmark line. Leading whitespace in msg (indent prefixes like
+    "  " or a per-project "    ") stays before the mark, not after it."""
+    stripped = msg.lstrip(" ")
+    indent = msg[: len(msg) - len(stripped)]
+    print(f"{indent}{_green(f'✓ {stripped}')}")
+
+
 def warn(msg: str) -> None:
-    print(f"  ! {msg}", file=sys.stderr)
+    print(_red(f"  ! {msg}"), file=sys.stderr)
 
 
 def heading(title: str) -> None:
     """Section break — words only, no step numbers (those feel like edit indices)."""
     info()
-    info(f"── {title} ──")
+    info(_bold(_cyan(f"── {title} ──")))
 
 
 def ask(prompt: str, default: str | None = None) -> str:
@@ -195,6 +242,51 @@ def ask_name(prompt: str, *, default: str = "", label: str = "name") -> str:
         return raw.strip()
 
 
+def _path_completer(text: str, state: int) -> str | None:
+    """Tab-completion for directory paths, readline-style. Directories only
+    (a project path is always a directory), ~-prefixes preserved as typed."""
+    expanded = os.path.expanduser(text)
+    if "/" in expanded:
+        list_dir, prefix = expanded.rsplit("/", 1)
+        list_dir = list_dir or "/"
+    else:
+        list_dir, prefix = ".", expanded
+    orig_dir = text.rsplit("/", 1)[0] if "/" in text else ""
+
+    try:
+        entries = sorted(os.listdir(list_dir))
+    except OSError:
+        entries = []
+
+    matches = []
+    for entry in entries:
+        if not entry.startswith(prefix):
+            continue
+        if not os.path.isdir(os.path.join(list_dir, entry)):
+            continue  # a project path is a directory — don't offer plain files
+        matches.append(f"{orig_dir}/{entry}/" if orig_dir else f"{entry}/")
+    return matches[state] if state < len(matches) else None
+
+
+@contextlib.contextmanager
+def _path_completion():
+    """Tab-completes directory paths for the duration of one prompt. No-op if
+    readline isn't available (e.g. non-POSIX) — falls back to plain input()."""
+    if readline is None:
+        yield
+        return
+    old_delims = readline.get_completer_delims()
+    old_completer = readline.get_completer()
+    readline.set_completer_delims(" \t\n")  # keep '/' out of delims — complete whole paths
+    readline.set_completer(_path_completer)
+    readline.parse_and_bind("tab: complete")
+    try:
+        yield
+    finally:
+        readline.set_completer(old_completer)
+        readline.set_completer_delims(old_delims)
+
+
 def ask_project_path(
     prompt: str,
     *,
@@ -202,7 +294,8 @@ def ask_project_path(
     offer_worktrees: bool = True,
 ) -> str:
     while True:
-        raw = ask(prompt, default or None)
+        with _path_completion():
+            raw = ask(prompt, default or None)
         err, resolved = validate_project_path(raw)
         if err:
             warn(err)
@@ -243,7 +336,7 @@ def maybe_pick_worktree(path: Path) -> str:
         except SystemExit:
             warn("could not resolve that worktree — try again")
             continue
-        info(f"  ✓ using worktree {wt.path} ({wt.label})")
+        success(f"  using worktree {wt.path} ({wt.label})")
         return str(wt.path)
 
 
@@ -268,11 +361,11 @@ def resolve_project_mount(
         return str(source)
 
     if not is_git_repo(source):
-        info(f"{prefix}✓ will mount folder {source}")
+        success(f"{prefix}will mount folder {source}")
         return str(source)
 
     if is_under_managed_root(source):
-        info(f"{prefix}✓ will mount {source}")
+        success(f"{prefix}will mount {source}")
         return str(source)
 
     existing: list = []
@@ -287,7 +380,7 @@ def resolve_project_mount(
         f"{prefix}Create/use a separate git worktree instead?",
         default=False,
     ):
-        info(f"{prefix}✓ mounting {source}")
+        success(f"{prefix}mounting {source}")
         return str(source)
 
     info(f"{prefix}Advanced: separate checkout (your clone stays untouched).")
@@ -305,7 +398,7 @@ def resolve_project_mount(
 
     action = ask_menu(f"{prefix}Worktree options:", choices_opts, default="create")
     if action == "cancel":
-        info(f"{prefix}✓ mounting {source}")
+        success(f"{prefix}mounting {source}")
         return str(source)
 
     if action == "pick":
@@ -321,7 +414,7 @@ def resolve_project_mount(
             except SystemExit:
                 warn("could not resolve — try again")
                 continue
-            info(f"{prefix}✓ using {wt.path} ({wt.label})")
+            success(f"{prefix}using {wt.path} ({wt.label})")
             return str(wt.path)
 
     return _create_worktree_with_retry(
@@ -330,6 +423,28 @@ def resolve_project_mount(
         workspace=workspace,
         prefix=prefix,
     )
+
+
+def _offer_pull_before_worktree(source: Path, *, prefix: str) -> None:
+    """A new worktree branches from source's current HEAD (create_worktree's
+    default start_point) — offer to fast-forward that branch first, so HEAD
+    isn't a stale local master. Silent no-op on detached HEAD; otherwise
+    always asks (default yes) rather than pulling without confirmation."""
+    from git_worktrees import current_branch, pull_current_branch
+
+    branch = current_branch(source)
+    if not branch:
+        return
+    if not ask_yes_no(
+        f"{prefix}Pull latest {branch!r} in {source} before branching the worktree?",
+        default=True,
+    ):
+        return
+    ok, msg = pull_current_branch(source)
+    if ok:
+        success(f"{prefix}{branch}: {msg}")
+    else:
+        warn(f"{prefix}skipped pull ({branch!r}): {msg}")
 
 
 def _create_worktree_with_retry(
@@ -347,13 +462,15 @@ def _create_worktree_with_retry(
         find_worktree_by_branch,
     )
 
+    _offer_pull_before_worktree(source, prefix=prefix)
+
     default_branch = project_name
     while True:
         branch = ask(f"{prefix}Branch name for the new worktree", default_branch).strip()
         if not branch:
             warn("empty branch name")
             if ask_yes_no(f"{prefix}Mount the original folder instead?", default=True):
-                info(f"{prefix}✓ mounting {source}")
+                success(f"{prefix}mounting {source}")
                 return str(source)
             continue
 
@@ -371,10 +488,10 @@ def _create_worktree_with_retry(
                 default="use",
             )
             if choice == "use":
-                info(f"{prefix}✓ using {in_use.path} ({in_use.label})")
+                success(f"{prefix}using {in_use.path} ({in_use.label})")
                 return str(in_use.path)
             if choice == "cancel":
-                info(f"{prefix}✓ mounting {source}")
+                success(f"{prefix}mounting {source}")
                 return str(source)
             default_branch = f"{branch}-2"
             continue
@@ -411,15 +528,15 @@ def _create_worktree_with_retry(
                 default = "use"
             choice = ask_menu(f"{prefix}What next?", opts, default=default)
             if choice == "use" and exc.existing is not None:
-                info(f"{prefix}✓ using {exc.existing.path}")
+                success(f"{prefix}using {exc.existing.path}")
                 return str(exc.existing.path)
             if choice == "cancel":
-                info(f"{prefix}✓ mounting {source}")
+                success(f"{prefix}mounting {source}")
                 return str(source)
             default_branch = f"{branch}-2" if not branch.endswith("-2") else f"{branch}b"
             continue
 
-        info(f"{prefix}✓ worktree ready: {wt.path}")
+        success(f"{prefix}worktree ready: {wt.path}")
         return str(wt.path)
 
 
@@ -434,9 +551,9 @@ def ask_project(
     ws = workspace or "workspace"
     info()
     if another:
-        info(f"{prefix}› Another project for workspace {ws!r}")
+        info(_yellow(f"{prefix}› Another project for workspace {ws!r}"))
     else:
-        info(f"{prefix}› Project for workspace {ws!r}")
+        info(_yellow(f"{prefix}› Project for workspace {ws!r}"))
     path = ask_project_path(
         f"{prefix}Project path (absolute, e.g. /home/you/code/api)",
         default=default_path,
@@ -455,7 +572,7 @@ def ask_project(
         workspace=ws,
         prefix=prefix,
     )
-    info(f"{prefix}✓ project {name!r} → {final_path}")
+    success(f"{prefix}project {name!r} → {final_path}")
     return {"name": name, "path": final_path}
 
 
@@ -493,7 +610,7 @@ def ask_new_workspace(*, another: bool = False, cfg: dict[str, Any] | None = Non
                     default_path=suggestion[1] if suggestion else "",
                 )
             )
-    info(f"  ✓ workspace {name!r} has {len(projects)} project(s)")
+    success(f"  workspace {name!r} has {len(projects)} project(s)")
     return {"name": name, "projects": projects}
 
 
@@ -766,7 +883,7 @@ def wizard_remove_managed_worktrees(cfg: dict[str, Any], config_path: Path) -> d
         force=force,
         keep_config=False,
     )
-    info(f"✓ cleaned {ws_name!r}")
+    success(f"cleaned {ws_name!r}")
     return load_config(config_path)
 
 
@@ -864,8 +981,8 @@ def main() -> None:
         match = find_cwd_match(cfg)
         if match:
             ws_name, proj_name, cwd_path = match
-            info(
-                f"✓ this directory is already configured: "
+            success(
+                f"this directory is already configured: "
                 f"workspace {ws_name!r}, project {proj_name!r} ({cwd_path})"
             )
             if not ask_yes_no("Change anything?", default=False):
@@ -884,7 +1001,7 @@ def main() -> None:
             return
         dump_config(out_path, cfg)
         info()
-        info(f"✓ saved {out_path}")
+        success(f"saved {out_path}")
         print_next_steps()
         return
 
@@ -901,7 +1018,7 @@ def main() -> None:
 
     dump_config(out_path, cfg)
     info()
-    info(f"✓ saved {out_path}")
+    success(f"saved {out_path}")
     print_next_steps()
 
 

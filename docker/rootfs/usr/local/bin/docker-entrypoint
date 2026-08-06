@@ -207,6 +207,10 @@ ensure_shell_home() {
     if [[ -f /opt/orcan/gitconfig && ! -e "${HOME}/.gitconfig" ]]; then
         cp -- /opt/orcan/gitconfig "${HOME}/.gitconfig"
     fi
+    if [[ -f /opt/orcan/lazygit-config.yml && ! -e "${HOME}/.config/lazygit/config.yml" ]]; then
+        mkdir -p "${HOME}/.config/lazygit"
+        cp -- /opt/orcan/lazygit-config.yml "${HOME}/.config/lazygit/config.yml"
+    fi
 
     # Apply host identity from Compose env (orcan sync). GIT_AUTHOR_* alone is
     # enough for commits; user.* keeps tools that only read gitconfig consistent.

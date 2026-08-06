@@ -46,9 +46,9 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context assert propose …` | Reflection: naszkicuj Context Assertion (treść + uzasadnienie + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, albo `accepted` → `retired` — nigdy automatycznie |
 | `orcan context assert list\|show\|select\|root` | Przegląd store'u; `select` pokazuje podgląd tego, co skompilowałby `orcan sync` |
-| `orcan context hook enable\|disable\|status [PATH ...] [--all]` | Włącz/wyłącz opcjonalny hook `Stop` Claude (wsadowa Reflection) w `.claude/settings.json`; natychmiast, bez `orcan sync` |
-| *(wewnątrz kontenera)* `orcan-context-propose` / `orcan-context-review` | Szkicowanie/review bez terminala hosta — zrzut do zamontowanej skrzynki, importowany przy najbliższym `orcan sync`. Patrz [Context Assertions](../ideas/context-assertions.md) |
-| `orcan up [--with-docker] [--with-git]` | Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release |
+| `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Włącz/wyłącz opcjonalny hook `Stop` Claude (wsadowa Reflection) w `.claude/settings.json` wygenerowanego katalogu głównego workspace'u — tam, gdzie faktycznie startują sesje Claude Code, nigdy wewnątrz checkoutu projektu; wymaga wcześniejszego `orcan sync`, potem działa od razu. Bez `WORKSPACE`/`--all` odgaduje workspace na podstawie `cwd`, jeśli ten leży wewnątrz zarejestrowanego projektu |
+| *(wewnątrz kontenera)* `orcan-context-propose` / `orcan-context-review` | Szkicowanie/review bez terminala hosta — zrzut do zamontowanej skrzynki, importowany przy najbliższym `orcan sync`. `orcan-context-review [--no-check]` wstępnie sprawdza kandydatów pod kątem duplikatów/sprzeczności z `CONTEXT-ASSERTIONS.md` (tylko podpowiedź, nigdy bramka). Patrz [Context Assertions](../ideas/context-assertions.md) |
+| `orcan up [--with-docker] [--with-git]` | Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release; po starcie wypisuje status hooka `Stop` (Claude) dla workspace'u |
 | `orcan down` | Stop kontenerów |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Obaj agenci → `orcan:latest` + `orcan:<VERSION>` (pull lub build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (bez pull; nie nadpisuje `latest`). Nigdy nie publikuje |
 | `orcan pull` | Pull obu agentów `orcan:<VERSION>` → `orcan:latest` |
