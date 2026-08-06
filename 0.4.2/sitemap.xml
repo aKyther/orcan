@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/architecture/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/architecture/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/changelog/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/changelog/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/deployment/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/deployment/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/deployment/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/faq/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/faq/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/faq/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/interface/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/interface/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/interface/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/why-orcan/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/why-orcan/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/why-orcan/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/ai/project-context/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/ai/project-context/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/ai/project-context/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/concepts/path-parity/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/concepts/path-parity/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/concepts/path-parity/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/concepts/workspaces/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/concepts/workspaces/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/concepts/workspaces/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/development/overview/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/development/overview/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/development/overview/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/development/release/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/development/release/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/development/release/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/development/testing/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/development/testing/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/development/testing/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/getting-started/configuration/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/getting-started/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/getting-started/configuration/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/getting-started/installation/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/getting-started/installation/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/getting-started/quickstart/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/getting-started/quickstart/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/getting-started/quickstart/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/guides/dotfiles/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/guides/dotfiles/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/guides/dotfiles/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/guides/troubleshooting/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/guides/troubleshooting/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/guides/troubleshooting/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/guides/workflows/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/guides/workflows/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/guides/workflows/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/ideas/context-assertions/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/ideas/context-assertions/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/ideas/context-assertions/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/ideas/core-ideas/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/ideas/core-ideas/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/ideas/core-ideas/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/ideas/mental-model/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/ideas/mental-model/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/ideas/mental-model/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/reference/cli/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/reference/cli/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/reference/cli/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/reference/configuration/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/reference/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/reference/configuration/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/reference/cursor-and-claude/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/reference/cursor-and-claude/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/reference/cursor-and-claude/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/reference/docker/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/reference/docker/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/reference/docker/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/reference/environment/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/reference/environment/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/reference/environment/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/reference/makefile/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/reference/makefile/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/reference/makefile/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/reference/security/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2/reference/security/"/>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2pl/reference/security/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/architecture/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2architecture/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/changelog/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2changelog/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/deployment/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/deployment/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2deployment/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/faq/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/faq/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2faq/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/interface/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/interface/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2interface/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/why-orcan/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/why-orcan/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2why-orcan/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/ai/project-context/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/ai/project-context/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2ai/project-context/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/concepts/path-parity/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/concepts/path-parity/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2concepts/path-parity/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/concepts/workspaces/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/concepts/workspaces/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2concepts/workspaces/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/development/overview/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/development/overview/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2development/overview/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/development/release/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/development/release/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2development/release/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/development/testing/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/development/testing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2development/testing/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/getting-started/configuration/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/getting-started/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2getting-started/configuration/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/getting-started/installation/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2getting-started/installation/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/getting-started/quickstart/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/getting-started/quickstart/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2getting-started/quickstart/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/guides/dotfiles/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/guides/dotfiles/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2guides/dotfiles/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/guides/troubleshooting/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/guides/troubleshooting/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2guides/troubleshooting/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/guides/workflows/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/guides/workflows/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2guides/workflows/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/ideas/context-assertions/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/ideas/context-assertions/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2ideas/context-assertions/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/ideas/core-ideas/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/ideas/core-ideas/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2ideas/core-ideas/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/ideas/mental-model/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/ideas/mental-model/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2ideas/mental-model/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/reference/cli/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/reference/cli/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2reference/cli/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/reference/configuration/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/reference/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2reference/configuration/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/reference/cursor-and-claude/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/reference/cursor-and-claude/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2reference/cursor-and-claude/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/reference/docker/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/reference/docker/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2reference/docker/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/reference/environment/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/reference/environment/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2reference/environment/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/reference/makefile/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/reference/makefile/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2reference/makefile/"/>
+    </url>
+    <url>
+        <loc>https://akyther.github.io/orcan/0.4.2/pl/reference/security/</loc>
+        <lastmod>2026-08-06</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="pl" href="https://akyther.github.io/orcan/0.4.2/pl/reference/security/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://akyther.github.io/orcan/0.4.2reference/security/"/>
+    </url>
+</urlset>
