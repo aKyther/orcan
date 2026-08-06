@@ -210,5 +210,103 @@ class CreateIntegrationTests(unittest.TestCase):
             _ = gw
 
 
+class PullCurrentBranchTests(unittest.TestCase):
+    def _init_repo(self, path: Path) -> None:
+        import subprocess
+
+        path.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["git", "init", "-b", "main"], cwd=path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "t@example.com"], cwd=path, check=True, capture_output=True
+        )
+        subprocess.run(["git", "config", "user.name", "t"], cwd=path, check=True, capture_output=True)
+
+    def _commit(self, path: Path, filename: str, content: str, message: str) -> None:
+        import subprocess
+
+        (path / filename).write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", filename], cwd=path, check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", message], cwd=path, check=True, capture_output=True)
+
+    def test_detached_head_is_skipped(self) -> None:
+        import subprocess
+
+        import git_worktrees as gw
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "r"
+            self._init_repo(repo)
+            self._commit(repo, "f", "1", "init")
+            sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+            ).stdout.strip()
+            subprocess.run(["git", "checkout", sha], cwd=repo, check=True, capture_output=True)
+            ok, msg = gw.pull_current_branch(repo)
+            self.assertFalse(ok)
+            self.assertIn("detached", msg.lower())
+
+    def test_dirty_tree_is_skipped(self) -> None:
+        import git_worktrees as gw
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "r"
+            self._init_repo(repo)
+            self._commit(repo, "f", "1", "init")
+            (repo / "f").write_text("dirty", encoding="utf-8")
+            ok, msg = gw.pull_current_branch(repo)
+            self.assertFalse(ok)
+            self.assertIn("uncommitted", msg.lower())
+
+    def test_no_upstream_is_skipped(self) -> None:
+        import git_worktrees as gw
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "r"
+            self._init_repo(repo)
+            self._commit(repo, "f", "1", "init")
+            ok, msg = gw.pull_current_branch(repo)
+            self.assertFalse(ok)
+            self.assertIn("upstream", msg.lower())
+
+    def test_pulls_fast_forward_from_configured_upstream(self) -> None:
+        import subprocess
+
+        import git_worktrees as gw
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = root / "remote.git"
+            subprocess.run(
+                ["git", "init", "--bare", "-b", "main", str(remote)], check=True, capture_output=True
+            )
+
+            def clone(dest: Path) -> None:
+                subprocess.run(["git", "clone", str(remote), str(dest)], check=True, capture_output=True)
+                subprocess.run(
+                    ["git", "config", "user.email", "t@example.com"],
+                    cwd=dest, check=True, capture_output=True,
+                )
+                subprocess.run(
+                    ["git", "config", "user.name", "t"], cwd=dest, check=True, capture_output=True
+                )
+
+            seeder = root / "seeder"
+            clone(seeder)
+            self._commit(seeder, "f", "1", "init")
+            subprocess.run(["git", "push", "origin", "main"], cwd=seeder, check=True, capture_output=True)
+
+            local = root / "local"
+            clone(local)  # clone of a branch with history auto-tracks origin/main
+
+            # someone else pushes a new commit after `local` cloned
+            self._commit(seeder, "f", "2", "second")
+            subprocess.run(["git", "push", "origin", "main"], cwd=seeder, check=True, capture_output=True)
+
+            self.assertEqual((local / "f").read_text(encoding="utf-8"), "1")
+            ok, msg = gw.pull_current_branch(local)
+            self.assertTrue(ok, msg)
+            self.assertEqual((local / "f").read_text(encoding="utf-8"), "2")
+
+
 if __name__ == "__main__":
     unittest.main()

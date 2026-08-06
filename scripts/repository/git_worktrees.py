@@ -305,6 +305,42 @@ def branch_exists(repo: Path, branch: str) -> bool:
     return r.returncode == 0
 
 
+def current_branch(repo: Path) -> str:
+    """Empty string for detached HEAD (or any other lookup failure)."""
+    r = run_git(repo, "branch", "--show-current", check=False)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def pull_current_branch(repo: Path) -> tuple[bool, str]:
+    """Fast-forward-only pull of repo's currently checked-out branch — so a
+    worktree about to branch from HEAD branches from current code, not a
+    stale local master. Best-effort: never raises, returns (ok, message);
+    a dirty tree, detached HEAD, or missing upstream is a normal skip, not
+    an error — the caller decides whether to warn."""
+    status = run_git(repo, "status", "--porcelain", check=False)
+    if status.returncode != 0:
+        return False, "could not read working tree status"
+    if status.stdout.strip():
+        return False, "working tree has uncommitted changes"
+
+    branch = current_branch(repo)
+    if not branch:
+        return False, "detached HEAD (no branch to pull)"
+
+    upstream = run_git(
+        repo, "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}", check=False
+    )
+    if upstream.returncode != 0:
+        return False, f"branch {branch!r} has no upstream configured"
+
+    pull = run_git(repo, "pull", "--ff-only", check=False)
+    if pull.returncode != 0:
+        detail = pull.stderr.strip().splitlines()[-1] if pull.stderr.strip() else "pull failed"
+        return False, detail[:200]
+    out_lines = pull.stdout.strip().splitlines()
+    return True, out_lines[-1] if out_lines else "already up to date"
+
+
 def find_worktree_by_branch(repo: Path, branch: str) -> Worktree | None:
     """Return the worktree that already has this branch checked out, if any."""
     branch = branch.strip()

@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -304,6 +306,20 @@ class CompileContextTests(unittest.TestCase):
         candidate = queue["candidates"][0]
         self.assertEqual(candidate["epistemic_status"], "hypothesis")
         self.assertEqual(candidate["relations"][0]["type"], "risk_of")
+
+    def test_prints_zero_compiled_when_nothing_accepted(self) -> None:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cc.compile_workspace(self.ws)
+        self.assertIn("0 assertions compiled for workspace 'demo'", buf.getvalue())
+
+    def test_prints_count_compiled_when_something_accepted(self) -> None:
+        obj = ca.propose(self.backend, content="fact", justification="j")
+        ca.accept(self.backend, obj["id"])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cc.compile_workspace(self.ws)
+        self.assertIn("1 assertion(s) compiled into CONTEXT-ASSERTIONS.md for workspace 'demo'", buf.getvalue())
 
 
 if __name__ == "__main__":
