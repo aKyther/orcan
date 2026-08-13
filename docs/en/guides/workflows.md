@@ -72,6 +72,17 @@ orcan up
 orcan up --with-docker
 ```
 
+## Scenario: reach containers on an existing Docker network
+
+**When:** the container needs to reach another container by name/IP (e.g. a
+project's own `docker compose` stack) but doesn't need to control the host
+Docker engine. Lower-risk than `--with-docker` — no socket mounted.
+
+```bash
+docker network create my-net   # if it doesn't exist yet
+orcan up --with-network my-net
+```
+
 ## Scenario: git push/pull from inside the container
 
 **When:** commits already match the host identity (via `orcan sync`); you also need SSH keys or an agent for remotes.

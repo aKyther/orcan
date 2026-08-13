@@ -32,17 +32,22 @@ Recreate after sync: `orcan down && orcan up`.
 ## Runtime stack (container)
 
 ```text
-ttyd (cursor-ttyd) → agent-launcher → tmux → zsh
-  Starship prompt · autosuggestions · syntax-highlighting · fzf
+ttyd (cursor-ttyd) → agent-launcher → tmux 3.6a → zsh
+  Starship · autosuggestions · syntax-highlighting · fzf
   aliases: /etc/orcan/shell/aliases.sh
+  lazygit + delta (git UI)
 ```
 
 | Concern | Source of truth |
 | --- | --- |
-| tmux | `docker/rootfs/etc/tmux/` (2-row status; RMB menus unbound in `tmux.conf`) |
+| Terminal UI map | `docs/en/guides/terminal-ui.md` (+ PL); rule `.cursor/rules/terminal-ui.mdc` |
+| ttyd theme | `docker/rootfs/usr/local/bin/cursor-ttyd` (`dark`/`navy`, `mocha`) |
+| tmux | `docker/rootfs/etc/tmux/` + `Dockerfile` `TMUX_VERSION` (3.6a static) |
 | zsh | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` |
-| git/starship seeds | `docker/rootfs/opt/orcan/` |
+| starship / lazygit / git seeds | `docker/rootfs/opt/orcan/` (**missing-only** into `~/.config` / `~/.gitconfig`) |
 | Cursor defaults | `docker/rootfs/opt/cursor-defaults/` → seeded missing-only |
+
+When changing colours or shell chrome: keep the navy/cyan palette aligned across layers; no TPM / Oh My Zsh / Nerd Font requirement. After rootfs/Dockerfile edits: `orcan build` then recreate.
 
 ## File map
 

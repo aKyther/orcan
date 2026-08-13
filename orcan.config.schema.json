@@ -75,7 +75,11 @@
         "host_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
         "font_size": { "type": "integer", "minimum": 8, "default": 19 },
         "font_family": { "type": "string" },
-        "theme": { "type": "string", "default": "dark" },
+        "theme": {
+          "type": "string",
+          "default": "dark",
+          "description": "ttyd xterm.js theme preset (dark|navy, mocha) or raw JSON object (TTYD_THEME)"
+        },
         "ping_interval": {
           "type": "integer",
           "minimum": 1,

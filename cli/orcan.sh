@@ -20,7 +20,7 @@ Commands:
   init         No PATH: interactive config wizard (create/edit) + sync + show
                PATH: non-interactive scaffold (scripts/CI) + sync + show
   sync         Apply orcan.config.json → .env + .orcan/* for Compose
-  context      Manage context (show | add | worktrees | worktree | assert | hook)
+  context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
   up           Start browser terminal (--with-docker / --with-git)
   down         Stop containers
   build        Both agents → orcan:latest + orcan:<VERSION> (pull or build)

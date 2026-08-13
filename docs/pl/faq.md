@@ -33,7 +33,7 @@ orcan down && orcan up
 
 ## Czy mogę zmienić aliasy / tmux / vim?
 
-**Tak.** Nadpisania w `$ORCAN_DATA/dotfiles` (domyślnie `~/.config/orcan/dotfiles`). Defaulty obrazu zostają; Twoje pliki są montowane. Zobacz [Dotfiles użytkownika](guides/dotfiles.md).
+**Tak.** Nadpisania w `$ORCAN_DATA/dotfiles` (domyślnie `~/.config/orcan/dotfiles`). Defaulty obrazu zostają; Twoje pliki są montowane. Zobacz [Dotfiles użytkownika](guides/dotfiles.md). Wspólny look navy/cyan (tmux, starship, lazygit, …): [Terminal UI](guides/terminal-ui.md).
 
 ## Czy muszę używać przeglądarki (ttyd)?
 

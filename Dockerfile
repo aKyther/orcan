@@ -68,7 +68,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         shellcheck \
         sqlite3 \
         sudo \
-        tmux \
         tree \
         tzdata \
         unzip \
@@ -183,6 +182,26 @@ RUN set -eux; \
         -o /usr/local/bin/ttyd; \
     chmod 0755 /usr/local/bin/ttyd; \
     ttyd --version
+
+# ------------------------------------------------------------------------------
+# tmux 3.6a (static musl build — Debian bookworm only ships 3.3a)
+# Pane scrollbars + pane-border-lines spaces need >= 3.5 / 3.6.
+# ------------------------------------------------------------------------------
+
+ARG TMUX_VERSION=3.6a
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) tmux_arch="x86_64" ;; \
+        arm64) tmux_arch="arm64" ;; \
+        *) echo "unsupported architecture for tmux: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL \
+        "https://github.com/tmux/tmux-builds/releases/download/v${TMUX_VERSION}/tmux-${TMUX_VERSION}-linux-${tmux_arch}.tar.gz" \
+        | tar -xz -C /usr/local/bin tmux; \
+    chmod 0755 /usr/local/bin/tmux; \
+    tmux -V | grep -F "tmux ${TMUX_VERSION}"
 
 # ------------------------------------------------------------------------------
 # yq (YAML processor; mikefarah/yq)

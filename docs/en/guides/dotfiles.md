@@ -26,6 +26,8 @@ Image defaults (aliases under `/etc/orcan/shell`, tmux under `/etc/tmux`, skel v
 | `starship.toml` | Replaces `~/.config/starship.toml` (symlink) |
 | `gitconfig.local` | `include.path` from `~/.gitconfig` |
 
+Image defaults for **terminal look** (ttyd, tmux, starship, fzf, lazygit palette) live under `docker/rootfs/` — see [Terminal UI](terminal-ui.md). Dotfiles only overlay; they do not replace the image map.
+
 Copy an example (drop the `.example` suffix), edit, open a **new** shell (`orcan enter` or a new tmux pane). For tmux: `tmux source-file ~/.tmux.conf` or detach/reattach. You do **not** need `orcan down` after editing these files.
 
 ## Examples
