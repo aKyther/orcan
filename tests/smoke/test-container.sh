@@ -13,7 +13,7 @@ source "${ROOT_DIR}/scripts/repository/validate-project-dir.sh"
 validate_project_dir
 SMOKE_PROJECT="${PROJECT_DIR}"
 
-COMPOSE=(docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml)
+COMPOSE=(docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml)
 
 printf 'Running container smoke checks (PROJECT_DIR=%s)...\n' "${SMOKE_PROJECT}"
 

@@ -337,7 +337,7 @@ def compile_workspace(ws: dict) -> None:
 
 def main() -> None:
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
-    runtime_path = root / ".orcan" / "runtime-config.json"
+    runtime_path = root / "mounts" / "runtime-config.json"
     if not runtime_path.is_file():
         return
     runtime = json.loads(runtime_path.read_text(encoding="utf-8"))

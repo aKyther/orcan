@@ -12,8 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bas
 | --- | --- |
 | `~/.local/share/orcan` | Klon gita (`ORCAN_ROOT`) |
 | `~/.local/bin/orcan` | Launcher |
-| `~/.config/orcan/home` | Config + `.env` + `.orcan/*` (`ORCAN_HOME`) — **zawsze** domyślne |
-| `~/.config/orcan` | Dane narzędzi / loginy (`ORCAN_DATA`) |
+| `~/.config/orcan` | Config + `.env` + `mounts/*` (`ORCAN_HOME`) *oraz* dane narzędzi / loginy (`ORCAN_DATA`) — ten sam katalog domyślnie |
 
 Nadpisz tylko gdy trzeba: `ORCAN_HOME=/path` albo `ORCAN_USE_CWD=1` (użyj `./orcan.config.json` w bieżącym katalogu).
 
@@ -35,7 +34,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | --- | --- |
 | `orcan init` | Bez PATH: interaktywny kreator config (utwórz/edytuj) + sync + show |
 | `orcan init PATH` | Bez interakcji: scaffold jednego projektu (skrypty/CI) + sync + show |
-| `orcan sync` | Zastosuj `orcan.config.json` → `.env` + `.orcan/*` |
+| `orcan sync` | Zastosuj `orcan.config.json` → `.env` + `mounts/*` |
 | `orcan context show` | Lista workspace'ów + path parity |
 | `orcan context add PATH` | Dodaj projekt (`--workspace`, `--force`) |
 | `orcan context tui` | TUI: skan katalogu-rodzica, multi-select repo, create/update workspace; opcjonalnie jeden branch → managed worktree na każde repo (`--sync`, `--yes`) |
@@ -44,10 +43,11 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context worktree create …` | Utwórz worktree (managed pod `$ORCAN_DATA/worktrees` przy `--workspace`) i podepnij |
 | `orcan context worktree remove --path PATH` | Usuń jeden managed worktree |
 | `orcan context worktree remove --workspace NAME` | Usuń wszystkie managed worktree workspace'a (i wypnij z configu) |
+| `orcan context worktree prune [--force] [--no-config]` | Pogódź `$ORCAN_DATA/worktrees/registry.json` ze stanem na dysku (i `orcan.config.json`); domyślnie dry-run, `--force` sprząta |
 | `orcan context assert propose …` | Reflection: naszkicuj Context Assertion (treść + uzasadnienie + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, albo `accepted` → `retired` — nigdy automatycznie |
 | `orcan context assert list\|show\|select\|root` | Przegląd store'u; `select` pokazuje podgląd tego, co skompilowałby `orcan sync` |
-| `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Włącz/wyłącz opcjonalny hook `Stop` Claude (wsadowa Reflection) w `.claude/settings.json` wygenerowanego katalogu głównego workspace'u — tam, gdzie faktycznie startują sesje Claude Code, nigdy wewnątrz checkoutu projektu; wymaga wcześniejszego `orcan sync`, potem działa od razu. Bez `WORKSPACE`/`--all` odgaduje workspace na podstawie `cwd`, jeśli ten leży wewnątrz zarejestrowanego projektu |
+| `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Włącz/wyłącz hook `Stop` Claude (wsadowa Reflection) w `.claude/settings.json` wygenerowanego katalogu głównego workspace'u — **domyślnie włączony**, dosiewany przy pierwszej `orcan sync` dla workspace'u; `disable` zostaje przy kolejnych sync'ach. Bez `WORKSPACE`/`--all` odgaduje workspace na podstawie `cwd`, jeśli ten leży wewnątrz zarejestrowanego projektu |
 | *(wewnątrz kontenera)* `orcan-context-propose` / `orcan-context-review` | Szkicowanie/review bez terminala hosta — zrzut do zamontowanej skrzynki, importowany przy najbliższym `orcan sync`. `orcan-context-review [--no-check]` wstępnie sprawdza kandydatów pod kątem duplikatów/sprzeczności z `CONTEXT-ASSERTIONS.md` (tylko podpowiedź, nigdy bramka). Patrz [Context Assertions](../ideas/context-assertions.md) |
 | `orcan up [--with-docker] [--with-git]` | Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release; po starcie wypisuje status hooka `Stop` (Claude) dla workspace'u |
 | `orcan down` | Stop kontenerów |
@@ -79,7 +79,7 @@ orcan up
 Po edycji konfiguracji:
 
 ```bash
-# edytuj ~/.config/orcan/home/orcan.config.json
+# edytuj ~/.config/orcan/orcan.config.json
 orcan sync
 orcan down && orcan up
 ```

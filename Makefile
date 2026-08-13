@@ -4,7 +4,7 @@ SHELL := /bin/bash
 # User-facing targets below print a deprecation hint and forward to ./bin/orcan when present.
 
 COMPOSE_FILE := docker-compose.yml
-COMPOSE_PROJECTS_FILE := .orcan/compose-projects.generated.yml
+COMPOSE_PROJECTS_FILE := mounts/compose-projects.generated.yml
 COMPOSE_DOCKER_FILE := docker-compose.docker.yml
 COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
 
@@ -146,7 +146,7 @@ config-scaffold: deprecate-user ## (deprecated) → orcan context add
 	@$(ORCAN) context add "$(PROJECT_DIR)" $(if $(WORKSPACE),--workspace "$(WORKSPACE)",) $(if $(FORCE),--force,)
 
 config-init: deprecate-user ## (deprecated) copy example config into ORCAN_HOME
-	@home="$${ORCAN_HOME:-$${XDG_CONFIG_HOME:-$$HOME/.config}/orcan/home}"; \
+	@home="$${ORCAN_HOME:-$${XDG_CONFIG_HOME:-$$HOME/.config}/orcan}"; \
 	mkdir -p "$$home"; \
 	if [ -f "$$home/orcan.config.json" ]; then \
 		printf 'already exists: %s/orcan.config.json\n' "$$home"; \

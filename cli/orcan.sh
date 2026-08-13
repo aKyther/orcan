@@ -19,7 +19,7 @@ Usage:
 Commands:
   init         No PATH: interactive config wizard (create/edit) + sync + show
                PATH: non-interactive scaffold (scripts/CI) + sync + show
-  sync         Apply orcan.config.json → .env + .orcan/* for Compose
+  sync         Apply orcan.config.json → .env + mounts/* for Compose
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
   up           Start browser terminal (--with-docker / --with-git)
   down         Stop containers

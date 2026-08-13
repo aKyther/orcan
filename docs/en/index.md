@@ -62,7 +62,7 @@ Reference pages (CLI, env vars, Compose) come **after** that arc.
 git clone https://github.com/aKyther/orcan.git
 cd orcan
 orcan init /absolute/path/to/your/repo   # includes orcan sync once
-orcan sync                                             # .env + .orcan/* for Compose
+orcan sync                                             # .env + mounts/* for Compose
 orcan build
 orcan up
 ```

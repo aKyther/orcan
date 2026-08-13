@@ -3,7 +3,7 @@
 # Host-only: do not copy this into the Docker image.
 #
 # ORCAN_ROOT = install/clone (scripts, compose, Dockerfile)
-# ORCAN_HOME = user config + .env + .orcan/* (defaults to ORCAN_ROOT for legacy)
+# ORCAN_HOME = user config + .env + mounts/* (defaults to ORCAN_ROOT for legacy)
 
 set -Eeuo pipefail
 
@@ -216,8 +216,8 @@ printf 'ORCAN_DATA=%s (host config/cache — created if missing)\n' "${ORCAN_DAT
 if [[ -n "${CONFIG}" ]]; then
     printf 'CONFIG=%s\n' "${CONFIG}"
 fi
-if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/.orcan/compose-projects.generated.yml}" ]]; then
-    printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/.orcan/compose-projects.generated.yml}"
+if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}" ]]; then
+    printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}"
 fi
 printf 'SSH keys: orcan up --with-git (not mounted by sync)\n'
 printf 'Next: orcan down && orcan up\n'

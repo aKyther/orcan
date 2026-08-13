@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Right status: AI · brief · git · cpu · mem · battery · time
+# Right status: AI · brief · git · battery (clock + cpu/mem moved to pane-border-format, top-right)
 # Icon prefixes (Unicode) — works with Menlo/Monaco in ttyd; no Nerd Font required.
 set -Eeuo pipefail
 
@@ -46,22 +46,6 @@ if [[ -n "${branch}" ]]; then
     parts+=("#[fg=#7dd3fc,bold]⎇ ${branch}")
 fi
 
-load=""
-if [[ -r /proc/loadavg ]]; then
-    load="$(awk '{printf "%.1f", $1}' /proc/loadavg 2>/dev/null || true)"
-fi
-if [[ -n "${load}" ]]; then
-    parts+=("#[fg=#67e8f9]◉ ${load}")
-fi
-
-mem=""
-if command -v free >/dev/null 2>&1; then
-    mem="$(free -m 2>/dev/null | awk '/^Mem:/ { if ($2>0) printf "%.0f%%", ($3/$2)*100 }')"
-fi
-if [[ -n "${mem}" ]]; then
-    parts+=("#[fg=#67e8f9]▣ ${mem}")
-fi
-
 battery=""
 for cap in /sys/class/power_supply/BAT*/capacity; do
     if [[ -r "${cap}" ]]; then
@@ -79,7 +63,7 @@ if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
     parts+=("#[fg=${bat_colour}]⚡ ${battery}%")
 fi
 
-parts+=("#[fg=#a5f3fc,bold]$(date +%H:%M)")
+# Clock lives top-right in the pane border (status.conf pane-border-format).
 
 out=" "
 sep='#[fg=#334155] · #[default]'
