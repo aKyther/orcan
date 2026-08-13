@@ -70,6 +70,8 @@ require_file "scripts/repository/python.sh"
 require_file "scripts/repository/release.sh"
 require_file "scripts/repository/check-product-name.sh"
 require_file "scripts/repository/docs-mike.sh"
+require_file "scripts/migrations/README.md"
+require_file "scripts/migrations/flatten-orcan-home.sh"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
 require_file "docker/rootfs/opt/cursor-defaults/rules/operating-principles.mdc"
 require_file "docker/rootfs/opt/cursor-defaults/rules/karpathy-guidelines.mdc"
@@ -158,6 +160,7 @@ for script in \
     scripts/repository/check-product-name.sh \
     scripts/repository/docs-mike.sh \
     scripts/repository/validate.sh \
+    scripts/migrations/flatten-orcan-home.sh \
     install.sh \
     bin/orcan \
     cli/orcan.sh \
