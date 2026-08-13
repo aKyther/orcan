@@ -43,9 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`$ORCAN_HOME/.orcan/workspace.manifest.json`) are renamed to
   `worktrees/registry.json` and `workspaces/index.json` respectively, to stop
   three unrelated files all being called some variant of `manifest.json`.
-  No auto-migration (pre-1.0): run `orcan uninstall --purge-data` (or move
-  `~/.config/orcan/home/*` up a level and `.orcan/workspaces/*` into a new
-  `workspaces/` by hand), then `orcan init` again.
+  No automatic migration (pre-1.0), but there is a script for it:
+  `scripts/migrations/flatten-orcan-home.sh` moves existing config/`.env`/
+  workspace meta to the new layout in place (safe to re-run, never
+  overwrites). Run it once on the host before the first `orcan sync` /
+  `orcan build` with the new code. See `scripts/migrations/README.md`.
 - The Claude Code Stop hook (`orcan-context-reflect`, batched Reflection) is
   now **on by default** instead of opt-in: `orcan sync` seeds it into a
   workspace's `.claude/settings.json` the first time that workspace is
