@@ -114,6 +114,7 @@ plugins:
             Typical Workflows: Typowe workflowy
             Workflows: Przepływy pracy
             User dotfiles: Dotfiles użytkownika
+            Terminal UI: Terminal UI
             Troubleshooting: Rozwiązywanie problemów
             Architecture: Architektura
             Reference: Referencja
@@ -189,6 +190,7 @@ nav:
   - Typical Workflows:
       - Workflows: guides/workflows.md
       - User dotfiles: guides/dotfiles.md
+      - Terminal UI: guides/terminal-ui.md
       - Troubleshooting: guides/troubleshooting.md
   - Architecture: architecture.md
   - Reference:

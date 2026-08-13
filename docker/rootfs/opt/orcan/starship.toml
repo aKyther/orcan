@@ -1,37 +1,46 @@
 # Default Starship config for orcan (missing-only copy to ~/.config/starship.toml).
-# Autodetects git branch/status; keep ASCII-friendly for ttyd.
+# Lean prompt for ttyd: path · git · slow-cmd hint. Palette matches tmux navy/cyan.
 
 format = """
 $directory\
-[ │ ](bright-black)\
+[ │ ](#334155)\
 $git_branch\
 $git_status\
+$cmd_duration\
 $character"""
 
 [character]
-success_symbol = "[>](bold green)"
-error_symbol = "[>](bold red)"
+success_symbol = "[›](bold #5eead4)"
+error_symbol = "[›](bold #f87171)"
 
 [directory]
 truncation_length = 3
 truncate_to_repo = true
-style = "bold cyan"
+style = "bold #67e8f9"
+read_only = " ro"
+read_only_style = "#fbbf24"
 
 [git_branch]
 symbol = "⎇ "
 format = "[$symbol$branch]($style) "
-style = "bold purple"
+style = "bold #7dd3fc"
 
 [git_status]
 format = '([$all_status$ahead_behind]($style) )'
-style = "bold yellow"
+style = "bold #fbbf24"
 conflicted = "!"
-ahead = "^"
-behind = "v"
-diverged = "^v"
+ahead = "↑"
+behind = "↓"
+diverged = "↕"
 untracked = "?"
 stashed = "$"
 modified = "*"
 staged = "+"
 renamed = "r"
 deleted = "x"
+
+# Only show when a command took noticeable time (dev feedback, low noise).
+[cmd_duration]
+min_time = 2_000
+format = "[⏱ $duration]($style) "
+style = "#64748b"

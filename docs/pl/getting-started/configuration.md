@@ -83,7 +83,7 @@ Domyślne limity są celowo lekkie (typowy laptop). Podnieś je, gdy maszyna ma 
 | `projects[].name` | Nazwa symlinku wewnątrz workspace'a |
 | `projects[].path` | Bezwzględna ścieżka hosta (ta sama w kontenerze — path parity) |
 | `tmux.*` | Okna tworzone przy starcie sesji |
-| `ttyd.*` | Port, wygląd i `ping_interval` (keepalive WebSocket) terminala w przeglądarce |
+| `ttyd.*` | Port, wygląd (`theme`: `dark`/`navy`, `mocha` albo surowy JSON) i `ping_interval` (keepalive WebSocket) terminala w przeglądarce |
 | `resources.*` | Limity CPU / pamięci / shm / tmpfs kontenera |
 
 ### Podnoszenie zasobów
@@ -103,6 +103,7 @@ Jeśli `.env` ma już `CPUS` / `MEMORY`, `orcan sync` ich nie nadpisze. Zmień j
 | --- | --- |
 | `orcan init` | Interaktywne tworzenie/edycja |
 | `orcan context add /abs/path` | Dodanie jednego projektu bez interakcji |
+| `orcan context tui` | TUI: katalog-rodzic → multi-select repo → workspace (+ opcjonalnie wspólny branch worktree) |
 | `orcan context add --from-worktree /abs/repo SELECTOR` | Dodanie istniejącego git worktree |
 | `orcan context worktrees [/abs/repo]` | Lista worktree dla repo |
 | `orcan context worktree create --repo … --branch …` | Utwórz worktree i podepnij |

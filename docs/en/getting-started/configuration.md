@@ -83,7 +83,7 @@ Defaults stay light on purpose (typical laptop). Raise them when the machine can
 | `projects[].name` | Symlink name inside the workspace |
 | `projects[].path` | Absolute host path (same path inside the container — path parity) |
 | `tmux.*` | Windows created when a session starts |
-| `ttyd.*` | Browser terminal port, look, and `ping_interval` (WebSocket keepalive) |
+| `ttyd.*` | Browser terminal port, look (`theme`: `dark`/`navy`, `mocha`, or raw JSON), and `ping_interval` (WebSocket keepalive) |
 | `resources.*` | Container CPU / memory / shm / tmpfs limits |
 
 ### Raising resources
@@ -103,6 +103,7 @@ If `.env` already has `CPUS` / `MEMORY` set, `orcan sync` keeps those values. Ch
 | --- | --- |
 | `orcan init` | Interactive create/edit |
 | `orcan context add /abs/path` | Add one project non-interactively |
+| `orcan context tui` | TUI: parent folder → multi-select repos → workspace (+ optional shared-branch worktrees) |
 | `orcan context add --from-worktree /abs/repo SELECTOR` | Add an existing git worktree |
 | `orcan context worktrees [/abs/repo]` | List worktrees for a repo |
 | `orcan context worktree create --repo … --branch …` | Create a worktree and pin it |
@@ -125,6 +126,7 @@ orcan context show
 | `.orcan/runtime-config.json` | Mounted into the container as `/etc/orcan/config.json` |
 | `.orcan/compose-projects.generated.yml` | Extra bind mounts |
 | `.orcan/compose-git.generated.yml` | Written by `orcan up --with-git` (SSH mounts) |
+| `.orcan/compose-network.generated.yml` | Written by `orcan up --with-network NAME` (join an existing Docker network) |
 | `.orcan/workspaces/<name>/` | Host-backed workspace meta |
 | `$ORCAN_DATA` tree | Default `~/.config/orcan` (Cursor/Claude home, caches) |
 

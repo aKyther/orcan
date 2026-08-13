@@ -32,6 +32,8 @@ command -v orcan-context-status >/dev/null
 command -v cursor-ttyd >/dev/null
 command -v agent-launcher >/dev/null
 command -v cursor-launcher >/dev/null
+command -v tmux >/dev/null
+tmux -V | grep -Eq '^tmux 3\.[6-9]'
 command -v cursor-tmux-workspace-attach >/dev/null
 command -v cursor-tmux-bootstrap-workspaces >/dev/null
 command -v agent >/dev/null

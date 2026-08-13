@@ -17,6 +17,8 @@ Commands:
   context add PATH         Add a project (optional --workspace NAME)
   context add --from-worktree REPO SELECTOR
                            Add an existing git worktree as a project
+  context tui              TUI: pick folder → multi-select repos → workspace
+                           (+ optional shared-branch worktrees); see --help
   context worktrees [REPO] List git worktrees for a repo (default: cwd)
   context worktree create  Create a worktree (+ optional managed path) and pin it
   context worktree remove  Remove a managed worktree (--path or --workspace)

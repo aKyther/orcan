@@ -1,0 +1,49 @@
+---
+description: >-
+  Orcan terminal UI palette and where to edit ttyd/tmux/zsh/starship/fzf/lazygit.
+  Use when changing colours, status bar, shell prompt, or browser terminal look.
+globs: docker/rootfs/etc/tmux/**/*,docker/rootfs/usr/local/bin/cursor-ttyd,docker/rootfs/opt/orcan/starship.toml,docker/rootfs/opt/orcan/lazygit-config.yml,docker/rootfs/etc/skel/.zshrc,docker/rootfs/etc/skel/.zshrc.d/**/*,docs/**/terminal-ui.md,docs/**/dotfiles.md
+alwaysApply: false
+---
+
+# Terminal UI
+
+Canonical guide: [`docs/en/guides/terminal-ui.md`](../../docs/en/guides/terminal-ui.md) (PL twin under `docs/pl/`).
+
+## Palette (keep in sync)
+
+Dark navy / near-black / subtle cyan — hex used across ttyd, tmux, starship, fzf, lazygit:
+
+| Role | Hex |
+| --- | --- |
+| Background | `#0a0e17` |
+| Elevated / status | `#0d1520` / `#111827` |
+| Selection | `#152033` / `#164e63` |
+| Foreground | `#c8d3e0` |
+| Muted | `#64748b` / `#334155` |
+| Accent | `#5eead4` |
+| Accent bright | `#67e8f9` |
+| Warn / alert | `#fbbf24` / `#f87171` |
+
+## Where to edit
+
+| Layer | Path | Notes |
+| --- | --- | --- |
+| ttyd / xterm.js | `docker/rootfs/usr/local/bin/cursor-ttyd` | presets `dark`/`navy`, `mocha`; needs container recreate |
+| tmux | `docker/rootfs/etc/tmux/` | status, options, keybindings, scripts; gate 3.5+/3.6+ with `%if` |
+| tmux binary | `Dockerfile` (`TMUX_VERSION`) | static 3.6a from `tmux/tmux-builds` |
+| zsh | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` | fzf/autosuggest in `70-plugins.zsh` |
+| starship | `docker/rootfs/opt/orcan/starship.toml` | **missing-only** → `~/.config/starship.toml` |
+| lazygit | `docker/rootfs/opt/orcan/lazygit-config.yml` | **missing-only** → `~/.config/lazygit/config.yml` |
+| aliases | `docker/rootfs/etc/orcan/shell/aliases.sh` | image-wide |
+| user overlays | `$ORCAN_DATA/dotfiles` | never edit `/etc` in a running container for lasting changes |
+
+## Rules for agents
+
+1. Change **image defaults** under `docker/rootfs/` (and `Dockerfile` if the binary changes) — not only the live container.
+2. Keep **ttyd-safe**: no Nerd Fonts required; Menlo/Monaco/plain Unicode OK.
+3. Prefer **surgical** palette edits; do not add OMZ / powerlevel10k / TPM theme plugins.
+4. Starship + lazygit seeds are **missing-only** — say so when users already have home copies.
+5. After rootfs/Dockerfile UI changes: `orcan build` then recreate (`orcan down && orcan up`).
+6. Update **EN + PL** docs (`guides/terminal-ui.md`, CHANGELOG) when behaviour or paths change.
+7. Run `make validate` and `make docs-check` before claiming done.

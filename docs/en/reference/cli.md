@@ -38,6 +38,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `.orcan/*` |
 | `orcan context show` | List workspaces + path-parity summary |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
+| `orcan context tui` | TUI: scan a parent folder, multi-select repos, create/update a workspace; optional one branch → managed worktree per repo (`--sync`, `--yes`) |
 | `orcan context add --from-worktree REPO SELECTOR` | Add an existing git worktree (selector: branch, index, or path) |
 | `orcan context worktrees [REPO]` | List git worktrees (`git worktree list`) |
 | `orcan context worktree create …` | Create a worktree (managed under `$ORCAN_DATA/worktrees` when `--workspace` is set) and pin it |
@@ -48,7 +49,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context assert list\|show\|select\|root` | Inspect the store; `select` previews what `orcan sync` would compile |
 | `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Toggle the opt-in Claude `Stop` hook (batched Reflection) in the workspace's generated root `.claude/settings.json` — where Claude Code sessions actually launch, not inside a project checkout; needs `orcan sync` to have run at least once, then immediate. With no `WORKSPACE`/`--all`, infers the workspace from cwd when it's inside a registered project |
 | *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. `orcan-context-review [--no-check]` pre-checks candidates against `CONTEXT-ASSERTIONS.md` for duplicates/conflicts (nudge only, never a gate). See [Context Assertions](../ideas/context-assertions.md) |
-| `orcan up [--with-docker] [--with-git]` | Start browser terminal (socket / host SSH only with flags); hints if a newer release exists; once ready, prints the workspace's Claude `Stop` hook status |
+| `orcan up [--with-docker] [--with-git] [--with-network NAME]` | Start browser terminal (socket / host SSH / network join only with flags); hints if a newer release exists; once ready, prints the workspace's Claude `Stop` hook status |
 | `orcan down` | Stop containers |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Both agents → `orcan:latest` + `orcan:<VERSION>` (pull or build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (no pull; does not overwrite `latest`). Never publishes |
 | `orcan pull` | Pull both-agents `orcan:<VERSION>` → `orcan:latest` |
@@ -92,8 +93,9 @@ orcan down && orcan up
 | *(none)* | Browser terminal only — no Docker socket, no host SSH |
 | `--with-docker` | Mount `/var/run/docker.sock` (Docker-from-Docker) |
 | `--with-git` | Mount host `~/.ssh` read-only (+ SSH agent when `SSH_AUTH_SOCK` is set) for push/pull |
+| `--with-network NAME` | Join an existing Docker network (e.g. another project's compose stack) — no socket mount, lower-risk alternative to `--with-docker` when you only need reachability |
 
-Flags combine: `orcan up --with-docker --with-git`.
+Flags combine: `orcan up --with-docker --with-git --with-network my-net`.
 
 Git **author** identity is always synced by `orcan sync` (`GIT_AUTHOR_*` from host `user.name` / `user.email`). SSH keys are only attached with `--with-git`. Both optional flags print a security warning — agents inside can use the mounted socket or keys. See [Security](security.md) and [Workflows](../guides/workflows.md).
 
