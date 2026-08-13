@@ -198,7 +198,7 @@ class CreateIntegrationTests(unittest.TestCase):
             frontend = data / "worktrees" / "feat-x" / "frontend"
             self.assertTrue(backend.is_dir())
             self.assertTrue(frontend.is_dir())
-            self.assertTrue((data / "worktrees" / "manifest.json").is_file())
+            self.assertTrue((data / "worktrees" / "registry.json").is_file())
             remove_managed_workspace(config_path=cfg_path, workspace="feat-x", force=True)
             self.assertFalse(backend.exists())
             self.assertFalse(frontend.exists())
@@ -208,6 +208,165 @@ class CreateIntegrationTests(unittest.TestCase):
             os.environ.pop("ORCAN_DATA", None)
             os.environ.pop("ORCAN_HOME", None)
             _ = gw
+
+    def test_force_replace_removes_dropped_project_worktree(self) -> None:
+        import os
+        import subprocess
+
+        from managed_workspace import create_managed_workspace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "orcan-data"
+            home = root / "home"
+            home.mkdir()
+            os.environ["ORCAN_DATA"] = str(data)
+            os.environ["ORCAN_HOME"] = str(home)
+            try:
+
+                def init_repo(name: str) -> Path:
+                    repo = root / name
+                    repo.mkdir()
+                    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+                    subprocess.run(
+                        ["git", "config", "user.email", "t@example.com"],
+                        cwd=repo, check=True, capture_output=True,
+                    )
+                    subprocess.run(
+                        ["git", "config", "user.name", "t"], cwd=repo, check=True, capture_output=True
+                    )
+                    (repo / "f").write_text("x\n", encoding="utf-8")
+                    subprocess.run(["git", "add", "f"], cwd=repo, check=True, capture_output=True)
+                    subprocess.run(
+                        ["git", "commit", "-m", "i"], cwd=repo, check=True, capture_output=True
+                    )
+                    return repo
+
+                api = init_repo("api")
+                web = init_repo("web")
+                cfg_path = home / "orcan.config.json"
+
+                create_managed_workspace(
+                    config_path=cfg_path,
+                    workspace="feat-x",
+                    branch="feat-x",
+                    projects=[("backend", api), ("frontend", web)],
+                )
+                backend = data / "worktrees" / "feat-x" / "backend"
+                frontend = data / "worktrees" / "feat-x" / "frontend"
+                self.assertTrue(backend.is_dir())
+                self.assertTrue(frontend.is_dir())
+
+                # Replace with only "frontend" — "backend" was dropped.
+                create_managed_workspace(
+                    config_path=cfg_path,
+                    workspace="feat-x",
+                    branch="feat-x",
+                    projects=[("frontend", web)],
+                    force=True,
+                )
+                self.assertFalse(backend.exists(), "dropped project's worktree should be removed")
+                self.assertTrue(frontend.is_dir())
+
+                registry = __import__("json").loads(
+                    (data / "worktrees" / "registry.json").read_text(encoding="utf-8")
+                )
+                names = {e["project"] for e in registry["worktrees"] if e["workspace"] == "feat-x"}
+                self.assertEqual(names, {"frontend"})
+            finally:
+                os.environ.pop("ORCAN_DATA", None)
+                os.environ.pop("ORCAN_HOME", None)
+
+
+class PruneTests(unittest.TestCase):
+    def test_prune_reconciles_stale_orphan_and_config(self) -> None:
+        import json
+        import os
+        import subprocess
+
+        import git_worktrees as gw
+        from managed_workspace import create_managed_workspace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "orcan-data"
+            home = root / "home"
+            home.mkdir()
+            os.environ["ORCAN_DATA"] = str(data)
+            os.environ["ORCAN_HOME"] = str(home)
+            try:
+
+                def init_repo(name: str) -> Path:
+                    repo = root / name
+                    repo.mkdir()
+                    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+                    subprocess.run(
+                        ["git", "config", "user.email", "t@example.com"],
+                        cwd=repo, check=True, capture_output=True,
+                    )
+                    subprocess.run(
+                        ["git", "config", "user.name", "t"], cwd=repo, check=True, capture_output=True
+                    )
+                    (repo / "f").write_text("x\n", encoding="utf-8")
+                    subprocess.run(["git", "add", "f"], cwd=repo, check=True, capture_output=True)
+                    subprocess.run(
+                        ["git", "commit", "-m", "i"], cwd=repo, check=True, capture_output=True
+                    )
+                    return repo
+
+                api = init_repo("api")
+                cfg_path = home / "orcan.config.json"
+                create_managed_workspace(
+                    config_path=cfg_path,
+                    workspace="feat-x",
+                    branch="feat-x",
+                    projects=[("backend", api)],
+                )
+                backend = data / "worktrees" / "feat-x" / "backend"
+                self.assertTrue(backend.is_dir())
+
+                # Nothing to prune yet.
+                entries = gw.load_manifest()
+                self.assertEqual(gw.find_stale_entries(entries), [])
+                self.assertEqual(gw.find_orphan_dirs(entries), [])
+
+                # Orphan: a dir under managed_root() the registry doesn't know about.
+                orphan_dir = data / "worktrees" / "feat-x" / "orphan"
+                orphan_dir.mkdir(parents=True)
+                orphans = gw.find_orphan_dirs(gw.load_manifest())
+                self.assertEqual(orphans, [orphan_dir])
+
+                # Config-stale: registry entry no longer referenced by config.
+                empty_cfg = root / "empty.config.json"
+                empty_cfg.write_text(json.dumps({"workspaces": []}), encoding="utf-8")
+                config_stale = gw.find_config_stale(gw.load_manifest(), empty_cfg)
+                self.assertEqual([e.project for e in config_stale], ["backend"])
+
+                # Stale: registry entry whose path is gone from disk.
+                import shutil
+
+                shutil.rmtree(backend)
+                entries = gw.load_manifest()
+                stale = gw.find_stale_entries(entries)
+                self.assertEqual([e.project for e in stale], ["backend"])
+
+                class Args:
+                    config = ""
+                    force = False
+
+                gw.cmd_prune(Args())  # dry-run: drops the stale entry, reports the orphan
+                self.assertEqual(gw.load_manifest(), [])
+                self.assertTrue(orphan_dir.is_dir(), "dry-run must not delete without --force")
+
+                class ForceArgs:
+                    config = ""
+                    force = True
+
+                gw.cmd_prune(ForceArgs())
+                self.assertFalse(orphan_dir.exists())
+            finally:
+                os.environ.pop("ORCAN_DATA", None)
+                os.environ.pop("ORCAN_HOME", None)
 
 
 class PullCurrentBranchTests(unittest.TestCase):

@@ -55,7 +55,7 @@ services:
       GIT_COMMITTER_NAME: ${GIT_COMMITTER_NAME:-${GIT_AUTHOR_NAME:-}}
       GIT_COMMITTER_EMAIL: ${GIT_COMMITTER_EMAIL:-${GIT_AUTHOR_EMAIL:-}}
     volumes:
-      - ${ORCAN_CONFIG_HOST:-./.orcan/runtime-config.json}:/etc/orcan/config.json:ro
+      - ${ORCAN_CONFIG_HOST:-./mounts/runtime-config.json}:/etc/orcan/config.json:ro
       - /etc/localtime:/etc/localtime:ro
       - ${ORCAN_DATA}/cursor:/home/developer/.cursor
       - ${ORCAN_DATA}/cursor-app:/home/developer/.config/cursor

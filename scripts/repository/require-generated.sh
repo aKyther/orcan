@@ -26,8 +26,8 @@ set -a
 source "${ORCAN_HOME}/.env"
 set +a
 
-compose_file="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/.orcan/compose-projects.generated.yml}"
-runtime_file="${ORCAN_CONFIG_HOST:-${ORCAN_HOME}/.orcan/runtime-config.json}"
+compose_file="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}"
+runtime_file="${ORCAN_CONFIG_HOST:-${ORCAN_HOME}/mounts/runtime-config.json}"
 
 missing=()
 if [[ ! -f "${compose_file}" ]]; then

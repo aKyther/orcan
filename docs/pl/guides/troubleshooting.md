@@ -11,10 +11,10 @@ Z instalacji Orcana (albo checkoutu gita):
 ```bash
 orcan doctor
 orcan context show
-docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
+docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config
 ```
 
-`docker compose config` wypisuje rozwiązany plik Compose (wymaga wygenerowanych plików `.orcan` z `orcan sync`).
+`docker compose config` wypisuje rozwiązany plik Compose (wymaga wygenerowanych plików `mounts/` z `orcan sync`).
 
 ## Terminal w przeglądarce się nie otwiera
 
@@ -31,6 +31,24 @@ Handoffy sieci komórkowej zrywają WebSocket ttyd — to oczekiwane. Procesy w 
 - Preferuj Tailscale / VPN zamiast publicznego portu; na LTE i tak bywają krótkie reconnecty.
 - Opcjonalnie: `ttyd.ping_interval` / `TTYD_PING_INTERVAL` (domyślnie `20`).
 
+## Rozjeżdżający się layout, gdy otwiera się klawiatura ekranowa (telefon / tablet)
+
+Znane ograniczenie samego ttyd, nie konfiguracji orcana: wbudowany frontend
+xterm.js w ttyd nie synchronizuje kontenera terminala z `visualViewport`
+przeglądarki, gdy otwiera/zamyka się mobilna klawiatura ekranowa — może
+objawiać się jako zmiana rozmiaru/zoom, białe pole na dole albo scroll
+niezgodny z widocznym ekranem. Śledzone upstream:
+[tsl0922/ttyd#1531](https://github.com/tsl0922/ttyd/pull/1531) (otwarty, nie
+scalony; żadne wydanie ttyd tego jeszcze nie ma — przypięte `1.7.7` w
+`Dockerfile` to wciąż najnowsze wydanie, więc nie ma na co zbumpować).
+
+Obejścia do czasu scalenia upstream:
+
+- Fizyczna/Bluetooth klawiatura — nie wywołuje klawiatury ekranowej.
+- Orientacja pozioma zwykle jest stabilniejsza niż pionowa.
+- Jeśli layout zostaje rozjechany po zamknięciu klawiatury, dotknij/kliknij
+  raz terminal albo przeładuj stronę.
+
 ## Launcher jest pusty / złe projekty
 
 1. Sprawdź, że `orcan.config.json` ma `workspaces` z bezwzględnymi `projects[].path`
@@ -44,7 +62,7 @@ Handoffy sieci komórkowej zrywają WebSocket ttyd — to oczekiwane. Procesy w 
 | Komunikat | Rozwiązanie |
 | --- | --- |
 | Brak `.env` | `orcan sync` lub `orcan init` |
-| Wygenerowane pliki nieaktualne | Konfiguracja nowsza niż `.orcan/*` — uruchom `orcan sync` |
+| Wygenerowane pliki nieaktualne | Konfiguracja nowsza niż `mounts/*` — uruchom `orcan sync` |
 | Nieprawidłowy `PROJECT_DIR` | Ścieżka bezwzględna; unikaj `/`, `/home`, `/etc` |
 
 ## Brak agenta lub Claude
@@ -61,7 +79,7 @@ Jeśli w kontenerze `docker` wymaga `sudo`, GID socketa na hoście musi zgadzać
 
 ```bash
 stat -c '%g' /var/run/docker.sock
-grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan/home}/.env"
+grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan}/.env"
 orcan sync && orcan down && orcan up --with-docker
 ```
 
@@ -108,7 +126,7 @@ Montuje hostowy `~/.ssh` tylko do odczytu (oraz agenta SSH, gdy `SSH_AUTH_SOCK` 
 ```bash
 orcan doctor
 orcan context show
-docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
+docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config
 orcan logs
 ```
 

@@ -11,10 +11,10 @@ alwaysApply: true
 - When docs or user-facing text changed: `make docs-check`.
 - Smoke the CLI: `./bin/orcan help` and `./bin/orcan doctor`.
 - Otherwise run Compose with the generated overlay:
-  - `docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config`
-  - `docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.docker.yml config`
-  - `docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml config`
-- If `.orcan/compose-projects.generated.yml` is missing, run `orcan sync` first (or note it as a limit).
+  - `docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config`
+  - `docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml -f docker-compose.docker.yml config`
+  - `docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml -f docker-compose.ttyd.yml config`
+- If `mounts/compose-projects.generated.yml` is missing, run `orcan sync` first (or note it as a limit).
 - Run `make help` and confirm maintainer targets match the docs.
 - Check Makefile syntax and file references.
 - Do not claim a successful image build unless `orcan build` / `make build` actually ran.

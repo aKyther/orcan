@@ -194,7 +194,7 @@ def write_agents_md(root: Path, ws: dict, projects: list) -> None:
             "",
             "- Cross-repo Cursor rules: `.cursor/rules/` in this workspace root.",
             "- Per-repo rules stay inside each project checkout.",
-            "- Host copy of this tree: `<orcan-repo>/.orcan/workspaces/<name>/`.",
+            "- Host copy of this tree: `<orcan-repo>/workspaces/<name>/`.",
             "",
         ]
     )

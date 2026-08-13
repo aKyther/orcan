@@ -123,13 +123,13 @@ orcan context show
 | Wynik | Rola |
 | --- | --- |
 | `.env` | Zmienne Compose i Make |
-| `.orcan/runtime-config.json` | Montowany do kontenera jako `/etc/orcan/config.json` |
-| `.orcan/compose-projects.generated.yml` | Dodatkowe bind mounty |
-| `.orcan/compose-git.generated.yml` | Tworzone przez `orcan up --with-git` (mounty SSH) |
-| `.orcan/workspaces/<name>/` | Meta workspace'a po stronie hosta |
+| `mounts/runtime-config.json` | Montowany do kontenera jako `/etc/orcan/config.json` |
+| `mounts/compose-projects.generated.yml` | Dodatkowe bind mounty |
+| `mounts/compose-git.generated.yml` | Tworzone przez `orcan up --with-git` (mounty SSH) |
+| `workspaces/<name>/` | Meta workspace'a po stronie hosta |
 | Drzewo `$ORCAN_DATA` | Domyślnie `~/.config/orcan` (home Cursor/Claude, cache) |
 
-Nie commituj `.env` ani `.orcan/` (są w gitignore).
+Nie commituj `.env`, `mounts/` ani `workspaces/` (są w gitignore).
 
 ## Seed do checkoutów git (opcjonalnie, rzadko potrzebne)
 

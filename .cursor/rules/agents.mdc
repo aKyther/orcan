@@ -24,9 +24,9 @@ Recreate after sync: `orcan down && orcan up`.
 
 ## Config = JSON only
 
-- User profile: **`orcan.config.json`** under `ORCAN_HOME` (default `~/.config/orcan/home/`).
+- User profile: **`orcan.config.json`** under `ORCAN_HOME` (default `~/.config/orcan/`).
 - Example: `orcan.config.example.json`.
-- Keep Compose/docs YAML (`docker-compose*.yml`, `mkdocs.yml`, generated `.orcan/*.yml`).
+- Keep Compose/docs YAML (`docker-compose*.yml`, `mkdocs.yml`, generated `mounts/*.yml`).
 - Do not revive YAML user configs.
 
 ## Runtime stack (container)
@@ -57,7 +57,7 @@ When changing colours or shell chrome: keep the navy/cyan palette aligned across
 | `install.sh` | curl\|bash installer |
 | `Dockerfile` | Image build |
 | `docker-compose*.yml` | Runtime overlays |
-| `.orcan/*` / `ORCAN_HOME` | Generated runtime (gitignored; from `orcan sync`) |
+| `mounts/*`, `workspaces/*` / `ORCAN_HOME` | Generated runtime (gitignored; from `orcan sync`) |
 | `Makefile` | Maintainer targets |
 | `docker/rootfs/` | Image filesystem |
 | `scripts/repository/` | Host-only helpers |

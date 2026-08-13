@@ -37,7 +37,7 @@ Version label: `ORCAN_VERSION` / `/etc/orcan/version`.
 | `docker-compose.yml` | Base service, `$ORCAN_DATA` binds, no Docker socket |
 | `docker-compose.docker.yml` | Host Docker socket + `DOCKER_GID` |
 | `docker-compose.ttyd.yml` | `cursor-ttyd`, published port, healthcheck |
-| `.orcan/compose-projects.generated.yml` | Path-parity project mounts (generated) |
+| `mounts/compose-projects.generated.yml` | Path-parity project mounts (generated) |
 
 ## `$ORCAN_DATA` binds
 

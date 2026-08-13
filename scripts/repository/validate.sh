@@ -116,6 +116,7 @@ require_file "docker/rootfs/usr/local/bin/init-workspace"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
 require_file "docker/rootfs/etc/tmux/scripts/status-right.sh"
+require_file "docker/rootfs/etc/tmux/scripts/pane-border-right.sh"
 require_file "docker/rootfs/etc/tmux/scripts/ai-usage.sh"
 require_file "docker/rootfs/etc/skel/.tmux.conf"
 require_file "docker/rootfs/etc/skel/.vimrc"
@@ -142,6 +143,7 @@ for script in \
     docker/rootfs/usr/local/bin/init-claude-home \
     docker/rootfs/etc/tmux/scripts/status-left.sh \
     docker/rootfs/etc/tmux/scripts/status-right.sh \
+    docker/rootfs/etc/tmux/scripts/pane-border-right.sh \
     docker/rootfs/etc/tmux/scripts/window-name.sh \
     docker/rootfs/etc/tmux/scripts/copy-path.sh \
     docker/rootfs/etc/tmux/scripts/session-switch.sh \
@@ -215,22 +217,22 @@ fi
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     PROJECT_DIR="${ROOT_DIR}" ./scripts/repository/update-env.sh >/dev/null
     compose_base=(docker compose --project-name orcan)
-    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml config --quiet
-    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
-    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
-    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f mounts/compose-projects.generated.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f mounts/compose-projects.generated.yml -f docker-compose.docker.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f mounts/compose-projects.generated.yml -f docker-compose.ttyd.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f mounts/compose-projects.generated.yml -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
     # Optional --with-git overlay (generated on demand; stub for config check)
-    mkdir -p .orcan
-    cat >.orcan/compose-git.generated.yml <<'YAML'
+    mkdir -p mounts
+    cat >mounts/compose-git.generated.yml <<'YAML'
 # validate stub — real overlay is written by: orcan up --with-git
 services:
   orcan:
     environment:
       ORCAN_WITH_GIT_STUB: "1"
 YAML
-    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f .orcan/compose-git.generated.yml -f docker-compose.ttyd.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f mounts/compose-projects.generated.yml -f mounts/compose-git.generated.yml -f docker-compose.ttyd.yml config --quiet
     # Optional --with-network overlay (generated on demand; stub for config check)
-    cat >.orcan/compose-network.generated.yml <<'YAML'
+    cat >mounts/compose-network.generated.yml <<'YAML'
 # validate stub — real overlay is written by: orcan up --with-network NAME
 services:
   orcan:
@@ -242,8 +244,8 @@ networks:
     name: orcan-validate-stub-net
     external: true
 YAML
-    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f .orcan/compose-network.generated.yml -f docker-compose.ttyd.yml config --quiet
-    resolved="$("${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml config)"
+    "${compose_base[@]}" -f docker-compose.yml -f mounts/compose-projects.generated.yml -f mounts/compose-network.generated.yml -f docker-compose.ttyd.yml config --quiet
+    resolved="$("${compose_base[@]}" -f docker-compose.yml -f mounts/compose-projects.generated.yml config)"
     if ! printf '%s\n' "${resolved}" | grep -qE 'container_name:[[:space:]]*orcan-1'; then
         printf 'Error: expected container_name orcan-1 in compose config\n' >&2
         fail=1

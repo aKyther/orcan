@@ -26,7 +26,7 @@ User-facing story: `docs/en/why-orcan.md`, `docs/en/ideas/core-ideas.md`, `docs/
 orcan init                  # no PATH -> interactive wizard; or: context add / context tui
 # many repos in one folder: orcan context tui   # multi-select + optional shared-branch worktrees
 # worktrees: orcan context worktrees | add --from-worktree | worktree create
-orcan sync                  # apply config → .env, .orcan/*, mounts
+orcan sync                  # apply config → .env, mounts/* (Compose overlays), workspaces/*
 orcan build                 # once / after Dockerfile|rootfs changes
 orcan up                    # daily; does NOT run orcan sync
 ```
@@ -38,7 +38,7 @@ Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit �
 ## Config
 
 - **Only** `orcan.config.json` (stdlib JSON — no PyYAML / host venv for config).
-- Default location: `~/.config/orcan/home/orcan.config.json` (`ORCAN_HOME`).
+- Default location: `~/.config/orcan/orcan.config.json` (`ORCAN_HOME`).
 - Template: `orcan.config.example.json`.
 - Docker Compose YAML and `mkdocs.yml` stay YAML — that is fine.
 - Do **not** reintroduce YAML user profiles or `host-deps` / `requirements-host.txt`.

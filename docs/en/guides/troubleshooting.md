@@ -11,10 +11,10 @@ From the Orcan install (or git checkout):
 ```bash
 orcan doctor
 orcan context show
-docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
+docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config
 ```
 
-The `docker compose config` command prints the resolved Compose file (needs generated `.orcan` files from `orcan sync`).
+The `docker compose config` command prints the resolved Compose file (needs generated `mounts/` files from `orcan sync`).
 
 ## Browser terminal will not open
 
@@ -31,6 +31,23 @@ Cellular handoffs drop the ttyd WebSocket; that is expected. Processes inside tm
 - Prefer Tailscale / VPN over exposing the port; still expect brief reconnects on LTE.
 - Optional: `ttyd.ping_interval` / `TTYD_PING_INTERVAL` (default `20`).
 
+## Layout glitches when the on-screen keyboard opens (phone / tablet)
+
+Known upstream ttyd limitation, not an orcan config issue: ttyd's bundled
+xterm.js frontend doesn't sync the terminal container with the browser's
+`visualViewport` when a mobile soft keyboard opens/closes — can show as
+resizing/zooming, a blank strip at the bottom, or scroll not matching the
+visible screen. Tracked upstream: [tsl0922/ttyd#1531](https://github.com/tsl0922/ttyd/pull/1531)
+(open, not merged; no ttyd release has it yet — the pinned `1.7.7` in the
+`Dockerfile` is still the latest release, so there's no version to bump to).
+
+Workarounds until upstream merges:
+
+- Use a physical/Bluetooth keyboard — avoids triggering the soft keyboard.
+- Landscape orientation is usually more stable than portrait.
+- If the layout sticks after closing the keyboard, tap/focus the terminal
+  once, or reload the page.
+
 ## Launcher is empty / wrong projects
 
 1. Check `orcan.config.json` has `workspaces` with absolute `projects[].path`
@@ -44,7 +61,7 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 | Message | Fix |
 | --- | --- |
 | `.env` missing | `orcan sync` or `orcan init` |
-| Generated files stale | Config is newer than `.orcan/*` — run `orcan sync` |
+| Generated files stale | Config is newer than `mounts/*` — run `orcan sync` |
 | Invalid `PROJECT_DIR` | Absolute path; avoid `/`, `/home`, `/etc` |
 
 ## Agent or Claude missing
@@ -61,7 +78,7 @@ If `docker` needs `sudo` inside the container, the host socket GID must match `D
 
 ```bash
 stat -c '%g' /var/run/docker.sock
-grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan/home}/.env"
+grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan}/.env"
 orcan sync && orcan down && orcan up --with-docker
 ```
 
@@ -108,7 +125,7 @@ That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is s
 ```bash
 orcan doctor
 orcan context show
-docker compose -f docker-compose.yml -f .orcan/compose-projects.generated.yml config
+docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config
 orcan logs
 ```
 

@@ -59,13 +59,13 @@ From a git checkout of this repository you can also run `./bin/orcan` without in
 
 ## First configure
 
-Describe workspaces in `~/.config/orcan/home/orcan.config.json`, then **materialise** files Compose reads:
+Describe workspaces in `~/.config/orcan/orcan.config.json`, then **materialise** files Compose reads:
 
 ```bash
 orcan init /absolute/path/to/your/repo
 ```
 
-`orcan init` scaffolds the config if missing and runs **`orcan sync`** (writes `.env` + `.orcan/*` under `ORCAN_HOME`). Re-run `orcan sync` after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
+`orcan init` scaffolds the config if missing and runs **`orcan sync`** (writes `.env` + `mounts/*` under `ORCAN_HOME`). Re-run `orcan sync` after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
 
 Or use the wizard:
 
@@ -104,7 +104,7 @@ orcan sync
 
 ## Expected result
 
-- Config and `.env` exist under `~/.config/orcan/home/`
+- Config and `.env` exist under `~/.config/orcan/`
 - Local image `orcan:latest` exists
 - `orcan context show` prints workspace paths
 

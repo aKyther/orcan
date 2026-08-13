@@ -45,14 +45,18 @@ orcan_cmd_context() {
                 remove)
                     orcan_context_worktree_remove "$@"
                     ;;
+                prune)
+                    orcan_context_worktree_prune "$@"
+                    ;;
                 -h | --help | "")
                     printf 'usage: orcan context worktree create --repo PATH --branch NAME [--workspace NAME --project NAME]\n'
                     printf '       orcan context worktree remove --path PATH [--force]\n'
                     printf '       orcan context worktree remove --workspace NAME [--force]\n'
+                    printf '       orcan context worktree prune [--force] [--no-config]\n'
                     printf '  Managed paths: \$ORCAN_DATA/worktrees/<workspace>/<project>\n'
                     ;;
                 *)
-                    orcan_usage_error "usage: orcan context worktree <create|remove>"
+                    orcan_usage_error "usage: orcan context worktree <create|remove|prune>"
                     ;;
             esac
             ;;
@@ -118,13 +122,14 @@ orcan_context_hook() {
         enable | disable | status) ;;
         -h | --help | "")
             printf 'usage: orcan context hook <enable|disable|status> [WORKSPACE ...] [--all] [--dry-run]\n'
-            printf '  Toggle the optional Claude Code Stop hook (orcan-context-reflect) in a\n'
+            printf '  Toggle the Claude Code Stop hook (orcan-context-reflect) in a\n'
             printf "  workspace's generated root .claude/settings.json — where Claude Code\n"
             printf '  sessions actually start (tmux windows always launch there, never inside\n'
-            printf '  a project checkout). Requires orcan sync to have run at least once for\n'
-            printf '  that workspace; the toggle itself then takes effect immediately.\n'
+            printf '  a project checkout). On by default: orcan sync seeds it the first time a\n'
+            printf '  workspace is synced. Opting out sticks — once toggled, later syncs never\n'
+            printf '  touch it again; the toggle itself takes effect immediately.\n'
             printf '  WORKSPACE: one or more workspace names\n'
-            printf '  --all: every workspace known to %s\n' "${ORCAN_RUNTIME_DIR}/workspace.manifest.json"
+            printf '  --all: every workspace known to %s\n' "${ORCAN_HOME}/workspaces/index.json"
             printf '  Default with no WORKSPACE/--all: infers the workspace from cwd (matched\n'
             printf '  against registered project paths) if cwd is inside exactly one. Otherwise:\n'
             printf '  status (read-only) shows every workspace, noting cwd matched nothing;\n'
@@ -425,4 +430,41 @@ orcan_context_worktree_remove() {
     fi
     ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
         orcan_host_python "${ORCAN_SCRIPTS}/git_worktrees.py" "${rm_args[@]}"
+}
+
+orcan_context_worktree_prune() {
+    local force=""
+    local config="${ORCAN_CONFIG_FILE}"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force)
+                force=1
+                shift
+                ;;
+            --no-config)
+                config=""
+                shift
+                ;;
+            -h | --help)
+                printf 'usage: orcan context worktree prune [--force] [--no-config]\n'
+                printf '  Reconciles $ORCAN_DATA/worktrees/registry.json against disk\n'
+                printf '  (and orcan.config.json, unless --no-config). Dry-run by default;\n'
+                printf '  --force removes orphan directories / config-stale worktrees.\n'
+                return 0
+                ;;
+            *)
+                orcan_usage_error "unknown argument: $1"
+                ;;
+        esac
+    done
+
+    local prune_args=(prune)
+    if [[ -n "${config}" && -f "${config}" ]]; then
+        prune_args+=(--config "${config}")
+    fi
+    if [[ -n "${force}" ]]; then
+        prune_args+=(--force)
+    fi
+    ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+        orcan_host_python "${ORCAN_SCRIPTS}/git_worktrees.py" "${prune_args[@]}"
 }

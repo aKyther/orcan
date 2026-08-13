@@ -38,7 +38,7 @@ Do not use: `projects_dir`, `default_project`, `default_workspace`, project `ali
 ## Derived (not user-settable)
 
 - Workspace root: `/home/developer/workspaces/<name>`
-- Host meta: `.orcan/workspaces/<name>/`
+- Host meta: `workspaces/<name>/`
 - tmux session name = workspace `name`
 - Primary workspace = first enabled entry
 

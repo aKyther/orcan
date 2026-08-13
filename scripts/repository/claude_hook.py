@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Toggle the optional Claude Code Stop hook (orcan-context-reflect) in a
-workspace's generated root .claude/settings.json — the directory Claude
-Code sessions actually launch in (tmux windows always start at the
-workspace root, never inside a project checkout; see
-cursor-tmux-workspace-attach). Host-side, stdlib only — writes directly
-into the generated workspace meta dir (path-parity means the host path is
-the container path), no container round-trip needed. Targets are resolved
-by workspace name via the manifest `orcan sync` writes
-(<ORCAN_HOME>/.orcan/workspace.manifest.json), so a workspace must have
-been synced at least once before its hook can be toggled. See
+"""Toggle the Claude Code Stop hook (orcan-context-reflect) in a workspace's
+generated root .claude/settings.json — the directory Claude Code sessions
+actually launch in (tmux windows always start at the workspace root, never
+inside a project checkout; see cursor-tmux-workspace-attach). On by default:
+apply-config.py seeds it the first time a workspace is synced (no existing
+.claude/settings.json yet); this module's `enable`/`disable` are what make
+opting *out* configurable — once toggled, a workspace's `.claude/settings.json`
+already exists, so later syncs never touch the hook again. Host-side, stdlib
+only — writes directly into the generated workspace meta dir (path-parity
+means the host path is the container path), no container round-trip needed.
+Targets are resolved by workspace name via the manifest `orcan sync` writes
+(<ORCAN_HOME>/workspaces/index.json), so a workspace must have been synced at
+least once before its hook can be toggled. See
 docs/en/ideas/context-assertions.md ("Batched, automated Reflection").
 """
 
@@ -112,7 +115,7 @@ def status(target_dir: Path) -> str:
 
 
 def load_manifest(home: Path) -> dict[str, Any]:
-    path = home / ".orcan" / "workspace.manifest.json"
+    path = home / "workspaces" / "index.json"
     if not path.is_file():
         die(f"workspace manifest not found: {path} (run: orcan sync)")
     try:
@@ -211,7 +214,7 @@ def main() -> int:
         "--home",
         type=Path,
         required=True,
-        help="ORCAN_HOME (reads .orcan/workspace.manifest.json)",
+        help="ORCAN_HOME (reads workspaces/index.json)",
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="Show what would change, write nothing"

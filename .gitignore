@@ -8,6 +8,8 @@ orcan.config.json
 orcan.config.yaml
 orcan.config.yml
 .orcan/
+/mounts/
+/workspaces/
 
 # Leftover names from the former "cind" product (safe to ignore)
 cind.config.yaml

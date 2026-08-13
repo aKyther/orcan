@@ -24,7 +24,7 @@ flowchart TB
   subgraph host [Host]
     cfg["orcan.config.json"]
     make["Makefile + scripts"]
-    gen[".env + .orcan generated mounts"]
+    gen[".env + mounts/ generated files"]
   end
   subgraph container [Container]
     entry["entrypoint"]

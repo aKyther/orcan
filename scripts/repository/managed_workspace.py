@@ -108,8 +108,22 @@ def create_managed_workspace(
     if existing is not None and not force:
         die(f"workspace {ws_name!r} already exists; use --force to replace")
 
+    # Projects unchanged from the existing workspace already have a worktree
+    # at this exact (deterministic) managed path — reuse it instead of
+    # re-running `git worktree add`, which would just die on "already exists".
+    existing_paths: dict[str, str] = {}
+    if existing is not None:
+        for p in existing.get("projects") or []:
+            if isinstance(p, dict) and p.get("name"):
+                existing_paths[str(p["name"])] = str(p.get("path") or "")
+
     created: list[dict[str, str]] = []
     for proj_name, repo in projects:
+        reuse_path = existing_paths.get(proj_name)
+        if reuse_path and Path(reuse_path).exists():
+            info(f"  worktree: {proj_name} (unchanged) → {reuse_path}")
+            created.append({"name": proj_name, "path": reuse_path})
+            continue
         info(f"  worktree: {proj_name} ← {repo} @ {branch}")
         wt = create_worktree(
             repo,
@@ -123,6 +137,23 @@ def create_managed_workspace(
 
     ws_obj = {"name": ws_name, "projects": created}
     if existing is not None:
+        # force=True is guaranteed here (die above otherwise) — clean up
+        # worktrees for projects dropped or renamed out of this workspace so
+        # they don't linger as orphans under $ORCAN_DATA/worktrees.
+        new_names = {name for name, _ in projects}
+        for old_proj in existing.get("projects") or []:
+            if not isinstance(old_proj, dict):
+                continue
+            old_name = old_proj.get("name")
+            if not old_name or old_name in new_names:
+                continue
+            old_path = Path(str(old_proj.get("path") or ""))
+            info(f"  removing dropped worktree: {old_name} ← {old_path}")
+            if old_path and old_path.exists():
+                remove_worktree(old_path, force=True, allow_unmanaged=False)
+            else:
+                info("    (already missing on disk)")
+            manifest_remove(workspace=ws_name, project=str(old_name))
         for i, ws in enumerate(cfg["workspaces"]):
             if isinstance(ws, dict) and ws.get("name") == ws_name:
                 cfg["workspaces"][i] = ws_obj

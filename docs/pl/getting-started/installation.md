@@ -59,13 +59,13 @@ Z checkoutu gita tego repozytorium możesz też uruchomić `./bin/orcan` bez ins
 
 ## Pierwsza konfiguracja
 
-Opisz workspace'y w `~/.config/orcan/home/orcan.config.json`, potem **zmaterializuj** pliki, które czyta Compose:
+Opisz workspace'y w `~/.config/orcan/orcan.config.json`, potem **zmaterializuj** pliki, które czyta Compose:
 
 ```bash
 orcan init /absolute/path/to/your/repo
 ```
 
-`orcan init` tworzy konfigurację, gdy jej brakuje, i uruchamia **`orcan sync`** (zapisuje `.env` + `.orcan/*` pod `ORCAN_HOME`). Po każdej kolejnej edycji konfiguracji ponów `orcan sync` — `orcan build` / `orcan up` tylko je konsumują; nie regenerują ich.
+`orcan init` tworzy konfigurację, gdy jej brakuje, i uruchamia **`orcan sync`** (zapisuje `.env` + `mounts/*` pod `ORCAN_HOME`). Po każdej kolejnej edycji konfiguracji ponów `orcan sync` — `orcan build` / `orcan up` tylko je konsumują; nie regenerują ich.
 
 Albo użyj wizarda:
 
@@ -104,7 +104,7 @@ orcan sync
 
 ## Oczekiwany wynik
 
-- Config i `.env` istnieją pod `~/.config/orcan/home/`
+- Config i `.env` istnieją pod `~/.config/orcan/`
 - Lokalny obraz `orcan:latest` istnieje
 - `orcan context show` wypisuje ścieżki workspace'ów
 

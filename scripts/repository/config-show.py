@@ -62,7 +62,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--runtime",
-        default=str(ROOT / ".orcan" / "workspace.manifest.json"),
+        default=str(ROOT / "workspaces" / "index.json"),
         help="Generated manifest from orcan sync",
     )
     args = parser.parse_args()

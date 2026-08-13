@@ -50,7 +50,7 @@ orcan_compose_overlay_args() {
     fi
 }
 
-# Write .orcan/compose-git.generated.yml for orcan up --with-git.
+# Write mounts/compose-git.generated.yml for orcan up --with-git.
 # Mounts host ~/.ssh (keys/config/known_hosts) and SSH agent when present.
 # Does NOT mount ~/.gitconfig (identity comes from GIT_AUTHOR_* via sync).
 orcan_write_git_overlay() {
@@ -93,7 +93,7 @@ orcan_write_git_overlay() {
     printf '%s\n' "${gitf}"
 }
 
-# Write .orcan/compose-network.generated.yml for orcan up --with-network <name>.
+# Write mounts/compose-network.generated.yml for orcan up --with-network <name>.
 # Joins an existing (external) Docker network in addition to the default one —
 # reachability to sibling containers without mounting the host Docker socket.
 orcan_write_network_overlay() {

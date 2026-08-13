@@ -15,7 +15,7 @@ REPO_REF="${ORCAN_REPO_REF:-main}"
 DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 BIN_HOME="${ORCAN_BIN_DIR:-${HOME}/.local/bin}"
 INSTALL_DIR="${ORCAN_INSTALL_DIR:-${DATA_HOME}/orcan}"
-CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}/orcan/home"
+CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}/orcan"
 
 bold=""
 dim=""

@@ -98,8 +98,8 @@ class ClaudeHookTests(unittest.TestCase):
         self.assertEqual(ch.disable(self.project, dry_run=False), "already disabled")
 
     def write_manifest(self, home: Path, workspaces: list[dict]) -> None:
-        (home / ".orcan").mkdir(parents=True, exist_ok=True)
-        (home / ".orcan" / "workspace.manifest.json").write_text(
+        (home / "workspaces").mkdir(parents=True, exist_ok=True)
+        (home / "workspaces" / "index.json").write_text(
             json.dumps({"workspaces": workspaces})
         )
 

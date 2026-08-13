@@ -12,8 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bas
 | --- | --- |
 | `~/.local/share/orcan` | Git clone (`ORCAN_ROOT`) |
 | `~/.local/bin/orcan` | Launcher |
-| `~/.config/orcan/home` | Config + `.env` + `.orcan/*` (`ORCAN_HOME`) — **always** the default |
-| `~/.config/orcan` | Tool data / logins (`ORCAN_DATA`) |
+| `~/.config/orcan` | Config + `.env` + `mounts/*` (`ORCAN_HOME`) *and* tool data / logins (`ORCAN_DATA`) — same root by default |
 
 Override only if needed: `ORCAN_HOME=/path` or `ORCAN_USE_CWD=1` (use `./orcan.config.json` in the current directory).
 
@@ -35,7 +34,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | --- | --- |
 | `orcan init` | No PATH: interactive config wizard (create/edit) + sync + show |
 | `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
-| `orcan sync` | Apply `orcan.config.json` → `.env` + `.orcan/*` |
+| `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
 | `orcan context show` | List workspaces + path-parity summary |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
 | `orcan context tui` | TUI: scan a parent folder, multi-select repos, create/update a workspace; optional one branch → managed worktree per repo (`--sync`, `--yes`) |
@@ -44,10 +43,11 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context worktree create …` | Create a worktree (managed under `$ORCAN_DATA/worktrees` when `--workspace` is set) and pin it |
 | `orcan context worktree remove --path PATH` | Remove one managed worktree |
 | `orcan context worktree remove --workspace NAME` | Remove all managed worktrees for a workspace (and unpin from config) |
+| `orcan context worktree prune [--force] [--no-config]` | Reconcile `$ORCAN_DATA/worktrees/registry.json` against disk (and `orcan.config.json`); dry-run by default, `--force` cleans up |
 | `orcan context assert propose …` | Reflection: draft a Context Assertion (content + justification + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, or `accepted` → `retired` — never automatic |
 | `orcan context assert list\|show\|select\|root` | Inspect the store; `select` previews what `orcan sync` would compile |
-| `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Toggle the opt-in Claude `Stop` hook (batched Reflection) in the workspace's generated root `.claude/settings.json` — where Claude Code sessions actually launch, not inside a project checkout; needs `orcan sync` to have run at least once, then immediate. With no `WORKSPACE`/`--all`, infers the workspace from cwd when it's inside a registered project |
+| `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Toggle the Claude `Stop` hook (batched Reflection) in the workspace's generated root `.claude/settings.json` — **on by default**, seeded by the first `orcan sync` for a workspace; `disable` sticks across later syncs. With no `WORKSPACE`/`--all`, infers the workspace from cwd when it's inside a registered project |
 | *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. `orcan-context-review [--no-check]` pre-checks candidates against `CONTEXT-ASSERTIONS.md` for duplicates/conflicts (nudge only, never a gate). See [Context Assertions](../ideas/context-assertions.md) |
 | `orcan up [--with-docker] [--with-git] [--with-network NAME]` | Start browser terminal (socket / host SSH / network join only with flags); hints if a newer release exists; once ready, prints the workspace's Claude `Stop` hook status |
 | `orcan down` | Stop containers |
@@ -79,7 +79,7 @@ orcan up
 After config edits:
 
 ```bash
-# edit ~/.config/orcan/home/orcan.config.json
+# edit ~/.config/orcan/orcan.config.json
 orcan sync
 orcan down && orcan up
 ```

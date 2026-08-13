@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
@@ -143,7 +144,7 @@ def is_under_managed_root(path: Path) -> bool:
 
 
 def manifest_path() -> Path:
-    return managed_root(ensure=True) / "manifest.json"
+    return managed_root(ensure=True) / "registry.json"
 
 
 def load_manifest() -> list[ManifestEntry]:
@@ -501,6 +502,101 @@ def remove_worktree(
             pass
 
 
+def find_stale_entries(entries: list[ManifestEntry]) -> list[ManifestEntry]:
+    """Registry entries whose path no longer exists on disk."""
+    return [e for e in entries if not Path(e.path).exists()]
+
+
+def find_orphan_dirs(entries: list[ManifestEntry]) -> list[Path]:
+    """<workspace>/<project> dirs under managed_root() not in the registry."""
+    root = managed_root(ensure=False)
+    if not root.is_dir():
+        return []
+    known = {Path(e.path).resolve() for e in entries}
+    orphans: list[Path] = []
+    for ws_dir in sorted(root.iterdir()):
+        if not ws_dir.is_dir():
+            continue
+        for proj_dir in sorted(ws_dir.iterdir()):
+            if proj_dir.is_dir() and proj_dir.resolve() not in known:
+                orphans.append(proj_dir)
+    return orphans
+
+
+def find_config_stale(
+    entries: list[ManifestEntry], config_path: Path
+) -> list[ManifestEntry]:
+    """Registry entries whose workspace/project no longer appears in config."""
+    try:
+        cfg = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        die(f"invalid JSON in {config_path}: {exc}")
+    active: set[tuple[str, str]] = set()
+    for ws in cfg.get("workspaces") or []:
+        if not isinstance(ws, dict):
+            continue
+        ws_name = str(ws.get("name") or "")
+        for p in ws.get("projects") or []:
+            if isinstance(p, dict) and p.get("name"):
+                active.add((ws_name, str(p["name"])))
+    return [e for e in entries if (e.workspace, e.project) not in active]
+
+
+def cmd_prune(args: argparse.Namespace) -> None:
+    """Reconcile worktrees/registry.json against disk (and optionally config)."""
+    entries = load_manifest()
+
+    stale = find_stale_entries(entries)
+    if stale:
+        print(f"stale registry entries (path missing on disk): {len(stale)}")
+        for e in stale:
+            print(f"  - {e.workspace}/{e.project}: {e.path}")
+        entries = [e for e in entries if e not in stale]
+        save_manifest(entries)
+        print("  removed from registry.json")
+
+    config_stale: list[ManifestEntry] = []
+    if args.config:
+        config_path = Path(args.config)
+        if not config_path.is_file():
+            die(f"config not found: {config_path}")
+        config_stale = find_config_stale(entries, config_path)
+        if config_stale:
+            print(f"registry entries no longer in {config_path}: {len(config_stale)}")
+            for e in config_stale:
+                print(f"  - {e.workspace}/{e.project}: {e.path}")
+
+    orphans = find_orphan_dirs(entries)
+    if orphans:
+        print(f"orphan worktree directories (not in registry.json): {len(orphans)}")
+        for p in orphans:
+            print(f"  - {p}")
+
+    if not stale and not orphans and not config_stale:
+        print("nothing to prune")
+        return
+
+    if not (orphans or config_stale):
+        return
+    if not args.force:
+        print("\nRe-run with --force to remove orphan directories / config-stale worktrees.")
+        return
+
+    for p in orphans:
+        if is_git_repo(p):
+            remove_worktree(p, force=True, allow_unmanaged=False)
+        else:
+            shutil.rmtree(p)
+        print(f"  removed orphan: {p}")
+
+    for e in config_stale:
+        path = Path(e.path)
+        if path.exists():
+            remove_worktree(path, force=True, allow_unmanaged=False)
+        manifest_remove(workspace=e.workspace, project=e.project)
+        print(f"  removed (config-stale): {e.workspace}/{e.project}")
+
+
 def format_table(trees: list[Worktree]) -> str:
     lines = []
     for i, wt in enumerate(trees, 1):
@@ -596,6 +692,17 @@ def main() -> None:
 
     p_root = sub.add_parser("managed-root", help="Print $ORCAN_DATA/worktrees")
     p_root.set_defaults(func=cmd_managed_root)
+
+    p_prune = sub.add_parser(
+        "prune", help="Reconcile worktrees/registry.json against disk (and optionally config)"
+    )
+    p_prune.add_argument(
+        "--config", default="", help="Also flag registry entries missing from this orcan.config.json"
+    )
+    p_prune.add_argument(
+        "--force", action="store_true", help="Remove orphan dirs / config-stale worktrees (default: report only)"
+    )
+    p_prune.set_defaults(func=cmd_prune)
 
     args = parser.parse_args()
     args.func(args)
