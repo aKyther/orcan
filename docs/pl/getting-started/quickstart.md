@@ -25,7 +25,7 @@ orcan doctor
 
 ## Kroki
 
-Konfiguracja to JSON w `~/.config/orcan/home/`. Docker widzi tylko to, co zapisze **`orcan sync`** (`.env` + `.orcan/*`).
+Konfiguracja to JSON w `~/.config/orcan/`. Docker widzi tylko to, co zapisze **`orcan sync`** (`.env` + `mounts/*`).
 
 ```bash
 orcan init /absolute/path/to/your/repo   # scaffold + sync

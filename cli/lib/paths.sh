@@ -17,7 +17,7 @@ orcan_paths_init() {
         if [[ "${ORCAN_USE_CWD:-}" == "1" && -f "${PWD}/orcan.config.json" ]]; then
             ORCAN_HOME="${PWD}"
         else
-            ORCAN_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}/orcan/home"
+            ORCAN_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}/orcan"
         fi
     fi
     if ! mkdir -p "${ORCAN_HOME}" 2>/dev/null; then
@@ -30,7 +30,7 @@ orcan_paths_init() {
     export ORCAN_ROOT ORCAN_HOME
     export ORCAN_CONFIG_FILE="${ORCAN_CONFIG_FILE:-${ORCAN_HOME}/orcan.config.json}"
     export ORCAN_ENV_FILE="${ORCAN_ENV_FILE:-${ORCAN_HOME}/.env}"
-    export ORCAN_RUNTIME_DIR="${ORCAN_RUNTIME_DIR:-${ORCAN_HOME}/.orcan}"
+    export ORCAN_RUNTIME_DIR="${ORCAN_RUNTIME_DIR:-${ORCAN_HOME}/mounts}"
     export ORCAN_DATA="${ORCAN_DATA:-${XDG_CONFIG_HOME:-${HOME}/.config}/orcan}"
 
     # Host scripts always live in the install/clone.

@@ -188,9 +188,9 @@ class ApplyConfigE2ETests(unittest.TestCase):
             finally:
                 sys.argv = old_argv
 
-            runtime = root / ".orcan" / "runtime-config.json"
-            compose = root / ".orcan" / "compose-projects.generated.yml"
-            manifest = root / ".orcan" / "workspace.manifest.json"
+            runtime = root / "mounts" / "runtime-config.json"
+            compose = root / "mounts" / "compose-projects.generated.yml"
+            manifest = root / "workspaces" / "index.json"
             env = root / ".env"
 
             self.assertTrue(runtime.is_file())
@@ -207,6 +207,54 @@ class ApplyConfigE2ETests(unittest.TestCase):
             env_text = env.read_text(encoding="utf-8")
             self.assertIn("WORKSPACE_NAME=demo", env_text)
             self.assertIn("ORCAN_COMPOSE_PROJECTS=", env_text)
+
+    def test_stop_hook_seeded_on_first_sync_and_disable_sticks(self) -> None:
+        import claude_hook as ch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            proj = root / "proj"
+            proj.mkdir()
+            (root / ".env.example").write_text(
+                "USER_UID=1000\nUSER_GID=1000\n", encoding="utf-8"
+            )
+            cfg = {
+                "workspaces": [
+                    {
+                        "name": "demo",
+                        "projects": [{"name": "app", "path": str(proj.resolve())}],
+                    }
+                ]
+            }
+            (root / "orcan.config.json").write_text(
+                json.dumps(cfg, indent=2) + "\n", encoding="utf-8"
+            )
+
+            def sync() -> None:
+                old_argv = sys.argv
+                try:
+                    sys.argv = [
+                        "apply-config.py",
+                        "--root", str(root),
+                        "--config", str(root / "orcan.config.json"),
+                    ]
+                    apply_config.main()
+                finally:
+                    sys.argv = old_argv
+
+            meta_path = root / "workspaces" / "demo"
+
+            sync()
+            self.assertTrue(ch.has_hook(ch.load_settings(ch.settings_path(meta_path))))
+
+            ch.disable(meta_path, dry_run=False)
+            self.assertFalse(ch.has_hook(ch.load_settings(ch.settings_path(meta_path))))
+
+            sync()
+            self.assertFalse(
+                ch.has_hook(ch.load_settings(ch.settings_path(meta_path))),
+                "a second sync must not re-enable a hook the user explicitly disabled",
+            )
 
     def test_worktree_project_also_mounts_main_repos_git_dir_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -243,7 +291,7 @@ class ApplyConfigE2ETests(unittest.TestCase):
             finally:
                 sys.argv = old_argv
 
-            compose_text = (root / ".orcan" / "compose-projects.generated.yml").read_text(encoding="utf-8")
+            compose_text = (root / "mounts" / "compose-projects.generated.yml").read_text(encoding="utf-8")
             self.assertIn(str(worktree_path.resolve()), compose_text)
             self.assertIn(str((main_repo / ".git").resolve()), compose_text)
             # Isolation: never a bare mount of the main checkout's own root

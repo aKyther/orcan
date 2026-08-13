@@ -16,7 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Image tmux bumped to **3.6a** (static build from `tmux/tmux-builds`; Debian
   bookworm still packages 3.3a). Status tabs are centred; inactive panes dim;
   borders use `spaces` (gap-like) on 3.6+; modal cyan pane scrollbars on 3.5+;
-  navy popups/menus; vi copy-mode (`v`/`y`); workspace identity as a cyan pill.
+  navy popups/menus; vi copy-mode (`v`/`y`).
+- Pane title strip (top) now carries the clock and cpu/mem (⚙/🧠), right-aligned
+  next to the pane index/command/path — moved off the bottom status-right bar,
+  which keeps AI usage · brief marker · git branch · battery. New script
+  `docker/rootfs/etc/tmux/scripts/pane-border-right.sh`.
+- Bottom-left status simplified to just the tmux-prefix indicator (○/◉) — the
+  workspace/session name pill was dropped; it duplicated the directory name
+  already shown top-left (panes start in the workspace root, so the pane
+  title's path basename already reads as the workspace name).
 - Starship / zsh UX polish (same palette): cyan path + git, `cmd_duration` after
   2s, fzf navy theme with previews, menu-select completion, quieter autosuggest
   ghost text. No new shell frameworks (still autosuggestions + syntax + fzf).
@@ -24,6 +32,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`docker/rootfs/opt/orcan/lazygit-config.yml`).
 - Docs: [Terminal UI](docs/en/guides/terminal-ui.md) (+ PL) — palette, file map,
   agent checklist; Cursor rule `.cursor/rules/terminal-ui.mdc`.
+- **Breaking:** flattened `~/.config/orcan/` — `ORCAN_HOME` and `ORCAN_DATA`
+  now default to the same root (`~/.config/orcan`, no more nested `home/`
+  segment). Generated runtime files moved from the hidden `.orcan/` to a
+  visible `mounts/`; workspace root directories moved from `.orcan/workspaces/`
+  to a top-level `workspaces/` (these are the host-backed dirs bind-mounted
+  into the container at `/home/developer/workspaces/<name>` — no longer
+  hidden three levels deep under a dotfile). The global worktree registry
+  (`$ORCAN_DATA/worktrees/manifest.json`) and the global workspace index
+  (`$ORCAN_HOME/.orcan/workspace.manifest.json`) are renamed to
+  `worktrees/registry.json` and `workspaces/index.json` respectively, to stop
+  three unrelated files all being called some variant of `manifest.json`.
+  No auto-migration (pre-1.0): run `orcan uninstall --purge-data` (or move
+  `~/.config/orcan/home/*` up a level and `.orcan/workspaces/*` into a new
+  `workspaces/` by hand), then `orcan init` again.
+- The Claude Code Stop hook (`orcan-context-reflect`, batched Reflection) is
+  now **on by default** instead of opt-in: `orcan sync` seeds it into a
+  workspace's `.claude/settings.json` the first time that workspace is
+  synced. Opting out is what's configurable — `orcan context hook disable`
+  sticks across every later sync, since sync only ever seeds a workspace
+  whose `.claude/settings.json` doesn't exist yet.
 
 ### Added
 
@@ -31,13 +59,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   create/update a workspace; optional **one** branch name creates a managed
   worktree per selection. Flags: `--dir`, `--workspace`, `--branch`, `--select`,
   `--yes`, `--sync`, `--force`. Remembers last parent/branch in
-  `$ORCAN_HOME/.orcan/context-tui-state.json`. Host stdlib only (curses).
+  `$ORCAN_HOME/mounts/context-tui-state.json`. Host stdlib only (curses).
 - `orcan up --with-network NAME` — join an existing Docker network from the
-  workspace container (dynamically generated `.orcan/compose-network.generated.yml`
+  workspace container (dynamically generated `mounts/compose-network.generated.yml`
   overlay, mirroring `--with-git`'s pattern). Lower-risk alternative to
   `--with-docker` when you only need reachability to other containers, not
   control over the host Docker engine. Combines freely with `--with-docker`
   and `--with-git`.
+- `orcan context worktree prune [--force] [--no-config]` — reconciles
+  `worktrees/registry.json` against disk (and `orcan.config.json`): drops
+  registry entries whose worktree directory is gone, reports orphan
+  directories under `$ORCAN_DATA/worktrees` the registry doesn't know about
+  and registry entries no longer referenced by any workspace, removing both
+  only with `--force`. Dry-run by default.
+
+### Fixed
+
+- `orcan context worktree create --force` (replacing an existing managed
+  workspace) no longer leaves orphaned worktrees behind for projects that
+  were dropped or renamed out of the new project list — those are now
+  removed the same way `orcan context worktree remove` would. Unchanged
+  projects are also no longer needlessly re-created (which previously made
+  any `--force` replace that kept an existing project name fail outright).
 
 ## [0.4.2] - 2026-08-06
 

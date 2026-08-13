@@ -47,7 +47,7 @@ def info(msg: str = "") -> None:
 
 
 def state_path() -> Path:
-    return ROOT / ".orcan" / STATE_NAME
+    return ROOT / "mounts" / STATE_NAME
 
 
 def load_state() -> dict[str, Any]:

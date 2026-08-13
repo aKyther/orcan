@@ -12,7 +12,7 @@ Commands:
   init [PATH]              No PATH: interactive config wizard (create or edit)
                            PATH: non-interactive scaffold (scripts/CI)
                            Either way: scaffold/wizard + sync + show
-  sync                     Materialise .env + .orcan/* for Compose
+  sync                     Materialise .env + mounts/* for Compose
   context show             List workspaces
   context add PATH         Add a project (optional --workspace NAME)
   context add --from-worktree REPO SELECTOR
@@ -22,14 +22,17 @@ Commands:
   context worktrees [REPO] List git worktrees for a repo (default: cwd)
   context worktree create  Create a worktree (+ optional managed path) and pin it
   context worktree remove  Remove a managed worktree (--path or --workspace)
+  context worktree prune   Reconcile worktrees/registry.json against disk
+                           (+ config); dry-run by default, --force to clean
   context assert propose|list|show|accept|reject|retire|select
                            Context Assertions: propose/review candidates for
                            CONTEXT-ASSERTIONS.md, compiled by `orcan sync`
                            (orcan context assert --help for details)
   context hook enable|disable|status [WORKSPACE ...] [--all]
-                           Toggle the optional Claude Code Stop hook
-                           (batched Reflection drafting) in the workspace's
-                           generated root — needs `orcan sync` at least once
+                           Toggle the Claude Code Stop hook (batched
+                           Reflection drafting) in the workspace's generated
+                           root — on by default since first `orcan sync`;
+                           opting out (disable) sticks across later syncs
   up [--with-docker] [--with-git]
                            Start browser terminal
                            --with-docker: mount Docker socket
@@ -61,8 +64,8 @@ Ritual:
   # after config edits: orcan init && orcan down && orcan up
 
 Install home:  ORCAN_ROOT (clone)
-User config:   ORCAN_HOME (default ~/.config/orcan/home)
-Tool data:     ORCAN_DATA (default ~/.config/orcan)
+User config:   ORCAN_HOME (default ~/.config/orcan)
+Tool data:     ORCAN_DATA (default ~/.config/orcan — same root as ORCAN_HOME)
 
 Host deps:     bash, git, python3 (sync/wizard), docker compose
                (orcan doctor checks these)

@@ -24,7 +24,7 @@ Workspace UX still uses short symlinks under `/home/developer/workspaces/<name>/
 
 ## How it works
 
-`orcan sync` writes mounts into `.orcan/compose-projects.generated.yml`:
+`orcan sync` writes mounts into `mounts/compose-projects.generated.yml`:
 
 ```yaml
 # conceptual

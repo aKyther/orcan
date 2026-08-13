@@ -118,19 +118,19 @@ orcan context show
 
 ## What `orcan sync` writes
 
-`orcan.config.json` is the story you edit (default under `~/.config/orcan/home/`). **`orcan sync`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.
+`orcan.config.json` is the story you edit (default under `~/.config/orcan/`). **`orcan sync`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.
 
 | Output | Role |
 | --- | --- |
 | `.env` | Compose and Make variables |
-| `.orcan/runtime-config.json` | Mounted into the container as `/etc/orcan/config.json` |
-| `.orcan/compose-projects.generated.yml` | Extra bind mounts |
-| `.orcan/compose-git.generated.yml` | Written by `orcan up --with-git` (SSH mounts) |
-| `.orcan/compose-network.generated.yml` | Written by `orcan up --with-network NAME` (join an existing Docker network) |
-| `.orcan/workspaces/<name>/` | Host-backed workspace meta |
+| `mounts/runtime-config.json` | Mounted into the container as `/etc/orcan/config.json` |
+| `mounts/compose-projects.generated.yml` | Extra bind mounts |
+| `mounts/compose-git.generated.yml` | Written by `orcan up --with-git` (SSH mounts) |
+| `mounts/compose-network.generated.yml` | Written by `orcan up --with-network NAME` (join an existing Docker network) |
+| `workspaces/<name>/` | Host-backed workspace meta |
 | `$ORCAN_DATA` tree | Default `~/.config/orcan` (Cursor/Claude home, caches) |
 
-Do not commit `.env` or `.orcan/` (gitignored).
+Do not commit `.env`, `mounts/`, or `workspaces/` (gitignored).
 
 ## Seed into git checkouts (optional, rarely needed)
 

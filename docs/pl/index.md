@@ -62,7 +62,7 @@ Strony referencyjne (CLI, zmienne, Compose) są **po** tym łuku.
 git clone https://github.com/aKyther/orcan.git
 cd orcan
 orcan init /absolute/path/to/your/repo   # zawiera orcan sync raz
-orcan sync                                             # .env + .orcan/* dla Compose
+orcan sync                                             # .env + mounts/* dla Compose
 orcan build
 orcan up
 ```

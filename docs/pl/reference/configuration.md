@@ -38,7 +38,7 @@ Nie używaj: `projects_dir`, `default_project`, `default_workspace`, projektowe 
 ## Pochodne (nieustawiane przez użytkownika)
 
 - Root workspace'a: `/home/developer/workspaces/<name>`
-- Meta hosta: `.orcan/workspaces/<name>/`
+- Meta hosta: `workspaces/<name>/`
 - Nazwa sesji tmux = `name` workspace'a
 - Primary workspace = pierwszy włączony wpis
 

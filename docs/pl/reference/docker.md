@@ -37,7 +37,7 @@ Etykieta wersji: `ORCAN_VERSION` / `/etc/orcan/version`.
 | `docker-compose.yml` | Bazowy serwis, bindy `$ORCAN_DATA`, bez socketa Dockera |
 | `docker-compose.docker.yml` | Socket Dockera hosta + `DOCKER_GID` |
 | `docker-compose.ttyd.yml` | `cursor-ttyd`, opublikowany port, healthcheck |
-| `.orcan/compose-projects.generated.yml` | Mounty projektów path-parity (generowane) |
+| `mounts/compose-projects.generated.yml` | Mounty projektów path-parity (generowane) |
 
 ## Bindy `$ORCAN_DATA`
 
