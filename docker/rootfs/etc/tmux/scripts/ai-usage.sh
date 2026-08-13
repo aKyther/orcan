@@ -15,10 +15,10 @@ def colour_for(*values) -> str:
         if isinstance(value, int):
             worst = max(worst, value)
     if worst >= 90:
-        return "203"
+        return "#f87171"
     if worst >= 70:
-        return "208"
-    return "109"
+        return "#fbbf24"
+    return "#67e8f9"
 
 
 def main() -> int:
@@ -81,9 +81,9 @@ def main() -> int:
             seven if isinstance(seven, int) else 0,
         )
         # ✦ = AI usage; short provider name; metric icons with a light gap before values
-        segments.append(f"#[fg=colour{colour}]✦ {provider} " + " ".join(parts))
+        segments.append(f"#[fg={colour}]✦ {provider} " + " ".join(parts))
 
-    sys.stdout.write("#[fg=colour240] · #[default]".join(segments))
+    sys.stdout.write("#[fg=#334155] · #[default]".join(segments))
     return 0
 
 

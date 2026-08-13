@@ -38,6 +38,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan sync` | Zastosuj `orcan.config.json` → `.env` + `.orcan/*` |
 | `orcan context show` | Lista workspace'ów + path parity |
 | `orcan context add PATH` | Dodaj projekt (`--workspace`, `--force`) |
+| `orcan context tui` | TUI: skan katalogu-rodzica, multi-select repo, create/update workspace; opcjonalnie jeden branch → managed worktree na każde repo (`--sync`, `--yes`) |
 | `orcan context add --from-worktree REPO SELECTOR` | Dodaj istniejący git worktree (selektor: branch, indeks lub ścieżka) |
 | `orcan context worktrees [REPO]` | Lista git worktree (`git worktree list`) |
 | `orcan context worktree create …` | Utwórz worktree (managed pod `$ORCAN_DATA/worktrees` przy `--workspace`) i podepnij |

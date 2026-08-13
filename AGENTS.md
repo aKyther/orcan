@@ -23,7 +23,8 @@ User-facing story: `docs/en/why-orcan.md`, `docs/en/ideas/core-ideas.md`, `docs/
 ## Ritual (host)
 
 ```bash
-orcan init                  # no PATH -> interactive wizard; or edit ORCAN_HOME/orcan.config.json / orcan context add
+orcan init                  # no PATH -> interactive wizard; or: context add / context tui
+# many repos in one folder: orcan context tui   # multi-select + optional shared-branch worktrees
 # worktrees: orcan context worktrees | add --from-worktree | worktree create
 orcan sync                  # apply config → .env, .orcan/*, mounts
 orcan build                 # once / after Dockerfile|rootfs changes
@@ -45,10 +46,14 @@ Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit �
 ## Runtime stack (inside container)
 
 ```text
-ttyd → agent-launcher → tmux (default-shell zsh)
-                      → Starship + zsh plugins
+ttyd → agent-launcher → tmux 3.6a (default-shell zsh)
+                      → Starship + zsh plugins + fzf
                       → aliases in /etc/orcan/shell/aliases.sh
+                      → lazygit (navy/cyan) + delta
 ```
+
+Terminal look (palette, file map, agent checklist):
+`docs/en/guides/terminal-ui.md` (+ PL). Cursor rule: `.cursor/rules/terminal-ui.mdc`.
 
 ## File map (this repo)
 

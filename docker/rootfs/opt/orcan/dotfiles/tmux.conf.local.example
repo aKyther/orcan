@@ -1,3 +1,4 @@
 # Example tmux overrides (copy to tmux.conf.local).
+# Image defaults: dark navy / subtle cyan under /etc/tmux/status.conf
 # set -g mouse on
 # bind-key -T prefix C-g display-message "hello from dotfiles"

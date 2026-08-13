@@ -58,6 +58,7 @@ require_file "tests/host/test_version.py"
 require_file "scripts/repository/config-scaffold.py"
 require_file "scripts/repository/config-show.py"
 require_file "scripts/repository/config-wizard.py"
+require_file "scripts/repository/context_tui.py"
 require_file "tests/host/test_config_wizard.py"
 require_file "scripts/repository/config_io.py"
 require_file "scripts/repository/git_worktrees.py"
@@ -101,6 +102,9 @@ require_file "docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh"
 require_file "docker/rootfs/etc/skel/.zshrc.d/80-starship.zsh"
 require_file "docker/rootfs/opt/orcan/gitconfig"
 require_file "docker/rootfs/opt/orcan/starship.toml"
+require_file "docker/rootfs/opt/orcan/lazygit-config.yml"
+require_file "docs/en/guides/terminal-ui.md"
+require_file "docs/pl/guides/terminal-ui.md"
 require_file "docker/rootfs/etc/orcan/shell/aliases.sh"
 require_file "docker/rootfs/etc/orcan/shell/devtools-env.sh"
 require_file "docker/rootfs/etc/profile.d/orcan-devtools.sh"
@@ -181,6 +185,7 @@ for script in \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
     scripts/repository/config-wizard.py \
+    scripts/repository/context_tui.py \
     scripts/repository/config_io.py \
     scripts/repository/git_worktrees.py \
     scripts/repository/managed_workspace.py \
@@ -224,6 +229,20 @@ services:
       ORCAN_WITH_GIT_STUB: "1"
 YAML
     "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f .orcan/compose-git.generated.yml -f docker-compose.ttyd.yml config --quiet
+    # Optional --with-network overlay (generated on demand; stub for config check)
+    cat >.orcan/compose-network.generated.yml <<'YAML'
+# validate stub — real overlay is written by: orcan up --with-network NAME
+services:
+  orcan:
+    networks:
+      - default
+      - orcan_ext
+networks:
+  orcan_ext:
+    name: orcan-validate-stub-net
+    external: true
+YAML
+    "${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml -f .orcan/compose-network.generated.yml -f docker-compose.ttyd.yml config --quiet
     resolved="$("${compose_base[@]}" -f docker-compose.yml -f .orcan/compose-projects.generated.yml config)"
     if ! printf '%s\n' "${resolved}" | grep -qE 'container_name:[[:space:]]*orcan-1'; then
         printf 'Error: expected container_name orcan-1 in compose config\n' >&2

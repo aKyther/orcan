@@ -33,7 +33,7 @@ Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
 ## Can I customize aliases / tmux / vim?
 
-**Yes.** Put overlays in `$ORCAN_DATA/dotfiles` (default `~/.config/orcan/dotfiles`). Image defaults stay; your files are bind-mounted. See [User dotfiles](guides/dotfiles.md).
+**Yes.** Put overlays in `$ORCAN_DATA/dotfiles` (default `~/.config/orcan/dotfiles`). Image defaults stay; your files are bind-mounted. See [User dotfiles](guides/dotfiles.md). For the shared navy/cyan look (tmux, starship, lazygit, …): [Terminal UI](guides/terminal-ui.md).
 
 ## Must I use the browser (ttyd)?
 

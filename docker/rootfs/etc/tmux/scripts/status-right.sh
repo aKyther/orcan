@@ -4,12 +4,14 @@
 set -Eeuo pipefail
 
 pane_path="$(tmux display -p '#{pane_current_path}' 2>/dev/null || pwd)"
-home="${HOME:-/home/developer}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 parts=()
 
 ai_usage=""
-if [[ -x /etc/tmux/scripts/ai-usage.sh ]]; then
+if [[ -x "${script_dir}/ai-usage.sh" ]]; then
+    ai_usage="$(timeout 0.3 "${script_dir}/ai-usage.sh" 2>/dev/null || true)"
+elif [[ -x /etc/tmux/scripts/ai-usage.sh ]]; then
     ai_usage="$(timeout 0.3 /etc/tmux/scripts/ai-usage.sh 2>/dev/null || true)"
 elif [[ -f /etc/tmux/scripts/ai-usage.sh ]]; then
     ai_usage="$(timeout 0.3 python3 /etc/tmux/scripts/ai-usage.sh 2>/dev/null || true)"
@@ -30,7 +32,7 @@ if [[ -z "${brief_root}" ]]; then
     esac
 fi
 if [[ -n "${brief_root}" && -f "${brief_root}/.orcan/session-brief.md" ]]; then
-    parts+=("#[fg=colour114,bold]◆")
+    parts+=("#[fg=#4ade80,bold]◆")
 fi
 
 branch=""
@@ -41,7 +43,7 @@ if command -v git >/dev/null 2>&1; then
     fi
 fi
 if [[ -n "${branch}" ]]; then
-    parts+=("#[fg=colour141,bold]⎇ ${branch}")
+    parts+=("#[fg=#7dd3fc,bold]⎇ ${branch}")
 fi
 
 load=""
@@ -49,7 +51,7 @@ if [[ -r /proc/loadavg ]]; then
     load="$(awk '{printf "%.1f", $1}' /proc/loadavg 2>/dev/null || true)"
 fi
 if [[ -n "${load}" ]]; then
-    parts+=("#[fg=colour109]◉ ${load}")
+    parts+=("#[fg=#67e8f9]◉ ${load}")
 fi
 
 mem=""
@@ -57,7 +59,7 @@ if command -v free >/dev/null 2>&1; then
     mem="$(free -m 2>/dev/null | awk '/^Mem:/ { if ($2>0) printf "%.0f%%", ($3/$2)*100 }')"
 fi
 if [[ -n "${mem}" ]]; then
-    parts+=("#[fg=colour109]▣ ${mem}")
+    parts+=("#[fg=#67e8f9]▣ ${mem}")
 fi
 
 battery=""
@@ -68,19 +70,19 @@ for cap in /sys/class/power_supply/BAT*/capacity; do
     fi
 done
 if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
-    bat_colour='109'
+    bat_colour='#67e8f9'
     if (( battery < 20 )); then
-        bat_colour='203'
+        bat_colour='#f87171'
     elif (( battery < 50 )); then
-        bat_colour='208'
+        bat_colour='#fbbf24'
     fi
-    parts+=("#[fg=colour${bat_colour}]⚡ ${battery}%")
+    parts+=("#[fg=${bat_colour}]⚡ ${battery}%")
 fi
 
-parts+=("#[fg=colour228,bold]$(date +%H:%M)")
+parts+=("#[fg=#a5f3fc,bold]$(date +%H:%M)")
 
 out=" "
-sep='#[fg=colour240] · #[default]'
+sep='#[fg=#334155] · #[default]'
 first=1
 for segment in "${parts[@]}"; do
     if (( first )); then

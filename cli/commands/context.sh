@@ -59,6 +59,9 @@ orcan_cmd_context() {
         add)
             orcan_context_add "$@"
             ;;
+        tui)
+            orcan_context_tui "$@"
+            ;;
         assert)
             orcan_context_assert "$@"
             ;;
@@ -66,10 +69,46 @@ orcan_cmd_context() {
             orcan_context_hook "$@"
             ;;
         *)
-            orcan_usage_error "usage: orcan context <show|add|worktrees|worktree|assert|hook> (wizard moved to: orcan init)"
+            orcan_usage_error "usage: orcan context <show|add|tui|worktrees|worktree|assert|hook> (wizard moved to: orcan init)"
             ;;
     esac
 }
+
+orcan_context_tui() {
+    case "${1:-}" in
+        -h | --help)
+            cat <<'EOF'
+usage: orcan context tui [options]
+
+Interactive TUI: point at a parent folder → multi-select git repos →
+create/update a workspace. Optional: one branch name → managed worktree
+per selected repo (same branch for all).
+
+Keys: Space toggle · a/A all/none · e path · w workspace · t worktrees ·
+      b branch · Enter apply · q quit
+
+Options:
+  --dir PATH           Parent directory to scan (default: last used / cwd)
+  --workspace NAME     Workspace name (default: parent folder name)
+  --branch NAME        Create managed worktrees on this branch for all
+  --select a,b         Pre-select (or use with --yes)
+  --yes                Non-interactive (needs --dir and --select)
+  --force              Replace existing workspace / projects
+  --sync               Run orcan sync after writing config
+  --depth N            Scan depth (default 2)
+
+Examples:
+  orcan context tui
+  orcan context tui --dir /home/you/code/acme --sync
+  orcan context tui --yes --dir ~/code/acme --select api,web --branch feature/s1 --sync
+EOF
+            return 0
+            ;;
+    esac
+    ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" ORCAN_DATA="${ORCAN_DATA:-}" \
+        orcan_host_python "${ORCAN_SCRIPTS}/context_tui.py" "$@"
+}
+
 
 orcan_context_hook() {
     local action="${1:-}"

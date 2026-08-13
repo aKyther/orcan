@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Browser terminal look: default ttyd theme is dark navy / near-black / subtle cyan
+  (was Catppuccin Mocha). Preset names `dark` and `navy` map to the new palette;
+  `mocha` / `catppuccin` keep the previous look. tmux status, pane borders, and
+  messages use matching truecolor styles (still no Nerd Font).
+- Image tmux bumped to **3.6a** (static build from `tmux/tmux-builds`; Debian
+  bookworm still packages 3.3a). Status tabs are centred; inactive panes dim;
+  borders use `spaces` (gap-like) on 3.6+; modal cyan pane scrollbars on 3.5+;
+  navy popups/menus; vi copy-mode (`v`/`y`); workspace identity as a cyan pill.
+- Starship / zsh UX polish (same palette): cyan path + git, `cmd_duration` after
+  2s, fzf navy theme with previews, menu-select completion, quieter autosuggest
+  ghost text. No new shell frameworks (still autosuggestions + syntax + fzf).
+- lazygit default theme aligned to the same navy/cyan palette
+  (`docker/rootfs/opt/orcan/lazygit-config.yml`).
+- Docs: [Terminal UI](docs/en/guides/terminal-ui.md) (+ PL) — palette, file map,
+  agent checklist; Cursor rule `.cursor/rules/terminal-ui.mdc`.
+
+### Added
+
+- `orcan context tui` — curses TUI: parent folder → multi-select git repos →
+  create/update a workspace; optional **one** branch name creates a managed
+  worktree per selection. Flags: `--dir`, `--workspace`, `--branch`, `--select`,
+  `--yes`, `--sync`, `--force`. Remembers last parent/branch in
+  `$ORCAN_HOME/.orcan/context-tui-state.json`. Host stdlib only (curses).
+- `orcan up --with-network NAME` — join an existing Docker network from the
+  workspace container (dynamically generated `.orcan/compose-network.generated.yml`
+  overlay, mirroring `--with-git`'s pattern). Lower-risk alternative to
+  `--with-docker` when you only need reachability to other containers, not
+  control over the host Docker engine. Combines freely with `--with-docker`
+  and `--with-git`.
+
 ## [0.4.2] - 2026-08-06
 
 ### Added

@@ -44,6 +44,7 @@ After config edits with a running container: `orcan sync && orcan down && orcan 
 | Context Assertions store / Applicability Layer | `scripts/repository/context_assertions.py`, `scripts/repository/compile_context.py` |
 | Container runtime | `docker/rootfs/usr/local/bin/` |
 | Image packages | `Dockerfile` |
+| Terminal UI (ttyd / tmux / zsh / starship / fzf / lazygit) | See [Terminal UI](../guides/terminal-ui.md); rule `.cursor/rules/terminal-ui.mdc` |
 | Global agent defaults in image | `docker/rootfs/opt/cursor-defaults/` |
 | Rules for developing Orcan | `.cursor/rules/`, `AGENTS.md` |
 | User docs | `docs/` + short `README.md` |
@@ -57,6 +58,7 @@ After config edits with a running container: `orcan sync && orcan down && orcan 
 | Mental Model | [ideas/mental-model.md](../ideas/mental-model.md) |
 | Context Assertions | [ideas/context-assertions.md](../ideas/context-assertions.md) |
 | Architecture | [architecture.md](../architecture.md) |
+| Terminal UI | [guides/terminal-ui.md](../guides/terminal-ui.md) |
 | Config schema | [reference/configuration.md](../reference/configuration.md) |
 | Make targets | [reference/makefile.md](../reference/makefile.md) |
 | Security | [reference/security.md](../reference/security.md) |

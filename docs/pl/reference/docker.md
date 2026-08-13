@@ -6,6 +6,7 @@ Użyj tej strony dla tagów obrazu, nakładek Compose i bindów `$ORCAN_DATA`. *
 
 - Baza: Debian Bookworm Slim
 - Multi-stage pobieranie narzędzi (Node, Go, Rust, uv)
+- tmux **3.6a** z `tmux/tmux-builds` (nie pakiet bookworm 3.3a)
 - Użytkownik nie-root `developer`
 - Wejście: `docker-entrypoint`
 

@@ -22,7 +22,7 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 | Zmienna | Rola |
 | --- | --- |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Limity zasobów (domyślnie: 2 / 4g / 512m / 512m) |
-| `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` / `TTYD_PING_INTERVAL` | Terminal w przeglądarce |
+| `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` / `TTYD_PING_INTERVAL` | Terminal w przeglądarce (`TTYD_THEME`: `dark`/`navy`, `mocha` albo surowy JSON xterm.js) |
 
 ## Nazwy Compose (opcjonalne)
 

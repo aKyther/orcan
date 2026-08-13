@@ -26,6 +26,8 @@ Domyślne ustawienia obrazu (aliasy w `/etc/orcan/shell`, tmux w `/etc/tmux`, sk
 | `starship.toml` | Zastępuje `~/.config/starship.toml` (symlink) |
 | `gitconfig.local` | `include.path` z `~/.gitconfig` |
 
+Domyślny **wygląd terminala** (ttyd, tmux, starship, fzf, lazygit) jest w `docker/rootfs/` — zobacz [Terminal UI](terminal-ui.md). Dotfiles tylko nakładają; nie zastępują mapy obrazu.
+
 Skopiuj przykład (usuń sufiks `.example`), edytuj, otwórz **nowy** shell (`orcan enter` albo nowe okno tmux). Dla tmux: `tmux source-file ~/.tmux.conf` albo detach/reattach. **Nie** musisz robić `orcan down` po edycji tych plików.
 
 ## Przykłady
