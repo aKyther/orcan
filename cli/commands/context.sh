@@ -168,6 +168,10 @@ orcan_context_assert() {
             ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
                 orcan_host_python "${ORCAN_SCRIPTS}/context_assertions.py" "${sub}" "$@"
             ;;
+        overview)
+            ORCAN_HOME="${ORCAN_HOME}" ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+                orcan_host_python "${ORCAN_SCRIPTS}/compile_context.py" --overview "${ORCAN_HOME}"
+            ;;
         -h | --help | "")
             cat <<'EOF'
 usage: orcan context assert <command> [arguments]
@@ -189,6 +193,13 @@ usage: orcan context assert <command> [arguments]
   select --workspace NAME --project PATH [--project PATH ...] [--limit N]
                           Applicability Layer preview — what `orcan sync`
                           would compile into CONTEXT-ASSERTIONS.md
+  overview                One line per configured workspace: composition
+                          (repo@branch) + how many accepted assertions
+                          currently match it. Live (not read from the last
+                          compiled CONTEXT-ASSERTIONS.md) — a glance across
+                          every workspace, e.g. to spot two workspaces that
+                          share a project but ended up with different context
+                          because they're on different branches.
   root                    Print $ORCAN_DATA/context
 
   Applicability flags (propose / accept --override-applicability):

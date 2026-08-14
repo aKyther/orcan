@@ -344,15 +344,58 @@ def compile_workspace(ws: dict) -> None:
     print(f"context: {len(items)} assertion(s) compiled into CONTEXT-ASSERTIONS.md for workspace '{name}'")
 
 
-def main() -> None:
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
+def load_enabled_workspaces(root: Path) -> list[dict] | None:
+    """Enabled workspaces from <root>/mounts/runtime-config.json, or None if
+    that file doesn't exist yet (caller decides how to report that)."""
     runtime_path = root / "mounts" / "runtime-config.json"
     if not runtime_path.is_file():
-        return
+        return None
     runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
-    for ws in runtime.get("workspaces") or []:
-        if ws.get("enabled") is False:
+    return [ws for ws in runtime.get("workspaces") or [] if ws.get("enabled") is not False]
+
+
+def print_overview(root: Path) -> None:
+    """One line per workspace: its composition (repo@branch) and how many
+    accepted assertions currently match it — a glance across every
+    workspace at once, for 'which projects fed this context, and does it
+    differ from that other workspace with a different project mix'.
+
+    Recomputed live from the project stores + current git branches (same
+    build_signature()/select_for_workspace() the real compile uses) rather
+    than read back from each CONTEXT-ASSERTIONS.md — always current, no
+    dependency on when `orcan sync` last ran."""
+    workspaces = load_enabled_workspaces(root)
+    if workspaces is None:
+        print(f"no runtime config at {root / 'mounts' / 'runtime-config.json'} — run: orcan sync")
+        return
+    if not workspaces:
+        print("no workspaces configured")
+        return
+    for ws in workspaces:
+        name = ws.get("name") or "?"
+        projects_list = [p for p in (ws.get("projects") or []) if p.get("path") and p.get("name")]
+        if not projects_list:
+            print(f"{name}: (no projects)")
             continue
+        signature = ca.build_signature(name, projects_list)
+        composition = ", ".join(
+            f"{repo}@{signature['branches'].get(repo) or '?'}" for repo in signature["repos"]
+        )
+        items = ca.select_for_workspace(name, projects_list)
+        print(f"{name}: {composition}  —  {len(items)} assertion(s)")
+
+
+def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "--overview":
+        root = Path(sys.argv[2]) if len(sys.argv) > 2 else Path.cwd()
+        print_overview(root)
+        return
+
+    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
+    workspaces = load_enabled_workspaces(root)
+    if workspaces is None:
+        return
+    for ws in workspaces:
         compile_workspace(ws)
 
 
