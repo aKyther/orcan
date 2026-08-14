@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -62,6 +63,15 @@ class ClaudeHookTests(unittest.TestCase):
         result = ch.enable(self.project, dry_run=True)
         self.assertEqual(result, "would enable")
         self.assertFalse(self.settings.exists())
+
+    @unittest.skipIf(os.geteuid() == 0, "root bypasses file permission checks")
+    def test_enable_gives_clear_error_on_permission_denied(self) -> None:
+        self.settings.parent.mkdir(parents=True, exist_ok=True)
+        self.settings.write_text("{}")
+        self.settings.chmod(0o444)
+        self.addCleanup(self.settings.chmod, 0o644)
+        with self.assertRaises(SystemExit):
+            ch.enable(self.project, dry_run=False)
 
     def test_disable_removes_hook_and_empty_containers(self) -> None:
         ch.enable(self.project, dry_run=False)
