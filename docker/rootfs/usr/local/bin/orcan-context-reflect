@@ -20,6 +20,12 @@ When it does fire, it:
      look.
   4. Dispatches each action through the *existing* orcan-context-propose
      tool — --queue for new candidates, --flag-existing for reconsideration.
+     A "propose" drafted while the project is on a non-default branch
+     (anything but main/master) is scoped to that branch by default (see
+     `dispatch()`) — safer than unconditional, since Reflection runs
+     mid-work and can't yet know whether something is durably true or just
+     an artifact of unmerged, in-progress code. The human reviewer can
+     widen the scope at accept time if it turns out to be universal.
 
 This script never accepts, rejects, or retires anything itself. It only ever
 queues — the same human decision point (interactive prompt or
@@ -176,7 +182,24 @@ def extract_json_array(raw: str) -> list[dict]:
     return data if isinstance(data, list) else []
 
 
-def dispatch(action: dict, *, workspace_root: Path, project: str) -> None:
+DEFAULT_BRANCH_NAMES = {"main", "master"}
+
+
+def current_branch(project_path: Path) -> str:
+    if not project_path.is_dir():
+        return ""
+    r = subprocess.run(
+        ["git", "-C", str(project_path), "branch", "--show-current"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if r.returncode != 0:
+        return ""
+    return r.stdout.strip()
+
+
+def dispatch(action: dict, *, workspace_root: Path, project: str, branch: str = "") -> None:
     kind = action.get("action")
     common_env = dict(os.environ)
     if kind == "propose":
@@ -195,6 +218,14 @@ def dispatch(action: dict, *, workspace_root: Path, project: str) -> None:
             "--queue",
             "--source", "reflection",
         ]
+        if branch and branch not in DEFAULT_BRANCH_NAMES:
+            # Reflection runs mid-work, before anyone's judged whether this
+            # is durably true or just an artifact of an unmerged branch — the
+            # safer default is to scope narrow (this branch only) and let the
+            # human reviewer widen it, rather than propose unconditional and
+            # risk a WIP-only fact leaking into every other branch/workspace
+            # that mounts this project.
+            args += ["--branch", branch]
         epistemic_status = str(action.get("epistemic_status") or "").strip()
         if epistemic_status:
             args += ["--epistemic-status", epistemic_status]
@@ -281,6 +312,10 @@ def main() -> int:
     if project is None:
         warn("could not infer a single project for this workspace — skipping")
         return 0
+    project_path = next(
+        (p.get("path") for p in ws.get("projects") or [] if p.get("name") == project), ""
+    )
+    branch = current_branch(Path(project_path)) if project_path else ""
 
     pack_path = workspace_root / "CONTEXT-ASSERTIONS.md"
     existing_context = pack_path.read_text(encoding="utf-8") if pack_path.is_file() else "(none yet)"
@@ -313,7 +348,7 @@ def main() -> int:
     actions = extract_json_array(result.stdout)
     for action in actions[:5]:  # hard cap — this is a suggestion pass, not a firehose
         if isinstance(action, dict):
-            dispatch(action, workspace_root=workspace_root, project=project)
+            dispatch(action, workspace_root=workspace_root, project=project, branch=branch)
 
     clear_error(state_path, state, session_id)
     return 0
