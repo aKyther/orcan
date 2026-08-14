@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `orcan init` crashed immediately with `NameError: name '_init_colors' is
+  not defined` on both the scan and manage TUI screens — a rename to
+  `_init_curses_session()` updated the definition but not its two call
+  sites. Neither `py_compile` nor the test suite catches this class of bug
+  (`main_loop()` is curses-dependent, so nothing in the suite actually
+  calls it). Fixed; verified this time with `ruff check --select F821`
+  across every file touched in the v1.0.0 changes.
+
 ## [1.0.0] - 2026-08-14
 
 ### Changed
