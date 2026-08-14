@@ -83,5 +83,91 @@ class ApplySelectionTests(unittest.TestCase):
             )
 
 
+class ManageRowsTests(unittest.TestCase):
+    """manage_rows/manage_* are curses-free by design so the "manage existing
+    config" screen's mutation logic is directly unit-testable."""
+
+    def test_flattens_workspace_headers_and_project_rows(self) -> None:
+        workspaces = [
+            {"name": "acme", "projects": [{"name": "api", "path": "/x/api"}]},
+            {"name": "other", "projects": []},
+        ]
+        rows = _mod.manage_rows(workspaces)
+        self.assertEqual(
+            rows,
+            [("ws", 0, None), ("proj", 0, 0), ("ws", 1, None)],
+        )
+
+
+class ManageRenameTests(unittest.TestCase):
+    def test_rename_workspace_success(self) -> None:
+        workspaces = [{"name": "acme", "projects": []}]
+        err = _mod.manage_rename_workspace(workspaces, 0, "acme2")
+        self.assertIsNone(err)
+        self.assertEqual(workspaces[0]["name"], "acme2")
+
+    def test_rename_workspace_rejects_duplicate(self) -> None:
+        workspaces = [{"name": "acme", "projects": []}, {"name": "other", "projects": []}]
+        err = _mod.manage_rename_workspace(workspaces, 1, "acme")
+        self.assertEqual(err, "workspace 'acme' already exists")
+        self.assertEqual(workspaces[1]["name"], "other")
+
+    def test_rename_workspace_rejects_invalid_name(self) -> None:
+        workspaces = [{"name": "acme", "projects": []}]
+        err = _mod.manage_rename_workspace(workspaces, 0, "bad name!")
+        self.assertEqual(err, "invalid workspace name")
+
+    def test_rename_project_rejects_duplicate_within_workspace(self) -> None:
+        ws = {
+            "name": "acme",
+            "projects": [{"name": "api", "path": "/x"}, {"name": "web", "path": "/y"}],
+        }
+        err = _mod.manage_rename_project(ws, 1, "api")
+        self.assertEqual(err, "project 'api' already in this workspace")
+
+    def test_rename_project_success(self) -> None:
+        ws = {"name": "acme", "projects": [{"name": "api", "path": "/x"}]}
+        err = _mod.manage_rename_project(ws, 0, "api2")
+        self.assertIsNone(err)
+        self.assertEqual(ws["projects"][0]["name"], "api2")
+
+
+class ManageChangePathTests(unittest.TestCase):
+    def test_accepts_existing_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = {"name": "acme", "projects": [{"name": "api", "path": "/old"}]}
+            err = _mod.manage_change_project_path(ws, 0, tmp)
+            self.assertIsNone(err)
+            self.assertEqual(ws["projects"][0]["path"], str(Path(tmp).resolve()))
+
+    def test_rejects_nonexistent_path(self) -> None:
+        ws = {"name": "acme", "projects": [{"name": "api", "path": "/old"}]}
+        err = _mod.manage_change_project_path(ws, 0, "/no/such/directory")
+        self.assertIsNotNone(err)
+        self.assertEqual(ws["projects"][0]["path"], "/old")
+
+    def test_rejects_relative_path(self) -> None:
+        ws = {"name": "acme", "projects": [{"name": "api", "path": "/old"}]}
+        err = _mod.manage_change_project_path(ws, 0, "relative/dir")
+        self.assertIsNotNone(err)
+
+
+class ManageDeleteTests(unittest.TestCase):
+    def test_delete_project_removes_and_returns_it(self) -> None:
+        ws = {
+            "name": "acme",
+            "projects": [{"name": "api", "path": "/x"}, {"name": "web", "path": "/y"}],
+        }
+        deleted = _mod.manage_delete_project(ws, 0)
+        self.assertEqual(deleted["name"], "api")
+        self.assertEqual([p["name"] for p in ws["projects"]], ["web"])
+
+    def test_delete_workspace_removes_and_returns_it(self) -> None:
+        workspaces = [{"name": "acme", "projects": []}, {"name": "other", "projects": []}]
+        deleted = _mod.manage_delete_workspace(workspaces, 0)
+        self.assertEqual(deleted["name"], "acme")
+        self.assertEqual([ws["name"] for ws in workspaces], ["other"])
+
+
 if __name__ == "__main__":
     unittest.main()

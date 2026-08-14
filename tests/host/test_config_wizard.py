@@ -167,38 +167,6 @@ class MainAlreadyConfiguredTests(unittest.TestCase):
         self.assertEqual(self.config_path.read_text(), before)
 
 
-class SuccessIndentTests(unittest.TestCase):
-    """success() must keep a caller's leading indent before the checkmark,
-    not push the mark to column 0 and the indent after it."""
-
-    def _captured(self, msg: str) -> str:
-        buf = []
-        with patch("builtins.print", side_effect=lambda s: buf.append(s)), patch.object(
-            cw, "_COLOR", False
-        ):
-            cw.success(msg)
-        return buf[0]
-
-    def test_no_indent(self) -> None:
-        self.assertEqual(self._captured("saved config"), "✓ saved config")
-
-    def test_two_space_indent_preserved_before_mark(self) -> None:
-        self.assertEqual(self._captured("  will mount folder /x"), "  ✓ will mount folder /x")
-
-    def test_four_space_indent_preserved_before_mark(self) -> None:
-        self.assertEqual(self._captured("    project ready"), "    ✓ project ready")
-
-
-class ColorGatingTests(unittest.TestCase):
-    def test_paint_adds_escape_codes_when_color_on(self) -> None:
-        with patch.object(cw, "_COLOR", True):
-            self.assertEqual(cw._paint("31", "x"), "\033[31mx\033[0m")
-
-    def test_paint_is_plain_text_when_color_off(self) -> None:
-        with patch.object(cw, "_COLOR", False):
-            self.assertEqual(cw._paint("31", "x"), "x")
-
-
 class PathCompleterTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()

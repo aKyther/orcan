@@ -277,6 +277,50 @@ def apply_selection(
 
 # ── curses UI ────────────────────────────────────────────────────────────────
 
+def _prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
+    import curses
+
+    curses.echo()
+    curses.curs_set(1)
+    h, w = stdscr.getmaxyx()
+    stdscr.addnstr(h - 1, 0, " " * (w - 1), w - 1)
+    stdscr.addnstr(h - 1, 0, f"{label}: {initial}"[: w - 1], w - 1)
+    stdscr.move(h - 1, min(len(label) + 2, w - 2))
+    try:
+        raw = stdscr.getstr(h - 1, min(len(label) + 2, w - 2), max(8, w - len(label) - 4))
+    except KeyboardInterrupt:
+        raw = b""
+    curses.noecho()
+    curses.curs_set(0)
+    if raw is None:
+        return None
+    text = raw.decode("utf-8", errors="replace").strip()
+    return text if text else initial
+
+
+def _confirm_line(stdscr: Any, label: str, *, default: bool = False) -> bool:
+    raw = _prompt_line(stdscr, f"{label} ({'Y/n' if default else 'y/N'})", "")
+    if not raw:
+        return default
+    return raw.strip().lower() in ("y", "yes")
+
+
+def _validate_manage_path(path_str: str) -> tuple[str | None, Path | None]:
+    path_str = path_str.strip()
+    if not path_str:
+        return "path cannot be empty", None
+    p = Path(path_str).expanduser()
+    if not p.is_absolute():
+        return f"path must be absolute (got: {path_str})", None
+    if not p.is_dir():
+        return f"not a directory: {path_str}", None
+    try:
+        resolved = p.resolve()
+    except OSError as exc:
+        return f"cannot resolve path: {exc}", None
+    return None, resolved
+
+
 def _run_curses(args: argparse.Namespace) -> int:
     try:
         import curses
@@ -363,26 +407,8 @@ def _run_curses(args: argparse.Namespace) -> int:
                 stdscr.addnstr(list_top + i, 0, line[: w - 1], w - 1, attr)
 
         footer = message or f"{len(selected)} selected"
-        stdscr.addnstr(h - 1, 0, footer.ljust(w)[:w], w, curses.A_REVERSE)
+        stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
         stdscr.refresh()
-
-    def prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
-        curses.echo()
-        curses.curs_set(1)
-        h, w = stdscr.getmaxyx()
-        stdscr.addnstr(h - 1, 0, " " * (w - 1), w - 1)
-        stdscr.addnstr(h - 1, 0, f"{label}: {initial}"[: w - 1], w - 1)
-        stdscr.move(h - 1, min(len(label) + 2, w - 2))
-        try:
-            raw = stdscr.getstr(h - 1, min(len(label) + 2, w - 2), max(8, w - len(label) - 4))
-        except KeyboardInterrupt:
-            raw = b""
-        curses.noecho()
-        curses.curs_set(0)
-        if raw is None:
-            return None
-        text = raw.decode("utf-8", errors="replace").strip()
-        return text if text else initial
 
     def main_loop(stdscr: Any) -> int:
         nonlocal parent, workspace, use_worktree, branch, cursor, selected, message, repos
@@ -412,7 +438,7 @@ def _run_curses(args: argparse.Namespace) -> int:
             elif key == ord("A"):
                 selected = set()
             elif key == ord("e"):
-                new_path = prompt_line(stdscr, "Parent directory", str(parent))
+                new_path = _prompt_line(stdscr, "Parent directory", str(parent))
                 if new_path:
                     candidate = Path(new_path).expanduser()
                     if candidate.is_dir():
@@ -425,12 +451,12 @@ def _run_curses(args: argparse.Namespace) -> int:
                     else:
                         message = f"not a directory: {candidate}"
             elif key == ord("w"):
-                workspace = prompt_line(stdscr, "Workspace name", workspace) or workspace
+                workspace = _prompt_line(stdscr, "Workspace name", workspace) or workspace
             elif key == ord("t"):
                 use_worktree = not use_worktree
                 message = "worktrees ON" if use_worktree else "mount as-is"
             elif key == ord("b"):
-                branch = prompt_line(stdscr, "Branch for all worktrees", branch) or branch
+                branch = _prompt_line(stdscr, "Branch for all worktrees", branch) or branch
                 use_worktree = True
             elif key in (curses.KEY_ENTER, 10, 13):
                 if not selected:
@@ -472,6 +498,236 @@ def _run_curses(args: argparse.Namespace) -> int:
     if args.sync:
         return _run_sync()
     info("Run: orcan sync && orcan down && orcan up")
+    return 0
+
+
+def manage_rows(workspaces: list[Any]) -> list[tuple[str, int, int | None]]:
+    """(kind, ws_idx, proj_idx) — kind 'ws' or 'proj'; proj_idx None for 'ws'.
+    Pure/curses-free so it's directly unit-testable."""
+    out: list[tuple[str, int, int | None]] = []
+    for wi, ws in enumerate(workspaces):
+        if not isinstance(ws, dict):
+            continue
+        out.append(("ws", wi, None))
+        projects = ws.get("projects")
+        if isinstance(projects, list):
+            for pi, p in enumerate(projects):
+                if isinstance(p, dict):
+                    out.append(("proj", wi, pi))
+    return out
+
+
+def manage_rename_workspace(workspaces: list[Any], wi: int, new_name: str) -> str | None:
+    """Returns an error message, or None on success (mutates in place)."""
+    if not NAME_RE.match(new_name):
+        return "invalid workspace name"
+    for idx, ws in enumerate(workspaces):
+        if idx != wi and isinstance(ws, dict) and ws.get("name") == new_name:
+            return f"workspace {new_name!r} already exists"
+    workspaces[wi]["name"] = new_name
+    return None
+
+
+def manage_rename_project(ws: dict[str, Any], pi: int, new_name: str) -> str | None:
+    if not NAME_RE.match(new_name):
+        return "invalid project name"
+    projects = ws.get("projects") or []
+    for idx, p in enumerate(projects):
+        if idx != pi and isinstance(p, dict) and p.get("name") == new_name:
+            return f"project {new_name!r} already in this workspace"
+    projects[pi]["name"] = new_name
+    return None
+
+
+def manage_change_project_path(ws: dict[str, Any], pi: int, new_path: str) -> str | None:
+    err, resolved = _validate_manage_path(new_path)
+    if err:
+        return err
+    (ws.get("projects") or [])[pi]["path"] = str(resolved)
+    return None
+
+
+def manage_delete_project(ws: dict[str, Any], pi: int) -> dict[str, Any]:
+    return ws["projects"].pop(pi)
+
+
+def manage_delete_workspace(workspaces: list[Any], wi: int) -> dict[str, Any]:
+    return workspaces.pop(wi)
+
+
+def _run_manage(args: argparse.Namespace) -> int:
+    """Curses screen for editing an existing orcan.config.json: rename /
+    change path / delete projects and workspaces, without walking every
+    project one at a time (unlike config-wizard.py's edit_existing())."""
+    try:
+        import curses
+    except ImportError as exc:
+        die(f"curses not available: {exc}")
+
+    config_path = resolve_config(args.config)
+    cfg = load_config(config_path) if config_path.is_file() else {"workspaces": []}
+    workspaces = cfg.get("workspaces")
+    if not isinstance(workspaces, list):
+        workspaces = []
+        cfg["workspaces"] = workspaces
+
+    state = {"dirty": False, "cursor": 0, "scroll": 0, "message": ""}
+
+    def rows() -> list[tuple[str, int, int | None]]:
+        return manage_rows(workspaces)
+
+    def draw(stdscr: Any) -> None:
+        stdscr.erase()
+        h, w = stdscr.getmaxyx()
+        stdscr.addnstr(0, 0, " orcan init — manage workspaces ".ljust(w), w, curses.A_REVERSE)
+        stdscr.addnstr(1, 0, f" Config: {config_path}"[: w - 1], w - 1)
+        stdscr.addnstr(
+            2,
+            0,
+            (
+                " j/k move · Enter/r rename · p path · d delete project · "
+                "W delete workspace · n new (scan folder) · s save · q quit"
+            )[: w - 1],
+            w - 1,
+            curses.A_DIM,
+        )
+
+        current_rows = rows()
+        list_top = 4
+        list_h = max(1, h - list_top - 2)
+        if state["cursor"] < state["scroll"]:
+            state["scroll"] = state["cursor"]
+        if state["cursor"] >= state["scroll"] + list_h:
+            state["scroll"] = state["cursor"] - list_h + 1
+
+        if not current_rows:
+            stdscr.addnstr(
+                list_top, 0, "  (no workspaces — press n to scan a folder)"[: w - 1], w - 1
+            )
+        else:
+            for i in range(list_h):
+                idx = state["scroll"] + i
+                if idx >= len(current_rows):
+                    break
+                kind, wi, pi = current_rows[idx]
+                ws = workspaces[wi]
+                if kind == "ws":
+                    n = len([p for p in (ws.get("projects") or []) if isinstance(p, dict)])
+                    line = f" ▸ {ws.get('name')}  ({n} project{'s' if n != 1 else ''})"
+                    attr = curses.A_BOLD
+                else:
+                    proj = (ws.get("projects") or [])[pi]
+                    line = f"     {proj.get('name')}  →  {proj.get('path')}"
+                    attr = curses.A_NORMAL
+                if idx == state["cursor"]:
+                    attr |= curses.A_REVERSE
+                stdscr.addnstr(list_top + i, 0, line[: w - 1], w - 1, attr)
+
+        footer = state["message"] or (
+            f"{len(workspaces)} workspace(s)"
+            + ("  — unsaved changes" if state["dirty"] else "")
+        )
+        stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
+        stdscr.refresh()
+
+    def switch_to_scan(stdscr: Any) -> int:
+        if state["dirty"]:
+            dump_config(config_path, cfg)
+            state["dirty"] = False
+        return 2
+
+    def main_loop(stdscr: Any) -> int:
+        curses.curs_set(0)
+        if curses.has_colors():
+            curses.start_color()
+            curses.use_default_colors()
+
+        while True:
+            current_rows = rows()
+            if state["cursor"] >= len(current_rows):
+                state["cursor"] = max(0, len(current_rows) - 1)
+            draw(stdscr)
+            key = stdscr.getch()
+            state["message"] = ""
+
+            if key in (ord("q"), 27):
+                if state["dirty"]:
+                    choice = (
+                        _prompt_line(stdscr, "Save before quitting? (y/n/c to cancel)", "") or ""
+                    )
+                    c = choice.strip().lower()
+                    if c in ("c", "cancel"):
+                        continue
+                    if c in ("y", "yes", ""):
+                        dump_config(config_path, cfg)
+                return 0
+            if key in (curses.KEY_UP, ord("k")):
+                state["cursor"] = max(0, state["cursor"] - 1)
+                continue
+            if key in (curses.KEY_DOWN, ord("j")):
+                state["cursor"] = min(max(0, len(current_rows) - 1), state["cursor"] + 1)
+                continue
+            if key == ord("n"):
+                return switch_to_scan(stdscr)
+            if key == ord("s"):
+                dump_config(config_path, cfg)
+                state["dirty"] = False
+                state["message"] = f"saved {config_path}"
+                continue
+            if not current_rows:
+                continue
+
+            kind, wi, pi = current_rows[state["cursor"]]
+            ws = workspaces[wi]
+
+            if key in (ord("r"), curses.KEY_ENTER, 10, 13):
+                if kind == "ws":
+                    new_name = _prompt_line(stdscr, "Workspace name", str(ws.get("name") or ""))
+                    if new_name:
+                        err = manage_rename_workspace(workspaces, wi, new_name)
+                        if err:
+                            state["message"] = err
+                        else:
+                            state["dirty"] = True
+                else:
+                    proj = (ws.get("projects") or [])[pi]
+                    new_name = _prompt_line(stdscr, "Project name", str(proj.get("name") or ""))
+                    if new_name:
+                        err = manage_rename_project(ws, pi, new_name)
+                        if err:
+                            state["message"] = err
+                        else:
+                            state["dirty"] = True
+            elif key == ord("p"):
+                if kind != "proj":
+                    state["message"] = "position on a project to change its path"
+                else:
+                    proj = (ws.get("projects") or [])[pi]
+                    new_path = _prompt_line(stdscr, "Project path", str(proj.get("path") or ""))
+                    if new_path:
+                        err = manage_change_project_path(ws, pi, new_path)
+                        if err:
+                            state["message"] = err
+                        else:
+                            state["dirty"] = True
+            elif key == ord("d"):
+                if kind != "proj":
+                    state["message"] = "position on a project to delete it (W deletes a workspace)"
+                else:
+                    proj = (ws.get("projects") or [])[pi]
+                    if _confirm_line(stdscr, f"Delete project {proj.get('name')!r}?"):
+                        deleted = manage_delete_project(ws, pi)
+                        state["dirty"] = True
+                        state["message"] = f"deleted {deleted.get('name')}"
+            elif key == ord("W"):
+                if _confirm_line(stdscr, f"Delete whole workspace {ws.get('name')!r}?"):
+                    deleted = manage_delete_workspace(workspaces, wi)
+                    state["dirty"] = True
+                    state["message"] = f"deleted workspace {deleted.get('name')}"
+
+    rc = curses.wrapper(main_loop)
+    if rc == 2:
+        return _run_curses(args)
     return 0
 
 
@@ -566,6 +822,13 @@ def main() -> None:
 
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         die("not a TTY — use: orcan context tui --yes --dir DIR --select a,b [--branch NAME]")
+
+    if not args.dir and not args.select:
+        existing_path = resolve_config(args.config)
+        if existing_path.is_file():
+            existing_cfg = load_config(existing_path)
+            if isinstance(existing_cfg.get("workspaces"), list) and existing_cfg["workspaces"]:
+                raise SystemExit(_run_manage(args))
 
     raise SystemExit(_run_curses(args))
 

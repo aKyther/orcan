@@ -32,12 +32,13 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 
 | Command | Role |
 | --- | --- |
-| `orcan init` | No PATH: interactive config wizard (create/edit) + sync + show |
+| `orcan init` | No PATH: TUI to create/edit workspaces (default) + sync + show. `--cli`: old sequential prompt wizard instead |
 | `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
+| `orcan settings` | Edit tool settings (tmux windows/prefix, ttyd port/font) — separate from workspaces/projects |
 | `orcan context show` | List workspaces + path-parity summary |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
-| `orcan context tui` | TUI: scan a parent folder, multi-select repos, create/update a workspace; optional one branch → managed worktree per repo (`--sync`, `--yes`) |
+| `orcan context tui` | TUI: scan a parent folder, multi-select repos, create/update a workspace; optional one branch → managed worktree per repo (`--sync`, `--yes`). With an existing config it opens in **manage mode** instead — rename/move/delete existing workspaces and projects (`n` switches to the scan screen to add more); this is what `orcan init` runs by default |
 | `orcan context add --from-worktree REPO SELECTOR` | Add an existing git worktree (selector: branch, index, or path) |
 | `orcan context worktrees [REPO]` | List git worktrees (`git worktree list`) |
 | `orcan context worktree create …` | Create a worktree (managed under `$ORCAN_DATA/worktrees` when `--workspace` is set) and pin it |

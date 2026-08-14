@@ -17,10 +17,12 @@ Usage:
   orcan <command> [arguments]
 
 Commands:
-  init         No PATH: interactive config wizard (create/edit) + sync + show
+  init         No PATH: TUI to create/edit workspaces + sync + show
+               (--cli: old sequential prompt wizard instead)
                PATH: non-interactive scaffold (scripts/CI) + sync + show
   sync         Apply orcan.config.json → .env + mounts/* for Compose
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
+  settings     Edit tool settings (tmux, ttyd) — separate from workspaces
   up           Start browser terminal (--with-docker / --with-git)
   down         Stop containers
   build        Both agents → orcan:latest + orcan:<VERSION> (pull or build)
@@ -64,7 +66,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | context | up | down | build | pull | publish | url | logs | seed | update | doctor | uninstall | enter | go-in)
+        init | sync | context | settings | up | down | build | pull | publish | url | logs | seed | update | doctor | uninstall | enter | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;
