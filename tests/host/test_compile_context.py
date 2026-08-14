@@ -13,6 +13,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "repository"))
@@ -344,6 +345,86 @@ class CompileContextTests(unittest.TestCase):
         (self.meta_path / cc.OUTPUT_NAME).write_text("stale", encoding="utf-8")
         cc.compile_workspace(ws)
         self.assertFalse((self.meta_path / cc.OUTPUT_NAME).exists())
+
+
+class OverviewTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        self.data = self.root / "orcan-data"
+        os.environ["ORCAN_DATA"] = str(self.data)
+        self.addCleanup(os.environ.pop, "ORCAN_DATA", None)
+
+        self.backend = self.root / "projects" / "backend"
+        init_repo(self.backend)
+
+        self.meta_path = self.root / "meta" / "demo"
+        self.meta_path.mkdir(parents=True)
+
+        runtime = {
+            "workspaces": [
+                {
+                    "name": "demo",
+                    "meta_path": str(self.meta_path),
+                    "projects": [{"name": "backend", "path": str(self.backend)}],
+                    "enabled": True,
+                }
+            ]
+        }
+        (self.root / "mounts").mkdir()
+        (self.root / "mounts" / "runtime-config.json").write_text(
+            json.dumps(runtime, indent=2) + "\n", encoding="utf-8"
+        )
+
+    def test_shows_composition_and_zero_count(self) -> None:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cc.print_overview(self.root)
+        out = buf.getvalue()
+        self.assertIn("demo: backend@main", out)
+        self.assertIn("0 assertion(s)", out)
+
+    def test_reflects_accepted_count(self) -> None:
+        obj = ca.propose(self.backend, content="fact", justification="j")
+        ca.accept(self.backend, obj["id"])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cc.print_overview(self.root)
+        self.assertIn("1 assertion(s)", buf.getvalue())
+
+    def test_missing_runtime_config_says_so(self) -> None:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cc.print_overview(self.root / "nowhere")
+        self.assertIn("run: orcan sync", buf.getvalue())
+
+    def test_no_workspaces_configured(self) -> None:
+        (self.root / "mounts" / "runtime-config.json").write_text(
+            json.dumps({"workspaces": []}) + "\n", encoding="utf-8"
+        )
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cc.print_overview(self.root)
+        self.assertIn("no workspaces configured", buf.getvalue())
+
+    def test_workspace_with_no_projects(self) -> None:
+        (self.root / "mounts" / "runtime-config.json").write_text(
+            json.dumps({"workspaces": [{"name": "empty", "meta_path": str(self.meta_path), "projects": []}]})
+            + "\n",
+            encoding="utf-8",
+        )
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cc.print_overview(self.root)
+        self.assertIn("empty: (no projects)", buf.getvalue())
+
+    def test_main_dispatches_to_overview(self) -> None:
+        argv = ["compile_context.py", "--overview", str(self.root)]
+        buf = io.StringIO()
+        with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(buf):
+            cc.main()
+        self.assertIn("demo: backend@main", buf.getvalue())
 
 
 if __name__ == "__main__":
