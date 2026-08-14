@@ -792,7 +792,7 @@ def _run_curses(args: argparse.Namespace) -> int:
     def main_loop(stdscr: Any) -> int:
         nonlocal parent, workspace, use_worktree, branch, cursor, selected, message, repos, filter_text
         curses.curs_set(0)
-        _init_colors()
+        _init_curses_session()
 
         while True:
             draw(stdscr)
@@ -1152,7 +1152,7 @@ def _run_manage(args: argparse.Namespace) -> int:
 
     def main_loop(stdscr: Any) -> int:
         curses.curs_set(0)
-        _init_colors()
+        _init_curses_session()
 
         while True:
             current_rows = rows()
