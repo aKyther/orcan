@@ -1047,6 +1047,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/terminal-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guides/troubleshooting/" class="md-nav__link">
         
   
@@ -1876,7 +1904,7 @@
 </tr>
 <tr>
 <td><code>ttyd.*</code></td>
-<td>Browser terminal port, look, and <code>ping_interval</code> (WebSocket keepalive)</td>
+<td>Browser terminal port, look (<code>theme</code>: <code>dark</code>/<code>navy</code>, <code>mocha</code>, or raw JSON), and <code>ping_interval</code> (WebSocket keepalive)</td>
 </tr>
 <tr>
 <td><code>resources.*</code></td>
@@ -1908,6 +1936,10 @@
 <td>Add one project non-interactively</td>
 </tr>
 <tr>
+<td><code>orcan context tui</code></td>
+<td>TUI: parent folder → multi-select repos → workspace (+ optional shared-branch worktrees)</td>
+</tr>
+<tr>
 <td><code>orcan context add --from-worktree /abs/repo SELECTOR</code></td>
 <td>Add an existing git worktree</td>
 </tr>
@@ -1933,7 +1965,7 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
 </span></code></pre></div>
 <h2 id="what-orcan-sync-writes">What <code>orcan sync</code> writes<a class="headerlink" href="#what-orcan-sync-writes" title="Permanent link">&para;</a></h2>
-<p><code>orcan.config.json</code> is the story you edit (default under <code>~/.config/orcan/home/</code>). <strong><code>orcan sync</code></strong> is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.</p>
+<p><code>orcan.config.json</code> is the story you edit (default under <code>~/.config/orcan/</code>). <strong><code>orcan sync</code></strong> is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.</p>
 <table>
 <thead>
 <tr>
@@ -1947,19 +1979,23 @@
 <td>Compose and Make variables</td>
 </tr>
 <tr>
-<td><code>.orcan/runtime-config.json</code></td>
+<td><code>mounts/runtime-config.json</code></td>
 <td>Mounted into the container as <code>/etc/orcan/config.json</code></td>
 </tr>
 <tr>
-<td><code>.orcan/compose-projects.generated.yml</code></td>
+<td><code>mounts/compose-projects.generated.yml</code></td>
 <td>Extra bind mounts</td>
 </tr>
 <tr>
-<td><code>.orcan/compose-git.generated.yml</code></td>
+<td><code>mounts/compose-git.generated.yml</code></td>
 <td>Written by <code>orcan up --with-git</code> (SSH mounts)</td>
 </tr>
 <tr>
-<td><code>.orcan/workspaces/&lt;name&gt;/</code></td>
+<td><code>mounts/compose-network.generated.yml</code></td>
+<td>Written by <code>orcan up --with-network NAME</code> (join an existing Docker network)</td>
+</tr>
+<tr>
+<td><code>workspaces/&lt;name&gt;/</code></td>
 <td>Host-backed workspace meta</td>
 </tr>
 <tr>
@@ -1968,7 +2004,7 @@
 </tr>
 </tbody>
 </table>
-<p>Do not commit <code>.env</code> or <code>.orcan/</code> (gitignored).</p>
+<p>Do not commit <code>.env</code>, <code>mounts/</code>, or <code>workspaces/</code> (gitignored).</p>
 <h2 id="seed-into-git-checkouts-optional-rarely-needed">Seed into git checkouts (optional, rarely needed)<a class="headerlink" href="#seed-into-git-checkouts-optional-rarely-needed" title="Permanent link">&para;</a></h2>
 <p>The <strong>workspace</strong> already gets a context pack on container start (<code>AGENTS.md</code>, ignores, <code>.cursor/rules/</code>). You do <strong>not</strong> need <code>orcan seed</code> for that.</p>
 <p><code>orcan seed</code> only copies the same kind of files <strong>into each mounted git repo</strong>. Skip it unless you want those files inside the checkouts themselves (e.g. to commit them):</p>
@@ -1998,7 +2034,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 4, 2026 13:02:06 UTC">August 4, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2026 22:34:06 UTC">August 13, 2026</span>
   </span>
 
     
