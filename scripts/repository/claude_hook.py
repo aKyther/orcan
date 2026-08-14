@@ -64,14 +64,31 @@ def has_hook(settings: dict[str, Any]) -> bool:
 def backup(path: Path) -> None:
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     dest = path.with_name(f"{path.name}.bak.{stamp}")
-    dest.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+    try:
+        dest.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+    except OSError as exc:
+        die(
+            f"cannot back up {path}: {exc}\n"
+            f"This usually means {path} is owned by a different user than the one "
+            "running this command (e.g. it was created from inside the orcan "
+            f"container, which may run as a different UID) — check: ls -la {path}"
+        )
 
 
 def write_settings(path: Path, settings: dict[str, Any]) -> None:
     if path.exists():
         backup(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        die(
+            f"cannot write {path}: {exc}\n"
+            f"This usually means {path} (or its directory) is owned by a "
+            "different user than the one running this command (e.g. it was "
+            "created from inside the orcan container, which may run as a "
+            f"different UID) — check: ls -la {path}"
+        )
 
 
 def enable(target_dir: Path, *, dry_run: bool) -> str:
