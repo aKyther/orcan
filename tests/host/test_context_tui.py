@@ -185,6 +185,74 @@ class UpdateParentHistoryTests(unittest.TestCase):
             self.assertEqual(result[0]["path"], str(newest))
 
 
+class ExistingProjectNamesTests(unittest.TestCase):
+    def test_missing_config_is_empty(self) -> None:
+        self.assertEqual(_mod.existing_project_names(Path("/no/such/config.json"), "acme"), set())
+
+    def test_missing_workspace_is_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg_path = Path(tmp) / "orcan.config.json"
+            cfg_path.write_text(
+                json.dumps({"workspaces": [{"name": "other", "projects": []}]}),
+                encoding="utf-8",
+            )
+            self.assertEqual(_mod.existing_project_names(cfg_path, "acme"), set())
+
+    def test_returns_project_names_in_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg_path = Path(tmp) / "orcan.config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "workspaces": [
+                            {
+                                "name": "acme",
+                                "projects": [{"name": "api", "path": "/x"}, {"name": "web", "path": "/y"}],
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(_mod.existing_project_names(cfg_path, "acme"), {"api", "web"})
+
+
+class FindPathConflictsTests(unittest.TestCase):
+    def test_missing_config_is_empty(self) -> None:
+        self.assertEqual(_mod.find_path_conflicts(Path("/no/such/config.json"), [Path("/x")]), {})
+
+    def test_flags_path_used_in_another_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            api.mkdir()
+            cfg_path = root / "orcan.config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {"workspaces": [{"name": "other", "projects": [{"name": "api", "path": str(api)}]}]}
+                ),
+                encoding="utf-8",
+            )
+            result = _mod.find_path_conflicts(cfg_path, [api])
+            self.assertEqual(result, {str(api): "other"})
+
+    def test_unrelated_path_not_flagged(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            other = root / "other"
+            api.mkdir()
+            other.mkdir()
+            cfg_path = root / "orcan.config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {"workspaces": [{"name": "ws", "projects": [{"name": "api", "path": str(api)}]}]}
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(_mod.find_path_conflicts(cfg_path, [other]), {})
+
+
 class ApplySelectionTests(unittest.TestCase):
     def test_mount_as_is(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

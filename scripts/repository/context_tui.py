@@ -213,6 +213,47 @@ def default_workspace_name(parent: Path) -> str:
     return cleaned[:48] or "workspace"
 
 
+def existing_project_names(config_path: Path, workspace: str) -> set[str]:
+    """Project names already present in `workspace` within config_path (empty
+    if the config or workspace doesn't exist yet). Compares raw directory
+    names rather than safe_segment()'s sanitized form, so it can't itself
+    die() mid-prompt on an odd name — good enough for a pre-apply warning.
+    Pure/curses-free."""
+    if not config_path.is_file():
+        return set()
+    cfg = load_config(config_path)
+    ws = find_workspace(cfg, workspace)
+    if not ws:
+        return set()
+    return {
+        str(p.get("name"))
+        for p in ws.get("projects") or []
+        if isinstance(p, dict) and p.get("name")
+    }
+
+
+def find_path_conflicts(config_path: Path, paths: list[Path]) -> dict[str, str]:
+    """Map str(path) -> workspace name, for any of `paths` already configured
+    (under any name) in config_path — so mounting the same checkout into a
+    second workspace by accident gets flagged instead of happening silently.
+    Pure/curses-free."""
+    if not config_path.is_file():
+        return {}
+    cfg = load_config(config_path)
+    wanted = {str(p.resolve()) for p in paths}
+    out: dict[str, str] = {}
+    for ws in cfg.get("workspaces") or []:
+        if not isinstance(ws, dict):
+            continue
+        for p in ws.get("projects") or []:
+            if not isinstance(p, dict):
+                continue
+            path = str(p.get("path") or "")
+            if path in wanted:
+                out[path] = str(ws.get("name") or "")
+    return out
+
+
 def apply_selection(
     *,
     config_path: Path,
@@ -349,24 +390,57 @@ def apply_selection(
 # ── curses UI ────────────────────────────────────────────────────────────────
 
 def _prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
+    """Editable text prompt, pre-filled with `initial` and cursor at the end —
+    Left/Right/Home/End/Backspace/Delete work like a normal line editor, so
+    changing one character of a long path doesn't mean retyping it all.
+    Enter submits (empty submit keeps `initial`); Esc/Ctrl-C cancels (None)."""
     import curses
 
-    curses.echo()
     curses.curs_set(1)
+    buf = list(initial)
+    pos = len(buf)
     h, w = stdscr.getmaxyx()
-    stdscr.addnstr(h - 1, 0, " " * (w - 1), w - 1)
-    stdscr.addnstr(h - 1, 0, f"{label}: {initial}"[: w - 1], w - 1)
-    stdscr.move(h - 1, min(len(label) + 2, w - 2))
+    row = h - 1
+    field_col = min(len(label) + 2, w - 2)
+
     try:
-        raw = stdscr.getstr(h - 1, min(len(label) + 2, w - 2), max(8, w - len(label) - 4))
+        while True:
+            stdscr.addnstr(row, 0, " " * (w - 1), w - 1)
+            stdscr.addnstr(row, 0, f"{label}: {''.join(buf)}"[: w - 1], w - 1)
+            stdscr.move(row, min(field_col + pos, w - 1))
+            stdscr.refresh()
+            try:
+                key = stdscr.get_wch()
+            except curses.error:
+                continue
+
+            if key in ("\n", "\r", curses.KEY_ENTER, 10, 13):
+                text = "".join(buf).strip()
+                return text if text else initial
+            if key in (chr(27), 27):
+                return None
+            if key in ("\x7f", "\b", curses.KEY_BACKSPACE, 8):
+                if pos > 0:
+                    del buf[pos - 1]
+                    pos -= 1
+            elif key == curses.KEY_DC:
+                if pos < len(buf):
+                    del buf[pos]
+            elif key == curses.KEY_LEFT:
+                pos = max(0, pos - 1)
+            elif key == curses.KEY_RIGHT:
+                pos = min(len(buf), pos + 1)
+            elif key == curses.KEY_HOME:
+                pos = 0
+            elif key == curses.KEY_END:
+                pos = len(buf)
+            elif isinstance(key, str) and key.isprintable():
+                buf.insert(pos, key)
+                pos += 1
     except KeyboardInterrupt:
-        raw = b""
-    curses.noecho()
-    curses.curs_set(0)
-    if raw is None:
         return None
-    text = raw.decode("utf-8", errors="replace").strip()
-    return text if text else initial
+    finally:
+        curses.curs_set(0)
 
 
 def _confirm_line(stdscr: Any, label: str, *, default: bool = False) -> bool:
@@ -378,7 +452,8 @@ def _confirm_line(stdscr: Any, label: str, *, default: bool = False) -> bool:
 
 def _browse_dir(stdscr: Any, start: Path) -> Path | None:
     """Arrow-navigate directories: Enter opens '..'/a subfolder, s selects the
-    current one, / falls back to typing a path. Returns None on cancel."""
+    current one, f filters entries by name, / falls back to typing a path
+    outright. Returns None on cancel."""
     import curses
 
     current = start.expanduser()
@@ -388,9 +463,13 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
     cursor = 0
     scroll = 0
     message = ""
+    filter_text = ""
 
     while True:
         entries = list_subdirs(current)
+        if filter_text:
+            ft = filter_text.lower()
+            entries = [p for p in entries if ft in p.name.lower()]
         names = [".. (up)"] + [p.name for p in entries]
         cursor = max(0, min(cursor, len(names) - 1))
 
@@ -400,9 +479,11 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
         stdscr.addnstr(1, 0, f" {current}"[: w - 1], w - 1, curses.A_BOLD)
         stdscr.addnstr(
             2, 0,
-            " Up/Down move · Enter open · s select this dir · / type path · q cancel"[: w - 1],
+            " Up/Down move · Enter open · s select this dir · f filter · / type path · q cancel"[: w - 1],
             w - 1, curses.A_DIM,
         )
+        if filter_text:
+            stdscr.addnstr(3, 0, f" filter: {filter_text}  (f to edit, empty to clear)"[: w - 1], w - 1, curses.A_DIM)
 
         list_top = 4
         list_h = max(1, h - list_top - 2)
@@ -431,6 +512,10 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
             cursor = min(len(names) - 1, cursor + 1)
         elif key == ord("s"):
             return current
+        elif key == ord("f"):
+            typed = _prompt_line(stdscr, "Filter (empty to clear)", filter_text)
+            filter_text = (typed or "").strip()
+            cursor = 0
         elif key == ord("/"):
             typed = _prompt_line(stdscr, "Parent directory", str(current))
             if typed:
@@ -438,6 +523,7 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
                 if candidate.is_dir():
                     current = candidate.resolve()
                     cursor = 0
+                    filter_text = ""
                 else:
                     message = f"not a directory: {candidate}"
         elif key in (curses.KEY_ENTER, 10, 13):
@@ -446,6 +532,7 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
             else:
                 current = entries[cursor - 1]
             cursor = 0
+            filter_text = ""
 
 
 def _pick_from_history(stdscr: Any, items: list[tuple[str, str]]) -> str | None:
@@ -527,6 +614,8 @@ def _run_curses(args: argparse.Namespace) -> int:
     selected: set[Path] = set()
     message = ""
     scroll = 0
+    filter_text = ""
+    config_path = resolve_config(args.config)
 
     def refresh_repos() -> list[tuple[Path, bool]]:
         nonlocal message
@@ -539,6 +628,12 @@ def _run_curses(args: argparse.Namespace) -> int:
         except SystemExit as exc:
             message = str(exc.args[0]) if exc.args else "scan failed"
             return []
+
+    def visible_repos() -> list[tuple[Path, bool]]:
+        if not filter_text:
+            return repos
+        ft = filter_text.lower()
+        return [entry for entry in repos if ft in entry[0].name.lower()]
 
     repos = refresh_repos()
     if args.select:
@@ -564,12 +659,15 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             3,
             0,
-            " Space toggle · a/A all/none · e browse dir · h history · w name · t worktree · b branch · Enter apply · q quit"
+            " Space toggle · a/A all/none · / filter · e browse dir · h history · w name · t worktree · b branch · Enter apply · q quit"
             [: w - 1],
             w - 1,
             curses.A_DIM,
         )
+        if filter_text:
+            stdscr.addnstr(4, 0, f" filter: {filter_text}  (/ to edit, empty to clear)"[: w - 1], w - 1, curses.A_DIM)
 
+        view = visible_repos()
         list_top = 5
         list_h = max(1, h - list_top - 2)
         if cursor < scroll:
@@ -577,14 +675,15 @@ def _run_curses(args: argparse.Namespace) -> int:
         if cursor >= scroll + list_h:
             scroll = cursor - list_h + 1
 
-        if not repos:
-            stdscr.addnstr(list_top, 0, "  (nothing found — press e to browse to another folder)"[: w - 1], w - 1)
+        if not view:
+            hint = "no matches — / to change filter" if filter_text else "nothing found — press e to browse to another folder"
+            stdscr.addnstr(list_top, 0, f"  ({hint})"[: w - 1], w - 1)
         else:
             for i in range(list_h):
                 idx = scroll + i
-                if idx >= len(repos):
+                if idx >= len(view):
                     break
-                repo, is_git = repos[idx]
+                repo, is_git = view[idx]
                 mark = "[x]" if repo in selected else "[ ]"
                 tag = "" if is_git else "  (no git — mount only)"
                 line = f" {mark} {repo.name}{tag}  {repo}"
@@ -598,7 +697,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.refresh()
 
     def main_loop(stdscr: Any) -> int:
-        nonlocal parent, workspace, use_worktree, branch, cursor, selected, message, repos
+        nonlocal parent, workspace, use_worktree, branch, cursor, selected, message, repos, filter_text
         curses.curs_set(0)
         if curses.has_colors():
             curses.start_color()
@@ -606,24 +705,29 @@ def _run_curses(args: argparse.Namespace) -> int:
 
         while True:
             draw(stdscr)
+            view = visible_repos()
             key = stdscr.getch()
             if key in (ord("q"), 27):
                 return 1
             if key in (curses.KEY_UP, ord("k")):
                 cursor = max(0, cursor - 1)
             elif key in (curses.KEY_DOWN, ord("j")):
-                cursor = min(max(0, len(repos) - 1), cursor + 1)
+                cursor = min(max(0, len(view) - 1), cursor + 1)
             elif key == ord(" "):
-                if repos:
-                    r, _is_git = repos[cursor]
+                if view:
+                    r, _is_git = view[min(cursor, len(view) - 1)]
                     if r in selected:
                         selected.discard(r)
                     else:
                         selected.add(r)
             elif key == ord("a"):
-                selected = {p for p, _ in repos}
+                selected |= {p for p, _ in view}
             elif key == ord("A"):
                 selected = set()
+            elif key == ord("/"):
+                typed = _prompt_line(stdscr, "Filter (empty to clear)", filter_text)
+                filter_text = (typed or "").strip()
+                cursor = 0
             elif key == ord("e"):
                 chosen_dir = _browse_dir(stdscr, parent)
                 if chosen_dir is not None:
@@ -631,6 +735,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                     repos = refresh_repos()
                     selected &= {p for p, _ in repos}
                     cursor = 0
+                    filter_text = ""
                     if not workspace or workspace == default_workspace_name(Path(".")):
                         workspace = default_workspace_name(parent)
             elif key == ord("h"):
@@ -656,6 +761,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                         repos = refresh_repos()
                         selected &= {p for p, _ in repos}
                         cursor = 0
+                        filter_text = ""
                         if not workspace or workspace == default_workspace_name(Path(".")):
                             workspace = default_workspace_name(parent)
             elif key == ord("w"):
@@ -676,6 +782,28 @@ def _run_curses(args: argparse.Namespace) -> int:
                 if use_worktree and not branch.strip():
                     message = "branch required when worktrees are on (press b)"
                     continue
+                conflicts = existing_project_names(config_path, workspace) & {p.name for p in selected}
+                if conflicts and not _confirm_line(
+                    stdscr,
+                    f"{len(conflicts)} project(s) already in {workspace!r} "
+                    f"({', '.join(sorted(conflicts))}) — replace?",
+                ):
+                    message = "apply cancelled (name conflict)"
+                    continue
+                if conflicts:
+                    args.force = True
+                cross = {
+                    path: ws_name
+                    for path, ws_name in find_path_conflicts(config_path, list(selected)).items()
+                    if ws_name != workspace
+                }
+                if cross and not _confirm_line(
+                    stdscr,
+                    f"{len(cross)} path(s) already used in other workspace(s) "
+                    f"({', '.join(sorted(set(cross.values())))}) — mount anyway?",
+                ):
+                    message = "apply cancelled (already used elsewhere)"
+                    continue
                 # Leave curses before applying (git output).
                 return 0
         return 1
@@ -695,7 +823,6 @@ def _run_curses(args: argparse.Namespace) -> int:
             "parent_history": update_parent_history(state.get("parent_history") or [], parent),
         }
     )
-    config_path = resolve_config(args.config)
     if use_worktree:
         git_chosen = [p for p in chosen if is_git_repo(p)]
         plain_chosen = [p for p in chosen if not is_git_repo(p)]
