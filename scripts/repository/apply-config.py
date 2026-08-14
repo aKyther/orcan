@@ -711,11 +711,22 @@ def main() -> None:
         if ws.get("enabled") is False:
             continue
         meta_path = Path(ws["meta_path"])
-        if not claude_hook.settings_path(meta_path).exists():
+        settings_path = claude_hook.settings_path(meta_path)
+        if not settings_path.exists():
             claude_hook.enable(meta_path, dry_run=False)
             print(
                 f"context: Stop hook enabled by default for workspace {ws['name']!r} "
                 f"(disable: orcan context hook disable {ws['name']})"
+            )
+        elif not claude_hook.has_hook(claude_hook.load_settings(settings_path)):
+            # Either the user ran `orcan context hook disable`, or something
+            # else created settings.json before this seed step ever ran for
+            # this workspace (e.g. a pre-existing workspace from before this
+            # default existed) — either way, say so instead of staying quiet,
+            # since the two cases are indistinguishable from here.
+            print(
+                f"context: Stop hook not active for workspace {ws['name']!r} "
+                f"({settings_path} exists without it — enable: orcan context hook enable {ws['name']})"
             )
 
     primary_ws = built["primary_workspace"]
