@@ -84,12 +84,38 @@ orcan_cmd_doctor() {
             status --all --home "${ORCAN_HOME}" 2>/dev/null)"
         if [[ -n "${hook_lines}" ]]; then
             while IFS= read -r line; do
-                local hook_status ws_name
+                local hook_status ws_name ws_meta reflection_state last_error
                 hook_status="$(awk '{print $1}' <<<"${line}")"
                 ws_name="$(awk '{print $2}' <<<"${line}")"
+                ws_meta="$(awk '{print $3}' <<<"${line}")"
                 [[ -z "${ws_name}" ]] && continue
                 if [[ "${hook_status}" == "enabled" ]]; then
-                    check "context hook: ${ws_name}" "1"
+                    # A hook that's on but silently failing every reflection
+                    # (model call erroring/timing out) looks identical to a
+                    # healthy one otherwise — it's an async Stop hook, so its
+                    # stderr is never seen. Surface the last recorded failure.
+                    reflection_state="${ws_meta}/.orcan/reflection-state.json"
+                    last_error=""
+                    if [[ -f "${reflection_state}" ]]; then
+                        last_error="$(python3 -c '
+import json, sys
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    sys.exit(0)
+errs = sorted(
+    (v.get("last_error_at", ""), v.get("last_error", ""))
+    for v in data.values() if isinstance(v, dict) and v.get("last_error")
+)
+if errs:
+    print(errs[-1][1][:120])
+' "${reflection_state}" 2>/dev/null)"
+                    fi
+                    if [[ -n "${last_error}" ]]; then
+                        check "context hook: ${ws_name}" "0" "last reflection failed: ${last_error}"
+                    else
+                        check "context hook: ${ws_name}" "1"
+                    fi
                 else
                     # Informational, not a failure: this is also the steady
                     # state after a deliberate `orcan context hook disable`,

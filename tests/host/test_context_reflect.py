@@ -285,6 +285,51 @@ class MainThresholdTests(unittest.TestCase):
         claude_calls = [c for c in calls if c and c[0] == "claude"]
         self.assertEqual(len(claude_calls), 1)
 
+    def test_model_call_exception_records_last_error(self) -> None:
+        def fake_run(args, **kwargs):
+            if args and args[0] == "claude":
+                raise subprocess.TimeoutExpired(cmd=args, timeout=120)
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+
+        self._run_main(threshold=20, force=True, model_run=fake_run)
+        state = reflect.load_state(self.workspace_root / ".orcan" / reflect.STATE_NAME)
+        self.assertIn("model call failed", state["sess1"]["last_error"])
+        self.assertIn("last_error_at", state["sess1"])
+
+    def test_model_nonzero_exit_records_last_error(self) -> None:
+        def fake_run(args, **kwargs):
+            if args and args[0] == "claude":
+                return subprocess.CompletedProcess(args=args, returncode=1, stdout="", stderr="boom")
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+
+        self._run_main(threshold=20, force=True, model_run=fake_run)
+        state = reflect.load_state(self.workspace_root / ".orcan" / reflect.STATE_NAME)
+        self.assertIn("model call exited 1", state["sess1"]["last_error"])
+        self.assertIn("boom", state["sess1"]["last_error"])
+
+    def test_successful_reflection_clears_previous_error(self) -> None:
+        def failing_run(args, **kwargs):
+            if args and args[0] == "claude":
+                return subprocess.CompletedProcess(args=args, returncode=1, stdout="", stderr="boom")
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+
+        self._run_main(threshold=20, force=True, model_run=failing_run)
+        state = reflect.load_state(self.workspace_root / ".orcan" / reflect.STATE_NAME)
+        self.assertIn("last_error", state["sess1"])
+
+        # New transcript activity so the second call has something to reflect on.
+        self.transcript.write_text("l1\nl2\nl3\nl4\nl5\n", encoding="utf-8")
+
+        def ok_run(args, **kwargs):
+            if args and args[0] == "claude":
+                return _fake_claude_result([])
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+
+        self._run_main(threshold=20, force=True, model_run=ok_run)
+        state = reflect.load_state(self.workspace_root / ".orcan" / reflect.STATE_NAME)
+        self.assertNotIn("last_error", state["sess1"])
+        self.assertNotIn("last_error_at", state["sess1"])
+
 
 if __name__ == "__main__":
     unittest.main()

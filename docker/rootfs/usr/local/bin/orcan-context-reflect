@@ -32,6 +32,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, "/usr/local/lib")
@@ -91,6 +92,24 @@ def load_state(path: Path) -> dict:
 def save_state(path: Path, state: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+
+def record_error(path: Path, state: dict, session_id: str, message: str) -> None:
+    """Persist the last reflection failure so it's visible (e.g. via `orcan
+    doctor`) instead of vanishing into an async hook's unread stderr."""
+    state[session_id]["last_error"] = message
+    state[session_id]["last_error_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    save_state(path, state)
+
+
+def clear_error(path: Path, state: dict, session_id: str) -> None:
+    session_state = state.get(session_id)
+    if not session_state:
+        return
+    if "last_error" in session_state or "last_error_at" in session_state:
+        session_state.pop("last_error", None)
+        session_state.pop("last_error_at", None)
+        save_state(path, state)
 
 
 def read_new_lines(transcript_path: Path, from_line: int) -> tuple[list[str], int]:
@@ -280,11 +299,15 @@ def main() -> int:
             timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        warn(f"reflection model call failed: {exc}")
+        msg = f"model call failed: {exc}"
+        warn(f"reflection {msg}")
+        record_error(state_path, state, session_id, msg)
         return 0
 
     if result.returncode != 0:
-        warn(f"reflection model call exited {result.returncode}: {result.stderr.strip()[:200]}")
+        msg = f"model call exited {result.returncode}: {result.stderr.strip()[:200]}"
+        warn(f"reflection {msg}")
+        record_error(state_path, state, session_id, msg)
         return 0
 
     actions = extract_json_array(result.stdout)
@@ -292,6 +315,7 @@ def main() -> int:
         if isinstance(action, dict):
             dispatch(action, workspace_root=workspace_root, project=project)
 
+    clear_error(state_path, state, session_id)
     return 0
 
 
