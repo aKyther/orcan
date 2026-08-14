@@ -18,6 +18,7 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -30,11 +31,20 @@ from config_io import (  # noqa: E402
     dump_config,
     load_config,
 )
-from git_worktrees import is_git_repo, safe_segment  # noqa: E402
+from git_worktrees import (  # noqa: E402
+    is_git_repo,
+    is_under_managed_root,
+    load_manifest,
+    manifest_remove,
+    remove_worktree,
+    safe_segment,
+)
 from managed_workspace import create_managed_workspace, find_workspace  # noqa: E402
 
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$")
 STATE_NAME = "context-tui-state.json"
+HISTORY_LIMIT = 8
+HISTORY_TTL_DAYS = 3.0
 
 
 def die(msg: str) -> None:
@@ -67,13 +77,16 @@ def save_state(data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def scan_repos(parent: Path, *, max_depth: int = 2) -> list[Path]:
-    """Find git repos under parent (depth 1 = children, 2 = grandchildren)."""
+def scan_dirs(parent: Path, *, max_depth: int = 2) -> list[tuple[Path, bool]]:
+    """Find git repos AND plain directories under parent (depth 1 = children,
+    2 = grandchildren of non-repo children). Each entry is (path, is_git) —
+    plain dirs are still selectable (mount as-is only; no managed worktree,
+    since that needs a git repo to branch from)."""
     parent = parent.expanduser().resolve()
     if not parent.is_dir():
         die(f"not a directory: {parent}")
 
-    found: list[Path] = []
+    found: list[tuple[Path, bool]] = []
     seen: set[Path] = set()
 
     def consider(path: Path) -> None:
@@ -83,12 +96,12 @@ def scan_repos(parent: Path, *, max_depth: int = 2) -> list[Path]:
             return
         if resolved in seen or not resolved.is_dir():
             return
-        if is_git_repo(resolved):
-            seen.add(resolved)
-            found.append(resolved)
+        seen.add(resolved)
+        found.append((resolved, is_git_repo(resolved)))
 
     # Parent itself may be a monorepo root
-    consider(parent)
+    if is_git_repo(parent):
+        consider(parent)
 
     try:
         children = sorted(
@@ -114,15 +127,31 @@ def scan_repos(parent: Path, *, max_depth: int = 2) -> list[Path]:
         for g in grand:
             consider(g)
 
-    # Prefer nested repos over listing the parent when parent is not the only hit
-    if len(found) > 1 and parent.resolve() in found and is_git_repo(parent):
+    # Prefer nested repos over listing the parent when parent is not the only git hit
+    git_hits = [p for p, is_git in found if is_git]
+    if len(git_hits) > 1 and parent in git_hits:
         # Keep parent only if it is the sole repo; else drop it so multi-project
         # folders (many child repos) stay the focus.
-        only_children = [p for p in found if p != parent.resolve()]
-        if only_children:
-            found = only_children
+        found = [entry for entry in found if entry[0] != parent]
 
     return found
+
+
+def scan_repos(parent: Path, *, max_depth: int = 2) -> list[Path]:
+    """Git repos only under parent — thin filter over scan_dirs(), kept for
+    the --yes/--select non-interactive path."""
+    return [p for p, is_git in scan_dirs(parent, max_depth=max_depth) if is_git]
+
+
+def list_subdirs(path: Path) -> list[Path]:
+    """Direct, non-hidden subdirectories of path, sorted by name. Empty on error."""
+    try:
+        return sorted(
+            (p for p in path.iterdir() if p.is_dir() and not p.name.startswith(".")),
+            key=lambda p: p.name.lower(),
+        )
+    except OSError:
+        return []
 
 
 def resolve_config(path: str) -> Path:
@@ -132,6 +161,48 @@ def resolve_config(path: str) -> Path:
             p = (ROOT / p).resolve()
         return p
     return discover_config(ROOT) or default_write_path(ROOT)
+
+
+def _humanize(seconds: float) -> str:
+    """Coarse duration like '5m', '3h', '2d' — used for history age/TTL display."""
+    seconds = max(0, int(seconds))
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes}m"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours}h"
+    return f"{hours // 24}d"
+
+
+def update_parent_history(
+    existing: list[Any],
+    parent: Path,
+    *,
+    limit: int = HISTORY_LIMIT,
+    ttl_days: float = HISTORY_TTL_DAYS,
+    now: float | None = None,
+) -> list[dict[str, Any]]:
+    """Move parent to the front of history with a fresh timestamp, dropping
+    duplicates, dirs that no longer exist, and entries past the TTL — so an
+    unused dir quietly falls out instead of accumulating forever.
+    Pure/curses-free so it's directly unit-testable."""
+    now = time.time() if now is None else now
+    cutoff = now - ttl_days * 86400
+    p = str(parent)
+    kept: list[dict[str, Any]] = []
+    for h in existing:
+        if not isinstance(h, dict):
+            continue
+        path, ts = h.get("path"), h.get("ts")
+        if not isinstance(path, str) or not isinstance(ts, (int, float)):
+            continue
+        if path == p or ts < cutoff or not Path(path).is_dir():
+            continue
+        kept.append({"path": path, "ts": ts})
+    return [{"path": p, "ts": now}] + kept[: max(0, limit - 1)]
 
 
 def default_workspace_name(parent: Path) -> str:
@@ -305,6 +376,119 @@ def _confirm_line(stdscr: Any, label: str, *, default: bool = False) -> bool:
     return raw.strip().lower() in ("y", "yes")
 
 
+def _browse_dir(stdscr: Any, start: Path) -> Path | None:
+    """Arrow-navigate directories: Enter opens '..'/a subfolder, s selects the
+    current one, / falls back to typing a path. Returns None on cancel."""
+    import curses
+
+    current = start.expanduser()
+    if not current.is_dir():
+        current = Path.home()
+    current = current.resolve()
+    cursor = 0
+    scroll = 0
+    message = ""
+
+    while True:
+        entries = list_subdirs(current)
+        names = [".. (up)"] + [p.name for p in entries]
+        cursor = max(0, min(cursor, len(names) - 1))
+
+        stdscr.erase()
+        h, w = stdscr.getmaxyx()
+        stdscr.addnstr(0, 0, " choose parent directory ".ljust(w), w, curses.A_REVERSE)
+        stdscr.addnstr(1, 0, f" {current}"[: w - 1], w - 1, curses.A_BOLD)
+        stdscr.addnstr(
+            2, 0,
+            " Up/Down move · Enter open · s select this dir · / type path · q cancel"[: w - 1],
+            w - 1, curses.A_DIM,
+        )
+
+        list_top = 4
+        list_h = max(1, h - list_top - 2)
+        if cursor < scroll:
+            scroll = cursor
+        if cursor >= scroll + list_h:
+            scroll = cursor - list_h + 1
+        for i in range(list_h):
+            idx = scroll + i
+            if idx >= len(names):
+                break
+            attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
+            stdscr.addnstr(list_top + i, 0, f" {names[idx]}"[: w - 1], w - 1, attr)
+
+        footer = message or "s to pick this folder"
+        stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
+        stdscr.refresh()
+        message = ""
+
+        key = stdscr.getch()
+        if key in (ord("q"), 27):
+            return None
+        if key in (curses.KEY_UP, ord("k")):
+            cursor = max(0, cursor - 1)
+        elif key in (curses.KEY_DOWN, ord("j")):
+            cursor = min(len(names) - 1, cursor + 1)
+        elif key == ord("s"):
+            return current
+        elif key == ord("/"):
+            typed = _prompt_line(stdscr, "Parent directory", str(current))
+            if typed:
+                candidate = Path(typed).expanduser()
+                if candidate.is_dir():
+                    current = candidate.resolve()
+                    cursor = 0
+                else:
+                    message = f"not a directory: {candidate}"
+        elif key in (curses.KEY_ENTER, 10, 13):
+            if cursor == 0:
+                current = current.parent
+            else:
+                current = entries[cursor - 1]
+            cursor = 0
+
+
+def _pick_from_history(stdscr: Any, items: list[tuple[str, str]]) -> str | None:
+    """Small list picker for jumping straight to a recently used parent dir.
+    items are (path, age/ttl label) pairs, newest first."""
+    import curses
+
+    cursor = 0
+    scroll = 0
+    while True:
+        stdscr.erase()
+        h, w = stdscr.getmaxyx()
+        stdscr.addnstr(0, 0, " recent parent directories ".ljust(w), w, curses.A_REVERSE)
+        stdscr.addnstr(
+            1, 0, " Up/Down move · Enter select · q cancel"[: w - 1], w - 1, curses.A_DIM
+        )
+        list_top = 3
+        list_h = max(1, h - list_top - 1)
+        if cursor < scroll:
+            scroll = cursor
+        if cursor >= scroll + list_h:
+            scroll = cursor - list_h + 1
+        for i in range(list_h):
+            idx = scroll + i
+            if idx >= len(items):
+                break
+            path, label = items[idx]
+            line = f" {path}  ({label})"
+            attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
+            stdscr.addnstr(list_top + i, 0, line[: w - 1], w - 1, attr)
+        stdscr.refresh()
+
+        key = stdscr.getch()
+        if key in (ord("q"), 27):
+            return None
+        if key in (curses.KEY_UP, ord("k")):
+            cursor = max(0, cursor - 1)
+        elif key in (curses.KEY_DOWN, ord("j")):
+            cursor = min(len(items) - 1, cursor + 1)
+        elif key in (curses.KEY_ENTER, 10, 13):
+            return items[cursor][0]
+
+
 def _validate_manage_path(path_str: str) -> tuple[str | None, Path | None]:
     path_str = path_str.strip()
     if not path_str:
@@ -344,12 +528,14 @@ def _run_curses(args: argparse.Namespace) -> int:
     message = ""
     scroll = 0
 
-    def refresh_repos() -> list[Path]:
+    def refresh_repos() -> list[tuple[Path, bool]]:
         nonlocal message
         try:
-            repos_local = scan_repos(parent, max_depth=depth)
-            message = f"{len(repos_local)} repo(s) under {parent}"
-            return repos_local
+            entries = scan_dirs(parent, max_depth=depth)
+            n_git = sum(1 for _, is_git in entries if is_git)
+            n_plain = len(entries) - n_git
+            message = f"{n_git} repo(s), {n_plain} plain dir(s) under {parent}"
+            return entries
         except SystemExit as exc:
             message = str(exc.args[0]) if exc.args else "scan failed"
             return []
@@ -357,7 +543,7 @@ def _run_curses(args: argparse.Namespace) -> int:
     repos = refresh_repos()
     if args.select:
         wanted = {s.strip() for s in args.select.split(",") if s.strip()}
-        for r in repos:
+        for r, _is_git in repos:
             if r.name in wanted or str(r) in wanted:
                 selected.add(r)
 
@@ -378,7 +564,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             3,
             0,
-            " Space toggle · a/A all/none · e path · w name · t worktree · b branch · Enter apply · q quit"
+            " Space toggle · a/A all/none · e browse dir · h history · w name · t worktree · b branch · Enter apply · q quit"
             [: w - 1],
             w - 1,
             curses.A_DIM,
@@ -392,15 +578,16 @@ def _run_curses(args: argparse.Namespace) -> int:
             scroll = cursor - list_h + 1
 
         if not repos:
-            stdscr.addnstr(list_top, 0, "  (no git repos found — press e to change path)"[: w - 1], w - 1)
+            stdscr.addnstr(list_top, 0, "  (nothing found — press e to browse to another folder)"[: w - 1], w - 1)
         else:
             for i in range(list_h):
                 idx = scroll + i
                 if idx >= len(repos):
                     break
-                repo = repos[idx]
+                repo, is_git = repos[idx]
                 mark = "[x]" if repo in selected else "[ ]"
-                line = f" {mark} {repo.name}  {repo}"
+                tag = "" if is_git else "  (no git — mount only)"
+                line = f" {mark} {repo.name}{tag}  {repo}"
                 attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
                 if repo in selected and idx != cursor:
                     attr |= curses.A_BOLD
@@ -428,28 +615,49 @@ def _run_curses(args: argparse.Namespace) -> int:
                 cursor = min(max(0, len(repos) - 1), cursor + 1)
             elif key == ord(" "):
                 if repos:
-                    r = repos[cursor]
+                    r, _is_git = repos[cursor]
                     if r in selected:
                         selected.discard(r)
                     else:
                         selected.add(r)
             elif key == ord("a"):
-                selected = set(repos)
+                selected = {p for p, _ in repos}
             elif key == ord("A"):
                 selected = set()
             elif key == ord("e"):
-                new_path = _prompt_line(stdscr, "Parent directory", str(parent))
-                if new_path:
-                    candidate = Path(new_path).expanduser()
-                    if candidate.is_dir():
-                        parent = candidate.resolve()
+                chosen_dir = _browse_dir(stdscr, parent)
+                if chosen_dir is not None:
+                    parent = chosen_dir
+                    repos = refresh_repos()
+                    selected &= {p for p, _ in repos}
+                    cursor = 0
+                    if not workspace or workspace == default_workspace_name(Path(".")):
+                        workspace = default_workspace_name(parent)
+            elif key == ord("h"):
+                now = time.time()
+                hist: list[tuple[str, str]] = []
+                for h in state.get("parent_history") or []:
+                    if not isinstance(h, dict):
+                        continue
+                    path, ts = h.get("path"), h.get("ts")
+                    if not isinstance(path, str) or not isinstance(ts, (int, float)):
+                        continue
+                    age = now - ts
+                    if path == str(parent) or age > HISTORY_TTL_DAYS * 86400 or not Path(path).is_dir():
+                        continue
+                    remaining = HISTORY_TTL_DAYS * 86400 - age
+                    hist.append((path, f"{_humanize(age)} ago · expires in {_humanize(remaining)}"))
+                if not hist:
+                    message = "no history yet"
+                else:
+                    picked = _pick_from_history(stdscr, hist)
+                    if picked:
+                        parent = Path(picked).resolve()
                         repos = refresh_repos()
-                        selected &= set(repos)
+                        selected &= {p for p, _ in repos}
                         cursor = 0
                         if not workspace or workspace == default_workspace_name(Path(".")):
                             workspace = default_workspace_name(parent)
-                    else:
-                        message = f"not a directory: {candidate}"
             elif key == ord("w"):
                 workspace = _prompt_line(stdscr, "Workspace name", workspace) or workspace
             elif key == ord("t"):
@@ -484,17 +692,46 @@ def _run_curses(args: argparse.Namespace) -> int:
             "last_workspace": workspace,
             "last_branch": branch,
             "last_use_worktree": use_worktree,
+            "parent_history": update_parent_history(state.get("parent_history") or [], parent),
         }
     )
     config_path = resolve_config(args.config)
-    apply_selection(
-        config_path=config_path,
-        workspace=workspace,
-        repos=chosen,
-        branch=branch if use_worktree else None,
-        force=bool(args.force),
-        start_point=args.start_point,
-    )
+    if use_worktree:
+        git_chosen = [p for p in chosen if is_git_repo(p)]
+        plain_chosen = [p for p in chosen if not is_git_repo(p)]
+        if git_chosen:
+            apply_selection(
+                config_path=config_path,
+                workspace=workspace,
+                repos=git_chosen,
+                branch=branch,
+                force=bool(args.force),
+                start_point=args.start_point,
+            )
+        if plain_chosen:
+            apply_selection(
+                config_path=config_path,
+                workspace=workspace,
+                repos=plain_chosen,
+                branch=None,
+                force=bool(args.force),
+                start_point=args.start_point,
+            )
+            names = ", ".join(p.name for p in plain_chosen)
+            info(
+                f"note: {len(plain_chosen)} selected path(s) are not git repos "
+                f"({names}) — mounted as-is, no worktree/branch isolation. "
+                "Edits there go straight to the shared directory; be careful."
+            )
+    else:
+        apply_selection(
+            config_path=config_path,
+            workspace=workspace,
+            repos=chosen,
+            branch=None,
+            force=bool(args.force),
+            start_point=args.start_point,
+        )
     if args.sync:
         return _run_sync()
     info("Run: orcan sync && orcan down && orcan up")
@@ -555,6 +792,16 @@ def manage_delete_workspace(workspaces: list[Any], wi: int) -> dict[str, Any]:
     return workspaces.pop(wi)
 
 
+def managed_projects(ws: dict[str, Any]) -> list[dict[str, Any]]:
+    """Projects in ws whose path lives under the managed worktree root
+    (i.e. was created via --branch / managed_workspace.create). Pure/curses-free."""
+    out = []
+    for p in ws.get("projects") or []:
+        if isinstance(p, dict) and p.get("path") and is_under_managed_root(Path(str(p["path"]))):
+            out.append(p)
+    return out
+
+
 def _run_manage(args: argparse.Namespace) -> int:
     """Curses screen for editing an existing orcan.config.json: rename /
     change path / delete projects and workspaces, without walking every
@@ -585,7 +832,7 @@ def _run_manage(args: argparse.Namespace) -> int:
             2,
             0,
             (
-                " j/k move · Enter/r rename · p path · d delete project · "
+                " j/k move · Enter/r rename · p path · a add project · d delete project · "
                 "W delete workspace · n new (scan folder) · s save · q quit"
             )[: w - 1],
             w - 1,
@@ -716,14 +963,67 @@ def _run_manage(args: argparse.Namespace) -> int:
                 else:
                     proj = (ws.get("projects") or [])[pi]
                     if _confirm_line(stdscr, f"Delete project {proj.get('name')!r}?"):
+                        path = Path(str(proj.get("path") or ""))
+                        is_managed = str(proj.get("path") or "") and is_under_managed_root(path)
+                        remove_wt = is_managed and _confirm_line(
+                            stdscr, "Also remove its managed worktree from disk (git worktree remove)?"
+                        )
                         deleted = manage_delete_project(ws, pi)
                         state["dirty"] = True
-                        state["message"] = f"deleted {deleted.get('name')}"
+                        if remove_wt:
+                            try:
+                                if path.exists():
+                                    remove_worktree(path, force=True, allow_unmanaged=False)
+                                manifest_remove(workspace=str(ws.get("name") or ""), project=str(deleted.get("name") or ""))
+                                state["message"] = f"deleted {deleted.get('name')} + worktree"
+                            except SystemExit as exc:
+                                state["message"] = f"deleted from config; worktree removal failed: {exc}"
+                        else:
+                            state["message"] = f"deleted {deleted.get('name')}"
             elif key == ord("W"):
                 if _confirm_line(stdscr, f"Delete whole workspace {ws.get('name')!r}?"):
+                    managed = managed_projects(ws)
+                    remove_wt = managed and _confirm_line(
+                        stdscr, f"Also remove {len(managed)} managed worktree(s) from disk?"
+                    )
                     deleted = manage_delete_workspace(workspaces, wi)
                     state["dirty"] = True
-                    state["message"] = f"deleted workspace {deleted.get('name')}"
+                    if remove_wt:
+                        failures = []
+                        for p in managed:
+                            path = Path(str(p["path"]))
+                            try:
+                                if path.exists():
+                                    remove_worktree(path, force=True, allow_unmanaged=False)
+                            except SystemExit as exc:
+                                failures.append(f"{p.get('name')}: {exc}")
+                        manifest_remove(workspace=str(deleted.get("name") or ""))
+                        if failures:
+                            state["message"] = f"deleted workspace {deleted.get('name')}; worktree removal failed: {'; '.join(failures)}"
+                        else:
+                            state["message"] = f"deleted workspace {deleted.get('name')} + {len(managed)} worktree(s)"
+                    else:
+                        state["message"] = f"deleted workspace {deleted.get('name')}"
+            elif key == ord("a"):
+                # Jump to the scan screen pre-loaded for THIS workspace: same
+                # name (so picks append instead of creating a new workspace),
+                # starting dir next to an existing project, and the same
+                # managed-worktree branch if this workspace uses worktrees.
+                ws_name = str(ws.get("name") or "")
+                if state["dirty"]:
+                    dump_config(config_path, cfg)
+                    state["dirty"] = False
+                args.workspace = ws_name
+                projects = ws.get("projects") or []
+                if not args.dir and projects:
+                    first_path = Path(str(projects[0].get("path") or ""))
+                    if first_path.exists():
+                        args.dir = str(first_path.parent)
+                if not args.branch:
+                    entries = [e for e in load_manifest() if e.workspace == ws_name]
+                    if entries:
+                        args.branch = entries[0].branch
+                return 2
 
     rc = curses.wrapper(main_loop)
     if rc == 2:
