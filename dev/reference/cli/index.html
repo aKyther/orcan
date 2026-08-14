@@ -906,6 +906,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/terminal-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guides/troubleshooting/" class="md-nav__link">
         
   
@@ -1806,12 +1834,8 @@
 <td>Launcher</td>
 </tr>
 <tr>
-<td><code>~/.config/orcan/home</code></td>
-<td>Config + <code>.env</code> + <code>.orcan/*</code> (<code>ORCAN_HOME</code>) — <strong>always</strong> the default</td>
-</tr>
-<tr>
 <td><code>~/.config/orcan</code></td>
-<td>Tool data / logins (<code>ORCAN_DATA</code>)</td>
+<td>Config + <code>.env</code> + <code>mounts/*</code> (<code>ORCAN_HOME</code>) <em>and</em> tool data / logins (<code>ORCAN_DATA</code>) — same root by default</td>
 </tr>
 </tbody>
 </table>
@@ -1852,7 +1876,7 @@
 <tbody>
 <tr>
 <td><code>orcan init</code></td>
-<td>No PATH: interactive config wizard (create/edit) + sync + show</td>
+<td>No PATH: TUI to create/edit workspaces (default) + sync + show. <code>--cli</code>: old sequential prompt wizard instead</td>
 </tr>
 <tr>
 <td><code>orcan init PATH</code></td>
@@ -1860,7 +1884,11 @@
 </tr>
 <tr>
 <td><code>orcan sync</code></td>
-<td>Apply <code>orcan.config.json</code> → <code>.env</code> + <code>.orcan/*</code></td>
+<td>Apply <code>orcan.config.json</code> → <code>.env</code> + <code>mounts/*</code></td>
+</tr>
+<tr>
+<td><code>orcan settings</code></td>
+<td>Edit tool settings (tmux windows/prefix, ttyd port/font) — separate from workspaces/projects</td>
 </tr>
 <tr>
 <td><code>orcan context show</code></td>
@@ -1869,6 +1897,10 @@
 <tr>
 <td><code>orcan context add PATH</code></td>
 <td>Add a project (<code>--workspace</code>, <code>--force</code>)</td>
+</tr>
+<tr>
+<td><code>orcan context tui</code></td>
+<td>TUI: scan a parent folder, multi-select repos, create/update a workspace; optional one branch → managed worktree per repo (<code>--sync</code>, <code>--yes</code>). With an existing config it opens in <strong>manage mode</strong> instead — rename/move/delete existing workspaces and projects (<code>n</code> switches to the scan screen to add more); this is what <code>orcan init</code> runs by default</td>
 </tr>
 <tr>
 <td><code>orcan context add --from-worktree REPO SELECTOR</code></td>
@@ -1891,6 +1923,10 @@
 <td>Remove all managed worktrees for a workspace (and unpin from config)</td>
 </tr>
 <tr>
+<td><code>orcan context worktree prune [--force] [--no-config]</code></td>
+<td>Reconcile <code>$ORCAN_DATA/worktrees/registry.json</code> against disk (and <code>orcan.config.json</code>); dry-run by default, <code>--force</code> cleans up</td>
+</tr>
+<tr>
 <td><code>orcan context assert propose …</code></td>
 <td>Reflection: draft a Context Assertion (content + justification + applicability); status <code>proposed</code></td>
 </tr>
@@ -1904,15 +1940,15 @@
 </tr>
 <tr>
 <td><code>orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]</code></td>
-<td>Toggle the opt-in Claude <code>Stop</code> hook (batched Reflection) in the workspace's generated root <code>.claude/settings.json</code> — where Claude Code sessions actually launch, not inside a project checkout; needs <code>orcan sync</code> to have run at least once, then immediate. With no <code>WORKSPACE</code>/<code>--all</code>, infers the workspace from cwd when it's inside a registered project</td>
+<td>Toggle the Claude <code>Stop</code> hook (batched Reflection) in the workspace's generated root <code>.claude/settings.json</code> — <strong>on by default</strong>, seeded by the first <code>orcan sync</code> for a workspace; <code>disable</code> sticks across later syncs. With no <code>WORKSPACE</code>/<code>--all</code>, infers the workspace from cwd when it's inside a registered project</td>
 </tr>
 <tr>
 <td><em>(in-container)</em> <code>orcan-context-propose</code> / <code>orcan-context-review</code></td>
 <td>Draft/review without a host terminal — drop into a mounted inbox, imported by the next <code>orcan sync</code>. <code>orcan-context-review [--no-check]</code> pre-checks candidates against <code>CONTEXT-ASSERTIONS.md</code> for duplicates/conflicts (nudge only, never a gate). See <a href="../../ideas/context-assertions/">Context Assertions</a></td>
 </tr>
 <tr>
-<td><code>orcan up [--with-docker] [--with-git]</code></td>
-<td>Start browser terminal (socket / host SSH only with flags); hints if a newer release exists; once ready, prints the workspace's Claude <code>Stop</code> hook status</td>
+<td><code>orcan up [--with-docker] [--with-git] [--with-network NAME]</code></td>
+<td>Start browser terminal (socket / host SSH / network join only with flags); hints if a newer release exists; once ready, prints the workspace's Claude <code>Stop</code> hook status</td>
 </tr>
 <tr>
 <td><code>orcan down</code></td>
@@ -1981,7 +2017,7 @@
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <p>After config edits:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># edit ~/.config/orcan/home/orcan.config.json</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># edit ~/.config/orcan/orcan.config.json</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>sync
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
@@ -2007,9 +2043,13 @@
 <td><code>--with-git</code></td>
 <td>Mount host <code>~/.ssh</code> read-only (+ SSH agent when <code>SSH_AUTH_SOCK</code> is set) for push/pull</td>
 </tr>
+<tr>
+<td><code>--with-network NAME</code></td>
+<td>Join an existing Docker network (e.g. another project's compose stack) — no socket mount, lower-risk alternative to <code>--with-docker</code> when you only need reachability</td>
+</tr>
 </tbody>
 </table>
-<p>Flags combine: <code>orcan up --with-docker --with-git</code>.</p>
+<p>Flags combine: <code>orcan up --with-docker --with-git --with-network my-net</code>.</p>
 <p>Git <strong>author</strong> identity is always synced by <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> from host <code>user.name</code> / <code>user.email</code>). SSH keys are only attached with <code>--with-git</code>. Both optional flags print a security warning — agents inside can use the mounted socket or keys. See <a href="../security/">Security</a> and <a href="../../guides/workflows/">Workflows</a>.</p>
 <h2 id="maintainer-make">Maintainer Make<a class="headerlink" href="#maintainer-make" title="Permanent link">&para;</a></h2>
 <p>From a git checkout: <code>make validate</code>, <code>make test-host</code>, <code>make docs*</code>, <code>make release*</code>, <code>make registry-*</code>. See <a href="../../development/overview/">Development</a>.</p>
@@ -2035,7 +2075,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 6, 2026 13:25:29 UTC">August 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 14, 2026 05:29:21 UTC">August 14, 2026</span>
   </span>
 
     

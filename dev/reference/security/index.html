@@ -906,6 +906,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/terminal-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guides/troubleshooting/" class="md-nav__link">
         
   
@@ -1701,6 +1729,7 @@
 <li>Bind mounts give the container write access to your projects</li>
 <li><code>orcan up --with-docker</code> mounts <code>/var/run/docker.sock</code> → strong host access</li>
 <li><code>orcan up --with-git</code> mounts host <code>~/.ssh</code> (read-only) and may mount the SSH agent socket</li>
+<li><code>orcan up --with-network NAME</code> joins an existing Docker network → network-level reachability to whatever else is on it, but no socket and no host control</li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -1710,6 +1739,9 @@
 <p class="admonition-title">Warning</p>
 <p>Use <code>orcan up --with-git</code> only when you need push/pull from inside the container. It exposes your SSH keys (and agent) to the container.</p>
 </div>
+<p>If you only need the container to reach another container by name/IP,
+<code>orcan up --with-network NAME</code> is the safer choice — it does not grant
+control over the host Docker engine the way <code>--with-docker</code> does.</p>
 <h2 id="data-on-the-host">Data on the host<a class="headerlink" href="#data-on-the-host" title="Permanent link">&para;</a></h2>
 <p>Logins and caches live under <code>$ORCAN_DATA</code> (default <code>~/.config/orcan</code>). Treat that directory as sensitive.</p>
 <p><code>orcan uninstall --purge-data</code> deletes it after confirmation.</p>
@@ -1747,7 +1779,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 20:07:18 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2026 19:44:34 UTC">August 13, 2026</span>
   </span>
 
     

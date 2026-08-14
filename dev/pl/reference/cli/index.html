@@ -906,6 +906,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/terminal-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guides/troubleshooting/" class="md-nav__link">
         
   
@@ -1806,12 +1834,8 @@
 <td>Launcher</td>
 </tr>
 <tr>
-<td><code>~/.config/orcan/home</code></td>
-<td>Config + <code>.env</code> + <code>.orcan/*</code> (<code>ORCAN_HOME</code>) — <strong>zawsze</strong> domyślne</td>
-</tr>
-<tr>
 <td><code>~/.config/orcan</code></td>
-<td>Dane narzędzi / loginy (<code>ORCAN_DATA</code>)</td>
+<td>Config + <code>.env</code> + <code>mounts/*</code> (<code>ORCAN_HOME</code>) <em>oraz</em> dane narzędzi / loginy (<code>ORCAN_DATA</code>) — ten sam katalog domyślnie</td>
 </tr>
 </tbody>
 </table>
@@ -1852,7 +1876,7 @@
 <tbody>
 <tr>
 <td><code>orcan init</code></td>
-<td>Bez PATH: interaktywny kreator config (utwórz/edytuj) + sync + show</td>
+<td>Bez PATH: TUI do tworzenia/edycji workspace'ów (domyślnie) + sync + show. <code>--cli</code>: stary, sekwencyjny kreator promptów zamiast TUI</td>
 </tr>
 <tr>
 <td><code>orcan init PATH</code></td>
@@ -1860,7 +1884,11 @@
 </tr>
 <tr>
 <td><code>orcan sync</code></td>
-<td>Zastosuj <code>orcan.config.json</code> → <code>.env</code> + <code>.orcan/*</code></td>
+<td>Zastosuj <code>orcan.config.json</code> → <code>.env</code> + <code>mounts/*</code></td>
+</tr>
+<tr>
+<td><code>orcan settings</code></td>
+<td>Edycja ustawień narzędziowych (okna/prefix tmux, port/font ttyd) — osobno od workspace'ów/projektów</td>
 </tr>
 <tr>
 <td><code>orcan context show</code></td>
@@ -1869,6 +1897,10 @@
 <tr>
 <td><code>orcan context add PATH</code></td>
 <td>Dodaj projekt (<code>--workspace</code>, <code>--force</code>)</td>
+</tr>
+<tr>
+<td><code>orcan context tui</code></td>
+<td>TUI: skan katalogu-rodzica, multi-select repo, create/update workspace; opcjonalnie jeden branch → managed worktree na każde repo (<code>--sync</code>, <code>--yes</code>). Przy istniejącym configu odpala się w <strong>trybie zarządzania</strong> — zmiana nazwy/ścieżki/usuwanie istniejących workspace'ów i projektów (<code>n</code> przełącza na ekran skanowania, żeby dodać kolejne); to właśnie uruchamia domyślnie <code>orcan init</code></td>
 </tr>
 <tr>
 <td><code>orcan context add --from-worktree REPO SELECTOR</code></td>
@@ -1891,6 +1923,10 @@
 <td>Usuń wszystkie managed worktree workspace'a (i wypnij z configu)</td>
 </tr>
 <tr>
+<td><code>orcan context worktree prune [--force] [--no-config]</code></td>
+<td>Pogódź <code>$ORCAN_DATA/worktrees/registry.json</code> ze stanem na dysku (i <code>orcan.config.json</code>); domyślnie dry-run, <code>--force</code> sprząta</td>
+</tr>
+<tr>
 <td><code>orcan context assert propose …</code></td>
 <td>Reflection: naszkicuj Context Assertion (treść + uzasadnienie + applicability); status <code>proposed</code></td>
 </tr>
@@ -1904,7 +1940,7 @@
 </tr>
 <tr>
 <td><code>orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]</code></td>
-<td>Włącz/wyłącz opcjonalny hook <code>Stop</code> Claude (wsadowa Reflection) w <code>.claude/settings.json</code> wygenerowanego katalogu głównego workspace'u — tam, gdzie faktycznie startują sesje Claude Code, nigdy wewnątrz checkoutu projektu; wymaga wcześniejszego <code>orcan sync</code>, potem działa od razu. Bez <code>WORKSPACE</code>/<code>--all</code> odgaduje workspace na podstawie <code>cwd</code>, jeśli ten leży wewnątrz zarejestrowanego projektu</td>
+<td>Włącz/wyłącz hook <code>Stop</code> Claude (wsadowa Reflection) w <code>.claude/settings.json</code> wygenerowanego katalogu głównego workspace'u — <strong>domyślnie włączony</strong>, dosiewany przy pierwszej <code>orcan sync</code> dla workspace'u; <code>disable</code> zostaje przy kolejnych sync'ach. Bez <code>WORKSPACE</code>/<code>--all</code> odgaduje workspace na podstawie <code>cwd</code>, jeśli ten leży wewnątrz zarejestrowanego projektu</td>
 </tr>
 <tr>
 <td><em>(wewnątrz kontenera)</em> <code>orcan-context-propose</code> / <code>orcan-context-review</code></td>
@@ -1981,7 +2017,7 @@
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <p>Po edycji konfiguracji:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># edytuj ~/.config/orcan/home/orcan.config.json</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># edytuj ~/.config/orcan/orcan.config.json</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>sync
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
@@ -2035,7 +2071,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="6 sierpnia 2026 13:25:29 UTC">6 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="14 sierpnia 2026 05:29:21 UTC">14 sierpnia 2026</span>
   </span>
 
     
