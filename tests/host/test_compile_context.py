@@ -321,6 +321,30 @@ class CompileContextTests(unittest.TestCase):
             cc.compile_workspace(self.ws)
         self.assertIn("1 assertion(s) compiled into CONTEXT-ASSERTIONS.md for workspace 'demo'", buf.getvalue())
 
+    # -- Workspace composition manifest ---------------------------------
+
+    def test_composition_written_even_with_zero_accepted(self) -> None:
+        cc.compile_workspace(self.ws)
+        pack = (self.meta_path / cc.OUTPUT_NAME).read_text(encoding="utf-8")
+        self.assertIn("## Workspace composition", pack)
+        self.assertIn("`backend` @ `main`", pack)
+        self.assertIn("No accepted assertions currently apply to this composition yet.", pack)
+
+    def test_composition_shown_alongside_accepted_items(self) -> None:
+        obj = ca.propose(self.backend, content="fact", justification="j")
+        ca.accept(self.backend, obj["id"])
+        cc.compile_workspace(self.ws)
+        pack = (self.meta_path / cc.OUTPUT_NAME).read_text(encoding="utf-8")
+        self.assertIn("## Workspace composition", pack)
+        self.assertIn("`backend` @ `main`", pack)
+        self.assertNotIn("No accepted assertions currently apply", pack)
+
+    def test_no_projects_still_deletes_pack(self) -> None:
+        ws = dict(self.ws, projects=[])
+        (self.meta_path / cc.OUTPUT_NAME).write_text("stale", encoding="utf-8")
+        cc.compile_workspace(ws)
+        self.assertFalse((self.meta_path / cc.OUTPUT_NAME).exists())
+
 
 if __name__ == "__main__":
     unittest.main()
