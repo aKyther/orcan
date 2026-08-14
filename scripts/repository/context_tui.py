@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -152,6 +153,39 @@ def list_subdirs(path: Path) -> list[Path]:
         )
     except OSError:
         return []
+
+
+def worktree_is_dirty(path: Path) -> bool:
+    """True if the git worktree at path has uncommitted changes (including
+    untracked files). False if that can't be determined (missing dir, not a
+    repo, git failed/timed out) — a failed check must not block a legitimate
+    removal, it only skips the extra warning. Pure/curses-free."""
+    if not path.is_dir():
+        return False
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(path), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return r.returncode == 0 and bool(r.stdout.strip())
+
+
+def _ellipsize(text: str, width: int) -> str:
+    """Truncate text to width, marking truncation with an ellipsis instead of
+    silently cutting it off — so a long path reads as 'cut here', not as the
+    whole path. Pure/curses-free."""
+    if width <= 0:
+        return ""
+    if len(text) <= width:
+        return text
+    if width == 1:
+        return "…"
+    return text[: width - 1] + "…"
 
 
 def resolve_config(path: str) -> Path:
@@ -399,12 +433,12 @@ def _prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
     curses.curs_set(1)
     buf = list(initial)
     pos = len(buf)
-    h, w = stdscr.getmaxyx()
-    row = h - 1
-    field_col = min(len(label) + 2, w - 2)
 
     try:
         while True:
+            h, w = stdscr.getmaxyx()
+            row = h - 1
+            field_col = min(len(label) + 2, w - 2)
             stdscr.addnstr(row, 0, " " * (w - 1), w - 1)
             stdscr.addnstr(row, 0, f"{label}: {''.join(buf)}"[: w - 1], w - 1)
             stdscr.move(row, min(field_col + pos, w - 1))
@@ -414,6 +448,8 @@ def _prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
             except curses.error:
                 continue
 
+            if key == curses.KEY_RESIZE:
+                continue
             if key in ("\n", "\r", curses.KEY_ENTER, 10, 13):
                 text = "".join(buf).strip()
                 return text if text else initial
@@ -476,7 +512,7 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
         stdscr.erase()
         h, w = stdscr.getmaxyx()
         stdscr.addnstr(0, 0, " choose parent directory ".ljust(w), w, curses.A_REVERSE)
-        stdscr.addnstr(1, 0, f" {current}"[: w - 1], w - 1, curses.A_BOLD)
+        stdscr.addnstr(1, 0, _ellipsize(f" {current}", w - 1), w - 1, curses.A_BOLD)
         stdscr.addnstr(
             2, 0,
             " Up/Down move · Enter open · s select this dir · f filter · / type path · q cancel"[: w - 1],
@@ -504,6 +540,8 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
         message = ""
 
         key = stdscr.getch()
+        if key == curses.KEY_RESIZE:
+            continue
         if key in (ord("q"), 27):
             return None
         if key in (curses.KEY_UP, ord("k")):
@@ -562,10 +600,12 @@ def _pick_from_history(stdscr: Any, items: list[tuple[str, str]]) -> str | None:
             path, label = items[idx]
             line = f" {path}  ({label})"
             attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
-            stdscr.addnstr(list_top + i, 0, line[: w - 1], w - 1, attr)
+            stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
         stdscr.refresh()
 
         key = stdscr.getch()
+        if key == curses.KEY_RESIZE:
+            continue
         if key in (ord("q"), 27):
             return None
         if key in (curses.KEY_UP, ord("k")):
@@ -648,7 +688,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         h, w = stdscr.getmaxyx()
         title = " orcan context tui "
         stdscr.addnstr(0, 0, title.ljust(w), w, curses.A_REVERSE)
-        stdscr.addnstr(1, 0, f" Parent: {parent}"[: w - 1], w - 1)
+        stdscr.addnstr(1, 0, _ellipsize(f" Parent: {parent}", w - 1), w - 1)
         mode = f"worktrees @{branch}" if use_worktree else "mount paths as-is"
         stdscr.addnstr(
             2,
@@ -690,7 +730,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                 attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
                 if repo in selected and idx != cursor:
                     attr |= curses.A_BOLD
-                stdscr.addnstr(list_top + i, 0, line[: w - 1], w - 1, attr)
+                stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
 
         footer = message or f"{len(selected)} selected"
         stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
@@ -707,6 +747,8 @@ def _run_curses(args: argparse.Namespace) -> int:
             draw(stdscr)
             view = visible_repos()
             key = stdscr.getch()
+            if key == curses.KEY_RESIZE:
+                continue
             if key in (ord("q"), 27):
                 return 1
             if key in (curses.KEY_UP, ord("k")):
@@ -954,7 +996,7 @@ def _run_manage(args: argparse.Namespace) -> int:
         stdscr.erase()
         h, w = stdscr.getmaxyx()
         stdscr.addnstr(0, 0, " orcan init — manage workspaces ".ljust(w), w, curses.A_REVERSE)
-        stdscr.addnstr(1, 0, f" Config: {config_path}"[: w - 1], w - 1)
+        stdscr.addnstr(1, 0, _ellipsize(f" Config: {config_path}", w - 1), w - 1)
         stdscr.addnstr(
             2,
             0,
@@ -991,11 +1033,13 @@ def _run_manage(args: argparse.Namespace) -> int:
                     attr = curses.A_BOLD
                 else:
                     proj = (ws.get("projects") or [])[pi]
-                    line = f"     {proj.get('name')}  →  {proj.get('path')}"
+                    path_str = str(proj.get("path") or "")
+                    tag = " [worktree]" if path_str and is_under_managed_root(Path(path_str)) else ""
+                    line = f"     {proj.get('name')}{tag}  →  {proj.get('path')}"
                     attr = curses.A_NORMAL
                 if idx == state["cursor"]:
                     attr |= curses.A_REVERSE
-                stdscr.addnstr(list_top + i, 0, line[: w - 1], w - 1, attr)
+                stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
 
         footer = state["message"] or (
             f"{len(workspaces)} workspace(s)"
@@ -1022,6 +1066,8 @@ def _run_manage(args: argparse.Namespace) -> int:
                 state["cursor"] = max(0, len(current_rows) - 1)
             draw(stdscr)
             key = stdscr.getch()
+            if key == curses.KEY_RESIZE:
+                continue
             state["message"] = ""
 
             if key in (ord("q"), 27):
@@ -1095,6 +1141,12 @@ def _run_manage(args: argparse.Namespace) -> int:
                         remove_wt = is_managed and _confirm_line(
                             stdscr, "Also remove its managed worktree from disk (git worktree remove)?"
                         )
+                        if remove_wt and worktree_is_dirty(path):
+                            remove_wt = _confirm_line(
+                                stdscr,
+                                "This worktree has UNCOMMITTED CHANGES that will be "
+                                "permanently lost — remove anyway?",
+                            )
                         deleted = manage_delete_project(ws, pi)
                         state["dirty"] = True
                         if remove_wt:
@@ -1113,6 +1165,16 @@ def _run_manage(args: argparse.Namespace) -> int:
                     remove_wt = managed and _confirm_line(
                         stdscr, f"Also remove {len(managed)} managed worktree(s) from disk?"
                     )
+                    if remove_wt:
+                        dirty_names = [
+                            str(p.get("name")) for p in managed if worktree_is_dirty(Path(str(p["path"])))
+                        ]
+                        if dirty_names and not _confirm_line(
+                            stdscr,
+                            f"{len(dirty_names)} of these have UNCOMMITTED CHANGES "
+                            f"({', '.join(dirty_names)}) that will be permanently lost — remove anyway?",
+                        ):
+                            remove_wt = False
                     deleted = manage_delete_workspace(workspaces, wi)
                     state["dirty"] = True
                     if remove_wt:
