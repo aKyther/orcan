@@ -71,7 +71,7 @@ Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`. Co
 
 ## Status
 
-Version **0.4.2** (see [Changelog](changelog.md)). Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`); CI does not publish container images.
+Version **1.0.0** (see [Changelog](changelog.md)). Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`); CI does not publish container images.
 
 ## See also
 
