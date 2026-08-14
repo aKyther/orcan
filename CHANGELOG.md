@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-14
+
 ### Changed
 
 - Browser terminal look: default ttyd theme is dark navy / near-black / subtle cyan
@@ -65,6 +67,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tmux/ttyd settings moved out of the wizard entirely — see `orcan settings`
   below — they're tool settings, not workspace data, so they no longer show
   up while creating/editing workspaces.
+- `orcan context tui`'s scan screen: text prompts (workspace name, branch,
+  rename, path) are now a real line editor — pre-filled, cursor at the end,
+  Left/Right/Home/End/Backspace/Delete, plus Ctrl-B/F/A/E fallbacks for
+  terminals without dedicated arrow/Home/End keys (mobile terminal apps).
+  Esc/Ctrl-C cancels. `curses.set_escdelay(25)` so a bare Esc doesn't sit
+  for ~1s waiting to see if an arrow-key sequence follows, which reads as
+  "Esc doesn't work" over a mobile/SSH terminal.
+- Plain (non-git) directories are now selectable scan candidates alongside
+  git repos, tagged `(no git — mount only)` — worktree mode is skipped for
+  them automatically (mounted as-is) with a note after apply, instead of
+  only ever finding git repos.
+- `d`/`W` (delete project/workspace) in the manage screen now offer to also
+  remove the managed worktree from disk (`git worktree remove` + registry
+  cleanup), with a second, explicit confirmation if the worktree has
+  uncommitted changes (`git status --porcelain`) that would be permanently
+  lost by `--force`.
+- `CONTEXT-ASSERTIONS.md` now always includes a **Workspace composition**
+  section (every mounted project + its current branch) and is written
+  whenever a workspace has at least one project — even with zero matched
+  assertions (previously the file was deleted entirely in that case, so
+  there was no way to see what composition produced, or failed to
+  produce, a given result).
+- Automated Reflection (`orcan-context-reflect`) now scopes a `propose`
+  drafted on anything but `main`/`master` to that branch by default
+  (`--branch <current>`), instead of unconditional — Reflection runs
+  mid-work and can't yet know whether something is durably true or just an
+  artifact of unmerged, in-progress code; the human reviewer widens the
+  scope at accept time if it turns out to be universal.
 
 ### Added
 
@@ -88,6 +118,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   directories under `$ORCAN_DATA/worktrees` the registry doesn't know about
   and registry entries no longer referenced by any workspace, removing both
   only with `--force`. Dry-run by default.
+- `orcan context tui`'s scan screen: `e` opens an arrow-key directory
+  browser (`.. (up)`/Enter/`s` select, `f` filter) instead of a blind
+  type-the-full-path prompt; `h` jumps to a recently used parent directory
+  (up to 8, newest first, auto-expiring after 3 days of not being picked
+  again, shown with age/TTL); `/` filters the repo list by name; `?` opens
+  a full keybinding cheatsheet. Both screens warn before applying if a
+  selected path's project name already exists in the target workspace, or
+  if the same path is already mounted under a different workspace.
+- `a` on the manage screen: jump to the scan screen pre-loaded for the
+  workspace under the cursor (same name so picks append instead of
+  creating a new one, starting directory next to an existing project, same
+  managed-worktree branch if applicable) — adding a project to an existing
+  workspace no longer means retyping its name from scratch. `P` runs
+  `orcan context worktree prune` in place and returns to the manage
+  screen, instead of requiring a trip to the shell.
+- `orcan context assert overview` — one line per configured workspace:
+  composition (repo@branch) + how many accepted assertions currently match
+  it, recomputed live. A glance across every workspace at once, e.g. to
+  spot two that share a project but ended up with different context
+  because they're on different branches.
+- `orcan doctor`: new "Context" section listing every workspace's Stop
+  hook status (enabled/disabled, informational either way — disabling is a
+  valid deliberate choice) and, if enabled, the last recorded Reflection
+  failure if there is one.
 
 ### Fixed
 
@@ -97,6 +151,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removed the same way `orcan context worktree remove` would. Unchanged
   projects are also no longer needlessly re-created (which previously made
   any `--force` replace that kept an existing project name fail outright).
+- `orcan sync` seeds the Stop hook only when a workspace's
+  `.claude/settings.json` doesn't exist yet — correct for a brand-new
+  workspace, but if that file was created by any other path first (e.g.
+  `init-workspace`'s missing-only template copy, or a workspace that
+  predates the on-by-default change above), the hook silently never got
+  added, with no signal. `orcan sync` and `orcan doctor` now report this
+  explicitly instead of staying quiet.
+- `orcan-context-reflect` model-call failures (timeout, non-zero exit) are
+  now recorded (message + timestamp, cleared on the next successful run)
+  into the same per-session `reflection-state.json`, instead of only
+  reaching an async Stop hook's stderr that nothing reads — a hook that
+  was on but silently failing every time looked identical to a healthy one.
+- `claude_hook.py` (`orcan context hook enable|disable`) gives a clear
+  error naming the failing path and the likely cause (a `.claude/settings.json`
+  owned by a different UID than the one running the command — e.g. created
+  from inside the orcan container) instead of a raw Python traceback on
+  permission denied.
 
 ## [0.4.2] - 2026-08-06
 
