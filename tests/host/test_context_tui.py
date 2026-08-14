@@ -57,6 +57,50 @@ class ScanReposTests(unittest.TestCase):
             self.assertTrue(any(p.name == "svc" for p in found))
 
 
+class WorktreeIsDirtyTests(unittest.TestCase):
+    def test_clean_repo_is_not_dirty(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            _git_init(repo)
+            self.assertFalse(_mod.worktree_is_dirty(repo))
+
+    def test_modified_file_is_dirty(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            _git_init(repo)
+            (repo / "README").write_text("changed\n", encoding="utf-8")
+            self.assertTrue(_mod.worktree_is_dirty(repo))
+
+    def test_untracked_file_is_dirty(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            _git_init(repo)
+            (repo / "new.txt").write_text("x\n", encoding="utf-8")
+            self.assertTrue(_mod.worktree_is_dirty(repo))
+
+    def test_missing_dir_is_not_dirty(self) -> None:
+        self.assertFalse(_mod.worktree_is_dirty(Path("/no/such/directory")))
+
+
+class EllipsizeTests(unittest.TestCase):
+    def test_short_text_unchanged(self) -> None:
+        self.assertEqual(_mod._ellipsize("hello", 10), "hello")
+
+    def test_exact_width_unchanged(self) -> None:
+        self.assertEqual(_mod._ellipsize("hello", 5), "hello")
+
+    def test_long_text_truncated_with_ellipsis(self) -> None:
+        result = _mod._ellipsize("a very long path name", 10)
+        self.assertEqual(result, "a very lo…")
+        self.assertEqual(len(result), 10)
+
+    def test_width_zero_is_empty(self) -> None:
+        self.assertEqual(_mod._ellipsize("hello", 0), "")
+
+    def test_width_one_is_just_ellipsis(self) -> None:
+        self.assertEqual(_mod._ellipsize("hello", 1), "…")
+
+
 class ScanDirsTests(unittest.TestCase):
     def test_includes_plain_dirs_tagged_as_non_git(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
