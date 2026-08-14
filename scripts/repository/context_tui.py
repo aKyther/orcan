@@ -47,6 +47,25 @@ STATE_NAME = "context-tui-state.json"
 HISTORY_LIMIT = 8
 HISTORY_TTL_DAYS = 3.0
 
+# curses color pair numbers, shared across screens once initialized by
+# _init_colors() — semantic, not decorative: warn=caution, info=fyi tag,
+# danger=irreversible data loss.
+_COLOR_WARN = 1
+_COLOR_INFO = 2
+_COLOR_DANGER = 3
+
+
+def _init_colors() -> None:
+    import curses
+
+    if not curses.has_colors():
+        return
+    curses.start_color()
+    curses.use_default_colors()
+    curses.init_pair(_COLOR_WARN, curses.COLOR_YELLOW, -1)
+    curses.init_pair(_COLOR_INFO, curses.COLOR_CYAN, -1)
+    curses.init_pair(_COLOR_DANGER, curses.COLOR_RED, -1)
+
 
 def die(msg: str) -> None:
     print(f"Error: {msg}", file=sys.stderr)
@@ -423,11 +442,12 @@ def apply_selection(
 
 # ── curses UI ────────────────────────────────────────────────────────────────
 
-def _prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
+def _prompt_line(stdscr: Any, label: str, initial: str, *, attr: int = 0) -> str | None:
     """Editable text prompt, pre-filled with `initial` and cursor at the end —
     Left/Right/Home/End/Backspace/Delete work like a normal line editor, so
     changing one character of a long path doesn't mean retyping it all.
-    Enter submits (empty submit keeps `initial`); Esc/Ctrl-C cancels (None)."""
+    Enter submits (empty submit keeps `initial`); Esc/Ctrl-C cancels (None).
+    `attr` (e.g. a color pair) renders the label/text, for danger prompts."""
     import curses
 
     curses.curs_set(1)
@@ -440,7 +460,7 @@ def _prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
             row = h - 1
             field_col = min(len(label) + 2, w - 2)
             stdscr.addnstr(row, 0, " " * (w - 1), w - 1)
-            stdscr.addnstr(row, 0, f"{label}: {''.join(buf)}"[: w - 1], w - 1)
+            stdscr.addnstr(row, 0, f"{label}: {''.join(buf)}"[: w - 1], w - 1, attr)
             stdscr.move(row, min(field_col + pos, w - 1))
             stdscr.refresh()
             try:
@@ -479,8 +499,11 @@ def _prompt_line(stdscr: Any, label: str, initial: str) -> str | None:
         curses.curs_set(0)
 
 
-def _confirm_line(stdscr: Any, label: str, *, default: bool = False) -> bool:
-    raw = _prompt_line(stdscr, f"{label} ({'Y/n' if default else 'y/N'})", "")
+def _confirm_line(stdscr: Any, label: str, *, default: bool = False, danger: bool = False) -> bool:
+    import curses
+
+    attr = curses.color_pair(_COLOR_DANGER) | curses.A_BOLD if danger and curses.has_colors() else 0
+    raw = _prompt_line(stdscr, f"{label} ({'Y/n' if default else 'y/N'})", "", attr=attr)
     if not raw:
         return default
     return raw.strip().lower() in ("y", "yes")
@@ -571,6 +594,23 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
                 current = entries[cursor - 1]
             cursor = 0
             filter_text = ""
+
+
+def _show_help(stdscr: Any, title: str, lines: list[str]) -> None:
+    """Full-screen keybinding cheatsheet; any key dismisses it."""
+    import curses
+
+    stdscr.erase()
+    h, w = stdscr.getmaxyx()
+    stdscr.addnstr(0, 0, f" {title} ".ljust(w), w, curses.A_REVERSE)
+    for i, line in enumerate(lines):
+        row = i + 2
+        if row >= h - 1:
+            break
+        stdscr.addnstr(row, 0, _ellipsize(f"  {line}", w - 1), w - 1)
+    stdscr.addnstr(h - 1, 0, " press any key to close ".ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
+    stdscr.refresh()
+    stdscr.getch()
 
 
 def _pick_from_history(stdscr: Any, items: list[tuple[str, str]]) -> str | None:
@@ -699,7 +739,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             3,
             0,
-            " Space toggle · a/A all/none · / filter · e browse dir · h history · w name · t worktree · b branch · Enter apply · q quit"
+            " Space toggle · a/A all/none · / filter · e browse dir · h history · w name · t worktree · b branch · Enter apply · ? help · q quit"
             [: w - 1],
             w - 1,
             curses.A_DIM,
@@ -730,6 +770,8 @@ def _run_curses(args: argparse.Namespace) -> int:
                 attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
                 if repo in selected and idx != cursor:
                     attr |= curses.A_BOLD
+                if not is_git and idx != cursor:
+                    attr |= curses.color_pair(_COLOR_WARN)
                 stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
 
         footer = message or f"{len(selected)} selected"
@@ -739,9 +781,7 @@ def _run_curses(args: argparse.Namespace) -> int:
     def main_loop(stdscr: Any) -> int:
         nonlocal parent, workspace, use_worktree, branch, cursor, selected, message, repos, filter_text
         curses.curs_set(0)
-        if curses.has_colors():
-            curses.start_color()
-            curses.use_default_colors()
+        _init_colors()
 
         while True:
             draw(stdscr)
@@ -770,6 +810,24 @@ def _run_curses(args: argparse.Namespace) -> int:
                 typed = _prompt_line(stdscr, "Filter (empty to clear)", filter_text)
                 filter_text = (typed or "").strip()
                 cursor = 0
+            elif key == ord("?"):
+                _show_help(
+                    stdscr,
+                    "orcan context tui — scan screen",
+                    [
+                        "Space    toggle selection",
+                        "a / A    select all visible / clear selection",
+                        "/        filter the list by name",
+                        "e        browse to a different parent directory",
+                        "h        jump to a recently used parent directory",
+                        "w        set workspace name",
+                        "t        toggle worktree mode on/off",
+                        "b        set branch (implies worktree mode)",
+                        "Enter    apply — create/append the workspace",
+                        "q / Esc  quit without applying",
+                        "?        this help",
+                    ],
+                )
             elif key == ord("e"):
                 chosen_dir = _browse_dir(stdscr, parent)
                 if chosen_dir is not None:
@@ -971,6 +1029,32 @@ def managed_projects(ws: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+def _run_prune_interactive(config_path: Path) -> None:
+    """Plain-terminal prune pass — curses is torn down first since cmd_prune
+    print()s directly and would otherwise fight the curses screen. Reuses
+    cmd_prune's own dry-run-then-force flow rather than re-deriving it:
+    calling it a second time with force=True is a no-op if there was
+    nothing to prune, so no output-capturing is needed to decide whether
+    to ask."""
+    from git_worktrees import cmd_prune
+
+    ns = argparse.Namespace(config=str(config_path), force=False)
+    print()
+    print("Checking managed worktrees for orphans / stale entries...")
+    try:
+        cmd_prune(ns)
+    except SystemExit:
+        pass
+    resp = input("\nRemove the above with --force? (y/N): ").strip().lower()
+    if resp in ("y", "yes"):
+        ns.force = True
+        try:
+            cmd_prune(ns)
+        except SystemExit:
+            pass
+    input("\nPress Enter to return to orcan init...")
+
+
 def _run_manage(args: argparse.Namespace) -> int:
     """Curses screen for editing an existing orcan.config.json: rename /
     change path / delete projects and workspaces, without walking every
@@ -1002,7 +1086,7 @@ def _run_manage(args: argparse.Namespace) -> int:
             0,
             (
                 " j/k move · Enter/r rename · p path · a add project · d delete project · "
-                "W delete workspace · n new (scan folder) · s save · q quit"
+                "W delete workspace · n new (scan folder) · P prune orphans · s save · ? help · q quit"
             )[: w - 1],
             w - 1,
             curses.A_DIM,
@@ -1034,9 +1118,10 @@ def _run_manage(args: argparse.Namespace) -> int:
                 else:
                     proj = (ws.get("projects") or [])[pi]
                     path_str = str(proj.get("path") or "")
-                    tag = " [worktree]" if path_str and is_under_managed_root(Path(path_str)) else ""
+                    is_managed = bool(path_str) and is_under_managed_root(Path(path_str))
+                    tag = " [worktree]" if is_managed else ""
                     line = f"     {proj.get('name')}{tag}  →  {proj.get('path')}"
-                    attr = curses.A_NORMAL
+                    attr = curses.color_pair(_COLOR_INFO) if is_managed else curses.A_NORMAL
                 if idx == state["cursor"]:
                     attr |= curses.A_REVERSE
                 stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
@@ -1056,9 +1141,7 @@ def _run_manage(args: argparse.Namespace) -> int:
 
     def main_loop(stdscr: Any) -> int:
         curses.curs_set(0)
-        if curses.has_colors():
-            curses.start_color()
-            curses.use_default_colors()
+        _init_colors()
 
         while True:
             current_rows = rows()
@@ -1093,6 +1176,30 @@ def _run_manage(args: argparse.Namespace) -> int:
                 dump_config(config_path, cfg)
                 state["dirty"] = False
                 state["message"] = f"saved {config_path}"
+                continue
+            if key == ord("P"):
+                if state["dirty"]:
+                    dump_config(config_path, cfg)
+                    state["dirty"] = False
+                return 3
+            if key == ord("?"):
+                _show_help(
+                    stdscr,
+                    "orcan init — manage workspaces",
+                    [
+                        "j/k       move",
+                        "Enter/r   rename workspace or project",
+                        "p         change a project's path",
+                        "a         add a project to this workspace (jumps to scan)",
+                        "d         delete project (position on a project row)",
+                        "W         delete whole workspace",
+                        "n         new workspace (scan a folder)",
+                        "P         prune orphaned/stale managed worktrees",
+                        "s         save",
+                        "q / Esc   quit",
+                        "?         this help",
+                    ],
+                )
                 continue
             if not current_rows:
                 continue
@@ -1146,6 +1253,7 @@ def _run_manage(args: argparse.Namespace) -> int:
                                 stdscr,
                                 "This worktree has UNCOMMITTED CHANGES that will be "
                                 "permanently lost — remove anyway?",
+                                danger=True,
                             )
                         deleted = manage_delete_project(ws, pi)
                         state["dirty"] = True
@@ -1173,6 +1281,7 @@ def _run_manage(args: argparse.Namespace) -> int:
                             stdscr,
                             f"{len(dirty_names)} of these have UNCOMMITTED CHANGES "
                             f"({', '.join(dirty_names)}) that will be permanently lost — remove anyway?",
+                            danger=True,
                         ):
                             remove_wt = False
                     deleted = manage_delete_workspace(workspaces, wi)
@@ -1217,6 +1326,9 @@ def _run_manage(args: argparse.Namespace) -> int:
     rc = curses.wrapper(main_loop)
     if rc == 2:
         return _run_curses(args)
+    if rc == 3:
+        _run_prune_interactive(config_path)
+        return _run_manage(args)
     return 0
 
 
