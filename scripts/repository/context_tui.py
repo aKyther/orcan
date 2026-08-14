@@ -48,16 +48,25 @@ HISTORY_LIMIT = 8
 HISTORY_TTL_DAYS = 3.0
 
 # curses color pair numbers, shared across screens once initialized by
-# _init_colors() — semantic, not decorative: warn=caution, info=fyi tag,
-# danger=irreversible data loss.
+# _init_curses_session() — semantic, not decorative: warn=caution, info=fyi
+# tag, danger=irreversible data loss.
 _COLOR_WARN = 1
 _COLOR_INFO = 2
 _COLOR_DANGER = 3
 
 
-def _init_colors() -> None:
+def _init_curses_session() -> None:
+    """Per-session curses setup shared by every screen: colors, and a short
+    ESCDELAY. ncurses waits ~1000ms after a bare Esc before delivering it (to
+    tell it apart from an arrow-key escape sequence) — over SSH/a mobile
+    terminal that reads as "Esc doesn't work". 25ms is the common fix."""
     import curses
 
+    if hasattr(curses, "set_escdelay"):
+        try:
+            curses.set_escdelay(25)
+        except curses.error:
+            pass
     if not curses.has_colors():
         return
     curses.start_color()
@@ -446,8 +455,10 @@ def _prompt_line(stdscr: Any, label: str, initial: str, *, attr: int = 0) -> str
     """Editable text prompt, pre-filled with `initial` and cursor at the end —
     Left/Right/Home/End/Backspace/Delete work like a normal line editor, so
     changing one character of a long path doesn't mean retyping it all.
-    Enter submits (empty submit keeps `initial`); Esc/Ctrl-C cancels (None).
-    `attr` (e.g. a color pair) renders the label/text, for danger prompts."""
+    Ctrl-B/F/A/E are readline-style fallbacks for terminals without real
+    arrow/Home/End keys (mobile terminal apps). Enter submits (empty submit
+    keeps `initial`); Esc/Ctrl-C cancels (None). `attr` (e.g. a color pair)
+    renders the label/text, for danger prompts."""
     import curses
 
     curses.curs_set(1)
@@ -482,13 +493,13 @@ def _prompt_line(stdscr: Any, label: str, initial: str, *, attr: int = 0) -> str
             elif key == curses.KEY_DC:
                 if pos < len(buf):
                     del buf[pos]
-            elif key == curses.KEY_LEFT:
+            elif key in (curses.KEY_LEFT, chr(2), 2):  # Ctrl-B: back one char
                 pos = max(0, pos - 1)
-            elif key == curses.KEY_RIGHT:
+            elif key in (curses.KEY_RIGHT, chr(6), 6):  # Ctrl-F: forward one char
                 pos = min(len(buf), pos + 1)
-            elif key == curses.KEY_HOME:
+            elif key in (curses.KEY_HOME, chr(1), 1):  # Ctrl-A: start of line
                 pos = 0
-            elif key == curses.KEY_END:
+            elif key in (curses.KEY_END, chr(5), 5):  # Ctrl-E: end of line
                 pos = len(buf)
             elif isinstance(key, str) and key.isprintable():
                 buf.insert(pos, key)
