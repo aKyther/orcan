@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import sys
@@ -255,6 +257,58 @@ class ApplyConfigE2ETests(unittest.TestCase):
                 ch.has_hook(ch.load_settings(ch.settings_path(meta_path))),
                 "a second sync must not re-enable a hook the user explicitly disabled",
             )
+
+    def test_stop_hook_missing_gets_reported_not_silently_ignored(self) -> None:
+        import claude_hook as ch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            proj = root / "proj"
+            proj.mkdir()
+            (root / ".env.example").write_text(
+                "USER_UID=1000\nUSER_GID=1000\n", encoding="utf-8"
+            )
+            cfg = {
+                "workspaces": [
+                    {
+                        "name": "demo",
+                        "projects": [{"name": "app", "path": str(proj.resolve())}],
+                    }
+                ]
+            }
+            (root / "orcan.config.json").write_text(
+                json.dumps(cfg, indent=2) + "\n", encoding="utf-8"
+            )
+
+            def sync() -> str:
+                old_argv = sys.argv
+                buf = io.StringIO()
+                try:
+                    sys.argv = [
+                        "apply-config.py",
+                        "--root", str(root),
+                        "--config", str(root / "orcan.config.json"),
+                    ]
+                    with contextlib.redirect_stdout(buf):
+                        apply_config.main()
+                finally:
+                    sys.argv = old_argv
+                return buf.getvalue()
+
+            meta_path = root / "workspaces" / "demo"
+
+            # Simulate a settings.json that existed before the seed step ever
+            # ran for this workspace (e.g. copied by init-workspace's
+            # missing-only template before the first `orcan sync`).
+            (meta_path / ".claude").mkdir(parents=True)
+            (meta_path / ".claude" / "settings.json").write_text(
+                json.dumps({"permissions": {"deny": []}}, indent=2) + "\n", encoding="utf-8"
+            )
+
+            out = sync()
+            self.assertFalse(ch.has_hook(ch.load_settings(ch.settings_path(meta_path))))
+            self.assertIn("Stop hook not active for workspace 'demo'", out)
+            self.assertIn("orcan context hook enable demo", out)
 
     def test_worktree_project_also_mounts_main_repos_git_dir_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
