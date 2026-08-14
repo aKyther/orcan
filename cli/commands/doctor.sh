@@ -77,6 +77,34 @@ orcan_cmd_doctor() {
         check "generated runtime" "0" "run: orcan sync"
     fi
 
+    printf '\nContext\n'
+    if [[ -f "${ORCAN_HOME}/workspaces/index.json" ]]; then
+        local hook_lines
+        hook_lines="$(ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/claude_hook.py" \
+            status --all --home "${ORCAN_HOME}" 2>/dev/null)"
+        if [[ -n "${hook_lines}" ]]; then
+            while IFS= read -r line; do
+                local hook_status ws_name
+                hook_status="$(awk '{print $1}' <<<"${line}")"
+                ws_name="$(awk '{print $2}' <<<"${line}")"
+                [[ -z "${ws_name}" ]] && continue
+                if [[ "${hook_status}" == "enabled" ]]; then
+                    check "context hook: ${ws_name}" "1"
+                else
+                    # Informational, not a failure: this is also the steady
+                    # state after a deliberate `orcan context hook disable`,
+                    # which is indistinguishable from "never got seeded" —
+                    # both just mean the hook isn't in settings.json today.
+                    check "context hook: ${ws_name}" "1" "disabled — enable: orcan context hook enable ${ws_name}"
+                fi
+            done <<<"${hook_lines}"
+        else
+            check "context hook" "1" "no workspaces yet — run: orcan init"
+        fi
+    else
+        check "context hook" "1" "no workspace manifest yet — run: orcan sync"
+    fi
+
     if [[ -S /var/run/docker.sock ]]; then
         check "docker.sock" "1" "/var/run/docker.sock"
     else
