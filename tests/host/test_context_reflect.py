@@ -196,6 +196,61 @@ class DispatchTests(unittest.TestCase):
             reflect.dispatch({"action": "something_else"}, workspace_root=Path("/ws"), project="backend")
         run.assert_not_called()
 
+    def test_propose_on_non_default_branch_scopes_to_it(self) -> None:
+        with mock.patch.object(reflect.subprocess, "run") as run:
+            reflect.dispatch(
+                {"action": "propose", "title": "T", "content": "C", "justification": "J"},
+                workspace_root=Path("/ws"),
+                project="backend",
+                branch="feature/x",
+            )
+        args = run.call_args.args[0]
+        self.assertIn("--branch", args)
+        self.assertIn("feature/x", args)
+
+    def test_propose_on_main_is_not_scoped(self) -> None:
+        with mock.patch.object(reflect.subprocess, "run") as run:
+            reflect.dispatch(
+                {"action": "propose", "title": "T", "content": "C", "justification": "J"},
+                workspace_root=Path("/ws"),
+                project="backend",
+                branch="main",
+            )
+        args = run.call_args.args[0]
+        self.assertNotIn("--branch", args)
+
+    def test_propose_with_no_branch_known_is_not_scoped(self) -> None:
+        with mock.patch.object(reflect.subprocess, "run") as run:
+            reflect.dispatch(
+                {"action": "propose", "title": "T", "content": "C", "justification": "J"},
+                workspace_root=Path("/ws"),
+                project="backend",
+            )
+        args = run.call_args.args[0]
+        self.assertNotIn("--branch", args)
+
+
+class CurrentBranchTests(unittest.TestCase):
+    def test_returns_checked_out_branch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "--quiet", "-b", "feature/y", str(repo)], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.email", "t@example.com"], check=True
+            )
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "t"], check=True)
+            (repo / "f").write_text("x\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "f"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "init"], check=True)
+            self.assertEqual(reflect.current_branch(repo), "feature/y")
+
+    def test_non_git_dir_returns_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(reflect.current_branch(Path(tmp)), "")
+
+    def test_missing_dir_returns_empty(self) -> None:
+        self.assertEqual(reflect.current_branch(Path("/no/such/directory")), "")
+
 
 def _fake_claude_result(actions: list[dict]) -> subprocess.CompletedProcess:
     return subprocess.CompletedProcess(args=[], returncode=0, stdout=json.dumps(actions), stderr="")
@@ -329,6 +384,80 @@ class MainThresholdTests(unittest.TestCase):
         state = reflect.load_state(self.workspace_root / ".orcan" / reflect.STATE_NAME)
         self.assertNotIn("last_error", state["sess1"])
         self.assertNotIn("last_error_at", state["sess1"])
+
+
+class MainBranchScopingTests(unittest.TestCase):
+    """End-to-end: main() resolves the project's real checked-out branch and
+    threads it through to the orcan-context-propose dispatch, not just the
+    dispatch()-level unit tests above."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        root = Path(self._tmp.name)
+        self.workspace_root = root / "ws"
+        self.workspace_root.mkdir()
+        subprocess.run(["git", "init", "--quiet", "-b", "feature/z", str(self.workspace_root)], check=True)
+        subprocess.run(
+            ["git", "-C", str(self.workspace_root), "config", "user.email", "t@example.com"], check=True
+        )
+        subprocess.run(["git", "-C", str(self.workspace_root), "config", "user.name", "t"], check=True)
+        (self.workspace_root / "f").write_text("x\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.workspace_root), "add", "f"], check=True)
+        subprocess.run(["git", "-C", str(self.workspace_root), "commit", "-q", "-m", "init"], check=True)
+
+        self.transcript = root / "transcript.jsonl"
+        self.transcript.write_text("l1\nl2\nl3\n", encoding="utf-8")
+        self.config_path = root / "config.json"
+        self.config_path.write_text(
+            json.dumps(
+                {
+                    "workspaces": [
+                        {
+                            "name": "demo",
+                            "root": str(self.workspace_root),
+                            "projects": [{"name": "backend", "path": str(self.workspace_root)}],
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    def test_propose_on_wip_branch_gets_scoped(self) -> None:
+        calls = []
+        real_run = subprocess.run
+
+        def fake_run(args, **kwargs):
+            calls.append(args)
+            if args and args[0] == "claude":
+                return _fake_claude_result(
+                    [{"action": "propose", "title": "T", "content": "C", "justification": "J", "kind": "fact"}]
+                )
+            if args and args[0] == "git":
+                # Let current_branch()'s own git call through for real —
+                # this test is specifically about main() picking up the
+                # actual checked-out branch, not a mocked one.
+                return real_run(args, **kwargs)
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+
+        argv = [
+            "orcan-context-reflect",
+            "--session-id", "sess1",
+            "--transcript-path", str(self.transcript),
+            "--cwd", str(self.workspace_root),
+            "--threshold", "20",
+            "--force",
+        ]
+        with mock.patch.object(sys, "argv", argv), \
+             mock.patch.dict("os.environ", {"ORCAN_CONFIG": str(self.config_path)}), \
+             mock.patch.object(reflect.subprocess, "run", side_effect=fake_run):
+            reflect.main()
+
+        propose_calls = [c for c in calls if c and str(SCRIPT_PATH.with_name("orcan-context-propose")) in c]
+        self.assertEqual(len(propose_calls), 1)
+        self.assertIn("--branch", propose_calls[0])
+        self.assertIn("feature/z", propose_calls[0])
 
 
 if __name__ == "__main__":
