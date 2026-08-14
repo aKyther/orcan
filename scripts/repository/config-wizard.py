@@ -26,138 +26,20 @@ from config_io import (  # noqa: E402
     dump_config,
     load_config,
 )
+from wizard_ui import (  # noqa: E402
+    _yellow,
+    ask,
+    ask_menu,
+    ask_yes_no,
+    die,
+    heading,
+    info,
+    success,
+    warn,
+)
 
 SENSITIVE = {"/", "/home", "/root", "/etc", "/usr", "/var", "/opt"}
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$")
-
-DEFAULT_TMUX = {"initial_windows": 3, "window_prefix": "tab"}
-DEFAULT_TTYD = {
-    "port": 7681,
-    "host_port": 7681,
-    "font_size": 19,
-    "font_family": "Menlo, Monaco, 'Courier New', monospace",
-    "theme": "dark",
-    "ping_interval": 20,
-}
-
-
-# ANSI colors — pure stdlib, no library. Off for ORCAN_NO_COLOR or a non-tty
-# stream, same convention as cli/lib/log.sh's ORCAN_NO_COLOR / `[ -t 2 ]`.
-_COLOR = not os.environ.get("ORCAN_NO_COLOR") and sys.stdout.isatty()
-
-
-def _paint(code: str, text: str) -> str:
-    return f"\033[{code}m{text}\033[0m" if _COLOR else text
-
-
-def _bold(text: str) -> str:
-    return _paint("1", text)
-
-
-def _cyan(text: str) -> str:
-    return _paint("36", text)
-
-
-def _green(text: str) -> str:
-    return _paint("32", text)
-
-
-def _red(text: str) -> str:
-    return _paint("31", text)
-
-
-def _dim(text: str) -> str:
-    return _paint("2", text)
-
-
-def _yellow(text: str) -> str:
-    return _paint("33", text)
-
-
-def die(msg: str) -> None:
-    print(_red(f"Error: {msg}"), file=sys.stderr)
-    raise SystemExit(1)
-
-
-def info(msg: str = "") -> None:
-    print(msg)
-
-
-def success(msg: str) -> None:
-    """Green checkmark line. Leading whitespace in msg (indent prefixes like
-    "  " or a per-project "    ") stays before the mark, not after it."""
-    stripped = msg.lstrip(" ")
-    indent = msg[: len(msg) - len(stripped)]
-    print(f"{indent}{_green(f'✓ {stripped}')}")
-
-
-def warn(msg: str) -> None:
-    print(_red(f"  ! {msg}"), file=sys.stderr)
-
-
-def heading(title: str) -> None:
-    """Section break — words only, no step numbers (those feel like edit indices)."""
-    info()
-    info(_bold(_cyan(f"── {title} ──")))
-
-
-def ask(prompt: str, default: str | None = None) -> str:
-    if default is not None and default != "":
-        suffix = f" [{default}]"
-    else:
-        suffix = ""
-    try:
-        raw = input(f"{prompt}{suffix}: ").strip()
-    except EOFError:
-        print()
-        die("cancelled (EOF)")
-    if not raw and default is not None:
-        return default
-    return raw
-
-
-def ask_yes_no(prompt: str, *, default: bool = True) -> bool:
-    hint = "Y/n" if default else "y/N"
-    while True:
-        raw = ask(f"{prompt} ({hint})", "y" if default else "n").lower()
-        if raw in {"y", "yes"}:
-            return True
-        if raw in {"n", "no"}:
-            return False
-        warn("answer y or n")
-
-
-def ask_choice(prompt: str, choices: list[str], *, default: str) -> str:
-    labels = "/".join(c.upper() if c == default else c for c in choices)
-    while True:
-        raw = ask(f"{prompt} ({labels})", default).lower()
-        for c in choices:
-            if raw == c or raw == c[0]:
-                return c
-        warn(f"choose: {', '.join(choices)}")
-
-
-def ask_menu(title: str, options: list[tuple[str, str]], *, default: str) -> str:
-    """Numbered menu: options are (id, description). Accept id, number, or first letter."""
-    ids = [oid for oid, _ in options]
-    if default not in ids:
-        default = ids[0]
-    if title.strip():
-        info(title)
-    for i, (oid, desc) in enumerate(options, 1):
-        mark = " ← Enter" if oid == default else ""
-        info(f"  {i}) {desc}{mark}")
-    default_num = str(ids.index(default) + 1)
-    while True:
-        raw = ask("Your choice", default_num).strip().lower()
-        if raw.isdigit():
-            idx = int(raw)
-            if 1 <= idx <= len(options):
-                return options[idx - 1][0]
-        for oid, _ in options:
-            if raw == oid or raw == oid[0]:
-                return oid
-        warn(f"pick 1–{len(options)}")
 
 
 def validate_name(name: str, *, label: str) -> str | None:
@@ -758,48 +640,6 @@ def edit_existing(cfg: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def ask_optional_settings(cfg: dict[str, Any]) -> None:
-    heading("Terminal settings (optional)")
-    info("Defaults work for most people — press Enter / answer n.")
-    if not ask_yes_no("Customize tmux or browser terminal (ttyd)?", default=False):
-        cfg["tmux"] = dict(DEFAULT_TMUX)
-        cfg["ttyd"] = dict(DEFAULT_TTYD)
-        info("  ✓ defaults (3 tmux windows, port 7681)")
-        return
-
-    if ask_yes_no("  Change tmux (windows / prefix)?", default=False):
-        windows = ask("  Initial tmux windows per workspace", "3")
-        try:
-            n = int(windows)
-            n = max(1, min(9, n))
-        except ValueError:
-            n = 3
-            warn("invalid number — using 3")
-        prefix = ask("  Window name prefix", "tab") or "tab"
-        cfg["tmux"] = {"initial_windows": n, "window_prefix": prefix}
-    else:
-        cfg["tmux"] = dict(DEFAULT_TMUX)
-
-    if ask_yes_no("  Change ttyd (port / font)?", default=False):
-        port = ask("  ttyd container port", "7681")
-        host_port = ask("  ttyd host port", port)
-        font = ask("  ttyd font size", "19")
-        try:
-            cfg["ttyd"] = {
-                "port": int(port),
-                "host_port": int(host_port),
-                "font_size": int(font),
-                "font_family": DEFAULT_TTYD["font_family"],
-                "theme": DEFAULT_TTYD["theme"],
-                "ping_interval": DEFAULT_TTYD["ping_interval"],
-            }
-        except ValueError:
-            warn("invalid ttyd numbers — using defaults")
-            cfg["ttyd"] = dict(DEFAULT_TTYD)
-    else:
-        cfg["ttyd"] = dict(DEFAULT_TTYD)
-
-
 def print_orientation() -> None:
     info("Quick map:")
     info("  workspace = name for a group of folders (asked first)")
@@ -822,7 +662,19 @@ def create_fresh() -> dict[str, Any]:
     cfg["workspaces"].append(ask_new_workspace(another=False, cfg=cfg))
     while ask_yes_no("Add another workspace?", default=False):
         cfg["workspaces"].append(ask_new_workspace(another=True, cfg=cfg))
-    ask_optional_settings(cfg)
+    # tmux/ttyd are tool settings, not workspace data — seed defaults here;
+    # customize later with `orcan settings`.
+    cfg["tmux"] = {"initial_windows": 3, "window_prefix": "tab"}
+    cfg["ttyd"] = {
+        "port": 7681,
+        "host_port": 7681,
+        "font_size": 19,
+        "font_family": "Menlo, Monaco, 'Courier New', monospace",
+        "theme": "dark",
+        "ping_interval": 20,
+    }
+    info()
+    info("  ✓ tmux/ttyd: using defaults (customize later: orcan settings)")
     return cfg
 
 
