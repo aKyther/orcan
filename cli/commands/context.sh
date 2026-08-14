@@ -84,12 +84,22 @@ orcan_context_tui() {
             cat <<'EOF'
 usage: orcan context tui [options]
 
-Interactive TUI: point at a parent folder → multi-select git repos →
-create/update a workspace. Optional: one branch name → managed worktree
-per selected repo (same branch for all).
+Interactive TUI. `orcan init` (no path) opens this: if workspaces already
+exist it starts on the manage screen, otherwise (or via `n`) the scan
+screen — point at a parent folder → multi-select git repos or plain
+directories → create/update a workspace. Optional: one branch name →
+managed worktree per selected git repo (plain directories are always
+mounted as-is, no worktree).
 
-Keys: Space toggle · a/A all/none · e path · w workspace · t worktrees ·
-      b branch · Enter apply · q quit
+Scan screen keys:
+  Space toggle · a/A select-visible/none · / filter · e browse dir ·
+  h recent dirs · w workspace name · t worktree mode · b branch ·
+  Enter apply · q quit
+
+Manage screen keys (shown when a config already exists):
+  j/k move · Enter/r rename · p change path · a add project (jump to
+  scan, pre-filled) · d delete project · W delete workspace ·
+  n new workspace (scan folder) · s save · q quit
 
 Options:
   --dir PATH           Parent directory to scan (default: last used / cwd)
