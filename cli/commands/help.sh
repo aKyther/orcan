@@ -9,10 +9,13 @@ Usage:
   orcan <command> [arguments]
 
 Commands:
-  init [PATH]              No PATH: interactive config wizard (create or edit)
+  init [PATH]              No PATH: TUI to create/edit workspaces (default)
+                           --cli: old sequential prompt wizard instead
                            PATH: non-interactive scaffold (scripts/CI)
                            Either way: scaffold/wizard + sync + show
   sync                     Materialise .env + mounts/* for Compose
+  settings                 Edit tool settings (tmux windows/prefix, ttyd
+                           port/font) — separate from workspaces/projects
   context show             List workspaces
   context add PATH         Add a project (optional --workspace NAME)
   context add --from-worktree REPO SELECTOR

@@ -59,7 +59,12 @@ require_file "scripts/repository/config-scaffold.py"
 require_file "scripts/repository/config-show.py"
 require_file "scripts/repository/config-wizard.py"
 require_file "scripts/repository/context_tui.py"
+require_file "scripts/repository/wizard_ui.py"
+require_file "scripts/repository/settings-wizard.py"
+require_file "cli/commands/settings.sh"
 require_file "tests/host/test_config_wizard.py"
+require_file "tests/host/test_wizard_ui.py"
+require_file "tests/host/test_settings_wizard.py"
 require_file "scripts/repository/config_io.py"
 require_file "scripts/repository/git_worktrees.py"
 require_file "scripts/repository/managed_workspace.py"
@@ -170,6 +175,7 @@ for script in \
     cli/commands/publish.sh \
     cli/commands/context.sh \
     cli/commands/enter.sh \
+    cli/commands/settings.sh \
     tests/smoke/test-container.sh \
     tests/integration/test-path-parity.sh
 do
@@ -191,6 +197,8 @@ for script in \
     scripts/repository/config-show.py \
     scripts/repository/config-wizard.py \
     scripts/repository/context_tui.py \
+    scripts/repository/wizard_ui.py \
+    scripts/repository/settings-wizard.py \
     scripts/repository/config_io.py \
     scripts/repository/git_worktrees.py \
     scripts/repository/managed_workspace.py \

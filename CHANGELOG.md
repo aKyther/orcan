@@ -54,9 +54,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   synced. Opting out is what's configurable — `orcan context hook disable`
   sticks across every later sync, since sync only ever seeds a workspace
   whose `.claude/settings.json` doesn't exist yet.
+- `orcan init` (no PATH) now defaults to a curses TUI instead of the old
+  sequential prompt wizard — the wizard's edit flow walked every workspace,
+  then every project inside it, one keep/change/delete prompt at a time,
+  which got tedious with many projects. With an existing config it opens
+  straight into a **manage** screen (grid view, jump to any row: `r` rename,
+  `p` change path, `d` delete project, `W` delete workspace, `n` to scan a
+  folder and add more); with no config yet it goes straight to the existing
+  scan-and-select screen. The old wizard is still there: `orcan init --cli`.
+  tmux/ttyd settings moved out of the wizard entirely — see `orcan settings`
+  below — they're tool settings, not workspace data, so they no longer show
+  up while creating/editing workspaces.
 
 ### Added
 
+- `orcan settings` — edit tool-level settings (tmux windows/prefix, ttyd
+  port/font) in `orcan.config.json`, independent of `orcan init`
+  (workspaces/projects). `scripts/repository/settings-wizard.py`.
 - `orcan context tui` — curses TUI: parent folder → multi-select git repos →
   create/update a workspace; optional **one** branch name creates a managed
   worktree per selection. Flags: `--dir`, `--workspace`, `--branch`, `--select`,
