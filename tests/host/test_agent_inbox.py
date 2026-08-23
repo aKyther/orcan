@@ -132,6 +132,13 @@ class ClaimTests(unittest.TestCase):
     def test_claim_next_returns_none_when_inbox_empty(self) -> None:
         self.assertIsNone(agent_inbox.claim_next(self.root, "worker-1"))
 
+    def test_safe_mtime_does_not_raise_for_a_vanished_file(self) -> None:
+        # claim_next() sorts inbox/*.json by mtime before claiming; a file
+        # another claimant already renamed away between glob() and this stat
+        # call must not crash the sort, just sort last.
+        ghost = self.root / "ghost.json"
+        self.assertEqual(agent_inbox._safe_mtime(ghost), float("inf"))
+
 
 class CompleteTests(unittest.TestCase):
     def setUp(self) -> None:

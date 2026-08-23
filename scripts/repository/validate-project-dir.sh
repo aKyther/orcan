@@ -81,6 +81,11 @@ reject_sensitive_path() {
         return 1
     fi
 
+    if ! command -v python3 >/dev/null 2>&1; then
+        printf 'Error: python3 is required to validate PROJECT_DIR (path_guards.py)\n' >&2
+        return 1
+    fi
+
     if ! PYTHONPATH="${PATH_GUARDS_DIR}" python3 -c "
 from path_guards import is_sensitive_path
 import sys

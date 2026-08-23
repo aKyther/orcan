@@ -109,8 +109,8 @@ class ApplyWorkspacesTests(unittest.TestCase):
         self.assertEqual(report2.workspaces[0].symlinks_created, [])
         self.assertEqual(report2.workspaces[0].symlinks_removed, [])
         self.assertFalse(report2.changed())
-        # AGENTS.md is regenerated content (cheap, deterministic) — still
-        # written every run, but the symlink itself was left untouched.
+        # AGENTS.md content is regenerated and compared every run, but only
+        # actually rewritten (and its mtime bumped) when it changed.
         self.assertTrue((self.ws_root / "AGENTS.md").stat().st_mtime_ns >= agents_md_before)
 
     def test_removing_project_drops_orphan_symlink(self) -> None:

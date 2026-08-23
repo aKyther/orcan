@@ -32,6 +32,25 @@ dir_nonempty() {
     [[ -d "$1" ]] && [[ -n "$(ls -A "$1" 2>/dev/null || true)" ]]
 }
 
+# Every location this migration has ever moved worktrees *from* — the
+# "nothing to migrate" fast-path below must check all of these, not just a
+# subset, or it can declare victory while legacy worktrees are still sitting
+# in one of the others.
+LEGACY_CANDIDATES=(
+    "${DATA}/worktrees"
+    "${PROJECTS_ROOT}/worktrees"
+    "${DATA}/sandbox/worktrees"
+    "${DATA}/space/worktrees"
+)
+
+any_legacy_nonempty() {
+    local candidate
+    for candidate in "${LEGACY_CANDIDATES[@]}"; do
+        dir_nonempty "${candidate}" && return 0
+    done
+    return 1
+}
+
 rewrite_file_paths() {
     local file="$1" from="$2" to="$3"
     [[ -f "${file}" ]] || return 0
@@ -55,7 +74,7 @@ PY
 
 pick_old() {
     local candidate
-    for candidate in "${DATA}/worktrees" "${PROJECTS_ROOT}/worktrees" "${DATA}/sandbox/worktrees" "${DATA}/space/worktrees"; do
+    for candidate in "${LEGACY_CANDIDATES[@]}"; do
         if dir_nonempty "${candidate}"; then
             # Skip if it already *is* the new path
             if [[ "$(cd -- "${candidate}" && pwd -P)" == "$(mkdir -p "${NEW}" && cd -- "${NEW}" && pwd -P)" ]]; then
@@ -68,13 +87,11 @@ pick_old() {
     return 1
 }
 
-if [[ -d "${NEW}" ]] && ! dir_nonempty "${DATA}/worktrees" && ! dir_nonempty "${PROJECTS_ROOT}/worktrees"; then
-    # Already on .worktrees and no legacy dirs with content
-    if dir_nonempty "${NEW}" || [[ -d "${NEW}" ]]; then
-        info "nothing to migrate — already using ${NEW} (or fresh install)"
-        mkdir -p "${NEW}"
-        exit 0
-    fi
+if [[ -d "${NEW}" ]] && ! any_legacy_nonempty; then
+    # Already on .worktrees and no legacy dirs (any of them) have content.
+    info "nothing to migrate — already using ${NEW} (or fresh install)"
+    mkdir -p "${NEW}"
+    exit 0
 fi
 
 OLD=""

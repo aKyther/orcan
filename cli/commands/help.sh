@@ -13,7 +13,10 @@ Commands:
                            --cli: old sequential prompt wizard instead
                            PATH: non-interactive scaffold (scripts/CI)
                            Either way: scaffold/wizard + sync + show
-  sync                     Materialise .env + mounts/* for Compose
+  sync [--prune-orphans]   Materialise .env + mounts/* for Compose; live
+                           reconcile into a running container. --prune-orphans
+                           also kills orphaned tmux sessions (default: report
+                           only, never kill one that might have an active agent)
   migrate [--yes]          Move projects under managed root (dry-run by default)
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects

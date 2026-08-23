@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Orphaned tmux session pruning was unreachable.** `orcan-tmux-reconcile-sessions
+  --prune-orphans` existed but no caller ever passed the flag. `orcan sync
+  --prune-orphans` now threads it through the live-reconcile path.
+- **`TTYD_BIND=0.0.0.0` printed an unusable URL.** `orcan url` / `orcan up
+  --with-ttyd` / `orcan doctor` now show `localhost` instead of the literal
+  wildcard bind (still shows a real address unchanged, e.g. a Tailscale IP).
+- **Live-reconcile could misclassify a managed project as unmanaged** when
+  `ORCAN_PROJECTS_ROOT` resolves through a symlink (e.g. a symlinked
+  `$HOME`) — `apply-config.py`'s `_is_under()` now resolves both sides
+  before comparing.
+- **`orcan-inbox` could crash on a claim race.** `claim_next()` sorted
+  candidates by `stat().st_mtime` with no handling for a file another
+  claimant already renamed away between `glob()` and `stat()`.
+- **Migration `move-worktrees-into-sandbox.sh` could silently strand legacy
+  worktrees** when `ORCAN_PROJECTS_ROOT` was customized and the target
+  `.worktrees/` dir already existed (pre-created by `update-env.sh`) — its
+  "nothing to migrate" fast-path only checked 2 of the 4 known legacy
+  locations.
+- **`orcan-runtime-status` and `orcan-tmux-reconcile-sessions` disagreed on
+  "orphaned"** — status now applies the same `ORCAN_WORKSPACE_NAME` tag
+  check the actual pruner uses, instead of flagging any unrecognized session.
+- **Missing `python3` was misreported as a sensitive-path rejection** in
+  `validate-project-dir.sh` — now a distinct, clear error.
+- **`path_guards.py` had no `validate.sh` coverage** despite backing the
+  sensitive-path security check — added to the require/syntax-check lists.
+- **`orcan_compose_ttyd_run()` (dead code, zero callers) duplicated its own
+  positional args** onto the forwarded `docker compose` invocation — fixed
+  the missing `shift`.
+
+### Changed
+
+- **`reconcile.py` skips no-op writes.** `.manifest.json`, `AGENTS.md`,
+  `CLAUDE.md`, and `README.workspace.md` are now only rewritten when content
+  actually changed, instead of unconditionally on every reconcile (now a
+  hot path — every `orcan sync` against a live container, not just boot).
+
 ## [2.0.0] - 2026-08-23
 
 ### Security

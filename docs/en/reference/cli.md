@@ -34,7 +34,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | --- | --- |
 | `orcan init` | No PATH: TUI to create/edit workspaces (default) + sync + show. `--cli`: old sequential prompt wizard instead |
 | `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
-| `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
+| `orcan sync [--prune-orphans]` | Apply `orcan.config.json` → `.env` + `mounts/*`; live-reconciles a running container. `--prune-orphans` also kills orphaned tmux sessions from a removed/renamed workspace (default: report only) |
 | `orcan migrate [--yes] [--no-symlink]` | Move configured projects under the managed root (`ORCAN_PROJECTS_ROOT`); dry-run unless `--yes` — fewer future container recreates |
 | `orcan settings` | Edit tool settings (tmux windows/prefix, ttyd port/font) — separate from workspaces/projects |
 | `orcan context show` | List workspaces + path-parity summary |

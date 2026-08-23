@@ -113,12 +113,24 @@ def claim(workspace_root: Path, task_id: str, claimant: str) -> dict[str, Any] |
     return task
 
 
+def _safe_mtime(path: Path) -> float:
+    """path.stat().st_mtime, or +inf if another claimant already removed it.
+
+    Only used for sort ordering — a vanished file sorts last and is then
+    skipped like any other lost race, in the claim() loop below.
+    """
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return float("inf")
+
+
 def claim_next(workspace_root: Path, claimant: str) -> dict[str, Any] | None:
     """Claim the oldest task currently in inbox/, if any."""
     inbox_dir = _state_dir(workspace_root, "inbox")
     if not inbox_dir.is_dir():
         return None
-    candidates = sorted(inbox_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    candidates = sorted(inbox_dir.glob("*.json"), key=_safe_mtime)
     for path in candidates:
         claimed = claim(workspace_root, path.stem, claimant)
         if claimed is not None:
