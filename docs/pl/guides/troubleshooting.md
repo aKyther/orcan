@@ -18,9 +18,12 @@ docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml co
 
 ## Terminal w przeglądarce się nie otwiera
 
+Wymaga `orcan up --with-ttyd` (sam `orcan up` = tylko lokalnie — użyj `orcan enter`).
+
 1. Potwierdź, że kontener działa: `orcan logs`
-2. Potwierdź URL: `orcan url` (domyślnie `http://localhost:7681`)
-3. Jeśli port jest zajęty, zmień `ttyd.host_port` w `orcan.config.json`, potem `orcan sync` i odtwórz kontener
+2. Potwierdź, że ttyd jest włączone: `orcan doctor` (sekcja Runtime) albo `orcan url`
+3. Potwierdź URL: `orcan url` (domyślnie `http://127.0.0.1:7681` przy loopback `TTYD_BIND`)
+4. Jeśli port jest zajęty, zmień `ttyd.host_port` w `orcan.config.json`, potem `orcan sync` i `orcan down && orcan up --with-ttyd`
 
 ## Częste „reconnecting” na telefonie / LTE
 

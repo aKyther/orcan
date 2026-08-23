@@ -19,11 +19,12 @@ Najważniejsze komendy:
 ```bash
 orcan init | sync | context show
 orcan build [--claude|--cursor] [--force]
-orcan up | up --with-docker | up --with-git | down
-orcan logs | doctor | url
+orcan up [--with-ttyd] [--with-docker | --with-network NAME] [--with-git] | down
+  (| = wybór jednego — notacja docs, nie jedna linia shell)
+orcan enter | logs | doctor | url
 ```
 
-Rytuał użytkownika: `orcan init` → `orcan build` → `orcan up`. Po edycji konfiguracji: `orcan sync && orcan down && orcan up`.
+Rytuał: `orcan init` → `orcan build` → `orcan up` (lokalnie; `--with-ttyd` dla przeglądarki). Po edycji configu: `orcan sync`, potem `orcan up` — rebuild tylko gdy zmienił się obraz.
 
 ## Make dla maintainerów
 

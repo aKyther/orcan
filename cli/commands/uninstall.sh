@@ -38,8 +38,8 @@ orcan_cmd_uninstall() {
     fi
 
     if orcan_have docker; then
-        orcan_compose_ttyd down --remove-orphans >/dev/null 2>&1 || true
-        orcan_compose_ttyd_docker down --remove-orphans >/dev/null 2>&1 || true
+        orcan_info "stopping containers (all up overlay variants)"
+        orcan_compose_ttyd_down_all_variants
     fi
 
     if [[ -L "${launcher}" || -f "${launcher}" ]]; then

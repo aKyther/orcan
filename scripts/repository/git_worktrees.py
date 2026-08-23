@@ -121,8 +121,22 @@ def orcan_data_root() -> Path:
     return (Path.home() / ".config" / "orcan").resolve()
 
 
+def projects_root() -> Path:
+    """Stable managed-projects mount root (Compose: ORCAN_PROJECTS_ROOT).
+
+    Default ``$ORCAN_DATA/sandbox``. Managed worktrees live under
+    ``<projects_root>/.worktrees/`` so they inherit that single bind and do
+    not force a container recreate when added.
+    """
+    raw = os.environ.get("ORCAN_PROJECTS_ROOT", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    return orcan_data_root() / "sandbox"
+
+
 def managed_root(*, ensure: bool = False) -> Path:
-    root = orcan_data_root() / "worktrees"
+    """Host dir for Orcan-managed git worktrees: ``$ORCAN_PROJECTS_ROOT/.worktrees``."""
+    root = projects_root() / ".worktrees"
     if ensure:
         root.mkdir(parents=True, exist_ok=True)
     return root
@@ -480,7 +494,7 @@ def remove_worktree(
     if not allow_unmanaged and not is_under_managed_root(path):
         die(
             f"refusing to remove path outside managed root {managed_root()}: {path}\n"
-            "Use a path under $ORCAN_DATA/worktrees, or pass --force for unmanaged paths."
+            "Use a path under $ORCAN_PROJECTS_ROOT/.worktrees, or pass --force for unmanaged paths."
         )
     if not is_git_repo(path):
         die(f"not a git worktree: {path}")
@@ -681,7 +695,7 @@ def main() -> None:
     p_add.add_argument(
         "--managed",
         action="store_true",
-        help="Place under $ORCAN_DATA/worktrees/<workspace>/<project>",
+        help="Place under $ORCAN_PROJECTS_ROOT/.worktrees/<workspace>/<project>",
     )
     p_add.set_defaults(func=cmd_create)
 
@@ -690,7 +704,7 @@ def main() -> None:
     p_rm.add_argument("--force", action="store_true")
     p_rm.set_defaults(func=cmd_remove)
 
-    p_root = sub.add_parser("managed-root", help="Print $ORCAN_DATA/worktrees")
+    p_root = sub.add_parser("managed-root", help="Print $ORCAN_PROJECTS_ROOT/.worktrees")
     p_root.set_defaults(func=cmd_managed_root)
 
     p_prune = sub.add_parser(

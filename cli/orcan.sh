@@ -21,13 +21,14 @@ Commands:
                (--cli: old sequential prompt wizard instead)
                PATH: non-interactive scaffold (scripts/CI) + sync + show
   sync         Apply orcan.config.json → .env + mounts/* for Compose
+  migrate      Move projects under the managed root (fewer future recreates)
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
   settings     Edit tool settings (tmux, ttyd) — separate from workspaces
-  up           Start browser terminal (--with-docker / --with-git)
+  up           Start container (orcan enter; --with-ttyd for browser terminal)
   down         Stop containers
-  build        Both agents → orcan:latest + orcan:<VERSION> (pull or build)
-               (--claude/--cursor → orcan:<VERSION>-claude|cursor, no pull)
-  pull         Pull both-agents orcan:<VERSION> → orcan:latest
+  build        All agents → orcan:latest + orcan:<VERSION> (pull or build)
+               (--claude/--cursor/--codex → orcan:<VERSION>-claude|cursor|codex, no pull)
+  pull         Pull all-agents orcan:<VERSION> → orcan:latest
   publish      Manual push of both-agents orcan:latest (not part of build)
   url          Print browser terminal URL
   logs         Follow container logs
@@ -66,7 +67,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | context | settings | up | down | build | pull | publish | url | logs | seed | update | doctor | uninstall | enter | go-in)
+        init | sync | migrate | context | settings | up | down | build | pull | publish | url | logs | seed | update | doctor | uninstall | enter | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;

@@ -73,6 +73,11 @@
       "properties": {
         "port": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 7681 },
         "host_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "bind": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host address for published ttyd port (TTYD_BIND). Default loopback; use 0.0.0.0 only with Tailscale/VPN and preferably TTYD_CREDENTIAL."
+        },
         "font_size": { "type": "integer", "minimum": 8, "default": 19 },
         "font_family": { "type": "string" },
         "theme": {

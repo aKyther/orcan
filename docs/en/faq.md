@@ -8,7 +8,7 @@ Short answers to common Orcan questions.
 
 ## What is Orcan?
 
-Orcan is a **work-context orchestrator**. It runs Cursor CLI (`agent`) and Claude Code (`claude`) in Docker with workspaces (named sets of projects), path-parity mounts, and a browser terminal.
+Orcan is a **work-context orchestrator**. It runs Cursor CLI (`agent`) and Claude Code (`claude`) in Docker with workspaces (named sets of projects) and path-parity mounts. Enter locally with `orcan enter`, or optionally use a browser terminal (`orcan up --with-ttyd`).
 
 Read [Why Orcan?](why-orcan.md) and [Core Ideas](ideas/core-ideas.md) before the rest of this FAQ.
 
@@ -51,7 +51,7 @@ After reconnect, the launcher **auto-reattaches** to the last workspace (2s coun
 
 **Push/pull over SSH:** start with `orcan up --with-git` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --with-docker --with-git`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
 
-**Worktrees:** optional. Mount a normal clone path by default; use the wizard’s advanced help or `orcan context worktree` when you want a separate checkout under `$ORCAN_DATA/worktrees`. See [Workspaces](concepts/workspaces.md#git-worktrees).
+**Worktrees:** optional. Mount a normal clone path by default; use the wizard’s advanced help or `orcan context worktree` when you want a separate checkout under `$ORCAN_PROJECTS_ROOT/.worktrees` (default `~/.config/orcan/sandbox/.worktrees` — covered by the stable projects mount, so no container recreate). See [Workspaces](concepts/workspaces.md#git-worktrees).
 
 ## Which agents are installed?
 
@@ -94,7 +94,12 @@ Under `$ORCAN_DATA` (default `~/.config/orcan`):
 | --- | --- |
 | `claude/` | Claude Code config + OAuth (`.credentials.json`, settings). `CLAUDE_CONFIG_DIR` points here so login survives restarts |
 | `cursor/` | Cursor CLI home |
-| `cache/` | Tool caches (ruff, pip, uv, …) |
+| `codex/` | Codex CLI home |
+| `cache/` | All tool caches under container `~/.cache` (npm, pnpm, cargo, go, uv, …) |
+| `history/` | Shell history (`HISTFILE`) |
+| `dotfiles/` | Personal shell/tmux/vim overlays |
+
+Browse the sandbox map inside the container at `~/orcan/` (symlinks only).
 
 After `orcan build --force` / restart, you should **not** need to `/login` again unless you wiped `$ORCAN_DATA` or never completed login while the volume was mounted.
 

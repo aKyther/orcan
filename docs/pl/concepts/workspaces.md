@@ -65,7 +65,7 @@ Pierwszy włączony workspace napędza `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR
 
 **Git worktree** to kolejny checkout tego samego repozytorium (inna ścieżka, zwykle inny branch). Na co dzień wystarczy zamontować zwykłą ścieżkę klona w workspace i pracować na tym branchu, który tam jest.
 
-Worktree to **opcjonalna, zaawansowana pomoc**: gdy chcesz drugi checkout bez ruszania klona od `main` / `pull`. Orcan może je tworzyć pod `$ORCAN_DATA/worktrees/<workspace>/<project>/` i zapisać w `manifest.json`.
+Worktree to **opcjonalna, zaawansowana pomoc**: gdy chcesz drugi checkout bez ruszania klona od `main` / `pull`. Orcan tworzy je pod `$ORCAN_PROJECTS_ROOT/.worktrees/<workspace>/<project>/` (domyślnie `~/.config/orcan/sandbox/.worktrees/...`) i zapisuje w `registry.json`. Ta ścieżka leży pod stałym mountem projects-root, więc dodanie worktree **nie** wymaga recreate kontenera.
 
 ```bash
 orcan init   # montuj ścieżki; opcjonalnie utwórz/wybierz worktree
@@ -81,8 +81,8 @@ Przykład po managed create:
 {
   "name": "my-ws",
   "projects": [
-    { "name": "backend", "path": "/home/you/.config/orcan/worktrees/my-ws/backend" },
-    { "name": "frontend", "path": "/home/you/.config/orcan/worktrees/my-ws/frontend" }
+    { "name": "backend", "path": "/home/you/.config/orcan/sandbox/.worktrees/my-ws/backend" },
+    { "name": "frontend", "path": "/home/you/.config/orcan/sandbox/.worktrees/my-ws/frontend" }
   ]
 }
 ```

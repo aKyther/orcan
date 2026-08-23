@@ -27,7 +27,7 @@ Same komendy tego nie naprawią. Potrzebujesz **nazwanego kontekstu**, który da
 
 Orcan to **orkiestrator kontekstu pracy**.
 
-Nie zastępuje Gita. Nie wybiera modeli AI. Opisuje **które projekty tworzą jeden workspace**, montuje je z **path parity**, seeduje mały **context pack** czytelny dla agentów i otwiera **terminal w przeglądarce** (tmux + zsh), w którym Cursor CLI (`agent`) i Claude Code (`claude`) działają w Dockerze.
+Nie zastępuje Gita. Nie wybiera modeli AI. Opisuje **które projekty tworzą jeden workspace**, montuje je z **path parity**, seeduje mały **context pack** czytelny dla agentów i uruchamia Cursor CLI (`agent`) oraz Claude Code (`claude`) w Dockerze — lokalnie przez `orcan enter`, albo w przeglądarce z `--with-ttyd` (tmux + zsh).
 
 Idea produktu jest prosta: **projekty są częściami; workspace jest kontekstem.**
 
@@ -37,7 +37,7 @@ Trzymasz prywatną listę ścieżek. Otwierasz pięć terminali. Masz nadzieję,
 
 ## Życie z Orcanem
 
-Piszesz jedną konfigurację JSON: workspace'y i bezwzględne ścieżki projektów. `orcan sync` materializuje mounty i pliki runtime. Otwierasz jeden terminal w przeglądarce, wybierasz workspace — Ty i agenci dzielicie ten sam układ oraz te same instrukcje startowe.
+Piszesz jedną konfigurację JSON: workspace'y i bezwzględne ścieżki projektów. `orcan sync` materializuje mounty i pliki runtime. Uruchamiasz kontener (`orcan up`), wchodzisz lokalnie przez `orcan enter` (albo dodajesz `--with-ttyd` dla przeglądarki), wybierasz workspace — Ty i agenci dzielicie ten sam układ oraz te same instrukcje startowe.
 
 ## Kiedy używać
 

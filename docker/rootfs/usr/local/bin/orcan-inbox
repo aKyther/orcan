@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""orcan-inbox — agent task handoff (propose|approve|claim|complete|list|watch).
+
+Thin CLI over orcan.agent_inbox / orcan.agent_executor (the shared
+implementation — see AGENTS.md "Agent handoff"). Discussion/planning agents
+propose structured task manifests here; an execution agent (interactive, or
+this tool's own `watch` dispatcher) claims and runs them. The inbox is
+Orcan's protocol — it does not care which product does the executing.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, "/usr/local/lib")
+
+from orcan.agent_executor import (  # noqa: E402
+    ClaudeExecutor,
+    CodexExecutor,
+    ShellExecutor,
+    dispatch_once,
+)
+from orcan.agent_inbox import approve, claim, complete, list_tasks, propose  # noqa: E402
+
+EXECUTORS = {"claude": ClaudeExecutor, "codex": CodexExecutor, "shell": ShellExecutor}
+
+
+def resolve_workspace_root(explicit: str) -> Path | None:
+    raw = explicit or os.environ.get("ORCAN_WORKSPACE_ROOT") or str(Path.cwd())
+    root = Path(raw)
+    return root.resolve() if root.is_dir() else None
+
+
+def die(msg: str) -> int:
+    print(f"Error: {msg}", file=sys.stderr)
+    return 1
+
+
+def cmd_propose(args: argparse.Namespace, root: Path) -> int:
+    task: dict = {
+        "title": args.title,
+        "workspace": args.workspace or os.environ.get("ORCAN_WORKSPACE_NAME", ""),
+        "project": args.project,
+        "goal": args.goal,
+        "context": args.context,
+        "decisions": args.decision,
+        "constraints": args.constraint,
+        "files": args.file,
+        "acceptance": args.acceptance,
+        "risks": args.risk,
+        "execution": {"policy": args.policy, "executor": args.executor},
+    }
+    path = propose(root, task, policy=args.policy)
+    print(f"proposed: {path.stem}  (policy={args.policy})  -> {path}")
+    return 0
+
+
+def cmd_approve(args: argparse.Namespace, root: Path) -> int:
+    try:
+        path = approve(root, args.task_id)
+    except (FileNotFoundError, ValueError) as exc:
+        return die(str(exc))
+    print(f"approved: {args.task_id}  -> {path}")
+    return 0
+
+
+def cmd_claim(args: argparse.Namespace, root: Path) -> int:
+    task = claim(root, args.task_id, args.claimant)
+    if task is None:
+        return die(f"could not claim {args.task_id} — already claimed, or not in inbox/")
+    print(json.dumps(task, indent=2))
+    return 0
+
+
+def cmd_complete(args: argparse.Namespace, root: Path) -> int:
+    result = json.loads(args.result) if args.result else None
+    path = complete(root, args.task_id, outcome=args.outcome, result=result)
+    print(f"{args.outcome}: {args.task_id}  -> {path}")
+    return 0
+
+
+def cmd_list(args: argparse.Namespace, root: Path) -> int:
+    tasks = list_tasks(root, args.state)
+    if not tasks:
+        print(f"(no tasks in {args.state}/)")
+        return 0
+    for task in tasks:
+        print(f"{task.get('id')}\t{task.get('status')}\t{task.get('title', '')}")
+    return 0
+
+
+def cmd_watch(args: argparse.Namespace, root: Path) -> int:
+    executor = EXECUTORS[args.executor]()
+    claimant = args.claimant
+    print(f"watching {root}/.orcan/tasks/inbox (executor={args.executor}, interval={args.interval}s)")
+    while True:
+        completed = dispatch_once(root, executor, claimant)
+        if completed is not None:
+            print(f"{completed.get('status')}: {completed.get('id')}  {completed.get('title', '')}")
+        if args.once:
+            return 0
+        time.sleep(args.interval)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--workspace-root", default="", help="Defaults to $ORCAN_WORKSPACE_ROOT or cwd")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_propose = sub.add_parser("propose", help="Write a structured task manifest")
+    p_propose.add_argument("--title", required=True)
+    p_propose.add_argument("--workspace", default="")
+    p_propose.add_argument("--project", default="")
+    p_propose.add_argument("--goal", default="")
+    p_propose.add_argument("--context", default="")
+    p_propose.add_argument("--decision", action="append", default=[])
+    p_propose.add_argument("--constraint", action="append", default=[])
+    p_propose.add_argument("--file", action="append", default=[])
+    p_propose.add_argument("--acceptance", action="append", default=[])
+    p_propose.add_argument("--risk", action="append", default=[])
+    p_propose.add_argument("--policy", default="approve", choices=("draft", "approve", "auto"))
+    p_propose.add_argument("--executor", default="claude", choices=("claude", "codex", "shell"))
+
+    p_approve = sub.add_parser("approve", help="Move a proposed task to inbox/")
+    p_approve.add_argument("task_id")
+
+    p_claim = sub.add_parser("claim", help="Atomically claim one task from inbox/")
+    p_claim.add_argument("task_id")
+    p_claim.add_argument("--claimant", default=f"pid-{os.getpid()}")
+
+    p_complete = sub.add_parser("complete", help="Mark a claimed task done/review/failed")
+    p_complete.add_argument("task_id")
+    p_complete.add_argument("--outcome", required=True, choices=("done", "review", "failed"))
+    p_complete.add_argument("--result", default="", help="JSON object")
+
+    p_list = sub.add_parser("list", help="List tasks in one state")
+    p_list.add_argument("state", choices=("proposals", "inbox", "processing", "review", "done", "failed"))
+
+    p_watch = sub.add_parser("watch", help="Poll inbox/, claim + execute one task at a time")
+    p_watch.add_argument("--executor", default="claude", choices=("claude", "codex", "shell"))
+    p_watch.add_argument("--claimant", default=f"pid-{os.getpid()}")
+    p_watch.add_argument("--interval", type=float, default=5.0)
+    p_watch.add_argument("--once", action="store_true", help="Dispatch at most one task, then exit")
+
+    args = parser.parse_args()
+    root = resolve_workspace_root(args.workspace_root)
+    if root is None:
+        return die("could not resolve workspace root ($ORCAN_WORKSPACE_ROOT or cwd)")
+
+    handlers = {
+        "propose": cmd_propose,
+        "approve": cmd_approve,
+        "claim": cmd_claim,
+        "complete": cmd_complete,
+        "list": cmd_list,
+        "watch": cmd_watch,
+    }
+    return handlers[args.cmd](args, root)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

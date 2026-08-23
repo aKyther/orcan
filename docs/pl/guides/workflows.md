@@ -8,25 +8,24 @@ Te scenariusze zakładają, że znasz już [Idee podstawowe](../ideas/core-ideas
 
 ## Scenariusz: start dnia w jednym kontekście
 
-Masz już skonfigurowane workspace'y. Chcesz terminal w przeglądarce i wczorajsze mounty.
+Masz już skonfigurowane workspace'y. Chcesz kontener dev z wczorajszymi mountami.
 
 **Idea:** odtwórz sesję bez regenerowania konfiguracji.
 
 ```bash
 cd /absolute/path/to/orcan
-orcan up
+orcan up              # lokalnie — orcan enter na tej samej maszynie
+# zdalnie w przeglądarce: orcan up --with-ttyd && orcan url
 ```
-
-Otwórz `http://localhost:7681` i wybierz workspace.
 
 !!! note
     `orcan up` **nie** uruchamia `orcan sync`. Jeśli zmieniłeś `orcan.config.json`, najpierw zastosuj konfigurację.
 
 ## Scenariusz: lokalny terminal (nie tylko przeglądarka) { #local-terminal }
 
-**Kiedy:** jesteś na tej samej maszynie co kontener (laptop) i chcesz natywny terminal — albo drugi klient obok ttyd.
+**Kiedy:** jesteś na tej samej maszynie co kontener (laptop) i chcesz natywny terminal — albo drugi klient obok `--with-ttyd`.
 
-ttyd jest ścieżką pod zdalne programowanie. Lokalnie użyj **`orcan enter`** (albo surowego `docker exec`), żeby dołączyć do **tych samych** sesji tmux co przeglądarka (wielu klientów naraz jest OK).
+Zwykłe `orcan up` to tryb lokalny (bez publikacji portu). **`orcan enter`** to domyślna ścieżka na tej samej maszynie. Dodaj **`--with-ttyd`**, gdy potrzebujesz przeglądarki (zdalnie / telefon).
 
 ```bash
 orcan enter                 # picker workspace'ów (agent-launcher) — domyślnie
@@ -72,6 +71,22 @@ orcan up
 orcan up --with-docker
 ```
 
+**Kompromis:** socket ≈ kontrola hostowego Docker Engine. Flaga jest świadomym
+opt-inem (ostrzeżenie przy starcie). Nie ma trybu „pełny Docker hosta, ale
+bezpieczny”. Jeśli wystarczy dojść do innych kontenerów — użyj
+`--with-network` zamiast socketa. Szczegóły: [Bezpieczeństwo](../reference/security.md).
+
+## Scenariusz: dojście do kontenerów na istniejącej sieci Docker
+
+**Kiedy:** kontener ma sięgać innego kontenera po nazwie/IP (np. własny stack
+`docker compose` projektu), ale nie musi sterować hostowym Dockerem.
+Niższe ryzyko niż `--with-docker` — bez montowania socketa.
+
+```bash
+docker network create my-net   # jeśli jeszcze nie istnieje
+orcan up --with-network my-net
+```
+
 ## Scenariusz: git push/pull z kontenera
 
 **Kiedy:** commity już mają tożsamość hosta (`orcan sync`); potrzebujesz też kluczy SSH lub agenta do remote'ów.
@@ -96,7 +111,7 @@ orcan context worktree create --repo /absolute/path/to/repo \
 orcan sync && orcan down && orcan up
 ```
 
-Ścieżki managed: `$ORCAN_DATA/worktrees/`. Sprzątanie: wizard → **clean**, albo `orcan context worktree remove --workspace my-ws`.
+Ścieżki managed: `$ORCAN_PROJECTS_ROOT/.worktrees/`. Sprzątanie: wizard → **clean**, albo `orcan context worktree remove --workspace my-ws`.
 
 ## Scenariusz: zainstaluj tylko jednego agenta
 

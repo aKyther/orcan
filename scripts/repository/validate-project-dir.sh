@@ -10,6 +10,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PATH_GUARDS_DIR="${ROOT_DIR}/scripts/repository"
 
 load_project_dir() {
     local from_arg="${1:-}"
@@ -66,6 +67,7 @@ normalize_absolute_path() {
     printf '%s\n' "${resolved}"
 }
 
+# Uses path_guards.py (same rules as config wizard / apply-config).
 reject_sensitive_path() {
     local path="$1"
     local home_dir
@@ -73,16 +75,18 @@ reject_sensitive_path() {
     home_dir="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6 || printf '%s' "${HOME}")"
     home_dir="${home_dir:-${HOME:-}}"
 
-    case "${path}" in
-        "/"|"/home"|"/root"|"/etc"|"/usr"|"/var"|"/opt")
-            printf 'Error: refusing to mount a sensitive path: %s\n' "${path}" >&2
-            return 1
-            ;;
-    esac
-
     if [[ -n "${home_dir}" && "${path}" == "${home_dir}" ]]; then
         printf 'Error: refusing to mount the entire home directory: %s\n' "${path}" >&2
         printf 'Hint: set PROJECT_DIR to a project subdirectory, for example %s/projects/my-app\n' "${home_dir}" >&2
+        return 1
+    fi
+
+    if ! PYTHONPATH="${PATH_GUARDS_DIR}" python3 -c "
+from path_guards import is_sensitive_path
+import sys
+sys.exit(1 if is_sensitive_path(sys.argv[1]) else 0)
+" "${path}"; then
+        printf 'Error: refusing to mount a sensitive path: %s\n' "${path}" >&2
         return 1
     fi
 

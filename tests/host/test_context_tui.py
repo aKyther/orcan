@@ -414,8 +414,16 @@ class ManageDeleteTests(unittest.TestCase):
 class ManagedProjectsTests(unittest.TestCase):
     def test_filters_to_paths_under_managed_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch.dict(os.environ, {"ORCAN_DATA": tmp}):
-                managed_dir = Path(tmp) / "worktrees" / "acme" / "api"
+            sandbox = f"{tmp}/sandbox"
+            env = {
+                k: v
+                for k, v in os.environ.items()
+                if k not in ("ORCAN_DATA", "ORCAN_PROJECTS_ROOT")
+            }
+            env["ORCAN_DATA"] = tmp
+            env["ORCAN_PROJECTS_ROOT"] = sandbox
+            with mock.patch.dict(os.environ, env, clear=True):
+                managed_dir = Path(sandbox) / ".worktrees" / "acme" / "api"
                 managed_dir.mkdir(parents=True)
                 other_dir = Path(tmp) / "elsewhere"
                 other_dir.mkdir()

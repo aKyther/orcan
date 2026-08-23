@@ -56,6 +56,7 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 - Only document commands that exist (`make help`, container binaries under `docker/rootfs/usr/local/bin/`).
 - Prefer fenced bash blocks with copy-friendly commands.
 - Translate comments inside code blocks when the page language is Polish.
+- In command signatures, `|` inside `[…]` means **pick one** (mutually exclusive options) — documentation notation, not a literal shell pipeline. Example: `[--with-docker | --with-network NAME]`.
 
 ## Tabs and admonitions
 

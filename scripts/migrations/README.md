@@ -34,3 +34,16 @@ one when data would otherwise be silently orphaned or lost.
 - `flatten-orcan-home.sh` — `~/.config/orcan/home/...` → flat
   `~/.config/orcan/...` layout (see `CHANGELOG.md` `[Unreleased]`,
   "Breaking: flattened `~/.config/orcan/`").
+- `consolidate-container-data.sh` — host `$ORCAN_DATA` cache/history layout
+  for the flatter container home (`cache/` single bind, `history/` instead of
+  `shell-history/` / flat `npm|pnpm|cargo|go`). See `CHANGELOG.md`
+  `[Unreleased]`, "Breaking: container home layout".
+- `move-worktrees-into-sandbox.sh` — legacy `$ORCAN_DATA/worktrees` or
+  `$ORCAN_PROJECTS_ROOT/worktrees` → `$ORCAN_PROJECTS_ROOT/.worktrees`
+  (default under `sandbox/`). Dot-dir keeps managed branch checkouts
+  separate from live project clones. See `CHANGELOG.md` `[Unreleased]`.
+  (`move-worktrees-into-space.sh` is a compatibility wrapper.)
+- `rename-space-to-sandbox.sh` — `$ORCAN_DATA/space` →
+  `$ORCAN_DATA/sandbox` (default `ORCAN_PROJECTS_ROOT`). See
+  `CHANGELOG.md` `[Unreleased]`, "Breaking: managed projects root renamed
+  `space/` → `sandbox/`".

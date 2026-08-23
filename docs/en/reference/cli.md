@@ -35,27 +35,29 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan init` | No PATH: TUI to create/edit workspaces (default) + sync + show. `--cli`: old sequential prompt wizard instead |
 | `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
+| `orcan migrate [--yes] [--no-symlink]` | Move configured projects under the managed root (`ORCAN_PROJECTS_ROOT`); dry-run unless `--yes` — fewer future container recreates |
 | `orcan settings` | Edit tool settings (tmux windows/prefix, ttyd port/font) — separate from workspaces/projects |
 | `orcan context show` | List workspaces + path-parity summary |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
 | `orcan context tui` | TUI: scan a parent folder, multi-select repos, create/update a workspace; optional one branch → managed worktree per repo (`--sync`, `--yes`). With an existing config it opens in **manage mode** instead — rename/move/delete existing workspaces and projects (`n` switches to the scan screen to add more); this is what `orcan init` runs by default |
 | `orcan context add --from-worktree REPO SELECTOR` | Add an existing git worktree (selector: branch, index, or path) |
 | `orcan context worktrees [REPO]` | List git worktrees (`git worktree list`) |
-| `orcan context worktree create …` | Create a worktree (managed under `$ORCAN_DATA/worktrees` when `--workspace` is set) and pin it |
+| `orcan context worktree create …` | Create a worktree (managed under `$ORCAN_PROJECTS_ROOT/.worktrees` when `--workspace` is set) and pin it |
 | `orcan context worktree remove --path PATH` | Remove one managed worktree |
 | `orcan context worktree remove --workspace NAME` | Remove all managed worktrees for a workspace (and unpin from config) |
-| `orcan context worktree prune [--force] [--no-config]` | Reconcile `$ORCAN_DATA/worktrees/registry.json` against disk (and `orcan.config.json`); dry-run by default, `--force` cleans up |
+| `orcan context worktree prune [--force] [--no-config]` | Reconcile `$ORCAN_PROJECTS_ROOT/.worktrees/registry.json` against disk (and `orcan.config.json`); dry-run by default, `--force` cleans up |
 | `orcan context assert propose …` | Reflection: draft a Context Assertion (content + justification + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, or `accepted` → `retired` — never automatic |
 | `orcan context assert list\|show\|select\|root` | Inspect the store; `select` previews what `orcan sync` would compile |
 | `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Toggle the Claude `Stop` hook (batched Reflection) in the workspace's generated root `.claude/settings.json` — **on by default**, seeded by the first `orcan sync` for a workspace; `disable` sticks across later syncs. With no `WORKSPACE`/`--all`, infers the workspace from cwd when it's inside a registered project |
 | *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. `orcan-context-review [--no-check]` pre-checks candidates against `CONTEXT-ASSERTIONS.md` for duplicates/conflicts (nudge only, never a gate). See [Context Assertions](../ideas/context-assertions.md) |
-| `orcan up [--with-docker] [--with-git] [--with-network NAME]` | Start browser terminal (socket / host SSH / network join only with flags); hints if a newer release exists; once ready, prints the workspace's Claude `Stop` hook status |
+| *(in-container)* `orcan-inbox` | Agent task handoff queue under `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). See [Agent inbox](../ideas/agent-inbox.md) |
+| `orcan up [--with-ttyd] [--with-docker \| --with-network NAME] [--with-git]` | Start container (`orcan enter` locally; `--with-ttyd` for browser terminal); optional socket **or** network join (pick one) + SSH; hints if a newer release exists; prints Claude `Stop` hook status when a workspace is configured |
 | `orcan down` | Stop containers |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Both agents → `orcan:latest` + `orcan:<VERSION>` (pull or build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (no pull; does not overwrite `latest`). Never publishes |
 | `orcan pull` | Pull both-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push both-agents `orcan:latest` (**manual**; not `-claude`/`-cursor`) |
-| `orcan url` | Print terminal URL |
+| `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
 | `orcan logs` | Follow logs |
 | `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
 | `orcan update [--release\|--main]` | Newest release tag `vX.Y.Z` (default); `--main` for bleeding edge |
@@ -74,7 +76,8 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 ```bash
 orcan init
 orcan build
-orcan up
+orcan up              # local — orcan enter on the same machine
+# remote browser: orcan up --with-ttyd
 ```
 
 After config edits:
@@ -91,14 +94,14 @@ orcan down && orcan up
 
 | Flag | Effect |
 | --- | --- |
-| *(none)* | Browser terminal only — no Docker socket, no host SSH |
-| `--with-docker` | Mount `/var/run/docker.sock` (Docker-from-Docker) |
+| *(none)* | Local-only container — no published ttyd port; use `orcan enter` |
+| `--with-ttyd` | Publish browser terminal (ttyd; `TTYD_BIND` defaults to loopback) |
+| `--with-docker` \| `--with-network NAME` | **Pick one.** `--with-docker`: mount `/var/run/docker.sock` (Docker-from-Docker). `--with-network NAME`: join an existing Docker network (no socket) |
 | `--with-git` | Mount host `~/.ssh` read-only (+ SSH agent when `SSH_AUTH_SOCK` is set) for push/pull |
-| `--with-network NAME` | Join an existing Docker network (e.g. another project's compose stack) — no socket mount, lower-risk alternative to `--with-docker` when you only need reachability |
 
-Flags combine: `orcan up --with-docker --with-git --with-network my-net`.
+Other flags combine freely, e.g. `orcan up --with-ttyd --with-git` or `orcan up --with-ttyd --with-network my-net`.
 
-Git **author** identity is always synced by `orcan sync` (`GIT_AUTHOR_*` from host `user.name` / `user.email`). SSH keys are only attached with `--with-git`. Both optional flags print a security warning — agents inside can use the mounted socket or keys. See [Security](security.md) and [Workflows](../guides/workflows.md).
+Git **author** identity is always synced by `orcan sync` (`GIT_AUTHOR_*` from host `user.name` / `user.email`). SSH keys are only attached with `--with-git`. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: [Security](security.md), [Workflows](../guides/workflows.md).
 
 ## Maintainer Make
 

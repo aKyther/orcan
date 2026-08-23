@@ -7,6 +7,171 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-23
+
+### Security
+
+- **ttyd publishes on loopback by default.** Compose uses
+  `TTYD_BIND` (default `127.0.0.1`) so the browser terminal is not exposed on
+  all host interfaces. Set `TTYD_BIND=0.0.0.0` (or `ttyd.bind` in config) for
+  Tailscale/LAN. Optional HTTP basic auth via `TTYD_CREDENTIAL=user:password`
+  in `.env` (not stored in `orcan.config.json`).
+- **Sensitive path checks cover whole trees.** Mount/config paths under
+  `/etc`, `/usr`, `/var`, `/opt`, and `/root` are refused (not only the exact
+  roots). `/home/<user>/…` project paths remain allowed; exact `/` and `/home`
+  are still blocked.
+- **CI now scans the image for CVEs.** New `image-scan` job in `ci.yml` builds
+  the image (not published) and runs Trivy (CRITICAL/HIGH, unfixed CVEs
+  ignored).
+- **Third-party GitHub Actions pinned by commit SHA, not tag.** `actions/
+  checkout`, `actions/setup-python`, `softprops/action-gh-release`, and the
+  new `aquasecurity/trivy-action` are pinned to a specific commit (version in
+  a trailing comment). Floating tags on third-party Actions have been
+  hijacked before (`tj-actions/changed-files`, CVE-2025-30066;
+  `reviewdog/action-setup`, CVE-2025-30154) — a tag can be moved, a commit
+  SHA cannot.
+- **Workspace deletion is loudly destructive, on purpose.** Dropping a
+  workspace from config still deletes its whole on-disk tree on the next
+  reconcile (not just the managed symlinks) — behavior unchanged, but now
+  stated up front in `reconcile.py`'s docstring, spelled out in the deletion
+  warning message (what's actually lost: session brief, agent-inbox tasks,
+  unsynced Context Assertions drops), and documented as a `!!! warning` in
+  [Security](docs/en/reference/security.md).
+
+### Documentation
+
+- Security and mental-model docs spell out intentional tradeoffs: single-user
+  trust model; Tailscale as the recommended remote path for ttyd (credentials
+  optional secondary layer); `--with-docker` as known high-risk opt-in with
+  `--with-network` as the safer reachability alternative; `sandbox/` as the
+  stable projects-root anchor; cross-workspace visibility from one parent
+  mount (enables dynamic workspace add/remove without recreate). PL CLI /
+  workflows now document `--with-network`.
+- **New EN+PL page: [Agent inbox](docs/en/ideas/agent-inbox.md).** Documents
+  the `.orcan/tasks/` propose → approve → claim → complete lifecycle and the
+  `orcan-inbox` CLI. [Security](docs/en/reference/security.md) gained a
+  matching section spelling out that `policy: auto` + `executor: shell` means
+  a claimed task runs a real shell command with no human step in between.
+- **New `SECURITY.md`** at the repo root: private vulnerability reporting via
+  GitHub Security Advisories, pointing to the security reference doc for the
+  actual threat model.
+
+### Added
+
+- **`ss` / `netstat` in the image.** Added `iproute2` / `net-tools` to the
+  Dockerfile package list — basic network diagnostics were missing.
+- **`orcan up --with-ttyd`.** Plain `orcan up` now starts a local-only
+  container (`orcan enter`); the browser terminal (ttyd) is opt-in via
+  `--with-ttyd`. Capability ladder: local → `--with-ttyd` → `--with-network`
+  → `--with-docker`.
+
+### Fixed
+
+- Clearer CLI errors when `.env` or generated runtime is missing or stale:
+  distinguish what `orcan build` vs `orcan up` need, with explicit next steps.
+
+- **`validate-project-dir.sh` matches `path_guards.py`.** Same tree rules for
+  `/var`, `/etc`, `/usr`, `/opt`, `/root` in sync and wizard.
+- **Host tests:** settings wizard (`ttyd.bind` prompts) and managed-root filter
+  aligned with `$ORCAN_PROJECTS_ROOT/.worktrees`.
+- **README:** documents local `orcan up` vs `--with-ttyd` and sync/build split.
+- **`make validate`** now also runs `shellcheck` over every script it already
+  syntax-checks (error-severity findings fail the build; lower-severity ones
+  are printed but non-blocking, since existing scripts already carried a few).
+
+### Changed
+
+- **`orcan uninstall`** stops every `orcan up` overlay variant (including
+  local-only keepalive stacks), not only the legacy ttyd compose files.
+- **`orcan doctor`** reports running container, last up flags, ttyd on/off +
+  URL, and local image presence.
+- **`orcan url`** shares the same URL helper as `orcan up --with-ttyd`; detects
+  legacy ttyd stacks via published ports when `up-state.env` is missing.
+- **Docs (security, interface, deployment EN+PL):** capability ladder includes
+  `--with-ttyd`; docker/network documented as mutually exclusive.
+- **Landing pages (index, why-orcan, FAQ EN+PL):** local `orcan enter` as default;
+  browser terminal via `--with-ttyd`. **`orcan migrate`** and **`orcan-inbox`**
+  documented in CLI reference / ideas.
+- **Architecture, mental-model, quickstart, troubleshooting EN+PL:** local entry
+  default; browser via `--with-ttyd`.
+- **`orcan up` hints:** docker vs network shown as pick-one, not both.
+
+- **`orcan up` rejects `--with-docker` together with `--with-network`.** Pick
+  socket control or network reachability — not both.
+
+- Stale help text still pointing at `$ORCAN_DATA/worktrees` now says
+  `$ORCAN_PROJECTS_ROOT/.worktrees`.
+
+### Added
+
+- **Runtime workspace modification**: a project added under the managed
+  root (`ORCAN_PROJECTS_ROOT`, default `~/.config/orcan/sandbox`) now
+  becomes visible in an already-running container via `orcan sync` alone —
+  no `orcan down && orcan up`, no lost tmux/agent sessions. Mechanism:
+  `docker-compose.yml` gains one stable, always-mounted managed-root
+  volume; `apply-config.py` stops emitting a per-project Compose bind for
+  anything already under it; `orcan sync` execs the new
+  `orcan-runtime-reconcile` inside a running container instead of only
+  regenerating host-side files.
+- `orcan migrate` — moves existing project checkouts under the managed
+  root (dry-run by default) so they stop needing their own bind mount.
+- New container-side runtime commands: `orcan-runtime-reconcile`,
+  `orcan-runtime-status`, `orcan-tmux-ensure`, `orcan-tmux-reconcile-sessions`
+  (thin wrappers over shared `orcan.reconcile` / tmux logic — the same
+  mechanism container boot and live changes both use).
+- Tmux session cleanup for a removed/renamed workspace is now report-only
+  by default (never auto-kills a session that might have an active agent
+  in it).
+- `orcan context recent` — usage history (recent workspaces), keyed by the
+  same canonical project identity Context Assertions already uses.
+- `orcan-inbox` — filesystem-based agent task handoff/inbox
+  (propose/approve/claim/complete/list/watch), modeled on the existing
+  Context Assertions propose→review→accept lifecycle; default approval
+  policy requires human approval before a task is claimable.
+- `tests/integration/test-runtime-reconcile.sh` — proves the above end to
+  end against a real (isolated) container: add a project, reconcile,
+  assert the container was never recreated and an active tmux session
+  survives.
+- **Codex CLI support** alongside Claude Code and Cursor CLI: `INSTALL_CODEX`
+  build arg (default on, installed under `~/.local` via `npm install -g
+  --prefix ~/.local @openai/codex` — not `pnpm add -g`, since `PNPM_HOME`
+  is bind-mounted at runtime and would shadow a baked-in global install),
+  `orcan build --codex` → `orcan:<VERSION>-codex`, `${ORCAN_DATA}/codex`
+  bind-mounted to `~/.codex`. The single-agent variant is no longer
+  hardcoded to "claude"/"cursor" — `/etc/orcan/variant` is now `full` (all
+  three) or a `+`-joined subset (e.g. `claude+codex`). `CodexExecutor`
+  added to `orcan.agent_executor` (`codex exec <prompt>`).
+
+### Fixed
+
+- `~/.codex` (a fresh bind mount) was root-owned on first boot —
+  `docker-entrypoint`'s permission-fix loop covered `.cursor`/`.claude`/
+  `.cache` but not the new `.codex` dir, so Codex failed to write its
+  session/sqlite state ("permission denied") until fixed. Now covered.
+- Explicit "prefer the faster tool" guidance (`rg`/`fd`/`eza`/`bat`/`delta`/
+  `sg` over `grep`/`find`/`ls`/`cat`) in the Cursor `operating-principles.mdc`
+  rule and the generated per-workspace `AGENTS.md`/`CLAUDE.md`.
+
+### Changed
+
+- **Breaking: managed projects root renamed `space/` → `sandbox/`.** Default
+  `ORCAN_PROJECTS_ROOT` is now `~/.config/orcan/sandbox` (was
+  `~/.config/orcan/space`). Migrate: `bash scripts/migrations/rename-space-to-sandbox.sh`,
+  then `orcan sync && orcan down && orcan up`.
+- **Breaking: managed worktrees live under `$ORCAN_PROJECTS_ROOT/.worktrees/`.**
+  Default `~/.config/orcan/sandbox/.worktrees/<workspace>/<project>/` (was
+  `$ORCAN_DATA/worktrees/...`, briefly also `sandbox/worktrees/...`). The
+  leading dot keeps branch checkouts out of normal project listings under
+  `sandbox/`, while still using the stable projects-root bind (no recreate).
+  Migrate: `bash scripts/migrations/move-worktrees-into-sandbox.sh`, then
+  `orcan sync`.
+- **Breaking: container home layout.** Host `$ORCAN_DATA` uses a single
+  `cache/` bind → `~/.cache` and `history/` → `~/.local/share/orcan/history`
+  (replacing `shell-history` / `/command-history` and flat `npm|pnpm|cargo|go`
+  binds). `~/orcan/` is a symlink map inside the container. Migrate:
+  `bash scripts/migrations/consolidate-container-data.sh`, then
+  `orcan sync && orcan down && orcan up`.
+
 ## [1.0.1] - 2026-08-14
 
 ### Fixed
@@ -122,8 +287,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workspace container (dynamically generated `mounts/compose-network.generated.yml`
   overlay, mirroring `--with-git`'s pattern). Lower-risk alternative to
   `--with-docker` when you only need reachability to other containers, not
-  control over the host Docker engine. Combines freely with `--with-docker`
-  and `--with-git`.
+  control over the host Docker engine. **Mutually exclusive with `--with-docker`**
+  (pick network reachability or socket control, not both); combines with `--with-git`.
 - `orcan context worktree prune [--force] [--no-config]` — reconciles
   `worktrees/registry.json` against disk (and `orcan.config.json`): drops
   registry entries whose worktree directory is gone, reports orphan

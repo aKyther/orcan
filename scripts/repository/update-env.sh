@@ -69,6 +69,24 @@ if [[ -z "${CONFIG}" && -f "${ORCAN_ROOT}/orcan.config.json" ]]; then
     CONFIG="${ORCAN_ROOT}/orcan.config.json"
 fi
 
+# Resolved early (before apply-config.py) so it can see ORCAN_PROJECTS_ROOT
+# and skip generating a per-project Compose bind for anything already under
+# it — the managed root itself is a stable mount in docker-compose.yml, so
+# leaving those paths out of the generated overlay is what lets adding a
+# managed project skip a container recreate.
+if [[ -z "${ORCAN_DATA:-}" ]]; then
+    ORCAN_DATA="${HOME}/.config/orcan"
+fi
+export ORCAN_DATA
+ORCAN_PROJECTS_ROOT="${ORCAN_PROJECTS_ROOT:-${ORCAN_DATA}/sandbox}"
+export ORCAN_PROJECTS_ROOT
+mkdir -p "${ORCAN_PROJECTS_ROOT}"
+# .env(.example) ships both as empty placeholders — `source .env` below
+# would otherwise blank out the values just resolved. Snapshot them now,
+# restore verbatim after sourcing (no need to re-derive defaults there).
+_RESOLVED_ORCAN_DATA="${ORCAN_DATA}"
+_RESOLVED_ORCAN_PROJECTS_ROOT="${ORCAN_PROJECTS_ROOT}"
+
 apply_args=(
     --root "${ORCAN_HOME}"
     --project-dir "${REQUESTED_PROJECT_DIR}"
@@ -95,6 +113,13 @@ DOCKER_GID="999"
 if [[ -S /var/run/docker.sock ]]; then
     DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
 fi
+
+# Restore the ORCAN_DATA/ORCAN_PROJECTS_ROOT snapshot taken before the
+# source above — see the comment there.
+ORCAN_DATA="${_RESOLVED_ORCAN_DATA}"
+export ORCAN_DATA
+ORCAN_PROJECTS_ROOT="${_RESOLVED_ORCAN_PROJECTS_ROOT}"
+export ORCAN_PROJECTS_ROOT
 
 validate_project_dir "${PROJECT_DIR}"
 
@@ -149,32 +174,33 @@ else
     printf 'Warning: host git user.email unset — commits inside the container may lack identity\n' >&2
 fi
 
-if [[ -z "${ORCAN_DATA:-}" ]]; then
-    ORCAN_DATA="${HOME}/.config/orcan"
-fi
 if ! grep -qE '^ORCAN_DATA=.' .env; then
     ensure_env_key "ORCAN_DATA" "${ORCAN_DATA}"
+fi
+if ! grep -qE '^ORCAN_PROJECTS_ROOT=.' .env; then
+    ensure_env_key "ORCAN_PROJECTS_ROOT" "${ORCAN_PROJECTS_ROOT}"
 fi
 
 ORCAN_DATA_SUBDIRS=(
     cursor
     cursor-app
     claude
+    codex
     cache
-    npm
-    pnpm
-    cargo
-    go
-    bash-history
-    shell-history
-    worktrees
+    history
     dotfiles
     context
+    sandbox
+    state
 )
 mkdir -p "${ORCAN_DATA}"
 for sub in "${ORCAN_DATA_SUBDIRS[@]}"; do
     mkdir -p "${ORCAN_DATA}/${sub}"
 done
+# Managed worktrees live under the projects root (Compose bind) so adding one
+# does not require a container recreate. Legacy: $ORCAN_DATA/worktrees — see
+# scripts/migrations/move-worktrees-into-sandbox.sh.
+mkdir -p "${ORCAN_PROJECTS_ROOT}/.worktrees"
 
 # Seed example overlays once (never overwrite user files).
 DOTFILES_SRC="${ORCAN_ROOT}/docker/rootfs/opt/orcan/dotfiles"
@@ -213,6 +239,7 @@ printf 'ORCAN_HOME=%s\n' "${ORCAN_HOME}"
 printf 'ORCAN_ROOT=%s\n' "${ORCAN_ROOT}"
 printf 'PROJECT_DIR=%s\n' "${PROJECT_DIR}"
 printf 'ORCAN_DATA=%s (host config/cache — created if missing)\n' "${ORCAN_DATA}"
+printf 'ORCAN_PROJECTS_ROOT=%s (managed project root — bind-mounted once; see docker-compose.yml)\n' "${ORCAN_PROJECTS_ROOT}"
 if [[ -n "${CONFIG}" ]]; then
     printf 'CONFIG=%s\n' "${CONFIG}"
 fi

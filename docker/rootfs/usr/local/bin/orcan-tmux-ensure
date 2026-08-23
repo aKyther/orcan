@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# ensure_session(workspace): create (if missing) the tmux session for one
+# named workspace, without attaching. Resolves root/session from config and
+# delegates to cursor-tmux-workspace-attach's idempotent ensure_session.
+set -Eeuo pipefail
+
+NAME="${1:-}"
+ORCAN_CONFIG="${ORCAN_CONFIG:-/etc/orcan/config.json}"
+
+if [[ -z "${NAME}" ]]; then
+    echo "Usage: orcan-tmux-ensure WORKSPACE_NAME" >&2
+    exit 1
+fi
+
+while IFS=$'\t' read -r name root session; do
+    [[ "${name}" == "${NAME}" ]] || continue
+    ORCAN_TMUX_ATTACH=0 exec cursor-tmux-workspace-attach "${session}" "${root}" "${name}"
+done < <(ORCAN_CONFIG="${ORCAN_CONFIG}" orcan-workspaces bootstrap)
+
+echo "orcan-tmux-ensure: workspace not found in config: ${NAME}" >&2
+exit 1

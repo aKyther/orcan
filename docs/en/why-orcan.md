@@ -27,7 +27,7 @@ Commands alone do not fix that. You need a **named context** you can recreate.
 
 Orcan is a **work-context orchestrator**.
 
-It does not replace Git. It does not pick AI models. It describes **which projects form one workspace**, mounts them with **path parity**, seeds a small **context pack** agents can read, and opens a **browser terminal** (tmux + zsh) where Cursor CLI (`agent`) and Claude Code (`claude`) run inside Docker.
+It does not replace Git. It does not pick AI models. It describes **which projects form one workspace**, mounts them with **path parity**, seeds a small **context pack** agents can read, and runs Cursor CLI (`agent`) and Claude Code (`claude`) inside Docker — locally via `orcan enter`, or in the browser with `--with-ttyd` (tmux + zsh).
 
 The product idea is simple: **projects are parts; the workspace is the context.**
 
@@ -37,7 +37,7 @@ You keep a personal list of paths. You open five terminals. You hope `docker com
 
 ## Life with Orcan
 
-You write one JSON config: workspaces and absolute project paths. `orcan sync` materialises mounts and runtime files. You open one browser terminal, pick a workspace, and both you and the agents share the same layout and the same starter instructions.
+You write one JSON config: workspaces and absolute project paths. `orcan sync` materialises mounts and runtime files. You start the container (`orcan up`), enter locally with `orcan enter` (or add `--with-ttyd` for a browser), pick a workspace, and both you and the agents share the same layout and the same starter instructions.
 
 ## When to use it
 

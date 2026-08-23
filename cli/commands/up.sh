@@ -5,6 +5,7 @@ orcan_cmd_up() {
     local with_docker=0
     local with_git=0
     local with_network=0
+    local with_ttyd=0
     local network_name=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -29,12 +30,18 @@ orcan_cmd_up() {
                 network_name="$2"
                 shift 2
                 ;;
+            --with-ttyd)
+                with_ttyd=1
+                shift
+                ;;
             -h | --help)
-                printf 'usage: orcan up [--with-docker] [--with-git] [--with-network NAME]\n'
-                printf '  default: browser terminal without Docker socket or host SSH\n'
-                printf '  --with-docker: mount /var/run/docker.sock (DinD; host control risk)\n'
+                printf 'usage: orcan up [--with-ttyd] [--with-docker | --with-network NAME] [--with-git]\n'
+                printf '  default: local-only container (orcan enter); no browser terminal\n'
+                printf '  --with-ttyd: publish browser terminal (ttyd; TTYD_BIND defaults to loopback)\n'
+                printf '  --with-docker | --with-network NAME: pick one (| = mutually exclusive)\n'
+                printf '  --with-docker: mount /var/run/docker.sock (DinD)\n'
                 printf '  --with-git: mount host ~/.ssh (+ agent) for push/pull (key exposure risk)\n'
-                printf '  --with-network NAME: join an existing Docker network (no socket needed)\n'
+                printf '  --with-network NAME: join an existing Docker network\n'
                 printf '  --with-docker and --with-git expose credentials/capabilities to agents inside the container.\n'
                 return 0
                 ;;
@@ -44,12 +51,15 @@ orcan_cmd_up() {
         esac
     done
 
+    if (( with_docker && with_network )); then
+        orcan_usage_error "--with-docker and --with-network are mutually exclusive (pick socket control or network reachability, not both)"
+    fi
+
     orcan_require_docker
     orcan_require_generated
     orcan_load_env
     orcan_maybe_hint_update
 
-    local port="${TTYD_HOST_PORT:-7681}"
     local git_overlay=""
 
     if (( with_git )); then
@@ -78,9 +88,12 @@ orcan_cmd_up() {
     # Stop the other overlay combo so volume mounts match the requested flags.
     orcan_compose_ttyd_down_all_variants
 
-    local label="no Docker socket"
+    local label="local-only"
+    if (( with_ttyd )); then
+        label="browser terminal"
+    fi
     if (( with_docker )); then
-        label="Docker socket enabled"
+        label="${label}, Docker socket enabled"
     fi
     if (( with_git )); then
         label="${label}, git/SSH enabled"
@@ -95,33 +108,35 @@ orcan_cmd_up() {
         fi
     fi
 
-    orcan_info "starting terminal (${label})"
-    orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" up -d
+    orcan_info "starting container (${label})"
+    orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" up -d
+    orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}"
 
     if (( with_docker )); then
-        if ! orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then
+        if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then
             orcan_warn "Docker socket missing in container; recreating…"
-            orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" up -d --force-recreate
-            if ! orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then
+            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" up -d --force-recreate
+            if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then
                 orcan_die "/var/run/docker.sock is not mounted in the container"
             fi
         fi
     fi
 
     if (( with_git )); then
-        if ! orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" exec -T orcan test -d /home/developer/.ssh 2>/dev/null \
-            && ! orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" exec -T orcan test -S /run/host-ssh-agent.sock 2>/dev/null; then
+        if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" exec -T orcan test -d /home/developer/.ssh 2>/dev/null \
+            && ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" exec -T orcan test -S /run/host-ssh-agent.sock 2>/dev/null; then
             orcan_warn "git/SSH mounts missing in container; recreating…"
-            orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" up -d --force-recreate
+            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" up -d --force-recreate
         fi
     fi
 
     if (( with_network )); then
-        local container_name="orcan-${ORCAN_INSTANCE:-1}"
+        local container_name
+        container_name="$(orcan_container_name)"
         if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null \
             | grep -qw "${container_name}"; then
             orcan_warn "network '${network_name}' not attached; recreating…"
-            orcan_compose_ttyd_run "${with_docker}" "${with_git}" "${with_network}" up -d --force-recreate
+            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" up -d --force-recreate
             if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null \
                 | grep -qw "${container_name}"; then
                 orcan_die "container is not attached to network '${network_name}'"
@@ -130,8 +145,13 @@ orcan_cmd_up() {
     fi
 
     printf '\n'
-    orcan_ok "terminal ready — open http://localhost:${port}"
-    printf '  Launcher → workspace → tmux\n'
+    if (( with_ttyd )); then
+        orcan_ok "browser terminal ready — open $(orcan_terminal_url)"
+        printf '  Launcher → workspace → tmux\n'
+    else
+        orcan_ok "container ready — local access: orcan enter"
+        printf '  Remote browser terminal: orcan up --with-ttyd\n'
+    fi
     if [[ -n "${WORKSPACE_NAME:-}" ]]; then
         printf '  Workspace: %s\n' "${WORKSPACE_NAME}"
         printf '  Start dir (container): %s\n' "${WORKSPACE_ROOT:-${CONTAINER_PROJECT_DIR:-}}"
@@ -154,13 +174,19 @@ orcan_cmd_up() {
         printf '  Docker network: %s\n' "${network_name}"
     fi
     printf '\nStop with: orcan down\n'
-    if (( ! with_docker )); then
-        printf 'Need Docker-in-Docker?  orcan up --with-docker\n'
+    if (( ! with_ttyd )); then
+        printf 'Need a browser terminal?  orcan down && orcan up --with-ttyd\n'
     fi
     if (( ! with_git )); then
         printf 'Need git push/pull over SSH?  orcan up --with-git\n'
     fi
-    if (( ! with_network )); then
-        printf 'Need to reach containers on an existing Docker network?  orcan up --with-network NAME\n'
+    if (( ! with_docker && ! with_network )); then
+        printf 'Need Docker socket OR network reachability (pick one, not both)?\n'
+        printf '  orcan up --with-docker          # control host Docker engine\n'
+        printf '  orcan up --with-network NAME    # join an existing network only\n'
+    elif (( ! with_docker )); then
+        printf 'Need Docker-in-Docker?  orcan up --with-docker   (cannot combine with --with-network)\n'
+    elif (( ! with_network )); then
+        printf 'Need to reach containers on an existing Docker network?  orcan up --with-network NAME   (cannot combine with --with-docker)\n'
     fi
 }

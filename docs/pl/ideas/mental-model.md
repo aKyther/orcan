@@ -85,7 +85,7 @@ flowchart LR
 journey
   title Dzień w jednym workspace
   section Poranek
-    Otwórz terminal w przeglądarce: 5
+    Wejdź do workspace (lokalnie lub w przeglądarce): 5
     Wybierz workspace: 5
   section Praca
     Agent czyta context pack: 4
@@ -100,8 +100,38 @@ journey
 
 Path parity nie jest przypadkową funkcją. Wynika z tego, że „agenci mogą odpalać Dockera wobec daemona hosta”. Zobacz [Path parity](../concepts/path-parity.md).
 
+## Sandbox jako stabilna kotwica
+
+Managed checkouty projektów i worktree’y Orcana leżą pod
+`$ORCAN_PROJECTS_ROOT` (domyślnie `~/.config/orcan/sandbox`). Ten katalog to
+**jeden zawsze zamontowany bind** w Compose.
+
+| Element | Rola |
+| --- | --- |
+| `sandbox/<project>/` | Managed klony „zaparkowane” pod jednym rootem |
+| `sandbox/.worktrees/<workspace>/<project>/` | Managed checkouty branchy (kropka = nie wyglądają jak żywe projekty) |
+| Projekty poza sandboxem | Nadal path-parity bind — zwykle recreate, gdy lista mountów się zmienia |
+
+**Kompromis:** wszystko pod sandboxem widać w działającym kontenerze. To cena
+za dodanie/usunięcie managed checkoutu samym `orcan sync` (bez
+`orcan down && orcan up`). Zobacz [Workspace’y](../concepts/workspaces.md) i
+[Bezpieczeństwo](../reference/security.md).
+
+## Widoczność cross-workspace (celowa)
+
+`$ORCAN_HOME/workspaces/` montuje się raz jako `/home/developer/workspaces/`.
+Każdy workspace to podkatalog (symlinki, `AGENTS.md`, `CONTEXT-ASSERTIONS.md`,
+`.orcan/context-inbox/`, …).
+
+**Kompromis:** agent odpalony w workspace A widzi też drzewo workspace B. To
+celowe — pozwala dodawać, usuwać i przełączać workspace’y bez rosnącej listy
+bindów per workspace i recreate kontenera. Orcan to single-user na jednym
+hoście, nie izolator multi-tenant. Izolacja między workspace’ami jest
+organizacyjna (do której sesji się dołączasz), nie twardą granicą security.
+
 ## Dalej
 
 - [Architektura](../architecture.md) — dlaczego warstwy wyglądają tak  
+- [Bezpieczeństwo](../reference/security.md) — drabinka flag i kompromisy mountów  
 - [Szybki start](../getting-started/quickstart.md)  
 - [Typowe workflowy](../guides/workflows.md)

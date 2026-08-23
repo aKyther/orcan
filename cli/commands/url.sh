@@ -4,5 +4,6 @@
 orcan_cmd_url() {
     orcan_require_generated
     orcan_load_env
-    printf 'http://localhost:%s\n' "${TTYD_HOST_PORT:-7681}"
+    orcan_require_ttyd_for_url
+    orcan_terminal_url
 }

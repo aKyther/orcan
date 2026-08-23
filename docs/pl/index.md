@@ -20,7 +20,7 @@ Orcan nie zarządza produktami. Zarządza **kontekstem**.
 
 - **Project** to jeden checkout (ścieżka bezwzględna).
 - **Workspace** to nazwany zbiór projektów, które należą do siebie.
-- **Context** to odtwarzalne środowisko wokół tego zbioru: mounty, wspólne instrukcje, ignores oraz sesja terminala w przeglądarce.
+- **Context** to odtwarzalne środowisko wokół tego zbioru: mounty, wspólne instrukcje, ignores oraz sesja tmux — lokalnie (`orcan enter`) albo opcjonalnie w przeglądarce (`orcan up --with-ttyd`).
 
 Konfiguracja opisuje te relacje. `orcan sync` i Docker je stosują. Agenci i ludzie dzielą ten sam układ.
 
@@ -65,13 +65,15 @@ orcan init /absolute/path/to/your/repo   # zawiera orcan sync raz
 orcan sync                                             # .env + mounts/* dla Compose
 orcan build
 orcan up
+# lokalnie: orcan enter — wybierz workspace, uruchom agent lub claude
+# zdalnie w przeglądarce: orcan up --with-ttyd && orcan url
 ```
 
-Otwórz `http://localhost:7681`, wybierz workspace, potem uruchom `agent` lub `claude`. Po zmianach konfiguracji zawsze `orcan sync` przed odtworzeniem.
+Po `orcan up` użyj `orcan enter` na tej samej maszynie (albo `orcan up --with-ttyd`, potem `orcan url` dla przeglądarki). Po zmianach konfiguracji zawsze `orcan sync` przed odtworzeniem.
 
 ## Status
 
-Wersja **1.0.1** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
+Wersja **2.0.0** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
 
 ## Zobacz też
 

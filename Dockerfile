@@ -50,10 +50,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         git-lfs \
         gnupg \
         hyperfine \
+        iproute2 \
         jq \
         less \
         make \
         nano \
+        net-tools \
         openssh-client \
         parallel \
         postgresql-client \
@@ -375,17 +377,20 @@ RUN set -eux; \
     usermod -aG "${docker_group}" "${USERNAME}"; \
     \
     mkdir -p \
-        /command-history \
         "/home/${USERNAME}/.cache" \
+        "/home/${USERNAME}/.cache/npm" \
+        "/home/${USERNAME}/.cache/pnpm" \
+        "/home/${USERNAME}/.cache/cargo/bin" \
+        "/home/${USERNAME}/.cache/go" \
+        "/home/${USERNAME}/.cache/go-build" \
         "/home/${USERNAME}/.config" \
         "/home/${USERNAME}/.config/cursor" \
         "/home/${USERNAME}/.local/bin" \
-        "/home/${USERNAME}/.local/share/pnpm" \
-        "/home/${USERNAME}/.cargo" \
-        "/home/${USERNAME}/go" \
+        "/home/${USERNAME}/.local/share/orcan/history" \
         "/home/${USERNAME}/.bashrc.d" \
         "/home/${USERNAME}/.zshrc.d" \
-        "/home/${USERNAME}/.cursor"; \
+        "/home/${USERNAME}/.cursor" \
+        "/home/${USERNAME}/orcan"; \
     \
     # Install shell configs from skel (safe if useradd already copied them).
     cp -a /etc/skel/.bashrc.d/. "/home/${USERNAME}/.bashrc.d/"; \
@@ -413,7 +418,6 @@ RUN set -eux; \
     fi; \
     \
     chown -R "${USER_UID}:${USER_GID}" \
-        /command-history \
         "/home/${USERNAME}"
 
 # ------------------------------------------------------------------------------
@@ -421,38 +425,41 @@ RUN set -eux; \
 # ------------------------------------------------------------------------------
 
 ENV HOME=/home/${USERNAME}
-ENV PNPM_HOME=/home/${USERNAME}/.local/share/pnpm
-ENV CARGO_HOME=/home/${USERNAME}/.cargo
-ENV RUSTUP_HOME=/usr/local/rustup
-ENV GOPATH=/home/${USERNAME}/go
-ENV GOCACHE=/home/${USERNAME}/.cache/go-build
-ENV GOMODCACHE=/home/${USERNAME}/go/pkg/mod
-ENV UV_CACHE_DIR=/home/${USERNAME}/.cache/uv
 ENV XDG_CACHE_HOME=/home/${USERNAME}/.cache
+ENV npm_config_cache=/home/${USERNAME}/.cache/npm
+ENV PNPM_HOME=/home/${USERNAME}/.cache/pnpm
+ENV CARGO_HOME=/home/${USERNAME}/.cache/cargo
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV GOPATH=/home/${USERNAME}/.cache/go
+ENV GOCACHE=/home/${USERNAME}/.cache/go-build
+ENV GOMODCACHE=/home/${USERNAME}/.cache/go/pkg/mod
+ENV UV_CACHE_DIR=/home/${USERNAME}/.cache/uv
 ENV RUFF_CACHE_DIR=/home/${USERNAME}/.cache/ruff
 ENV MYPY_CACHE_DIR=/home/${USERNAME}/.cache/mypy
 ENV PIP_CACHE_DIR=/home/${USERNAME}/.cache/pip
 ENV PRE_COMMIT_HOME=/home/${USERNAME}/.cache/pre-commit
+ENV HISTFILE=/home/${USERNAME}/.local/share/orcan/history/.zsh_history
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTEST_ADDOPTS="-p no:cacheprovider"
 ENV CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude
 # Prefer system ripgrep on PATH (faster than Claude's bundled wrapper).
 ENV USE_BUILTIN_RIPGREP=0
-ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cargo/bin:/home/${USERNAME}/.local/share/pnpm:/home/${USERNAME}/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
+ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
 # ------------------------------------------------------------------------------
-# AI CLIs — INSTALL_CLAUDE / INSTALL_CURSOR (default: both → variant full)
+# AI CLIs — INSTALL_CLAUDE / INSTALL_CURSOR / INSTALL_CODEX (default: all → variant full)
 # ------------------------------------------------------------------------------
-# Image tags: orcan:latest + orcan:<VERSION> (both agents);
-#             orcan:<VERSION>-claude / -cursor (local single-agent builds).
-# Slim builds: orcan build --claude|--cursor (skip pull; do not publish).
+# Image tags: orcan:latest + orcan:<VERSION> (all agents);
+#             orcan:<VERSION>-claude / -cursor / -codex (local single-agent builds).
+# Slim builds: orcan build --claude|--cursor|--codex (skip pull; do not publish).
 
 ARG INSTALL_CURSOR=1
 ARG INSTALL_CLAUDE=1
+ARG INSTALL_CODEX=1
 ARG ORCAN_VERSION=dev
 
 RUN set -eux; \
@@ -469,11 +476,7 @@ RUN set -eux; \
 # Claude config lives under ~/.claude (bind: $ORCAN_DATA/claude).
 
 RUN set -eux; \
-    cursor_on=0; \
-    claude_on=0; \
-    if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then cursor_on=1; fi; \
-    if [ "${INSTALL_CLAUDE}" = "1" ] || [ "${INSTALL_CLAUDE}" = "true" ]; then claude_on=1; fi; \
-    if [ "${cursor_on}" = "1" ]; then \
+    if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then \
         for attempt in 1 2 3; do \
             if curl -fsSL https://cursor.com/install | bash; then break; fi; \
             echo "Cursor install attempt ${attempt} failed, retrying..." >&2; \
@@ -484,18 +487,44 @@ RUN set -eux; \
         mkdir -p "${HOME}/.cursor"; \
     else \
         printf 'Skipping Cursor CLI (INSTALL_CURSOR=%s)\n' "${INSTALL_CURSOR}" >&2; \
-    fi; \
-    if [ "${cursor_on}" = "1" ] && [ "${claude_on}" = "1" ]; then \
-        printf 'full' > /tmp/orcan-variant; \
-    elif [ "${claude_on}" = "1" ]; then \
-        printf 'claude' > /tmp/orcan-variant; \
-    elif [ "${cursor_on}" = "1" ]; then \
-        printf 'cursor' > /tmp/orcan-variant; \
-    else \
-        echo "Error: at least one of INSTALL_CLAUDE / INSTALL_CURSOR must be enabled" >&2; \
-        exit 1; \
     fi
-# Empty ~/.cursor so the first volume mount stays writable; seeded at runtime (full/cursor).
+# Empty ~/.cursor so the first volume mount stays writable; seeded at runtime.
+
+RUN set -eux; \
+    if [ "${INSTALL_CODEX}" = "1" ] || [ "${INSTALL_CODEX}" = "true" ]; then \
+        for attempt in 1 2 3; do \
+            if npm install -g --prefix "${HOME}/.local" @openai/codex; then break; fi; \
+            echo "Codex install attempt ${attempt} failed, retrying..." >&2; \
+            sleep 10; \
+        done; \
+        codex --version; \
+    else \
+        printf 'Skipping Codex CLI (INSTALL_CODEX=%s)\n' "${INSTALL_CODEX}" >&2; \
+    fi
+# Installed under ~/.local (not pnpm add -g — PNPM_HOME is bind-mounted at
+# runtime from ORCAN_DATA/cache/pnpm, which would shadow a baked-in global
+# with an empty host dir on first boot). ~/.local/bin is already on PATH
+# and is not bind-mounted, same as the Claude/Cursor native installers.
+# Codex config lives under ~/.codex (bind: $ORCAN_DATA/codex).
+
+RUN set -eux; \
+    cursor_on=0; claude_on=0; codex_on=0; \
+    if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then cursor_on=1; fi; \
+    if [ "${INSTALL_CLAUDE}" = "1" ] || [ "${INSTALL_CLAUDE}" = "true" ]; then claude_on=1; fi; \
+    if [ "${INSTALL_CODEX}" = "1" ] || [ "${INSTALL_CODEX}" = "true" ]; then codex_on=1; fi; \
+    if [ "${cursor_on}" = "0" ] && [ "${claude_on}" = "0" ] && [ "${codex_on}" = "0" ]; then \
+        echo "Error: at least one of INSTALL_CLAUDE / INSTALL_CURSOR / INSTALL_CODEX must be enabled" >&2; \
+        exit 1; \
+    fi; \
+    if [ "${cursor_on}" = "1" ] && [ "${claude_on}" = "1" ] && [ "${codex_on}" = "1" ]; then \
+        printf 'full' > /tmp/orcan-variant; \
+    else \
+        variant=""; \
+        [ "${claude_on}" = "1" ] && variant="${variant}claude+"; \
+        [ "${cursor_on}" = "1" ] && variant="${variant}cursor+"; \
+        [ "${codex_on}" = "1" ] && variant="${variant}codex+"; \
+        printf '%s' "${variant%+}" > /tmp/orcan-variant; \
+    fi
 
 USER root
 ARG ORCAN_VERSION=dev

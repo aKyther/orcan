@@ -14,6 +14,7 @@ Commands:
                            PATH: non-interactive scaffold (scripts/CI)
                            Either way: scaffold/wizard + sync + show
   sync                     Materialise .env + mounts/* for Compose
+  migrate [--yes]          Move projects under managed root (dry-run by default)
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects
   context show             List workspaces
@@ -36,16 +37,15 @@ Commands:
                            Reflection drafting) in the workspace's generated
                            root — on by default since first `orcan sync`;
                            opting out (disable) sticks across later syncs
-  up [--with-docker] [--with-git]
-                           Start browser terminal
-                           --with-docker: mount Docker socket
-                           --with-git: mount host ~/.ssh (+ agent) for push/pull
+  up [--with-ttyd] [--with-docker | --with-network NAME] [--with-git]
+                           Start container (local: orcan enter; --with-ttyd: browser)
+                           | = pick one (docker vs network)
   down                     Stop containers
-  build [--claude|--cursor] [--force]
-                           Both agents → orcan:latest + orcan:<VERSION>.
-                           --claude/--cursor → orcan:<VERSION>-claude|cursor (no pull)
-  pull                     Pull both-agents orcan:<VERSION> → orcan:latest
-  publish                  Manual push of both-agents orcan:latest (maintainers)
+  build [--claude|--cursor|--codex] [--force]
+                           All agents → orcan:latest + orcan:<VERSION>.
+                           --claude/--cursor/--codex → orcan:<VERSION>-claude|cursor|codex (no pull)
+  pull                     Pull all-agents orcan:<VERSION> → orcan:latest
+  publish                  Manual push of all-agents orcan:latest (maintainers)
   url                      Print http://localhost:<port>
   logs                     Follow container logs
   enter [--launcher|--shell|--tmux [SESSION]]

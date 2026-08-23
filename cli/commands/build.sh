@@ -9,7 +9,7 @@ orcan_cmd_build() {
         case "$1" in
             --claude)
                 if [[ "${variant}" != "full" ]]; then
-                    orcan_usage_error "use only one of --claude / --cursor"
+                    orcan_usage_error "use only one of --claude / --cursor / --codex"
                 fi
                 variant="claude"
                 force_local=1
@@ -17,9 +17,17 @@ orcan_cmd_build() {
                 ;;
             --cursor)
                 if [[ "${variant}" != "full" ]]; then
-                    orcan_usage_error "use only one of --claude / --cursor"
+                    orcan_usage_error "use only one of --claude / --cursor / --codex"
                 fi
                 variant="cursor"
+                force_local=1
+                shift
+                ;;
+            --codex)
+                if [[ "${variant}" != "full" ]]; then
+                    orcan_usage_error "use only one of --claude / --cursor / --codex"
+                fi
+                variant="codex"
                 force_local=1
                 shift
                 ;;
@@ -38,20 +46,20 @@ orcan_cmd_build() {
                 ;;
             -h | --help)
                 cat <<'EOF'
-usage: orcan build [--claude|--cursor] [--no-cache|--force]
+usage: orcan build [--claude|--cursor|--codex] [--no-cache|--force]
 
-  Default (both agents):
+  Default (all agents):
     Tags: orcan:latest + orcan:<VERSION>
     1) Try pull registry orcan:<VERSION>
     2) On success → retag locally
-    3) On miss → build both agents locally
+    3) On miss → build all agents locally
 
-  --claude / --cursor — install only that agent (no pull):
-    Tags: orcan:<VERSION>-claude  or  orcan:<VERSION>-cursor
+  --claude / --cursor / --codex — install only that agent (no pull):
+    Tags: orcan:<VERSION>-claude / -cursor / -codex
     Does not overwrite orcan:latest / orcan:<VERSION>.
     Then: IMAGE_LOCAL=orcan:<VERSION>-claude orcan up
 
-  Never publishes. Maintainers push both-agents image: orcan publish
+  Never publishes. Maintainers push the all-agents image: orcan publish
 EOF
                 return 0
                 ;;
@@ -62,16 +70,15 @@ EOF
     done
 
     orcan_require_docker
-    if [[ ! -f "${ORCAN_ENV_FILE}" ]]; then
-        orcan_die ".env missing — run: orcan sync (or orcan init /path/to/repo)"
-    fi
+    orcan_require_env_for_build
     orcan_load_env
+    orcan_runtime_warn_if_config_stale build
 
     if [[ "${variant}" == "full" ]] && (( ! force_local )); then
         if orcan_image_try_pull; then
             return 0
         fi
-        orcan_info "no usable registry image — building both agents locally"
+        orcan_info "no usable registry image — building all agents locally"
     fi
 
     orcan_image_build_local "${variant}" "${no_cache}"

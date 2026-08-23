@@ -8,12 +8,12 @@ Longer map: `docs/en/ai/project-context.md` (Polish: `docs/pl/ai/project-context
 
 ## What Orcan is
 
-**Work-context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`) in Docker:
+**Work-context orchestrator** for Cursor CLI (`agent`), Claude Code (`claude`), and Codex CLI (`codex`) in Docker:
 
 - workspaces (named sets of projects) + path-parity mounts
 - ignore / instruction seeds (context pack)
-- browser terminal (ttyd) → launcher → tmux → **zsh**
-- Image: `orcan:latest` / `orcan:<VERSION>` (both agents). Single-agent local: `orcan build --claude` → `orcan:<VERSION>-claude`
+- local container access by default (`orcan enter`); optional browser terminal (`orcan up --with-ttyd` → ttyd → launcher → tmux → **zsh**)
+- Image: `orcan:latest` / `orcan:<VERSION>` (all agents). Single-agent local: `orcan build --claude` → `orcan:<VERSION>-claude` (also `--cursor`, `--codex`)
 
 User-facing story: `docs/en/why-orcan.md`, `docs/en/ideas/core-ideas.md`, `docs/en/ideas/mental-model.md`.
 
@@ -28,10 +28,11 @@ orcan init                  # no PATH -> interactive wizard; or: context add / c
 # worktrees: orcan context worktrees | add --from-worktree | worktree create
 orcan sync                  # apply config → .env, mounts/* (Compose overlays), workspaces/*
 orcan build                 # once / after Dockerfile|rootfs changes
-orcan up                    # daily; does NOT run orcan sync
+orcan up                    # daily; local-only by default (orcan enter); --with-ttyd for browser
+orcan migrate [--yes]       # optional: move projects under managed root (dry-run without --yes)
 ```
 
-After config edits with a running container: `orcan sync && orcan down && orcan up`.
+After config edits with a running container: `orcan sync` (live reconcile when possible — no recreate needed for projects under `ORCAN_PROJECTS_ROOT`). When overlays/flags change: `orcan down && orcan up`.
 
 Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit → `make release`.
 
@@ -45,15 +46,34 @@ Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit �
 
 ## Runtime stack (inside container)
 
+Default path (local `orcan up` — no published ttyd port):
+
 ```text
-ttyd → agent-launcher → tmux 3.6a (default-shell zsh)
-                      → Starship + zsh plugins + fzf
-                      → aliases in /etc/orcan/shell/aliases.sh
-                      → lazygit (navy/cyan) + delta
+orcan enter → agent-launcher → tmux 3.6a (default-shell zsh)
+                            → Starship + zsh plugins + fzf
+                            → aliases in /etc/orcan/shell/aliases.sh
+                            → lazygit (navy/cyan) + delta
+```
+
+Optional browser path (`orcan up --with-ttyd` on the host):
+
+```text
+ttyd → agent-launcher → tmux … (same session stack as above)
 ```
 
 Terminal look (palette, file map, agent checklist):
 `docs/en/guides/terminal-ui.md` (+ PL). Cursor rule: `.cursor/rules/terminal-ui.mdc`.
+
+## Agent handoff (in-container)
+
+Filesystem task queue under `<workspace>/.orcan/tasks/` — structured manifests, not full chat transcripts.
+
+- CLI: `orcan-inbox` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`)
+- Library: `docker/rootfs/usr/local/lib/orcan/agent_inbox.py`, `agent_executor.py`
+- User docs: `docs/en/ideas/agent-inbox.md` (+ PL)
+- Policies: `draft` (proposals only), `approve` (human gate), `auto` (straight to inbox)
+
+Separate from Context Assertions (`.orcan/context-inbox/` → `CONTEXT-ASSERTIONS.md`).
 
 ## File map (this repo)
 

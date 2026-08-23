@@ -23,13 +23,21 @@ services:
         DOCKER_GID: ${DOCKER_GID:-999}
         INSTALL_CURSOR: ${INSTALL_CURSOR:-1}
         INSTALL_CLAUDE: ${INSTALL_CLAUDE:-1}
+        INSTALL_CODEX: ${INSTALL_CODEX:-1}
         ORCAN_VERSION: ${ORCAN_VERSION:-dev}
     environment:
       TERM: xterm-256color
       COLORTERM: truecolor
-      HISTFILE: /command-history/.zsh_history
-      PNPM_HOME: /home/developer/.local/share/pnpm
+      # Shell history under $HOME (host: $ORCAN_DATA/history)
+      HISTFILE: /home/developer/.local/share/orcan/history/.zsh_history
+      # Tool caches all nest under ~/.cache (host: $ORCAN_DATA/cache) — one bind.
       XDG_CACHE_HOME: /home/developer/.cache
+      npm_config_cache: /home/developer/.cache/npm
+      PNPM_HOME: /home/developer/.cache/pnpm
+      CARGO_HOME: /home/developer/.cache/cargo
+      GOPATH: /home/developer/.cache/go
+      GOCACHE: /home/developer/.cache/go-build
+      GOMODCACHE: /home/developer/.cache/go/pkg/mod
       UV_CACHE_DIR: /home/developer/.cache/uv
       RUFF_CACHE_DIR: /home/developer/.cache/ruff
       MYPY_CACHE_DIR: /home/developer/.cache/mypy
@@ -48,6 +56,7 @@ services:
       WORKSPACE_META_PATH: ${WORKSPACE_META_PATH:-}
       ORCAN_CONFIG: ${ORCAN_CONFIG:-/etc/orcan/config.json}
       ORCAN_DATA: ${ORCAN_DATA}
+      ORCAN_PROJECTS_ROOT: ${ORCAN_PROJECTS_ROOT}
       TZ: ${TZ:-UTC}
       # Host git identity (orcan sync → .env). Same author/committer as host commits.
       GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-}
@@ -57,15 +66,25 @@ services:
     volumes:
       - ${ORCAN_CONFIG_HOST:-./mounts/runtime-config.json}:/etc/orcan/config.json:ro
       - /etc/localtime:/etc/localtime:ro
+      # Stable managed-project root — host path == container path (path
+      # parity), mounted once. Projects/worktrees living under it become
+      # visible in a running container without a new bind mount, so adding
+      # or removing one never forces a recreate. See apply-config.py
+      # (managed_projects_root / write_compose_projects) and
+      # docs/en/ideas/mental-model.md.
+      # Falls back to ORCAN_DATA's own default (paths.sh) rather than an
+      # empty string — an unset/empty source here is an invalid Docker
+      # mount, which would break `docker compose` for anyone invoking it
+      # directly (e.g. tests/integration/test-path-parity.sh) before
+      # `orcan sync` has ever written .env.
+      - ${ORCAN_PROJECTS_ROOT:-${HOME}/.config/orcan/sandbox}:${ORCAN_PROJECTS_ROOT:-${HOME}/.config/orcan/sandbox}
       - ${ORCAN_DATA}/cursor:/home/developer/.cursor
       - ${ORCAN_DATA}/cursor-app:/home/developer/.config/cursor
       - ${ORCAN_DATA}/claude:/home/developer/.claude
+      - ${ORCAN_DATA}/codex:/home/developer/.codex
+      # Single cache bind — npm/pnpm/cargo/go live under ~/.cache via env (see above).
       - ${ORCAN_DATA}/cache:/home/developer/.cache
-      - ${ORCAN_DATA}/npm:/home/developer/.npm
-      - ${ORCAN_DATA}/pnpm:/home/developer/.local/share/pnpm
-      - ${ORCAN_DATA}/cargo:/home/developer/.cargo
-      - ${ORCAN_DATA}/go:/home/developer/go
-      - ${ORCAN_DATA}/shell-history:/command-history
+      - ${ORCAN_DATA}/history:/home/developer/.local/share/orcan/history
       - ${ORCAN_DATA}/dotfiles:/home/developer/.config/orcan/dotfiles
     tmpfs:
       - /tmp:size=${TMPFS_SIZE:-512m},mode=1777

@@ -148,13 +148,66 @@ orcan_compose_build() {
         "$@"
 }
 
-# Terminal compose: optional docker socket + optional git/SSH mounts + optional network join.
-# Usage: orcan_compose_ttyd_run <with_docker 0|1> <with_git 0|1> <with_network 0|1> -- compose args...
-orcan_compose_ttyd_run() {
+orcan_up_state_file() {
+    printf '%s\n' "${ORCAN_RUNTIME_DIR}/up-state.env"
+}
+
+# Persist the last `orcan up` overlay combo so down/logs can reuse it.
+orcan_write_up_state() {
     local with_docker="${1:-0}"
     local with_git="${2:-0}"
     local with_network="${3:-0}"
-    shift 3
+    local with_ttyd="${4:-0}"
+    local network_name="${5:-}"
+    local statef
+    statef="$(orcan_up_state_file)"
+    mkdir -p "$(dirname "${statef}")"
+    {
+        printf 'WITH_DOCKER=%s\n' "${with_docker}"
+        printf 'WITH_GIT=%s\n' "${with_git}"
+        printf 'WITH_NETWORK=%s\n' "${with_network}"
+        printf 'WITH_TTYD=%s\n' "${with_ttyd}"
+        printf 'NETWORK_NAME=%s\n' "${network_name}"
+    } >"${statef}"
+}
+
+orcan_load_up_state() {
+    local statef
+    statef="$(orcan_up_state_file)"
+    [[ -f "${statef}" ]] || return 1
+    # shellcheck disable=SC1090
+    source "${statef}"
+    return 0
+}
+
+orcan_clear_up_state() {
+    rm -f "$(orcan_up_state_file)"
+}
+
+orcan_container_name() {
+    printf 'orcan-%s\n' "${ORCAN_INSTANCE:-1}"
+}
+
+# Print the running container name or exit with a helpful message.
+orcan_require_running_container() {
+    orcan_require_docker
+    orcan_load_env
+    local name
+    name="$(orcan_container_name)"
+    if ! docker ps -q -f "name=^${name}$" 2>/dev/null | grep -q .; then
+        orcan_die "no running container — start with: orcan up   (local: orcan enter; remote browser: orcan up --with-ttyd)"
+    fi
+    printf '%s\n' "${name}"
+}
+
+# Compose stack for `orcan up`: optional docker socket, git/SSH, network join, ttyd.
+# Usage: orcan_compose_up_run <docker> <git> <network> <ttyd> -- compose args...
+orcan_compose_up_run() {
+    local with_docker="${1:-0}"
+    local with_git="${2:-0}"
+    local with_network="${3:-0}"
+    local with_ttyd="${4:-0}"
+    shift 4
     local overlays=() project=()
     orcan_compose_overlay_args overlays "${with_git}"
     orcan_compose_project_args project
@@ -165,8 +218,12 @@ orcan_compose_ttyd_run() {
         --project-directory "${ORCAN_ROOT}"
         -f "${ORCAN_ROOT}/docker-compose.yml"
         "${overlays[@]}"
-        -f "${ORCAN_ROOT}/docker-compose.ttyd.yml"
     )
+    if (( with_ttyd )); then
+        cmd+=(-f "${ORCAN_ROOT}/docker-compose.ttyd.yml")
+    else
+        cmd+=(-f "${ORCAN_ROOT}/docker-compose.keepalive.yml")
+    fi
     if (( with_docker )); then
         cmd+=(-f "${ORCAN_ROOT}/docker-compose.docker.yml")
     fi
@@ -176,30 +233,63 @@ orcan_compose_ttyd_run() {
     "${cmd[@]}" "$@"
 }
 
+# Backward-compatible aliases (ttyd-enabled stack).
+orcan_compose_ttyd_run() {
+    orcan_compose_up_run "${1:-0}" "${2:-0}" "${3:-0}" 1 "$@"
+}
+
 orcan_compose_ttyd() {
-    orcan_compose_ttyd_run 0 0 0 "$@"
+    orcan_compose_up_run 0 0 0 1 "$@"
 }
 
 orcan_compose_ttyd_docker() {
-    orcan_compose_ttyd_run 1 0 0 "$@"
+    orcan_compose_up_run 1 0 0 1 "$@"
+}
+
+# Run compose against the last `orcan up` flags, or probe legacy stacks.
+orcan_compose_active_run() {
+    if orcan_load_up_state; then
+        orcan_compose_up_run \
+            "${WITH_DOCKER:-0}" "${WITH_GIT:-0}" "${WITH_NETWORK:-0}" "${WITH_TTYD:-0}" \
+            "$@"
+        return
+    fi
+    local git_variants=(0) network_variants=(0) ttyd_variants=(1 0)
+    [[ -f "$(orcan_compose_git_file)" ]] && git_variants+=(1)
+    [[ -f "$(orcan_compose_network_file)" ]] && network_variants+=(1)
+    local d g n t
+    for t in "${ttyd_variants[@]}"; do
+        for d in 0 1; do
+            for g in "${git_variants[@]}"; do
+                for n in "${network_variants[@]}"; do
+                    if orcan_compose_up_run "${d}" "${g}" "${n}" "${t}" ps -q orcan 2>/dev/null | grep -q .; then
+                        orcan_compose_up_run "${d}" "${g}" "${n}" "${t}" "$@"
+                        return
+                    fi
+                done
+            done
+        done
+    done
+    orcan_die "no running container — start with: orcan up   (local: orcan enter; remote browser: orcan up --with-ttyd)"
 }
 
 # Tear down every previously-possible up.sh overlay combo so leftover volume
 # mounts from a prior `orcan up` never linger under a mismatched container.
-# Git/network variants are only attempted if their generated overlay file
-# actually exists (mirrors the up.sh guard before this helper existed).
 orcan_compose_ttyd_down_all_variants() {
     local git_variants=(0) network_variants=(0)
     [[ -f "$(orcan_compose_git_file)" ]] && git_variants+=(1)
     [[ -f "$(orcan_compose_network_file)" ]] && network_variants+=(1)
-    local d g n
-    for d in 0 1; do
-        for g in "${git_variants[@]}"; do
-            for n in "${network_variants[@]}"; do
-                orcan_compose_ttyd_run "${d}" "${g}" "${n}" down >/dev/null 2>&1 || true
+    local d g n t
+    for t in 0 1; do
+        for d in 0 1; do
+            for g in "${git_variants[@]}"; do
+                for n in "${network_variants[@]}"; do
+                    orcan_compose_up_run "${d}" "${g}" "${n}" "${t}" down --remove-orphans >/dev/null 2>&1 || true
+                done
             done
         done
     done
+    orcan_clear_up_state
 }
 
 orcan_require_generated() {

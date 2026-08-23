@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""orcan-runtime-status — desired (config) vs actual (filesystem + tmux) state.
+
+Read-only report: does not reconcile anything (use orcan-runtime-reconcile
+for that). Useful before/after a live workspace change to see the diff the
+next reconcile would need to close.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "/usr/local/lib")
+from orcan.workspaces import DEFAULT_CONFIG, iter_workspaces, load_config  # noqa: E402
+
+
+def live_tmux_sessions() -> set[str]:
+    try:
+        proc = subprocess.run(
+            ["tmux", "list-sessions", "-F", "#{session_name}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return set()
+    if proc.returncode != 0:
+        return set()
+    return {line.strip() for line in proc.stdout.splitlines() if line.strip()}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config", default="", help=f"Config path (default: $ORCAN_CONFIG or {DEFAULT_CONFIG})"
+    )
+    args = parser.parse_args()
+
+    try:
+        cfg = load_config(args.config or None)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"Error reading config: {exc}", file=sys.stderr)
+        return 1
+
+    desired = list(iter_workspaces(cfg))
+    live_sessions = live_tmux_sessions()
+    desired_sessions = {ws["tmux_session"] for ws in desired}
+
+    print("desired workspaces:")
+    for ws in desired:
+        root_ok = bool(ws["root"]) and Path(ws["root"]).is_dir()
+        session_live = ws["tmux_session"] in live_sessions
+        print(
+            f"  - {ws['name']}: fs={'ok' if root_ok else 'MISSING'} "
+            f"tmux={'live' if session_live else 'none (lazy — created on first enter)'}"
+        )
+
+    orphaned = sorted(live_sessions - desired_sessions)
+    if orphaned:
+        print(
+            "tmux sessions with no matching desired workspace "
+            "(orphaned if orcan-managed — see orcan-tmux-reconcile-sessions):"
+        )
+        for s in orphaned:
+            print(f"  ? {s}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,5 +1,5 @@
 ---
-description: Install the orcan CLI, sync config, build the image, open the browser terminal.
+description: Install the orcan CLI, sync config, build the image, and start a local or browser session.
 ---
 
 # Quickstart
@@ -31,15 +31,16 @@ Config is JSON under `~/.config/orcan/`. Docker only sees what **`orcan sync`** 
 orcan init /absolute/path/to/your/repo   # scaffold + sync
 orcan sync                               # refresh after later edits (safe to re-run)
 orcan build
-orcan up
+orcan up              # local-only — use `orcan enter` on the same machine
+# or: orcan up --with-ttyd   # browser terminal (remote / phone)
 ```
 
 !!! note
     `orcan init` already runs `sync` once. Keep `orcan sync` in the habit: **every** config edit needs it before `orcan build` / `orcan up`. Those commands do **not** regenerate runtime files.
 
-Open the URL printed in the terminal (default `http://localhost:7681`).
+On the same machine use **`orcan enter`** — plain `orcan up` does not publish ttyd.
 
-On the same machine you can also use **`orcan enter`** into the same tmux sessions — you do not have to stay in the browser. See [Workflows — local terminal](../guides/workflows.md#local-terminal).
+For a browser terminal (remote / phone): `orcan up --with-ttyd`, then open `orcan url` (default `http://127.0.0.1:7681`). See [Workflows — local terminal](../guides/workflows.md#local-terminal).
 
 ## Git inside the container
 

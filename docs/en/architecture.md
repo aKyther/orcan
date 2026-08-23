@@ -1,5 +1,5 @@
 ---
-description: Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and the browser terminal stack.
+description: Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).
 ---
 
 # Architecture
@@ -13,7 +13,7 @@ Orcan must:
 1. Describe multi-repo **context** on the host (JSON config).
 2. Run agents in an isolated **container** with heavy toolchains.
 3. Keep **absolute paths** identical when the host Docker daemon resolves binds.
-4. Give humans and agents a clear **entry** (browser → session → shell).
+4. Give humans and agents a clear **entry** — locally (`orcan enter`) or optionally in the browser (`orcan up --with-ttyd` → session → shell).
 
 Those constraints force a split between **host orchestration** and **container runtime**.
 
@@ -25,23 +25,28 @@ flowchart TB
     cfg["orcan.config.json"]
     make["Makefile + scripts"]
     gen[".env + mounts/ generated files"]
+    enter["orcan enter"]
   end
   subgraph container [Container]
     entry["entrypoint"]
-    term["ttyd → launcher → tmux → zsh"]
+    session["launcher → tmux → zsh"]
+    ttyd["ttyd (--with-ttyd)"]
     pack["workspace context pack"]
     clis["agent / claude"]
   end
   cfg --> make
   make --> gen
   gen --> entry
-  entry --> term
+  enter --> session
+  entry --> session
+  entry --> ttyd
+  ttyd --> session
   entry --> pack
-  term --> clis
+  session --> clis
   pack --> clis
 ```
 
-**Caption:** The host turns config into mounts and env. The container turns that into a session and agent-readable files. Models stay inside each CLI.
+**Caption:** The host turns config into mounts and env. Default access is `orcan enter` into the same session stack; `--with-ttyd` adds a browser path. Models stay inside each CLI.
 
 ### Why the host owns config
 
@@ -64,18 +69,21 @@ See [Mental Model](ideas/mental-model.md) and [Path parity](concepts/path-parity
 
 ## Entry path
 
+Default: start with plain `orcan up`, then `orcan enter` on the host — no published ttyd port. Optional remote/phone path: `orcan up --with-ttyd`, then open `orcan url`.
+
 ```mermaid
 flowchart LR
+  enter["orcan enter (host)"] --> launcher[launcher]
   browser[Browser] --> ttyd[ttyd]
-  ttyd --> launcher[launcher]
+  ttyd --> launcher
   launcher --> tmux[tmux session per workspace]
   tmux --> zsh[zsh]
   zsh --> agent[agent or claude]
 ```
 
-**Caption:** The launcher is where you pick a workspace. tmux keeps one session per workspace so context switches are explicit.
+**Caption:** Both paths converge on the same launcher → tmux → zsh stack. The launcher is where you pick a workspace. tmux keeps one session per workspace so context switches are explicit.
 
-Why not a plain SSH shell only? The browser path is the default product surface: one URL, one launcher, predictable tmux layout. Why not skip tmux? Multiple panes/windows are how people juggle projects inside one context; Orcan standardises that instead of inventing a new multiplexer.
+Why tmux? Multiple panes/windows are how people juggle projects inside one context; Orcan standardises that instead of inventing a new multiplexer. Why optional ttyd? Remote and phone access without SSH tunneling — opt-in because it publishes a port.
 
 ## Context pack vs project seeds
 
@@ -89,7 +97,7 @@ Mounted **git checkouts** are not rewritten on every start. Seeding files into e
 | --- | --- |
 | Workspaces, mounts, path parity | Which model a CLI uses |
 | Context pack | Prompt engineering for a model |
-| Entry path (ttyd → launcher → tmux → zsh) | Auto-routing between CLIs |
+| Entry path (`orcan enter` or `--with-ttyd` → launcher → tmux → zsh) | Auto-routing between CLIs |
 | Docker isolation and optional host socket | Shared RAG outside workspace files |
 
 ## Non-goals (by design)

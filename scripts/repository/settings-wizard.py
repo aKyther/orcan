@@ -34,6 +34,7 @@ DEFAULT_TMUX = {"initial_windows": 3, "window_prefix": "tab"}
 DEFAULT_TTYD = {
     "port": 7681,
     "host_port": 7681,
+    "bind": "127.0.0.1",
     "font_size": 19,
     "font_family": "Menlo, Monaco, 'Courier New', monospace",
     "theme": "dark",
@@ -51,7 +52,7 @@ def summarize(cfg: dict[str, Any]) -> None:
         f"prefix {tmux.get('window_prefix', '?')!r}"
     )
     info(
-        f"  ttyd: host port {ttyd.get('host_port', '?')}, "
+        f"  ttyd: host {ttyd.get('bind', '127.0.0.1')}:{ttyd.get('host_port', '?')}, "
         f"font {ttyd.get('font_size', '?')}"
     )
 
@@ -73,11 +74,23 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
     current = cfg.get("ttyd") if isinstance(cfg.get("ttyd"), dict) else DEFAULT_TTYD
     port = ask("ttyd container port", str(current.get("port", 7681)))
     host_port = ask("ttyd host port", str(current.get("host_port", port)))
+    bind = ask(
+        "ttyd host bind (127.0.0.1=local only; 0.0.0.0=all interfaces)",
+        str(current.get("bind", "127.0.0.1")),
+    ).strip() or "127.0.0.1"
+    if bind not in ("127.0.0.1", "0.0.0.0", "localhost") and ":" not in bind:
+        # Allow IPv4 literals; reject empty garbage.
+        parts = bind.split(".")
+        if not (len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)):
+            warn("unusual bind address — keeping it; prefer 127.0.0.1 or 0.0.0.0")
+    if bind in ("0.0.0.0", "::"):
+        warn("binding all interfaces — set TTYD_CREDENTIAL=user:pass in .env for basic auth")
     font = ask("ttyd font size", str(current.get("font_size", 19)))
     try:
         cfg["ttyd"] = {
             "port": int(port),
             "host_port": int(host_port),
+            "bind": bind,
             "font_size": int(font),
             "font_family": current.get("font_family", DEFAULT_TTYD["font_family"]),
             "theme": current.get("theme", DEFAULT_TTYD["theme"]),
@@ -126,7 +139,7 @@ def main() -> None:
     if ask_yes_no("Change tmux (windows / prefix)?", default=False):
         heading("tmux")
         edit_tmux(cfg)
-    if ask_yes_no("Change ttyd (port / font)?", default=False):
+    if ask_yes_no("Change ttyd (port / bind / font)?", default=False):
         heading("ttyd")
         edit_ttyd(cfg)
 

@@ -20,7 +20,7 @@ Orcan does not manage products. It manages **context**.
 
 - A **project** is one checkout (absolute path).
 - A **workspace** is a named set of projects that belong together.
-- **Context** is the reproducible environment around that set: mounts, shared instructions, ignores, and a browser terminal session.
+- **Context** is the reproducible environment around that set: mounts, shared instructions, ignores, and a tmux session you reach locally (`orcan enter`) or optionally in the browser (`orcan up --with-ttyd`).
 
 Configuration describes those relationships. `orcan sync` and Docker apply them. Agents and humans then share the same layout.
 
@@ -65,13 +65,15 @@ orcan init /absolute/path/to/your/repo   # includes orcan sync once
 orcan sync                                             # .env + mounts/* for Compose
 orcan build
 orcan up
+# local: orcan enter — pick workspace, run agent or claude
+# remote browser: orcan up --with-ttyd && orcan url
 ```
 
-Open `http://localhost:7681`, pick a workspace, then run `agent` or `claude`. Config changes always need `orcan sync` before recreate.
+After `orcan up`, use `orcan enter` on the same machine (or `orcan up --with-ttyd` then `orcan url` for a browser). Config changes always need `orcan sync` before recreate.
 
 ## Status
 
-Version **1.0.1** (see [Changelog](changelog.md)). Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`); CI does not publish container images.
+Version **2.0.0** (see [Changelog](changelog.md)). Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`); CI does not publish container images.
 
 ## See also
 

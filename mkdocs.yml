@@ -16,7 +16,7 @@ copyright: >
   <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
 
 extra:
-  orcan_version: "1.0.1"
+  orcan_version: "2.0.0"
   version:
     provider: mike
     default: latest
@@ -103,6 +103,8 @@ plugins:
             Why Orcan?: Dlaczego Orcan?
             Core Ideas: Idee podstawowe
             Mental Model: Model mentalny
+            Context Assertions: Context Assertions
+            Agent inbox: Skrzynka agentów
             Ideas: Idee
             Concepts: Koncepcje
             Workspaces: Workspaces
@@ -180,6 +182,7 @@ nav:
       - Core Ideas: ideas/core-ideas.md
       - Mental Model: ideas/mental-model.md
       - Context Assertions: ideas/context-assertions.md
+      - Agent inbox: ideas/agent-inbox.md
   - Concepts:
       - Workspaces: concepts/workspaces.md
       - Path parity: concepts/path-parity.md

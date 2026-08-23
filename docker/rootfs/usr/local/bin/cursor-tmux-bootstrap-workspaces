@@ -1,43 +1,12 @@
 #!/usr/bin/env bash
 # Create detached tmux sessions for every orcan workspace (idempotent).
 # So Ctrl+Space w/s can switch between them without visiting the launcher first.
-# Also kills tmux sessions that are no longer in config.
+#
+# Thin entrypoint over orcan-tmux-reconcile-sessions — the shared
+# reconcile_sessions(workspaces) mechanism also used by orcan-runtime-reconcile
+# for on-demand runtime modification. Kept as a separate name for the
+# existing call sites (agent-launcher, session-switch.sh); default policy is
+# report-only for orphaned sessions (never kill an active agent's session
+# just because its workspace disappeared from config).
 set -Eeuo pipefail
-
-ORCAN_CONFIG="${ORCAN_CONFIG:-/etc/orcan/config.json}"
-TMUX_CONF="${TMUX_CONF:-${HOME}/.tmux.conf}"
-
-[[ -f "${ORCAN_CONFIG}" ]] || exit 0
-command -v orcan-workspaces >/dev/null 2>&1 || exit 0
-
-declare -a ACTIVE_SESSIONS=()
-
-while IFS=$'\t' read -r name root session; do
-    [[ -n "${name}" && -n "${root}" && -n "${session}" ]] || continue
-    [[ -d "${root}" ]] || continue
-    ACTIVE_SESSIONS+=("${session}")
-    ORCAN_TMUX_ATTACH=0 cursor-tmux-workspace-attach "${session}" "${root}" "${name}" >/dev/null 2>&1 || true
-done < <(ORCAN_CONFIG="${ORCAN_CONFIG}" orcan-workspaces bootstrap)
-
-# Drop only orcan-managed sessions left over after a workspace was removed from config.
-# Sessions without ORCAN_WORKSPACE_NAME are left alone (user or smoke sessions).
-if command -v tmux >/dev/null 2>&1; then
-    while IFS= read -r live; do
-        [[ -n "${live}" ]] || continue
-        keep=0
-        for s in "${ACTIVE_SESSIONS[@]+"${ACTIVE_SESSIONS[@]}"}"; do
-            if [[ "${live}" == "${s}" ]]; then
-                keep=1
-                break
-            fi
-        done
-        if (( keep == 1 )); then
-            continue
-        fi
-        if ! tmux -f "${TMUX_CONF}" show-environment -t "=${live}" ORCAN_WORKSPACE_NAME >/dev/null 2>&1; then
-            continue
-        fi
-        printf 'removing stale orcan tmux session: %s\n' "${live}" >&2
-        tmux -f "${TMUX_CONF}" kill-session -t "=${live}" 2>/dev/null || true
-    done < <(tmux -f "${TMUX_CONF}" list-sessions -F '#{session_name}' 2>/dev/null || true)
-fi
+exec orcan-tmux-reconcile-sessions "$@"

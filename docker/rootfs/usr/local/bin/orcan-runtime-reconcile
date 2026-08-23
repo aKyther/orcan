@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""orcan-runtime-reconcile — bring actual runtime state to desired state.
+
+Desired state is orcan.config.json (mounted read-only at $ORCAN_CONFIG).
+This is the single mechanism used both at container boot (init-workspace
+calls the same orcan.reconcile.apply_workspaces()) and on demand, any time
+after a live config change (new/removed project, new/removed workspace) —
+no container recreate involved, since the filesystem step only touches
+symlinks/manifests already visible under the mounted managed root or
+workspaces parent, and the tmux step only ever creates missing sessions or
+reports orphaned ones (never kills one by default — see
+orcan-tmux-reconcile-sessions).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+
+sys.path.insert(0, "/usr/local/lib")
+from orcan.reconcile import DEFAULT_DEFAULTS_ROOT, apply_workspaces  # noqa: E402
+from orcan.workspaces import DEFAULT_CONFIG, load_config  # noqa: E402
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config", default="", help=f"Config path (default: $ORCAN_CONFIG or {DEFAULT_CONFIG})"
+    )
+    parser.add_argument(
+        "--skip-tmux", action="store_true", help="Only reconcile the filesystem (symlinks/manifest)"
+    )
+    parser.add_argument(
+        "--prune-orphans",
+        action="store_true",
+        help="Also kill orphaned tmux sessions (default: report only, never kill)",
+    )
+    args = parser.parse_args()
+
+    try:
+        cfg = load_config(args.config or None)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"Error reading config: {exc}", file=sys.stderr)
+        return 1
+
+    report = apply_workspaces(cfg, DEFAULT_DEFAULTS_ROOT)
+    for ws in report.workspaces:
+        print(f"workspace ready: {ws.root} ({ws.repo_count} repo(s), tmux={ws.name})")
+        for created in ws.symlinks_created:
+            print(f"  + symlink: {created}")
+        for removed in ws.symlinks_removed:
+            print(f"  - symlink: {removed}")
+    for removed in report.stale_workspace_dirs_removed:
+        print(f"  - DELETED (rm -rf, no undo): {removed}")
+    print(
+        f"workspaces reconciled: {len(report.workspaces)} "
+        f"({report.total_repos()} repo mount(s) total, changed={report.changed()})"
+    )
+
+    if not args.skip_tmux:
+        tmux_args = ["orcan-tmux-reconcile-sessions"]
+        if args.prune_orphans:
+            tmux_args.append("--prune-orphans")
+        subprocess.run(tmux_args, check=False)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

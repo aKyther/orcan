@@ -139,6 +139,70 @@ class WorktreeGitDirPathsTests(unittest.TestCase):
         self.assertEqual(result, set())
 
 
+class ManagedRootTests(unittest.TestCase):
+    """A project path already under the managed root needs no bind entry of
+    its own — it's covered by the one stable base-compose mount — which is
+    what lets adding/removing such a project skip a container recreate."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def _workspace(self, name: str, project_path: Path) -> dict:
+        return {
+            "name": name,
+            "root": f"/home/developer/workspaces/{name}",
+            "meta_path": str(self.root / "workspaces" / name),
+            "tmux_session": name,
+            "project_count": 1,
+            "projects": [
+                {
+                    "name": project_path.name,
+                    "path": str(project_path),
+                    "workspace_path": f"/home/developer/workspaces/{name}/{project_path.name}",
+                    "container_path": str(project_path),
+                }
+            ],
+        }
+
+    def test_managed_root_env_lookup(self) -> None:
+        self.assertIsNone(apply_config.managed_projects_root({}))
+        self.assertEqual(
+            apply_config.managed_projects_root({"ORCAN_PROJECTS_ROOT": "/x/projects"}),
+            Path("/x/projects"),
+        )
+
+    def test_project_under_managed_root_gets_no_bind_line(self) -> None:
+        managed = self.root / "managed" / "projects"
+        proj = managed / "demo"
+        proj.mkdir(parents=True)
+        ws = self._workspace("demo", proj)
+
+        text = apply_config.write_compose_projects([ws], self.root, managed_root=managed)
+
+        self.assertNotIn(f"{proj}:{proj}", text)
+
+    def test_project_outside_managed_root_still_gets_bind_line(self) -> None:
+        managed = self.root / "managed" / "projects"
+        external = self.root / "external" / "demo"
+        external.mkdir(parents=True)
+        ws = self._workspace("demo", external)
+
+        text = apply_config.write_compose_projects([ws], self.root, managed_root=managed)
+
+        self.assertIn(f"{external}:{external}", text)
+
+    def test_no_managed_root_keeps_legacy_per_project_binds(self) -> None:
+        proj = self.root / "anywhere" / "demo"
+        proj.mkdir(parents=True)
+        ws = self._workspace("demo", proj)
+
+        text = apply_config.write_compose_projects([ws], self.root, managed_root=None)
+
+        self.assertIn(f"{proj}:{proj}", text)
+
+
 class ApplyConfigE2ETests(unittest.TestCase):
     def test_apply_writes_runtime_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -8,7 +8,8 @@ INIT_CLAUDE_HOME_SCRIPT="${INIT_CLAUDE_HOME_SCRIPT:-/usr/local/bin/init-claude-h
 AI_STATUSLINE_SCRIPT="${INIT_AI_STATUSLINE_SCRIPT:-/usr/local/bin/init-ai-statusline}"
 WORKSPACE_SCRIPT="${INIT_WORKSPACE_SCRIPT:-/usr/local/bin/init-workspace}"
 
-# Bake-time variant: full (Claude+Cursor) or claude (Claude only).
+# Bake-time variant: full (all agents), or a "+"-joined subset (e.g. "claude",
+# "cursor+codex") — see Dockerfile's AI CLIs section / /etc/orcan/variant.
 if [[ -z "${ORCAN_VARIANT:-}" && -r /etc/orcan/variant ]]; then
     ORCAN_VARIANT="$(tr -d '[:space:]' < /etc/orcan/variant)"
 fi
@@ -29,7 +30,9 @@ fix_named_volume_permissions() {
         "${HOME}/.config/cursor" \
         "${HOME}/.cursor" \
         "${HOME}/.claude" \
-        "${HOME}/.cache"
+        "${HOME}/.codex" \
+        "${HOME}/.cache" \
+        "${HOME}/.local/share/orcan/history"
     do
         [[ -e "${dir}" ]] || continue
         if [[ "$(stat -c '%u' "${dir}")" != "${uid}" ]] \
@@ -114,8 +117,10 @@ enter_project_dir() {
 }
 
 run_init() {
-    # Cursor home seeds only matter when the Cursor CLI is in the image.
-    if [[ "${ORCAN_VARIANT}" == "claude" ]] && ! command -v agent >/dev/null 2>&1; then
+    # Cursor home seeds only matter when the Cursor CLI is in the image —
+    # check the actual binary, not a specific variant string, since a
+    # cursor-less variant can now be "claude", "codex", or "claude+codex".
+    if ! command -v agent >/dev/null 2>&1; then
         return 0
     fi
     if [[ ! -x "${INIT_SCRIPT}" ]]; then
@@ -126,7 +131,8 @@ run_init() {
 }
 
 run_init_claude_home() {
-    # Claude Code is present in every variant (full and claude-only).
+    # Harmless even when the `claude` binary itself isn't installed — this
+    # only seeds ~/.claude's config/agents/commands directory structure.
     if [[ ! -x "${INIT_CLAUDE_HOME_SCRIPT}" ]]; then
         return 0
     fi
@@ -138,6 +144,33 @@ run_init_ai_statusline() {
         return 0
     fi
     "${AI_STATUSLINE_SCRIPT}" || true
+}
+
+ensure_orcan_home_map() {
+    # Visible sandbox map under ~/orcan (symlinks only — tools keep ~/.cursor etc.).
+    local root="${HOME}/orcan"
+    local history_dir="${HOME}/.local/share/orcan/history"
+    local dotfiles="${ORCAN_DOTFILES:-${HOME}/.config/orcan/dotfiles}"
+    mkdir -p "${root}/agents" "${history_dir}" \
+        "${HOME}/.cache/npm" \
+        "${HOME}/.cache/pnpm" \
+        "${HOME}/.cache/cargo/bin" \
+        "${HOME}/.cache/go" \
+        "${HOME}/.cache/go-build"
+
+    ln -sfn "${HOME}/.cursor" "${root}/agents/cursor"
+    ln -sfn "${HOME}/.config/cursor" "${root}/agents/cursor-app"
+    ln -sfn "${HOME}/.claude" "${root}/agents/claude"
+    ln -sfn "${HOME}/.codex" "${root}/agents/codex"
+    ln -sfn "${HOME}/.cache" "${root}/cache"
+    ln -sfn "${history_dir}" "${root}/history"
+    ln -sfn "${dotfiles}" "${root}/dotfiles"
+    if [[ -d "${HOME}/workspaces" ]]; then
+        ln -sfn "${HOME}/workspaces" "${root}/workspaces"
+    fi
+    if [[ -f /opt/orcan/container-home-README.md ]]; then
+        cp -f /opt/orcan/container-home-README.md "${root}/README.md"
+    fi
 }
 
 ensure_shell_home() {
@@ -153,8 +186,13 @@ ensure_shell_home() {
         "${HOME}/.cache/uv" \
         "${HOME}/.cache/pre-commit" \
         "${HOME}/.cache/yarn" \
+        "${HOME}/.cache/npm" \
+        "${HOME}/.cache/pnpm" \
+        "${HOME}/.cache/cargo/bin" \
+        "${HOME}/.cache/go" \
         "${HOME}/.cache/go-build" \
-        "${HOME}/.cache/turbo"
+        "${HOME}/.cache/turbo" \
+        "${HOME}/.local/share/orcan/history"
 
     rm -f "${HOME}/.bashrc.d/50-cursor-dev.sh" \
         "${HOME}/.bashrc.d/50-cind-shell.sh" \
@@ -229,6 +267,8 @@ ensure_shell_home() {
     # Parent for optional known_hosts bind (compose-git overlay).
     mkdir -p "${HOME}/.ssh"
     chmod 700 "${HOME}/.ssh" 2>/dev/null || true
+
+    ensure_orcan_home_map
 
     if [[ -f "${HOME}/.profile" ]]; then
         if grep -q 'cursor-dev-path\|cind-path' "${HOME}/.profile" 2>/dev/null; then
