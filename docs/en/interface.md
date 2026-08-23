@@ -19,11 +19,12 @@ High-signal commands:
 ```bash
 orcan init | sync | context show
 orcan build [--claude|--cursor] [--force]
-orcan up | up --with-docker | up --with-git | down
-orcan logs | doctor | url
+orcan up [--with-ttyd] [--with-docker | --with-network NAME] [--with-git] | down
+  (| = pick one — docs notation, not one shell line)
+orcan enter | logs | doctor | url
 ```
 
-User ritual: `orcan init` → `orcan build` → `orcan up`. After config edits: `orcan sync && orcan down && orcan up`.
+User ritual: `orcan init` → `orcan build` → `orcan up` (local; add `--with-ttyd` for browser). After config edits: `orcan sync` then `orcan up` — rebuild only when the image changed.
 
 ## Maintainer Make
 

@@ -11,14 +11,33 @@ SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ORCAN_ROOT="${ORCAN_ROOT:-$(cd -- "${SCRIPT_DIR}/../.." && pwd)}"
 ORCAN_HOME="${ORCAN_HOME:-${ORCAN_ROOT}}"
 
+hint() {
+    printf 'orcan:   %s\n' "$*" >&2
+}
+
+fail() {
+    printf 'orcan: %s\n' "$1" >&2
+    shift
+    local line
+    for line in "$@"; do
+        hint "${line}"
+    done
+    exit 1
+}
+
 # shellcheck source=validate-project-dir.sh
 source "${ORCAN_ROOT}/scripts/repository/validate-project-dir.sh"
 
 if [[ ! -f "${ORCAN_HOME}/.env" ]]; then
-    printf 'Error: .env is missing.\n' >&2
-    printf 'First run:  orcan init /absolute/path/to/repo\n' >&2
-    printf 'Or:         orcan sync\n' >&2
-    exit 1
+    if [[ -f "${ORCAN_HOME}/orcan.config.json" ]]; then
+        fix="orcan sync"
+    else
+        fix="orcan init /absolute/path/to/repo"
+    fi
+    fail ".env not found: ${ORCAN_HOME}/.env" \
+        "orcan up needs .env plus generated mounts/* (from orcan sync)." \
+        "Fix:  ${fix}" \
+        "Note: orcan build only needs .env — sync is the normal way to create it."
 fi
 
 set -a
@@ -38,12 +57,12 @@ if [[ ! -f "${runtime_file}" ]]; then
 fi
 
 if (( ${#missing[@]} > 0 )); then
-    printf 'Error: generated runtime files are missing:\n' >&2
+    printf 'orcan: generated runtime files missing (orcan up needs these; orcan build does not)\n' >&2
     for path in "${missing[@]}"; do
-        printf '  - %s\n' "${path}" >&2
+        hint "missing: ${path}"
     done
-    printf 'Run:  orcan sync\n' >&2
-    printf 'After editing orcan.config.json, always run orcan sync before orcan up.\n' >&2
+    hint "Fix:  orcan sync"
+    hint "Then: orcan up   (or orcan down && orcan up if the container is already running)"
     exit 1
 fi
 
@@ -53,13 +72,13 @@ if [[ -z "${config_file}" && -f "${ORCAN_HOME}/orcan.config.json" ]]; then
 fi
 if [[ -n "${config_file}" && -f "${config_file}" ]]; then
     if [[ "${config_file}" -nt "${runtime_file}" || "${config_file}" -nt "${compose_file}" ]]; then
-        printf 'Error: orcan config is newer than generated runtime files.\n' >&2
-        printf '  config:  %s\n' "${config_file}" >&2
-        printf '  runtime: %s\n' "${runtime_file}" >&2
-        printf '  mounts:  %s\n' "${compose_file}" >&2
-        printf 'Run:  orcan sync && orcan down && orcan up\n' >&2
-        printf 'Otherwise the launcher can show new workspace names while Docker still has old mounts.\n' >&2
-        exit 1
+        fail "orcan.config.json changed since last orcan sync" \
+            "config:  ${config_file}" \
+            "runtime: ${runtime_file}" \
+            "mounts:  ${compose_file}" \
+            "Fix:  orcan sync" \
+            "Then: orcan up   (or orcan down && orcan up to refresh volume mounts)" \
+            "Note: config-only edits do not require orcan build."
     fi
 fi
 
@@ -69,6 +88,8 @@ ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}"
 if [[ -z "${ORCAN_DATA}" ]]; then
     ORCAN_DATA="${HOME}/.config/orcan"
 fi
-for sub in cursor cursor-app claude cache npm pnpm cargo go bash-history shell-history worktrees dotfiles; do
+for sub in cursor cursor-app claude codex cache history dotfiles sandbox; do
     mkdir -p "${ORCAN_DATA}/${sub}"
 done
+ORCAN_PROJECTS_ROOT="${ORCAN_PROJECTS_ROOT:-${ORCAN_DATA}/sandbox}"
+mkdir -p "${ORCAN_PROJECTS_ROOT}/.worktrees"

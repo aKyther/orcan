@@ -16,9 +16,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import discover_config, load_config as load_user_config  # noqa: E402
 import claude_hook  # noqa: E402
+from path_guards import is_sensitive_path  # noqa: E402
 
 
-SENSITIVE = {"/", "/home", "/root", "/etc", "/usr", "/var", "/opt"}
 DEFAULT_DEVELOPER_WORKSPACES = "/home/developer/workspaces"
 
 
@@ -57,7 +57,7 @@ def resolve_abs(path: str, label: str) -> Path:
     if not p.is_dir():
         die(f"{label} is not a directory: {path}")
     resolved = p.resolve()
-    if str(resolved) in SENSITIVE:
+    if is_sensitive_path(resolved):
         die(f"refusing sensitive path for {label}: {resolved}")
     home = Path.home().resolve()
     if resolved == home:
@@ -73,7 +73,7 @@ def ensure_dir(path: Path, label: str) -> Path:
     if not path.is_absolute():
         die(f"{label} must be an absolute path (got: {path})")
     resolved = path.resolve()
-    if str(resolved) in SENSITIVE:
+    if is_sensitive_path(resolved):
         die(f"refusing sensitive path for {label}: {resolved}")
     home = Path.home().resolve()
     if resolved == home:
@@ -288,7 +288,7 @@ def build_workspace_entry(
     ws_root = default_workspace_root(ws_name, "")
     if not ws_root.startswith("/"):
         die(f"workspaces[{ws_index}].root must be an absolute path (got: {ws_root})")
-    if ws_root in SENSITIVE:
+    if is_sensitive_path(ws_root):
         die(f"refusing sensitive workspaces[{ws_index}].root: {ws_root}")
     if ws_root in seen_roots:
         die(f"duplicate workspace root: {ws_root}")
@@ -423,8 +423,38 @@ def worktree_git_dir_paths(project_paths: set[str]) -> set[str]:
     return extra
 
 
-def write_compose_projects(workspaces: list[dict], repo_root: Path) -> str:
-    """One bind for all workspace metas + parity binds for every project path."""
+def managed_projects_root(env: dict | None = None) -> Path | None:
+    """The stable, always-mounted project root (see docker-compose.yml).
+
+    Set by update-env.sh before apply-config.py runs (`ORCAN_PROJECTS_ROOT`,
+    default ``${ORCAN_DATA}/sandbox``). Any project path already living
+    under this root needs no bind entry of its own in the generated Compose
+    overlay — it's already visible via the one stable base-compose mount —
+    which is what lets adding/removing such a project skip the Compose
+    recreate that a growing/shrinking bind-mount list would otherwise force.
+    """
+    raw = (env if env is not None else os.environ).get("ORCAN_PROJECTS_ROOT", "").strip()
+    if not raw:
+        return None
+    return Path(raw)
+
+
+def _is_under(child: Path, parent: Path) -> bool:
+    try:
+        child.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def write_compose_projects(
+    workspaces: list[dict], repo_root: Path, managed_root: Path | None = None
+) -> str:
+    """One bind for all workspace metas + parity binds for every project path.
+
+    Paths already under `managed_root` are covered by the stable base-compose
+    mount and deliberately excluded here — see managed_projects_root().
+    """
     host_workspaces = ensure_dir(
         repo_root / "workspaces", "workspace metas root"
     )
@@ -443,6 +473,9 @@ def write_compose_projects(workspaces: list[dict], repo_root: Path) -> str:
             parity_paths.add(project["path"])
 
     parity_paths |= worktree_git_dir_paths(parity_paths)
+
+    if managed_root is not None:
+        parity_paths = {p for p in parity_paths if not _is_under(Path(p), managed_root)}
 
     for path in sorted(parity_paths):
         lines.append(f"      - {path}:{path}")
@@ -547,6 +580,8 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
         "ttyd": {
             "port": int(ttyd.get("port", 7681)),
             "host_port": int(ttyd.get("host_port", ttyd.get("port", 7681))),
+            # Host publish address — default loopback (security hardening).
+            "bind": str(ttyd.get("bind") or "127.0.0.1").strip() or "127.0.0.1",
             "font_size": int(ttyd.get("font_size", 19)),
             "font_family": str(
                 ttyd.get("font_family")
@@ -603,6 +638,7 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
         "ttyd": {
             "port": 7681,
             "host_port": 7681,
+            "bind": "127.0.0.1",
             "font_size": 19,
             "font_family": "Menlo, Monaco, 'Courier New', monospace",
             "theme": "dark",
@@ -684,7 +720,7 @@ def main() -> None:
         json.dumps(built["runtime"], indent=2) + "\n", encoding="utf-8"
     )
     compose_path.write_text(
-        write_compose_projects(built["workspaces"], root),
+        write_compose_projects(built["workspaces"], root, managed_projects_root()),
         encoding="utf-8",
     )
     manifest_path.write_text(
@@ -747,12 +783,15 @@ def main() -> None:
     resources = built["runtime"]["resources"]
     ensure_env_key_unless_set(env_path, "TTYD_PORT", str(ttyd["port"]))
     ensure_env_key_unless_set(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
+    ensure_env_key_unless_set(env_path, "TTYD_BIND", str(ttyd.get("bind", "127.0.0.1")))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_FAMILY", str(ttyd["font_family"]))
     ensure_env_key_unless_set(env_path, "TTYD_THEME", str(ttyd["theme"]))
     ensure_env_key_unless_set(
         env_path, "TTYD_PING_INTERVAL", str(ttyd.get("ping_interval", 20))
     )
+    # Optional basic auth — set only in .env (never commit). Format: user:password
+    # ensure_env_key_unless_set is NOT used: leave unset unless the user adds it.
     ensure_env_key_unless_set(env_path, "CPUS", str(resources["cpus"]))
     ensure_env_key_unless_set(env_path, "MEMORY", str(resources["memory"]))
     ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))

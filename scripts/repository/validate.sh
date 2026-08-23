@@ -34,6 +34,8 @@ require_file "cli/lib/git.sh"
 require_file "cli/lib/image.sh"
 require_file "cli/commands/init.sh"
 require_file "cli/commands/sync.sh"
+require_file "cli/commands/migrate.sh"
+require_file "scripts/repository/migrate_projects.py"
 require_file "cli/commands/up.sh"
 require_file "cli/commands/build.sh"
 require_file "cli/commands/pull.sh"
@@ -47,11 +49,13 @@ require_file "VERSION"
 require_file "CHANGELOG.md"
 require_file "requirements-docs.txt"
 require_file "CONTRIBUTING.md"
+require_file "SECURITY.md"
 require_file "AGENTS.md"
 require_file "orcan.config.example.json"
 require_file "orcan.config.schema.json"
 require_file "docs/STYLE_GUIDE.md"
 require_file "tests/host/run.sh"
+require_file "tests/integration/test-runtime-reconcile.sh"
 require_file "tests/host/test_config_io.py"
 require_file "tests/host/test_apply_config.py"
 require_file "tests/host/test_version.py"
@@ -68,6 +72,7 @@ require_file "tests/host/test_settings_wizard.py"
 require_file "scripts/repository/config_io.py"
 require_file "scripts/repository/git_worktrees.py"
 require_file "scripts/repository/managed_workspace.py"
+require_file "scripts/repository/history.py"
 require_file "tests/host/test_git_worktrees.py"
 require_file "scripts/repository/claude_hook.py"
 require_file "tests/host/test_claude_hook.py"
@@ -119,7 +124,15 @@ require_file "docker/rootfs/usr/local/bin/cursor-ttyd"
 require_file "docker/rootfs/usr/local/bin/agent-launcher"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach"
 require_file "docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces"
+require_file "docker/rootfs/usr/local/bin/orcan-tmux-reconcile-sessions"
+require_file "docker/rootfs/usr/local/bin/orcan-tmux-ensure"
 require_file "docker/rootfs/usr/local/bin/init-workspace"
+require_file "docker/rootfs/usr/local/bin/orcan-runtime-reconcile"
+require_file "docker/rootfs/usr/local/bin/orcan-runtime-status"
+require_file "docker/rootfs/usr/local/lib/orcan/reconcile.py"
+require_file "docker/rootfs/usr/local/lib/orcan/agent_inbox.py"
+require_file "docker/rootfs/usr/local/lib/orcan/agent_executor.py"
+require_file "docker/rootfs/usr/local/bin/orcan-inbox"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
 require_file "docker/rootfs/etc/tmux/scripts/status-right.sh"
@@ -136,54 +149,81 @@ require_file "docker/rootfs/opt/cursor-defaults/templates/cursorindexingignore"
 require_file "docker/rootfs/opt/cursor-defaults/templates/claudeignore"
 require_file "docker/rootfs/opt/cursor-defaults/templates/claude/settings.json"
 
-for script in \
-    docker/rootfs/usr/local/bin/docker-entrypoint \
-    docker/rootfs/usr/local/bin/init-cursor-home \
-    docker/rootfs/usr/local/bin/cursor-init-project \
-    docker/rootfs/usr/local/bin/orcan-init-projects \
-    docker/rootfs/usr/local/bin/orcan-session-brief \
-    docker/rootfs/usr/local/bin/cursor-ttyd \
-    docker/rootfs/usr/local/bin/agent-launcher \
-    docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach \
-    docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces \
-    docker/rootfs/usr/local/bin/init-workspace \
-    docker/rootfs/usr/local/bin/init-claude-home \
-    docker/rootfs/etc/tmux/scripts/status-left.sh \
-    docker/rootfs/etc/tmux/scripts/status-right.sh \
-    docker/rootfs/etc/tmux/scripts/pane-border-right.sh \
-    docker/rootfs/etc/tmux/scripts/window-name.sh \
-    docker/rootfs/etc/tmux/scripts/copy-path.sh \
-    docker/rootfs/etc/tmux/scripts/session-switch.sh \
-    docker/rootfs/etc/tmux/scripts/pick-url.sh \
-    scripts/repository/update-env.sh \
-    scripts/repository/python.sh \
-    scripts/repository/validate-project-dir.sh \
-    scripts/repository/require-generated.sh \
-    scripts/repository/print-workspace-manifest.sh \
-    scripts/repository/registry.sh \
-    scripts/repository/release.sh \
-    scripts/repository/check-product-name.sh \
-    scripts/repository/docs-mike.sh \
-    scripts/repository/validate.sh \
-    scripts/migrations/flatten-orcan-home.sh \
-    install.sh \
-    bin/orcan \
-    cli/orcan.sh \
-    cli/lib/image.sh \
-    cli/commands/build.sh \
-    cli/commands/pull.sh \
-    cli/commands/publish.sh \
-    cli/commands/context.sh \
-    cli/commands/enter.sh \
-    cli/commands/settings.sh \
-    tests/smoke/test-container.sh \
+bash_scripts=(
+    docker/rootfs/usr/local/bin/docker-entrypoint
+    docker/rootfs/usr/local/bin/init-cursor-home
+    docker/rootfs/usr/local/bin/cursor-init-project
+    docker/rootfs/usr/local/bin/orcan-init-projects
+    docker/rootfs/usr/local/bin/orcan-session-brief
+    docker/rootfs/usr/local/bin/cursor-ttyd
+    docker/rootfs/usr/local/bin/agent-launcher
+    docker/rootfs/usr/local/bin/cursor-tmux-workspace-attach
+    docker/rootfs/usr/local/bin/cursor-tmux-bootstrap-workspaces
+    docker/rootfs/usr/local/bin/orcan-tmux-reconcile-sessions
+    docker/rootfs/usr/local/bin/orcan-tmux-ensure
+    docker/rootfs/usr/local/bin/init-workspace
+    docker/rootfs/usr/local/bin/init-claude-home
+    docker/rootfs/etc/tmux/scripts/status-left.sh
+    docker/rootfs/etc/tmux/scripts/status-right.sh
+    docker/rootfs/etc/tmux/scripts/pane-border-right.sh
+    docker/rootfs/etc/tmux/scripts/window-name.sh
+    docker/rootfs/etc/tmux/scripts/copy-path.sh
+    docker/rootfs/etc/tmux/scripts/session-switch.sh
+    docker/rootfs/etc/tmux/scripts/pick-url.sh
+    scripts/repository/update-env.sh
+    scripts/repository/python.sh
+    scripts/repository/validate-project-dir.sh
+    scripts/repository/require-generated.sh
+    scripts/repository/print-workspace-manifest.sh
+    scripts/repository/registry.sh
+    scripts/repository/release.sh
+    scripts/repository/check-product-name.sh
+    scripts/repository/docs-mike.sh
+    scripts/repository/validate.sh
+    scripts/migrations/flatten-orcan-home.sh
+    install.sh
+    bin/orcan
+    cli/orcan.sh
+    cli/lib/image.sh
+    cli/commands/build.sh
+    cli/commands/pull.sh
+    cli/commands/publish.sh
+    cli/commands/context.sh
+    cli/commands/enter.sh
+    cli/commands/settings.sh
+    cli/commands/migrate.sh
+    tests/smoke/test-container.sh
     tests/integration/test-path-parity.sh
-do
+    tests/integration/test-runtime-reconcile.sh
+)
+
+for script in "${bash_scripts[@]}"; do
     if [[ -f "${script}" ]]; then
         bash -n "${script}"
         printf 'Syntax OK: %s\n' "${script}"
     fi
 done
+
+if command -v shellcheck >/dev/null 2>&1; then
+    # Report everything, but only fail validate on error-severity findings —
+    # style/info/warning nits are surfaced without blocking on pre-existing
+    # ones; new error-level bugs (e.g. broken quoting) still fail the build.
+    shellcheck_fail=0
+    for script in "${bash_scripts[@]}"; do
+        if [[ -f "${script}" ]]; then
+            shellcheck "${script}" || true
+            if ! shellcheck --severity=error "${script}" >/dev/null; then
+                fail=1
+                shellcheck_fail=1
+            fi
+        fi
+    done
+    if (( ! shellcheck_fail )); then
+        printf 'shellcheck OK (no error-severity findings)\n'
+    fi
+else
+    printf 'Skip: shellcheck not installed on host\n'
+fi
 
 for script in \
     docker/rootfs/usr/local/bin/orcan-ai-statusline \
@@ -191,7 +231,13 @@ for script in \
     docker/rootfs/usr/local/bin/orcan-workspaces \
     docker/rootfs/usr/local/bin/orcan-context-status \
     docker/rootfs/usr/local/bin/orcan-prompt-clean \
+    docker/rootfs/usr/local/bin/orcan-runtime-reconcile \
+    docker/rootfs/usr/local/bin/orcan-runtime-status \
+    docker/rootfs/usr/local/bin/orcan-inbox \
     docker/rootfs/usr/local/lib/orcan/workspaces.py \
+    docker/rootfs/usr/local/lib/orcan/reconcile.py \
+    docker/rootfs/usr/local/lib/orcan/agent_inbox.py \
+    docker/rootfs/usr/local/lib/orcan/agent_executor.py \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
@@ -202,6 +248,8 @@ for script in \
     scripts/repository/config_io.py \
     scripts/repository/git_worktrees.py \
     scripts/repository/managed_workspace.py \
+    scripts/repository/migrate_projects.py \
+    scripts/repository/history.py \
     scripts/repository/apply-config.py
 do
     if [[ -f "${script}" ]]; then

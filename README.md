@@ -1,6 +1,6 @@
 # Orcan
 
-**Work-context orchestrator** for coding agents. Run **Cursor CLI** (`agent`) and **Claude Code** (`claude`) in Docker with path-parity mounts, workspaces (named sets of projects), and a browser tmux terminal.
+**Work-context orchestrator** for coding agents. Run **Cursor CLI** (`agent`), **Claude Code** (`claude`), and **Codex CLI** (`codex`) in Docker with path-parity mounts, workspaces (named sets of projects), and an optional browser tmux terminal.
 
 Models are out of scope — each CLI picks its own.
 
@@ -8,14 +8,15 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **1.0.1**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **2.0.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
 - Workspaces (one tmux session per workspace)
 - Path parity (same absolute paths host ↔ container)
-- Images: `orcan:latest` / `orcan:<VERSION>` (both agents); optional local `orcan:<VERSION>-claude` / `-cursor`
-- Browser terminal (ttyd → launcher → tmux → zsh)
+- Images: `orcan:latest` / `orcan:<VERSION>` (all agents); optional local `orcan:<VERSION>-claude` / `-cursor` / `-codex`
+- Local container by default (`orcan enter` on the same machine)
+- Optional browser terminal (`orcan up --with-ttyd` → ttyd → launcher → tmux → zsh)
 - Host data under `~/.config/orcan` (`ORCAN_DATA`)
 - JSON config + wizard (`orcan.config.json`)
 - Docs in **English** and **Polish** (language switcher on the site)
@@ -27,7 +28,7 @@ Version **1.0.1**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the i
 | Bash | `orcan` CLI dispatcher |
 | Python 3 | Host config: `sync`, `init` (incl. wizard), `context` (show / add / hook) — stdlib only, no pip |
 | Git | Install clone + your projects |
-| Docker (Compose v2) | Image + browser terminal |
+| Docker (Compose v2) | Container runtime (`orcan up`, optional `--with-ttyd`) |
 
 `orcan` itself is Bash; several commands call small Python helpers on the host. `orcan doctor` checks all of the above.
 
@@ -44,11 +45,13 @@ Adds `orcan` to `~/.local/bin` and appends that directory to your shell rc (`~/.
 ```bash
 orcan doctor
 orcan init /absolute/path/to/your/repo   # or just `orcan init` for the interactive wizard
+orcan sync                               # after later edits to orcan.config.json
 orcan build
-orcan up
+orcan up                                 # local — use `orcan enter` on the same machine
+# remote browser: orcan up --with-ttyd && orcan url
 ```
 
-Open `http://localhost:7681`. After any config edit: `orcan init && orcan down && orcan up` (`up` does not sync).
+After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). Rebuild the image only when the Dockerfile or agent install set changed — not for workspace/project changes.
 
 ### Useful commands
 
@@ -56,8 +59,8 @@ Open `http://localhost:7681`. After any config edit: `orcan init && orcan down &
 | --- | --- |
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
 | `orcan init` | Interactive config wizard (no PATH: create or edit) |
-| `orcan up` / `orcan up --with-docker` / `orcan up --with-git` / `orcan up --with-network NAME` / `orcan down` | Start (optional DinD / host SSH / join a Docker network) / stop browser terminal |
-| `orcan build [--claude\|--cursor]` | Both → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor` |
+| `orcan up` / `orcan up --with-ttyd` / `orcan up --with-docker \| --with-network NAME` / `orcan up --with-git` / `orcan down` | Start container (local by default; optional browser / DinD **or** network / SSH) / stop |
+| `orcan build [--claude\|--cursor\|--codex]` | All → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor\|codex` |
 | `orcan publish` | Manual image push (maintainers) |
 | `orcan update` | Newest release tag `vX.Y.Z` (`--main` for bleeding edge) |
 | `orcan uninstall` | Remove CLI (`--purge-data` also deletes logins/caches) |
@@ -74,6 +77,7 @@ Config lives in `~/.config/orcan/` by default (install clone: `~/.local/share/or
 | Core Ideas | [docs/en/ideas/core-ideas.md](docs/en/ideas/core-ideas.md) |
 | Mental Model | [docs/en/ideas/mental-model.md](docs/en/ideas/mental-model.md) |
 | Context Assertions | [docs/en/ideas/context-assertions.md](docs/en/ideas/context-assertions.md) |
+| Agent inbox | [docs/en/ideas/agent-inbox.md](docs/en/ideas/agent-inbox.md) |
 | Quickstart (source) | [docs/en/getting-started/quickstart.md](docs/en/getting-started/quickstart.md) |
 | CLI reference | [docs/en/reference/cli.md](docs/en/reference/cli.md) |
 | Development | [docs/en/development/overview.md](docs/en/development/overview.md) |

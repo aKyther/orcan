@@ -85,7 +85,7 @@ flowchart LR
 journey
   title A day in one workspace
   section Morning
-    Open browser terminal: 5
+    Enter workspace (local or browser): 5
     Pick workspace: 5
   section Work
     Agent reads context pack: 4
@@ -100,8 +100,39 @@ journey
 
 Path parity is not a random feature. It follows from “agents may run Docker against the host daemon.” See [Path parity](../concepts/path-parity.md).
 
+## Sandbox as the stable anchor
+
+Managed project checkouts and Orcan worktrees live under
+`$ORCAN_PROJECTS_ROOT` (default `~/.config/orcan/sandbox`). That directory is
+**one always-mounted bind** in Compose.
+
+| Piece | Role |
+| --- | --- |
+| `sandbox/<project>/` | Managed clones “parked” under one root |
+| `sandbox/.worktrees/<workspace>/<project>/` | Managed branch checkouts (leading dot = not a live project listing) |
+| Projects outside sandbox | Still path-parity binds — usually need recreate when the mount list changes |
+
+**Tradeoff:** everything under the sandbox is visible in the running container.
+That is the price of adding or removing a managed checkout with `orcan sync`
+alone (no `orcan down && orcan up`). See [Workspaces](../concepts/workspaces.md)
+and [Security](../reference/security.md).
+
+## Cross-workspace visibility (by design)
+
+`$ORCAN_HOME/workspaces/` is mounted once as `/home/developer/workspaces/`.
+Each workspace is a subdirectory (symlinks, `AGENTS.md`,
+`CONTEXT-ASSERTIONS.md`, `.orcan/context-inbox/`, …).
+
+**Tradeoff:** an agent started in workspace A can also see workspace B’s tree.
+That is intentional — it lets you add, remove, and switch workspaces without
+growing a per-workspace bind list and recreating the container. Orcan is
+single-user on one host, not a multi-tenant isolator. Isolation between
+workspaces is organisational (which session you attach to), not a hard
+security boundary.
+
 ## Next
 
 - [Architecture](../architecture.md) — why the layers look like this  
+- [Security](../reference/security.md) — capability ladder and mount tradeoffs  
 - [Quick Start](../getting-started/quickstart.md)  
 - [Typical workflows](../guides/workflows.md)

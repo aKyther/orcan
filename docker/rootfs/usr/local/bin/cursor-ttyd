@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Start ttyd with the project launcher (tmux session per project).
-# Runs after docker-entrypoint (init-cursor-home). No authentication — local/Tailscale only.
+# Runs after docker-entrypoint (init-cursor-home).
+# Optional HTTP basic auth via TTYD_CREDENTIAL=user:password.
+# Prefer host publish on 127.0.0.1 (Compose TTYD_BIND) and/or Tailscale.
 
 set -Eeuo pipefail
 
@@ -46,16 +48,29 @@ if ! [[ "${TTYD_PING_INTERVAL}" =~ ^[0-9]+$ ]] || (( TTYD_PING_INTERVAL < 1 )); 
     TTYD_PING_INTERVAL=20
 fi
 
-printf 'ttyd ready: http://0.0.0.0:%s (launcher + tmux + zsh, fontSize=%s, ping=%ss)\n' \
-    "${TTYD_PORT}" "${TTYD_FONT_SIZE}" "${TTYD_PING_INTERVAL}" >&2
+TTYD_ARGS=(
+    --writable
+    --interface 0.0.0.0
+    --port "${TTYD_PORT}"
+    --ping-interval "${TTYD_PING_INTERVAL}"
+    --client-option "fontSize=${TTYD_FONT_SIZE}"
+    --client-option "fontFamily=${TTYD_FONT_FAMILY}"
+    --client-option "theme=${THEME_JSON}"
+)
+
+if [[ -n "${TTYD_CREDENTIAL:-}" ]]; then
+    if [[ "${TTYD_CREDENTIAL}" != *:* ]]; then
+        printf 'ERROR: TTYD_CREDENTIAL must be user:password\n' >&2
+        exit 1
+    fi
+    TTYD_ARGS+=(--credential "${TTYD_CREDENTIAL}")
+    auth_note="basic-auth on"
+else
+    auth_note="no auth (rely on TTYD_BIND / Tailscale)"
+fi
+
+printf 'ttyd ready: container :%s (%s, fontSize=%s, ping=%ss)\n' \
+    "${TTYD_PORT}" "${auth_note}" "${TTYD_FONT_SIZE}" "${TTYD_PING_INTERVAL}" >&2
 printf 'WARNING: Do not expose this port to the public Internet without authentication and TLS.\n' >&2
 
-exec ttyd \
-    --writable \
-    --interface 0.0.0.0 \
-    --port "${TTYD_PORT}" \
-    --ping-interval "${TTYD_PING_INTERVAL}" \
-    --client-option "fontSize=${TTYD_FONT_SIZE}" \
-    --client-option "fontFamily=${TTYD_FONT_FAMILY}" \
-    --client-option "theme=${THEME_JSON}" \
-    agent-launcher
+exec ttyd "${TTYD_ARGS[@]}" agent-launcher

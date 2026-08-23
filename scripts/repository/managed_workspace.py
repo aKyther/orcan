@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create / remove a workspace backed by managed git worktrees under $ORCAN_DATA/worktrees.
+"""Create / remove a workspace backed by managed git worktrees under $ORCAN_PROJECTS_ROOT/.worktrees.
 
 Used by the config wizard (clean) and tests. Public CLI: orcan context worktree …
 (and wizard) — not a separate product surface.
@@ -139,7 +139,7 @@ def create_managed_workspace(
     if existing is not None:
         # force=True is guaranteed here (die above otherwise) — clean up
         # worktrees for projects dropped or renamed out of this workspace so
-        # they don't linger as orphans under $ORCAN_DATA/worktrees.
+        # they don't linger as orphans under $ORCAN_PROJECTS_ROOT/.worktrees.
         new_names = {name for name, _ in projects}
         for old_proj in existing.get("projects") or []:
             if not isinstance(old_proj, dict):
@@ -165,7 +165,7 @@ def create_managed_workspace(
     info(f"workspace {ws_name!r}: {len(created)} managed worktree(s)")
     info(f"managed root: {managed_root()}")
     info(f"config: {config_path}")
-    info("Next: orcan sync && orcan down && orcan up")
+    info("Next: orcan sync  (worktrees under sandbox — no container recreate)")
     return cfg
 
 
@@ -226,7 +226,7 @@ def remove_managed_workspace(
     ]
     dump_config(config_path, cfg)
     info(f"removed workspace {ws_name!r} from {config_path}")
-    info("Next: orcan sync && orcan down && orcan up")
+    info("Next: orcan sync  (worktrees under sandbox — no container recreate)")
 
 
 def list_managed_workspaces() -> None:

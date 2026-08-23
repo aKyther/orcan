@@ -1,7 +1,8 @@
 # orcan interactive shell setup (PATH + default cwd).
 # Sourced from ~/.bashrc via ~/.bashrc.d/.
 
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:$HOME/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH:-}"
+# Cargo / pnpm / Go homes live under ~/.cache (Compose + devtools-env.sh).
+export PATH="$HOME/.local/bin:${CARGO_HOME:-$HOME/.cache/cargo}/bin:${PNPM_HOME:-$HOME/.cache/pnpm}:${GOPATH:-$HOME/.cache/go}/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH:-}"
 
 # Aliases: /etc/orcan/shell/aliases.sh (via 60-orcan-aliases.sh).
 

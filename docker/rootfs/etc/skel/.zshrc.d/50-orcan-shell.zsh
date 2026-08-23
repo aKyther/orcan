@@ -1,7 +1,8 @@
 # orcan interactive shell setup (PATH + default cwd).
 # Sourced from ~/.zshrc via ~/.zshrc.d/ (and mirrored for bash).
 
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:$HOME/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH:-}"
+# Cargo / pnpm / Go homes live under ~/.cache (Compose + devtools-env.sh).
+export PATH="$HOME/.local/bin:${CARGO_HOME:-$HOME/.cache/cargo}/bin:${PNPM_HOME:-$HOME/.cache/pnpm}:${GOPATH:-$HOME/.cache/go}/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH:-}"
 
 # Inside tmux: only the *session* workspace root (never compose WORKSPACE_ROOT /
 # CONTAINER_PROJECT_DIR — those always point at the first workspaces[] entry).

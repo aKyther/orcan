@@ -35,9 +35,18 @@ Etykieta wersji: `ORCAN_VERSION` / `/etc/orcan/version`.
 | Plik | Rola |
 | --- | --- |
 | `docker-compose.yml` | Bazowy serwis, bindy `$ORCAN_DATA`, bez socketa Dockera |
+| `docker-compose.keepalive.yml` | `sleep infinity` — domyślne `orcan up` (lokalnie; `orcan enter`) |
 | `docker-compose.docker.yml` | Socket Dockera hosta + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | `cursor-ttyd`, opublikowany port, healthcheck |
+| `docker-compose.ttyd.yml` | `cursor-ttyd` przy `orcan up --with-ttyd`; opublikowany port (`TTYD_BIND`, domyślnie `127.0.0.1`), opcjonalne `TTYD_CREDENTIAL`, healthcheck |
 | `mounts/compose-projects.generated.yml` | Mounty projektów path-parity (generowane) |
+
+Nakładki dla `orcan up --with-ttyd` / `--with-docker` / `--with-git` /
+`--with-network` są opt-in. Drabinka możliwości i ryzyka: [Bezpieczeństwo](security.md).
+
+ttyd: domyślna publikacja to loopback (`TTYD_BIND=127.0.0.1`).
+**Rekomendowany dostęp zdalny** to Tailscale (albo inny prywatny VPN) do tego
+hosta, potem `http://localhost:<port>`. Opcjonalne `TTYD_CREDENTIAL` to
+warstwa dodatkowa, gdy musisz bindować poza loopback.
 
 ## Bindy `$ORCAN_DATA`
 
@@ -48,10 +57,21 @@ Domyślny root hosta: `~/.config/orcan`.
 | `cursor/` | `~/.cursor` |
 | `cursor-app/` | `~/.config/cursor` |
 | `claude/` | `~/.claude` (`CLAUDE_CONFIG_DIR` — OAuth + settings przeżywają restarty) |
-| `cache/`, `npm/`, `pnpm/`, `cargo/`, `go/` | Cache/home narzędzi |
-| `shell-history/` | `/command-history` (historia zsh) |
+| `codex/` | `~/.codex` |
+| `cache/` | `~/.cache` (npm / pnpm / cargo / go / uv / … gniazdują tu przez env) |
+| `history/` | `~/.local/share/orcan/history` (`HISTFILE`) |
+| `dotfiles/` | `~/.config/orcan/dotfiles` |
+
+W kontenerze `~/orcan/` to mapa symlinków (agents, cache, history, dotfiles,
+workspaces), żeby łatwo ogarnąć drzewo sandboxa. Narzędzia nadal używają
+swoich normalnych home (`~/.cursor`, …).
 
 Nazwane wolumeny Dockera **nie** są używane do tych danych.
+
+Upgrade ze starszego layoutu `$ORCAN_DATA` (płaskie `npm/` / `shell-history/`
+albo zagnieżdżone `cache/cache/`): na hoście uruchom
+`bash scripts/migrations/consolidate-container-data.sh` przed
+`orcan sync && orcan up`.
 
 ## Opcjonalny prywatny rejestr
 

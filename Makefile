@@ -173,11 +173,11 @@ build-cursor: deprecate-user ## (deprecated) → orcan build --cursor
 rebuild-cursor: deprecate-user ## (deprecated) → orcan build --cursor --no-cache
 	@$(ORCAN) build --cursor --no-cache
 
-terminal: deprecate-user ## (deprecated) → orcan up
-	@$(ORCAN) up
+terminal: deprecate-user ## (deprecated) → orcan up --with-ttyd
+	@$(ORCAN) up --with-ttyd
 
-terminal-docker: deprecate-user ## (deprecated) → orcan up --with-docker
-	@$(ORCAN) up --with-docker
+terminal-docker: deprecate-user ## (deprecated) → orcan up --with-ttyd --with-docker
+	@$(ORCAN) up --with-ttyd --with-docker
 
 terminal-url: deprecate-user ## (deprecated) → orcan url
 	@$(ORCAN) url

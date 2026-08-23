@@ -48,7 +48,7 @@ Jedno uczciwe ograniczenie: w v1 zapis może być bramkowany tylko przez sygnał
 
 ## Tożsamość: co liczy się jako „ten sam projekt"?
 
-Anchor to projekt, ale projekt to nie to samo co ścieżka na dysku. `orcan context worktree create` wypina branch repozytorium pod **własną** ścieżką (`$ORCAN_DATA/worktrees/<workspace>/<project>/`) — inny katalog niż główny checkout, mimo że to niewątpliwie to samo repozytorium.
+Anchor to projekt, ale projekt to nie to samo co ścieżka na dysku. `orcan context worktree create` wypina branch repozytorium pod **własną** ścieżką (`$ORCAN_PROJECTS_ROOT/.worktrees/<workspace>/<project>/`) — inny katalog niż główny checkout, mimo że to niewątpliwie to samo repozytorium.
 
 Gdyby store liczył tożsamość po ścieżce working-copy, worktree brancha po cichu dostawałby pusty store, odcięty od wszystkiego, co już zaakceptowano o tym repo — dokładnie ten sam błąd anchor-jako-scope, przed którym broni się cały ten model, tylko piętro niżej.
 
@@ -58,8 +58,8 @@ Zamiast tego tożsamość jest liczona po git **common dir** (`git rev-parse --g
 flowchart TB
   common["common dir .git (współdzielony)"]
   common --> main["Główny checkout\n/home/user/code/api"]
-  common --> wt1["Worktree: feature-x\n$ORCAN_DATA/worktrees/ws-a/api"]
-  common --> wt2["Worktree: release/1.0\n$ORCAN_DATA/worktrees/ws-b/api"]
+  common --> wt1["Worktree: feature-x\n$ORCAN_PROJECTS_ROOT/.worktrees/ws-a/api"]
+  common --> wt2["Worktree: release/1.0\n$ORCAN_PROJECTS_ROOT/.worktrees/ws-b/api"]
 ```
 
 Wszystkie trzy dają **ten sam** `project_id`, więc ten sam store — branch, na którym akurat jesteś, to nie inny projekt, tylko inna wartość atomu `branch` w Context Signature (patrz tabela wyżej). Napisz zapis „tylko dla release" raz, zakotwiczony w dowolnym z checkoutów, a zadziała poprawnie wszędzie tam, gdzie pojawi się tożsamość tego repo, bramkowany przez branch. Katalog, który w ogóle nie jest repo gita, spada z powrotem na tożsamość-po-ścieżce — stabilną, tylko nieświadomą worktree (projekty w Orcanie i tak mają być repozytoriami git).
@@ -91,6 +91,8 @@ Nic nie trafia do stanu `accepted` automatycznie. Wymagany jest przegląd człow
 **Propozycja konsolidacji.** To samo wywołanie modelu z pre-checku od razu szkicuje też scaloną wersję dla wszystkiego, co oflaguje jako `duplicate`/`conflict` (`consolidated_title`/`consolidated_content` w jego odpowiedzi JSON — bez drugiego wywołania). Jeśli potem zaakceptujesz takiego kandydata, `orcan-context-review` dopyta jeszcze raz: zakolejkować naszkicowaną konsolidację i oflagować nakładający się istniejący zapis do wycofania? "Tak" po prostu odpala `orcan-context-propose` jeszcze dwa razy — zwykłą propozycję `--queue` ze scaloną treścią (`--source consolidation`) i `--flag-existing` na starym zapisie — dokładnie takie same zrzuty jak te ręczne/z Reflection, recenzowane w następnym cyklu jak wszystko inne. Nic nie scala się ani nie wycofuje od razu — to tylko kolejkuje *więcej* pracy do następnej rundy review, nigdy jej nie omija. Dzięki temu store zostaje spójnym, oczyszczonym z duplikatów zbiorem wiedzy, a nie rosnącym liniowo logiem — konsolidacja dzieje się dokładnie w momencie, w którym i tak zaakceptowałbyś prawie-duplikat.
 
 Oba kierunki to jednostronne zrzuty do zamontowanej skrzynki — nie ma żywego kanału z powrotem do hosta. To `orcan sync` (`compile_context.py`) faktycznie zamienia zrzut w prawdziwe, wersjonowane gitem wywołanie `propose()`/`accept()`/`reject()`/`retire()`, przy najbliższym uruchomieniu. W praktyce oznacza to, że decyzja czuje się natychmiastowa w rozmowie, ale realnie trafia do store'u — a więc i do przyszłego `CONTEXT-ASSERTIONS.md` — dopiero przy najbliższym sync'u. Ta asymetria jest celowa: to ta sama granica, która chroni przed bezpośrednim zapisem agenta do store'u, tylko na tyle wygodna, że przejrzenie kandydata kosztuje jedno naciśnięcie klawisza, nie przełączenie kontekstu.
+
+**Model zaufania.** Orcan to single-user na jednym hoście: Ty i agenci, których odpalasz. Zrzuty inbox to zwykły JSON (bez podpisu). Uszkodzone lub nierozwiązywalne pliki idą do kwarantanny; do `$ORCAN_DATA/context` trafia tylko to, co człowiek zaakceptuje / odrzuci. To wystarcza na zamierzony model zagrożeń — zobacz [Bezpieczeństwo](../reference/security.md).
 
 ## Wsadowa, zautomatyzowana Reflection
 

@@ -1,0 +1,6 @@
+# Local-only overlay for `orcan up` without --with-ttyd.
+# Keeps the container running; use `orcan enter` for a host terminal.
+services:
+  orcan:
+    command: ["sleep", "infinity"]
+    restart: unless-stopped

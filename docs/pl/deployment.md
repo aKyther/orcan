@@ -12,7 +12,7 @@ Orcan **nie** jest wdrażany jako obraz z GHCR.
 2. Skonfiguruj `orcan.config.json`
 3. `orcan sync`
 4. `orcan build` (lub `orcan build --claude`)
-5. `orcan up` albo `orcan up --with-docker`
+5. `orcan up` (lokalnie — `orcan enter`) albo `orcan up --with-ttyd` (przeglądarka) albo `orcan up --with-docker | --with-network NAME` (wybierz jedno)
 
 ```bash
 git clone https://github.com/aKyther/orcan.git
@@ -22,6 +22,7 @@ orcan init /absolute/path/to/your/repo
 orcan sync
 orcan build
 orcan up
+# zdalnie w przeglądarce: orcan up --with-ttyd && orcan url
 ```
 
 ### Wiele hostów

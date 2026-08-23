@@ -22,7 +22,8 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 | Variable | Role |
 | --- | --- |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Resource limits (defaults: 2 / 4g / 512m / 512m) |
-| `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` / `TTYD_PING_INTERVAL` | Browser terminal (`TTYD_THEME`: `dark`/`navy`, `mocha`, or raw xterm.js JSON) |
+| `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_BIND` / `TTYD_FONT_*` / `TTYD_THEME` / `TTYD_PING_INTERVAL` | Browser terminal (`TTYD_BIND` default `127.0.0.1`; `TTYD_THEME`: `dark`/`navy`, `mocha`, or raw xterm.js JSON) |
+| `TTYD_CREDENTIAL` | Optional ttyd HTTP basic auth (`user:password`). Set only in `.env` — never commit |
 
 ## Compose naming (optional)
 
@@ -53,7 +54,8 @@ Edit via `orcan.config.json` (`resources`, `ttyd`) then `orcan sync` for new mac
 | --- | --- |
 | `ORCAN_VARIANT` | `full` or `claude` (from `/etc/orcan/variant`) |
 | `ORCAN_VERSION` | From `/etc/orcan/version` |
-| `HISTFILE` | `/command-history/.zsh_history` (bind: `$ORCAN_DATA/shell-history`) |
+| `HISTFILE` | `~/.local/share/orcan/history/.zsh_history` (bind: `$ORCAN_DATA/history`) |
+| `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Under `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |
 | `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Same commit identity as the host user |
 | `SSH_AUTH_SOCK` | Host agent (only with `orcan up --with-git`) |
 

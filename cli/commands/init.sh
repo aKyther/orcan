@@ -72,4 +72,5 @@ orcan_cmd_init() {
     ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-show.py" || true
     orcan_ok "init done"
     orcan_info "next: orcan build && orcan up"
+    orcan_info "  after later orcan.config.json edits: orcan sync (then orcan up — rebuild only if the image changed)"
 }

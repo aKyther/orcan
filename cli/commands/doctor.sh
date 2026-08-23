@@ -68,13 +68,39 @@ orcan_cmd_doctor() {
         check "runtime config" "$([[ -f ${runtime} ]] && echo 1 || echo 0)" "${runtime}"
         if [[ -f "${ORCAN_CONFIG_FILE}" && -f "${runtime}" ]]; then
             if [[ "${ORCAN_CONFIG_FILE}" -nt "${runtime}" ]]; then
-                check "config freshness" "0" "config newer than runtime — run: orcan sync"
+                check "config freshness" "0" "orcan.config.json newer than mounts/* — run: orcan sync (no rebuild needed)"
             else
                 check "config freshness" "1"
             fi
         fi
     else
-        check "generated runtime" "0" "run: orcan sync"
+        check "generated runtime" "0" "run: orcan sync (creates .env + mounts/* for orcan up)"
+    fi
+
+    printf '\nRuntime\n'
+    if orcan_have docker; then
+        orcan_load_env 2>/dev/null || true
+        local cname image_local
+        cname="$(orcan_container_name)"
+        if orcan_container_is_running "${cname}"; then
+            check "container ${cname}" "1" "running"
+            check "last up flags" "1" "$(orcan_up_state_summary)"
+            if orcan_ttyd_is_active; then
+                check "browser terminal (ttyd)" "1" "$(orcan_terminal_url | tr -d '\n')"
+            else
+                check "browser terminal (ttyd)" "1" "off — orcan up --with-ttyd (local: orcan enter)"
+            fi
+        else
+            check "container ${cname}" "0" "not running — orcan up"
+        fi
+        image_local="${IMAGE_LOCAL:-orcan:latest}"
+        if docker image inspect "${image_local}" >/dev/null 2>&1; then
+            check "image ${image_local}" "1"
+        else
+            check "image ${image_local}" "0" "run: orcan build"
+        fi
+    else
+        check "docker daemon" "0" "needed for: orcan up"
     fi
 
     printf '\nContext\n'

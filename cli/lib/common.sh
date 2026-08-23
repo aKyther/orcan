@@ -18,6 +18,8 @@ source "${_ORCAN_LIB_DIR}/compose.sh"
 source "${_ORCAN_LIB_DIR}/git.sh"
 # shellcheck source=image.sh
 source "${_ORCAN_LIB_DIR}/image.sh"
+# shellcheck source=runtime.sh
+source "${_ORCAN_LIB_DIR}/runtime.sh"
 
 orcan_log_init
 orcan_paths_init

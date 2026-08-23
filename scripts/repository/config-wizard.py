@@ -37,8 +37,8 @@ from wizard_ui import (  # noqa: E402
     success,
     warn,
 )
+from path_guards import is_sensitive_path  # noqa: E402
 
-SENSITIVE = {"/", "/home", "/root", "/etc", "/usr", "/var", "/opt"}
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$")
 
 
@@ -71,7 +71,7 @@ def validate_project_path(path_str: str) -> tuple[str | None, Path | None]:
         resolved = p.resolve()
     except OSError as exc:
         return f"cannot resolve path: {exc}", None
-    if str(resolved) in SENSITIVE:
+    if is_sensitive_path(resolved):
         return f"refusing sensitive path: {resolved}", None
     home = Path.home().resolve()
     if resolved == home:
@@ -746,7 +746,7 @@ def top_menu(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
         [
             ("add", "add a workspace (mount project folders)"),
             ("edit", "change existing workspaces"),
-            ("clean", "remove worktrees Orcan created under $ORCAN_DATA/worktrees"),
+            ("clean", "remove worktrees Orcan created under $ORCAN_PROJECTS_ROOT/.worktrees"),
         ],
         default="add",
     )

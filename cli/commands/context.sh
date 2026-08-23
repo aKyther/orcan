@@ -53,7 +53,7 @@ orcan_cmd_context() {
                     printf '       orcan context worktree remove --path PATH [--force]\n'
                     printf '       orcan context worktree remove --workspace NAME [--force]\n'
                     printf '       orcan context worktree prune [--force] [--no-config]\n'
-                    printf '  Managed paths: \$ORCAN_DATA/worktrees/<workspace>/<project>\n'
+                    printf '  Managed paths: \$ORCAN_PROJECTS_ROOT/.worktrees/<workspace>/<project>\n'
                     ;;
                 *)
                     orcan_usage_error "usage: orcan context worktree <create|remove|prune>"
@@ -72,8 +72,23 @@ orcan_cmd_context() {
         hook)
             orcan_context_hook "$@"
             ;;
+        recent)
+            local limit="10" ws_filter=""
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    --limit) limit="${2:-10}"; shift 2 ;;
+                    --workspace) ws_filter="${2:-}"; shift 2 ;;
+                    *) orcan_usage_error "usage: orcan context recent [--limit N] [--workspace NAME]" ;;
+                esac
+            done
+            local -a args=(--data "${ORCAN_DATA:-${HOME}/.config/orcan}" recent --limit "${limit}")
+            if [[ -n "${ws_filter}" ]]; then
+                args+=(--workspace "${ws_filter}")
+            fi
+            orcan_host_python "${ORCAN_SCRIPTS}/history.py" "${args[@]}"
+            ;;
         *)
-            orcan_usage_error "usage: orcan context <show|add|tui|worktrees|worktree|assert|hook> (wizard moved to: orcan init)"
+            orcan_usage_error "usage: orcan context <show|add|tui|worktrees|worktree|assert|hook|recent> (wizard moved to: orcan init)"
             ;;
     esac
 }
@@ -337,7 +352,7 @@ orcan_context_worktree_create() {
             -h | --help)
                 printf 'usage: orcan context worktree create --repo PATH --branch NAME \\\n'
                 printf '         [--workspace NAME --project NAME | --path PATH] [--force]\n'
-                printf '  Default: managed under \$ORCAN_DATA/worktrees/<workspace>/<project>\n'
+                printf '  Default: managed under \$ORCAN_PROJECTS_ROOT/.worktrees/<workspace>/<project>\n'
                 return 0
                 ;;
             *)
@@ -468,7 +483,7 @@ orcan_context_worktree_prune() {
                 ;;
             -h | --help)
                 printf 'usage: orcan context worktree prune [--force] [--no-config]\n'
-                printf '  Reconciles $ORCAN_DATA/worktrees/registry.json against disk\n'
+                printf '  Reconciles $ORCAN_PROJECTS_ROOT/.worktrees/registry.json against disk\n'
                 printf '  (and orcan.config.json, unless --no-config). Dry-run by default;\n'
                 printf '  --force removes orphan directories / config-stale worktrees.\n'
                 return 0

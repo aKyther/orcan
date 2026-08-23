@@ -8,25 +8,24 @@ These scenarios assume you already know [Core Ideas](../ideas/core-ideas.md). Co
 
 ## Scenario: start the day in one context
 
-You already configured workspaces. You want the browser terminal and yesterday’s mounts.
+You already configured workspaces. You want a dev container with yesterday’s mounts.
 
 **Idea:** recreate the session without regenerating config.
 
 ```bash
 cd /absolute/path/to/orcan
-orcan up
+orcan up              # local — orcan enter on the same machine
+# remote browser: orcan up --with-ttyd && orcan url
 ```
-
-Open `http://localhost:7681` and pick a workspace.
 
 !!! note
     `orcan up` does **not** run `orcan sync`. If you changed `orcan.config.json`, apply config first.
 
 ## Scenario: local terminal (not only the browser) { #local-terminal }
 
-**When:** you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside ttyd.
+**When:** you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside `--with-ttyd`.
 
-ttyd is the remote-friendly path. Locally you can use **`orcan enter`** (or raw `docker exec`) to join the **same** tmux sessions the browser uses (multiple clients are fine).
+Plain `orcan up` is local-only (no published port). **`orcan enter`** is the default path on the same machine. Add **`--with-ttyd`** when you need the browser (remote / phone).
 
 ```bash
 orcan enter                 # workspace picker (agent-launcher) — default
@@ -72,6 +71,11 @@ orcan up
 orcan up --with-docker
 ```
 
+**Tradeoff:** the socket ≈ control of the host Docker engine. The flag is a
+deliberate opt-in (warning on start). There is no “full host Docker but
+sandboxed” mode. If you only need to reach other containers, prefer
+`--with-network`. Details: [Security](../reference/security.md).
+
 ## Scenario: reach containers on an existing Docker network
 
 **When:** the container needs to reach another container by name/IP (e.g. a
@@ -107,7 +111,7 @@ orcan context worktree create --repo /absolute/path/to/repo \
 orcan sync && orcan down && orcan up
 ```
 
-Managed paths live under `$ORCAN_DATA/worktrees/`. Clean up: wizard → **clean**, or `orcan context worktree remove --workspace my-ws`.
+Managed paths live under `$ORCAN_PROJECTS_ROOT/.worktrees/`. Clean up: wizard → **clean**, or `orcan context worktree remove --workspace my-ws`.
 
 ## Scenario: install only one agent
 

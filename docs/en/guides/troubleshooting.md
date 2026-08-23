@@ -18,9 +18,12 @@ The `docker compose config` command prints the resolved Compose file (needs gene
 
 ## Browser terminal will not open
 
+Requires `orcan up --with-ttyd` (plain `orcan up` is local-only — use `orcan enter` instead).
+
 1. Confirm the container is up: `orcan logs`
-2. Confirm the URL: `orcan url` (default `http://localhost:7681`)
-3. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `orcan sync` and recreate
+2. Confirm ttyd is on: `orcan doctor` (Runtime section) or `orcan url`
+3. Confirm the URL: `orcan url` (default `http://127.0.0.1:7681` when `TTYD_BIND` is loopback)
+4. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `orcan sync` and `orcan down && orcan up --with-ttyd`
 
 ## Frequent “reconnecting” on phone / mobile network
 

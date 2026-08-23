@@ -64,7 +64,7 @@ def die(msg: str) -> None:
 
 # ---------------------------------------------------------------------------
 # Storage paths ($ORCAN_DATA/context/<project-id>/) — mirrors worktrees'
-# $ORCAN_DATA/worktrees layout and env var convention.
+# $ORCAN_PROJECTS_ROOT/.worktrees layout and env var convention.
 # ---------------------------------------------------------------------------
 
 

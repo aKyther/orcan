@@ -26,6 +26,18 @@ Behavioral defaults (think → simplify → surgical edit → verify) live in
 - New repository files need a clear long-term purpose.
 - For Python helpers in this container, prefer `uv` / `uvx` over system `pip install`.
 
+## Shell tools
+
+This image ships faster replacements for the classic Unix tools — use the
+replacement, not the classic one, when running a shell command yourself:
+`rg` instead of `grep -r`, `fd` instead of `find -name`, `eza` instead of
+`ls`, `bat` instead of `cat` when showing a human a file (skip it when
+piping/parsing output), `delta` as the git diff/show pager, `sg`/`ast-grep`
+for structural code search, `jq`/`yq` for JSON/YAML, `hyperfine` for
+benchmarking. A built-in editor/search tool (e.g. a Grep or Glob tool) still
+comes first when one is available — this is only about which shell command
+to reach for otherwise.
+
 ## Repository clutter
 
 Do not create Markdown files for temporary notes, planning, or progress tracking unless the user explicitly asks.

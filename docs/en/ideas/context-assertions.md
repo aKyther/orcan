@@ -48,7 +48,7 @@ One honest limitation: only signals knowable **before** the agent starts (worksp
 
 ## Identity: what counts as "the same project"?
 
-The anchor is a project, but a project is not the same thing as a filesystem path. `orcan context worktree create` checks out a branch of a repo at its **own** path (under `$ORCAN_DATA/worktrees/<workspace>/<project>/`) — a different directory from the main checkout, even though it is unmistakably the same repository.
+The anchor is a project, but a project is not the same thing as a filesystem path. `orcan context worktree create` checks out a branch of a repo at its **own** path (under `$ORCAN_PROJECTS_ROOT/.worktrees/<workspace>/<project>/`) — a different directory from the main checkout, even though it is unmistakably the same repository.
 
 If the store keyed identity on the working-copy path, a branch worktree would silently get an empty store, disconnected from everything already accepted about that repo — the same anchor-vs-scope mistake this whole design exists to avoid, just one level down.
 
@@ -58,8 +58,8 @@ Instead, identity is keyed on the repo's git **common dir** (`git rev-parse --gi
 flowchart TB
   common[".git common dir (shared)"]
   common --> main["Main checkout\n/home/user/code/api"]
-  common --> wt1["Worktree: feature-x\n$ORCAN_DATA/worktrees/ws-a/api"]
-  common --> wt2["Worktree: release/1.0\n$ORCAN_DATA/worktrees/ws-b/api"]
+  common --> wt1["Worktree: feature-x\n$ORCAN_PROJECTS_ROOT/.worktrees/ws-a/api"]
+  common --> wt2["Worktree: release/1.0\n$ORCAN_PROJECTS_ROOT/.worktrees/ws-b/api"]
 ```
 
 All three resolve to the **same** `project_id`, hence the same store — the branch you happen to be on is not a different project, it's a different value of the `branch` atom in the Context Signature (see the table above). Write a release-only assertion once, anchored at whichever checkout is convenient, and it applies correctly everywhere that repo's identity shows up, gated by branch. A directory that isn't a git repo at all falls back to identity-by-path — stable, just not worktree-aware (Orcan projects are expected to be git repos anyway).
@@ -91,6 +91,8 @@ Nothing reaches `accepted` automatically. A human review is required, and it is 
 **Consolidation offer.** The pre-check's single model call also drafts a merged replacement for anything it flags `duplicate`/`conflict` (`consolidated_title`/`consolidated_content` in its JSON response — no second call). If you then accept that candidate, `orcan-context-review` asks one more question: queue the drafted consolidation and flag the overlapping existing item for retirement? A "yes" just runs `orcan-context-propose` twice more — a normal `--queue` proposal for the merged text (`--source consolidation`) and a `--flag-existing` on the old item — exactly the same drops as manual/reflection-sourced ones, reviewed next cycle like everything else. Nothing merges or retires immediately; this only ever queues *more* work for the next review round, never bypasses it. This is how the store stays a coherent, de-duplicated body of knowledge rather than a growing linear log — consolidation happens at the moment you'd otherwise have accepted a near-duplicate anyway.
 
 Both directions are one-way drops into a mounted inbox — there is no live channel back to the host. `orcan sync` (`compile_context.py`) is what actually turns a drop into a real, git-versioned `propose()`/`accept()`/`reject()`/`retire()` call the next time it runs. In practice this means a decision you make feels instant in the conversation, but only takes effect in the store — and therefore in a future `CONTEXT-ASSERTIONS.md` — at the next sync. This asymmetry is intentional: it is the same boundary that keeps the agent from ever writing to the store directly, just made convenient enough that reviewing candidates costs one keystroke instead of a context switch.
+
+**Trust model.** Orcan is single-user on one host: you and the agents you run. Inbox drops are plain JSON (not signed). Malformed or unresolvable files are quarantined; only a human accept/reject promotes knowledge into `$ORCAN_DATA/context`. That is enough for the intended threat model — see [Security](../reference/security.md).
 
 ## Batched, automated Reflection
 

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# reconcile_sessions(workspaces): ensure a tmux session per configured
+# workspace (idempotent — see cursor-tmux-workspace-attach's ensure_session).
+#
+# The single mechanism behind BOTH:
+#   - container boot / first ttyd connect (cursor-tmux-bootstrap-workspaces)
+#   - on-demand runtime modification (orcan-runtime-reconcile)
+#
+# Orphaned sessions (tmux sessions tagged orcan-managed whose workspace is no
+# longer in config) are reported, never auto-killed — an active agent inside
+# one must not lose its session just because the workspace it started in was
+# renamed or removed. Pass --prune-orphans to opt into killing them (only
+# ever explicit, never the default reconcile path).
+set -Eeuo pipefail
+
+ORCAN_CONFIG="${ORCAN_CONFIG:-/etc/orcan/config.json}"
+TMUX_CONF="${TMUX_CONF:-${HOME}/.tmux.conf}"
+PRUNE_ORPHANS=0
+
+for arg in "$@"; do
+    case "${arg}" in
+        --prune-orphans) PRUNE_ORPHANS=1 ;;
+        *) echo "Usage: orcan-tmux-reconcile-sessions [--prune-orphans]" >&2; exit 1 ;;
+    esac
+done
+
+[[ -f "${ORCAN_CONFIG}" ]] || exit 0
+command -v orcan-workspaces >/dev/null 2>&1 || exit 0
+
+declare -a ACTIVE_SESSIONS=()
+
+while IFS=$'\t' read -r name root session; do
+    [[ -n "${name}" && -n "${root}" && -n "${session}" ]] || continue
+    [[ -d "${root}" ]] || continue
+    ACTIVE_SESSIONS+=("${session}")
+    ORCAN_TMUX_ATTACH=0 cursor-tmux-workspace-attach "${session}" "${root}" "${name}" >/dev/null 2>&1 || true
+done < <(ORCAN_CONFIG="${ORCAN_CONFIG}" orcan-workspaces bootstrap)
+
+# Orcan-managed sessions left over after a workspace was renamed/removed.
+# Sessions without ORCAN_WORKSPACE_NAME are left alone (user or smoke
+# sessions) — those are never ours to report or prune.
+if command -v tmux >/dev/null 2>&1; then
+    while IFS= read -r live; do
+        [[ -n "${live}" ]] || continue
+        keep=0
+        for s in "${ACTIVE_SESSIONS[@]+"${ACTIVE_SESSIONS[@]}"}"; do
+            if [[ "${live}" == "${s}" ]]; then
+                keep=1
+                break
+            fi
+        done
+        if (( keep == 1 )); then
+            continue
+        fi
+        if ! tmux -f "${TMUX_CONF}" show-environment -t "=${live}" ORCAN_WORKSPACE_NAME >/dev/null 2>&1; then
+            continue
+        fi
+        if (( PRUNE_ORPHANS )); then
+            printf 'removing orphaned orcan tmux session: %s\n' "${live}" >&2
+            tmux -f "${TMUX_CONF}" kill-session -t "=${live}" 2>/dev/null || true
+        else
+            printf 'orphaned orcan tmux session (workspace no longer in config, not killed): %s\n' "${live}" >&2
+        fi
+    done < <(tmux -f "${TMUX_CONF}" list-sessions -F '#{session_name}' 2>/dev/null || true)
+fi

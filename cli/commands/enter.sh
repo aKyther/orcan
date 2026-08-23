@@ -2,24 +2,31 @@
 # shellcheck shell=bash
 # Enter the running container from a local host terminal (alongside ttyd).
 
-orcan_enter_compose() {
-    if orcan_compose_ttyd_docker ps -q orcan 2>/dev/null | grep -q .; then
-        orcan_compose_ttyd_docker "$@"
-    elif orcan_compose_ttyd ps -q orcan 2>/dev/null | grep -q .; then
-        orcan_compose_ttyd "$@"
+orcan_enter_exec() {
+    local cname flags=()
+    cname="$(orcan_require_running_container)"
+    if [[ -t 0 && -t 1 ]]; then
+        flags=(-it)
     else
-        orcan_die "no running container — start with: orcan up"
+        flags=(-i)
     fi
+    docker exec "${flags[@]}" "${cname}" "$@"
 }
 
-orcan_enter_exec() {
-    local -a flags=(exec)
-    if [[ -t 0 && -t 1 ]]; then
-        flags+=(-it)
-    else
-        flags+=(-i)
-    fi
-    orcan_enter_compose "${flags[@]}" orcan "$@"
+# Best-effort recent/history row for `orcan context recent` — never blocks
+# or fails the actual enter. See scripts/repository/history.py. Workspace
+# granularity only (no --project-path): a workspace can hold several
+# projects and `orcan enter` doesn't pick one, unlike e.g. a future
+# per-project "resume last work item" flow.
+orcan_record_workspace_use() {
+    orcan_load_env
+    [[ -n "${WORKSPACE_NAME:-}" ]] || return 0
+    orcan_require_python 2>/dev/null || return 0
+    ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+        orcan_host_python "${ORCAN_SCRIPTS}/history.py" \
+            --data "${ORCAN_DATA:-${HOME}/.config/orcan}" \
+            record --workspace "${WORKSPACE_NAME}" \
+        >/dev/null 2>&1
 }
 
 orcan_cmd_enter() {
@@ -72,6 +79,7 @@ EOF
     done
 
     orcan_require_docker
+    orcan_record_workspace_use || true
 
     case "${mode}" in
         shell)
@@ -83,7 +91,7 @@ EOF
         tmux)
             if [[ -z "${session}" ]]; then
                 local list count
-                list="$(orcan_enter_compose exec -T orcan tmux ls 2>/dev/null || true)"
+                list="$(orcan_enter_exec tmux ls 2>/dev/null || true)"
                 if [[ -z "${list}" ]]; then
                     orcan_die "no tmux sessions — run: orcan enter   # picker creates one"
                 fi

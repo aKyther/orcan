@@ -1,5 +1,5 @@
 ---
-description: Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz, otwórz terminal.
+description: Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz i uruchom sesję lokalnie lub w przeglądarce.
 ---
 
 # Szybki start
@@ -31,15 +31,16 @@ Konfiguracja to JSON w `~/.config/orcan/`. Docker widzi tylko to, co zapisze **`
 orcan init /absolute/path/to/your/repo   # scaffold + sync
 orcan sync                               # odśwież po późniejszych edycjach
 orcan build
-orcan up
+orcan up              # lokalnie — `orcan enter` na tej samej maszynie
+# albo: orcan up --with-ttyd   # terminal w przeglądarce (zdalnie / telefon)
 ```
 
 !!! note
     `orcan init` już raz uruchamia `sync`. Trzymaj `orcan sync` w nawyku: **każda** edycja konfiguracji wymaga go przed `orcan build` / `orcan up`. Te komendy **nie** regenerują plików runtime.
 
-Otwórz URL wypisany w terminalu (domyślnie `http://localhost:7681`).
+Na tej samej maszynie użyj **`orcan enter`** — domyślny tryb `orcan up` nie publikuje portu ttyd.
 
-Na tej samej maszynie możesz też wejść przez **`orcan enter`** do tych samych sesji tmux — nie musisz zostać w przeglądarce. Zobacz [Workflowy — lokalny terminal](../guides/workflows.md#local-terminal).
+Terminal w przeglądarce (zdalnie / telefon): `orcan up --with-ttyd`, potem URL z `orcan url` (domyślnie `http://127.0.0.1:7681`). Zobacz [Workflowy — lokalny terminal](../guides/workflows.md#local-terminal).
 
 ## Git w kontenerze
 

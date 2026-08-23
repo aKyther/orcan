@@ -35,9 +35,18 @@ Version label: `ORCAN_VERSION` / `/etc/orcan/version`.
 | File | Role |
 | --- | --- |
 | `docker-compose.yml` | Base service, `$ORCAN_DATA` binds, no Docker socket |
+| `docker-compose.keepalive.yml` | `sleep infinity` — default `orcan up` (local-only; use `orcan enter`) |
 | `docker-compose.docker.yml` | Host Docker socket + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | `cursor-ttyd`, published port, healthcheck |
+| `docker-compose.ttyd.yml` | `cursor-ttyd` when `orcan up --with-ttyd`; published port (`TTYD_BIND`, default `127.0.0.1`), optional `TTYD_CREDENTIAL`, healthcheck |
 | `mounts/compose-projects.generated.yml` | Path-parity project mounts (generated) |
+
+Overlays for `orcan up --with-ttyd` / `--with-docker` / `--with-git` /
+`--with-network` are opt-in. Capability ladder and risks: [Security](security.md).
+
+ttyd: default publish is loopback (`TTYD_BIND=127.0.0.1`). **Recommended
+remote access** is Tailscale (or another private VPN) to that host, then
+`http://localhost:<port>`. Optional `TTYD_CREDENTIAL` is a secondary layer
+when you must bind beyond loopback.
 
 ## `$ORCAN_DATA` binds
 
@@ -48,10 +57,21 @@ Default host root: `~/.config/orcan`.
 | `cursor/` | `~/.cursor` |
 | `cursor-app/` | `~/.config/cursor` |
 | `claude/` | `~/.claude` (`CLAUDE_CONFIG_DIR` — OAuth + settings survive restarts) |
-| `cache/`, `npm/`, `pnpm/`, `cargo/`, `go/` | Tool caches/homes |
-| `shell-history/` | `/command-history` (zsh history) |
+| `codex/` | `~/.codex` |
+| `cache/` | `~/.cache` (npm / pnpm / cargo / go / uv / … nest here via env) |
+| `history/` | `~/.local/share/orcan/history` (`HISTFILE`) |
+| `dotfiles/` | `~/.config/orcan/dotfiles` |
+
+Inside the container, `~/orcan/` is a symlink map (agents, cache, history,
+dotfiles, workspaces) so the sandbox tree is easy to browse. Tools still
+use their normal homes (`~/.cursor`, …).
 
 Named Docker volumes are **not** used for this data.
+
+Upgrading from an older `$ORCAN_DATA` layout (flat `npm/` / `shell-history/`
+or nested `cache/cache/`): run
+`bash scripts/migrations/consolidate-container-data.sh` on the host before
+`orcan sync && orcan up`.
 
 ## Optional private registry
 

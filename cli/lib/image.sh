@@ -2,9 +2,10 @@
 # Image pull / build / publish helpers (manual registry; CI does not publish).
 #
 # Tags:
-#   both agents → orcan:latest + orcan:<VERSION>   (registry)
+#   all agents  → orcan:latest + orcan:<VERSION>   (registry)
 #   --claude    → orcan:<VERSION>-claude           (local only)
 #   --cursor    → orcan:<VERSION>-cursor           (local only)
+#   --codex     → orcan:<VERSION>-codex            (local only)
 #
 # shellcheck shell=bash
 
@@ -42,6 +43,7 @@ orcan_image_tag_for() {
         full) printf 'orcan:%s\n' "${ver}" ;;
         claude) printf 'orcan:%s-claude\n' "${ver}" ;;
         cursor) printf 'orcan:%s-cursor\n' "${ver}" ;;
+        codex) printf 'orcan:%s-codex\n' "${ver}" ;;
         *) orcan_die "unknown agent selection: ${variant}" ;;
     esac
 }
@@ -50,12 +52,12 @@ orcan_image_compose_name_for() {
     local variant="${1:-full}"
     case "${variant}" in
         full) printf '%s\n' "${IMAGE_LOCAL:-orcan:latest}" ;;
-        claude | cursor) orcan_image_tag_for "${variant}" ;;
+        claude | cursor | codex) orcan_image_tag_for "${variant}" ;;
         *) orcan_die "unknown agent selection: ${variant}" ;;
     esac
 }
 
-# Pull both-agents orcan:<VERSION> → orcan:latest + orcan:<VERSION>.
+# Pull all-agents orcan:<VERSION> → orcan:latest + orcan:<VERSION>.
 orcan_image_try_pull() {
     local local_image remote tag ver
 
@@ -75,6 +77,7 @@ orcan_image_try_pull() {
     # Strip accidental agent suffixes from IMAGE_TAG for registry pull.
     tag="${tag%-claude}"
     tag="${tag%-cursor}"
+    tag="${tag%-codex}"
     local_image="${IMAGE_LOCAL:-orcan:latest}"
     remote="$(orcan_image_remote "${tag}")"
 
@@ -90,11 +93,11 @@ orcan_image_try_pull() {
     return 0
 }
 
-# agents: full | claude | cursor
+# agents: full | claude | cursor | codex
 orcan_image_build_local() {
     local variant="${1:-full}"
     local no_cache="${2:-0}"
-    local ver build_args image versioned install_cursor install_claude
+    local ver build_args image versioned install_cursor install_claude install_codex
 
     ver="$(orcan_image_version)"
     versioned="$(orcan_image_tag_for "${variant}")"
@@ -107,20 +110,30 @@ orcan_image_build_local() {
         full)
             install_cursor=1
             install_claude=1
+            install_codex=1
             image="$(orcan_image_compose_name_for full)"
-            orcan_info "building ${image} + ${versioned} (Claude Code + Cursor CLI)"
+            orcan_info "building ${image} + ${versioned} (Claude Code + Cursor CLI + Codex CLI)"
             ;;
         claude)
             install_cursor=0
             install_claude=1
+            install_codex=0
             image="${versioned}"
-            orcan_info "building ${image} (Claude Code only — Cursor not installed; no pull)"
+            orcan_info "building ${image} (Claude Code only — Cursor/Codex not installed; no pull)"
             ;;
         cursor)
             install_cursor=1
             install_claude=0
+            install_codex=0
             image="${versioned}"
-            orcan_info "building ${image} (Cursor CLI only — Claude not installed; no pull)"
+            orcan_info "building ${image} (Cursor CLI only — Claude/Codex not installed; no pull)"
+            ;;
+        codex)
+            install_cursor=0
+            install_claude=0
+            install_codex=1
+            image="${versioned}"
+            orcan_info "building ${image} (Codex CLI only — Claude/Cursor not installed; no pull)"
             ;;
         *)
             orcan_die "unknown agent selection: ${variant}"
@@ -129,12 +142,13 @@ orcan_image_build_local() {
 
     ORCAN_VERSION="${ver}" IMAGE_LOCAL="${image}" \
         INSTALL_CURSOR="${install_cursor}" INSTALL_CLAUDE="${install_claude}" \
+        INSTALL_CODEX="${install_codex}" \
         orcan_compose_build "${build_args[@]}"
 
     if [[ "${variant}" == "full" ]]; then
         docker tag "${image}" "${versioned}" 2>/dev/null || true
         docker tag "${image}" orcan:latest 2>/dev/null || true
-        orcan_ok "built ${image} / ${versioned} (both agents)"
+        orcan_ok "built ${image} / ${versioned} (all agents)"
     else
         orcan_ok "built ${image}"
         orcan_info "run with: IMAGE_LOCAL=${image} orcan up"
@@ -147,7 +161,7 @@ orcan_image_variant_of() {
     docker run --rm --entrypoint cat "${image}" /etc/orcan/variant 2>/dev/null | tr -d '[:space:]' || true
 }
 
-# Push both-agents orcan:latest (or orcan:VERSION) to registry.
+# Push all-agents orcan:latest (or orcan:VERSION) to registry.
 orcan_image_publish() {
     local local_image remote tag ver variant versioned
 
@@ -159,18 +173,19 @@ orcan_image_publish() {
     ver="$(orcan_image_version)"
     tag="${IMAGE_TAG%-claude}"
     tag="${tag%-cursor}"
+    tag="${tag%-codex}"
     versioned="orcan:${ver}"
     local_image="orcan:latest"
     if ! docker image inspect "${local_image}" >/dev/null 2>&1; then
         local_image="${versioned}"
     fi
     if ! docker image inspect "${local_image}" >/dev/null 2>&1; then
-        orcan_die "local both-agents image missing — run: orcan build --force"
+        orcan_die "local all-agents image missing — run: orcan build --force"
     fi
 
     variant="$(orcan_image_variant_of "${local_image}")"
     if [[ -n "${variant}" && "${variant}" != "full" ]]; then
-        orcan_die "refusing to publish agents=${variant} — publish only orcan:latest / orcan:<VERSION> (both agents)"
+        orcan_die "refusing to publish agents=${variant} — publish only orcan:latest / orcan:<VERSION> (all agents)"
     fi
 
     remote="$(orcan_image_remote "${tag}")"

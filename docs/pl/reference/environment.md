@@ -22,7 +22,8 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 | Zmienna | Rola |
 | --- | --- |
 | `CPUS` / `MEMORY` / `SHM_SIZE` / `TMPFS_SIZE` | Limity zasobów (domyślnie: 2 / 4g / 512m / 512m) |
-| `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_FONT_*` / `TTYD_THEME` / `TTYD_PING_INTERVAL` | Terminal w przeglądarce (`TTYD_THEME`: `dark`/`navy`, `mocha` albo surowy JSON xterm.js) |
+| `TTYD_PORT` / `TTYD_HOST_PORT` / `TTYD_BIND` / `TTYD_FONT_*` / `TTYD_THEME` / `TTYD_PING_INTERVAL` | Terminal w przeglądarce (`TTYD_BIND` domyślnie `127.0.0.1`; `TTYD_THEME`: `dark`/`navy`, `mocha` albo surowy JSON xterm.js) |
+| `TTYD_CREDENTIAL` | Opcjonalne HTTP basic auth ttyd (`user:password`). Tylko w `.env` — nigdy nie commituj |
 
 ## Nazwy Compose (opcjonalne)
 
@@ -53,7 +54,8 @@ Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `orcan sync` na no
 | --- | --- |
 | `ORCAN_VARIANT` | `full` lub `claude` (z `/etc/orcan/variant`) |
 | `ORCAN_VERSION` | Z `/etc/orcan/version` |
-| `HISTFILE` | `/command-history/.zsh_history` (bind: `$ORCAN_DATA/shell-history`) |
+| `HISTFILE` | `~/.local/share/orcan/history/.zsh_history` (bind: `$ORCAN_DATA/history`) |
+| `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Pod `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |
 | `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Ta sama tożsamość commitów co użytkownik hosta |
 | `SSH_AUTH_SOCK` | Agent hosta (tylko z `orcan up --with-git`) |
 

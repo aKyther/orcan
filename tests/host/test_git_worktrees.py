@@ -157,6 +157,7 @@ class CreateIntegrationTests(unittest.TestCase):
             home = root / "home"
             home.mkdir()
             os.environ["ORCAN_DATA"] = str(data)
+            os.environ["ORCAN_PROJECTS_ROOT"] = str(data / "sandbox")
             os.environ["ORCAN_HOME"] = str(home)
 
             def init_repo(name: str) -> Path:
@@ -194,11 +195,11 @@ class CreateIntegrationTests(unittest.TestCase):
                 branch="feat-x",
                 projects=[("backend", api), ("frontend", web)],
             )
-            backend = data / "worktrees" / "feat-x" / "backend"
-            frontend = data / "worktrees" / "feat-x" / "frontend"
+            backend = data / "sandbox" / ".worktrees" / "feat-x" / "backend"
+            frontend = data / "sandbox" / ".worktrees" / "feat-x" / "frontend"
             self.assertTrue(backend.is_dir())
             self.assertTrue(frontend.is_dir())
-            self.assertTrue((data / "worktrees" / "registry.json").is_file())
+            self.assertTrue((data / "sandbox" / ".worktrees" / "registry.json").is_file())
             remove_managed_workspace(config_path=cfg_path, workspace="feat-x", force=True)
             self.assertFalse(backend.exists())
             self.assertFalse(frontend.exists())
@@ -206,6 +207,7 @@ class CreateIntegrationTests(unittest.TestCase):
             self.assertEqual(cfg.get("workspaces"), [])
             # cleanup env
             os.environ.pop("ORCAN_DATA", None)
+            os.environ.pop("ORCAN_PROJECTS_ROOT", None)
             os.environ.pop("ORCAN_HOME", None)
             _ = gw
 
@@ -221,6 +223,7 @@ class CreateIntegrationTests(unittest.TestCase):
             home = root / "home"
             home.mkdir()
             os.environ["ORCAN_DATA"] = str(data)
+            os.environ["ORCAN_PROJECTS_ROOT"] = str(data / "sandbox")
             os.environ["ORCAN_HOME"] = str(home)
             try:
 
@@ -252,8 +255,8 @@ class CreateIntegrationTests(unittest.TestCase):
                     branch="feat-x",
                     projects=[("backend", api), ("frontend", web)],
                 )
-                backend = data / "worktrees" / "feat-x" / "backend"
-                frontend = data / "worktrees" / "feat-x" / "frontend"
+                backend = data / "sandbox" / ".worktrees" / "feat-x" / "backend"
+                frontend = data / "sandbox" / ".worktrees" / "feat-x" / "frontend"
                 self.assertTrue(backend.is_dir())
                 self.assertTrue(frontend.is_dir())
 
@@ -269,12 +272,13 @@ class CreateIntegrationTests(unittest.TestCase):
                 self.assertTrue(frontend.is_dir())
 
                 registry = __import__("json").loads(
-                    (data / "worktrees" / "registry.json").read_text(encoding="utf-8")
+                    (data / "sandbox" / ".worktrees" / "registry.json").read_text(encoding="utf-8")
                 )
                 names = {e["project"] for e in registry["worktrees"] if e["workspace"] == "feat-x"}
                 self.assertEqual(names, {"frontend"})
             finally:
                 os.environ.pop("ORCAN_DATA", None)
+                os.environ.pop("ORCAN_PROJECTS_ROOT", None)
                 os.environ.pop("ORCAN_HOME", None)
 
 
@@ -293,6 +297,7 @@ class PruneTests(unittest.TestCase):
             home = root / "home"
             home.mkdir()
             os.environ["ORCAN_DATA"] = str(data)
+            os.environ["ORCAN_PROJECTS_ROOT"] = str(data / "sandbox")
             os.environ["ORCAN_HOME"] = str(home)
             try:
 
@@ -322,7 +327,7 @@ class PruneTests(unittest.TestCase):
                     branch="feat-x",
                     projects=[("backend", api)],
                 )
-                backend = data / "worktrees" / "feat-x" / "backend"
+                backend = data / "sandbox" / ".worktrees" / "feat-x" / "backend"
                 self.assertTrue(backend.is_dir())
 
                 # Nothing to prune yet.
@@ -331,7 +336,7 @@ class PruneTests(unittest.TestCase):
                 self.assertEqual(gw.find_orphan_dirs(entries), [])
 
                 # Orphan: a dir under managed_root() the registry doesn't know about.
-                orphan_dir = data / "worktrees" / "feat-x" / "orphan"
+                orphan_dir = data / "sandbox" / ".worktrees" / "feat-x" / "orphan"
                 orphan_dir.mkdir(parents=True)
                 orphans = gw.find_orphan_dirs(gw.load_manifest())
                 self.assertEqual(orphans, [orphan_dir])
@@ -366,6 +371,7 @@ class PruneTests(unittest.TestCase):
                 self.assertFalse(orphan_dir.exists())
             finally:
                 os.environ.pop("ORCAN_DATA", None)
+                os.environ.pop("ORCAN_PROJECTS_ROOT", None)
                 os.environ.pop("ORCAN_HOME", None)
 
 
