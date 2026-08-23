@@ -33,6 +33,26 @@ def live_tmux_sessions() -> set[str]:
     return {line.strip() for line in proc.stdout.splitlines() if line.strip()}
 
 
+def _is_orcan_tagged(session: str) -> bool:
+    """Same test orcan-tmux-reconcile-sessions uses to decide "ours to prune".
+
+    Without this, a session this report calls orphaned and one the actual
+    pruner would act on can disagree — e.g. a user's unrelated manual tmux
+    session with no matching workspace would be reported here but the
+    pruner would correctly leave it alone.
+    """
+    try:
+        proc = subprocess.run(
+            ["tmux", "show-environment", "-t", f"={session}", "ORCAN_WORKSPACE_NAME"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return False
+    return proc.returncode == 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -59,11 +79,13 @@ def main() -> int:
             f"tmux={'live' if session_live else 'none (lazy — created on first enter)'}"
         )
 
-    orphaned = sorted(live_sessions - desired_sessions)
+    orphaned = sorted(
+        s for s in (live_sessions - desired_sessions) if _is_orcan_tagged(s)
+    )
     if orphaned:
         print(
-            "tmux sessions with no matching desired workspace "
-            "(orphaned if orcan-managed — see orcan-tmux-reconcile-sessions):"
+            "orphaned orcan-managed tmux sessions (workspace no longer in "
+            "config — see orcan-tmux-reconcile-sessions --prune-orphans):"
         )
         for s in orphaned:
             print(f"  ? {s}")

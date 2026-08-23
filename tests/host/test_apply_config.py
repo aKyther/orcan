@@ -193,6 +193,29 @@ class ManagedRootTests(unittest.TestCase):
 
         self.assertIn(f"{external}:{external}", text)
 
+    def test_project_under_symlinked_managed_root_gets_no_bind_line(self) -> None:
+        # A project path is typically already fully resolved by the time it
+        # lands in config, while ORCAN_PROJECTS_ROOT (managed_root here)
+        # comes straight from the environment as the user set it — e.g. a
+        # symlinked $HOME means it's *not* resolved. _is_under() must still
+        # recognize the project as managed instead of comparing one resolved
+        # path against one unresolved one and missing the match.
+        real_root = self.root / "real"
+        real_root.mkdir()
+        managed = real_root / "managed" / "projects"
+        proj = managed / "demo"
+        proj.mkdir(parents=True)
+        link = self.root / "link"
+        link.symlink_to(real_root)
+        managed_via_symlink = link / "managed" / "projects"
+        ws = self._workspace("demo", proj)
+
+        text = apply_config.write_compose_projects(
+            [ws], self.root, managed_root=managed_via_symlink
+        )
+
+        self.assertNotIn(f"{proj}:{proj}", text)
+
     def test_no_managed_root_keeps_legacy_per_project_binds(self) -> None:
         proj = self.root / "anywhere" / "demo"
         proj.mkdir(parents=True)

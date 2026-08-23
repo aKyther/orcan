@@ -90,6 +90,20 @@ def _copy_missing(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
+def _write_if_changed(path: Path, content: str) -> None:
+    """Skip the write (and the mtime bump) when content is already current.
+
+    Called on every reconcile (container boot *and* every `orcan sync` against
+    a live container), so an unchanged workspace should cost no disk I/O.
+    """
+    try:
+        if path.read_text(encoding="utf-8") == content:
+            return
+    except OSError:
+        pass
+    path.write_text(content, encoding="utf-8")
+
+
 def _seed_agent_ignores(root: Path, templates_root: Path) -> None:
     """Cursor + Claude ignore files at workspace root (missing-only).
 
@@ -249,9 +263,9 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
             "",
         ]
     )
-    (root / "AGENTS.md").write_text(body + "\n", encoding="utf-8")
+    _write_if_changed(root / "AGENTS.md", body + "\n")
     # Claude Code looks for CLAUDE.md; keep in sync with AGENTS.md.
-    (root / "CLAUDE.md").write_text(body + "\n", encoding="utf-8")
+    _write_if_changed(root / "CLAUDE.md", body + "\n")
 
 
 def _apply_one_workspace(
@@ -269,8 +283,8 @@ def _apply_one_workspace(
         },
         "projects": projects,
     }
-    (root / ".manifest.json").write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    _write_if_changed(
+        root / ".manifest.json", json.dumps(manifest, indent=2) + "\n"
     )
 
     report = WorkspaceReport(name=ws.get("name") or "workspace", root=str(root), repo_count=len(projects))
@@ -331,7 +345,8 @@ def _apply_one_workspace(
         for item in projects
     ]
     readme = root / "README.workspace.md"
-    readme.write_text(
+    _write_if_changed(
+        readme,
         "\n".join(
             [
                 f"# {ws.get('name', 'workspace')}",
@@ -349,7 +364,6 @@ def _apply_one_workspace(
                 "",
             ]
         ),
-        encoding="utf-8",
     )
     return report
 

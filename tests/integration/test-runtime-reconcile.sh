@@ -11,7 +11,11 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "${ROOT_DIR}"
+# Canonical repo path — parity bind mounts must not live under
+# /home/developer/workspaces/… or Docker nests them inside the workspaces
+# parent mount and apply-config sees a stale orcan-dev meta dir.
+ORCAN_REPO="$(cd -- "${ROOT_DIR}" && pwd -P)"
+cd "${ORCAN_REPO}"
 
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     printf 'Skip: Docker daemon not available for runtime reconcile integration test\n'
@@ -20,20 +24,34 @@ fi
 
 RUN_ID="$$"
 export COMPOSE_PROJECT_NAME="orcan-reconcile-test-${RUN_ID}"
-export ORCAN_INSTANCE="${RUN_ID: -4}"
+# container_name is global in Docker (not scoped to compose project) — use the
+# full pid so we never docker-exec into someone else's orcan-N stack.
+export ORCAN_INSTANCE="${RUN_ID}"
 export TTYD_HOST_PORT=$(( 20000 + (RUN_ID % 10000) ))
 IMAGE_TAG="orcan:reconcile-test-${RUN_ID}"
 
-BASE="$(mktemp -d "/tmp/orcan-reconcile-test-${RUN_ID}-XXXXXX")"
+# State must live under the repo checkout (path parity), not /tmp — the Docker
+# daemon bind-mounts host paths; /tmp here is often container-local only.
+BASE="${ORCAN_REPO}/.tmp/reconcile-${RUN_ID}"
+WS_NAME="reconcile-${RUN_ID}"
+rm -rf "${BASE}"
+mkdir -p "${BASE}"
 export ORCAN_HOME="${BASE}/home"
 export ORCAN_DATA="${BASE}/home/data"
+# Isolate from host ORCAN_* — a leaked ORCAN_PROJECTS_ROOT would point the
+# second-project setup at a stale checkout outside ${BASE} and break git init.
+export ORCAN_PROJECTS_ROOT="${ORCAN_DATA}/sandbox"
 PROJECT_DIR="${BASE}/project"
 
 cleanup() {
     ( export ORCAN_HOME ORCAN_DATA COMPOSE_PROJECT_NAME ORCAN_INSTANCE
-      docker compose --project-name "${COMPOSE_PROJECT_NAME}" down >/dev/null 2>&1 || true ) || true
+      docker compose --project-name "${COMPOSE_PROJECT_NAME}" down --remove-orphans >/dev/null 2>&1 || true ) || true
     docker rmi "${IMAGE_TAG}" >/dev/null 2>&1 || true
-    rm -rf "${BASE}"
+    # Sandbox bind-mount may leave root-owned files — remove via a throwaway container.
+    if [[ -d "${BASE}" ]]; then
+        docker run --rm --user root -v "${BASE}:${BASE}" alpine:3.20 \
+            rm -rf "${BASE}" >/dev/null 2>&1 || rm -rf "${BASE}" 2>/dev/null || true
+    fi
 }
 trap cleanup EXIT
 
@@ -47,12 +65,32 @@ echo hello > "${PROJECT_DIR}/README.md"
 git -C "${PROJECT_DIR}" add README.md
 git -C "${PROJECT_DIR}" commit --quiet -m init
 
+# Drop host workspace env that would leak real dev paths into generated .env.
+unset WORKSPACE_ROOT WORKSPACE_NAME WORKSPACE_META_PATH CONTAINER_PROJECT_DIR CONFIG
+export WORKSPACE="${WS_NAME}"
 ./bin/orcan init "${PROJECT_DIR}" >/dev/null
 
-# TTYD_HOST_PORT comes from orcan.config.json (default 7681), not the shell
-# env var apply-config.py never reads for it — patch .env directly so this
-# run doesn't collide with any other orcan container's ttyd port.
+# Patch .env after init (compose reads ORCAN_INSTANCE / TTYD_HOST_PORT from here).
+sed -i "s/^ORCAN_INSTANCE=.*/ORCAN_INSTANCE=${ORCAN_INSTANCE}/" "${ORCAN_HOME}/.env"
 sed -i "s/^TTYD_HOST_PORT=.*/TTYD_HOST_PORT=${TTYD_HOST_PORT}/" "${ORCAN_HOME}/.env"
+
+_TEST_ORCAN_HOME="${ORCAN_HOME}"
+_TEST_ORCAN_DATA="${ORCAN_DATA}"
+_TEST_ORCAN_PROJECTS_ROOT="${ORCAN_PROJECTS_ROOT}"
+
+# shellcheck disable=SC1091
+set -a
+source "${ORCAN_HOME}/.env"
+set +a
+ORCAN_HOME="${_TEST_ORCAN_HOME}"
+ORCAN_DATA="${_TEST_ORCAN_DATA}"
+ORCAN_PROJECTS_ROOT="${_TEST_ORCAN_PROJECTS_ROOT}"
+export ORCAN_HOME ORCAN_DATA ORCAN_PROJECTS_ROOT
+if [[ ! -f "${ORCAN_CONFIG_HOST:-${ORCAN_HOME}/mounts/runtime-config.json}" ]]; then
+    printf 'FAIL: runtime config missing before orcan up\n' >&2
+    exit 1
+fi
+export ORCAN_CONFIG_HOST
 
 IMAGE_LOCAL="${IMAGE_TAG}" \
     docker build -t "${IMAGE_TAG}" \
@@ -63,24 +101,50 @@ IMAGE_LOCAL="${IMAGE_TAG}" \
         . >/dev/null
 
 export IMAGE_LOCAL="${IMAGE_TAG}"
-./bin/orcan up >/dev/null
+if ! ./bin/orcan up >/dev/null; then
+    printf 'FAIL: orcan up failed\n' >&2
+    exit 1
+fi
 
 CONTAINER="orcan-${ORCAN_INSTANCE}"
+if ! docker exec "${CONTAINER}" test -f /etc/orcan/config.json; then
+    printf 'FAIL: /etc/orcan/config.json is not a file in %s (check ORCAN_CONFIG_HOST mount)\n' "${CONTAINER}" >&2
+    docker exec "${CONTAINER}" ls -la /etc/orcan/ >&2 || true
+    exit 1
+fi
 
 docker exec "${CONTAINER}" bash -lc 'cursor-tmux-bootstrap-workspaces || true'
-docker exec "${CONTAINER}" bash -lc \
-    'tmux has-session -t project 2>/dev/null || tmux new-session -d -s project'
-docker exec "${CONTAINER}" bash -lc \
-    "tmux send-keys -t project 'echo MARKER_START && sleep 300 && echo MARKER_END' Enter"
-sleep 1
+if ! docker exec "${CONTAINER}" bash -lc \
+    "tmux has-session -t ${WS_NAME} 2>/dev/null || tmux new-session -d -s ${WS_NAME}"; then
+    printf 'FAIL: could not create tmux session %s\n' "${WS_NAME}" >&2
+    exit 1
+fi
+if ! docker exec "${CONTAINER}" bash -lc \
+    "tmux send-keys -t ${WS_NAME} 'echo MARKER_START && sleep 300 && echo MARKER_END' Enter"; then
+    printf 'FAIL: could not start marker command in tmux session %s\n' "${WS_NAME}" >&2
+    docker exec "${CONTAINER}" tmux capture-pane -t "${WS_NAME}" -p >&2 || true
+    exit 1
+fi
+
+marker_pid_before=""
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    marker_pid_before="$(docker exec "${CONTAINER}" pgrep -f 'sleep 300' || true)"
+    [[ -n "${marker_pid_before}" ]] && break
+    sleep 1
+done
+if [[ -z "${marker_pid_before}" ]]; then
+    printf 'FAIL: marker process (sleep 300) did not start in tmux session %s\n' "${WS_NAME}" >&2
+    docker exec "${CONTAINER}" tmux capture-pane -t "${WS_NAME}" -p >&2 || true
+    exit 1
+fi
 
 before_id="$(docker inspect "${CONTAINER}" -f '{{.Id}}')"
 before_started="$(docker inspect "${CONTAINER}" -f '{{.State.StartedAt}}')"
-marker_pid_before="$(docker exec "${CONTAINER}" pgrep -f 'sleep 300')"
 
 # Add a second project *under the managed root* — the case that must not
 # force a Compose bind-mount change, and therefore must not recreate.
-SECOND_PROJECT="${ORCAN_PROJECTS_ROOT:-${ORCAN_DATA}/sandbox}/second-app"
+SECOND_PROJECT="${ORCAN_PROJECTS_ROOT}/second-app"
+rm -rf "${SECOND_PROJECT}"
 mkdir -p "${SECOND_PROJECT}"
 git -C "${SECOND_PROJECT}" init --quiet -b main
 git -C "${SECOND_PROJECT}" config user.email t@example.com
@@ -88,6 +152,12 @@ git -C "${SECOND_PROJECT}" config user.name t
 echo second > "${SECOND_PROJECT}/README.md"
 git -C "${SECOND_PROJECT}" add README.md
 git -C "${SECOND_PROJECT}" commit --quiet -m init
+
+# Sandbox bind-mount may leave root-owned files — fix ownership before host sync
+# prunes workspace metas or rewrites generated mounts.
+docker run --rm --user root \
+    -v "${ORCAN_DATA}:${ORCAN_DATA}" \
+    alpine:3.20 chown -R "$(id -u):$(id -g)" "${ORCAN_DATA}" >/dev/null 2>&1 || true
 
 python3 -c "
 import json
@@ -127,11 +197,11 @@ if [[ "${marker_pid_before}" != "${marker_pid_after}" ]]; then
         "${marker_pid_before}" "${marker_pid_after}" >&2
     fail=1
 fi
-if ! docker exec "${CONTAINER}" test -L /home/developer/workspaces/project/second-app; then
+if ! docker exec "${CONTAINER}" test -L "/home/developer/workspaces/${WS_NAME}/second-app"; then
     printf 'FAIL: new project symlink not visible inside the running container\n' >&2
     fail=1
 fi
-if ! docker exec "${CONTAINER}" test -f /home/developer/workspaces/project/second-app/README.md; then
+if ! docker exec "${CONTAINER}" test -f "/home/developer/workspaces/${WS_NAME}/second-app/README.md"; then
     printf 'FAIL: new project content not readable inside the running container\n' >&2
     fail=1
 fi

@@ -440,8 +440,25 @@ def managed_projects_root(env: dict | None = None) -> Path | None:
 
 
 def _is_under(child: Path, parent: Path) -> bool:
+    """True if child is parent or lives under it, symlinks resolved on both sides.
+
+    A project path is typically already fully resolved by the time it lands
+    in config, while ``managed_root`` comes straight from
+    ``$ORCAN_PROJECTS_ROOT`` as set by the user/environment. Comparing one
+    resolved and one unresolved path with plain ``relative_to()`` silently
+    fails (and misclassifies a managed project as unmanaged) whenever any
+    component on the managed-root side is a symlink — e.g. a symlinked
+    ``$HOME``.
+    """
+
+    def _resolved(p: Path) -> Path:
+        try:
+            return p.resolve()
+        except OSError:
+            return p
+
     try:
-        child.relative_to(parent)
+        _resolved(child).relative_to(_resolved(parent))
         return True
     except ValueError:
         return False

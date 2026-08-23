@@ -70,8 +70,17 @@ orcan_ttyd_container_port() {
 }
 
 # Same URL shape as `orcan url` and `orcan up --with-ttyd` success line.
+# A wildcard bind (0.0.0.0 / ::) isn't itself a dialable address — printing
+# it literally gives an unusable URL. `localhost` at least works from this
+# same host; reaching it from elsewhere (LAN/Tailscale) needs the host's own
+# address, which this helper has no reliable way to know.
 orcan_terminal_url() {
-    printf 'http://%s:%s\n' "$(orcan_ttyd_bind)" "$(orcan_ttyd_host_port)"
+    local bind
+    bind="$(orcan_ttyd_bind)"
+    case "${bind}" in
+        0.0.0.0 | :: | "[::]") bind="localhost" ;;
+    esac
+    printf 'http://%s:%s\n' "${bind}" "$(orcan_ttyd_host_port)"
 }
 
 orcan_container_is_running() {

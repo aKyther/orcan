@@ -2,6 +2,15 @@
 # shellcheck shell=bash
 
 orcan_cmd_sync() {
+    local prune_orphans=0
+    local arg
+    for arg in "$@"; do
+        case "${arg}" in
+            --prune-orphans) prune_orphans=1 ;;
+            *) orcan_usage_error "orcan sync: unknown argument: ${arg}" ;;
+        esac
+    done
+
     orcan_require_python
     orcan_ensure_home_env_example
     mkdir -p "${ORCAN_HOME}" "${ORCAN_RUNTIME_DIR}"
@@ -24,7 +33,7 @@ orcan_cmd_sync() {
     ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
         orcan_host_python "${ORCAN_SCRIPTS}/compile_context.py" "${ORCAN_HOME}"
 
-    orcan_sync_reconcile_running_container
+    orcan_sync_reconcile_running_container "${prune_orphans}"
 
     orcan_ok "sync complete"
     orcan_info "next: orcan up   (skip if live reconcile already applied changes)"
@@ -40,6 +49,7 @@ orcan_cmd_sync() {
 # mount (managed root, workspaces parent, or single-file runtime-config.json)
 # becomes live without touching the container at all.
 orcan_sync_reconcile_running_container() {
+    local prune_orphans="${1:-0}"
     local cname
     if ! orcan_require_docker 2>/dev/null; then
         return 0
@@ -50,7 +60,11 @@ orcan_sync_reconcile_running_container() {
         return 0
     fi
     orcan_info "container is running — reconciling live (no restart)"
-    if docker exec -i "${cname}" orcan-runtime-reconcile; then
+    local -a reconcile_cmd=(orcan-runtime-reconcile)
+    if [[ "${prune_orphans}" == "1" ]]; then
+        reconcile_cmd+=(--prune-orphans)
+    fi
+    if docker exec -i "${cname}" "${reconcile_cmd[@]}"; then
         orcan_ok "live reconcile complete"
     else
         orcan_warn "live reconcile failed — falling back to: orcan down && orcan up"

@@ -34,7 +34,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | --- | --- |
 | `orcan init` | Bez PATH: TUI do tworzenia/edycji workspace'ów (domyślnie) + sync + show. `--cli`: stary, sekwencyjny kreator promptów zamiast TUI |
 | `orcan init PATH` | Bez interakcji: scaffold jednego projektu (skrypty/CI) + sync + show |
-| `orcan sync` | Zastosuj `orcan.config.json` → `.env` + `mounts/*` |
+| `orcan sync [--prune-orphans]` | Zastosuj `orcan.config.json` → `.env` + `mounts/*`; live-reconcile działającego kontenera. `--prune-orphans` dodatkowo zabija osierocone sesje tmux po usuniętym/zmienionym workspace (domyślnie: tylko raport) |
 | `orcan migrate [--yes] [--no-symlink]` | Przenieś skonfigurowane projekty pod managed root (`ORCAN_PROJECTS_ROOT`); dry-run bez `--yes` — mniej przyszłych recreate kontenera |
 | `orcan settings` | Edycja ustawień narzędziowych (okna/prefix tmux, port/font ttyd) — osobno od workspace'ów/projektów |
 | `orcan context show` | Lista workspace'ów + path parity |

@@ -71,6 +71,7 @@ require_file "tests/host/test_wizard_ui.py"
 require_file "tests/host/test_settings_wizard.py"
 require_file "scripts/repository/config_io.py"
 require_file "scripts/repository/git_worktrees.py"
+require_file "scripts/repository/path_guards.py"
 require_file "scripts/repository/managed_workspace.py"
 require_file "scripts/repository/history.py"
 require_file "tests/host/test_git_worktrees.py"
@@ -250,6 +251,7 @@ for script in \
     scripts/repository/managed_workspace.py \
     scripts/repository/migrate_projects.py \
     scripts/repository/history.py \
+    scripts/repository/path_guards.py \
     scripts/repository/apply-config.py
 do
     if [[ -f "${script}" ]]; then

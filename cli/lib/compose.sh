@@ -235,7 +235,13 @@ orcan_compose_up_run() {
 
 # Backward-compatible aliases (ttyd-enabled stack).
 orcan_compose_ttyd_run() {
-    orcan_compose_up_run "${1:-0}" "${2:-0}" "${3:-0}" 1 "$@"
+    local with_docker="${1:-0}" with_git="${2:-0}" with_network="${3:-0}"
+    if (( $# >= 3 )); then
+        shift 3
+    else
+        shift "$#"
+    fi
+    orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" 1 "$@"
 }
 
 orcan_compose_ttyd() {
