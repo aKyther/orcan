@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   line diff is hard to read. Both added to the "prefer the faster tool"
   guidance in the Cursor `operating-principles.mdc` rule and the generated
   per-workspace `AGENTS.md`/`CLAUDE.md`.
+- **Claude Code now gets the same 6 Skills Cursor already had.**
+  `/opt/claude-defaults/skills/` mirrors `/opt/cursor-defaults/skills/`
+  (`docker-review`, `final-review`, `focused-implementation`,
+  `karpathy-guidelines`, `project-bootstrap`, `repository-analysis`) —
+  `init-claude-home` seeds them into `~/.claude/skills/` the same generic,
+  missing-only way it already seeds agents/commands, so this needs no
+  per-project setup and applies to every workspace in the container.
+  `karpathy-guidelines` was adapted (its Cursor copy pointed at a
+  Cursor-only rule file); the other five were identical for both agents
+  already.
 
 ### Documentation
 
@@ -27,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CI `image-scan` failed before producing a CVE table.** The job set
+  `permissions: contents: read`, which zeroes every other `GITHUB_TOKEN`
+  scope — so `trivy-action` could not use `actions/cache` for the vuln DB
+  or authenticate to `ghcr.io/aquasecurity/trivy-db`. Grant `actions: write`
+  + `packages: read`, pass the token as `TRIVY_USERNAME`/`TRIVY_PASSWORD`,
+  and raise the scan timeout to 10m for the full image.
 - **Orphaned tmux session pruning was unreachable.** `orcan-tmux-reconcile-sessions
   --prune-orphans` existed but no caller ever passed the flag. `orcan sync
   --prune-orphans` now threads it through the live-reconcile path.

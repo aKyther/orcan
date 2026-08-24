@@ -38,8 +38,14 @@ jobs:
   image-scan:
     name: Image vulnerability scan (Trivy)
     runs-on: ubuntu-latest
+    # contents:read alone sets every other GITHUB_TOKEN scope to none.
+    # trivy-action then cannot restore/save its DB cache (actions/cache)
+    # or pull ghcr.io/aquasecurity/trivy-db (anonymous GHCR is rate-limited).
+    # The job fails at "Scan image with Trivy" with exit 1 before a CVE table.
     permissions:
       contents: read
+      actions: write
+      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -57,11 +63,15 @@ jobs:
       # https://github.com/aquasecurity/trivy-action/releases first.
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         with:
           image-ref: orcan:ci-scan
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+          timeout: "10m"
           exit-code: "1"
 
   docs-dev:
