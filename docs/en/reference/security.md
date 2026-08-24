@@ -117,6 +117,14 @@ Config: `ttyd.bind` in `orcan.config.json` (default `127.0.0.1`) → `TTYD_BIND`
 via `orcan sync`. Credentials stay env-only so secrets stay out of committed
 config.
 
+!!! warning
+    `orcan up --with-ttyd-auth USER:PASS` sets the same `TTYD_CREDENTIAL` as
+    above, but as a **command-line argument** — it lands in your shell
+    history and is visible to anything that can list processes on the host
+    (`ps`) for as long as `orcan up` runs. Prefer `TTYD_CREDENTIAL` in `.env`
+    (`--with-ttyd`, no argument) when you can; reach for `--with-ttyd-auth`
+    for a quick one-off rather than routine use.
+
 ## What not to do
 
 - Do not start `--privileged` containers for Orcan

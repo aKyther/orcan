@@ -100,7 +100,7 @@ Pod `$ORCAN_DATA` (domyślnie `~/.config/orcan`):
 | `history/` | Historia shella (`HISTFILE`) |
 | `dotfiles/` | Osobiste overlaye shell/tmux/vim |
 
-Mapa sandboxa w kontenerze: `~/orcan/` (same symlinki).
+Mapa sandboxa w kontenerze: `~/orcan-map/` (same symlinki).
 
 Po `orcan build --force` / restarcie **nie** powinieneś musieć ponownie robić `/login`, chyba że wyczyściłeś `$ORCAN_DATA` albo nigdy nie dokończyłeś logowania przy zamontowanym volume.
 

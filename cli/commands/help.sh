@@ -40,9 +40,9 @@ Commands:
                            Reflection drafting) in the workspace's generated
                            root — on by default since first `orcan sync`;
                            opting out (disable) sticks across later syncs
-  up [--with-ttyd] [--with-docker | --with-network NAME] [--with-git]
-                           Start container (local: orcan enter; --with-ttyd: browser)
-                           | = pick one (docker vs network)
+  up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git]
+                           Start container (local: orcan enter; browser: pick ttyd or ttyd-auth)
+                           | = pick one (ttyd vs ttyd-auth; docker vs network)
   down                     Stop containers
   build [--claude|--cursor|--codex] [--force]
                            All agents → orcan:latest + orcan:<VERSION>.

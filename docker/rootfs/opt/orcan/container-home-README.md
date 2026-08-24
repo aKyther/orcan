@@ -1,4 +1,4 @@
-# Container home map (`~/orcan`)
+# Container home map (`~/orcan-map`)
 
 This directory is a **navigation map** of the sandbox. Symlinks only —
 tools still use their normal homes (`~/.cursor`, `~/.claude`, …).

@@ -177,8 +177,10 @@ main() {
     while true; do
         if ! load_workspaces; then
             if ! fallback_single_repo; then
-                printf 'No workspaces configured.\n'
-                sleep 2
+                printf 'No project to enter — no workspaces configured, no PROJECT_DIR set.\n' >&2
+                printf 'On the host:  orcan init   (or: orcan context add PATH)\n' >&2
+                printf 'Then:         orcan sync\n' >&2
+                exit 1
             fi
             continue
         fi

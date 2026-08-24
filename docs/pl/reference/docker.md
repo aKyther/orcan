@@ -62,7 +62,7 @@ Domyślny root hosta: `~/.config/orcan`.
 | `history/` | `~/.local/share/orcan/history` (`HISTFILE`) |
 | `dotfiles/` | `~/.config/orcan/dotfiles` |
 
-W kontenerze `~/orcan/` to mapa symlinków (agents, cache, history, dotfiles,
+W kontenerze `~/orcan-map/` to mapa symlinków (agents, cache, history, dotfiles,
 workspaces), żeby łatwo ogarnąć drzewo sandboxa. Narzędzia nadal używają
 swoich normalnych home (`~/.cursor`, …).
 

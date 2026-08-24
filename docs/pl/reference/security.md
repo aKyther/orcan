@@ -120,6 +120,14 @@ Config: `ttyd.bind` w `orcan.config.json` (domyślnie `127.0.0.1`) → `TTYD_BIN
 przez `orcan sync`. Credentials tylko w env, żeby sekrety nie trafiały do
 commitowanego configu.
 
+!!! warning
+    `orcan up --with-ttyd-auth USER:PASS` ustawia ten sam `TTYD_CREDENTIAL`
+    co powyżej, ale jako **argument linii poleceń** — ląduje w historii
+    Twojego shella i jest widoczny dla wszystkiego, co potrafi wylistować
+    procesy na hoście (`ps`), przez cały czas trwania `orcan up`. Preferuj
+    `TTYD_CREDENTIAL` w `.env` (`--with-ttyd`, bez argumentu), kiedy możesz;
+    `--with-ttyd-auth` zostaw na szybkie, jednorazowe użycie, nie rutynę.
+
 ## Czego nie robić
 
 - Nie startuj kontenerów Orcana z `--privileged`

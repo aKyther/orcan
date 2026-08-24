@@ -320,6 +320,42 @@ def branch_exists(repo: Path, branch: str) -> bool:
     return r.returncode == 0
 
 
+def remote_branch_exists(repo: Path, branch: str, remote: str = "origin") -> bool:
+    r = run_git(
+        repo, "show-ref", "--verify", "--quiet", f"refs/remotes/{remote}/{branch}", check=False
+    )
+    return r.returncode == 0
+
+
+def fetch_branch_safely(
+    repo: Path, branch: str, remote: str = "origin", timeout: float = 5.0
+) -> bool:
+    """Best-effort ``git fetch <remote> <branch>`` — never prompts, never hangs.
+
+    Used only so ``create_worktree()`` can start a new local branch from the
+    real remote content instead of an empty branch off HEAD when someone
+    else already pushed ``branch``. GIT_TERMINAL_PROMPT=0 and SSH BatchMode
+    guarantee this can never block on a username/password/passphrase prompt
+    — over HTTPS without cached credentials, or SSH without an agent/loaded
+    key, it just fails fast (like a network outage would) and the caller
+    falls back to the normal new-branch-from-HEAD path.
+    """
+    env = dict(os.environ)
+    env.setdefault("GIT_TERMINAL_PROMPT", "0")
+    env.setdefault("GIT_SSH_COMMAND", "ssh -o BatchMode=yes -o ConnectTimeout=5")
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(repo), "fetch", "--quiet", remote, branch],
+            env=env,
+            timeout=timeout,
+            capture_output=True,
+            text=True,
+        )
+        return r.returncode == 0
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+
+
 def current_branch(repo: Path) -> str:
     """Empty string for detached HEAD (or any other lookup failure)."""
     r = run_git(repo, "branch", "--show-current", check=False)
@@ -386,6 +422,7 @@ def create_worktree(
     project: str = "",
     managed: bool = False,
     fatal: bool = True,
+    remote: str = "origin",
 ) -> Worktree:
     """Create a git worktree.
 
@@ -453,7 +490,36 @@ def create_worktree(
 
     if branch_exists(repo, branch):
         # Branch exists but is free — attach a new worktree to it.
+        print(f"branch {branch!r} already exists locally — attaching worktree to it", file=sys.stderr)
         args = ["worktree", "add", str(dest), branch]
+    elif start_point == "HEAD":
+        # No local branch and the caller didn't ask for a specific start
+        # point — check whether someone else already pushed this branch
+        # before silently creating an empty one off HEAD under the same
+        # name. See fetch_branch_safely(): never prompts, never hangs.
+        print(f"branch {branch!r} not found locally, checking {remote}...", file=sys.stderr)
+        fetched = fetch_branch_safely(repo, branch, remote=remote)
+        if not fetched:
+            print(
+                f"could not fetch {remote}/{branch} (no network / no credentials)",
+                file=sys.stderr,
+            )
+        if remote_branch_exists(repo, branch, remote=remote):
+            if fetched:
+                print(f"fetched {remote}/{branch} — creating worktree from it", file=sys.stderr)
+            else:
+                print(
+                    f"using existing local copy of {remote}/{branch} (may be stale) — "
+                    "creating worktree from it",
+                    file=sys.stderr,
+                )
+            args = ["worktree", "add", "--track", "-b", branch, str(dest), f"{remote}/{branch}"]
+        else:
+            print(
+                f"{remote}/{branch} not available — creating new branch {branch!r} from HEAD",
+                file=sys.stderr,
+            )
+            args = ["worktree", "add", "-b", branch, str(dest), start_point]
     else:
         args = ["worktree", "add", "-b", branch, str(dest), start_point]
 
