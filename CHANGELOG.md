@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-08-24
+
+### Security
+
+- **CI Trivy scan of the released image: 517 → 73 raw findings (57 → 36
+  unique CVEs; 3 → 1 CRITICAL).** Root cause was version drift, verified by
+  rebuilding the image locally and re-scanning before/after:
+  - `golang:1.24-bookworm` → `golang:1.27-bookworm`. Go 1.24.x had fallen out
+    of Go's own 2-latest-major support window, so several stdlib CVEs (e.g.
+    `crypto/tls`, `net/http`, `mime`) never got backported fixes for it. This
+    one bump cleared every finding on the Go toolchain binaries themselves
+    (`go`, `gofmt`, all of `go/pkg/tool/*`) — 470 of the original 517 raw
+    findings were the same handful of stdlib CVEs repeated once per Go binary
+    that statically links them.
+  - `lazygit` `0.48.0` (built 2025-03-01) → `0.64.1` (2026-08-12): 42 → 7
+    raw findings.
+  - `yq` `4.45.4` → `4.53.6` (also promoted to `ARG YQ_VERSION`, matching
+    every other pinned tool in the Dockerfile — it was the one exception).
+  - Remaining findings (`shfmt`, `gh`, `docker`/`docker-buildx`/
+    `docker-compose` CLI plugins, Node.js) are already at their latest
+    upstream release or come from apt packages/base images we don't control
+    the build of — not fixable by bumping an `ARG` here.
+
+### Changed
+
+- **CI `image-scan` job now writes a compact Trivy summary** to the workflow
+  run's summary page (JSON report parsed into finding counts, fixed vs.
+  unfixed, and a top-10 table) instead of only a raw table in the step log.
+  The Trivy step itself is now `continue-on-error: true`, so its outcome no
+  longer fails the job on its own — worth confirming that's the intended
+  policy going forward (informational dashboard) rather than an
+  accidental loss of the hard CVE gate.
+
 ## [2.0.1] - 2026-08-24
 
 ### Added

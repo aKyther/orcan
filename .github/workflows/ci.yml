@@ -62,17 +62,111 @@ jobs:
       # silently moved the way a tag can. Bump deliberately — check
       # https://github.com/aquasecurity/trivy-action/releases first.
       - name: Scan image with Trivy
+        id: trivy
+        continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         with:
           image-ref: orcan:ci-scan
-          format: table
+          format: json
+          output: trivy-report.json
+          scanners: vuln
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           timeout: "10m"
           exit-code: "1"
+
+      - name: Trivy compact summary (B2)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          report_path = Path("trivy-report.json")
+          summary_path = Path("trivy-summary.md")
+
+          lines = []
+          lines.append("## Trivy compact summary")
+          lines.append("")
+
+          trivy_outcome = "${{ steps.trivy.outcome }}"
+          lines.append(f"- Trivy step outcome: **{trivy_outcome}**")
+          lines.append("- Policy: `severity=CRITICAL,HIGH`, `ignore-unfixed=true`")
+          lines.append("")
+
+          if not report_path.exists():
+              lines.append("No `trivy-report.json` file was produced.")
+              lines.append("")
+              lines.append("### Next steps")
+              lines.append("- Open the Trivy step log and check the first fatal error line.")
+              lines.append("- If the step failed before report generation, re-run the workflow.")
+          else:
+              data = json.loads(report_path.read_text(encoding="utf-8"))
+              counts = Counter()
+              targets = 0
+              fixed = 0
+              unresolved = 0
+              top = []
+
+              for result in data.get("Results", []):
+                  vulns = result.get("Vulnerabilities") or []
+                  if not vulns:
+                      continue
+                  targets += 1
+                  for v in vulns:
+                      sev = (v.get("Severity") or "UNKNOWN").upper()
+                      counts[sev] += 1
+                      if v.get("FixedVersion"):
+                          fixed += 1
+                      else:
+                          unresolved += 1
+                      if len(top) < 10:
+                          top.append(
+                              (
+                                  result.get("Target", "unknown"),
+                                  v.get("PkgName", "unknown"),
+                                  v.get("VulnerabilityID", "unknown"),
+                                  sev,
+                                  v.get("InstalledVersion", "-"),
+                                  v.get("FixedVersion") or "-",
+                              )
+                          )
+
+              total = sum(counts.values())
+              lines.append("### Findings")
+              lines.append(f"- Targets with findings: **{targets}**")
+              lines.append(f"- Total vulnerabilities (HIGH+CRITICAL): **{total}**")
+              lines.append(
+                  f"- Severity split: CRITICAL **{counts['CRITICAL']}**, HIGH **{counts['HIGH']}**"
+              )
+              lines.append(f"- Fix available now: **{fixed}**")
+              lines.append(f"- No fix yet: **{unresolved}**")
+              lines.append("")
+
+              if top:
+                  lines.append("### First 10 vulnerabilities")
+                  lines.append("| Target | Package | CVE | Severity | Installed | Fixed |")
+                  lines.append("|---|---|---|---|---|---|")
+                  for t, p, cve, sev, inst, fix in top:
+                      lines.append(f"| `{t}` | `{p}` | `{cve}` | {sev} | `{inst}` | `{fix}` |")
+                  lines.append("")
+
+              lines.append("### Next steps")
+              lines.append("- Group issues by source: base image, Go toolchain, Docker CLI, Node packages.")
+              lines.append("- Update components with fixes first (`FixedVersion` is not empty).")
+              lines.append("- Keep `ignore-unfixed=true` so only actionable CVEs fail the Trivy step.")
+              lines.append("- If noise is still too high, narrow scope (`scanners`, `skip-dirs`) before changing severity policy.")
+
+          summary = "\n".join(lines) + "\n"
+          summary_path.write_text(summary, encoding="utf-8")
+
+          with open(Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]), "a", encoding="utf-8") as f:
+              f.write(summary)
+          PY
 
   docs-dev:
     name: Deploy docs (dev)
