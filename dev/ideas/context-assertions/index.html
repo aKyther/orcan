@@ -18,7 +18,7 @@
         <link rel="prev" href="../mental-model/">
       
       
-        <link rel="next" href="../../concepts/workspaces/">
+        <link rel="next" href="../agent-inbox/">
       
       
         
@@ -683,6 +683,62 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1927,14 +1983,14 @@
 <p>No predicate at all means "applies wherever this assertion's anchor project is mounted" — the common case needs no configuration.</p>
 <p>One honest limitation: only signals knowable <strong>before</strong> the agent starts (workspace name, mounted repos, branch) can gate an assertion in v1. What the agent will actually touch is only known <em>during</em> a session, so path-based applicability is out of scope until there is a declared-intent input to evaluate it against.</p>
 <h2 id="identity-what-counts-as-the-same-project">Identity: what counts as "the same project"?<a class="headerlink" href="#identity-what-counts-as-the-same-project" title="Permanent link">&para;</a></h2>
-<p>The anchor is a project, but a project is not the same thing as a filesystem path. <code>orcan context worktree create</code> checks out a branch of a repo at its <strong>own</strong> path (under <code>$ORCAN_DATA/worktrees/&lt;workspace&gt;/&lt;project&gt;/</code>) — a different directory from the main checkout, even though it is unmistakably the same repository.</p>
+<p>The anchor is a project, but a project is not the same thing as a filesystem path. <code>orcan context worktree create</code> checks out a branch of a repo at its <strong>own</strong> path (under <code>$ORCAN_PROJECTS_ROOT/.worktrees/&lt;workspace&gt;/&lt;project&gt;/</code>) — a different directory from the main checkout, even though it is unmistakably the same repository.</p>
 <p>If the store keyed identity on the working-copy path, a branch worktree would silently get an empty store, disconnected from everything already accepted about that repo — the same anchor-vs-scope mistake this whole design exists to avoid, just one level down.</p>
 <p>Instead, identity is keyed on the repo's git <strong>common dir</strong> (<code>git rev-parse --git-common-dir</code>) — the object database every worktree of a repo shares, regardless of where each one happens to be checked out:</p>
 <pre class="mermaid"><code>flowchart TB
   common[".git common dir (shared)"]
   common --&gt; main["Main checkout\n/home/user/code/api"]
-  common --&gt; wt1["Worktree: feature-x\n$ORCAN_DATA/worktrees/ws-a/api"]
-  common --&gt; wt2["Worktree: release/1.0\n$ORCAN_DATA/worktrees/ws-b/api"]</code></pre>
+  common --&gt; wt1["Worktree: feature-x\n$ORCAN_PROJECTS_ROOT/.worktrees/ws-a/api"]
+  common --&gt; wt2["Worktree: release/1.0\n$ORCAN_PROJECTS_ROOT/.worktrees/ws-b/api"]</code></pre>
 <p>All three resolve to the <strong>same</strong> <code>project_id</code>, hence the same store — the branch you happen to be on is not a different project, it's a different value of the <code>branch</code> atom in the Context Signature (see the table above). Write a release-only assertion once, anchored at whichever checkout is convenient, and it applies correctly everywhere that repo's identity shows up, gated by branch. A directory that isn't a git repo at all falls back to identity-by-path — stable, just not worktree-aware (Orcan projects are expected to be git repos anyway).</p>
 <h2 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
@@ -1955,6 +2011,7 @@
 <p><strong>Duplicate/conflict pre-check (in-container, best-effort).</strong> Before showing <code>candidates</code> (not <code>reconsider</code> — those were already decided once), <code>orcan-context-review</code> runs one batched <code>claude -p --model haiku</code> call comparing every pending candidate against <code>&lt;workspace_root&gt;/CONTEXT-ASSERTIONS.md</code> — the same compiled file <code>orcan-context-reflect</code> already reads. This runs entirely in-container, never the host: <code>claude</code> is only guaranteed present there (the Dockerfile installs it), while host-side scripts (<code>scripts/repository/*.py</code>) are deliberately stdlib-only and cannot assume a Claude Code install exists on whatever machine <code>orcan</code> itself runs on. A candidate the model flags gets one extra line above its details — <code>⚠ possibly duplicates existing: "..."</code> or <code>⚠ may conflict with existing: "..."</code> — before the same <code>[y]es/[n]o/[s]kip</code> prompt as always. It is a nudge, not a gate: nothing is skipped, blocked, or auto-decided, and the check is disabled with <code>--no-check</code> or silently skipped (never blocks review) if <code>claude</code> is missing, the call fails or times out, or <code>CONTEXT-ASSERTIONS.md</code> doesn't exist yet. Coverage caveat: it only sees assertions whose applicability predicate currently matches <em>this</em> workspace — since assertions are anchored by project identity, not workspace (see <code>project_id</code> above), and applicability defaults to unrestricted, reopening a project in a different workspace already compiles its prior facts back in, so this is a non-issue for the common case.</p>
 <p><strong>Consolidation offer.</strong> The pre-check's single model call also drafts a merged replacement for anything it flags <code>duplicate</code>/<code>conflict</code> (<code>consolidated_title</code>/<code>consolidated_content</code> in its JSON response — no second call). If you then accept that candidate, <code>orcan-context-review</code> asks one more question: queue the drafted consolidation and flag the overlapping existing item for retirement? A "yes" just runs <code>orcan-context-propose</code> twice more — a normal <code>--queue</code> proposal for the merged text (<code>--source consolidation</code>) and a <code>--flag-existing</code> on the old item — exactly the same drops as manual/reflection-sourced ones, reviewed next cycle like everything else. Nothing merges or retires immediately; this only ever queues <em>more</em> work for the next review round, never bypasses it. This is how the store stays a coherent, de-duplicated body of knowledge rather than a growing linear log — consolidation happens at the moment you'd otherwise have accepted a near-duplicate anyway.</p>
 <p>Both directions are one-way drops into a mounted inbox — there is no live channel back to the host. <code>orcan sync</code> (<code>compile_context.py</code>) is what actually turns a drop into a real, git-versioned <code>propose()</code>/<code>accept()</code>/<code>reject()</code>/<code>retire()</code> call the next time it runs. In practice this means a decision you make feels instant in the conversation, but only takes effect in the store — and therefore in a future <code>CONTEXT-ASSERTIONS.md</code> — at the next sync. This asymmetry is intentional: it is the same boundary that keeps the agent from ever writing to the store directly, just made convenient enough that reviewing candidates costs one keystroke instead of a context switch.</p>
+<p><strong>Trust model.</strong> Orcan is single-user on one host: you and the agents you run. Inbox drops are plain JSON (not signed). Malformed or unresolvable files are quarantined; only a human accept/reject promotes knowledge into <code>$ORCAN_DATA/context</code>. That is enough for the intended threat model — see <a href="../../reference/security/">Security</a>.</p>
 <h2 id="batched-automated-reflection">Batched, automated Reflection<a class="headerlink" href="#batched-automated-reflection" title="Permanent link">&para;</a></h2>
 <p>Reflection does not have to be triggered by a human noticing something — but firing a model call after <em>every single turn</em> is both wasteful and noisy. <code>orcan-context-reflect</code> batches instead: it is wired as a Claude Code <code>Stop</code> hook that is <strong>on by default</strong> — <code>orcan sync</code> (<code>apply-config.py</code>) seeds it into that <strong>workspace's generated root</strong> <code>.claude/settings.json</code> the first time a workspace is synced (a merge, not an overwrite). Opting out is what's configurable: <code>orcan context hook disable [WORKSPACE ...] [--all]</code> (host) removes it, and because sync only ever seeds a workspace whose <code>.claude/settings.json</code> doesn't exist yet, that choice sticks across every later sync — <code>orcan context hook enable</code>/<code>status</code> check/restore it the same way. It lives at the workspace root — not inside any project checkout — because that is where Claude Code sessions actually launch (tmux windows always start there; see <code>cursor-tmux-workspace-attach</code>) and therefore the only place a <code>Stop</code> hook can be loaded from. The hook fires after every completed turn, but does almost nothing on most of them:</p>
 <p><strong>Deliberately Claude-only.</strong> Cursor CLI has its own hooks system (1.7+, <code>~/.cursor/hooks.json</code>, a <code>stop</code> event), but in headless/CLI mode — how Orcan runs it, not the full IDE — its event coverage is unreliable as of this writing, and <code>orcan-context-reflect</code> already reads a Claude-Code-specific hook payload and transcript format; wiring Cursor in would need a separate adapter, not just config. Instead Cursor benefits <strong>passively</strong>: <code>init-workspace</code> generates <code>AGENTS.md</code> (Cursor) and <code>CLAUDE.md</code> (Claude) with identical content, so once an accepted assertion lands in the compiled <code>CONTEXT-ASSERTIONS.md</code> at the next <code>orcan sync</code>, Cursor sees it in that same <code>AGENTS.md</code> even though it never drives Reflection itself.</p>
@@ -2045,7 +2102,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 14, 2026 11:47:08 UTC">August 14, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 23, 2026 09:26:50 UTC">August 23, 2026</span>
   </span>
 
     
@@ -2109,13 +2166,13 @@
         
         
           
-          <a href="../../concepts/workspaces/" class="md-footer__link md-footer__link--next" aria-label="Next: Workspaces">
+          <a href="../agent-inbox/" class="md-footer__link md-footer__link--next" aria-label="Next: Agent inbox">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Workspaces
+                Agent inbox
               </div>
             </div>
             <div class="md-footer__button md-icon">

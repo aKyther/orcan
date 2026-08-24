@@ -520,6 +520,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1975,10 +2031,12 @@
 </span></code></pre></div>
 <p>The <code>docker compose config</code> command prints the resolved Compose file (needs generated <code>mounts/</code> files from <code>orcan sync</code>).</p>
 <h2 id="browser-terminal-will-not-open">Browser terminal will not open<a class="headerlink" href="#browser-terminal-will-not-open" title="Permanent link">&para;</a></h2>
+<p>Requires <code>orcan up --with-ttyd</code> (plain <code>orcan up</code> is local-only — use <code>orcan enter</code> instead).</p>
 <ol>
 <li>Confirm the container is up: <code>orcan logs</code></li>
-<li>Confirm the URL: <code>orcan url</code> (default <code>http://localhost:7681</code>)</li>
-<li>If the port is busy, change <code>ttyd.host_port</code> in <code>orcan.config.json</code>, then <code>orcan sync</code> and recreate</li>
+<li>Confirm ttyd is on: <code>orcan doctor</code> (Runtime section) or <code>orcan url</code></li>
+<li>Confirm the URL: <code>orcan url</code> (default <code>http://127.0.0.1:7681</code> when <code>TTYD_BIND</code> is loopback)</li>
+<li>If the port is busy, change <code>ttyd.host_port</code> in <code>orcan.config.json</code>, then <code>orcan sync</code> and <code>orcan down &amp;&amp; orcan up --with-ttyd</code></li>
 </ol>
 <h2 id="frequent-reconnecting-on-phone-mobile-network">Frequent “reconnecting” on phone / mobile network<a class="headerlink" href="#frequent-reconnecting-on-phone-mobile-network" title="Permanent link">&para;</a></h2>
 <p>Cellular handoffs drop the ttyd WebSocket; that is expected. Processes inside tmux survive.</p>
@@ -2042,8 +2100,8 @@ visible screen. Tracked upstream: <a href="https://github.com/tsl0922/ttyd/pull/
 <h2 id="docker-socket-errors-inside-the-container">Docker socket errors inside the container<a class="headerlink" href="#docker-socket-errors-inside-the-container" title="Permanent link">&para;</a></h2>
 <p>Use <code>orcan up --with-docker</code>. Plain <code>orcan up</code> does not mount the socket.</p>
 <p>If <code>docker</code> needs <code>sudo</code> inside the container, the host socket GID must match <code>DOCKER_GID</code> in <code>.env</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>stat<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;%g&#39;</span><span class="w"> </span>/var/run/docker.sock
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>DOCKER_GID<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ORCAN_HOME</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/.env&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>stat<span class="w"> </span>-c<span class="w"> </span><span class="s1">'%g'</span><span class="w"> </span>/var/run/docker.sock
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>DOCKER_GID<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">ORCAN_HOME</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/.env"</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
 </span></code></pre></div>
 <p><code>orcan sync</code> re-detects the socket GID from the host (do not leave a stale <code>999</code> from <code>.env.example</code>).</p>
@@ -2095,7 +2153,7 @@ visible screen. Tracked upstream: <a href="https://github.com/tsl0922/ttyd/pull/
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2026 22:34:06 UTC">August 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 23, 2026 09:26:50 UTC">August 23, 2026</span>
   </span>
 
     

@@ -6,23 +6,23 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+        <meta name="description" content="Runtime reconcile — jak dodanie lub usunięcie projektu działa w już uruchomionym kontenerze bez rekreacji, i czego to nie obejmuje.">
       
       
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/reference/makefile/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/ideas/runtime-reconcile/">
       
       
-        <link rel="prev" href="../cli/">
+        <link rel="prev" href="../agent-inbox/">
       
       
-        <link rel="next" href="../docker/">
+        <link rel="next" href="../../concepts/workspaces/">
       
       
         
-          <link rel="alternate" href="../../../reference/makefile/" hreflang="en">
+          <link rel="alternate" href="../../../ideas/runtime-reconcile/" hreflang="en">
         
           <link rel="alternate" href="./" hreflang="pl">
         
@@ -33,7 +33,7 @@
     
     
       
-        <title>Makefile (maintainers) - Orcan</title>
+        <title>Runtime reconcile - Orcan</title>
       
     
     
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta name="description" content="Runtime reconcile — jak dodanie lub usunięcie projektu działa w już uruchomionym kontenerze bez rekreacji, i czego to nie obejmuje.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Makefile (maintainers) — Orcan">
-  <meta property="og:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
-  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/reference/makefile/">
+  <meta property="og:title" content="Runtime reconcile — Orcan">
+  <meta property="og:description" content="Runtime reconcile — jak dodanie lub usunięcie projektu działa w już uruchomionym kontenerze bez rekreacji, i czego to nie obejmuje.">
+  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/ideas/runtime-reconcile/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Makefile (maintainers) — Orcan">
-  <meta name="twitter:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta name="twitter:title" content="Runtime reconcile — Orcan">
+  <meta name="twitter:description" content="Runtime reconcile — jak dodanie lub usunięcie projektu działa w już uruchomionym kontenerze bez rekreacji, i czego to nie obejmuje.">
 
   </head>
   
@@ -96,7 +96,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#makefile-maintainerzy" class="md-skip">
+        <a href="#runtime-reconcile" class="md-skip">
           Przejdź do treści
         </a>
       
@@ -147,7 +147,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Makefile (maintainers)
+              Runtime reconcile
             
           </span>
         </div>
@@ -204,7 +204,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../reference/makefile/" hreflang="en" class="md-select__link">
+            <a href="../../../ideas/runtime-reconcile/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -386,8 +386,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -398,13 +400,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -425,7 +425,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -443,7 +443,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../ideas/core-ideas/" class="md-nav__link">
+      <a href="../core-ideas/" class="md-nav__link">
         
   
   
@@ -471,7 +471,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../ideas/mental-model/" class="md-nav__link">
+      <a href="../mental-model/" class="md-nav__link">
         
   
   
@@ -499,7 +499,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../ideas/context-assertions/" class="md-nav__link">
+      <a href="../context-assertions/" class="md-nav__link">
         
   
   
@@ -527,7 +527,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+      <a href="../agent-inbox/" class="md-nav__link">
         
   
   
@@ -552,10 +552,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -571,6 +598,92 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Spis treści
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#problem-ktory-to-rozwiazuje" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem, który to rozwiązuje
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dwie-rzeczy-zostaja-stabilne-wiec-rekreacja-nie-jest-potrzebna" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dwie rzeczy zostają stabilne, więc rekreacja nie jest potrzebna
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#co-reconcile-faktycznie-robi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Co reconcile faktycznie robi
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#przykad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Przykład
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kompromisy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kompromisy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dalej" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dalej
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1049,8 +1162,6 @@
       
   
   
-    
-  
   
   
     
@@ -1063,11 +1174,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
         
           
           <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
@@ -1088,7 +1201,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1106,7 +1219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cli/" class="md-nav__link">
+      <a href="../../reference/cli/" class="md-nav__link">
         
   
   
@@ -1131,37 +1244,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Makefile (maintainers)
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../reference/makefile/" class="md-nav__link">
         
   
   
@@ -1177,37 +1263,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Spis treści
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#opcjonalny-prywatny-rejestr" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Opcjonalny prywatny rejestr
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1220,7 +1275,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../docker/" class="md-nav__link">
+      <a href="../../reference/docker/" class="md-nav__link">
         
   
   
@@ -1248,7 +1303,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../configuration/" class="md-nav__link">
+      <a href="../../reference/configuration/" class="md-nav__link">
         
   
   
@@ -1276,7 +1331,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../environment/" class="md-nav__link">
+      <a href="../../reference/environment/" class="md-nav__link">
         
   
   
@@ -1304,7 +1359,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cursor-and-claude/" class="md-nav__link">
+      <a href="../../reference/cursor-and-claude/" class="md-nav__link">
         
   
   
@@ -1332,7 +1387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../security/" class="md-nav__link">
+      <a href="../../reference/security/" class="md-nav__link">
         
   
   
@@ -1669,10 +1724,65 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#opcjonalny-prywatny-rejestr" class="md-nav__link">
+  <a href="#problem-ktory-to-rozwiazuje" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Opcjonalny prywatny rejestr
+        Problem, który to rozwiązuje
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dwie-rzeczy-zostaja-stabilne-wiec-rekreacja-nie-jest-potrzebna" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dwie rzeczy zostają stabilne, więc rekreacja nie jest potrzebna
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#co-reconcile-faktycznie-robi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Co reconcile faktycznie robi
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#przykad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Przykład
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kompromisy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kompromisy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dalej" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dalej
       
     </span>
   </a>
@@ -1696,7 +1806,7 @@
 
 
   
-    <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/reference/makefile.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/ideas/runtime-reconcile.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -1705,87 +1815,91 @@
     
       
     
-    <a href="https://github.com/aKyther/orcan/raw/main/docs/pl/reference/makefile.md" title="Zobacz kod źródłowy tej strony" class="md-content__button md-icon">
+    <a href="https://github.com/aKyther/orcan/raw/main/docs/pl/ideas/runtime-reconcile.md" title="Zobacz kod źródłowy tej strony" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
     </a>
   
 
 
-<h1 id="makefile-maintainerzy">Makefile (maintainerzy)<a class="headerlink" href="#makefile-maintainerzy" title="Permanent link">&para;</a></h1>
-<p>Użytkownicy końcowi używają <strong>CLI <code>orcan</code></strong> — zobacz <a href="../cli/">Referencja CLI</a>. Cykl życia obrazu na hoście:</p>
-<table>
-<thead>
-<tr>
-<th>Potrzeba</th>
-<th>Komenda</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Pull albo build</td>
-<td><code>orcan build</code> (pull <code>VERSION</code>, lokalny build przy braku — <strong>nigdy nie publikuje</strong>)</td>
-</tr>
-<tr>
-<td>Wymuś lokalny rebuild</td>
-<td><code>orcan build --force</code> lub <code>--no-cache</code></td>
-</tr>
-<tr>
-<td>Tylko pull z rejestru</td>
-<td><code>orcan pull</code></td>
-</tr>
-<tr>
-<td>Push do rejestru</td>
-<td><code>orcan publish</code> (<strong>ręcznie</strong>, maintainerzy)</td>
-</tr>
-</tbody>
-</table>
-<p>Repozytorium ma Makefile tylko dla <strong>maintainerów</strong> w checkoutcie gita:</p>
-<table>
-<thead>
-<tr>
-<th>Cel</th>
-<th>Rola</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>make validate</code></td>
-<td>Layout + składnia skryptów</td>
-</tr>
-<tr>
-<td><code>make test-host</code></td>
-<td>Testy jednostkowe hosta</td>
-</tr>
-<tr>
-<td><code>make test</code> / <code>make test-path-parity</code></td>
-<td>Testy kontenera (wymaga Dockera)</td>
-</tr>
-<tr>
-<td><code>make docs</code> / <code>docs-serve</code> / <code>docs-check</code></td>
-<td>MkDocs</td>
-</tr>
-<tr>
-<td><code>make docs-mike-dev</code> / <code>docs-mike-release</code></td>
-<td>Wersjonowany deploy docs</td>
-</tr>
-<tr>
-<td><code>make bump-*</code> / <code>release</code></td>
-<td>Wersja + GitHub Release</td>
-</tr>
-<tr>
-<td><code>make registry-*</code></td>
-<td>Niskopoziomowe helpery rejestru (preferuj <code>orcan publish</code> / <code>orcan pull</code>)</td>
-</tr>
-</tbody>
-</table>
-<p>Przestarzałe cele użytkownika (<code>setup</code>, <code>env</code>, <code>terminal-docker</code>, <code>rebuild</code>, …) przekazują do <code>./bin/orcan</code> z notką deprecacji. <strong>Nie dokumentuj ich użytkownikom końcowym</strong> — używaj bezpośrednio <code>orcan</code>.</p>
-<h2 id="opcjonalny-prywatny-rejestr">Opcjonalny prywatny rejestr<a class="headerlink" href="#opcjonalny-prywatny-rejestr" title="Permanent link">&para;</a></h2>
-<p>CI <strong>nie</strong> publikuje obrazów kontenerów. Maintainerzy mogą pchać ręcznie:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--force<span class="w">          </span><span class="c1"># upewnij się, że lokalny obraz istnieje</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>publish<span class="w">                </span><span class="c1"># albo: make registry-login &amp;&amp; ./scripts/repository/registry.sh publish</span>
+<h1 id="runtime-reconcile">Runtime reconcile<a class="headerlink" href="#runtime-reconcile" title="Permanent link">&para;</a></h1>
+<p>Dodanie projektu do workspace'u albo jego usunięcie kiedyś oznaczało <code>orcan
+down &amp;&amp; orcan up</code> — świeży kontener, świeży serwer tmux, i cokolwiek agent
+akurat robił — zniknięte. <strong>Runtime reconcile</strong> to mechanizm, dzięki któremu
+samo <code>orcan sync</code> wystarcza w typowym przypadku.</p>
+<h2 id="problem-ktory-to-rozwiazuje">Problem, który to rozwiązuje<a class="headerlink" href="#problem-ktory-to-rozwiazuje" title="Permanent link">&para;</a></h2>
+<p>Rekreacja kontenera nie jest darmowa. Zabija każdą sesję tmux, więc agent w
+trakcie zadania traci stan powłoki, uruchomiony proces i — jeśli akurat nie
+patrzyłeś — swoją pracę. Potrzeba rekreacji tylko po to, żeby nowo dodane
+repo stało się widoczne, to zły kompromis dla czegoś, co powinno kosztować
+tyle co edycja pliku configu.</p>
+<h2 id="dwie-rzeczy-zostaja-stabilne-wiec-rekreacja-nie-jest-potrzebna">Dwie rzeczy zostają stabilne, więc rekreacja nie jest potrzebna<a class="headerlink" href="#dwie-rzeczy-zostaja-stabilne-wiec-rekreacja-nie-jest-potrzebna" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Jeden mount managed-root.</strong> Każdy projekt pod <code>$ORCAN_PROJECTS_ROOT</code>
+  (domyślnie <code>sandbox/</code>) jest już widoczny w kontenerze przez jeden, zawsze
+  obecny mount — zobacz <a href="../mental-model/">Model mentalny</a> ("Sandbox jako
+  stabilna kotwica"). Dodanie projektu pod tym korzeniem nigdy nie zmienia
+  listy mountów Compose.</li>
+<li><strong>Jeden mount rodzica workspace'ów.</strong> <code>$ORCAN_HOME/workspaces/</code> jest
+  zamontowany raz; nowy katalog workspace'u pod nim jest widoczny od razu —
+  zobacz <a href="../mental-model/">Model mentalny</a> ("Widoczność między workspace'ami").</li>
+</ul>
+<p>Reconcile zamienia "widoczne na dysku" w "istnieją właściwe symlinki,
+manifesty i sesje tmux".</p>
+<h2 id="co-reconcile-faktycznie-robi">Co reconcile faktycznie robi<a class="headerlink" href="#co-reconcile-faktycznie-robi" title="Permanent link">&para;</a></h2>
+<p>Ta sama funkcja, <code>orcan.reconcile.apply_workspaces()</code>, działa w dwóch
+miejscach:</p>
+<pre class="mermaid"><code>flowchart LR
+  boot["Boot kontenera\n(init-workspace)"] --&gt; reconcile[apply_workspaces]
+  sync["orcan sync\n(host)"] --&gt;|docker exec| live["orcan-runtime-reconcile\n(w kontenerze)"] --&gt; reconcile
+  reconcile --&gt; fs["Filesystem:\nsymlinki, .manifest.json,\nAGENTS.md/CLAUDE.md,\nignore"]
+  reconcile --&gt; tmux["orcan-tmux-reconcile-sessions:\nzapewnia sesję per workspace"]</code></pre>
+<p>Boot kontenera to po prostu pierwszy reconcile, nie osobna ścieżka kodu —
+dlatego live <code>orcan sync</code> i świeży boot dają identyczny stan na dysku.</p>
+<p>Po stronie filesystemu: tworzy brakujące symlinki projektów, usuwa
+osierocone, (ponownie) zapisuje <code>.manifest.json</code> / <code>AGENTS.md</code> / <code>CLAUDE.md</code>
+/ <code>README.workspace.md</code> — ale tylko gdy treść faktycznie się zmieniła, więc
+niezmieniony workspace nie kosztuje żadnych zapisów przy reconcile, które nic
+nie znajduje.</p>
+<p>Po stronie tmux: zapewnia, że każdy skonfigurowany workspace ma sesję
+(tworzoną leniwie, bez attach). Sesja, której workspace zniknął z configu,
+jest <strong>raportowana, nigdy nie zabijana</strong> domyślnie — aktywny agent w środku
+nie może stracić sesji tylko dlatego, że jego workspace zmienił nazwę albo
+został usunięty. <code>orcan sync --prune-orphans</code> daje opt-in na zabijanie takich
+(nigdy domyślnie).</p>
+<p><code>orcan-runtime-status</code> daje tylko-do-odczytu diff — pożądany (config) vs
+faktyczny (filesystem + tmux) — bez niczego reconcile'owania, przydatne tuż
+przed albo po live-zmianie.</p>
+<h2 id="przykad">Przykład<a class="headerlink" href="#przykad" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Workspace "demo" działa; dodajesz do niego drugi projekt.</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>context<span class="w"> </span>add<span class="w"> </span>/absolutna/sciezka/do/innego-repo<span class="w"> </span>--workspace<span class="w"> </span>demo
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>orcan<span class="w"> </span>sync
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># container is running — reconciling live (no restart)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># live reconcile complete</span>
 </span></code></pre></div>
-<p>Skonfiguruj <code>IMAGE_REGISTRY</code>, <code>IMAGE_REPOSITORY</code> i <code>IMAGE_TAG</code> w <code>.env</code> (przez <code>orcan sync</code>). Zobacz <a href="../environment/">Zmienne środowiskowe</a>.</p>
+<p>Symlink nowego projektu pojawia się pod
+<code>/home/developer/workspaces/demo/</code> w <em>działającym</em> kontenerze. Żadna otwarta
+sesja tmux — łącznie z tą, w której agent jest w trakcie zadania — nie jest
+ruszana.</p>
+<h2 id="kompromisy">Kompromisy<a class="headerlink" href="#kompromisy" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Tylko dwa stabilne mounty pomijają rekreację.</strong> Projekt spoza
+  <code>$ORCAN_PROJECTS_ROOT</code> nadal potrzebuje własnego bindu path-parity —
+  dodanie takiego nadal wymaga <code>orcan down &amp;&amp; orcan up</code>.</li>
+<li><strong>Sprzątanie osieroconych sesji tmux jest opt-in, celowo.</strong> Domyślny
+  tryb tylko-raport kosztuje Cię linijkę <code>? nazwa-sesji</code> w
+  <code>orcan-runtime-status</code>, dopóki jawnie nie odpalisz prune'a; alternatywa
+  (auto-kill) ryzykuje zabicie sesji, z której aktywnie korzysta agent.</li>
+<li><strong>Idempotentne, nie darmowe.</strong> Reconcile bez zmian nadal przechodzi każdy
+  skonfigurowany workspace i porównuje jego cztery generowane pliki z
+  dyskiem — tanie, ale nie dosłownie zerowy koszt przy bardzo dużym configu.</li>
+</ul>
+<h2 id="dalej">Dalej<a class="headerlink" href="#dalej" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../reference/cli/">Referencja CLI</a> — <code>orcan sync [--prune-orphans]</code></li>
+<li><a href="../mental-model/">Model mentalny</a> — dlaczego mounty sandboxa i workspace'ów są stabilne</li>
+<li><a href="../../reference/security/">Bezpieczeństwo</a> — kompromisy layoutu mountów</li>
+</ul>
 
 
 
@@ -1808,7 +1922,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="28 lipca 2026 19:04:11 UTC">28 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="24 sierpnia 2026 06:10:13 UTC">24 sierpnia 2026</span>
   </span>
 
     
@@ -1818,7 +1932,7 @@
     <span class="md-icon" title="Utworzony">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 lipca 2026 13:06:39 UTC">23 lipca 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="24 sierpnia 2026 06:10:13 UTC">24 sierpnia 2026</span>
   </span>
 
     
@@ -1855,7 +1969,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Stopka" >
         
           
-          <a href="../cli/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: CLI">
+          <a href="../agent-inbox/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Skrzynka agentów">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1865,20 +1979,20 @@
                 Poprzednia strona
               </span>
               <div class="md-ellipsis">
-                CLI
+                Skrzynka agentów
               </div>
             </div>
           </a>
         
         
           
-          <a href="../docker/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Docker">
+          <a href="../../concepts/workspaces/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Workspaces">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Następna strona
               </span>
               <div class="md-ellipsis">
-                Docker
+                Workspaces
               </div>
             </div>
             <div class="md-footer__button md-icon">
