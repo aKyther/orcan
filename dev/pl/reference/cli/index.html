@@ -1972,7 +1972,7 @@
 </tr>
 <tr>
 <td><code>orcan context worktree create …</code></td>
-<td>Utwórz worktree (managed pod <code>$ORCAN_PROJECTS_ROOT/.worktrees</code> przy <code>--workspace</code>) i podepnij</td>
+<td>Utwórz worktree (managed pod <code>$ORCAN_PROJECTS_ROOT/.worktrees</code> przy <code>--workspace</code>) i podepnij. Jeśli <code>--branch NAME</code> nie istnieje lokalnie, najpierw próbowany jest bezpieczny <code>git fetch origin NAME</code> (nigdy nie pyta o poświadczenia, timeout 5s) — znaleziony na remote → worktree z niego; nie znaleziony/niedostępny → nowy branch z <code>--start-point</code> (domyślnie <code>HEAD</code>), tak jak wcześniej</td>
 </tr>
 <tr>
 <td><code>orcan context worktree remove --path PATH</code></td>
@@ -2011,8 +2011,8 @@
 <td>Kolejka przekazywania zadań agentów w <code>.orcan/tasks/</code> (<code>propose</code>, <code>approve</code>, <code>claim</code>, <code>complete</code>, <code>list</code>, <code>watch</code>). Patrz <a href="../../ideas/agent-inbox/">Skrzynka agentów</a></td>
 </tr>
 <tr>
-<td><code>orcan up [--with-ttyd] [--with-docker \| --with-network NAME] [--with-git]</code></td>
-<td>Start kontenera (<code>orcan enter</code> lokalnie; <code>--with-ttyd</code> = terminal w przeglądarce); opcjonalnie socket <strong>albo</strong> join sieci (wybierz jedno) + SSH; podpowiada nowszy release; status hooka <code>Stop</code> (Claude)</td>
+<td><code>orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]</code></td>
+<td>Start kontenera (<code>orcan enter</code> lokalnie; <strong>jedna</strong> ścieżka przeglądarki: <code>--with-ttyd</code> albo <code>--with-ttyd-auth</code>); opcjonalnie socket <strong>albo</strong> join sieci (wybierz jedno) + SSH; podpowiada nowszy release; status hooka <code>Stop</code> (Claude)</td>
 </tr>
 <tr>
 <td><code>orcan down</code></td>
@@ -2101,8 +2101,8 @@
 <td>Tylko lokalnie — bez publikacji portu ttyd; użyj <code>orcan enter</code></td>
 </tr>
 <tr>
-<td><code>--with-ttyd</code></td>
-<td>Publikuje terminal w przeglądarce (ttyd; <code>TTYD_BIND</code> domyślnie loopback)</td>
+<td><code>--with-ttyd</code> | <code>--with-ttyd-auth USER:PASS</code></td>
+<td><strong>Wybierz jedno.</strong> <code>--with-ttyd</code>: terminal w przeglądarce, bez hasła. <code>--with-ttyd-auth USER:PASS</code>: ten sam terminal <strong>z</strong> HTTP basic auth. Nie podawaj obu. (<code>TTYD_BIND</code> domyślnie loopback.)</td>
 </tr>
 <tr>
 <td><code>--with-docker</code> | <code>--with-network NAME</code></td>
@@ -2114,7 +2114,7 @@
 </tr>
 </tbody>
 </table>
-<p>Pozostałe flagi łączą się swobodnie, np. <code>orcan up --with-ttyd --with-git</code> albo <code>orcan up --with-ttyd --with-network my-net</code>.</p>
+<p>Pozostałe flagi łączą się z wybraną ścieżką przeglądarki, np. <code>orcan up --with-ttyd --with-git</code> albo <code>orcan up --with-ttyd-auth user:pass --with-network my-net</code>.</p>
 <p>Tożsamość <strong>autora</strong> Gita zawsze synchronizuje <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> z hostowego <code>user.name</code> / <code>user.email</code>). Klucze SSH są podpinane tylko przez <code>--with-git</code>. Flagi opcjonalne wypisują ostrzeżenie bezpieczeństwa — agenci w środku mogą użyć zamontowanego socketa lub kluczy. Drabinka możliwości i kompromisy: <a href="../security/">Bezpieczeństwo</a>, <a href="../../guides/workflows/">Workflowy</a>.</p>
 <h2 id="make-dla-maintainerow">Make dla maintainerów<a class="headerlink" href="#make-dla-maintainerow" title="Permanent link">&para;</a></h2>
 <p>Z checkoutu gita: <code>make validate</code>, <code>make test-host</code>, <code>make docs*</code>, <code>make release*</code>, <code>make registry-*</code>. Zobacz <a href="../../development/overview/">Development</a>.</p>
@@ -2140,7 +2140,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 sierpnia 2026 19:41:12 UTC">23 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="24 sierpnia 2026 14:21:02 UTC">24 sierpnia 2026</span>
   </span>
 
     
