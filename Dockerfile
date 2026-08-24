@@ -8,7 +8,7 @@ FROM node:22-bookworm-slim AS node-tools
 
 # No network fetch here — final stage installs pnpm with a pinned version.
 
-FROM golang:1.24-bookworm AS go-tools
+FROM golang:1.27-bookworm AS go-tools
 
 FROM rust:1-bookworm AS rust-tools
 
@@ -209,6 +209,8 @@ RUN set -eux; \
 # yq (YAML processor; mikefarah/yq)
 # ------------------------------------------------------------------------------
 
+ARG YQ_VERSION=4.53.6
+
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     case "${arch}" in \
@@ -216,7 +218,7 @@ RUN set -eux; \
         arm64) yq_arch="arm64" ;; \
         *) echo "unsupported architecture for yq: ${arch}" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL "https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_${yq_arch}" \
+    curl -fsSL "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${yq_arch}" \
         -o /usr/local/bin/yq; \
     chmod 0755 /usr/local/bin/yq; \
     yq --version
@@ -266,7 +268,7 @@ RUN set -eux; \
 
 ARG STARSHIP_VERSION=1.22.1
 ARG DELTA_VERSION=0.18.2
-ARG LAZYGIT_VERSION=0.48.0
+ARG LAZYGIT_VERSION=0.64.1
 
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
