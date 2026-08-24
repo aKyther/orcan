@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-24
+
+### Changed
+
+- **ttyd default bind is `0.0.0.0` again** (all host interfaces), not
+  loopback. Unset `TTYD_BIND` / new `.env` / new `ttyd.bind` follow this.
+  Existing `.env` keys are left as-is (`orcan sync` does not overwrite
+  `TTYD_BIND` once set). For local-only publish set `TTYD_BIND=127.0.0.1`.
+  `orcan url` still prints `http://localhost:<port>` when the bind is a
+  wildcard. Do not expose the port to the public Internet without auth
+  (`TTYD_CREDENTIAL` / `--with-ttyd-auth`) and TLS.
+
+### Fixed
+
+- **ttyd healthcheck failed with HTTP 401 when basic auth was on.** The probe
+  was a bare `curl` to `:7681`. With `TTYD_CREDENTIAL` set (`--with-ttyd-auth`
+  or `.env`) ttyd requires auth, so Compose marked the container unhealthy.
+  The check now uses `-u "$TTYD_CREDENTIAL"` inside the container when that
+  variable is set.
+
 ## [2.1.0] - 2026-08-24
 
 ### Security

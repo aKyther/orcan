@@ -73,7 +73,7 @@ Po `orcan up` użyj `orcan enter` na tej samej maszynie (albo `orcan up --with-t
 
 ## Status
 
-Wersja **2.1.0** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
+Wersja **2.2.0** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
 
 ## Zobacz też
 

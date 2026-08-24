@@ -95,7 +95,7 @@ orcan down && orcan up
 | Flaga | Efekt |
 | --- | --- |
 | *(brak)* | Tylko lokalnie — bez publikacji portu ttyd; użyj `orcan enter` |
-| `--with-ttyd` \| `--with-ttyd-auth USER:PASS` | **Wybierz jedno.** `--with-ttyd`: terminal w przeglądarce, bez hasła. `--with-ttyd-auth USER:PASS`: ten sam terminal **z** HTTP basic auth. Nie podawaj obu. (`TTYD_BIND` domyślnie loopback.) |
+| `--with-ttyd` \| `--with-ttyd-auth USER:PASS` | **Wybierz jedno.** `--with-ttyd`: terminal w przeglądarce, bez hasła. `--with-ttyd-auth USER:PASS`: ten sam terminal **z** HTTP basic auth. Nie podawaj obu. (`TTYD_BIND` domyślnie `0.0.0.0`.) |
 | `--with-docker` \| `--with-network NAME` | **Wybierz jedno.** `--with-docker`: montuje `/var/run/docker.sock` (Docker-from-Docker). `--with-network NAME`: dołącza do istniejącej sieci Docker (bez socketa) |
 | `--with-git` | Montuje hostowy `~/.ssh` tylko do odczytu (+ agent SSH, gdy `SSH_AUTH_SOCK` jest ustawiony) do push/pull |
 

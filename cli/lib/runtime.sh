@@ -56,7 +56,7 @@ orcan_runtime_warn_if_config_stale() {
 
 orcan_ttyd_bind() {
     orcan_load_env 2>/dev/null || true
-    printf '%s\n' "${TTYD_BIND:-127.0.0.1}"
+    printf '%s\n' "${TTYD_BIND:-0.0.0.0}"
 }
 
 orcan_ttyd_host_port() {
