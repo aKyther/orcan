@@ -115,7 +115,9 @@ Managed checkouty projektów i worktree’y Orcana leżą pod
 **Kompromis:** wszystko pod sandboxem widać w działającym kontenerze. To cena
 za dodanie/usunięcie managed checkoutu samym `orcan sync` (bez
 `orcan down && orcan up`). Zobacz [Workspace’y](../concepts/workspaces.md) i
-[Bezpieczeństwo](../reference/security.md).
+[Bezpieczeństwo](../reference/security.md). Jak `orcan sync` faktycznie
+wprowadza tę zmianę do działającego kontenera — zobacz
+[Runtime reconcile](runtime-reconcile.md).
 
 ## Widoczność cross-workspace (celowa)
 

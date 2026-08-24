@@ -115,7 +115,9 @@ Managed project checkouts and Orcan worktrees live under
 **Tradeoff:** everything under the sandbox is visible in the running container.
 That is the price of adding or removing a managed checkout with `orcan sync`
 alone (no `orcan down && orcan up`). See [Workspaces](../concepts/workspaces.md)
-and [Security](../reference/security.md).
+and [Security](../reference/security.md). For how `orcan sync` actually makes
+that change take effect in a running container, see
+[Runtime reconcile](runtime-reconcile.md).
 
 ## Cross-workspace visibility (by design)
 

@@ -36,6 +36,20 @@ After config edits with a running container: `orcan sync` (live reconcile when p
 
 Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit → `make release`.
 
+## Runtime modification
+
+Adding/removing a project or workspace does not need a container recreate
+when it lives under one of the two stable mounts (`$ORCAN_PROJECTS_ROOT`,
+`$ORCAN_HOME/workspaces/`) — see [Mental Model](docs/en/ideas/mental-model.md).
+
+- Mechanism: `orcan.reconcile.apply_workspaces()` — same function at
+  container boot (`init-workspace`) and on demand (`orcan-runtime-reconcile`,
+  invoked by `orcan sync` via `docker exec` into a running container)
+- Tmux: `orcan-tmux-reconcile-sessions` — creates missing sessions; reports
+  (never kills by default) orphaned ones. `orcan sync --prune-orphans` opts in
+- Read-only diff (desired vs. actual): `orcan-runtime-status`
+- User docs: `docs/en/ideas/runtime-reconcile.md` (+ PL)
+
 ## Config
 
 - **Only** `orcan.config.json` (stdlib JSON — no PyYAML / host venv for config).
