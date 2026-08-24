@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`orcan doctor` flags a leftover pre-2.0 `space/` projects root.** After
+  the rename to `sandbox/`, a stale `ORCAN_PROJECTS_ROOT=…/space` makes
+  Docker recreate the missing bind as `root:root`. Doctor fails that check
+  and points at `scripts/migrations/rename-space-to-sandbox.sh` (or
+  `sudo rmdir` when the leftover is empty).
 - **`shfmt` + `difft` (difftastic) in the image.** `shfmt` formats shell
   scripts; `difft` gives a structural diff, useful when a large refactor's
   line diff is hard to read. Both added to the "prefer the faster tool"

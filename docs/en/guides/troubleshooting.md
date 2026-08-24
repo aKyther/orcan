@@ -123,6 +123,22 @@ orcan up --with-docker --with-git
 
 That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is set). Plain `orcan up` does not.
 
+## Leftover `space/` is `root:root` after upgrading to 2.0
+
+v2.0 renamed the managed projects root `space/` → `sandbox/`. If `.env` still
+has `ORCAN_PROJECTS_ROOT=…/space` after the rename, the next `orcan up`
+bind-mounts a **missing** host path and the Docker daemon creates it as
+`root:root`. `orcan doctor` flags this (legacy `space/` check).
+
+```bash
+orcan down
+# empty leftover (typical):
+sudo rmdir "${ORCAN_DATA:-$HOME/.config/orcan}/space"
+# or, if it still has your checkouts:
+bash "${ORCAN_ROOT}/scripts/migrations/rename-space-to-sandbox.sh"
+orcan sync && orcan down && orcan up
+```
+
 ## Diagnostics checklist
 
 ```bash
