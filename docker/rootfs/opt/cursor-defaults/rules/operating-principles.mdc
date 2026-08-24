@@ -34,9 +34,11 @@ replacement, not the classic one, when running a shell command yourself:
 `ls`, `bat` instead of `cat` when showing a human a file (skip it when
 piping/parsing output), `delta` as the git diff/show pager, `sg`/`ast-grep`
 for structural code search, `jq`/`yq` for JSON/YAML, `hyperfine` for
-benchmarking. A built-in editor/search tool (e.g. a Grep or Glob tool) still
-comes first when one is available — this is only about which shell command
-to reach for otherwise.
+benchmarking, `shfmt` to format shell scripts before showing/committing them,
+`difft` (difftastic) for a structural diff when a large refactor's line diff
+is hard to read. A built-in editor/search tool (e.g. a Grep or Glob tool)
+still comes first when one is available — this is only about which shell
+command to reach for otherwise.
 
 ## Repository clutter
 

@@ -297,6 +297,35 @@ RUN set -eux; \
     lazygit --version
 
 # ------------------------------------------------------------------------------
+# shfmt + difftastic (shell formatting; structural diff for reviewing refactors)
+# ------------------------------------------------------------------------------
+
+ARG SHFMT_VERSION=3.13.1
+ARG DIFFT_VERSION=0.70.0
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) \
+            shfmt_arch="amd64"; \
+            difft_arch="x86_64-unknown-linux-gnu"; \
+            ;; \
+        arm64) \
+            shfmt_arch="arm64"; \
+            difft_arch="aarch64-unknown-linux-gnu"; \
+            ;; \
+        *) echo "unsupported architecture for shfmt/difftastic: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_${shfmt_arch}" \
+        -o /usr/local/bin/shfmt; \
+    chmod 0755 /usr/local/bin/shfmt; \
+    shfmt --version; \
+    curl -fsSL "https://github.com/Wilfred/difftastic/releases/download/${DIFFT_VERSION}/difft-${difft_arch}.tar.gz" \
+        | tar -xz -C /usr/local/bin difft; \
+    chmod 0755 /usr/local/bin/difft; \
+    difft --version
+
+# ------------------------------------------------------------------------------
 # Container filesystem (scripts, defaults, shell configs)
 # ------------------------------------------------------------------------------
 
