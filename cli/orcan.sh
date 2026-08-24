@@ -24,7 +24,7 @@ Commands:
   migrate      Move projects under the managed root (fewer future recreates)
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
   settings     Edit tool settings (tmux, ttyd) — separate from workspaces
-  up           Start container (orcan enter; --with-ttyd for browser terminal)
+  up           Start container (orcan enter; --with-ttyd | --with-ttyd-auth for browser)
   down         Stop containers
   build        All agents → orcan:latest + orcan:<VERSION> (pull or build)
                (--claude/--cursor/--codex → orcan:<VERSION>-claude|cursor|codex, no pull)

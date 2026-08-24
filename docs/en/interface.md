@@ -19,7 +19,7 @@ High-signal commands:
 ```bash
 orcan init | sync | context show
 orcan build [--claude|--cursor] [--force]
-orcan up [--with-ttyd] [--with-docker | --with-network NAME] [--with-git] | down
+orcan up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git] | down
   (| = pick one — docs notation, not one shell line)
 orcan enter | logs | doctor | url
 ```

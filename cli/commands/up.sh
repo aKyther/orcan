@@ -6,7 +6,10 @@ orcan_cmd_up() {
     local with_git=0
     local with_network=0
     local with_ttyd=0
+    local with_ttyd_opt=0
+    local with_ttyd_auth=0
     local network_name=""
+    local ttyd_credential=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --with-docker)
@@ -32,12 +35,24 @@ orcan_cmd_up() {
                 ;;
             --with-ttyd)
                 with_ttyd=1
+                with_ttyd_opt=1
                 shift
                 ;;
+            --with-ttyd-auth)
+                if [[ $# -lt 2 || "$2" == -* ]]; then
+                    orcan_usage_error "--with-ttyd-auth requires user:password"
+                fi
+                with_ttyd_auth=1
+                with_ttyd=1
+                ttyd_credential="$2"
+                shift 2
+                ;;
             -h | --help)
-                printf 'usage: orcan up [--with-ttyd] [--with-docker | --with-network NAME] [--with-git]\n'
+                printf 'usage: orcan up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git]\n'
                 printf '  default: local-only container (orcan enter); no browser terminal\n'
-                printf '  --with-ttyd: publish browser terminal (ttyd; TTYD_BIND defaults to loopback)\n'
+                printf '  --with-ttyd | --with-ttyd-auth USER:PASS: pick one (| = mutually exclusive)\n'
+                printf '  --with-ttyd: publish browser terminal, no password prompt\n'
+                printf '  --with-ttyd-auth USER:PASS: publish browser terminal with HTTP basic auth\n'
                 printf '  --with-docker | --with-network NAME: pick one (| = mutually exclusive)\n'
                 printf '  --with-docker: mount /var/run/docker.sock (DinD)\n'
                 printf '  --with-git: mount host ~/.ssh (+ agent) for push/pull (key exposure risk)\n'
@@ -53,6 +68,20 @@ orcan_cmd_up() {
 
     if (( with_docker && with_network )); then
         orcan_usage_error "--with-docker and --with-network are mutually exclusive (pick socket control or network reachability, not both)"
+    fi
+    if (( with_ttyd_opt && with_ttyd_auth )); then
+        orcan_usage_error "--with-ttyd and --with-ttyd-auth are mutually exclusive (pick browser without a password, or browser with USER:PASS, not both)"
+    fi
+    if (( with_ttyd_auth )); then
+        if [[ "${ttyd_credential}" != *:* ]]; then
+            orcan_usage_error "--with-ttyd-auth must be in USER:PASS format"
+        fi
+        local auth_user auth_pass
+        auth_user="${ttyd_credential%%:*}"
+        auth_pass="${ttyd_credential#*:}"
+        if [[ -z "${auth_user}" || -z "${auth_pass}" ]]; then
+            orcan_usage_error "--with-ttyd-auth must have non-empty USER and PASS"
+        fi
     fi
 
     orcan_require_docker
@@ -101,6 +130,9 @@ orcan_cmd_up() {
     if (( with_network )); then
         label="${label}, network '${network_name}' joined"
     fi
+    if (( with_ttyd_auth )); then
+        label="${label}, ttyd auth enabled"
+    fi
 
     if (( with_docker )); then
         if [[ ! -S /var/run/docker.sock ]]; then
@@ -109,6 +141,9 @@ orcan_cmd_up() {
     fi
 
     orcan_info "starting container (${label})"
+    if (( with_ttyd_auth )); then
+        export TTYD_CREDENTIAL="${ttyd_credential}"
+    fi
     orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" up -d
     orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}"
 
@@ -148,6 +183,9 @@ orcan_cmd_up() {
     if (( with_ttyd )); then
         orcan_ok "browser terminal ready — open $(orcan_terminal_url)"
         printf '  Launcher → workspace → tmux\n'
+        if (( with_ttyd_auth )); then
+            printf '  ttyd auth: enabled (user: %s)\n' "${ttyd_credential%%:*}"
+        fi
     else
         orcan_ok "container ready — local access: orcan enter"
         printf '  Remote browser terminal: orcan up --with-ttyd\n'

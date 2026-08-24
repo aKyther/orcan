@@ -473,5 +473,93 @@ class PullCurrentBranchTests(unittest.TestCase):
             self.assertEqual((local / "f").read_text(encoding="utf-8"), "2")
 
 
+class CreateWorktreeFromRemoteBranchTests(unittest.TestCase):
+    """A branch someone else pushed, but this checkout never fetched, must
+    become a worktree with the real remote content — not a silent empty
+    branch off HEAD under the same name."""
+
+    def _clone(self, remote: Path, dest: Path) -> None:
+        import subprocess
+
+        subprocess.run(["git", "clone", str(remote), str(dest)], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "t@example.com"],
+            cwd=dest, check=True, capture_output=True,
+        )
+        subprocess.run(["git", "config", "user.name", "t"], cwd=dest, check=True, capture_output=True)
+
+    def _commit(self, path: Path, filename: str, content: str, message: str) -> None:
+        import subprocess
+
+        (path / filename).write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", filename], cwd=path, check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", message], cwd=path, check=True, capture_output=True)
+
+    def test_uses_pushed_remote_branch_instead_of_empty_head_branch(self) -> None:
+        import subprocess
+
+        import git_worktrees as gw
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = root / "remote.git"
+            subprocess.run(
+                ["git", "init", "--bare", "-b", "main", str(remote)], check=True, capture_output=True
+            )
+
+            seeder = root / "seeder"
+            self._clone(remote, seeder)
+            self._commit(seeder, "f", "on-main", "init")
+            subprocess.run(["git", "push", "origin", "main"], cwd=seeder, check=True, capture_output=True)
+
+            local = root / "local"
+            self._clone(remote, local)  # never sees feature-x below
+
+            # A colleague pushes a branch straight to the remote — `local`
+            # never runs `git fetch` itself before asking orcan for a worktree.
+            subprocess.run(
+                ["git", "checkout", "-b", "feature-x"], cwd=seeder, check=True, capture_output=True
+            )
+            self._commit(seeder, "f", "on-feature-x", "colleague's work")
+            subprocess.run(
+                ["git", "push", "origin", "feature-x"], cwd=seeder, check=True, capture_output=True
+            )
+
+            self.assertFalse(gw.branch_exists(local, "feature-x"))
+            self.assertFalse(gw.remote_branch_exists(local, "feature-x"))
+
+            wt = gw.create_worktree(local, branch="feature-x", path=root / "wt-feature-x")
+
+            self.assertEqual((wt.path / "f").read_text(encoding="utf-8"), "on-feature-x")
+
+    def test_falls_back_to_new_branch_when_remote_has_no_such_branch(self) -> None:
+        import subprocess
+
+        import git_worktrees as gw
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = root / "remote.git"
+            subprocess.run(
+                ["git", "init", "--bare", "-b", "main", str(remote)], check=True, capture_output=True
+            )
+
+            seeder = root / "seeder"
+            self._clone(remote, seeder)
+            self._commit(seeder, "f", "on-main", "init")
+            subprocess.run(["git", "push", "origin", "main"], cwd=seeder, check=True, capture_output=True)
+
+            local = root / "local"
+            self._clone(remote, local)
+
+            # No one ever pushed "never-existed" anywhere — the safe fetch
+            # attempt fails cleanly and this must still succeed, branching
+            # off HEAD like before this feature existed.
+            wt = gw.create_worktree(local, branch="never-existed", path=root / "wt-new")
+
+            self.assertEqual((wt.path / "f").read_text(encoding="utf-8"), "on-main")
+            self.assertEqual(gw.current_branch(wt.path), "never-existed")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-24
+
+### Security
+
+- **`security.md` documents `--with-ttyd-auth`'s trade-off.** The password
+  is a CLI argument (shell history, `ps` for the life of `orcan up`) — noted
+  as a warning next to the existing `TTYD_CREDENTIAL` guidance, with
+  `.env`-based `TTYD_CREDENTIAL` recommended over routine use of the flag.
+
+### Added
+
+- **`orcan up --with-ttyd-auth USER:PASS`** — browser terminal **with** HTTP
+  basic auth for that `up` run. Mutually exclusive with `--with-ttyd` (same
+  `|` notation as `--with-docker | --with-network`): pick open ttyd **or**
+  password-protected ttyd, not both. Default remains no ttyd. Validates
+  `USER:PASS` and prints the selected user in the success summary.
+- **`orcan context worktree create` picks up an already-pushed remote branch**
+  instead of silently creating an empty one under the same name. When
+  `--branch NAME` doesn't exist locally and `--start-point` wasn't given, it
+  now tries `git fetch origin NAME` first — safely: `GIT_TERMINAL_PROMPT=0` +
+  `GIT_SSH_COMMAND=... BatchMode=yes` so it can **never** prompt for a
+  username/password/passphrase, plus a 5s timeout, so it can never hang. On
+  success the worktree tracks `origin/NAME`; on any failure (no network, no
+  credentials, branch genuinely doesn't exist) it falls back to the exact
+  prior behavior — a new branch from `HEAD`. Every step prints to stderr so
+  it's never silent about which path was taken.
+
+### Changed
+
+- **Container home cleanup, based on actually checking what reads what:**
+  - `~/orcan` → `~/orcan-map` — name no longer collides with "everything
+    else here is also called orcan"; still purely a human-navigation symlink
+    tree (agents/cache/history/dotfiles/workspaces), confirmed nothing
+    programmatic reads through it.
+  - Removed `~/project` / `~/workspace` (two identical symlinks to
+    whichever workspace happened to be active at container start) — same
+    "nothing reads it" finding as `~/orcan-map`, but actively misleading
+    with more than one workspace configured, since it implied one was
+    "the" project.
+  - `agent-launcher`: entering a container with zero workspaces configured
+    and no `PROJECT_DIR` used to loop forever printing `No workspaces
+    configured.` every 2s with no prompt — a dead end with no way out except
+    killing the session. Now prints one clear message (what to run on the
+    host: `orcan init` / `orcan context add`) and exits 1.
+- **`container-home-README.md` added to `validate.sh`** — the source for
+  `~/orcan-map/README.md` had no coverage; deleting it would have silently
+  stopped that file from being seeded, with no validation failure to catch it.
+
 ## [2.0.2] - 2026-08-24
 
 ### Security

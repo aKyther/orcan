@@ -64,29 +64,6 @@ persist_claude_config() {
     fi
 }
 
-create_project_symlinks() {
-    if [[ -z "${PROJECT_DIR:-}" ]]; then
-        return 0
-    fi
-
-    local home_link current
-    for home_link in "${HOME}/project" "${HOME}/workspace"; do
-        if [[ -n "${WORKSPACE_ROOT:-}" && -d "${WORKSPACE_ROOT}" ]]; then
-            target="${WORKSPACE_ROOT}"
-        else
-            target="${PROJECT_DIR}"
-        fi
-        if [[ -L "${home_link}" ]]; then
-            current="$(readlink "${home_link}")"
-            if [[ "${current}" != "${target}" ]]; then
-                ln -sfn "${target}" "${home_link}"
-            fi
-        elif [[ ! -e "${home_link}" ]]; then
-            ln -sfn "${target}" "${home_link}"
-        fi
-    done
-}
-
 run_init_workspace() {
     if [[ ! -x "${WORKSPACE_SCRIPT}" ]]; then
         return 0
@@ -100,8 +77,6 @@ enter_project_dir() {
         printf 'Hint: run make env on the host and restart the container\n' >&2
         exit 1
     fi
-
-    create_project_symlinks
 
     if [[ -n "${WORKSPACE_ROOT:-}" && -d "${WORKSPACE_ROOT}" ]]; then
         cd "${WORKSPACE_ROOT}"
@@ -147,8 +122,8 @@ run_init_ai_statusline() {
 }
 
 ensure_orcan_home_map() {
-    # Visible sandbox map under ~/orcan (symlinks only — tools keep ~/.cursor etc.).
-    local root="${HOME}/orcan"
+    # Visible sandbox map under ~/orcan-map (symlinks only — tools keep ~/.cursor etc.).
+    local root="${HOME}/orcan-map"
     local history_dir="${HOME}/.local/share/orcan/history"
     local dotfiles="${ORCAN_DOTFILES:-${HOME}/.config/orcan/dotfiles}"
     mkdir -p "${root}/agents" "${history_dir}" \

@@ -62,7 +62,7 @@ Default host root: `~/.config/orcan`.
 | `history/` | `~/.local/share/orcan/history` (`HISTFILE`) |
 | `dotfiles/` | `~/.config/orcan/dotfiles` |
 
-Inside the container, `~/orcan/` is a symlink map (agents, cache, history,
+Inside the container, `~/orcan-map/` is a symlink map (agents, cache, history,
 dotfiles, workspaces) so the sandbox tree is easy to browse. Tools still
 use their normal homes (`~/.cursor`, …).
 

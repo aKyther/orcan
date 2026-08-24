@@ -99,7 +99,7 @@ Under `$ORCAN_DATA` (default `~/.config/orcan`):
 | `history/` | Shell history (`HISTFILE`) |
 | `dotfiles/` | Personal shell/tmux/vim overlays |
 
-Browse the sandbox map inside the container at `~/orcan/` (symlinks only).
+Browse the sandbox map inside the container at `~/orcan-map/` (symlinks only).
 
 After `orcan build --force` / restart, you should **not** need to `/login` again unless you wiped `$ORCAN_DATA` or never completed login while the volume was mounted.
 
