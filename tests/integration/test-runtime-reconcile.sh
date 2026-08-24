@@ -2,8 +2,8 @@
 # Integration test: adding a project to a running container must not recreate
 # it, must not touch existing tmux/agent sessions, and the new project must
 # become visible via a live `orcan sync` reconcile. This is the core
-# acceptance criterion for runtime modification — see docs/en/ideas/
-# mental-model.md and AGENTS.md "Runtime modification".
+# acceptance criterion for runtime modification — see
+# docs/en/ideas/runtime-reconcile.md and AGENTS.md "Runtime modification".
 #
 # Host-only helper. Requires Docker. Fully isolated from any other running
 # orcan container (unique Compose project name / container name / port).
@@ -98,6 +98,7 @@ IMAGE_LOCAL="${IMAGE_TAG}" \
         --build-arg USER_GID="$(id -g)" \
         --build-arg INSTALL_CURSOR=0 \
         --build-arg INSTALL_CLAUDE=1 \
+        --build-arg INSTALL_CODEX=0 \
         . >/dev/null
 
 export IMAGE_LOCAL="${IMAGE_TAG}"

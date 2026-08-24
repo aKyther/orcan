@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **New EN+PL page: [Runtime reconcile](docs/en/ideas/runtime-reconcile.md).**
+  Documents the mechanism behind live workspace/project changes (same
+  `apply_workspaces()` at container boot and via `orcan sync`, the tmux
+  session reconcile, `--prune-orphans`). Closes a dangling reference —
+  `tests/integration/test-runtime-reconcile.sh`'s header pointed at a
+  `mental-model.md`/`AGENTS.md` section that didn't exist yet. Root
+  `AGENTS.md` gained the matching "Runtime modification" section.
+
 ### Fixed
 
 - **Orphaned tmux session pruning was unreachable.** `orcan-tmux-reconcile-sessions
@@ -44,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CLAUDE.md`, and `README.workspace.md` are now only rewritten when content
   actually changed, instead of unconditionally on every reconcile (now a
   hot path — every `orcan sync` against a live container, not just boot).
+- **`tests/integration/test-runtime-reconcile.sh`** skips the Codex CLI
+  install (`INSTALL_CODEX=0`) — the test isn't about agent installs and was
+  paying for one anyway.
 
 ## [2.0.0] - 2026-08-23
 
