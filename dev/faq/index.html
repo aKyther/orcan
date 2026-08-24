@@ -520,6 +520,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2011,7 +2067,7 @@
 <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h1>
 <p>Short answers to common Orcan questions.</p>
 <h2 id="what-is-orcan">What is Orcan?<a class="headerlink" href="#what-is-orcan" title="Permanent link">&para;</a></h2>
-<p>Orcan is a <strong>work-context orchestrator</strong>. It runs Cursor CLI (<code>agent</code>) and Claude Code (<code>claude</code>) in Docker with workspaces (named sets of projects), path-parity mounts, and a browser terminal.</p>
+<p>Orcan is a <strong>work-context orchestrator</strong>. It runs Cursor CLI (<code>agent</code>) and Claude Code (<code>claude</code>) in Docker with workspaces (named sets of projects) and path-parity mounts. Enter locally with <code>orcan enter</code>, or optionally use a browser terminal (<code>orcan up --with-ttyd</code>).</p>
 <p>Read <a href="../why-orcan/">Why Orcan?</a> and <a href="../ideas/core-ideas/">Core Ideas</a> before the rest of this FAQ.</p>
 <h2 id="does-orcan-choose-ai-models">Does Orcan choose AI models?<a class="headerlink" href="#does-orcan-choose-ai-models" title="Permanent link">&para;</a></h2>
 <p><strong>No.</strong> Models stay with each CLI / account. Orcan does not pin or route models.</p>
@@ -2033,7 +2089,7 @@
 <h2 id="can-i-commit-and-push-from-inside-the-container">Can I commit and push from inside the container?<a class="headerlink" href="#can-i-commit-and-push-from-inside-the-container" title="Permanent link">&para;</a></h2>
 <p><strong>Commit author:</strong> yes after <code>orcan sync</code> — host <code>user.name</code> / <code>user.email</code> become <code>GIT_AUTHOR_*</code> in the container.</p>
 <p><strong>Push/pull over SSH:</strong> start with <code>orcan up --with-git</code> (mounts <code>~/.ssh</code>, and the SSH agent when available). Combine with DinD: <code>orcan up --with-docker --with-git</code>. Plain <code>orcan up</code> does not attach keys. See <a href="../getting-started/quickstart/#git-inside-the-container">Quickstart</a> and <a href="../reference/security/">Security</a>.</p>
-<p><strong>Worktrees:</strong> optional. Mount a normal clone path by default; use the wizard’s advanced help or <code>orcan context worktree</code> when you want a separate checkout under <code>$ORCAN_DATA/worktrees</code>. See <a href="../concepts/workspaces/#git-worktrees">Workspaces</a>.</p>
+<p><strong>Worktrees:</strong> optional. Mount a normal clone path by default; use the wizard’s advanced help or <code>orcan context worktree</code> when you want a separate checkout under <code>$ORCAN_PROJECTS_ROOT/.worktrees</code> (default <code>~/.config/orcan/sandbox/.worktrees</code> — covered by the stable projects mount, so no container recreate). See <a href="../concepts/workspaces/#git-worktrees">Workspaces</a>.</p>
 <h2 id="which-agents-are-installed">Which agents are installed?<a class="headerlink" href="#which-agents-are-installed" title="Permanent link">&para;</a></h2>
 <p>By default the image includes <strong>both</strong> agents (<code>orcan:latest</code> / <code>orcan:&lt;VERSION&gt;</code>). To skip installing an agent you will not use, build a <strong>separate local tag</strong> (no registry pull; does not overwrite <code>latest</code>):</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Both (default)</label><label for="__tabbed_1_2">Claude Code only</label><label for="__tabbed_1_3">Cursor CLI only</label></div>
@@ -2078,11 +2134,24 @@
 <td>Cursor CLI home</td>
 </tr>
 <tr>
+<td><code>codex/</code></td>
+<td>Codex CLI home</td>
+</tr>
+<tr>
 <td><code>cache/</code></td>
-<td>Tool caches (ruff, pip, uv, …)</td>
+<td>All tool caches under container <code>~/.cache</code> (npm, pnpm, cargo, go, uv, …)</td>
+</tr>
+<tr>
+<td><code>history/</code></td>
+<td>Shell history (<code>HISTFILE</code>)</td>
+</tr>
+<tr>
+<td><code>dotfiles/</code></td>
+<td>Personal shell/tmux/vim overlays</td>
 </tr>
 </tbody>
 </table>
+<p>Browse the sandbox map inside the container at <code>~/orcan/</code> (symlinks only).</p>
 <p>After <code>orcan build --force</code> / restart, you should <strong>not</strong> need to <code>/login</code> again unless you wiped <code>$ORCAN_DATA</code> or never completed login while the volume was mounted.</p>
 <h2 id="can-i-turn-off-tmux">Can I turn off tmux?<a class="headerlink" href="#can-i-turn-off-tmux" title="Permanent link">&para;</a></h2>
 <p>Not as a supported switch. The launcher starts tmux. Use multiple tmux windows/panes instead.</p>
@@ -2096,7 +2165,7 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>orcan<span class="w"> </span>down
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w">          </span><span class="c1"># destructive: deletes ~/.config/orcan (type yes)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>docker<span class="w"> </span>images<span class="w"> </span><span class="s1">&#39;orcan*&#39;</span><span class="w">   </span><span class="c1"># optional: docker rmi …</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>docker<span class="w"> </span>images<span class="w"> </span><span class="s1">'orcan*'</span><span class="w">   </span><span class="c1"># optional: docker rmi …</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># then remove the git clone directory if you no longer need it</span>
 </span></code></pre></div>
 <p>Details: <a href="../guides/workflows/#uninstall">Workflows — uninstall</a>.</p>
@@ -2138,7 +2207,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2026 19:44:34 UTC">August 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 23, 2026 09:26:50 UTC">August 23, 2026</span>
   </span>
 
     

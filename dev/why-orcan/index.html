@@ -666,6 +666,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1848,12 +1904,12 @@
 <p>Commands alone do not fix that. You need a <strong>named context</strong> you can recreate.</p>
 <h2 id="what-orcan-is-for">What Orcan is for<a class="headerlink" href="#what-orcan-is-for" title="Permanent link">&para;</a></h2>
 <p>Orcan is a <strong>work-context orchestrator</strong>.</p>
-<p>It does not replace Git. It does not pick AI models. It describes <strong>which projects form one workspace</strong>, mounts them with <strong>path parity</strong>, seeds a small <strong>context pack</strong> agents can read, and opens a <strong>browser terminal</strong> (tmux + zsh) where Cursor CLI (<code>agent</code>) and Claude Code (<code>claude</code>) run inside Docker.</p>
+<p>It does not replace Git. It does not pick AI models. It describes <strong>which projects form one workspace</strong>, mounts them with <strong>path parity</strong>, seeds a small <strong>context pack</strong> agents can read, and runs Cursor CLI (<code>agent</code>) and Claude Code (<code>claude</code>) inside Docker — locally via <code>orcan enter</code>, or in the browser with <code>--with-ttyd</code> (tmux + zsh).</p>
 <p>The product idea is simple: <strong>projects are parts; the workspace is the context.</strong></p>
 <h2 id="life-without-orcan">Life without Orcan<a class="headerlink" href="#life-without-orcan" title="Permanent link">&para;</a></h2>
 <p>You keep a personal list of paths. You open five terminals. You hope <code>docker compose</code> inside a container still sees <code>/home/you/...</code>. You paste the same ignores into every checkout. You explain the layout to each new agent from scratch.</p>
 <h2 id="life-with-orcan">Life with Orcan<a class="headerlink" href="#life-with-orcan" title="Permanent link">&para;</a></h2>
-<p>You write one JSON config: workspaces and absolute project paths. <code>orcan sync</code> materialises mounts and runtime files. You open one browser terminal, pick a workspace, and both you and the agents share the same layout and the same starter instructions.</p>
+<p>You write one JSON config: workspaces and absolute project paths. <code>orcan sync</code> materialises mounts and runtime files. You start the container (<code>orcan up</code>), enter locally with <code>orcan enter</code> (or add <code>--with-ttyd</code> for a browser), pick a workspace, and both you and the agents share the same layout and the same starter instructions.</p>
 <h2 id="when-to-use-it">When to use it<a class="headerlink" href="#when-to-use-it" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Several related git checkouts (often multi-org) form one daily job.</li>
@@ -1904,7 +1960,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:04:11 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 23, 2026 09:26:50 UTC">August 23, 2026</span>
   </span>
 
     

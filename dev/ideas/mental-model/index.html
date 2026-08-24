@@ -597,6 +597,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sandbox-as-the-stable-anchor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sandbox as the stable anchor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-workspace-visibility-by-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-workspace visibility (by design)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -631,6 +653,62 @@
     
   
     Context Assertions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
   
 
     
@@ -1745,6 +1823,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sandbox-as-the-stable-anchor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sandbox as the stable anchor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-workspace-visibility-by-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-workspace visibility (by design)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1815,13 +1915,13 @@
 <h2 id="what-you-configure">What you configure<a class="headerlink" href="#what-you-configure" title="Permanent link">&para;</a></h2>
 <p>After the ideas are clear, the host file is only a description of the tree:</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;workspaces&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"workspaces"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;customer-a&quot;</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">&quot;projects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backend&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/acme-api&quot;</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;frontend&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/acme-web&quot;</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sdk&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/absolute/path/to/partner-sdk&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"customer-a"</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">"projects"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"backend"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/absolute/path/to/acme-api"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"frontend"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/absolute/path/to/acme-web"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sdk"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/absolute/path/to/partner-sdk"</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">      </span><span class="p">]</span>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="p">]</span>
@@ -1862,7 +1962,7 @@
 <pre class="mermaid"><code>journey
   title A day in one workspace
   section Morning
-    Open browser terminal: 5
+    Enter workspace (local or browser): 5
     Pick workspace: 5
   section Work
     Agent reads context pack: 4
@@ -1872,9 +1972,52 @@
 <p><strong>Caption:</strong> The unit of “where am I working?” is the workspace, not a single <code>cd</code> into one repo.</p>
 <h2 id="path-parity-as-a-consequence">Path parity as a consequence<a class="headerlink" href="#path-parity-as-a-consequence" title="Permanent link">&para;</a></h2>
 <p>Path parity is not a random feature. It follows from “agents may run Docker against the host daemon.” See <a href="../../concepts/path-parity/">Path parity</a>.</p>
+<h2 id="sandbox-as-the-stable-anchor">Sandbox as the stable anchor<a class="headerlink" href="#sandbox-as-the-stable-anchor" title="Permanent link">&para;</a></h2>
+<p>Managed project checkouts and Orcan worktrees live under
+<code>$ORCAN_PROJECTS_ROOT</code> (default <code>~/.config/orcan/sandbox</code>). That directory is
+<strong>one always-mounted bind</strong> in Compose.</p>
+<table>
+<thead>
+<tr>
+<th>Piece</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sandbox/&lt;project&gt;/</code></td>
+<td>Managed clones “parked” under one root</td>
+</tr>
+<tr>
+<td><code>sandbox/.worktrees/&lt;workspace&gt;/&lt;project&gt;/</code></td>
+<td>Managed branch checkouts (leading dot = not a live project listing)</td>
+</tr>
+<tr>
+<td>Projects outside sandbox</td>
+<td>Still path-parity binds — usually need recreate when the mount list changes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tradeoff:</strong> everything under the sandbox is visible in the running container.
+That is the price of adding or removing a managed checkout with <code>orcan sync</code>
+alone (no <code>orcan down &amp;&amp; orcan up</code>). See <a href="../../concepts/workspaces/">Workspaces</a>
+and <a href="../../reference/security/">Security</a>. For how <code>orcan sync</code> actually makes
+that change take effect in a running container, see
+<a href="../runtime-reconcile/">Runtime reconcile</a>.</p>
+<h2 id="cross-workspace-visibility-by-design">Cross-workspace visibility (by design)<a class="headerlink" href="#cross-workspace-visibility-by-design" title="Permanent link">&para;</a></h2>
+<p><code>$ORCAN_HOME/workspaces/</code> is mounted once as <code>/home/developer/workspaces/</code>.
+Each workspace is a subdirectory (symlinks, <code>AGENTS.md</code>,
+<code>CONTEXT-ASSERTIONS.md</code>, <code>.orcan/context-inbox/</code>, …).</p>
+<p><strong>Tradeoff:</strong> an agent started in workspace A can also see workspace B’s tree.
+That is intentional — it lets you add, remove, and switch workspaces without
+growing a per-workspace bind list and recreating the container. Orcan is
+single-user on one host, not a multi-tenant isolator. Isolation between
+workspaces is organisational (which session you attach to), not a hard
+security boundary.</p>
 <h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../architecture/">Architecture</a> — why the layers look like this  </li>
+<li><a href="../../reference/security/">Security</a> — capability ladder and mount tradeoffs  </li>
 <li><a href="../../getting-started/quickstart/">Quick Start</a>  </li>
 <li><a href="../../guides/workflows/">Typical workflows</a></li>
 </ul>
@@ -1900,7 +2043,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:08:21 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 24, 2026 06:10:13 UTC">August 24, 2026</span>
   </span>
 
     

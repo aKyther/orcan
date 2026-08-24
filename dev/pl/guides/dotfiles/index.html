@@ -520,6 +520,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skrzynka agentów
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1782,12 +1838,12 @@
 <p>Domyślny <strong>wygląd terminala</strong> (ttyd, tmux, starship, fzf, lazygit) jest w <code>docker/rootfs/</code> — zobacz <a href="../terminal-ui/">Terminal UI</a>. Dotfiles tylko nakładają; nie zastępują mapy obrazu.</p>
 <p>Skopiuj przykład (usuń sufiks <code>.example</code>), edytuj, otwórz <strong>nowy</strong> shell (<code>orcan enter</code> albo nowe okno tmux). Dla tmux: <code>tmux source-file ~/.tmux.conf</code> albo detach/reattach. <strong>Nie</strong> musisz robić <code>orcan down</code> po edycji tych plików.</p>
 <h2 id="przykady">Przykłady<a class="headerlink" href="#przykady" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">DOT</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$HOME</span><span class="s2">/.config/orcan/dotfiles&quot;</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cp<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DOT</span><span class="s2">/aliases.sh.example&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DOT</span><span class="s2">/aliases.sh&quot;</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nv">$EDITOR</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DOT</span><span class="s2">/aliases.sh&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">DOT</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/.config/orcan/dotfiles"</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cp<span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/aliases.sh.example"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/aliases.sh"</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nv">$EDITOR</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/aliases.sh"</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>cp<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DOT</span><span class="s2">/tmux.conf.local.example&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DOT</span><span class="s2">/tmux.conf.local&quot;</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>cp<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DOT</span><span class="s2">/vimrc.local.example&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DOT</span><span class="s2">/vimrc.local&quot;</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>cp<span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/tmux.conf.local.example"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/tmux.conf.local"</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>cp<span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/vimrc.local.example"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/vimrc.local"</span>
 </span></code></pre></div>
 <h2 id="czego-nie-robic">Czego nie robić<a class="headerlink" href="#czego-nie-robic" title="Permanent link">&para;</a></h2>
 <ul>

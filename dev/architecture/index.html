@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and the browser terminal stack.">
+        <meta name="description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
       
       
         <meta name="author" content="Orcan contributors">
@@ -67,15 +67,15 @@
     
   
   
-  <meta name="description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and the browser terminal stack.">
+  <meta name="description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Architecture — Orcan">
-  <meta property="og:description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and the browser terminal stack.">
+  <meta property="og:description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
   <meta property="og:url" content="https://akyther.github.io/orcan/dev/architecture/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Architecture — Orcan">
-  <meta name="twitter:description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and the browser terminal stack.">
+  <meta name="twitter:description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
 
   </head>
   
@@ -507,6 +507,62 @@
     
   
     Context Assertions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
   
 
     
@@ -1896,7 +1952,7 @@
 <li>Describe multi-repo <strong>context</strong> on the host (JSON config).</li>
 <li>Run agents in an isolated <strong>container</strong> with heavy toolchains.</li>
 <li>Keep <strong>absolute paths</strong> identical when the host Docker daemon resolves binds.</li>
-<li>Give humans and agents a clear <strong>entry</strong> (browser → session → shell).</li>
+<li>Give humans and agents a clear <strong>entry</strong> — locally (<code>orcan enter</code>) or optionally in the browser (<code>orcan up --with-ttyd</code> → session → shell).</li>
 </ol>
 <p>Those constraints force a split between <strong>host orchestration</strong> and <strong>container runtime</strong>.</p>
 <h2 id="layers">Layers<a class="headerlink" href="#layers" title="Permanent link">&para;</a></h2>
@@ -1905,21 +1961,26 @@
     cfg["orcan.config.json"]
     make["Makefile + scripts"]
     gen[".env + mounts/ generated files"]
+    enter["orcan enter"]
   end
   subgraph container [Container]
     entry["entrypoint"]
-    term["ttyd → launcher → tmux → zsh"]
+    session["launcher → tmux → zsh"]
+    ttyd["ttyd (--with-ttyd)"]
     pack["workspace context pack"]
     clis["agent / claude"]
   end
   cfg --&gt; make
   make --&gt; gen
   gen --&gt; entry
-  entry --&gt; term
+  enter --&gt; session
+  entry --&gt; session
+  entry --&gt; ttyd
+  ttyd --&gt; session
   entry --&gt; pack
-  term --&gt; clis
+  session --&gt; clis
   pack --&gt; clis</code></pre>
-<p><strong>Caption:</strong> The host turns config into mounts and env. The container turns that into a session and agent-readable files. Models stay inside each CLI.</p>
+<p><strong>Caption:</strong> The host turns config into mounts and env. Default access is <code>orcan enter</code> into the same session stack; <code>--with-ttyd</code> adds a browser path. Models stay inside each CLI.</p>
 <h3 id="why-the-host-owns-config">Why the host owns config<a class="headerlink" href="#why-the-host-owns-config" title="Permanent link">&para;</a></h3>
 <p>Config must run without the image (wizard, CI host tests, <code>orcan sync</code>). Stdlib JSON keeps the host side thin. Compose YAML remains for Docker only.</p>
 <h3 id="why-the-image-owns-the-toolchain">Why the image owns the toolchain<a class="headerlink" href="#why-the-image-owns-the-toolchain" title="Permanent link">&para;</a></h3>
@@ -1946,14 +2007,16 @@
 </table>
 <p>See <a href="../ideas/mental-model/">Mental Model</a> and <a href="../concepts/path-parity/">Path parity</a>.</p>
 <h2 id="entry-path">Entry path<a class="headerlink" href="#entry-path" title="Permanent link">&para;</a></h2>
+<p>Default: start with plain <code>orcan up</code>, then <code>orcan enter</code> on the host — no published ttyd port. Optional remote/phone path: <code>orcan up --with-ttyd</code>, then open <code>orcan url</code>.</p>
 <pre class="mermaid"><code>flowchart LR
+  enter["orcan enter (host)"] --&gt; launcher[launcher]
   browser[Browser] --&gt; ttyd[ttyd]
-  ttyd --&gt; launcher[launcher]
+  ttyd --&gt; launcher
   launcher --&gt; tmux[tmux session per workspace]
   tmux --&gt; zsh[zsh]
   zsh --&gt; agent[agent or claude]</code></pre>
-<p><strong>Caption:</strong> The launcher is where you pick a workspace. tmux keeps one session per workspace so context switches are explicit.</p>
-<p>Why not a plain SSH shell only? The browser path is the default product surface: one URL, one launcher, predictable tmux layout. Why not skip tmux? Multiple panes/windows are how people juggle projects inside one context; Orcan standardises that instead of inventing a new multiplexer.</p>
+<p><strong>Caption:</strong> Both paths converge on the same launcher → tmux → zsh stack. The launcher is where you pick a workspace. tmux keeps one session per workspace so context switches are explicit.</p>
+<p>Why tmux? Multiple panes/windows are how people juggle projects inside one context; Orcan standardises that instead of inventing a new multiplexer. Why optional ttyd? Remote and phone access without SSH tunneling — opt-in because it publishes a port.</p>
 <h2 id="context-pack-vs-project-seeds">Context pack vs project seeds<a class="headerlink" href="#context-pack-vs-project-seeds" title="Permanent link">&para;</a></h2>
 <p>At the <strong>workspace root</strong>, Orcan maintains a small pack (manifest, shared <code>AGENTS.md</code> / <code>CLAUDE.md</code>, ignores). That answers: “what is this context?”</p>
 <p>Mounted <strong>git checkouts</strong> are not rewritten on every start. Seeding files into each <code>projects[].path</code> is explicit (<code>orcan seed --all</code>). That protects customer repos from surprise diffs while still allowing shared context above them.</p>
@@ -1975,7 +2038,7 @@
 <td>Prompt engineering for a model</td>
 </tr>
 <tr>
-<td>Entry path (ttyd → launcher → tmux → zsh)</td>
+<td>Entry path (<code>orcan enter</code> or <code>--with-ttyd</code> → launcher → tmux → zsh)</td>
 <td>Auto-routing between CLIs</td>
 </tr>
 <tr>
@@ -2050,7 +2113,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2026 22:34:06 UTC">August 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 23, 2026 09:26:50 UTC">August 23, 2026</span>
   </span>
 
     

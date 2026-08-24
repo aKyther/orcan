@@ -520,6 +520,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skrzynka agentów
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1883,8 +1939,12 @@
 <td>Bez interakcji: scaffold jednego projektu (skrypty/CI) + sync + show</td>
 </tr>
 <tr>
-<td><code>orcan sync</code></td>
-<td>Zastosuj <code>orcan.config.json</code> → <code>.env</code> + <code>mounts/*</code></td>
+<td><code>orcan sync [--prune-orphans]</code></td>
+<td>Zastosuj <code>orcan.config.json</code> → <code>.env</code> + <code>mounts/*</code>; live-reconcile działającego kontenera. <code>--prune-orphans</code> dodatkowo zabija osierocone sesje tmux po usuniętym/zmienionym workspace (domyślnie: tylko raport)</td>
+</tr>
+<tr>
+<td><code>orcan migrate [--yes] [--no-symlink]</code></td>
+<td>Przenieś skonfigurowane projekty pod managed root (<code>ORCAN_PROJECTS_ROOT</code>); dry-run bez <code>--yes</code> — mniej przyszłych recreate kontenera</td>
 </tr>
 <tr>
 <td><code>orcan settings</code></td>
@@ -1912,7 +1972,7 @@
 </tr>
 <tr>
 <td><code>orcan context worktree create …</code></td>
-<td>Utwórz worktree (managed pod <code>$ORCAN_DATA/worktrees</code> przy <code>--workspace</code>) i podepnij</td>
+<td>Utwórz worktree (managed pod <code>$ORCAN_PROJECTS_ROOT/.worktrees</code> przy <code>--workspace</code>) i podepnij</td>
 </tr>
 <tr>
 <td><code>orcan context worktree remove --path PATH</code></td>
@@ -1924,7 +1984,7 @@
 </tr>
 <tr>
 <td><code>orcan context worktree prune [--force] [--no-config]</code></td>
-<td>Pogódź <code>$ORCAN_DATA/worktrees/registry.json</code> ze stanem na dysku (i <code>orcan.config.json</code>); domyślnie dry-run, <code>--force</code> sprząta</td>
+<td>Pogódź <code>$ORCAN_PROJECTS_ROOT/.worktrees/registry.json</code> ze stanem na dysku (i <code>orcan.config.json</code>); domyślnie dry-run, <code>--force</code> sprząta</td>
 </tr>
 <tr>
 <td><code>orcan context assert propose …</code></td>
@@ -1947,8 +2007,12 @@
 <td>Szkicowanie/review bez terminala hosta — zrzut do zamontowanej skrzynki, importowany przy najbliższym <code>orcan sync</code>. <code>orcan-context-review [--no-check]</code> wstępnie sprawdza kandydatów pod kątem duplikatów/sprzeczności z <code>CONTEXT-ASSERTIONS.md</code> (tylko podpowiedź, nigdy bramka). Patrz <a href="../../ideas/context-assertions/">Context Assertions</a></td>
 </tr>
 <tr>
-<td><code>orcan up [--with-docker] [--with-git]</code></td>
-<td>Start terminala (socket / host SSH tylko z flagami); podpowiada, gdy jest nowszy release; po starcie wypisuje status hooka <code>Stop</code> (Claude) dla workspace'u</td>
+<td><em>(wewnątrz kontenera)</em> <code>orcan-inbox</code></td>
+<td>Kolejka przekazywania zadań agentów w <code>.orcan/tasks/</code> (<code>propose</code>, <code>approve</code>, <code>claim</code>, <code>complete</code>, <code>list</code>, <code>watch</code>). Patrz <a href="../../ideas/agent-inbox/">Skrzynka agentów</a></td>
+</tr>
+<tr>
+<td><code>orcan up [--with-ttyd] [--with-docker \| --with-network NAME] [--with-git]</code></td>
+<td>Start kontenera (<code>orcan enter</code> lokalnie; <code>--with-ttyd</code> = terminal w przeglądarce); opcjonalnie socket <strong>albo</strong> join sieci (wybierz jedno) + SSH; podpowiada nowszy release; status hooka <code>Stop</code> (Claude)</td>
 </tr>
 <tr>
 <td><code>orcan down</code></td>
@@ -1968,7 +2032,7 @@
 </tr>
 <tr>
 <td><code>orcan url</code></td>
-<td>URL terminala</td>
+<td>URL terminala w przeglądarce (wymaga <code>orcan up --with-ttyd</code>)</td>
 </tr>
 <tr>
 <td><code>orcan logs</code></td>
@@ -2014,7 +2078,8 @@
 <h2 id="rytua">Rytuał<a class="headerlink" href="#rytua" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>init
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>build
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>up
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>up<span class="w">              </span><span class="c1"># lokalnie — orcan enter na tej samej maszynie</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># zdalnie w przeglądarce: orcan up --with-ttyd</span>
 </span></code></pre></div>
 <p>Po edycji konfiguracji:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># edytuj ~/.config/orcan/orcan.config.json</span>
@@ -2033,11 +2098,15 @@
 <tbody>
 <tr>
 <td><em>(brak)</em></td>
-<td>Tylko terminal w przeglądarce — bez socketa Dockera, bez hostowego SSH</td>
+<td>Tylko lokalnie — bez publikacji portu ttyd; użyj <code>orcan enter</code></td>
 </tr>
 <tr>
-<td><code>--with-docker</code></td>
-<td>Montuje <code>/var/run/docker.sock</code> (Docker-from-Docker)</td>
+<td><code>--with-ttyd</code></td>
+<td>Publikuje terminal w przeglądarce (ttyd; <code>TTYD_BIND</code> domyślnie loopback)</td>
+</tr>
+<tr>
+<td><code>--with-docker</code> | <code>--with-network NAME</code></td>
+<td><strong>Wybierz jedno.</strong> <code>--with-docker</code>: montuje <code>/var/run/docker.sock</code> (Docker-from-Docker). <code>--with-network NAME</code>: dołącza do istniejącej sieci Docker (bez socketa)</td>
 </tr>
 <tr>
 <td><code>--with-git</code></td>
@@ -2045,8 +2114,8 @@
 </tr>
 </tbody>
 </table>
-<p>Flagi łączą się: <code>orcan up --with-docker --with-git</code>.</p>
-<p>Tożsamość <strong>autora</strong> Gita zawsze synchronizuje <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> z hostowego <code>user.name</code> / <code>user.email</code>). Klucze SSH są podpinane tylko przez <code>--with-git</code>. Obie opcjonalne flagi wypisują ostrzeżenie bezpieczeństwa — agenci w środku mogą użyć zamontowanego socketa lub kluczy. Zobacz <a href="../security/">Bezpieczeństwo</a> i <a href="../../guides/workflows/">Workflowy</a>.</p>
+<p>Pozostałe flagi łączą się swobodnie, np. <code>orcan up --with-ttyd --with-git</code> albo <code>orcan up --with-ttyd --with-network my-net</code>.</p>
+<p>Tożsamość <strong>autora</strong> Gita zawsze synchronizuje <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> z hostowego <code>user.name</code> / <code>user.email</code>). Klucze SSH są podpinane tylko przez <code>--with-git</code>. Flagi opcjonalne wypisują ostrzeżenie bezpieczeństwa — agenci w środku mogą użyć zamontowanego socketa lub kluczy. Drabinka możliwości i kompromisy: <a href="../security/">Bezpieczeństwo</a>, <a href="../../guides/workflows/">Workflowy</a>.</p>
 <h2 id="make-dla-maintainerow">Make dla maintainerów<a class="headerlink" href="#make-dla-maintainerow" title="Permanent link">&para;</a></h2>
 <p>Z checkoutu gita: <code>make validate</code>, <code>make test-host</code>, <code>make docs*</code>, <code>make release*</code>, <code>make registry-*</code>. Zobacz <a href="../../development/overview/">Development</a>.</p>
 
@@ -2071,7 +2140,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="14 sierpnia 2026 05:29:21 UTC">14 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 sierpnia 2026 19:41:12 UTC">23 sierpnia 2026</span>
   </span>
 
     

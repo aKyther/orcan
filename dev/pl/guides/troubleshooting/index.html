@@ -520,6 +520,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skrzynka agentów
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1997,10 +2053,12 @@
 </span></code></pre></div>
 <p><code>docker compose config</code> wypisuje rozwiązany plik Compose (wymaga wygenerowanych plików <code>mounts/</code> z <code>orcan sync</code>).</p>
 <h2 id="terminal-w-przegladarce-sie-nie-otwiera">Terminal w przeglądarce się nie otwiera<a class="headerlink" href="#terminal-w-przegladarce-sie-nie-otwiera" title="Permanent link">&para;</a></h2>
+<p>Wymaga <code>orcan up --with-ttyd</code> (sam <code>orcan up</code> = tylko lokalnie — użyj <code>orcan enter</code>).</p>
 <ol>
 <li>Potwierdź, że kontener działa: <code>orcan logs</code></li>
-<li>Potwierdź URL: <code>orcan url</code> (domyślnie <code>http://localhost:7681</code>)</li>
-<li>Jeśli port jest zajęty, zmień <code>ttyd.host_port</code> w <code>orcan.config.json</code>, potem <code>orcan sync</code> i odtwórz kontener</li>
+<li>Potwierdź, że ttyd jest włączone: <code>orcan doctor</code> (sekcja Runtime) albo <code>orcan url</code></li>
+<li>Potwierdź URL: <code>orcan url</code> (domyślnie <code>http://127.0.0.1:7681</code> przy loopback <code>TTYD_BIND</code>)</li>
+<li>Jeśli port jest zajęty, zmień <code>ttyd.host_port</code> w <code>orcan.config.json</code>, potem <code>orcan sync</code> i <code>orcan down &amp;&amp; orcan up --with-ttyd</code></li>
 </ol>
 <h2 id="czeste-reconnecting-na-telefonie-lte">Częste „reconnecting” na telefonie / LTE<a class="headerlink" href="#czeste-reconnecting-na-telefonie-lte" title="Permanent link">&para;</a></h2>
 <p>Handoffy sieci komórkowej zrywają WebSocket ttyd — to oczekiwane. Procesy w tmux przeżywają.</p>
@@ -2065,8 +2123,8 @@ scalony; żadne wydanie ttyd tego jeszcze nie ma — przypięte <code>1.7.7</cod
 <h2 id="bedy-socketa-dockera-wewnatrz-kontenera">Błędy socketa Dockera wewnątrz kontenera<a class="headerlink" href="#bedy-socketa-dockera-wewnatrz-kontenera" title="Permanent link">&para;</a></h2>
 <p>Użyj <code>orcan up --with-docker</code>. Zwykły <code>orcan up</code> nie montuje socketa.</p>
 <p>Jeśli w kontenerze <code>docker</code> wymaga <code>sudo</code>, GID socketa na hoście musi zgadzać się z <code>DOCKER_GID</code> w <code>.env</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>stat<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;%g&#39;</span><span class="w"> </span>/var/run/docker.sock
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>DOCKER_GID<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ORCAN_HOME</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/.env&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>stat<span class="w"> </span>-c<span class="w"> </span><span class="s1">'%g'</span><span class="w"> </span>/var/run/docker.sock
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>DOCKER_GID<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">ORCAN_HOME</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/.env"</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
 </span></code></pre></div>
 <p><code>orcan sync</code> ponownie wykrywa GID socketa z hosta (nie zostawiaj starego <code>999</code> z <code>.env.example</code>).</p>
@@ -2125,7 +2183,7 @@ scalony; żadne wydanie ttyd tego jeszcze nie ma — przypięte <code>1.7.7</cod
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="13 sierpnia 2026 22:34:06 UTC">13 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 sierpnia 2026 09:26:50 UTC">23 sierpnia 2026</span>
   </span>
 
     

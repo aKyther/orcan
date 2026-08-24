@@ -520,6 +520,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skrzynka agentów
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1820,12 +1876,16 @@ Etykieta wersji: <code>ORCAN_VERSION</code> / <code>/etc/orcan/version</code>.</
 <td>Bazowy serwis, bindy <code>$ORCAN_DATA</code>, bez socketa Dockera</td>
 </tr>
 <tr>
+<td><code>docker-compose.keepalive.yml</code></td>
+<td><code>sleep infinity</code> — domyślne <code>orcan up</code> (lokalnie; <code>orcan enter</code>)</td>
+</tr>
+<tr>
 <td><code>docker-compose.docker.yml</code></td>
 <td>Socket Dockera hosta + <code>DOCKER_GID</code></td>
 </tr>
 <tr>
 <td><code>docker-compose.ttyd.yml</code></td>
-<td><code>cursor-ttyd</code>, opublikowany port, healthcheck</td>
+<td><code>cursor-ttyd</code> przy <code>orcan up --with-ttyd</code>; opublikowany port (<code>TTYD_BIND</code>, domyślnie <code>127.0.0.1</code>), opcjonalne <code>TTYD_CREDENTIAL</code>, healthcheck</td>
 </tr>
 <tr>
 <td><code>mounts/compose-projects.generated.yml</code></td>
@@ -1833,6 +1893,12 @@ Etykieta wersji: <code>ORCAN_VERSION</code> / <code>/etc/orcan/version</code>.</
 </tr>
 </tbody>
 </table>
+<p>Nakładki dla <code>orcan up --with-ttyd</code> / <code>--with-docker</code> / <code>--with-git</code> /
+<code>--with-network</code> są opt-in. Drabinka możliwości i ryzyka: <a href="../security/">Bezpieczeństwo</a>.</p>
+<p>ttyd: domyślna publikacja to loopback (<code>TTYD_BIND=127.0.0.1</code>).
+<strong>Rekomendowany dostęp zdalny</strong> to Tailscale (albo inny prywatny VPN) do tego
+hosta, potem <code>http://localhost:&lt;port&gt;</code>. Opcjonalne <code>TTYD_CREDENTIAL</code> to
+warstwa dodatkowa, gdy musisz bindować poza loopback.</p>
 <h2 id="bindy-orcan_data">Bindy <code>$ORCAN_DATA</code><a class="headerlink" href="#bindy-orcan_data" title="Permanent link">&para;</a></h2>
 <p>Domyślny root hosta: <code>~/.config/orcan</code>.</p>
 <table>
@@ -1856,16 +1922,31 @@ Etykieta wersji: <code>ORCAN_VERSION</code> / <code>/etc/orcan/version</code>.</
 <td><code>~/.claude</code> (<code>CLAUDE_CONFIG_DIR</code> — OAuth + settings przeżywają restarty)</td>
 </tr>
 <tr>
-<td><code>cache/</code>, <code>npm/</code>, <code>pnpm/</code>, <code>cargo/</code>, <code>go/</code></td>
-<td>Cache/home narzędzi</td>
+<td><code>codex/</code></td>
+<td><code>~/.codex</code></td>
 </tr>
 <tr>
-<td><code>shell-history/</code></td>
-<td><code>/command-history</code> (historia zsh)</td>
+<td><code>cache/</code></td>
+<td><code>~/.cache</code> (npm / pnpm / cargo / go / uv / … gniazdują tu przez env)</td>
+</tr>
+<tr>
+<td><code>history/</code></td>
+<td><code>~/.local/share/orcan/history</code> (<code>HISTFILE</code>)</td>
+</tr>
+<tr>
+<td><code>dotfiles/</code></td>
+<td><code>~/.config/orcan/dotfiles</code></td>
 </tr>
 </tbody>
 </table>
+<p>W kontenerze <code>~/orcan/</code> to mapa symlinków (agents, cache, history, dotfiles,
+workspaces), żeby łatwo ogarnąć drzewo sandboxa. Narzędzia nadal używają
+swoich normalnych home (<code>~/.cursor</code>, …).</p>
 <p>Nazwane wolumeny Dockera <strong>nie</strong> są używane do tych danych.</p>
+<p>Upgrade ze starszego layoutu <code>$ORCAN_DATA</code> (płaskie <code>npm/</code> / <code>shell-history/</code>
+albo zagnieżdżone <code>cache/cache/</code>): na hoście uruchom
+<code>bash scripts/migrations/consolidate-container-data.sh</code> przed
+<code>orcan sync &amp;&amp; orcan up</code>.</p>
 <h2 id="opcjonalny-prywatny-rejestr">Opcjonalny prywatny rejestr<a class="headerlink" href="#opcjonalny-prywatny-rejestr" title="Permanent link">&para;</a></h2>
 <p>CI <strong>nie</strong> publikuje obrazów. Dla własnego rejestru użyj <code>orcan pull</code> / <code>orcan publish</code> (zobacz <a href="../cli/">Referencja CLI</a>). Helpery maintainerów: <a href="../makefile/#opcjonalny-prywatny-rejestr">Makefile — opcjonalny rejestr</a>.</p>
 <h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
@@ -1897,7 +1978,7 @@ Etykieta wersji: <code>ORCAN_VERSION</code> / <code>/etc/orcan/version</code>.</
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="13 sierpnia 2026 22:34:06 UTC">13 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 sierpnia 2026 09:26:50 UTC">23 sierpnia 2026</span>
   </span>
 
     
