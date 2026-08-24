@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`shfmt` + `difft` (difftastic) in the image.** `shfmt` formats shell
+  scripts; `difft` gives a structural diff, useful when a large refactor's
+  line diff is hard to read. Both added to the "prefer the faster tool"
+  guidance in the Cursor `operating-principles.mdc` rule and the generated
+  per-workspace `AGENTS.md`/`CLAUDE.md`.
+
 ### Documentation
 
 - **New EN+PL page: [Runtime reconcile](docs/en/ideas/runtime-reconcile.md).**
