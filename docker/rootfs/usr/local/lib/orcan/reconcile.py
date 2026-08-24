@@ -214,6 +214,8 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
             "  A built-in editor/search tool still comes first when one is available.",
             "- Python deps: prefer `uv` / `uvx` — do not `pip install` into system Python.",
             "- Run available checks before claiming success; label what you did not run.",
+            "- Git commits you create: no `Co-Authored-By` (or similar AI-attribution)",
+            "  trailer. The human is the sole author of record.",
             "- Learned something durably true about a project? Draft it with",
             "  `orcan-context-propose --project NAME --text \"...\" --justification \"...\"`",
             "  (ask before running it). It only ever proposes — a human still decides",

@@ -114,3 +114,8 @@ Separate from Context Assertions (`.orcan/context-inbox/` → `CONTEXT-ASSERTION
 - `make test` when Docker behaviour changes and Docker is available
 
 Report what ran, what did not, and environment limits.
+
+## Commits
+
+If you create a git commit, do not add a `Co-Authored-By` (or similar
+AI-attribution) trailer. The human is the sole author of record.
