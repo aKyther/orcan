@@ -1902,7 +1902,7 @@ maszynie</strong>, <strong>nie</strong> twarda granica multi-tenant.</p>
 <tr>
 <td>Terminal w przeglądarce (zdalnie / telefon)</td>
 <td><code>--with-ttyd</code></td>
-<td>Publikuje ttyd (<code>TTYD_BIND</code> domyślnie loopback); zdalnie preferuj Tailscale</td>
+<td>Publikuje ttyd (<code>TTYD_BIND</code> domyślnie wszystkie interfejsy); preferuj Tailscale + auth</td>
 </tr>
 <tr>
 <td>Dojście do innego stacka Compose po nazwie/IP</td>
@@ -2006,22 +2006,24 @@ i przeglądaj każde zadanie przed akceptacją.</p>
 ten katalog jako wrażliwy.</p>
 <p><code>orcan uninstall --purge-data</code> usuwa go po potwierdzeniu.</p>
 <h2 id="terminal-w-przegladarce">Terminal w przeglądarce<a class="headerlink" href="#terminal-w-przegladarce" title="Permanent link">&para;</a></h2>
-<p><strong>Rekomendowany dostęp zdalny:</strong> zostaw publikację na loopback i dochodź do
-maszyny przez <strong>Tailscale</strong> (albo inny prywatny VPN), potem otwórz
-<code>http://localhost:&lt;port&gt;</code> na tym hoście. To domyślna rekomendacja produktu.</p>
+<p><strong>Rekomendowany dostęp zdalny:</strong> dochodź do maszyny przez <strong>Tailscale</strong>
+(albo inny prywatny VPN) i użyj HTTP basic auth (<code>TTYD_CREDENTIAL</code> albo
+<code>--with-ttyd-auth</code>). Tylko lokalna przeglądarka na hoście:
+<code>TTYD_BIND=127.0.0.1</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Domyślnie port ttyd jest publikowany <strong>tylko na loopback</strong>
-(<code>TTYD_BIND=127.0.0.1</code>). ttyd <strong>nie ma autentykacji</strong>, dopóki nie ustawisz
-<code>TTYD_CREDENTIAL=user:password</code> w <code>.env</code>. Nie wystawiaj portu do
-publicznego Internetu bez auth i TLS.</p>
+<p>Domyślnie port ttyd jest publikowany na <strong>wszystkich interfejsach hosta</strong>
+(<code>TTYD_BIND=0.0.0.0</code>). ttyd <strong>nie ma autentykacji</strong>, dopóki nie ustawisz
+<code>TTYD_CREDENTIAL=user:password</code> w <code>.env</code> albo <code>--with-ttyd-auth</code>.
+Nie wystawiaj portu do publicznego Internetu bez auth i TLS.</p>
 </div>
-<p>Opcjonalne HTTP basic auth (<code>TTYD_CREDENTIAL</code>) jest wspierane, gdy musisz
-publikować poza loopback (<code>TTYD_BIND=0.0.0.0</code>). Najpierw Tailscale; hasło traktuj
-jako warstwę dodatkową, nie główną historię dostępu zdalnego.</p>
-<p>Config: <code>ttyd.bind</code> w <code>orcan.config.json</code> (domyślnie <code>127.0.0.1</code>) → <code>TTYD_BIND</code>
+<p>Opcjonalne HTTP basic auth (<code>TTYD_CREDENTIAL</code>) to warstwa dodatkowa, gdy
+port jest osiągalny w LAN lub VPN. Najpierw Tailscale; hasło traktuj jako
+warstwę dodatkową, nie główną historię dostępu zdalnego.</p>
+<p>Config: <code>ttyd.bind</code> w <code>orcan.config.json</code> (domyślnie <code>0.0.0.0</code>) → <code>TTYD_BIND</code>
 przez <code>orcan sync</code>. Credentials tylko w env, żeby sekrety nie trafiały do
-commitowanego configu.</p>
+commitowanego configu. Istniejące <code>.env</code> nie jest nadpisywane, jeśli
+<code>TTYD_BIND</code> już jest ustawione.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p><code>orcan up --with-ttyd-auth USER:PASS</code> ustawia ten sam <code>TTYD_CREDENTIAL</code>
@@ -2069,7 +2071,7 @@ procesy na hoście (<code>ps</code>), przez cały czas trwania <code>orcan up</c
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="24 sierpnia 2026 14:21:02 UTC">24 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="24 sierpnia 2026 14:29:59 UTC">24 sierpnia 2026</span>
   </span>
 
     

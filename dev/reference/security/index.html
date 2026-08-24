@@ -1901,7 +1901,7 @@ a sandbox.</p>
 <tr>
 <td>Browser terminal (remote / phone)</td>
 <td><code>--with-ttyd</code></td>
-<td>Publishes ttyd (<code>TTYD_BIND</code> defaults to loopback); use Tailscale for remote</td>
+<td>Publishes ttyd (<code>TTYD_BIND</code> defaults to all interfaces); prefer Tailscale + auth</td>
 </tr>
 <tr>
 <td>Reach another compose stack by name/IP</td>
@@ -2002,23 +2002,23 @@ review each task before approving it.</p>
 that directory as sensitive.</p>
 <p><code>orcan uninstall --purge-data</code> deletes it after confirmation.</p>
 <h2 id="browser-terminal">Browser terminal<a class="headerlink" href="#browser-terminal" title="Permanent link">&para;</a></h2>
-<p><strong>Recommended remote access:</strong> keep the publish address on loopback and reach
-the machine over <strong>Tailscale</strong> (or another private VPN), then open
-<code>http://localhost:&lt;port&gt;</code> on that host. That is the default product
-recommendation.</p>
+<p><strong>Recommended remote access:</strong> reach the machine over <strong>Tailscale</strong> (or
+another private VPN) and use HTTP basic auth (<code>TTYD_CREDENTIAL</code> or
+<code>--with-ttyd-auth</code>). For a host-local browser only, set
+<code>TTYD_BIND=127.0.0.1</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>By default the ttyd port is published on <strong>loopback only</strong>
-(<code>TTYD_BIND=127.0.0.1</code>). ttyd has <strong>no authentication</strong> unless you set
-<code>TTYD_CREDENTIAL=user:password</code> in <code>.env</code>. Do not expose the port to the
-public Internet without auth and TLS.</p>
+<p>By default the ttyd port is published on <strong>all host interfaces</strong>
+(<code>TTYD_BIND=0.0.0.0</code>). ttyd has <strong>no authentication</strong> unless you set
+<code>TTYD_CREDENTIAL=user:password</code> in <code>.env</code> or use <code>--with-ttyd-auth</code>.
+Do not expose the port to the public Internet without auth and TLS.</p>
 </div>
-<p>Optional HTTP basic auth (<code>TTYD_CREDENTIAL</code>) is supported for cases where you
-must publish beyond loopback (<code>TTYD_BIND=0.0.0.0</code>). Prefer Tailscale first;
-treat credentials as a secondary layer, not the primary remote-access story.</p>
-<p>Config: <code>ttyd.bind</code> in <code>orcan.config.json</code> (default <code>127.0.0.1</code>) → <code>TTYD_BIND</code>
+<p>Optional HTTP basic auth (<code>TTYD_CREDENTIAL</code>) is the extra layer when the
+port is reachable on a LAN or VPN. Prefer Tailscale first; treat
+credentials as a secondary layer, not the primary remote-access story.</p>
+<p>Config: <code>ttyd.bind</code> in <code>orcan.config.json</code> (default <code>0.0.0.0</code>) → <code>TTYD_BIND</code>
 via <code>orcan sync</code>. Credentials stay env-only so secrets stay out of committed
-config.</p>
+config. Existing <code>.env</code> is not rewritten if <code>TTYD_BIND</code> is already set.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p><code>orcan up --with-ttyd-auth USER:PASS</code> sets the same <code>TTYD_CREDENTIAL</code> as
@@ -2066,7 +2066,7 @@ for a quick one-off rather than routine use.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 24, 2026 14:21:02 UTC">August 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 24, 2026 14:29:59 UTC">August 24, 2026</span>
   </span>
 
     
