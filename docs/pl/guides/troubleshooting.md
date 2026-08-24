@@ -124,6 +124,22 @@ orcan up --with-docker --with-git
 
 Montuje hostowy `~/.ssh` tylko do odczytu (oraz agenta SSH, gdy `SSH_AUTH_SOCK` jest ustawiony). Zwykłe `orcan up` tego nie robi.
 
+## Po upgrade do 2.0 został `space/` jako `root:root`
+
+W 2.0 managed projects root zmienił nazwę `space/` → `sandbox/`. Jeśli po
+rename `.env` nadal ma `ORCAN_PROJECTS_ROOT=…/space`, następne `orcan up`
+montuje **nieistniejącą** ścieżkę na hoście i daemon Dockera tworzy ją jako
+`root:root`. `orcan doctor` to zgłasza (check legacy `space/`).
+
+```bash
+orcan down
+# pusty leftover (typowy przypadek):
+sudo rmdir "${ORCAN_DATA:-$HOME/.config/orcan}/space"
+# albo, jeśli nadal są Twoje checkouty:
+bash "${ORCAN_ROOT}/scripts/migrations/rename-space-to-sandbox.sh"
+orcan sync && orcan down && orcan up
+```
+
 ## Checklista diagnostyczna
 
 ```bash

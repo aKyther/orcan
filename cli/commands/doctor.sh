@@ -77,6 +77,34 @@ orcan_cmd_doctor() {
         check "generated runtime" "0" "run: orcan sync (creates .env + mounts/* for orcan up)"
     fi
 
+    # v2.0 renamed space/ → sandbox/. If .env still points at space/, the next
+    # `orcan up` bind-mounts a missing host path and Docker creates it root:root.
+    orcan_load_env 2>/dev/null || true
+    local space_dir="${ORCAN_DATA%/}/space"
+    local space_stat="" space_uid="" space_owner=""
+    local projects_root="${ORCAN_PROJECTS_ROOT:-}"
+    if [[ -d "${space_dir}" ]]; then
+        if space_stat="$(stat -c '%u %U:%G' "${space_dir}" 2>/dev/null)"; then
+            :
+        else
+            space_stat="$(stat -f '%u %Su:%Sg' "${space_dir}" 2>/dev/null || printf 'unknown unknown')"
+        fi
+        space_uid="${space_stat%% *}"
+        space_owner="${space_stat#* }"
+        if [[ "${space_uid}" == "0" ]]; then
+            check "legacy space/ dir" "0" \
+                "${space_dir} is ${space_owner} — Docker recreated a missing bind after space→sandbox. orcan down; empty: sudo rmdir; else: bash ${ORCAN_ROOT}/scripts/migrations/rename-space-to-sandbox.sh"
+        else
+            check "legacy space/ dir" "0" \
+                "${space_dir} leftover (owner ${space_owner}) — bash ${ORCAN_ROOT}/scripts/migrations/rename-space-to-sandbox.sh"
+        fi
+    elif [[ -n "${projects_root}" && "${projects_root}" == "${space_dir}" ]]; then
+        check "legacy space/ path" "0" \
+            "ORCAN_PROJECTS_ROOT still ${projects_root} — next orcan up recreates it as root:root. Point .env at ${ORCAN_DATA%/}/sandbox; bash ${ORCAN_ROOT}/scripts/migrations/rename-space-to-sandbox.sh"
+    else
+        check "legacy space/ dir" "1" "absent (v2 default is sandbox/)"
+    fi
+
     printf '\nRuntime\n'
     if orcan_have docker; then
         orcan_load_env 2>/dev/null || true
