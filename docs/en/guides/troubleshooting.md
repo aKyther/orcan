@@ -22,7 +22,7 @@ Requires `orcan up --with-ttyd` (plain `orcan up` is local-only — use `orcan e
 
 1. Confirm the container is up: `orcan logs`
 2. Confirm ttyd is on: `orcan doctor` (Runtime section) or `orcan url`
-3. Confirm the URL: `orcan url` (default `http://127.0.0.1:7681` when `TTYD_BIND` is loopback)
+3. Confirm the URL: `orcan url` (prints `http://localhost:7681` when `TTYD_BIND` is `0.0.0.0`)
 4. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `orcan sync` and `orcan down && orcan up --with-ttyd`
 
 ## Frequent “reconnecting” on phone / mobile network

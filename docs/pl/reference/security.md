@@ -25,7 +25,7 @@ Wybieraj najsłabszą flagę, która wystarcza:
 | Potrzeba | Flaga | Kompromis |
 | --- | --- | --- |
 | Tylko kontener lokalny (`orcan enter`) | *(brak)* — domyślne `orcan up` | Najmniejszy blast radius — bez publikacji portu ttyd |
-| Terminal w przeglądarce (zdalnie / telefon) | `--with-ttyd` | Publikuje ttyd (`TTYD_BIND` domyślnie loopback); zdalnie preferuj Tailscale |
+| Terminal w przeglądarce (zdalnie / telefon) | `--with-ttyd` | Publikuje ttyd (`TTYD_BIND` domyślnie wszystkie interfejsy); preferuj Tailscale + auth |
 | Dojście do innego stacka Compose po nazwie/IP | `--with-network NAME` | Tylko sieć — **wyklucza się z `--with-docker`** |
 | Nested `docker` / Compose wobec engine hosta | `--with-docker` | **Świadomie wysokie ryzyko** — opt-in; **wyklucza się z `--with-network`** |
 | `git push` / `pull` po SSH z kontenera | `--with-git` | Klucze / agent w kontenerze — opt-in; łączy się z dowolnym trybem powyżej |
@@ -102,23 +102,25 @@ ten katalog jako wrażliwy.
 
 ## Terminal w przeglądarce
 
-**Rekomendowany dostęp zdalny:** zostaw publikację na loopback i dochodź do
-maszyny przez **Tailscale** (albo inny prywatny VPN), potem otwórz
-`http://localhost:<port>` na tym hoście. To domyślna rekomendacja produktu.
+**Rekomendowany dostęp zdalny:** dochodź do maszyny przez **Tailscale**
+(albo inny prywatny VPN) i użyj HTTP basic auth (`TTYD_CREDENTIAL` albo
+`--with-ttyd-auth`). Tylko lokalna przeglądarka na hoście:
+`TTYD_BIND=127.0.0.1`.
 
 !!! warning
-    Domyślnie port ttyd jest publikowany **tylko na loopback**
-    (`TTYD_BIND=127.0.0.1`). ttyd **nie ma autentykacji**, dopóki nie ustawisz
-    `TTYD_CREDENTIAL=user:password` w `.env`. Nie wystawiaj portu do
-    publicznego Internetu bez auth i TLS.
+    Domyślnie port ttyd jest publikowany na **wszystkich interfejsach hosta**
+    (`TTYD_BIND=0.0.0.0`). ttyd **nie ma autentykacji**, dopóki nie ustawisz
+    `TTYD_CREDENTIAL=user:password` w `.env` albo `--with-ttyd-auth`.
+    Nie wystawiaj portu do publicznego Internetu bez auth i TLS.
 
-Opcjonalne HTTP basic auth (`TTYD_CREDENTIAL`) jest wspierane, gdy musisz
-publikować poza loopback (`TTYD_BIND=0.0.0.0`). Najpierw Tailscale; hasło traktuj
-jako warstwę dodatkową, nie główną historię dostępu zdalnego.
+Opcjonalne HTTP basic auth (`TTYD_CREDENTIAL`) to warstwa dodatkowa, gdy
+port jest osiągalny w LAN lub VPN. Najpierw Tailscale; hasło traktuj jako
+warstwę dodatkową, nie główną historię dostępu zdalnego.
 
-Config: `ttyd.bind` w `orcan.config.json` (domyślnie `127.0.0.1`) → `TTYD_BIND`
+Config: `ttyd.bind` w `orcan.config.json` (domyślnie `0.0.0.0`) → `TTYD_BIND`
 przez `orcan sync`. Credentials tylko w env, żeby sekrety nie trafiały do
-commitowanego configu.
+commitowanego configu. Istniejące `.env` nie jest nadpisywane, jeśli
+`TTYD_BIND` już jest ustawione.
 
 !!! warning
     `orcan up --with-ttyd-auth USER:PASS` ustawia ten sam `TTYD_CREDENTIAL`

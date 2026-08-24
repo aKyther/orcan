@@ -73,7 +73,7 @@ After `orcan up`, use `orcan enter` on the same machine (or `orcan up --with-tty
 
 ## Status
 
-Version **2.1.0** (see [Changelog](changelog.md)). Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`); CI does not publish container images.
+Version **2.2.0** (see [Changelog](changelog.md)). Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`); CI does not publish container images.
 
 ## See also
 

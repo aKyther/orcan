@@ -37,16 +37,16 @@ Etykieta wersji: `ORCAN_VERSION` / `/etc/orcan/version`.
 | `docker-compose.yml` | Bazowy serwis, bindy `$ORCAN_DATA`, bez socketa Dockera |
 | `docker-compose.keepalive.yml` | `sleep infinity` — domyślne `orcan up` (lokalnie; `orcan enter`) |
 | `docker-compose.docker.yml` | Socket Dockera hosta + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | `cursor-ttyd` przy `orcan up --with-ttyd`; opublikowany port (`TTYD_BIND`, domyślnie `127.0.0.1`), opcjonalne `TTYD_CREDENTIAL`, healthcheck |
+| `docker-compose.ttyd.yml` | `cursor-ttyd` przy `orcan up --with-ttyd`; opublikowany port (`TTYD_BIND`, domyślnie `0.0.0.0`), opcjonalne `TTYD_CREDENTIAL`, healthcheck |
 | `mounts/compose-projects.generated.yml` | Mounty projektów path-parity (generowane) |
 
 Nakładki dla `orcan up --with-ttyd` / `--with-docker` / `--with-git` /
 `--with-network` są opt-in. Drabinka możliwości i ryzyka: [Bezpieczeństwo](security.md).
 
-ttyd: domyślna publikacja to loopback (`TTYD_BIND=127.0.0.1`).
-**Rekomendowany dostęp zdalny** to Tailscale (albo inny prywatny VPN) do tego
-hosta, potem `http://localhost:<port>`. Opcjonalne `TTYD_CREDENTIAL` to
-warstwa dodatkowa, gdy musisz bindować poza loopback.
+ttyd: domyślna publikacja to wszystkie interfejsy (`TTYD_BIND=0.0.0.0`).
+**Rekomendowany dostęp zdalny** to Tailscale (albo inny prywatny VPN) plus
+`TTYD_CREDENTIAL` / `--with-ttyd-auth`. `TTYD_BIND=127.0.0.1` tylko lokalnie
+na hoście. `orcan url` drukuje `http://localhost:<port>` przy wildcard bind.
 
 ## Bindy `$ORCAN_DATA`
 

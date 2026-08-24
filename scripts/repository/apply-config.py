@@ -597,8 +597,8 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
         "ttyd": {
             "port": int(ttyd.get("port", 7681)),
             "host_port": int(ttyd.get("host_port", ttyd.get("port", 7681))),
-            # Host publish address — default loopback (security hardening).
-            "bind": str(ttyd.get("bind") or "127.0.0.1").strip() or "127.0.0.1",
+            # Host publish address — default all interfaces (LAN / VM).
+            "bind": str(ttyd.get("bind") or "0.0.0.0").strip() or "0.0.0.0",
             "font_size": int(ttyd.get("font_size", 19)),
             "font_family": str(
                 ttyd.get("font_family")
@@ -655,7 +655,7 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
         "ttyd": {
             "port": 7681,
             "host_port": 7681,
-            "bind": "127.0.0.1",
+            "bind": "0.0.0.0",
             "font_size": 19,
             "font_family": "Menlo, Monaco, 'Courier New', monospace",
             "theme": "dark",
@@ -800,7 +800,7 @@ def main() -> None:
     resources = built["runtime"]["resources"]
     ensure_env_key_unless_set(env_path, "TTYD_PORT", str(ttyd["port"]))
     ensure_env_key_unless_set(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
-    ensure_env_key_unless_set(env_path, "TTYD_BIND", str(ttyd.get("bind", "127.0.0.1")))
+    ensure_env_key_unless_set(env_path, "TTYD_BIND", str(ttyd.get("bind", "0.0.0.0")))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_FAMILY", str(ttyd["font_family"]))
     ensure_env_key_unless_set(env_path, "TTYD_THEME", str(ttyd["theme"]))

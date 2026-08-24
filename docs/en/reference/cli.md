@@ -95,7 +95,7 @@ orcan down && orcan up
 | Flag | Effect |
 | --- | --- |
 | *(none)* | Local-only container — no published ttyd port; use `orcan enter` |
-| `--with-ttyd` \| `--with-ttyd-auth USER:PASS` | **Pick one.** `--with-ttyd`: browser terminal, no password. `--with-ttyd-auth USER:PASS`: same browser terminal **with** HTTP basic auth. Do not pass both. (`TTYD_BIND` defaults to loopback.) |
+| `--with-ttyd` \| `--with-ttyd-auth USER:PASS` | **Pick one.** `--with-ttyd`: browser terminal, no password. `--with-ttyd-auth USER:PASS`: same browser terminal **with** HTTP basic auth. Do not pass both. (`TTYD_BIND` defaults to `0.0.0.0`.) |
 | `--with-docker` \| `--with-network NAME` | **Pick one.** `--with-docker`: mount `/var/run/docker.sock` (Docker-from-Docker). `--with-network NAME`: join an existing Docker network (no socket) |
 | `--with-git` | Mount host `~/.ssh` read-only (+ SSH agent when `SSH_AUTH_SOCK` is set) for push/pull |
 

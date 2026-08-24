@@ -22,7 +22,7 @@ Wymaga `orcan up --with-ttyd` (sam `orcan up` = tylko lokalnie — użyj `orcan 
 
 1. Potwierdź, że kontener działa: `orcan logs`
 2. Potwierdź, że ttyd jest włączone: `orcan doctor` (sekcja Runtime) albo `orcan url`
-3. Potwierdź URL: `orcan url` (domyślnie `http://127.0.0.1:7681` przy loopback `TTYD_BIND`)
+3. Potwierdź URL: `orcan url` (przy `TTYD_BIND=0.0.0.0` to `http://localhost:7681`)
 4. Jeśli port jest zajęty, zmień `ttyd.host_port` w `orcan.config.json`, potem `orcan sync` i `orcan down && orcan up --with-ttyd`
 
 ## Częste „reconnecting” na telefonie / LTE

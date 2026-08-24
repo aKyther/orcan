@@ -40,7 +40,7 @@ orcan up              # lokalnie — `orcan enter` na tej samej maszynie
 
 Na tej samej maszynie użyj **`orcan enter`** — domyślny tryb `orcan up` nie publikuje portu ttyd.
 
-Terminal w przeglądarce (zdalnie / telefon): `orcan up --with-ttyd`, potem URL z `orcan url` (domyślnie `http://127.0.0.1:7681`). Zobacz [Workflowy — lokalny terminal](../guides/workflows.md#local-terminal).
+Terminal w przeglądarce (zdalnie / telefon): `orcan up --with-ttyd`, potem URL z `orcan url` (przy wildcard bind `http://localhost:7681`). Zobacz [Workflowy — lokalny terminal](../guides/workflows.md#local-terminal).
 
 ## Git w kontenerze
 

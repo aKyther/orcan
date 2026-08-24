@@ -24,7 +24,7 @@ Prefer the weakest flag that still does the job:
 | Need | Flag | Tradeoff |
 | --- | --- | --- |
 | Local container only (`orcan enter`) | *(none)* — default `orcan up` | Smallest blast radius — no published ttyd port |
-| Browser terminal (remote / phone) | `--with-ttyd` | Publishes ttyd (`TTYD_BIND` defaults to loopback); use Tailscale for remote |
+| Browser terminal (remote / phone) | `--with-ttyd` | Publishes ttyd (`TTYD_BIND` defaults to all interfaces); prefer Tailscale + auth |
 | Reach another compose stack by name/IP | `--with-network NAME` | Network reach only — **mutually exclusive with `--with-docker`** |
 | Run nested `docker` / Compose against the host engine | `--with-docker` | **Known high risk** — opt-in; **mutually exclusive with `--with-network`** |
 | `git push` / `pull` over SSH from inside | `--with-git` | Keys / agent exposed to the container — opt-in; combines with any mode above |
@@ -98,24 +98,24 @@ that directory as sensitive.
 
 ## Browser terminal
 
-**Recommended remote access:** keep the publish address on loopback and reach
-the machine over **Tailscale** (or another private VPN), then open
-`http://localhost:<port>` on that host. That is the default product
-recommendation.
+**Recommended remote access:** reach the machine over **Tailscale** (or
+another private VPN) and use HTTP basic auth (`TTYD_CREDENTIAL` or
+`--with-ttyd-auth`). For a host-local browser only, set
+`TTYD_BIND=127.0.0.1`.
 
 !!! warning
-    By default the ttyd port is published on **loopback only**
-    (`TTYD_BIND=127.0.0.1`). ttyd has **no authentication** unless you set
-    `TTYD_CREDENTIAL=user:password` in `.env`. Do not expose the port to the
-    public Internet without auth and TLS.
+    By default the ttyd port is published on **all host interfaces**
+    (`TTYD_BIND=0.0.0.0`). ttyd has **no authentication** unless you set
+    `TTYD_CREDENTIAL=user:password` in `.env` or use `--with-ttyd-auth`.
+    Do not expose the port to the public Internet without auth and TLS.
 
-Optional HTTP basic auth (`TTYD_CREDENTIAL`) is supported for cases where you
-must publish beyond loopback (`TTYD_BIND=0.0.0.0`). Prefer Tailscale first;
-treat credentials as a secondary layer, not the primary remote-access story.
+Optional HTTP basic auth (`TTYD_CREDENTIAL`) is the extra layer when the
+port is reachable on a LAN or VPN. Prefer Tailscale first; treat
+credentials as a secondary layer, not the primary remote-access story.
 
-Config: `ttyd.bind` in `orcan.config.json` (default `127.0.0.1`) → `TTYD_BIND`
+Config: `ttyd.bind` in `orcan.config.json` (default `0.0.0.0`) → `TTYD_BIND`
 via `orcan sync`. Credentials stay env-only so secrets stay out of committed
-config.
+config. Existing `.env` is not rewritten if `TTYD_BIND` is already set.
 
 !!! warning
     `orcan up --with-ttyd-auth USER:PASS` sets the same `TTYD_CREDENTIAL` as

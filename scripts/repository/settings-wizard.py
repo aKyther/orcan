@@ -34,7 +34,7 @@ DEFAULT_TMUX = {"initial_windows": 3, "window_prefix": "tab"}
 DEFAULT_TTYD = {
     "port": 7681,
     "host_port": 7681,
-    "bind": "127.0.0.1",
+    "bind": "0.0.0.0",
     "font_size": 19,
     "font_family": "Menlo, Monaco, 'Courier New', monospace",
     "theme": "dark",
@@ -52,7 +52,7 @@ def summarize(cfg: dict[str, Any]) -> None:
         f"prefix {tmux.get('window_prefix', '?')!r}"
     )
     info(
-        f"  ttyd: host {ttyd.get('bind', '127.0.0.1')}:{ttyd.get('host_port', '?')}, "
+        f"  ttyd: host {ttyd.get('bind', '0.0.0.0')}:{ttyd.get('host_port', '?')}, "
         f"font {ttyd.get('font_size', '?')}"
     )
 
@@ -75,9 +75,9 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
     port = ask("ttyd container port", str(current.get("port", 7681)))
     host_port = ask("ttyd host port", str(current.get("host_port", port)))
     bind = ask(
-        "ttyd host bind (127.0.0.1=local only; 0.0.0.0=all interfaces)",
-        str(current.get("bind", "127.0.0.1")),
-    ).strip() or "127.0.0.1"
+        "ttyd host bind (0.0.0.0=all interfaces; 127.0.0.1=local only)",
+        str(current.get("bind", "0.0.0.0")),
+    ).strip() or "0.0.0.0"
     if bind not in ("127.0.0.1", "0.0.0.0", "localhost") and ":" not in bind:
         # Allow IPv4 literals; reject empty garbage.
         parts = bind.split(".")

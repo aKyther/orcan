@@ -40,7 +40,7 @@ orcan up              # local-only — use `orcan enter` on the same machine
 
 On the same machine use **`orcan enter`** — plain `orcan up` does not publish ttyd.
 
-For a browser terminal (remote / phone): `orcan up --with-ttyd`, then open `orcan url` (default `http://127.0.0.1:7681`). See [Workflows — local terminal](../guides/workflows.md#local-terminal).
+For a browser terminal (remote / phone): `orcan up --with-ttyd`, then open `orcan url` (wildcard bind prints `http://localhost:7681`). See [Workflows — local terminal](../guides/workflows.md#local-terminal).
 
 ## Git inside the container
 
