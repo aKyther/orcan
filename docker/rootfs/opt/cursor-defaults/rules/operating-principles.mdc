@@ -40,6 +40,11 @@ is hard to read. A built-in editor/search tool (e.g. a Grep or Glob tool)
 still comes first when one is available — this is only about which shell
 command to reach for otherwise.
 
+## Commits
+
+If you create a git commit, do not add a `Co-Authored-By` (or similar
+AI-attribution) trailer. The human is the sole author of record.
+
 ## Repository clutter
 
 Do not create Markdown files for temporary notes, planning, or progress tracking unless the user explicitly asks.

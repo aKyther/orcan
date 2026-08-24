@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-08-24
+
 ### Added
 
 - **`orcan doctor` flags a leftover pre-2.0 `space/` projects root.** After
@@ -29,16 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `karpathy-guidelines` was adapted (its Cursor copy pointed at a
   Cursor-only rule file); the other five were identical for both agents
   already.
-
-### Documentation
-
-- **New EN+PL page: [Runtime reconcile](docs/en/ideas/runtime-reconcile.md).**
-  Documents the mechanism behind live workspace/project changes (same
-  `apply_workspaces()` at container boot and via `orcan sync`, the tmux
-  session reconcile, `--prune-orphans`). Closes a dangling reference —
-  `tests/integration/test-runtime-reconcile.sh`'s header pointed at a
-  `mental-model.md`/`AGENTS.md` section that didn't exist yet. Root
-  `AGENTS.md` gained the matching "Runtime modification" section.
+- **No AI co-author trailers in commits.** Root `AGENTS.md`, the generated
+  per-workspace `AGENTS.md`/`CLAUDE.md`, and Cursor's `operating-principles.mdc`
+  now all say the same thing: an agent-created commit gets no `Co-Authored-By`
+  (or similar) trailer — the human is the sole author of record.
 
 ### Fixed
 
@@ -48,44 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or authenticate to `ghcr.io/aquasecurity/trivy-db`. Grant `actions: write`
   + `packages: read`, pass the token as `TRIVY_USERNAME`/`TRIVY_PASSWORD`,
   and raise the scan timeout to 10m for the full image.
-- **Orphaned tmux session pruning was unreachable.** `orcan-tmux-reconcile-sessions
-  --prune-orphans` existed but no caller ever passed the flag. `orcan sync
-  --prune-orphans` now threads it through the live-reconcile path.
-- **`TTYD_BIND=0.0.0.0` printed an unusable URL.** `orcan url` / `orcan up
-  --with-ttyd` / `orcan doctor` now show `localhost` instead of the literal
-  wildcard bind (still shows a real address unchanged, e.g. a Tailscale IP).
-- **Live-reconcile could misclassify a managed project as unmanaged** when
-  `ORCAN_PROJECTS_ROOT` resolves through a symlink (e.g. a symlinked
-  `$HOME`) — `apply-config.py`'s `_is_under()` now resolves both sides
-  before comparing.
-- **`orcan-inbox` could crash on a claim race.** `claim_next()` sorted
-  candidates by `stat().st_mtime` with no handling for a file another
-  claimant already renamed away between `glob()` and `stat()`.
-- **Migration `move-worktrees-into-sandbox.sh` could silently strand legacy
-  worktrees** when `ORCAN_PROJECTS_ROOT` was customized and the target
-  `.worktrees/` dir already existed (pre-created by `update-env.sh`) — its
-  "nothing to migrate" fast-path only checked 2 of the 4 known legacy
-  locations.
-- **`orcan-runtime-status` and `orcan-tmux-reconcile-sessions` disagreed on
-  "orphaned"** — status now applies the same `ORCAN_WORKSPACE_NAME` tag
-  check the actual pruner uses, instead of flagging any unrecognized session.
-- **Missing `python3` was misreported as a sensitive-path rejection** in
-  `validate-project-dir.sh` — now a distinct, clear error.
-- **`path_guards.py` had no `validate.sh` coverage** despite backing the
-  sensitive-path security check — added to the require/syntax-check lists.
-- **`orcan_compose_ttyd_run()` (dead code, zero callers) duplicated its own
-  positional args** onto the forwarded `docker compose` invocation — fixed
-  the missing `shift`.
-
-### Changed
-
-- **`reconcile.py` skips no-op writes.** `.manifest.json`, `AGENTS.md`,
-  `CLAUDE.md`, and `README.workspace.md` are now only rewritten when content
-  actually changed, instead of unconditionally on every reconcile (now a
-  hot path — every `orcan sync` against a live container, not just boot).
-- **`tests/integration/test-runtime-reconcile.sh`** skips the Codex CLI
-  install (`INSTALL_CODEX=0`) — the test isn't about agent installs and was
-  paying for one anyway.
 
 ## [2.0.0] - 2026-08-23
 
