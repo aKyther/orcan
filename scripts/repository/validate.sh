@@ -46,6 +46,8 @@ require_file "cli/commands/uninstall.sh"
 require_file "cli/commands/context.sh"
 require_file "cli/commands/enter.sh"
 require_file "VERSION"
+require_file "cockpit/pyproject.toml"
+require_file "cockpit/uv.lock"
 require_file "CHANGELOG.md"
 require_file "requirements-docs.txt"
 require_file "CONTRIBUTING.md"
@@ -81,6 +83,11 @@ require_file "scripts/repository/python.sh"
 require_file "scripts/repository/release.sh"
 require_file "scripts/repository/check-product-name.sh"
 require_file "scripts/repository/docs-mike.sh"
+require_file "scripts/repository/generate-llms-txt.py"
+require_file "docs/llms.txt"
+require_file "docs/assets/stylesheets/orcan.css"
+require_file "docs/en/change-map.md"
+require_file "docs/pl/change-map.md"
 require_file "scripts/migrations/README.md"
 require_file "scripts/migrations/flatten-orcan-home.sh"
 require_file "docker/rootfs/opt/cursor-defaults/cli-config.json"
@@ -140,6 +147,16 @@ require_file "docker/rootfs/usr/local/bin/orcan-runtime-status"
 require_file "docker/rootfs/usr/local/lib/orcan/reconcile.py"
 require_file "docker/rootfs/usr/local/lib/orcan/agent_inbox.py"
 require_file "docker/rootfs/usr/local/lib/orcan/agent_executor.py"
+require_file "docker/rootfs/usr/local/lib/orcan/context_inbox.py"
+require_file "cockpit/pyproject.toml"
+require_file "cockpit/uv.lock"
+require_file "cockpit/src/orcan_cockpit/__init__.py"
+require_file "cockpit/src/orcan_cockpit/cli.py"
+require_file "cockpit/src/orcan_cockpit/picker.py"
+require_file "cockpit/src/orcan_cockpit/pty_terminal.py"
+require_file "cockpit/src/orcan_cockpit/panel.py"
+require_file "cockpit/src/orcan_cockpit/actions.py"
+require_file "cockpit/src/orcan_cockpit/app.py"
 require_file "docker/rootfs/usr/local/bin/orcan-inbox"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
@@ -246,6 +263,14 @@ for script in \
     docker/rootfs/usr/local/lib/orcan/reconcile.py \
     docker/rootfs/usr/local/lib/orcan/agent_inbox.py \
     docker/rootfs/usr/local/lib/orcan/agent_executor.py \
+    docker/rootfs/usr/local/lib/orcan/context_inbox.py \
+    cockpit/src/orcan_cockpit/__init__.py \
+    cockpit/src/orcan_cockpit/cli.py \
+    cockpit/src/orcan_cockpit/picker.py \
+    cockpit/src/orcan_cockpit/pty_terminal.py \
+    cockpit/src/orcan_cockpit/panel.py \
+    cockpit/src/orcan_cockpit/actions.py \
+    cockpit/src/orcan_cockpit/app.py \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
@@ -268,13 +293,20 @@ do
     fi
 done
 
-if [[ -f VERSION ]]; then
-    ver="$(tr -d '[:space:]' < VERSION)"
+if [[ -f cockpit/pyproject.toml ]]; then
+    ver="$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p' cockpit/pyproject.toml | head -n1)"
     if [[ ! "${ver}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        printf 'VERSION must be SemVer X.Y.Z (got: %s)\n' "${ver}" >&2
+        printf 'cockpit/pyproject.toml version must be SemVer X.Y.Z (got: %s)\n' "${ver:-empty}" >&2
         fail=1
     else
-        printf 'VERSION OK: %s\n' "${ver}"
+        printf 'VERSION OK: %s (cockpit/pyproject.toml)\n' "${ver}"
+        if [[ -f VERSION ]]; then
+            mirror="$(tr -d '[:space:]' < VERSION)"
+            if [[ "${mirror}" != "${ver}" ]]; then
+                printf 'VERSION mirror (%s) != pyproject (%s)\n' "${mirror}" "${ver}" >&2
+                fail=1
+            fi
+        fi
     fi
 fi
 

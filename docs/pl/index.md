@@ -1,82 +1,92 @@
 ---
 description: Orkiestrator kontekstu pracy dla agentów kodujących — wiele repozytoriów, jeden kontekst.
+tags:
+  - concept
 ---
 
 # Orcan
 
+<div class="orcan-hero" markdown>
+
 Orcan orkiestruje **kontekst pracy** dla agentów kodujących: które repozytoria należą do siebie, jak są montowane i jak wchodzisz do tego środowiska w Dockerze.
 
-**Nie** wybiera modeli. Cursor CLI (`agent`) i Claude Code (`claude`) zachowują własne konta i ustawienia modeli.
+**Nie** wybiera modeli — Cursor CLI (`agent`) i Claude Code (`claude`) zachowują własne konta.
 
-## Problem
+<span class="orcan-version">Wersja **3.0.0**</span>
 
-Utrzymujesz wiele repozytoriów. Często pochodzą z różnych organizacji. Niektóre współpracują. Niektóre przypinają wersje wspólnych bibliotek. Każdy laptop zbiera inny zestaw narzędzi i nawyków startu.
+</div>
 
-Po kilku miesiącach kosztowna nie jest komenda `git clone`. Kosztowne jest **odtworzenie pełnego kontekstu**: które checkouty tworzą dzisiejszą pracę, co agenci powinni przeczytać najpierw i które ścieżki bezwzględne nadal działają, gdy Docker uruchamia Dockera.
+## Zacznij tutaj
 
-## Rozwiązanie
+<div class="grid cards" markdown>
 
-Orcan nie zarządza produktami. Zarządza **kontekstem**.
+-   :material-download-outline: __Instalacja__
 
-- **Project** to jeden checkout (ścieżka bezwzględna).
-- **Workspace** to nazwany zbiór projektów, które należą do siebie.
-- **Context** to odtwarzalne środowisko wokół tego zbioru: mounty, wspólne instrukcje, ignores oraz sesja tmux — lokalnie (`orcan enter`) albo opcjonalnie w przeglądarce (`orcan up --with-ttyd`).
+    ---
+
+    Dodaj `orcan` do PATH, potem sync i build.
+
+    [:octicons-arrow-right-24: Instalacja](getting-started/installation.md)
+
+    [:octicons-arrow-right-24: Szybki start](getting-started/quickstart.md)
+
+-   :material-lightbulb-outline: __Zrozum__
+
+    ---
+
+    Po co jest Orcan, Project / Workspace / Context i model mentalny.
+
+    [:octicons-arrow-right-24: Dlaczego Orcan?](why-orcan.md)
+
+    [:octicons-arrow-right-24: Idee podstawowe](ideas/core-ideas.md)
+
+-   :material-map-search-outline: __Znajdź zmianę__
+
+    ---
+
+    Macierz *co chcesz zmienić* → *gdzie w repo* → *który doc*.
+
+    [:octicons-arrow-right-24: Mapa zmian](change-map.md)
+
+-   :material-book-search-outline: __Szukaj w referencji__
+
+    ---
+
+    Flagi CLI, zmienne env, Compose, bezpieczeństwo — po opowieści.
+
+    [:octicons-arrow-right-24: Referencja CLI](reference/cli.md)
+
+    [:octicons-arrow-right-24: FAQ](faq.md)
+
+</div>
+
+## Trzy słowa
+
+| Termin | Znaczenie |
+| --- | --- |
+| **Project** | Jeden checkout — ścieżka bezwzględna na dysku |
+| **Workspace** | Nazwany zbiór projektów + jedna sesja tmux |
+| **Context** | Odtwarzalne środowisko: mounty, instrukcje, ignores, wejście |
 
 Konfiguracja opisuje te relacje. `orcan sync` i Docker je stosują. Agenci i ludzie dzielą ten sam układ.
 
-## Dzień pracy
-
-Rano możesz jednocześnie tknąć:
-
-- backend API  
-- frontend  
-- wspólną bibliotekę  
-- infrastrukturę  
-- dokumentację  
-
-Każde to osobne repozytorium. Każde może żyć pod inną organizacją. Razem to nadal **jedna praca**. Orcan pozwala nazwać tę pracę jako workspace i otworzyć ją jako jedną sesję.
-
-```mermaid
-graph TD
-  day["Workspace dzisiaj"] --> api[backend]
-  day --> web[frontend]
-  day --> lib[shared-lib]
-  day --> infra[infra]
-  day --> docs[docs]
-```
-
-**Podpis:** Jeden workspace, wiele projektów — jednostką pracy jest zbiór, nie pojedynczy folder.
-
-## Jak czytać te docs
-
-1. [Dlaczego Orcan?](why-orcan.md) — kiedy pomaga, a kiedy nie  
-2. [Idee podstawowe](ideas/core-ideas.md) — Project, Workspace, Context  
-3. [Model mentalny](ideas/mental-model.md) — jak elementy się łączą  
-4. [Szybki start](getting-started/quickstart.md) — uruchom, gdy rozumiesz ideę  
-
-Strony referencyjne (CLI, zmienne, Compose) są **po** tym łuku.
-
-## Spróbuj (po idei)
+## Spróbuj
 
 ```bash
-git clone https://github.com/aKyther/orcan.git
-cd orcan
-orcan init /absolute/path/to/your/repo   # zawiera orcan sync raz
-orcan sync                                             # .env + mounts/* dla Compose
-orcan build
-orcan up
-# lokalnie: orcan enter — wybierz workspace, uruchom agent lub claude
-# zdalnie w przeglądarce: orcan up --with-ttyd && orcan url
+curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
+orcan doctor
+orcan init /absolute/path/to/your-repo
+orcan sync && orcan build && orcan up
+# lokalnie: orcan enter
 ```
 
-Po `orcan up` użyj `orcan enter` na tej samej maszynie (albo `orcan up --with-ttyd`, potem `orcan url` dla przeglądarki). Po zmianach konfiguracji zawsze `orcan sync` przed odtworzeniem.
+Pełne kroki: [Instalacja](getting-started/installation.md) · [Szybki start](getting-started/quickstart.md).
 
-## Status
-
-Wersja **2.2.0** (zobacz [Changelog](changelog.md)). Dystrybucja jako **CLI** (`orcan`). `orcan build` pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest **ręczna** (`orcan publish`); CI nie publikuje obrazów kontenerów.
+!!! note
+    Po zmianach konfiguracji zawsze `orcan sync` przed odtworzeniem (`orcan down && orcan up`). Obraz przebudowuj tylko gdy zmienia się Dockerfile lub zestaw instalacji agentów.
 
 ## Zobacz też
 
+- [Model mentalny](ideas/mental-model.md) — jak elementy się łączą  
 - [Architektura](architecture.md)  
-- [FAQ](faq.md)  
-- [Repozytorium na GitHubie](https://github.com/aKyther/orcan)
+- [Changelog](changelog.md) · [GitHub](https://github.com/aKyther/orcan)

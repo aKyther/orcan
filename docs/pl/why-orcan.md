@@ -1,5 +1,7 @@
 ---
 description: Dlaczego powstał Orcan — rozproszone repozytoria, utracony kontekst pracy i kiedy go nie używać.
+tags:
+  - concept
 ---
 
 # Dlaczego Orcan?

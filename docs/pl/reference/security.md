@@ -1,3 +1,10 @@
+---
+description: Model bezpieczeństwa — limity izolacji single-user, mounty, auth ttyd i drabina capability.
+tags:
+  - security
+  - reference
+---
+
 # Bezpieczeństwo
 
 ## Limity izolacji

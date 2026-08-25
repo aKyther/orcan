@@ -1,3 +1,9 @@
+---
+description: Orientacja agenta przy rozwoju repozytorium Orcan — cele, non-goals, gdzie zmieniać co.
+tags:
+  - develop
+---
+
 # Kontekst AI projektu
 
 Jedna strona orientacyjna dla agentów kodujących pracujących **nad repozytorium Orcan**.
@@ -53,6 +59,7 @@ Po edycji konfiguracji przy działającym kontenerze: `orcan sync && orcan down 
 
 | Temat | Doc |
 | --- | --- |
+| Mapa zmian (gdzie → plik → doc) | [change-map.md](../change-map.md) |
 | Dlaczego Orcan | [why-orcan.md](../why-orcan.md) |
 | Idee podstawowe | [ideas/core-ideas.md](../ideas/core-ideas.md) |
 | Model mentalny | [ideas/mental-model.md](../ideas/mental-model.md) |
@@ -64,6 +71,7 @@ Po edycji konfiguracji przy działającym kontenerze: `orcan sync && orcan down 
 | Bezpieczeństwo | [reference/security.md](../reference/security.md) |
 | Wydanie | [development/release.md](../development/release.md) |
 | Testy | [development/testing.md](../development/testing.md) |
+| Publiczny indeks agentów | [`docs/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) (generowany; `make docs-llms`) |
 
 ## Definicja „gotowe”
 

@@ -17,6 +17,7 @@ This repository ships a Makefile only for **maintainers** working in a git check
 | `make test-host` | Host unit tests |
 | `make test` / `make test-path-parity` | Container tests (needs Docker) |
 | `make docs` / `docs-serve` / `docs-check` | MkDocs |
+| `make docs-llms` | Regenerate `docs/llms.txt` (also runs before docs / docs-check) |
 | `make docs-mike-dev` / `docs-mike-release` | Versioned docs deploy |
 | `make bump-*` / `release` | Version + GitHub Release |
 | `make registry-*` | Low-level registry helpers (prefer `orcan publish` / `orcan pull`) |

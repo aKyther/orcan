@@ -70,7 +70,15 @@ Do **not** use orphan wipe deploys; mike keeps all versions on that branch.
 
 ### Version × language
 
-Use the header **Version** and **Language** controls together. Nested pages keep relative language links; a small script (`mike-i18n.js`) fixes absolute homepage language links under `/latest/` and `/X.Y.Z/`.
+Use the header **version dropdown** together with **Language**:
+
+- **Docs version dropdown** — lists `latest`, `dev`, and SemVer folders from
+  [versions.json](https://akyther.github.io/orcan/versions.json). Works on
+  GitHub Pages **and** on local `mkdocs serve` (fetches the published JSON).
+  Keeps the current page path when switching (e.g. Installation → same page on `2.0.0`).
+- **`vX.Y.Z` chip** — product SemVer from `extra.orcan_version`; links to Changelog.
+
+Nested pages keep relative language links; `mike-i18n.js` fixes absolute homepage language links under `/latest/` and `/X.Y.Z/`.
 
 If a page is missing in an older version, you may land on a 404 or that version’s home — there is no smart cross-version remap.
 

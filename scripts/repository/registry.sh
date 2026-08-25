@@ -12,7 +12,7 @@
 #   IMAGE_LOCAL       local image name (default: orcan:latest)
 #   IMAGE_REGISTRY    registry host (default: ghcr.io)
 #   IMAGE_REPOSITORY  path under registry (default: akyther/orcan)
-#   IMAGE_TAG         tag (default: VERSION file contents)
+#   IMAGE_TAG         tag (default: product SemVer from cockpit/pyproject.toml / VERSION mirror)
 #   REGISTRY_USER     username for docker login
 #   REGISTRY_PASSWORD password / PAT / deploy token (prefer stdin / env, not git)
 

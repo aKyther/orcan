@@ -1,5 +1,8 @@
 ---
 description: Dlaczego architektura Orcana wygląda tak — orkiestracja na hoście, path parity, context pack i wejście do sesji (lokalnie lub w przeglądarce).
+tags:
+  - concept
+  - reference
 ---
 
 # Architektura

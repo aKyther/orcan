@@ -128,9 +128,10 @@ cmd_release() {
     [[ "${ver}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "version must be SemVer X.Y.Z (got: ${ver})"
 
     local file_v
-    file_v="$(tr -d '[:space:]' < VERSION)"
+    file_v="$(./scripts/repository/release.sh print | tr -d '[:space:]')"
+    [[ -n "${file_v}" ]] || die "could not read version from cockpit/pyproject.toml"
     if [[ "${file_v}" != "${ver}" ]]; then
-        die "VERSION file (${file_v}) != release argument (${ver})"
+        die "cockpit/pyproject.toml (${file_v}) != release argument (${ver})"
     fi
 
     ensure_mike

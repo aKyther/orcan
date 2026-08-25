@@ -1,5 +1,7 @@
 ---
 description: Idee podstawowe Orcana — Project, Workspace i Context, z przykładami multi-repo.
+tags:
+  - concept
 ---
 
 # Idee podstawowe

@@ -70,7 +70,15 @@ Bez orphan wipe — mike trzyma wszystkie wersje na branchu.
 
 ### Wersja × język
 
-Użyj kontrolek **Version** i **Language** w nagłówku. Skrypt `mike-i18n.js` poprawia absolutne linki języka na stronie głównej pod `/latest/` i `/X.Y.Z/`.
+Użyj **dropdownu wersji** w nagłówku razem z **Language**:
+
+- **Dropdown wersji docs** — lista `latest`, `dev` i folderów SemVer z
+  [versions.json](https://akyther.github.io/orcan/versions.json). Działa na
+  GitHub Pages **oraz** przy lokalnym `mkdocs serve` (pobiera opublikowany JSON).
+  Przy przełączaniu zachowuje ścieżkę strony (np. Instalacja → ta sama strona na `2.0.0`).
+- **Chip `vX.Y.Z`** — SemVer produktu z `extra.orcan_version`; link do Changelog.
+
+Zagnieżdżone strony zachowują względne linki językowe; `mike-i18n.js` poprawia absolutne linki języka na stronie głównej pod `/latest/` i `/X.Y.Z/`.
 
 Brak strony w starej wersji → często 404 lub home tej wersji.
 

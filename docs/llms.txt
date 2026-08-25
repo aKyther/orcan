@@ -1,0 +1,56 @@
+# Orcan
+
+> Work-context orchestrator for coding agents (Cursor CLI, Claude Code, Codex) in Docker — workspaces, path parity, context pack. Does not choose or route models.
+
+Orcan describes which repositories belong together, mounts them with the same absolute paths on host and in the container, seeds agent-facing starter files, and runs agents inside Docker. Prefer the pages below over crawling the whole site. In a live Orcan workspace, also read the context pack (`AGENTS.md`, `.manifest.json`) — that is stronger than this public index.
+
+## Start here
+
+- [Why Orcan?](https://akyther.github.io/orcan/latest/why-orcan/): Problem, when to use / not use, non-goals
+- [Core Ideas](https://akyther.github.io/orcan/latest/ideas/core-ideas/): Project, Workspace, Context
+- [Mental Model](https://akyther.github.io/orcan/latest/ideas/mental-model/): How the pieces relate (incl. path parity)
+- [Quick Start](https://akyther.github.io/orcan/latest/getting-started/quickstart/): First successful run
+- [Change map](https://akyther.github.io/orcan/latest/change-map/): What to edit → where in the repo → which doc
+
+## Concepts and architecture
+
+- [Workspaces](https://akyther.github.io/orcan/latest/concepts/workspaces/): Named project sets and sessions
+- [Path parity](https://akyther.github.io/orcan/latest/concepts/path-parity/): Same absolute paths host ↔ container
+- [Architecture](https://akyther.github.io/orcan/latest/architecture/): Layers and why they look this way
+- [Context Assertions](https://akyther.github.io/orcan/latest/ideas/context-assertions/): Compiled, human-approved context
+- [Runtime reconcile](https://akyther.github.io/orcan/latest/ideas/runtime-reconcile/): How sync affects a running container
+- [Agent inbox](https://akyther.github.io/orcan/latest/ideas/agent-inbox/): Handoff notes for agents
+
+## Reference (after the story)
+
+- [CLI](https://akyther.github.io/orcan/latest/reference/cli/): `orcan` commands and flags
+- [Configuration](https://akyther.github.io/orcan/latest/reference/configuration/): `orcan.config.json` fields
+- [Environment variables](https://akyther.github.io/orcan/latest/reference/environment/): Host / container env
+- [Docker](https://akyther.github.io/orcan/latest/reference/docker/): Image contents and Compose
+- [Security](https://akyther.github.io/orcan/latest/reference/security/): Capability ladder and mount trade-offs
+- [Host and container interface](https://akyther.github.io/orcan/latest/interface/): What crosses the boundary
+
+## Develop on Orcan
+
+- [AI project context](https://akyther.github.io/orcan/latest/ai/project-context/): Agent ritual and where-to-change table
+- [Change map](https://akyther.github.io/orcan/latest/change-map/): Same map for humans and agents
+- [Terminal UI](https://akyther.github.io/orcan/latest/guides/terminal-ui/): Navy/cyan palette across ttyd/tmux/zsh
+- [Testing](https://akyther.github.io/orcan/latest/development/testing/): validate, docs-check, host tests
+- [AGENTS.md (repo)](https://github.com/aKyther/orcan/blob/main/AGENTS.md): Rules for agents editing this repository
+
+## Markdown sources (EN)
+
+- [Why Orcan (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/why-orcan.md)
+- [Core Ideas (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/ideas/core-ideas.md)
+- [Mental Model (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/ideas/mental-model.md)
+- [Change map (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/change-map.md)
+- [AI project context (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/ai/project-context.md)
+- [CLI (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/reference/cli.md)
+
+## Optional
+
+- [Polish docs root](https://akyther.github.io/orcan/latest/pl/): Same content in Polish
+- [FAQ](https://akyther.github.io/orcan/latest/faq/)
+- [Changelog](https://akyther.github.io/orcan/latest/changelog/)
+- [Deployment](https://akyther.github.io/orcan/latest/deployment/)
+- [GitHub repository](https://github.com/aKyther/orcan)

@@ -1,3 +1,9 @@
+---
+description: Publiczne CLI orcan — komendy, flagi oraz granica maintainer vs użytkownik końcowy.
+tags:
+  - reference
+---
+
 # Referencja CLI
 
 Publiczny interfejs Orcan to komenda **`orcan`** (Bash). Cele Make zostają tylko dla **maintainerów** (docs, testy, release).

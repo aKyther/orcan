@@ -20,6 +20,18 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = ROOT / "docker" / "rootfs" / "usr" / "local" / "bin" / "orcan-context-review"
 
+# The script does `sys.path.insert(0, "/usr/local/lib")` itself before
+# importing orcan.context_inbox — harmless on a bare host, but wrong if this
+# happens to run *inside* an orcan container (as this session does), where
+# that path is a real, possibly-stale directory that would otherwise shadow
+# the repo's copy. Pre-register the repo's orcan.context_inbox in
+# sys.modules first so the script's later `from orcan.context_inbox import
+# ...` finds it there regardless of what sys.path resolves to.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _orcan_lib_loader import load_orcan_module  # noqa: E402
+
+load_orcan_module("context_inbox")
+
 _loader = importlib.machinery.SourceFileLoader("orcan_context_review", str(SCRIPT_PATH))
 _spec = importlib.util.spec_from_loader(_loader.name, _loader)
 review = importlib.util.module_from_spec(_spec)

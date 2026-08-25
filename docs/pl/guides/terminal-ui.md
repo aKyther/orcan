@@ -1,5 +1,8 @@
 ---
 description: Wygląd terminala — paleta navy/cyan (ttyd, tmux, zsh, starship, fzf, lazygit). Gdzie edytować i jak rozszerzać.
+tags:
+  - guide
+  - develop
 ---
 
 # Terminal UI
@@ -34,6 +37,8 @@ Ograniczenia (nie łamać):
 | Akcent | `#5eead4` | aktywny tab, ramki, kursor |
 | Akcent jasny | `#67e8f9` | ścieżka, drugorzędne highlighty |
 | Ostrzeżenie / błąd | `#fbbf24`, `#f87171` | activity, błędy, niska bateria |
+
+**Site MkDocs** używa tych samych tokenów (`docs/assets/stylesheets/orcan.css`, favicon). W jasnym trybie docs — ciemniejszy teal dla czytelnych linków na białym.
 
 Presety w `cursor-ttyd`:
 

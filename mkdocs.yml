@@ -16,7 +16,7 @@ copyright: >
   <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
 
 extra:
-  orcan_version: "2.2.0"
+  orcan_version: "3.0.0"
   version:
     provider: mike
     default: latest
@@ -32,6 +32,12 @@ extra:
       link: https://github.com/aKyther/orcan/releases
       name: Releases
   homepage: https://akyther.github.io/orcan/
+  tags:
+    concept: concept
+    guide: guide
+    reference: reference
+    develop: develop
+    security: security
 
 theme:
   name: material
@@ -39,32 +45,45 @@ theme:
   language: en
   favicon: assets/images/favicon.svg
   logo: assets/images/favicon.svg
+  font:
+    text: IBM Plex Sans
+    code: IBM Plex Mono
   icon:
     repo: fontawesome/brands/github
     edit: material/pencil
     view: material/eye
+    tag:
+      concept: material/lightbulb-outline
+      guide: material/book-open-outline
+      reference: material/file-document-outline
+      develop: material/hammer-wrench
+      security: material/shield-outline
   palette:
     - media: "(prefers-color-scheme)"
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-auto
         name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
   features:
     # navigation.instant is incompatible with the i18n language switcher
     - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
     - navigation.top
@@ -83,6 +102,10 @@ plugins:
   # lunr.js has no Polish stemmer; EN analyzer is used for both locales
   - search:
       lang: en
+  - tags
+  - mike:
+      version_selector: true
+      canonical_version: latest
   # i18n must be defined before git-revision-date-localized (locale on pages)
   - i18n:
       docs_structure: folder
@@ -100,6 +123,9 @@ plugins:
           site_name: Orcan
           nav_translations:
             Home: Start
+            Get started: Pierwsze kroki
+            Understand: Zrozum
+            Guides: Przewodniki
             Why Orcan?: Dlaczego Orcan?
             Core Ideas: Idee podstawowe
             Mental Model: Model mentalny
@@ -110,11 +136,11 @@ plugins:
             Concepts: Koncepcje
             Workspaces: Workspaces
             Path parity: Path parity
-            Getting Started: Pierwsze kroki
+            Change map: Mapa zmian
+            Tags: Tagi
             Quick Start: Szybki start
             Installation: Instalacja
             Config guide: Przewodnik po konfiguracji
-            Typical Workflows: Typowe workflowy
             Workflows: Przepływy pracy
             User dotfiles: Dotfiles użytkownika
             Terminal UI: Terminal UI
@@ -130,6 +156,7 @@ plugins:
             Security: Bezpieczeństwo
             Host and container interface: Interfejs hosta i kontenera
             Development: Rozwój
+            Develop: Rozwijaj
             Overview: Przegląd
             Testing: Testy
             Release process: Proces wydania
@@ -173,31 +200,38 @@ markdown_extensions:
 
 extra_javascript:
   - assets/javascripts/mike-i18n.js
+  - assets/javascripts/orcan-version.js
+  - assets/javascripts/orcan-mermaid.js
 
-extra_css: []
+extra_css:
+  - assets/stylesheets/orcan.css
 
 nav:
   - Home: index.md
-  - Why Orcan?: why-orcan.md
-  - Ideas:
-      - Core Ideas: ideas/core-ideas.md
-      - Mental Model: ideas/mental-model.md
-      - Context Assertions: ideas/context-assertions.md
-      - Agent inbox: ideas/agent-inbox.md
-      - Runtime reconcile: ideas/runtime-reconcile.md
-  - Concepts:
-      - Workspaces: concepts/workspaces.md
-      - Path parity: concepts/path-parity.md
-  - Getting Started:
+  - Get started:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quickstart.md
       - Config guide: getting-started/configuration.md
-  - Typical Workflows:
+  - Understand:
+      - Why Orcan?: why-orcan.md
+      - Ideas:
+          - Core Ideas: ideas/core-ideas.md
+          - Mental Model: ideas/mental-model.md
+          - Context Assertions: ideas/context-assertions.md
+          - Agent inbox: ideas/agent-inbox.md
+          - Runtime reconcile: ideas/runtime-reconcile.md
+      - Concepts:
+          - Workspaces: concepts/workspaces.md
+          - Path parity: concepts/path-parity.md
+      - Change map: change-map.md
+      - Tags: tags.md
+  - Guides:
       - Workflows: guides/workflows.md
       - User dotfiles: guides/dotfiles.md
       - Terminal UI: guides/terminal-ui.md
       - Troubleshooting: guides/troubleshooting.md
-  - Architecture: architecture.md
+      - Architecture: architecture.md
+      - FAQ: faq.md
   - Reference:
       - CLI: reference/cli.md
       - Makefile (maintainers): reference/makefile.md
@@ -207,11 +241,10 @@ nav:
       - Cursor and Claude: reference/cursor-and-claude.md
       - Security: reference/security.md
       - Host and container interface: interface.md
-  - Development:
+  - Develop:
       - Overview: development/overview.md
       - Testing: development/testing.md
       - Release process: development/release.md
       - AI context: ai/project-context.md
-  - Deployment: deployment.md
-  - FAQ: faq.md
-  - Changelog: changelog.md
+      - Deployment: deployment.md
+      - Changelog: changelog.md

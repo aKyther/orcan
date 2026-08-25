@@ -68,7 +68,7 @@ For a behaviour change, update as needed:
 3. Docs under `docs/` (and short README pointers)
 4. `AGENTS.md` / `.cursor/rules` if agent ritual or boundaries change
 5. `CHANGELOG.md` for user-visible changes
-6. `VERSION` only when cutting a release
+6. `cockpit/pyproject.toml` version only when cutting a release
 
 ## Where to read next
 

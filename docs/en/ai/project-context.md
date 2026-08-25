@@ -1,3 +1,9 @@
+---
+description: Agent orientation for developing the Orcan repository — goals, non-goals, where to change what.
+tags:
+  - develop
+---
+
 # AI project context
 
 Single orientation page for coding agents working **on the Orcan repository**.
@@ -53,6 +59,7 @@ After config edits with a running container: `orcan sync && orcan down && orcan 
 
 | Topic | Doc |
 | --- | --- |
+| Change map (where → file → doc) | [change-map.md](../change-map.md) |
 | Why Orcan | [why-orcan.md](../why-orcan.md) |
 | Core Ideas | [ideas/core-ideas.md](../ideas/core-ideas.md) |
 | Mental Model | [ideas/mental-model.md](../ideas/mental-model.md) |
@@ -64,6 +71,7 @@ After config edits with a running container: `orcan sync && orcan down && orcan 
 | Security | [reference/security.md](../reference/security.md) |
 | Release | [development/release.md](../development/release.md) |
 | Tests | [development/testing.md](../development/testing.md) |
+| Public agent index | [`docs/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) (generated; `make docs-llms`) |
 
 ## Definition of done
 

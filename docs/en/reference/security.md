@@ -1,3 +1,10 @@
+---
+description: Security model — single-user isolation limits, mounts, ttyd auth, and capability ladder.
+tags:
+  - security
+  - reference
+---
+
 # Security
 
 ## Isolation limits
