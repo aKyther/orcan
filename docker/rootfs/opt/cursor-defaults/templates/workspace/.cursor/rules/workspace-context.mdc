@@ -13,8 +13,18 @@ orcan owns **context** (paths, ignores, instructions). `agent` / `claude` are to
 1. `AGENTS.md` (or `CLAUDE.md`) at the workspace root — behaviour and project table.
 2. `.manifest.json` — canonical paths and symlink layout.
 3. `.orcan/session-brief.md` if present — **read before coding** (`orcan-session-brief`).
-4. After `cd <project>/` — that repo’s own `AGENTS.md` / `.cursor/rules/`.
+4. After `cd <project>/` — that repo’s own `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/`.
 5. Pack health: `orcan-context-status` (alias `ctx`).
+
+## Product checkouts in this workspace
+
+The workspace-root `AGENTS.md` is **generated** (reconcile overwrites it). Lasting product
+guidance lives in each project checkout:
+
+- After `cd <project>/`, read **that** project’s `AGENTS.md` / `CLAUDE.md` and `.cursor/rules/`.
+- For the Orcan product itself: `orcan/AGENTS.md` (= `orcan/CLAUDE.md`; 30-second map + ritual /
+  `make dev-*`), plus `orcan/docs/llms.txt` and `orcan/docs/en/ai/project-context.md`.
+- Do not put Orcan product rules only in the workspace-root `AGENTS.md` — they will be lost.
 
 ## Behaviour (Karpathy-inspired)
 

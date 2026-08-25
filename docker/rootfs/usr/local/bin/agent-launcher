@@ -10,4 +10,21 @@
 
 set -Eeuo pipefail
 
+# Prefer a live checkout over the image-baked /opt/orcan-cockpit-src copy when
+# PYTHONPATH is unset (preview bind-mount, sandbox editable install). Stale
+# baked sources otherwise still expose pyte "brown" and crash Rich mid-render.
+if [[ -z "${PYTHONPATH:-}" ]]; then
+    shopt -s nullglob
+    for _src in \
+        /home/adam/.config/orcan/sandbox/orcan/cockpit/src \
+        /home/developer/workspaces/*/orcan/cockpit/src; do
+        if [[ -f "${_src}/orcan_cockpit/cli.py" ]]; then
+            PYTHONPATH="${_src}:/usr/local/lib"
+            export PYTHONPATH
+            break
+        fi
+    done
+    shopt -u nullglob
+fi
+
 exec /opt/orcan-cockpit/venv/bin/orcan-cockpit "$@"

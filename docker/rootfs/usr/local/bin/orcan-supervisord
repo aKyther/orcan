@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Render supervisord program set from ORCAN_SUPERVISOR_MODE, then exec
+# supervisord in the foreground. Replaces sleep-infinity / cursor-ttyd as
+# the Compose command so background workers (context-scan, later inbox)
+# share one container lifecycle.
+#
+# Logs live under ~/.local/share/orcan/history/supervisor/ (host:
+# $ORCAN_DATA/history/supervisor/) — durable across recreate.
+#
+#   ORCAN_SUPERVISOR_MODE=keepalive  (default) — sleep infinity for orcan enter
+#   ORCAN_SUPERVISOR_MODE=ttyd       — cursor-ttyd for browser
+#   ORCAN_CONTEXT_SCAN=0             — skip Reflection scanner
+#   ORCAN_SUPERVISOR_DRY_RUN=1       — render only (tests)
+
+set -Eeuo pipefail
+
+MODE="${ORCAN_SUPERVISOR_MODE:-keepalive}"
+CONF_SRC="${ORCAN_SUPERVISOR_CONF_D:-/etc/orcan/supervisor.d}"
+TEMPLATE="${ORCAN_SUPERVISOR_CONF_TEMPLATE:-/etc/orcan/supervisord.conf}"
+# Durable: history volume is bind-mounted from $ORCAN_DATA/history.
+DEFAULT_STATE="${HOME}/.local/share/orcan/history/supervisor"
+STATE_D="${ORCAN_SUPERVISOR_STATE_D:-${DEFAULT_STATE}}"
+PROGRAMS_D="${STATE_D}/programs"
+CHILDLOG_D="${STATE_D}/childlog"
+# Image CMD runs as USER developer; children inherit that uid.
+ORCAN_SUPERVISOR_USER="${ORCAN_SUPERVISOR_USER:-developer}"
+
+mkdir -p "${PROGRAMS_D}" "${CHILDLOG_D}"
+rm -f "${PROGRAMS_D}"/*.conf
+
+# supervisord resolves relative child logfiles against childlogdir when
+# %(here)s is the state dir — rewrite program confs so log names stay short.
+install_program() {
+    local src="$1"
+    local dest="${PROGRAMS_D}/$(basename "${src}")"
+    # Force child logs into childlog/ via absolute paths for clarity in tails.
+    if grep -q 'stdout_logfile=NONE' "${src}"; then
+        cp -- "${src}" "${dest}"
+        return 0
+    fi
+    # Rewrite relative logfile names to absolute paths under childlog/.
+    sed \
+        -e "s|^stdout_logfile=\([^/].*\)$|stdout_logfile=${CHILDLOG_D}/\1|" \
+        -e "s|^stderr_logfile=\([^/].*\)$|stderr_logfile=${CHILDLOG_D}/\1|" \
+        "${src}" >"${dest}"
+}
+
+case "${MODE}" in
+    ttyd)
+        if [[ ! -f "${CONF_SRC}/ttyd.conf" ]]; then
+            printf 'orcan-supervisord: missing %s/ttyd.conf\n' "${CONF_SRC}" >&2
+            exit 1
+        fi
+        install_program "${CONF_SRC}/ttyd.conf"
+        ;;
+    keepalive)
+        if [[ ! -f "${CONF_SRC}/keepalive.conf" ]]; then
+            printf 'orcan-supervisord: missing %s/keepalive.conf\n' "${CONF_SRC}" >&2
+            exit 1
+        fi
+        install_program "${CONF_SRC}/keepalive.conf"
+        ;;
+    *)
+        printf 'orcan-supervisord: unknown ORCAN_SUPERVISOR_MODE=%s (use keepalive|ttyd)\n' "${MODE}" >&2
+        exit 1
+        ;;
+esac
+
+if [[ "${ORCAN_CONTEXT_SCAN:-1}" != "0" && -f "${CONF_SRC}/context-scan.conf" ]]; then
+    install_program "${CONF_SRC}/context-scan.conf"
+fi
+
+# Render main conf: %(here)s must be STATE_D so sock/logs/programs resolve together.
+RUNTIME_CONF="${STATE_D}/supervisord.conf"
+# Strip the stock comment header's absolute advice; copy template as-is —
+# supervisord's %(here)s is the directory containing the config file.
+cp -- "${TEMPLATE}" "${RUNTIME_CONF}"
+
+# Startup banner into the durable log (also lands on container stdout via nodaemon).
+{
+    printf 'orcan-supervisord: start ts=%s user=%s mode=%s context-scan=%s state=%s programs=' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        "$(id -un)" \
+        "${MODE}" \
+        "${ORCAN_CONTEXT_SCAN:-1}" \
+        "${STATE_D}"
+    basename -a "${PROGRAMS_D}"/*.conf 2>/dev/null | tr '\n' ' '
+    printf '\n'
+} | tee -a "${STATE_D}/supervisord.log" >&2
+
+# README once — helps humans find logs on the host bind.
+if [[ ! -f "${STATE_D}/README.md" ]]; then
+    cat >"${STATE_D}/README.md" <<EOF
+# Orcan supervisord logs
+
+Host path: \`\$ORCAN_DATA/history/supervisor/\`
+Container: \`~/.local/share/orcan/history/supervisor/\`
+
+| File | What |
+| --- | --- |
+| \`supervisord.log\` | Supervisor itself |
+| \`childlog/*.out.log\` | Program stdout |
+| \`childlog/*.err.log\` | Program stderr |
+| \`programs/\` | Rendered program confs for this boot |
+
+\`\`\`bash
+orcan-supervisor-status          # in container
+tail -f ~/.local/share/orcan/history/supervisor/childlog/context-scan.out.log
+\`\`\`
+EOF
+fi
+
+if [[ "${ORCAN_SUPERVISOR_DRY_RUN:-0}" == "1" ]]; then
+    exit 0
+fi
+
+# Refuse root/other: supervisord and children must be developer (image USER).
+if [[ "$(id -un)" != "${ORCAN_SUPERVISOR_USER}" ]]; then
+    printf 'orcan-supervisord: must run as %s (got %s uid=%s) — refuse root/other\n' \
+        "${ORCAN_SUPERVISOR_USER}" "$(id -un)" "$(id -u)" >&2
+    exit 1
+fi
+
+if ! command -v supervisord >/dev/null 2>&1; then
+    printf 'orcan-supervisord: supervisord not on PATH — rebuild image (apt package supervisor)\n' >&2
+    exit 1
+fi
+
+exec supervisord -n -c "${RUNTIME_CONF}"

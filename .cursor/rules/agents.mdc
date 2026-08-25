@@ -1,96 +1,106 @@
 ---
-description: Agent instructions for this repository
+description: Agent instructions for developing the Orcan product repository
 alwaysApply: true
 ---
 
-# Agent guide
+# Agent guide (Orcan product)
 
-**Orcan** = Docker **context orchestrator** for Cursor CLI (`agent`) and Claude Code (`claude`): workspaces, path-parity mounts, ignore/instruction seeds, browser terminal. Agent CLIs are tools inside it; **models are out of scope**.
+**Orcan** = Docker **work-context orchestrator** (workspaces, path parity, context pack).
+Agent CLIs (`agent`, `claude`, `codex`) are tools inside it — **models are out of scope**.
 
-Display name: **Orcan**. Technical ids: `orcan`, `ORCAN_*`. **Orcan** is the only product name in docs and user-facing text.
+Display name: **Orcan**. Ids: `orcan`, `ORCAN_*`. Only product name in docs/UI text.
 
-Read root [`AGENTS.md`](../../AGENTS.md) and [`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md). This rule is always applied.
+## 30-second map
 
-## Product ritual (host)
+| | |
+| --- | --- |
+| **SoT** | Root `AGENTS.md` (= `CLAUDE.md`) — keep them identical |
+| **Public API** | `orcan` CLI — not Make; not deprecated user targets |
+| **Config** | JSON `orcan.config.json`; `orcan sync` after edits (`up` does **not** sync) |
+| **UX work** | `make dev-*` / `scripts/dev/` → `orcan:dev-ux` — not the user’s daily install |
+| **Cockpit** | `cockpit/src/orcan_cockpit/` — top bar (rail + CPU/RAM/clock) \| left: workspaces + ASSERTIONS \| tmux + hints \| bottom: status; **F2** · **`r`** review · **`p`** pause · **`o`** off/on |
+| **Image FS** | `docker/rootfs/` — repo `.cursor/rules/` ≠ image `cursor-defaults/` |
+| **Checks** | `make validate` · `test-host` · `docs-check`; UX: `dev-restart` / `dev-smoke` / `dev-a11y` / `dev-visual` (`dev-checklist`) |
+
+**Read next:** [`AGENTS.md`](../../AGENTS.md), then
+[`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md) /
+[`docs/llms.txt`](../../docs/llms.txt).
+In workspace `orcan-dev`, honour the workspace context pack, then `cd orcan/` and follow **this repo’s** `AGENTS.md`.
+
+## Pay attention
+
+- JSON config only: `orcan.config.json` (`ORCAN_HOME`)
+- `orcan sync` after config changes — **`orcan up` does not sync**
+- Path parity and context pack are the product; do not weaken them for convenience
+- Version SoT: `cockpit/pyproject.toml`; `VERSION` is a mirror
+- EN + PL docs together; STYLE_GUIDE; no invented commands
+- Repo rules ≠ image defaults (`docker/rootfs/opt/cursor-defaults/`)
+- UX iteration: `make dev-*` / `scripts/dev/` — not the user’s `orcan:latest`
+
+## Non-goals (do not invent)
+
+- Model selection / provider routing
+- CI image publish; registry-as-product
+- YAML user profiles / host-deps
+- Deprecated user Make targets as the primary UX
+- Drive-by refactors or speculative layers
+
+## Ritual (host)
 
 ```bash
-orcan context wizard  # or init / context add / hand-edit orcan.config.json
-orcan sync            # ALWAYS after config changes (up does not call sync)
-orcan build           # after Dockerfile / docker/rootfs / tmux / shell changes
-orcan up              # daily start (ttyd); orcan up --with-docker for DinD
+orcan init            # or context add / tui / edit orcan.config.json
+orcan sync            # ALWAYS after config changes
+orcan build           # after Dockerfile / docker/rootfs / cockpit image inputs
+orcan up              # daily; local enter by default; --with-ttyd for browser
 ```
 
-Recreate after sync: `orcan down && orcan up`.
+Live reconcile often avoids recreate for projects under stable mounts — see
+`docs/en/ideas/runtime-reconcile.md`. When overlays need it: `orcan down && orcan up`.
 
-## Config = JSON only
-
-- User profile: **`orcan.config.json`** under `ORCAN_HOME` (default `~/.config/orcan/`).
-- Example: `orcan.config.example.json`.
-- Keep Compose/docs YAML (`docker-compose*.yml`, `mkdocs.yml`, generated `mounts/*.yml`).
-- Do not revive YAML user configs.
-
-## Runtime stack (container)
+## Runtime stack
 
 ```text
-ttyd (cursor-ttyd) → agent-launcher → tmux 3.6a → zsh
-  Starship · autosuggestions · syntax-highlighting · fzf
-  aliases: /etc/orcan/shell/aliases.sh
-  lazygit + delta (git UI)
+orcan enter → agent-launcher (cockpit: top bar + workspaces/ASSERTIONS | tmux)
+container CMD → orcan-supervisord (keepalive|ttyd + context-scan/recap)
+optional: ttyd → same stack
 ```
 
-| Concern | Source of truth |
+Cockpit = top bar (rail + CPU/RAM/clock) + left column (workspaces + ASSERTIONS) + center tmux + bottom status; tmux remains the session engine.
+**F2** ASSERTIONS · **F4** workspaces · **F3** Git · **F1**/`?` shortcuts · **`r`** review · **`p`** pause · **`o`** off/on.
+
+| Concern | SoT |
 | --- | --- |
-| Terminal UI map | `docs/en/guides/terminal-ui.md` (+ PL); rule `.cursor/rules/terminal-ui.mdc` |
-| ttyd theme | `docker/rootfs/usr/local/bin/cursor-ttyd` (`dark`/`navy`, `mocha`) |
-| tmux | `docker/rootfs/etc/tmux/` + `Dockerfile` `TMUX_VERSION` (3.6a static) |
-| zsh | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` |
-| starship / lazygit / git seeds | `docker/rootfs/opt/orcan/` (**missing-only** into `~/.config` / `~/.gitconfig`) |
-| Cursor defaults | `docker/rootfs/opt/cursor-defaults/` → seeded missing-only |
+| Product agent guide | `AGENTS.md` / `CLAUDE.md` (identical) |
+| Enter / cockpit UX | `docs/en/guides/workflows.md` (#local-terminal) |
+| Terminal UI / shortcuts | `docs/en/guides/terminal-ui.md`; `cockpit/…/shortcuts.py`; `.cursor/rules/terminal-ui.mdc` |
+| Developer UX env | `make dev-*` / `make dev-test`; `docs/en/development/testing.md` |
+| Cockpit | `cockpit/src/orcan_cockpit/` |
+| Supervisord / context-scan | `docker/rootfs/…/orcan-supervisord`, `orcan-context-scan`; [Docker](../../docs/en/reference/docker.md) |
+| ttyd / tmux / zsh seeds | `docker/rootfs/` (see Terminal UI guide) |
 
-When changing colours or shell chrome: keep the navy/cyan palette aligned across layers; no TPM / Oh My Zsh / Nerd Font requirement. After rootfs/Dockerfile edits: `orcan build` then recreate.
+## Where to edit
 
-## File map
-
-| Path | Role |
+| Change | Place |
 | --- | --- |
-| `bin/orcan`, `cli/` | Public CLI |
-| `install.sh` | curl\|bash installer |
-| `Dockerfile` | Image build |
-| `docker-compose*.yml` | Runtime overlays |
-| `mounts/*`, `workspaces/*` / `ORCAN_HOME` | Generated runtime (gitignored; from `orcan sync`) |
-| `Makefile` | Maintainer targets |
-| `docker/rootfs/` | Image filesystem |
-| `scripts/repository/` | Host-only helpers |
-| `docs/` | MkDocs (canonical docs) |
-| `README.md` | Short entry only |
-| `AGENTS.md` | Short agent orientation |
-| `.cursor/rules/*.mdc` | Rules for this repository |
-
-## Commands (high-signal)
-
-Configure: `orcan init` · `orcan sync` · `orcan context wizard` · `orcan context add` · `orcan context show` · `orcan seed --all`
-
-Run: `orcan build` · `orcan build --claude` · `orcan up` · `orcan up --with-docker` · `orcan down` · `orcan doctor` · `orcan update`
-
-Maintainers: `make validate` · `make docs-check` · `make test` · `make release` · `make help`
-
-Claude-only local: `orcan build --claude` → `orcan:<VERSION>-claude`, then `IMAGE_LOCAL=… orcan up`.
-Release: `make bump-patch` → commit `VERSION`+`CHANGELOG.md` → `make release` (GitHub Release; no image publish).
-
-## Boundaries
-
-Allowed: edit this repo; CLI/Make/Compose checks; image builds; update docs when the interface changes.
-
-Not allowed: host paths outside the project; modify `.env` unless asked; `docker system prune`; delete `ORCAN_DATA` except via explicit `orcan uninstall --purge-data`; `--privileged`; claim build success without running the build.
+| CLI | `bin/orcan`, `cli/` |
+| Host helpers | `scripts/repository/` |
+| Dev UX preview | `scripts/dev/`, Makefile `dev-*` |
+| Image FS | `docker/rootfs/` |
+| Packages | `Dockerfile` |
+| Docs / llms | `docs/`, `scripts/repository/generate-llms-txt.py` |
 
 ## Done checklist
 
-- [ ] `make validate` passes
-- [ ] `make test-host` passes
-- [ ] `make docs-check` passes when docs/interface changed
-- [ ] `./bin/orcan help` works
-- [ ] Compose config OK
-- [ ] No secrets in image or repo
-- [ ] Report: tests ran / skipped / limits
+- [ ] Surgical diff only
+- [ ] `make validate` · `make test-host`
+- [ ] `make docs-check` when docs/interface changed
+- [ ] `make dev-restart` when validating cockpit/ttyd UX (isolated)
+- [ ] `make dev-smoke` / `dev-a11y` / `dev-visual` when cockpit layout or browser chrome changed (see `make dev-checklist`)
+- [ ] `make test` when Docker behaviour changed (if Docker available)
+- [ ] If you change `AGENTS.md`, copy the same content to `CLAUDE.md`
+- [ ] No secrets; report what ran / skipped / limits
+- [ ] No AI commit trailers
 
-More: [docs/en/development/overview.md](../../docs/en/development/overview.md), [docs/en/concepts/architecture.md](../../docs/en/concepts/architecture.md).
+More: [`docs/en/development/overview.md`](../../docs/en/development/overview.md),
+[`docs/en/architecture.md`](../../docs/en/architecture.md),
+[`docs/en/change-map.md`](../../docs/en/change-map.md).

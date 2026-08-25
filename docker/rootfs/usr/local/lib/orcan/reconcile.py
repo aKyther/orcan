@@ -167,7 +167,10 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
         )
         step += 1
     read_first.append(
-        f"{step}. After `cd <project>/` — that repo's `AGENTS.md` / `.cursor/rules/` if present."
+        f"{step}. After `cd <project>/` — that repo's `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/`"
+    )
+    read_first.append(
+        "   (project SoT — this generated workspace file is not the product guide)."
     )
     step += 1
     read_first.append(
@@ -262,6 +265,7 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
             "",
             "- Cross-repo Cursor rules: `.cursor/rules/` in this workspace root.",
             "- Per-repo rules stay inside each project checkout.",
+            "- After `cd <project>/`, that project's `AGENTS.md` / `CLAUDE.md` is SoT for **that** repo.",
             "- Host copy of this tree: `<orcan-repo>/workspaces/<name>/`.",
             "",
         ]

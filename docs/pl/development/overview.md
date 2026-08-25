@@ -26,6 +26,17 @@ make docs-check
 make docs-serve
 ```
 
+Manualne testy UX działają w osobnym kontenerze developerskim:
+
+```bash
+make dev-start
+# zmień UX, następnie:
+make dev-restart
+make dev-doctor
+make dev-smoke
+make dev-stop
+```
+
 ## Mapa repozytorium
 
 | Ścieżka | Rola |
@@ -33,19 +44,22 @@ make docs-serve
 | `Dockerfile` | Build obrazu |
 | `docker-compose*.yml` | Nakładki runtime |
 | `docker/rootfs/` | Pliki kopiowane do obrazu |
-| `scripts/repository/` | Helpery tylko na hoście |
+| `cockpit/` | Cockpit TUI (agent-launcher) |
+| `scripts/repository/` | Helpery hosta (config, release, validate) |
+| `scripts/dev/` | Preview z checkoutu; odkrywaj przez `make dev-*` |
 | `Makefile` | Cienki UI hosta |
 | `orcan.config.example.json` | Szablon konfiguracji |
 | `docs/` | Strona MkDocs |
-| `tests/` | Testy hosta + smoke + path-parity |
-| `AGENTS.md` | Orientacja AI dla **tego** repo |
+| `tests/` | Testy hosta + smoke + path-parity + `dev-test` |
+| `AGENTS.md` / `CLAUDE.md` | Orientacja AI dla **tego** repo (trzymaj identyczne) |
 | `.cursor/rules/` | Reguły Cursor dla **tego** repo |
 
 ## Reguły separacji
 
 - Reguły repo (`.cursor/`) ≠ domyślne obrazu (`docker/rootfs/opt/cursor-defaults/`)
 - Skrypty kontenera leżą pod `docker/rootfs/usr/local/bin/`
-- Skrypty hosta leżą pod `scripts/repository/`
+- Helpery produktu na hoście leżą pod `scripts/repository/`
+- Preview UX / tmux tylko z checkoutu leżą pod `scripts/dev/` (nigdy nie instaluj ich jako `orcan` w `PATH`)
 - Konfiguracja użytkownika to wyłącznie JSON (`orcan.config.json`) — bez stosu PyYAML na hoście
 
 ## Styl kodowania

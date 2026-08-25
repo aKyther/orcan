@@ -1,0 +1,435 @@
+#!/usr/bin/env python3
+"""Filesystem scanner that feeds cascading session recap for Claude + Cursor.
+
+Discovers agent transcripts under ~/.claude and ~/.cursor (no hooks), chunks
+by unread user-turns (default 20), and invokes ``orcan-context-recap`` so
+batches compact + merge in a rolling cascade (flush on topic drift). Shares
+``.orcan/reflection-state.json`` with the Claude Stop hook (still seeded for
+now) so offsets stay consistent.
+
+  orcan-context-scan                       # one pass for current workspace
+  orcan-context-scan --all-workspaces      # every enabled workspace in config
+  orcan-context-scan --watch               # poll forever
+  orcan-context-scan --dry-run             # list sessions / pending turns only
+
+Set ``ORCAN_CONTEXT_DRIVER=reflect`` to use the legacy one-shot reflect path.
+
+Under supervisord the container runs
+``orcan-context-scan --all-workspaces --watch`` as program ``context-scan``.
+
+Codex is out of scope. Hook seeding stays until this path is proven.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+
+from orcan.recap import get_last_transcript_line  # noqa: E402
+from orcan.session_scan import (  # noqa: E402
+    AGENTS,
+    SessionRef,
+    discover_sessions,
+    state_key,
+    unread_turn_count,
+)
+from orcan.workspaces import iter_workspaces, load_config  # noqa: E402
+
+try:
+    from orcan.automation import is_active, is_enabled, is_paused, refresh_model_check, recap_model_ready  # noqa: E402
+except ImportError:  # pragma: no cover — older image without automation.py
+    def is_active() -> bool:
+        return True
+
+    def is_enabled() -> bool:
+        return True
+
+    def is_paused() -> bool:
+        return False
+
+    def refresh_model_check(**_kwargs):  # type: ignore[no-untyped-def]
+        return {"ok": True}
+
+    def recap_model_ready() -> bool:
+        return True
+
+RECAP_BIN = Path(__file__).resolve().parent / "orcan-context-recap"
+REFLECT_BIN = Path(__file__).resolve().parent / "orcan-context-reflect"
+STATE_NAME = "reflection-state.json"
+MAX_BATCHES_PER_PASS = 5
+
+
+def warn(msg: str) -> None:
+    ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    print(f"orcan-context-scan: {ts} {msg}", file=sys.stderr)
+
+
+def log(msg: str) -> None:
+    ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    print(f"orcan-context-scan: {ts} {msg}")
+
+
+def resolve_workspace_root(explicit: str) -> Path | None:
+    raw = explicit or os.environ.get("ORCAN_WORKSPACE_ROOT") or str(Path.cwd())
+    root = Path(raw)
+    return root.resolve() if root.is_dir() else None
+
+
+def find_workspace(root: Path) -> dict | None:
+    try:
+        cfg = load_config(None)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    for ws in iter_workspaces(cfg):
+        if ws["root"] and Path(ws["root"]).resolve() == root:
+            return ws
+    return None
+
+
+def all_workspace_roots() -> list[Path]:
+    """Enabled workspace roots from ORCAN_CONFIG that exist on disk."""
+    try:
+        cfg = load_config(None)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        warn(f"cannot load config for --all-workspaces: {exc}")
+        return []
+    roots: list[Path] = []
+    seen: set[str] = set()
+    for ws in iter_workspaces(cfg):
+        raw = str(ws.get("root") or "").strip()
+        if not raw:
+            continue
+        root = Path(raw)
+        try:
+            resolved = root.resolve()
+        except OSError:
+            continue
+        if not resolved.is_dir():
+            continue
+        key = str(resolved)
+        if key in seen:
+            continue
+        seen.add(key)
+        roots.append(resolved)
+    return roots
+
+
+def project_paths_for(ws: dict | None) -> list[Path]:
+    if not ws:
+        return []
+    out: list[Path] = []
+    for p in ws.get("projects") or []:
+        if not isinstance(p, dict):
+            continue
+        for key in ("workspace_path", "path"):
+            raw = p.get(key)
+            if raw:
+                out.append(Path(str(raw)))
+    return out
+
+
+def load_state(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def context_driver() -> str:
+    raw = (os.environ.get("ORCAN_CONTEXT_DRIVER") or "recap").strip().lower()
+    return raw if raw in ("recap", "reflect") else "recap"
+
+
+def invoke_reflect(session: SessionRef, *, model: str, dry_run: bool) -> int:
+    args = [
+        sys.executable,
+        str(REFLECT_BIN),
+        "--session-id",
+        state_key(session),
+        "--transcript-path",
+        str(session.transcript_path),
+        "--cwd",
+        session.cwd,
+        "--force",
+        "--model",
+        model,
+    ]
+    if dry_run:
+        log(f"would reflect: {session.agent} {session.session_id} ({session.transcript_path})")
+        return 0
+    proc = subprocess.run(args, capture_output=True, text=True)
+    if proc.returncode != 0:
+        warn(f"reflect failed for {session.agent}:{session.session_id}: {proc.stderr.strip()[:200]}")
+    elif proc.stderr.strip():
+        print(proc.stderr.strip(), file=sys.stderr)
+    return proc.returncode
+
+
+def invoke_recap(
+    session: SessionRef,
+    *,
+    model: str,
+    threshold: int,
+    dry_run: bool,
+    flush: bool,
+) -> int:
+    args = [
+        sys.executable,
+        str(RECAP_BIN),
+        "--agent",
+        session.agent,
+        "--session-id",
+        session.session_id,
+        "--transcript-path",
+        str(session.transcript_path),
+        "--cwd",
+        session.cwd,
+        "--threshold",
+        str(threshold),
+        "--model",
+        model,
+    ]
+    if dry_run:
+        args.append("--dry-run")
+    if flush:
+        args.append("--flush")
+    if dry_run:
+        log(f"would recap: {session.agent} {session.session_id} flush={flush}")
+        return 0
+    proc = subprocess.run(args, capture_output=True, text=True)
+    if proc.stdout.strip():
+        print(proc.stdout.strip())
+    if proc.returncode != 0:
+        warn(f"recap failed for {session.agent}:{session.session_id}: {proc.stderr.strip()[:200]}")
+    elif proc.stderr.strip():
+        print(proc.stderr.strip(), file=sys.stderr)
+    return proc.returncode
+
+
+def run_session_pass(
+    session: SessionRef,
+    workspace_root: Path,
+    *,
+    driver: str,
+    threshold: int,
+    model: str,
+    dry_run: bool,
+    flush: bool,
+) -> int:
+    if driver == "reflect":
+        from_line = int(
+            (load_state(workspace_root / ".orcan" / STATE_NAME).get(state_key(session)) or {}).get(
+                "last_transcript_line", 0
+            )
+            or 0
+        )
+        turns, total_lines, _ = unread_turn_count(session, from_line)
+        pending = f"{session.agent} {session.session_id[:8]}… turns={turns} lines={from_line}/{total_lines}"
+        ready = turns >= threshold or (flush and turns > 0)
+        if not ready:
+            marker = "READY" if ready else "wait"
+            log(f"[{marker}] {pending}")
+            return 0
+        log(f"[run reflect] {pending}")
+        return invoke_reflect(session, model=model, dry_run=dry_run)
+
+    batches = 0
+    while batches < MAX_BATCHES_PER_PASS:
+        sk = state_key(session)
+        from_line = get_last_transcript_line(workspace_root, sk)
+        turns, total_lines, _ = unread_turn_count(session, from_line)
+        pending = f"{session.agent} {session.session_id[:8]}… turns={turns} lines={from_line}/{total_lines}"
+        if turns == 0:
+            if batches == 0:
+                log(f"[wait] {pending}")
+            break
+        ready = turns >= threshold or (flush and turns > 0)
+        if not ready:
+            log(f"[wait] {pending}")
+            break
+        do_flush = flush and turns < threshold
+        log(f"[run recap] {pending} flush={do_flush}")
+        if dry_run:
+            invoke_recap(session, model=model, threshold=threshold, dry_run=True, flush=do_flush)
+            break
+        rc = invoke_recap(session, model=model, threshold=threshold, dry_run=False, flush=do_flush)
+        batches += 1
+        if rc != 0:
+            return rc
+        if do_flush:
+            break
+    return 0
+
+
+def scan_once(
+    workspace_root: Path,
+    *,
+    agents: list[str],
+    threshold: int,
+    model: str,
+    dry_run: bool,
+    flush: bool,
+    driver: str,
+) -> int:
+    ws = find_workspace(workspace_root)
+    sessions = discover_sessions(
+        workspace_root,
+        agents=agents,
+        project_paths=project_paths_for(ws),
+    )
+
+    if not sessions:
+        log(f"no Claude/Cursor sessions found for {workspace_root}")
+        return 0
+
+    triggered = 0
+    for session in sessions:
+        rc = run_session_pass(
+            session,
+            workspace_root,
+            driver=driver,
+            threshold=threshold,
+            model=model,
+            dry_run=dry_run,
+            flush=flush,
+        )
+        if rc == 0 and not dry_run:
+            triggered += 1
+
+    if not dry_run:
+        log(f"processed {triggered} session(s) in {workspace_root} (driver={driver})")
+    return 0
+
+
+def scan_targets(
+    roots: list[Path],
+    *,
+    agents: list[str],
+    threshold: int,
+    model: str,
+    dry_run: bool,
+    flush: bool,
+    driver: str,
+) -> int:
+    rc = 0
+    for root in roots:
+        log(f"=== workspace {root} ===")
+        one = scan_once(
+            root,
+            agents=agents,
+            threshold=threshold,
+            model=model,
+            dry_run=dry_run,
+            flush=flush,
+            driver=driver,
+        )
+        if one != 0:
+            rc = one
+    return rc
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--workspace-root", default="", help="Defaults to $ORCAN_WORKSPACE_ROOT or cwd")
+    parser.add_argument(
+        "--all-workspaces",
+        action="store_true",
+        help="Scan every enabled workspace from ORCAN_CONFIG (supervisord default)",
+    )
+    parser.add_argument(
+        "--agents",
+        default="claude,cursor",
+        help="Comma list: claude,cursor (default both)",
+    )
+    parser.add_argument("--threshold", type=int, default=20, help="Unread user-turns per recap batch (default 20)")
+    parser.add_argument("--model", default="haiku", help="Model for recap/reflect")
+    parser.add_argument("--watch", action="store_true", help="Poll forever")
+    parser.add_argument("--interval", type=float, default=60.0, help="Seconds between --watch passes")
+    parser.add_argument("--dry-run", action="store_true", help="List sessions / pending turns only")
+    parser.add_argument(
+        "--flush",
+        action="store_true",
+        help="Recap/reflect remaining unread turns and flush rolling compact",
+    )
+    args = parser.parse_args()
+
+    agents = [a.strip() for a in args.agents.split(",") if a.strip()]
+    unknown = [a for a in agents if a not in AGENTS]
+    if unknown:
+        warn(f"unknown agents (ignored for now): {', '.join(unknown)}")
+    agents = [a for a in agents if a in AGENTS]
+    if not agents:
+        warn("no supported agents selected (claude, cursor)")
+        return 1
+
+    if args.threshold < 1:
+        warn("--threshold must be >= 1")
+        return 1
+
+    driver = context_driver()
+
+    while True:
+        if not is_enabled():
+            log("context automation disabled — idle (cockpit [o] to enable)")
+            if not args.watch:
+                return 0
+            time.sleep(max(1.0, args.interval))
+            continue
+        if is_paused():
+            log("automation paused — idle (cockpit [p] to resume)")
+            if not args.watch:
+                return 0
+            time.sleep(max(1.0, args.interval))
+            continue
+        refresh_model_check(model=args.model)
+        if not recap_model_ready():
+            log("recap model unavailable — idle (orcan-context-model-check / orcan doctor)")
+            if not args.watch:
+                return 0
+            time.sleep(max(1.0, args.interval))
+            continue
+        if args.all_workspaces:
+            roots = all_workspace_roots()
+            if not roots:
+                log("no enabled workspace roots found — idle")
+                rc = 0
+            else:
+                rc = scan_targets(
+                    roots,
+                    agents=agents,
+                    threshold=args.threshold,
+                    model=args.model,
+                    dry_run=args.dry_run,
+                    flush=args.flush,
+                    driver=driver,
+                )
+        else:
+            root = resolve_workspace_root(args.workspace_root)
+            if root is None:
+                warn("workspace root not found")
+                return 1
+            rc = scan_once(
+                root,
+                agents=agents,
+                threshold=args.threshold,
+                model=args.model,
+                dry_run=args.dry_run,
+                flush=args.flush,
+                driver=driver,
+            )
+        if not args.watch:
+            return rc
+        time.sleep(max(1.0, args.interval))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

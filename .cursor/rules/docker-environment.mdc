@@ -18,4 +18,5 @@ alwaysApply: false
 - Prefer changes that work on both `amd64` and `arm64`.
 - Do not grow the image without a clear need.
 - Keep Docker socket out of the base Compose file; add it only via `docker-compose.docker.yml`.
-- After Dockerfile or Compose edits, validate with `make validate` and `make build` when Docker is available.
+- Compose overlays (`keepalive`, `ttyd`) use **`orcan-supervisord`** as the container command — not bare `sleep infinity` / `cursor-ttyd`. Programs live under `docker/rootfs/etc/orcan/supervisor.d/`.
+- After Dockerfile or Compose edits, validate with `make validate` and `orcan build` when Docker is available.

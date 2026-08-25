@@ -2,7 +2,7 @@
 description: >-
   Orcan terminal UI palette and where to edit ttyd/tmux/zsh/starship/fzf/lazygit.
   Use when changing colours, status bar, shell prompt, or browser terminal look.
-globs: docker/rootfs/etc/tmux/**/*,docker/rootfs/usr/local/bin/cursor-ttyd,docker/rootfs/opt/orcan/starship.toml,docker/rootfs/opt/orcan/lazygit-config.yml,docker/rootfs/etc/skel/.zshrc,docker/rootfs/etc/skel/.zshrc.d/**/*,docs/**/terminal-ui.md,docs/**/dotfiles.md
+globs: docker/rootfs/etc/tmux/**/*,docker/rootfs/usr/local/bin/cursor-ttyd,docker/rootfs/opt/orcan/starship.toml,docker/rootfs/opt/orcan/lazygit-config.yml,docker/rootfs/etc/skel/.zshrc,docker/rootfs/etc/skel/.zshrc.d/**/*,cockpit/src/orcan_cockpit/pty_terminal.py,cockpit/src/orcan_cockpit/pty_keys.py,cockpit/src/orcan_cockpit/pty_colors.py,cockpit/src/orcan_cockpit/pty_mouse.py,docs/**/terminal-ui.md,docs/**/dotfiles.md
 alwaysApply: false
 ---
 
@@ -29,8 +29,11 @@ Dark navy / near-black / subtle cyan — hex used across ttyd, tmux, starship, f
 
 | Layer | Path | Notes |
 | --- | --- | --- |
-| ttyd / xterm.js | `docker/rootfs/usr/local/bin/cursor-ttyd` | presets `dark`/`navy`, `mocha`; needs container recreate |
-| tmux | `docker/rootfs/etc/tmux/` | status, options, keybindings, scripts; gate 3.5+/3.6+ with `%if` |
+| ttyd / xterm.js | `docker/rootfs/usr/local/bin/cursor-ttyd` | presets `dark`/`navy`, `mocha`; **`macOptionIsMeta=true`** (Alt→Meta on macOS); needs container recreate |
+| tmux | `docker/rootfs/etc/tmux/` | status, options, keybindings (`M-1`… window select), scripts; gate 3.5+/3.6+ with `%if` |
+| Cockpit PTY | `cockpit/src/orcan_cockpit/pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_mouse.py` | must forward `C-Space` / `alt+…` as one write; reverse Option glyphs → Meta; wheel/clicks to tmux; `TIOCSCTTY` for resize SIGWINCH |
+| Cockpit shortcuts | `cockpit/src/orcan_cockpit/shortcuts.py` | app + tmux SoT; modal/`?` + host test vs `keybindings.conf` |
+| Cockpit layout / ASSERTIONS | `app.py`, `activity.py`, `top_bar.py`, `rail.py`, `status.py`, `status_bar.py` | top bar + workspaces+ASSERTIONS; width tiers |
 | tmux binary | `Dockerfile` (`TMUX_VERSION`) | static 3.6a from `tmux/tmux-builds` |
 | zsh | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` | fzf/autosuggest in `70-plugins.zsh` |
 | starship | `docker/rootfs/opt/orcan/starship.toml` | **missing-only** → `~/.config/starship.toml` |
@@ -44,6 +47,9 @@ Dark navy / near-black / subtle cyan — hex used across ttyd, tmux, starship, f
 2. Keep **ttyd-safe**: no Nerd Fonts required; Menlo/Monaco/plain Unicode OK.
 3. Prefer **surgical** palette edits; do not add OMZ / powerlevel10k / TPM theme plugins.
 4. Starship + lazygit seeds are **missing-only** — say so when users already have home copies.
-5. After rootfs/Dockerfile UI changes: `orcan build` then recreate (`orcan down && orcan up`).
-6. Update **EN + PL** docs (`guides/terminal-ui.md`, CHANGELOG) when behaviour or paths change.
-7. Run `make validate` and `make docs-check` before claiming done.
+5. Iterate without touching the daily install: `./scripts/dev/terminal-ui-preview` (tmux) or `make dev-restart` (full browser UX). Verify with `make dev-smoke` / `make dev-visual` as needed. See `docs/en/development/testing.md`.
+6. When changing cockpit PTY or ttyd: keep **Alt/Meta** (`M-1`… binds) and **resize/SIGWINCH** working — see Terminal UI `#cockpit-browser`.
+7. When changing shortcuts: update `shortcuts.py` **and** `keybindings.conf` together (host test enforces tokens).
+8. After rootfs/Dockerfile UI changes: `orcan build` then recreate (`orcan down && orcan up`).
+9. Update **EN + PL** docs (`guides/terminal-ui.md`, `guides/workflows.md`, CHANGELOG) when behaviour or paths change.
+10. Run `make validate` and `make docs-check` before claiming done.

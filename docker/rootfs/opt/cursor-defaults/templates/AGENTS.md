@@ -3,6 +3,7 @@
 ## Purpose
 
 Short instructions for coding agents working in this repository.
+**Keep `AGENTS.md` and `CLAUDE.md` identical** (Cursor loads `AGENTS.md`; Claude Code loads `CLAUDE.md`).
 
 Replace project-specific sections below with real setup and checks.
 

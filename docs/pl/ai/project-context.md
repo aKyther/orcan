@@ -1,58 +1,68 @@
 ---
-description: Orientacja agenta przy rozwoju repozytorium Orcan — cele, non-goals, gdzie zmieniać co.
+description: Orientacja agenta przy rozwoju repozytorium Orcan — cele, non-goals, gdzie co zmieniać.
 tags:
   - develop
 ---
 
 # Kontekst AI projektu
 
-Jedna strona orientacyjna dla agentów kodujących pracujących **nad repozytorium Orcan**.
+Jedna strona **docs** dla agentów kodujących **w repozytorium Orcan**.
 
-Przeczytaj też root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AGENTS.md) oraz `.cursor/rules/agents.mdc` (zawsze włączone w Cursorze). Nie wymyślaj drugiego, sprzecznego rytuału.
+**SoT w repo:** root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AGENTS.md) / [`CLAUDE.md`](https://github.com/aKyther/orcan/blob/main/CLAUDE.md) (trzymaj identyczne) oraz `.cursor/rules/agents.mdc` (zawsze włączona). Nie wymyślaj drugiego, sprzecznego rytuału. Publiczny indeks care/non-goals: [`docs/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) (`make docs-llms`).
+
+W workspace orcan (np. `orcan-dev`) najpierw przeczytaj context pack workspace, potem `cd` do projektu `orcan` i trzymaj się **tego** `AGENTS.md`.
 
 ## Tożsamość produktu
 
-- Oficjalna nazwa: **Orcan** (display). Identyfikatory techniczne używają małych liter `orcan` (`orcan:latest`, `ORCAN_DATA`, `orcan.config.json`).
-- **Orcan** to jedyna nazwa produktu w dokumentacji i tekstach użytkownika.
-- **Cursor** oznacza edytor Cursor / Cursor CLI — nie nazwę produktu.
+- Oficjalna nazwa: **Orcan**. Identyfikatory: `orcan`, `ORCAN_*`.
+- **Cursor** = edytor / CLI Cursor — nie nazwa produktu.
 - Orcan to **orkiestrator kontekstu**, nie menedżer modeli.
 
 ## Cele
 
-- Workspaces + mounty path-parity
+- Workspaces + montowania path parity
 - Context pack (ignores, AGENTS/CLAUDE, Context Assertions)
-- Terminal w przeglądarce: ttyd → launcher → tmux → zsh
-- Warianty obrazu: pełny (Claude+Cursor) oraz tylko Claude
+- Domyślnie lokalne `enter`; opcjonalnie przeglądarka: ttyd → cockpit (`agent-launcher`: workspaces \| tmux \| assertions)
+- Warianty obrazu: pełny i single-agent (`--claude` / `--cursor` / `--codex`)
 
 ## Non-goals
 
-- UI wyboru modelu / abstrakcja providera
-- Auto-routing między `agent` a `claude`
-- Publikacja obrazów z CI
-- Automatyczna modyfikacja zamontowanych repo git przy każdym starcie kontenera
+- UI wyboru modeli / abstrakcja providera / auto-routing między CLI
+- Publikacja obrazów z CI; Orcan jako produkt rejestru
+- YAML user config / host-deps
+- Auto-modyfikacja zamontowanych repozytoriów przy starcie kontenera
+- Mylenie `make dev-*` z publicznym CLI `orcan`
 
 ## Rytuał (host)
 
 ```bash
-orcan init          # or edit orcan.config.json
-orcan sync
-orcan build                  # when image inputs change
-orcan up        # daily; does NOT run orcan sync
+orcan init          # albo edycja orcan.config.json
+orcan sync          # ZAWSZE po zmianie config (up nie robi sync)
+orcan build         # gdy zmieniają się wejścia obrazu
+orcan up            # daily; --with-ttyd dla przeglądarki
 ```
 
-Po edycji konfiguracji przy działającym kontenerze: `orcan sync && orcan down && orcan up`.
+Preferuj live reconcile przez `orcan sync`, gdy to możliwe; recreate gdy wymagają tego overlaye (`orcan down && orcan up`). Szczegóły: [Runtime reconcile](../ideas/runtime-reconcile.md).
 
 ## Gdzie co zmieniać
 
 | Zmiana | Miejsce |
 | --- | --- |
 | UX hosta / cele | `Makefile`, `scripts/repository/` |
-| Store Context Assertions / Applicability Layer | `scripts/repository/context_assertions.py`, `scripts/repository/compile_context.py` |
+| Izolowany preview UX / tmux | `make dev-*` / `scripts/dev/` — [Testy](../development/testing.md) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`, `pty_keys.py`, `pty_colors.py`) |
+| Recap sesji | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` |
+| Probe modelu recap | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
+| Store Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` |
+| Host context sync daemon | `scripts/repository/context_syncd.py` (`orcan sync --context`) |
+| Kontrola automatyzacji | `docker/rootfs/usr/local/lib/orcan/automation.py` + `$ORCAN_DATA/history/supervisor/automation.json` (cockpit **`[p]`** / **`[o]`**) |
+| Supervisord / context-scan | `orcan-supervisord`, `orcan-context-scan` w `docker/rootfs/usr/local/bin/` |
 | Runtime kontenera | `docker/rootfs/usr/local/bin/` |
 | Pakiety obrazu | `Dockerfile` |
-| Terminal UI (ttyd / tmux / zsh / starship / fzf / lazygit) | Zobacz [Terminal UI](../guides/terminal-ui.md); reguła `.cursor/rules/terminal-ui.mdc` |
+| Terminal UI | [Terminal UI](../guides/terminal-ui.md); reguła `.cursor/rules/terminal-ui.mdc` |
 | Globalne domyślne agentów w obrazie | `docker/rootfs/opt/cursor-defaults/` |
-| Reguły rozwoju Orcana | `.cursor/rules/`, `AGENTS.md` |
+| Reguły rozwoju Orcana | `.cursor/rules/`, `AGENTS.md` / `CLAUDE.md` |
+| Publiczny indeks agentów | `scripts/repository/generate-llms-txt.py` → `docs/llms.txt` |
 | Docs użytkownika | `docs/` + krótki `README.md` |
 
 ## Mapa dokumentacji
@@ -67,19 +77,12 @@ Po edycji konfiguracji przy działającym kontenerze: `orcan sync && orcan down 
 | Architektura | [architecture.md](../architecture.md) |
 | Terminal UI | [guides/terminal-ui.md](../guides/terminal-ui.md) |
 | Schemat konfiguracji | [reference/configuration.md](../reference/configuration.md) |
-| Cele Make | [reference/makefile.md](../reference/makefile.md) |
+| Make / `dev-*` | [reference/makefile.md](../reference/makefile.md) |
 | Bezpieczeństwo | [reference/security.md](../reference/security.md) |
 | Wydanie | [development/release.md](../development/release.md) |
 | Testy | [development/testing.md](../development/testing.md) |
-| Publiczny indeks agentów | [`docs/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) (generowany; `make docs-llms`) |
+| Publiczny indeks agentów | [`docs/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) |
 
 ## Definicja „gotowe”
 
-Zmiana kodu jest niekompletna bez aktualizacji odpowiadających docs, gdy zmienia się zachowanie lub interfejs. Przed uznaniem za gotowe uruchom `make validate` oraz `make docs-check`.
-
-## Zobacz też
-
-- [Przegląd rozwoju](../development/overview.md)
-- [Architektura](../architecture.md)
-- [Referencja Makefile](../reference/makefile.md)
-- [Bezpieczeństwo](../reference/security.md)
+Bez odpowiadających docs (EN + PL) zmiana zachowania/interfejsu jest niekompletna. Do UX cockpit/ttyd preferuj `make dev-restart`; przy zmianach layoutu/chrome użyj `make dev-smoke` / `dev-a11y` / `dev-visual` (zob. `make dev-checklist`). Przed „gotowe”: `make validate`, `make test-host`, oraz `make docs-check` gdy zmienił się docs/public surface.

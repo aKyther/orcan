@@ -15,4 +15,4 @@ alwaysApply: true
 - Do not delete host data under `ORCAN_DATA` (`~/.config/orcan`) unless the user explicitly requests `make clean-data` / `make clean-volumes`.
 - Do not start containers with `--privileged`.
 - Do not mount `/`, `/home`, `/etc`, or other sensitive host paths into containers (except the intentional `ORCAN_DATA` binds under `~/.config/orcan`).
-- Treat `/var/run/docker.sock` as privileged host access; enable it only with `*-docker` Make targets.
+- Treat `/var/run/docker.sock` as privileged host access; enable it only with `orcan up --with-docker`.

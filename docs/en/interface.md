@@ -18,6 +18,7 @@ High-signal commands:
 
 ```bash
 orcan init | sync | context show
+orcan sync --context [--watch]   # inbox compile only; respects automation pause/off
 orcan build [--claude|--cursor] [--force]
 orcan up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git] | down
   (| = pick one — docs notation, not one shell line)
@@ -34,13 +35,20 @@ The git checkout also ships a **Makefile** for docs, tests, and release — not 
 
 | Command | Role |
 | --- | --- |
+| `agent-launcher` | Cockpit TUI on a real tty (top bar + workspaces/ASSERTIONS \| tmux); plain menu when piped |
 | `agent` / `ag` | Cursor CLI (full image) |
 | `claude` / `cc` | Claude Code |
 | `orcan-workspaces` | List workspaces |
 | `orcan-context-status` | Context pack status |
+| `orcan-context-scan` | Discover Claude/Cursor transcripts → cascading recap (default) or legacy reflect (`ORCAN_CONTEXT_DRIVER`); supervisord worker |
+| `orcan-context-recap` | Session batch compact + rolling recap → inbox (invoked by `orcan-context-scan`) |
+| `orcan-context-model-check` | Probe Claude/Haiku for recap; updates cached `model_check` in `automation.json` with `--refresh` |
+| `orcan-supervisord` / `orcan-supervisor-status` | Container process supervisor + status helper |
 | `orcan-init-projects` | Optional: seed project templates (advanced) |
 | `orcan-session-brief` | Optional session handoff file |
 | `orcan-ai-statusline` | Optional AI usage in tmux status |
+
+Interactive enter path: [Workflows — local terminal](guides/workflows.md#local-terminal).
 
 ## Config surface
 

@@ -28,7 +28,7 @@ orcan up              # lokalnie — orcan enter na tej samej maszynie
 Zwykłe `orcan up` to tryb lokalny (bez publikacji portu). **`orcan enter`** to domyślna ścieżka na tej samej maszynie. Dodaj **`--with-ttyd`**, gdy potrzebujesz przeglądarki (zdalnie / telefon).
 
 ```bash
-orcan enter                 # picker workspace'ów (agent-launcher) — domyślnie
+orcan enter                 # cockpit: top bar + workspace'y/ASSERTIONS | tmux + status
 orcan enter --tmux          # lista sesji; attach jeśli jest tylko jedna
 orcan enter --tmux my-ws    # attach do nazwanej sesji
 orcan enter --shell         # zwykły zsh (bez tmux)
@@ -39,6 +39,32 @@ docker exec -it orcan-1 agent-launcher
 ```
 
 Alias: `orcan go-in` (to samo co `enter`). Domyślna nazwa kontenera to `orcan-1` (`ORCAN_INSTANCE`). Detach tmux: prefix + `d` — sesja dalej działa dla ttyd i innych klientów.
+
+Na prawdziwym tty `agent-launcher` uruchamia **cockpit**: **górny pasek** (utility
+rail + CPU/RAM/zegar), **główny rząd** — lewa kolumna (lista workspace’ów u góry,
+**ASSERTIONS** na dole) i środek z osadzonym `tmux attach` + pasek hintów — oraz
+**dolny pasek statusu** (workspace · branch · sesja tmux · pending; skraca się wg
+tieru szerokości). Wybór workspace: strzałki + Enter. Użycie piped/non-interactive
+nadal wypisuje zwykłe menu tekstowe.
+
+| Klawisze | Akcja |
+| --- | --- |
+| **F2** / rail 🔔 | Przełącz sekcję ASSERTIONS w lewej kolumnie (fokusuje przy pokazaniu) |
+| **F4** / rail ☰ | Przełącz lewą kolumnę workspace’ów |
+| **F3** / rail ⎇ | Otwórz Git (`lazygit` w popupie tmux) |
+| **F1** / **?** / rail ? | Overlay skrótów (app + tmux; embed ≠ native attach) |
+| **Ctrl+P** | Paleta komend (gdy fokus nie jest w terminalu) |
+| **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |
+| **p** | Pauza/wznowienie automatyzacji context (fokus na ASSERTIONS) — wstrzymuje `orcan-context-scan` + `orcan sync --context --watch` przy `paused: true` |
+| **o** | Wyłącz/włącz automatyzację context (fokus na ASSERTIONS) — master `enabled` w `automation.json` |
+| strzałki + Enter | Nawigacja / attach workspace (fokus na liście) |
+
+W środkowym terminalu **działają skróty tmux** (prefix **C-Space**;
+**Alt+1**…**Alt+9** wybiera okna; **prefix ?** otwiera samodzielny popup
+skrótów tmux). Cockpit musi przekazywać te klawisze i resize do tmux — zobacz
+[Terminal UI — Cockpit + przeglądarka](terminal-ui.md#cockpit-browser). **F1** / **?**
+otwiera mapę w aplikacji (stopka: osadzony tmux ≠ native attach). Pełna mapa:
+`cockpit/…/shortcuts.py` (host testy trzymają ją w sync z `keybindings.conf`).
 
 !!! tip
     Przeglądarka + lokalny terminal mogą dzielić jedną sesję: edytuj w iTerm / Windows Terminal, trzymaj ttyd na telefonie lub drugim ekranie.

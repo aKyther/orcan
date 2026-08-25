@@ -26,9 +26,9 @@ Zobacz [Architektura](../architecture.md).
 
 Opcjonalne użycie AI w statusie tmux: `init-ai-statusline` + `orcan-ai-statusline` (hooki dla Claude/Cursor). Celowo cienkie.
 
-## Context Assertions: Claude tworzy, Cursor czyta
+## Context Assertions: Reflection pisze, każdy agent czyta
 
-`orcan context hook enable` (wsadowa Reflection, szkicująca kandydatów na Context Assertions) jest Claude-only — patrz ["Wsadowa, zautomatyzowana Reflection"](../ideas/context-assertions.md#wsadowa-zautomatyzowana-reflection), dlaczego własny hook `stop` Cursora nie jest tu podpięty. Cursor i tak dostaje ten sam skompilowany `CONTEXT-ASSERTIONS.md`, bo `init-workspace` pisze `AGENTS.md` (Cursor) i `CLAUDE.md` (Claude) z identyczną treścią — bez osobnej ścieżki do utrzymania dla Cursora.
+`orcan-context-scan` odkrywa transkrypty Claude i Cursor na dysku i uruchamia domyślnie **recap** (`orcan-context-recap`; legacy: `ORCAN_CONTEXT_DRIVER=reflect`) — ten sam inbox / review człowieka. Hook `Stop` Claude (`orcan context hook enable`) jest nadal dosiewany w okresie przejściowym — patrz ["Wsadowa, zautomatyzowana Reflection"](../ideas/context-assertions.md#wsadowa-zautomatyzowana-reflection). Cursor i Claude konsumują skompilowany `CONTEXT-ASSERTIONS.md` przez identyczne `AGENTS.md` / `CLAUDE.md` z `init-workspace`.
 
 ## To repozytorium
 

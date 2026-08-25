@@ -89,6 +89,9 @@ class ApplyWorkspacesTests(unittest.TestCase):
         self.assertTrue((self.ws_root / ".manifest.json").is_file())
         self.assertTrue((self.ws_root / "AGENTS.md").is_file())
         self.assertTrue((self.ws_root / "CLAUDE.md").is_file())
+        agents = (self.ws_root / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertEqual(agents, (self.ws_root / "CLAUDE.md").read_text(encoding="utf-8"))
+        self.assertIn("project's `AGENTS.md` / `CLAUDE.md` is SoT", agents)
         self.assertEqual(report.workspaces[0].symlinks_created, [str(self.ws_root / "app")])
 
     def test_second_run_with_no_change_is_a_no_op(self) -> None:

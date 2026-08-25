@@ -17,6 +17,10 @@ Commands:
                            reconcile into a running container. --prune-orphans
                            also kills orphaned tmux sessions (default: report
                            only, never kill one that might have an active agent)
+  sync --context [--watch|--once] [--interval N]
+                           Spike: import inbox/decisions + compile
+                           CONTEXT-ASSERTIONS.md only (host; no apply-config).
+                           --watch polls; --once syncs when drops changed
   migrate [--yes]          Move projects under managed root (dry-run by default)
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects
@@ -50,12 +54,13 @@ Commands:
   pull                     Pull all-agents orcan:<VERSION> → orcan:latest
   publish                  Manual push of all-agents orcan:latest (maintainers)
   url                      Print http://localhost:<port>
-  logs                     Follow container logs
+  logs [docker|supervisor|context-scan]
+                           Follow container logs (default) or show durable supervisord / scanner logs
   enter [--launcher|--shell|--tmux [SESSION]]
                            Local terminal into the running container
                            (default: agent-launcher; alias: go-in)
   update [--release|--main] Checkout newest release tag (default) or main
-  doctor                   Host / config health report
+  doctor                   Host / config / container health (supervisord, context automation, recap model when running)
   uninstall [--purge-data] Remove CLI (and optionally ORCAN_DATA)
   version                  Print version
   help                     Show this help

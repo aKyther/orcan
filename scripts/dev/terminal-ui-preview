@@ -97,10 +97,14 @@ tmux -L "${SOCKET}" select-pane -t "${SESSION}:1.1"
 tmux -L "${SOCKET}" display-message -t "${SESSION}" ' Orcan UI preview · prefix C-Space · reload C-Space r '
 
 if (( CHECK_ONLY )); then
-    [[ "$(tmux -L "${SOCKET}" show-option -gv status)" == "2" ]]
+    # status=1 (single row, window tabs only) since the identity+metrics
+    # row was trimmed from status.conf as redundant with the cockpit's own
+    # top/bottom bars — see that file's header comment. tmux itself reports
+    # this option as "on"/"off" for values 0/1 (only 2+ show numerically).
+    [[ "$(tmux -L "${SOCKET}" show-option -gv status)" == "on" ]]
     [[ "$(tmux -L "${SOCKET}" show-option -gv status-position)" == "bottom" ]]
     [[ "$(tmux -L "${SOCKET}" list-windows -t "${SESSION}" -F '#{window_name}' | wc -l)" -eq 3 ]]
-    printf 'UI preview check OK: isolated socket=%s, status=2, windows=3\n' "${SOCKET}"
+    printf 'UI preview check OK: isolated socket=%s, status=1, windows=3\n' "${SOCKET}"
     exit 0
 fi
 

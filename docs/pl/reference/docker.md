@@ -35,9 +35,9 @@ Etykieta wersji: `ORCAN_VERSION` / `/etc/orcan/version`.
 | Plik | Rola |
 | --- | --- |
 | `docker-compose.yml` | Bazowy serwis, bindy `$ORCAN_DATA`, bez socketa Dockera |
-| `docker-compose.keepalive.yml` | `sleep infinity` — domyślne `orcan up` (lokalnie; `orcan enter`) |
+| `docker-compose.keepalive.yml` | `orcan-supervisord` z `ORCAN_SUPERVISOR_MODE=keepalive` — domyślne `orcan up` (lokalnie; `orcan enter`) |
 | `docker-compose.docker.yml` | Socket Dockera hosta + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | `cursor-ttyd` przy `orcan up --with-ttyd`; opublikowany port (`TTYD_BIND`, domyślnie `0.0.0.0`), opcjonalne `TTYD_CREDENTIAL`, healthcheck |
+| `docker-compose.ttyd.yml` | `orcan-supervisord` z `ORCAN_SUPERVISOR_MODE=ttyd` przy `orcan up --with-ttyd`; opublikowany port (`TTYD_BIND`, domyślnie `0.0.0.0`), opcjonalne `TTYD_CREDENTIAL`, healthcheck |
 | `mounts/compose-projects.generated.yml` | Mounty projektów path-parity (generowane) |
 
 Nakładki dla `orcan up --with-ttyd` / `--with-docker` / `--with-git` /
@@ -47,6 +47,48 @@ ttyd: domyślna publikacja to wszystkie interfejsy (`TTYD_BIND=0.0.0.0`).
 **Rekomendowany dostęp zdalny** to Tailscale (albo inny prywatny VPN) plus
 `TTYD_CREDENTIAL` / `--with-ttyd-auth`. `TTYD_BIND=127.0.0.1` tylko lokalnie
 na hoście. `orcan url` drukuje `http://localhost:<port>` przy wildcard bind.
+
+## Układ procesów (supervisord) { #process-layout-supervisord }
+
+`orcan up` nie używa już gołego `sleep infinity` / `cursor-ttyd` jako
+komendy Compose. Oba overlaye uruchamiają **`orcan-supervisord`**, który
+wybiera programy z `/etc/orcan/supervisor.d/` do `/tmp/orcan-supervisor.d/`
+i robi `exec supervisord -n`:
+
+| `ORCAN_SUPERVISOR_MODE` | Program „trzymający” kontener | Typowy dostęp |
+| --- | --- | --- |
+| `keepalive` (domyślny) | `sleep infinity` | `orcan enter` |
+| `ttyd` | `cursor-ttyd` | przeglądarka |
+
+Worker zawsze włączony (chyba że `ORCAN_CONTEXT_SCAN=0`):
+
+| Program | Komenda |
+| --- | --- |
+| `context-scan` | `orcan-context-scan --all-workspaces --watch` |
+
+**Logi** (trwałe na bindzie history — przeżywają recreate):
+
+| Ścieżka (kontener) | Host |
+| --- | --- |
+| `~/.local/share/orcan/history/supervisor/` | `$ORCAN_DATA/history/supervisor/` |
+
+| Plik | Co |
+| --- | --- |
+| `supervisord.log` | Supervisor + banner startu |
+| `childlog/context-scan.*.log` | Skaner Reflection |
+| `childlog/ttyd.*.log` | Terminal przeglądarkowy (tryb ttyd) |
+| `automation.json` | Wspólna kontrola automatyzacji — `enabled`, `paused`, cache `model_check`; cockpit **`[p]`** / **`[o]`** |
+
+```bash
+orcan-supervisor-status     # w kontenerze
+orcan logs supervisor       # z hosta
+orcan logs context-scan
+```
+
+Supervisord i jego dzieci działają jako użytkownik kontenera **`developer`**
+(`USER` w obrazie); `orcan-supervisord` odmawia startu jako root. Cockpit `[p]`
+pauzuje skan/reflect/host `--context` watch bez zabijania supervisord —
+akceptacja assertions nadal wymaga człowieka.
 
 ## Bindy `$ORCAN_DATA`
 

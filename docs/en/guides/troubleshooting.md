@@ -93,7 +93,16 @@ See [Path parity](../concepts/path-parity.md). Confirm mounts with `orcan contex
 
 ## tmux keys do not work in the browser
 
-Focus the terminal pane. Use tmux prefix (see image defaults under `/etc/tmux`). Right-click uses the browser menu (tmux mouse menus are unbound on purpose).
+1. Focus the **center** terminal column in the cockpit (not the workspace list / ASSERTIONS section).
+2. Remember: embedded tmux **≠ native attach** — see **F1** / **?** in the cockpit or [Terminal UI — two terminals](terminal-ui.md#cockpit-browser). For full attach: `orcan enter --tmux SESSION`.
+3. Prefix is **C-Space** (not `C-b`). Window jumps: **Alt+1**…**Alt+9** (see [Terminal UI](terminal-ui.md)).
+4. On **macOS**, Option must be Meta: image ttyd sets `macOptionIsMeta=true`. If Alt types `¡`/`™` instead of switching windows, rebuild/recreate so `cursor-ttyd` is current.
+5. On **Windows Terminal / Linux**, Textual may still surface Option glyphs for ESC+digit; current cockpit maps them back to Meta in `pty_keys.py`. If Alt still inserts `¡`/`™`, update cockpit (`make dev-restart` or `orcan build` + recreate).
+6. Right-click uses the browser menu (tmux mouse menus are unbound on purpose).
+
+## Embedded tmux does not resize with the browser
+
+The cockpit PTY must own a controlling tty so resize delivers SIGWINCH to tmux. Fixed in current cockpit (`TIOCSCTTY` + `on_resize`). If the pane stays at attach size after a browser resize: update the image (`orcan build` / `make dev-restart`) and hard-refresh the tab. Details: [Terminal UI — cockpit](terminal-ui.md#cockpit-browser).
 
 ## Long URL wraps and is hard to click
 
@@ -147,5 +156,44 @@ orcan context show
 docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config
 orcan logs
 ```
+
+## Context automation paused, off, or `CONTEXT-ASSERTIONS.md` stale
+
+Background Reflection and inbox compile respect shared automation flags:
+
+```bash
+# cockpit ASSERTIONS section: p = pause, o = off/on
+cat "${ORCAN_DATA:-$HOME/.config/orcan}/history/supervisor/automation.json"
+```
+
+When `"paused": true` or `"enabled": false`, **`orcan-context-scan`** (supervisord)
+and host **`orcan sync --context --watch`** idle. When cached `"model_check"` reports
+`ok: false`, scan skips recap (Claude/Haiku unavailable — check `orcan doctor` or
+`orcan-context-model-check` in container). Human review (`orcan-context-review`)
+still works. After accepting/rejecting candidates, refresh compiled context without
+a full config sync:
+
+```bash
+orcan sync --context          # one import/compile pass
+orcan sync --context --once   # skip if inbox fingerprint unchanged
+```
+
+See [Context Assertions](../ideas/context-assertions.md) and [FAQ](../faq.md).
+
+## Supervisord / `context-scan` missing after upgrade
+
+`orcan doctor` prints a **`supervisord`** line when the container is running:
+
+```bash
+orcan doctor | rg supervisord
+```
+
+| Message | Fix |
+| --- | --- |
+| `image predates supervisord` | `orcan build && orcan down && orcan up` |
+| `process not running` | Recreate after a successful build |
+| `RUNNING` + `context-scan` | Worker is up — if Reflection still idle, check **`[p]`** / **`[o]`** / `automation.json`, `model_check`, and `orcan logs context-scan` |
+
+Details: [Docker — process layout](../reference/docker.md#process-layout-supervisord).
 
 More on limits: [Security](../reference/security.md).

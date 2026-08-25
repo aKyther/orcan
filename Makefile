@@ -15,7 +15,8 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 .DEFAULT_GOAL := help
 
 .PHONY: help deprecate-user \
-	validate test test-host test-path-parity \
+	validate test test-host test-path-parity dev-test \
+	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-dev docs-mike-release \
 	version bump-patch bump-minor bump-major release-tag release-push release \
 	registry-show registry-login publish pull \
@@ -52,6 +53,53 @@ test: ## Run container smoke tests (builds image via orcan build)
 test-path-parity: ## Path parity integration test
 	@$(ORCAN) build
 	@./tests/integration/test-path-parity.sh
+
+dev-test: ## Real-Docker lifecycle test for the isolated developer environment
+	@./tests/integration/test-dev-ux.sh
+
+# ── Manual UX testing (isolated; never the public Orcan interface) ──────────
+
+dev-start: ## Start isolated developer environment (build if missing)
+	@./scripts/dev/orcan-preview start
+
+dev-restart: ## Refresh current developer source and recreate environment
+	@./scripts/dev/orcan-preview restart
+
+dev-status: ## Show developer environment health and URLs
+	@./scripts/dev/orcan-preview status
+
+dev-doctor: ## Verify developer environment isolation and readiness
+	@./scripts/dev/orcan-preview doctor
+
+dev-smoke: ## Exercise the real cockpit and embedded tmux PTY
+	@./scripts/dev/orcan-preview smoke
+
+dev-visual: ## Browser smoke and screenshot regression for developer environment
+	@./tests/browser/run-dev-ux.sh
+
+dev-visual-update: ## Intentionally update developer screenshot baselines
+	@./tests/browser/run-dev-ux.sh --update
+
+dev-a11y: ## Keyboard, focus, viewport, contrast, and axe accessibility test
+	@ORCAN_A11Y_ONLY=1 ./tests/browser/run-dev-ux.sh
+
+dev-enter: ## Enter the isolated developer launcher/container
+	@./scripts/dev/orcan-preview enter
+
+dev-shell: ## Open a shell in the isolated developer container
+	@./scripts/dev/orcan-preview shell
+
+dev-logs: ## Follow developer environment logs
+	@./scripts/dev/orcan-preview logs
+
+dev-stop: ## Stop only the developer environment
+	@./scripts/dev/orcan-preview stop
+
+dev-reset: ## Stop and reset disposable developer state
+	@./scripts/dev/orcan-preview reset
+
+dev-checklist: ## Show the developer manual checklist
+	@./scripts/dev/orcan-preview checklist
 
 DOCS_VENV := .venv-docs
 DOCS_PYTHON := $(DOCS_VENV)/bin/python3

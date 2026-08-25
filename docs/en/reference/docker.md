@@ -35,9 +35,9 @@ Version label: `ORCAN_VERSION` / `/etc/orcan/version`.
 | File | Role |
 | --- | --- |
 | `docker-compose.yml` | Base service, `$ORCAN_DATA` binds, no Docker socket |
-| `docker-compose.keepalive.yml` | `sleep infinity` — default `orcan up` (local-only; use `orcan enter`) |
+| `docker-compose.keepalive.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=keepalive` — default `orcan up` (local-only; use `orcan enter`) |
 | `docker-compose.docker.yml` | Host Docker socket + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | `cursor-ttyd` when `orcan up --with-ttyd`; published port (`TTYD_BIND`, default `0.0.0.0`), optional `TTYD_CREDENTIAL`, healthcheck |
+| `docker-compose.ttyd.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=ttyd` when `orcan up --with-ttyd`; published port (`TTYD_BIND`, default `0.0.0.0`), optional `TTYD_CREDENTIAL`, healthcheck |
 | `mounts/compose-projects.generated.yml` | Path-parity project mounts (generated) |
 
 Overlays for `orcan up --with-ttyd` / `--with-docker` / `--with-git` /
@@ -48,6 +48,48 @@ remote access** is Tailscale (or another private VPN) plus
 `TTYD_CREDENTIAL` / `--with-ttyd-auth`. Set `TTYD_BIND=127.0.0.1` for
 host-local only. `orcan url` prints `http://localhost:<port>` for wildcard
 binds.
+
+## Process layout (supervisord) { #process-layout-supervisord }
+
+`orcan up` no longer uses bare `sleep infinity` / `cursor-ttyd` as the
+Compose command. Both overlays run **`orcan-supervisord`**, which picks
+programs from `/etc/orcan/supervisor.d/` into `/tmp/orcan-supervisor.d/`
+and execs `supervisord -n`:
+
+| `ORCAN_SUPERVISOR_MODE` | Foreground program | Typical access |
+| --- | --- | --- |
+| `keepalive` (default) | `sleep infinity` | `orcan enter` |
+| `ttyd` | `cursor-ttyd` | browser |
+
+Always-on worker (unless `ORCAN_CONTEXT_SCAN=0`):
+
+| Program | Command |
+| --- | --- |
+| `context-scan` | `orcan-context-scan --all-workspaces --watch` |
+
+**Logs** (durable on the history bind — survive recreate):
+
+| Path (container) | Host |
+| --- | --- |
+| `~/.local/share/orcan/history/supervisor/` | `$ORCAN_DATA/history/supervisor/` |
+
+| File | What |
+| --- | --- |
+| `supervisord.log` | Supervisor + startup banner |
+| `childlog/context-scan.*.log` | Reflection scanner |
+| `childlog/ttyd.*.log` | Browser terminal (ttyd mode) |
+| `automation.json` | Shared automation control — `enabled`, `paused`, cached `model_check`; cockpit **`[p]`** / **`[o]`** |
+
+```bash
+orcan-supervisor-status     # in container
+orcan logs supervisor       # from host
+orcan logs context-scan
+```
+
+Supervisord and its children run as container user **`developer`** (image
+`USER`); `orcan-supervisord` refuses to start as root. Cockpit `[p]` pauses
+background scan/reflect/host `--context` watch without stopping supervisord
+itself — human accept/reject of assertions stays required.
 
 ## `$ORCAN_DATA` binds
 
