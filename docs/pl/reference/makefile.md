@@ -17,6 +17,7 @@ Repozytorium ma Makefile tylko dla **maintainerów** w checkoutcie gita:
 | `make test-host` | Testy jednostkowe hosta |
 | `make test` / `make test-path-parity` | Testy kontenera (wymaga Dockera) |
 | `make docs` / `docs-serve` / `docs-check` | MkDocs |
+| `make docs-llms` | Regeneruj `docs/llms.txt` (też przed docs / docs-check) |
 | `make docs-mike-dev` / `docs-mike-release` | Wersjonowany deploy docs |
 | `make bump-*` / `release` | Wersja + GitHub Release |
 | `make registry-*` | Niskopoziomowe helpery rejestru (preferuj `orcan publish` / `orcan pull`) |

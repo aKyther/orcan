@@ -1,5 +1,7 @@
 ---
 description: Why Orcan exists — the problem of fragmented repos and lost work context, and when not to use it.
+tags:
+  - concept
 ---
 
 # Why Orcan?

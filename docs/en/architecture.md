@@ -1,5 +1,8 @@
 ---
 description: Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).
+tags:
+  - concept
+  - reference
 ---
 
 # Architecture

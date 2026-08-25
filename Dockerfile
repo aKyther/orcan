@@ -364,6 +364,25 @@ RUN chmod 0755 \
     && chmod 0644 /etc/orcan/shell/aliases.sh
 
 # ------------------------------------------------------------------------------
+# Orcan cockpit (agent-launcher) — a real uv-managed Python project
+# (cockpit/pyproject.toml + cockpit/uv.lock at the repo root, NOT under
+# docker/rootfs/ since it isn't a plain vendored file — it's built by uv,
+# not copied verbatim), the only non-stdlib Python in this image. Installed
+# into its own isolated venv so orcan-context-* tooling and orcan.workspaces
+# stay stdlib-only, per AGENTS.md. `uv sync --frozen` uses the committed
+# lockfile as-is rather than re-resolving at build time.
+# ------------------------------------------------------------------------------
+
+COPY cockpit/ /opt/orcan-cockpit-src/
+
+RUN set -eux; \
+    cd /opt/orcan-cockpit-src; \
+    UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen; \
+    chmod -R a+rX /opt/orcan-cockpit /opt/orcan-cockpit-src; \
+    /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles'; \
+    test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
+
+# ------------------------------------------------------------------------------
 # User
 # ------------------------------------------------------------------------------
 

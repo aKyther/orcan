@@ -1,3 +1,9 @@
+---
+description: Public orcan CLI — commands, flags, and maintainer vs end-user boundary.
+tags:
+  - reference
+---
+
 # CLI reference
 
 Public interface for Orcan is the **`orcan`** command (Bash). Make targets remain for **maintainers** only (docs, tests, release).

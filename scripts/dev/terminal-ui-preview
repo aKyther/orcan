@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Preview repository tmux UI on an isolated server; never contact the normal server.
+set -Eeuo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+TMUX_SOURCE="${ROOT_DIR}/docker/rootfs/etc/tmux"
+MODE="${1:-tmux}"
+CHECK_ONLY=0
+SIZE="120x32"
+
+usage() {
+    cat <<'EOF'
+Usage: scripts/dev/terminal-ui-preview [tmux] [--check] [--size COLSxROWS]
+
+Start an isolated tmux server using UI files from the current checkout.
+Exit the attached client to remove the preview server and temporary files.
+
+  --check          verify the UI without attaching
+  --size COLSxROWS initial size (default: 120x32)
+EOF
+}
+
+if [[ "${MODE}" == -* ]]; then MODE="tmux"; else shift || true; fi
+while (( $# )); do
+    case "$1" in
+        --check) CHECK_ONLY=1 ;;
+        --size)
+            [[ $# -ge 2 ]] || { printf 'Error: --size requires COLSxROWS\n' >&2; exit 2; }
+            SIZE="$2"; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) printf 'Error: unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+    esac
+    shift
+done
+
+[[ "${MODE}" == "tmux" ]] || { printf 'Error: unsupported preview mode: %s (available: tmux)\n' "${MODE}" >&2; exit 2; }
+command -v tmux >/dev/null 2>&1 || { printf 'Error: tmux is required for terminal UI preview\n' >&2; exit 1; }
+if [[ ! "${SIZE}" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+    printf 'Error: invalid size %s (expected COLSxROWS)\n' "${SIZE}" >&2
+    exit 2
+fi
+
+COLS="${BASH_REMATCH[1]}"
+ROWS="${BASH_REMATCH[2]}"
+PREVIEW_DIR="$(mktemp -d "${TMPDIR:-/tmp}/orcan-ui-preview.XXXXXX")"
+SOCKET="orcan-ui-preview-$$"
+SESSION="ui-preview"
+PREVIEW_CONFIG="${PREVIEW_DIR}/tmux"
+FIXTURE="${PREVIEW_DIR}/workspace"
+
+cleanup() {
+    tmux -L "${SOCKET}" kill-server >/dev/null 2>&1 || true
+    rm -rf -- "${PREVIEW_DIR}"
+}
+trap cleanup EXIT INT TERM
+
+mkdir -p "${PREVIEW_CONFIG}/scripts" "${FIXTURE}/.orcan"
+printf '# UI preview fixture\n' > "${FIXTURE}/.orcan/session-brief.md"
+
+# Image configs use /etc/tmux absolute paths. Rewrite them only in a temp mirror.
+for config in tmux.conf options.conf keybindings.conf status.conf; do
+    sed "s|/etc/tmux|${PREVIEW_CONFIG}|g" "${TMUX_SOURCE}/${config}" > "${PREVIEW_CONFIG}/${config}"
+done
+for script in "${TMUX_SOURCE}"/scripts/*; do
+    [[ -f "${script}" ]] || continue
+    ln -s "${script}" "${PREVIEW_CONFIG}/scripts/$(basename "${script}")"
+done
+
+# C-Space r regenerates configs, so edits become visible without restarting preview.
+cat > "${PREVIEW_CONFIG}/reload.sh" <<EOF
+#!/usr/bin/env bash
+set -Eeuo pipefail
+for config in tmux.conf options.conf keybindings.conf status.conf; do
+    sed 's|/etc/tmux|${PREVIEW_CONFIG}|g' '${TMUX_SOURCE}/'"\${config}" > '${PREVIEW_CONFIG}/'"\${config}"
+done
+sed -i "s|bind r source-file .*|bind r run-shell '${PREVIEW_CONFIG}/reload.sh'|" '${PREVIEW_CONFIG}/keybindings.conf'
+tmux source-file '${PREVIEW_CONFIG}/tmux.conf'
+tmux display-message ' UI preview reloaded from checkout '
+EOF
+chmod +x "${PREVIEW_CONFIG}/reload.sh"
+sed -i "s|bind r source-file .*|bind r run-shell '${PREVIEW_CONFIG}/reload.sh'|" "${PREVIEW_CONFIG}/keybindings.conf"
+
+TMUX='' tmux -L "${SOCKET}" -f "${PREVIEW_CONFIG}/tmux.conf" \
+    new-session -d -x "${COLS}" -y "${ROWS}" -s "${SESSION}" -c "${FIXTURE}"
+tmux -L "${SOCKET}" set-environment -g ORCAN_WORKSPACE_ROOT "${FIXTURE}"
+tmux -L "${SOCKET}" set-environment -g ORCAN_WORKSPACE_NAME "ui-preview"
+
+# Deterministic gallery: split panes plus short, normal, and long tabs.
+tmux -L "${SOCKET}" rename-window -t "${SESSION}:1" editor
+tmux -L "${SOCKET}" split-window -h -t "${SESSION}:1" -c "${ROOT_DIR}"
+tmux -L "${SOCKET}" split-window -v -t "${SESSION}:1.2" -c "${ROOT_DIR}"
+tmux -L "${SOCKET}" select-layout -t "${SESSION}:1" tiled
+tmux -L "${SOCKET}" new-window -d -t "${SESSION}:2" -n tests -c "${ROOT_DIR}"
+tmux -L "${SOCKET}" new-window -d -t "${SESSION}:3" -n very-long-window-name -c "${ROOT_DIR}"
+tmux -L "${SOCKET}" select-window -t "${SESSION}:1"
+tmux -L "${SOCKET}" select-pane -t "${SESSION}:1.1"
+tmux -L "${SOCKET}" display-message -t "${SESSION}" ' Orcan UI preview · prefix C-Space · reload C-Space r '
+
+if (( CHECK_ONLY )); then
+    [[ "$(tmux -L "${SOCKET}" show-option -gv status)" == "2" ]]
+    [[ "$(tmux -L "${SOCKET}" show-option -gv status-position)" == "bottom" ]]
+    [[ "$(tmux -L "${SOCKET}" list-windows -t "${SESSION}" -F '#{window_name}' | wc -l)" -eq 3 ]]
+    printf 'UI preview check OK: isolated socket=%s, status=2, windows=3\n' "${SOCKET}"
+    exit 0
+fi
+
+printf 'Starting isolated UI preview (%sx%s). Active Orcan tmux is untouched.\n' "${COLS}" "${ROWS}"
+printf 'Inside preview: C-Space r reloads UI files; detach/exit closes preview.\n'
+TMUX='' tmux -L "${SOCKET}" attach-session -t "${SESSION}"

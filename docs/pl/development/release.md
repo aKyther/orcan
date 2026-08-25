@@ -12,7 +12,7 @@
 
 ## Model
 
-- SemVer w `VERSION`
+- SemVer w `cockpit/pyproject.toml` (`version = "X.Y.Z"`; root `VERSION` to zsynchronizowane lustro)
 - Tag git `vX.Y.Z`
 - Notatki GitHub Release (CI)
 - Wersjonowane docs przez **mike** (`latest` / SemVer / `dev`)
@@ -22,7 +22,7 @@
 ## Kroki
 
 1. Zaktualizuj `CHANGELOG.md` (przenieś pozycje z Unreleased do nowej sekcji `## [X.Y.Z]`; popraw linki compare na dole).
-2. Podbij wersję (synchronizuje też stringi w `mkdocs.yml`, README, Home EN/PL):
+2. Podbij wersję (SoT: `cockpit/pyproject.toml`; synchronizuje też `VERSION`, stringi w `mkdocs.yml`, README, Home EN/PL):
 
 ```bash
 make bump-patch   # lub bump-minor / bump-major
@@ -31,7 +31,7 @@ make bump-patch   # lub bump-minor / bump-major
 3. Commit:
 
 ```bash
-git add VERSION CHANGELOG.md mkdocs.yml README.md docs/en/index.md docs/pl/index.md
+git add cockpit/pyproject.toml cockpit/uv.lock VERSION CHANGELOG.md mkdocs.yml README.md docs/en/index.md docs/pl/index.md
 git commit -m "release: vX.Y.Z"
 ```
 

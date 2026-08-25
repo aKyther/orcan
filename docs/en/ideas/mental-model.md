@@ -1,5 +1,7 @@
 ---
 description: Mental model for Orcan — workspaces describe relations, projects describe repos, context describes the environment.
+tags:
+  - concept
 ---
 
 # Mental Model

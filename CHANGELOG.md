@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-08-25
+
+### Added
+
+- **Docs site theme** aligned with terminal navy/cyan (`orcan.css`, favicon, Material
+  `primary`/`accent: custom`, Mermaid theme helper).
+- **Home** shortened to hero + path cards (Understand / Run / Change map / Look up).
+- **Change map** page (EN+PL) — what to edit → repo path → doc.
+- **Nav tabs**: Understand / Use / Reference / Develop; Material **tags** on key pages.
+- **`docs/llms.txt`** curated agent index ([llms.txt](https://llmstxt.org/) format);
+  regenerate with `make docs-llms` (hooked into `docs` / `docs-check`).
+- **`make docs-venv`** recreates `.venv-docs` when pip/mkdocs is broken or host
+  Python major.minor differs from the venv (host vs container checkout).
+- **Docs header version chip** (`vX.Y.Z`) always visible; mike docs-alias
+  dropdown styled. Clarified that the dropdown needs mike-deployed
+  `versions.json` (not plain `mkdocs serve`). Theme polish: IBM Plex,
+  atmosphere gradients, tab underline, card motion, code accent.
+- **Nav:** Home + **Get started** (Installation first) before Understand;
+  home CTA leads with Install.
+- **Product version SoT** is `cockpit/pyproject.toml` (`version = "X.Y.Z"`).
+  `make bump-*` / `release.sh` bump that field (and sync `VERSION`, uv.lock
+  package stanza, mkdocs/README/Home). Root `VERSION` remains a CLI/image mirror.
+- **Cockpit.** `agent-launcher` now wraps a live tmux session instead of
+  simply exec'ing into it: a Textual workspace picker hands off to an
+  embedded `tmux attach` running in its own pty (tmux stays the real
+  session/window/pane engine — the cockpit only owns the outer pty and
+  relays bytes/resize), alongside a side panel showing pending Context
+  Assertions (count + oldest age, live-updated via `watchfiles`) with an
+  `F2`-toggled action to run `orcan-context-review` in a `tmux
+  display-popup`. New `cockpit/` uv project (`pyproject.toml` + `uv.lock`,
+  `orcan-cockpit` console script) built into an isolated venv at
+  `/opt/orcan-cockpit/venv` via `uv sync --frozen` — the first non-stdlib
+  Python dependency shipped in the image; `orcan-context-*` tooling stays
+  stdlib-only.
+
+### Changed
+
+- **Breaking: `agent-launcher` is a different program.** It was a bash
+  workspace-picker that `exec`'d straight into `tmux attach`; it's now a
+  two-line shim into the `orcan-cockpit` console script (see Cockpit,
+  above). Non-interactive/piped use (scripts, `tests/smoke/test-container.sh`)
+  keeps printing the same plain-text workspace menu.
+
 ## [2.2.0] - 2026-08-24
 
 ### Changed

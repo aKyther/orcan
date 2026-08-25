@@ -1,5 +1,7 @@
 ---
 description: Install the orcan CLI, sync config, build the image, and start a local or browser session.
+tags:
+  - guide
 ---
 
 # Quickstart

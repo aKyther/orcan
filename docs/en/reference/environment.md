@@ -40,7 +40,7 @@ Edit via `orcan.config.json` (`resources`, `ttyd`) then `orcan sync` for new mac
 | --- | --- |
 | `IMAGE_LOCAL` | Image Compose runs (default `orcan:latest`) |
 | `INSTALL_CURSOR` / `INSTALL_CLAUDE` | Build-args (`1`/`0`); default both on |
-| `ORCAN_VERSION` | Build-arg from `VERSION` file |
+| `ORCAN_VERSION` | Build-arg from `cockpit/pyproject.toml` (mirrored in root `VERSION`) |
 
 ## Optional private registry
 

@@ -58,6 +58,10 @@ import sys
 import uuid
 from pathlib import Path
 
+sys.path.insert(0, "/usr/local/lib")
+
+from orcan.context_inbox import load_inbox_candidates  # noqa: E402
+
 MAX_CONTEXT_CHARS = 8000
 PROPOSE_BIN = Path(__file__).resolve().parent / "orcan-context-propose"
 
@@ -88,48 +92,6 @@ def drop_decision(decisions_dir: Path, *, item_id: str, project_name: str, decis
         json.dumps({"id": item_id, "project_name": project_name, "decision": decision}, indent=2) + "\n",
         encoding="utf-8",
     )
-
-
-def load_inbox_candidates(workspace_root: Path) -> list[dict]:
-    """Undecided, non-flag drops sitting in .orcan/context-inbox/ right now —
-    reviewable without a prior `orcan sync`, since a propose drop already
-    carries its full content. Sorted oldest to newest by file mtime. Each
-    item carries _source="inbox" and _drop_path so review_candidates() knows
-    to rewrite the drop in place (mirroring what interactive
-    orcan-context-propose already does) instead of writing a
-    .orcan/context-decisions/ file."""
-    inbox = workspace_root / ".orcan" / "context-inbox"
-    if not inbox.is_dir():
-        return []
-    items: list[dict] = []
-    for drop in inbox.glob("*.json"):
-        try:
-            payload = json.loads(drop.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if not isinstance(payload, dict):
-            continue
-        if str(payload.get("flag_existing_id") or "").strip():
-            continue  # reconsider-style drop — no displayable content here
-        if payload.get("decision"):
-            continue  # already decided in a prior review run, awaiting sync
-        items.append(
-            {
-                "id": drop.stem,
-                "project_name": payload.get("project_name"),
-                "title": payload.get("title"),
-                "content": payload.get("content"),
-                "justification": payload.get("justification"),
-                "applicability": payload.get("applicability") or {},
-                "epistemic_status": payload.get("epistemic_status") or "fact",
-                "criticality": payload.get("criticality") or "normal",
-                "relations": payload.get("relations") or [],
-                "_source": "inbox",
-                "_drop_path": drop,
-            }
-        )
-    items.sort(key=lambda it: it["_drop_path"].stat().st_mtime)
-    return items
 
 
 def write_inbox_decision(drop_path: Path, decision: str) -> None:

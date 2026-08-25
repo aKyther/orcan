@@ -10,13 +10,13 @@ COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
 
 ORCAN := ./bin/orcan
 HOST_PYTHON := ./scripts/repository/python.sh
-ORCAN_VERSION_FILE := $(shell tr -d '[:space:]' < VERSION 2>/dev/null || echo dev)
+ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null | tr -d '[:space:]' || echo dev)
 
 .DEFAULT_GOAL := help
 
 .PHONY: help deprecate-user \
 	validate test test-host test-path-parity \
-	docs docs-venv docs-serve docs-check docs-publish docs-deploy docs-mike-dev docs-mike-release \
+	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-dev docs-mike-release \
 	version bump-patch bump-minor bump-major release-tag release-push release \
 	registry-show registry-login publish pull \
 	setup env build rebuild build-claude rebuild-claude build-cursor rebuild-cursor \
@@ -42,7 +42,7 @@ help: ## Show maintainer targets (+ CLI pointer)
 validate: ## Validate repository layout and script syntax
 	@./scripts/repository/validate.sh
 
-test-host: ## Host unit tests (config/apply/VERSION; no Docker image)
+test-host: ## Host unit tests (config/apply/version; no Docker image)
 	@./tests/host/run.sh
 
 test: ## Run container smoke tests (builds image via orcan build)
@@ -54,24 +54,39 @@ test-path-parity: ## Path parity integration test
 	@./tests/integration/test-path-parity.sh
 
 DOCS_VENV := .venv-docs
+DOCS_PYTHON := $(DOCS_VENV)/bin/python3
 DOCS_PIP := $(DOCS_VENV)/bin/pip
 DOCS_MKDOCS := $(DOCS_VENV)/bin/mkdocs
 
+# Recreate when missing, pip/mkdocs broken, or host Python ≠ venv (common
+# when the same checkout is used inside the Orcan container and on the host).
 docs-venv:
-	@if [ ! -x "$(DOCS_MKDOCS)" ]; then \
-		python3 -m venv "$(DOCS_VENV)"; \
-		"$(DOCS_PIP)" install -q -r requirements-docs.txt; \
+	@need_new=0; \
+	if [ ! -x "$(DOCS_PYTHON)" ] || [ ! -x "$(DOCS_MKDOCS)" ]; then need_new=1; \
+	elif ! "$(DOCS_PYTHON)" -m pip --version >/dev/null 2>&1; then need_new=1; \
+	elif ! "$(DOCS_PYTHON)" -c "import mkdocs" >/dev/null 2>&1; then need_new=1; \
 	else \
-		"$(DOCS_PIP)" install -q -r requirements-docs.txt; \
-	fi
+		venv_ver=$$("$(DOCS_PYTHON)" -c 'import sys; print("%d.%d"%sys.version_info[:2])'); \
+		host_ver=$$(python3 -c 'import sys; print("%d.%d"%sys.version_info[:2])'); \
+		if [ "$$venv_ver" != "$$host_ver" ]; then need_new=1; fi; \
+	fi; \
+	if [ "$$need_new" = 1 ]; then \
+		printf 'docs-venv: (re)creating %s for host python %s\n' "$(DOCS_VENV)" "$$(python3 -c 'import sys; print(sys.version.split()[0])')"; \
+		rm -rf "$(DOCS_VENV)"; \
+		python3 -m venv "$(DOCS_VENV)"; \
+	fi; \
+	"$(DOCS_PYTHON)" -m pip install -q -r requirements-docs.txt
 
-docs: docs-venv ## Build the MkDocs site into ./site (strict)
+docs-llms: ## Regenerate docs/llms.txt (agent-facing docs index)
+	@./scripts/repository/python.sh scripts/repository/generate-llms-txt.py
+
+docs: docs-venv docs-llms ## Build the MkDocs site into ./site (strict)
 	@$(DOCS_MKDOCS) build --strict
 
-docs-serve: docs-venv ## Serve the MkDocs site locally
+docs-serve: docs-venv docs-llms ## Serve the MkDocs site locally
 	@$(DOCS_MKDOCS) serve
 
-docs-check: docs-venv ## Strict docs build + product-name check
+docs-check: docs-venv docs-llms ## Strict docs build + product-name check
 	@./scripts/repository/check-product-name.sh
 	@$(DOCS_MKDOCS) build --strict
 	@printf 'docs-check OK\n'
@@ -79,8 +94,8 @@ docs-check: docs-venv ## Strict docs build + product-name check
 docs-mike-dev: docs-venv ## Deploy mike alias "dev"
 	@./scripts/repository/docs-mike.sh dev
 
-docs-mike-release: docs-venv ## Deploy mike version from VERSION + latest
-	@./scripts/repository/docs-mike.sh release "$$(tr -d '[:space:]' < VERSION)"
+docs-mike-release: docs-venv ## Deploy mike version from pyproject + latest
+	@./scripts/repository/docs-mike.sh release "$$(./scripts/repository/release.sh print | tr -d '[:space:]')"
 
 docs-publish: ## Trigger CI docs deploy
 	@if ! command -v gh >/dev/null 2>&1; then \
@@ -92,19 +107,19 @@ docs-publish: ## Trigger CI docs deploy
 
 docs-deploy: docs-publish ## Alias for docs-publish
 
-version: ## Show product VERSION
+version: ## Show product version (cockpit/pyproject.toml)
 	@./scripts/repository/release.sh show
 
-bump-patch: ## Bump VERSION patch
+bump-patch: ## Bump product version patch (pyproject + synced copies)
 	@./scripts/repository/release.sh bump patch
 
-bump-minor: ## Bump VERSION minor
+bump-minor: ## Bump product version minor (pyproject + synced copies)
 	@./scripts/repository/release.sh bump minor
 
-bump-major: ## Bump VERSION major
+bump-major: ## Bump product version major (pyproject + synced copies)
 	@./scripts/repository/release.sh bump major
 
-release-tag: ## Create annotated git tag from VERSION
+release-tag: ## Create annotated git tag from pyproject version
 	@./scripts/repository/release.sh tag
 
 release-push: ## Push version tag to origin

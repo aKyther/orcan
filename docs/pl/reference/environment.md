@@ -40,7 +40,7 @@ Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `orcan sync` na no
 | --- | --- |
 | `IMAGE_LOCAL` | Obraz Compose (domyślnie `orcan:latest`) |
 | `INSTALL_CURSOR` / `INSTALL_CLAUDE` | Build-argi (`1`/`0`); domyślnie oba włączone |
-| `ORCAN_VERSION` | Build-arg z pliku `VERSION` |
+| `ORCAN_VERSION` | Build-arg z `cockpit/pyproject.toml` (lustro: root `VERSION`) |
 
 ## Opcjonalny prywatny rejestr
 

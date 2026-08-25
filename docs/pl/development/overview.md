@@ -66,7 +66,7 @@ Przy zmianie zachowania zaktualizuj w razie potrzeby:
 3. Docs pod `docs/` (oraz krótkie wskazówki w README)
 4. `AGENTS.md` / `.cursor/rules`, jeśli zmienia się rytuał lub granice agentów
 5. `CHANGELOG.md` przy zmianach widocznych dla użytkownika
-6. `VERSION` tylko przy cięciu wydania
+6. `cockpit/pyproject.toml` (wersja) tylko przy cięciu wydania
 
 ## Zobacz też
 

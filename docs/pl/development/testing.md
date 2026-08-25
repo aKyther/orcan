@@ -10,8 +10,8 @@ make docs-check
 
 | Target | Co robi |
 | --- | --- |
-| `make validate` | Wymagane pliki, składnia shell/Python, VERSION, nazwa produktu, Compose `config` gdy Docker działa |
-| `make test-host` | Testy jednostkowe config I/O, `apply-config`, VERSION / release check |
+| `make validate` | Wymagane pliki, składnia shell/Python, wersja pyproject, nazwa produktu, Compose `config` gdy Docker działa |
+| `make test-host` | Testy jednostkowe config I/O, `apply-config`, wersja / release check |
 | `make docs-check` | Ścisły MkDocs (EN+PL) + kontrola nazwy produktu |
 
 ## Testy smoke (pełny obraz — lokalnie)
@@ -21,6 +21,34 @@ make test
 ```
 
 Uruchamia `tests/smoke/test-container.sh` po `orcan build`. Oczekuje **pełnego** obrazu (obecny `agent`). Nie działa w CI (build obrazu jest za ciężki).
+
+## Izolowany podgląd UX
+
+Uruchom pełny terminal przeglądarkowy i launcher z bieżącego checkoutu bez
+podmieniania zainstalowanego obrazu Orcana ani dotykania jego konfiguracji,
+danych, kontenera, portu czy serwera tmux:
+
+```bash
+./scripts/dev/orcan-preview up
+# otwórz http://127.0.0.1:17681
+./scripts/dev/orcan-preview down
+```
+
+Preview używa osobnych: `ORCAN_HOME`, `ORCAN_DATA`, projektu Compose,
+kontenera (`orcan-ux-preview`), obrazu (`orcan:ux-preview`) i portu ttyd.
+Dodaje też dwie tymczasowe Context Assertions, dzięki czemu panel boczny
+cockpitu można przetestować od razu. Dostępne są również polecenia `status`,
+`url`, `logs`, `shell` i `rebuild`; zobacz
+`./scripts/dev/orcan-preview --help`.
+
+Preview publikuje port na `0.0.0.0`, więc można go też otworzyć przez adres IP
+hosta w LAN. Nie uruchamiaj go w niezaufanej sieci bez uwierzytelniania ttyd.
+
+Dla zmian paska statusu i layoutu tmuxa użyj szybszego preview z checkoutu:
+
+```bash
+./scripts/dev/terminal-ui-preview
+```
 
 ## Path parity
 

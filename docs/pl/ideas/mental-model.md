@@ -1,5 +1,7 @@
 ---
 description: Model mentalny Orcana — workspace opisuje relacje, project opisuje repo, context opisuje środowisko.
+tags:
+  - concept
 ---
 
 # Model mentalny

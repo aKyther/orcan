@@ -1,5 +1,7 @@
 ---
 description: Core ideas of Orcan — Project, Workspace, and Context, with multi-repo examples.
+tags:
+  - concept
 ---
 
 # Core Ideas

@@ -1,5 +1,7 @@
 ---
 description: Zainstaluj CLI orcan, zsynchronizuj config, zbuduj obraz i uruchom sesję lokalnie lub w przeglądarce.
+tags:
+  - guide
 ---
 
 # Szybki start

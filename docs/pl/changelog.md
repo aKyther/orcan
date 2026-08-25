@@ -1,6 +1,6 @@
 # Changelog
 
-Wydania produktu używają SemVer w `VERSION` oraz tagów git `vX.Y.Z`.
+Wydania produktu używają SemVer w `cockpit/pyproject.toml` oraz tagów git `vX.Y.Z`.
 
 Pełny plik Keep a Changelog leży w katalogu głównym repozytorium:
 

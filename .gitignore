@@ -59,6 +59,7 @@ coverage/
 
 # MkDocs
 site/
+.orcan-preview/
 
 # OS junk
 Thumbs.db

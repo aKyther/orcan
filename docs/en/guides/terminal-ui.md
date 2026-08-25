@@ -1,5 +1,8 @@
 ---
 description: Terminal look — navy/cyan palette across ttyd, tmux, zsh, starship, fzf, and lazygit. Where to edit and how to extend.
+tags:
+  - guide
+  - develop
 ---
 
 # Terminal UI
@@ -34,6 +37,8 @@ Constraints (do not break these):
 | Accent | `#5eead4` | active tab, borders, cursor |
 | Accent bright | `#67e8f9` | path, secondary highlights |
 | Warn / alert | `#fbbf24`, `#f87171` | activity, errors, low battery |
+
+The **MkDocs site** reuses these tokens (`docs/assets/stylesheets/orcan.css`, favicon). Light docs mode uses a darker teal accent for readable links on white.
 
 Presets in `cursor-ttyd`:
 

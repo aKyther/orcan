@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+# Run the Orcan UX from this checkout as an isolated Docker stack.
+set -Eeuo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+# This checkout has path parity with the host Docker daemon. Keep generated
+# preview binds here (gitignored), never under the container's private /tmp.
+PREVIEW_ROOT="${ORCAN_PREVIEW_ROOT:-${ROOT_DIR}/.orcan-preview}"
+PREVIEW_HOME="${PREVIEW_ROOT}/home"
+PREVIEW_DATA="${PREVIEW_ROOT}/data"
+PREVIEW_IMAGE="${ORCAN_PREVIEW_IMAGE:-orcan:ux-preview}"
+PREVIEW_PROJECT="${ORCAN_PREVIEW_PROJECT:-orcan-ux-preview}"
+PREVIEW_INSTANCE="${ORCAN_PREVIEW_INSTANCE:-ux-preview}"
+PREVIEW_PORT="${ORCAN_PREVIEW_PORT:-17681}"
+PREVIEW_CONTAINER="orcan-${PREVIEW_INSTANCE}"
+
+usage() {
+    cat <<'EOF'
+Usage: scripts/dev/orcan-preview COMMAND [OPTIONS]
+
+Run the complete browser UX from the current checkout without using the
+installed Orcan config, image tag, container, tmux server, or agent data.
+
+Commands:
+  up [--no-build] [--port PORT]  build and start the browser preview
+  rebuild [--port PORT]          rebuild without Docker cache and start
+  status                         show preview container, image, and URL
+  url                            print the preview URL
+  logs                           follow preview container logs
+  shell                          open zsh in the preview container
+  down                           stop the preview stack (keep image/cache)
+  check                          validate generated isolation config; no Docker
+
+Environment overrides:
+  ORCAN_PREVIEW_ROOT, ORCAN_PREVIEW_IMAGE, ORCAN_PREVIEW_PORT
+  ORCAN_PREVIEW_PROJECT, ORCAN_PREVIEW_INSTANCE
+
+The default preview URL is http://127.0.0.1:17681.
+EOF
+}
+
+die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
+require_command() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
+
+validate_value() {
+    [[ "$2" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || die "invalid $1: $2"
+}
+
+validate_port() {
+    if [[ ! "${PREVIEW_PORT}" =~ ^[0-9]+$ ]] \
+        || (( PREVIEW_PORT < 1024 || PREVIEW_PORT > 65535 )); then
+        die "invalid preview port: ${PREVIEW_PORT} (expected 1024-65535)"
+    fi
+}
+
+assert_isolation() {
+    validate_value "Compose project" "${PREVIEW_PROJECT}"
+    validate_value "container instance" "${PREVIEW_INSTANCE}"
+    validate_port
+    [[ "${PREVIEW_PROJECT}" != "orcan" ]] || die "preview Compose project must not be 'orcan'"
+    [[ "${PREVIEW_INSTANCE}" != "1" ]] || die "preview instance must not use orcan-1"
+    [[ "${PREVIEW_IMAGE}" != "orcan:latest" ]] || die "preview image must not use orcan:latest"
+    [[ "${PREVIEW_PORT}" != "7681" ]] || die "preview must not use the default ttyd port 7681"
+    [[ "${PREVIEW_HOME}" != "${HOME}/.config/orcan" ]] || die "preview must not use the normal ORCAN_HOME"
+}
+
+write_fixture() {
+    require_command python3
+    assert_isolation
+    mkdir -p "${PREVIEW_HOME}" "${PREVIEW_DATA}"
+    python3 - "${PREVIEW_HOME}/orcan.config.json" "${ROOT_DIR}" "${PREVIEW_PORT}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+target, checkout, port = sys.argv[1:]
+config = {
+    "workspaces": [{"name": "ux-preview", "projects": [{"name": "orcan", "path": checkout}]}],
+    "tmux": {"initial_windows": 3, "window_prefix": "preview"},
+    "ttyd": {
+        "port": 7681, "host_port": int(port), "bind": "0.0.0.0",
+        "font_size": 19, "theme": "dark", "ping_interval": 20,
+    },
+    "resources": {"cpus": 2, "memory": "4g", "shm_size": "512m", "tmpfs_size": "512m"},
+}
+Path(target).write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+PY
+    cat >"${PREVIEW_HOME}/.env" <<EOF
+ORCAN_DATA=${PREVIEW_DATA}
+ORCAN_PROJECTS_ROOT=${PREVIEW_DATA}/sandbox
+COMPOSE_PROJECT_NAME=${PREVIEW_PROJECT}
+ORCAN_INSTANCE=${PREVIEW_INSTANCE}
+IMAGE_LOCAL=${PREVIEW_IMAGE}
+TTYD_PORT=7681
+TTYD_HOST_PORT=${PREVIEW_PORT}
+TTYD_BIND=0.0.0.0
+EOF
+}
+
+preview_orcan() {
+    ORCAN_HOME="${PREVIEW_HOME}" ORCAN_DATA="${PREVIEW_DATA}" \
+    ORCAN_CONFIG_FILE="${PREVIEW_HOME}/orcan.config.json" "${ROOT_DIR}/bin/orcan" "$@"
+}
+
+compose_preview() {
+    # Shell variables inherited from the active self-development container
+    # override Compose --env-file values. Start Compose with a clean process
+    # environment so e.g. its CONTAINER_PROJECT_DIR cannot leak into preview.
+    env -i PATH="${PATH}" HOME="${HOME}" docker compose --project-name "${PREVIEW_PROJECT}" \
+        --env-file "${PREVIEW_HOME}/.env" --project-directory "${ROOT_DIR}" \
+        -f "${ROOT_DIR}/docker-compose.yml" \
+        -f "${PREVIEW_HOME}/mounts/compose-projects.generated.yml" \
+        -f "${ROOT_DIR}/docker-compose.ttyd.yml" "$@"
+}
+
+assert_preview_container() {
+    docker inspect "${PREVIEW_CONTAINER}" >/dev/null 2>&1 || return 1
+    local project
+    project="$(docker inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "${PREVIEW_CONTAINER}")"
+    [[ "${project}" == "${PREVIEW_PROJECT}" ]] \
+        || die "refusing to touch ${PREVIEW_CONTAINER}: Compose project is ${project}, expected ${PREVIEW_PROJECT}"
+}
+
+sync_fixture() {
+    write_fixture
+    CONFIG="${PREVIEW_HOME}/orcan.config.json" PROJECT_DIR="${PREVIEW_HOME}" \
+    ORCAN_HOME="${PREVIEW_HOME}" ORCAN_ROOT="${ROOT_DIR}" ORCAN_DATA="${PREVIEW_DATA}" \
+        "${ROOT_DIR}/scripts/repository/update-env.sh"
+    ORCAN_HOME="${PREVIEW_HOME}" ORCAN_DATA="${PREVIEW_DATA}" \
+        "${ROOT_DIR}/scripts/repository/python.sh" \
+        "${ROOT_DIR}/scripts/repository/compile_context.py" "${PREVIEW_HOME}"
+    local inbox="${PREVIEW_HOME}/workspaces/ux-preview/.orcan/context-inbox"
+    mkdir -p "${inbox}"
+    cat >"${inbox}/preview-navigation.json" <<'EOF'
+{"project_name":"orcan","title":"Preview: navigation convention","content":"Keep the workspace picker keyboard-first.","justification":"Fixture used to exercise the cockpit review panel."}
+EOF
+    cat >"${inbox}/preview-testing.json" <<'EOF'
+{"project_name":"orcan","title":"Preview: testing convention","content":"Verify focus switching between the terminal and side panel.","justification":"Fixture used to exercise count and review actions."}
+EOF
+}
+
+build_image() {
+    local args=(build --tag "${PREVIEW_IMAGE}")
+    [[ "${1:-0}" == 1 ]] && args+=(--no-cache)
+    args+=(
+        --build-arg "USER_UID=$(id -u)" --build-arg "USER_GID=$(id -g)"
+        --build-arg INSTALL_CURSOR=0 --build-arg INSTALL_CLAUDE=0
+        --build-arg INSTALL_CODEX=1 --build-arg ORCAN_VERSION=ux-preview
+        "${ROOT_DIR}"
+    )
+    printf 'Building isolated UX image %s from %s\n' "${PREVIEW_IMAGE}" "${ROOT_DIR}"
+    docker "${args[@]}"
+}
+
+preview_url() { printf 'http://127.0.0.1:%s\n' "${PREVIEW_PORT}"; }
+
+cmd_up() {
+    local build=1
+    while (( $# )); do
+        case "$1" in
+            --no-build) build=0 ;;
+            --port) [[ $# -ge 2 ]] || die "--port requires a value"; PREVIEW_PORT="$2"; shift ;;
+            *) die "unknown up option: $1" ;;
+        esac
+        shift
+    done
+    require_command docker
+    sync_fixture
+    (( build )) && build_image 0
+    docker image inspect "${PREVIEW_IMAGE}" >/dev/null 2>&1 \
+        || die "preview image missing: ${PREVIEW_IMAGE} (run without --no-build)"
+    compose_preview up -d
+    printf '\nUX preview: %s\n' "$(preview_url)"
+    printf 'Fixture: two pending Context Assertions; F2 toggles the side panel.\n'
+    printf 'Stop: %s down\n' "$0"
+}
+
+cmd_rebuild() {
+    while (( $# )); do
+        case "$1" in
+            --port) [[ $# -ge 2 ]] || die "--port requires a value"; PREVIEW_PORT="$2"; shift ;;
+            *) die "unknown rebuild option: $1" ;;
+        esac
+        shift
+    done
+    require_command docker
+    sync_fixture
+    build_image 1
+    compose_preview up -d
+    printf '\nUX preview: %s\n' "$(preview_url)"
+}
+
+cmd_status() {
+    printf 'root:      %s\nimage:     %s\ncontainer: %s\nurl:       %s\n' \
+        "${PREVIEW_ROOT}" "${PREVIEW_IMAGE}" "${PREVIEW_CONTAINER}" "$(preview_url)"
+    if command -v docker >/dev/null 2>&1 \
+        && [[ -n "$(docker ps -q -f "name=^${PREVIEW_CONTAINER}$" 2>/dev/null)" ]]; then
+        printf 'status:    running\n'
+    else
+        printf 'status:    stopped\n'
+    fi
+}
+
+cmd_check() {
+    write_fixture
+    python3 - "${PREVIEW_HOME}/orcan.config.json" "${PREVIEW_HOME}/.env" "${ROOT_DIR}" \
+        "${PREVIEW_PROJECT}" "${PREVIEW_INSTANCE}" "${PREVIEW_IMAGE}" "${PREVIEW_PORT}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+config_path, env_path, checkout = map(Path, sys.argv[1:4])
+project, instance, image, port = sys.argv[4:]
+config = json.loads(config_path.read_text(encoding="utf-8"))
+assert config["workspaces"][0]["projects"][0]["path"] == str(checkout)
+assert config["ttyd"]["bind"] == "0.0.0.0"
+env = env_path.read_text(encoding="utf-8")
+for expected in (f"COMPOSE_PROJECT_NAME={project}", f"ORCAN_INSTANCE={instance}", f"IMAGE_LOCAL={image}", f"TTYD_HOST_PORT={port}"):
+    assert expected in env, expected
+print("Orcan UX preview isolation check OK")
+PY
+}
+
+command="${1:-help}"
+shift || true
+case "${command}" in
+    up) cmd_up "$@" ;;
+    rebuild) cmd_rebuild "$@" ;;
+    status) cmd_status ;;
+    url) preview_url ;;
+    logs) require_command docker; docker logs -f "${PREVIEW_CONTAINER}" ;;
+    shell) require_command docker; preview_orcan enter --shell ;;
+    down)
+        require_command docker
+        if assert_preview_container; then
+            compose_preview down --remove-orphans
+        else
+            printf 'Preview container is not running: %s\n' "${PREVIEW_CONTAINER}"
+        fi
+        ;;
+    check) cmd_check ;;
+    help|-h|--help) usage ;;
+    *) usage >&2; die "unknown command: ${command}" ;;
+esac
