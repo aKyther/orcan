@@ -17,7 +17,7 @@ class TerminalUiPreviewTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("UI preview check OK", result.stdout)
-        self.assertIn("status=2", result.stdout)
+        self.assertIn("status=1", result.stdout)
         self.assertIn("windows=3", result.stdout)
 
     def test_rejects_invalid_size(self):

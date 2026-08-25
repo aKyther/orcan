@@ -37,7 +37,7 @@ orcan down && orcan up
 
 ## Czy muszę używać przeglądarki (ttyd)?
 
-**Nie.** ttyd jest świetne zdalnie / na telefonie. Lokalnie: `orcan enter` (lub `orcan go-in`) — domyślnie picker workspace’ów; `--tmux` / `--shell` na inne tryby. Zobacz [Workflowy — lokalny terminal](guides/workflows.md#local-terminal).
+**Nie.** ttyd jest świetne zdalnie / na telefonie. Lokalnie: `orcan enter` (lub `orcan go-in`) — domyślnie cockpit (górny pasek: rail + metryki \| główny: workspaces + ASSERTIONS \| tmux); `--tmux` / `--shell` na inne tryby. Zobacz [Workflowy — lokalny terminal](guides/workflows.md#local-terminal).
 
 ## Dlaczego ttyd pokazuje „reconnecting” na LTE / w aucie?
 
@@ -52,6 +52,37 @@ Po reconnect launcher **auto-reattachuje** ostatni workspace (odliczanie 2s; Ent
 **Push/pull po SSH:** startuj z `orcan up --with-git` (montuje `~/.ssh` oraz agenta SSH, gdy jest dostępny). Razem z DinD: `orcan up --with-docker --with-git`. Zwykłe `orcan up` nie podpina kluczy. Zobacz [Szybki start](getting-started/quickstart.md#git-w-kontenerze) i [Bezpieczeństwo](reference/security.md).
 
 **Worktree:** opcjonalne. Domyślnie montujesz zwykłą ścieżkę klona; zaawansowana pomoc w wizardzie albo `orcan context worktree`, gdy chcesz osobny checkout pod `$ORCAN_PROJECTS_ROOT/.worktrees` (domyślnie `~/.config/orcan/sandbox/.worktrees` — objęty stałym mountem projektów, bez recreate kontenera). Zobacz [Workspace'y](concepts/workspaces.md#git-worktree).
+
+## Jak automatyczna Reflection znajduje transkrypty agentów?
+
+Domyślnie kontener uruchamia **`orcan-context-scan`** pod supervisord (transkrypty
+Claude + Cursor na dysku → ten sam inbox / review człowieka). Wyłączenie:
+`ORCAN_CONTEXT_SCAN=0` w env kontenera, potem recreate. Podgląd:
+`orcan logs context-scan` / `orcan logs supervisor`. Szczegóły:
+[Context Assertions](ideas/context-assertions.md),
+[Docker](reference/docker.md#process-layout-supervisord).
+
+## Zaktualizowałem Orcana, ale brak `context-scan` / supervisord?
+
+Uruchom **`orcan doctor`** i przeczytaj linię **`supervisord`**:
+
+- **`image predates supervisord`** — przebuduj i odtwórz:
+  `orcan build && orcan down && orcan up`
+- **`process not running`** — to samo recreate po udanym buildzie
+- **`RUNNING`** z `context-scan` — worker działa; użyj `orcan logs context-scan`, gdy
+  Reflection nadal wygląda na bezczynne (sprawdź pauzę cockpit **`[p]`**, wyłączenie
+  **`[o]`** albo nieudany probe modelu recap — `orcan doctor` / `orcan-context-model-check` w kontenerze)
+
+## Po review — jak odświeżyć `CONTEXT-ASSERTIONS.md` bez pełnego sync?
+
+Użyj tylko na hoście **`orcan sync --context`** (jeden przebieg) albo
+**`orcan sync --context --watch`**, żeby pollować inbox, gdy kontener skanuje.
+**`--once`** pomija, gdy nic się nie zmieniło. Nigdy nie auto-akceptuje propozycji —
+ta sama bramka człowieka co przy pełnym `orcan sync`. Gdy automatyzacja wygląda na
+zatrzymaną, sprawdź cockpit **`[p]`** / **`[o]`** /
+`$ORCAN_DATA/history/supervisor/automation.json` (`paused: true` lub `enabled: false`
+wstrzymuje `orcan-context-scan` i `orcan sync --context --watch`; `model_check.ok:
+false` pomija recap, dopóki Claude/Haiku nie jest dostępny).
 
 ## Którzy agenci są zainstalowani?
 

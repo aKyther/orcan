@@ -58,6 +58,10 @@ Edit via `orcan.config.json` (`resources`, `ttyd`) then `orcan sync` for new mac
 | `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Under `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |
 | `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Same commit identity as the host user |
 | `SSH_AUTH_SOCK` | Host agent (only with `orcan up --with-git`) |
+| `ORCAN_SUPERVISOR_MODE` | Set by Compose overlays: `keepalive` (default `orcan up`) or `ttyd` (`--with-ttyd`) — see [Docker](docker.md#process-layout-supervisord) |
+| `ORCAN_CONTEXT_SCAN` | `0` skips the background `orcan-context-scan` worker; default on |
+| `ORCAN_CONTEXT_DRIVER` | `recap` (default) or `reflect` (legacy one-shot `orcan-context-reflect` path) — see [Context Assertions](../ideas/context-assertions.md) |
+| `ORCAN_CONTEXT_MODEL_PROBE` | `0` skips the live `claude -p --model haiku` probe in recap model checks (PATH + `--version` only); default on |
 
 ### Devtool cache hygiene
 

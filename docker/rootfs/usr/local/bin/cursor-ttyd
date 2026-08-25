@@ -56,6 +56,13 @@ TTYD_ARGS=(
     --client-option "fontSize=${TTYD_FONT_SIZE}"
     --client-option "fontFamily=${TTYD_FONT_FAMILY}"
     --client-option "theme=${THEME_JSON}"
+    # macOS: Option/Alt composes accented/special characters (Option+1 → "¡",
+    # Option+2 → "™", …) by default in xterm.js, instead of sending it as
+    # ESC-prefixed Meta — which is what tmux's M-1..M-9 window binds
+    # (/etc/tmux/keybindings.conf) and the cockpit's own alt+ handling
+    # (pty_terminal.py) both expect. No effect on Windows/Linux, where
+    # xterm.js already sends Alt as Meta natively.
+    --client-option "macOptionIsMeta=true"
 )
 
 if [[ -n "${TTYD_CREDENTIAL:-}" ]]; then

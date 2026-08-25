@@ -92,13 +92,76 @@ Nothing reaches `accepted` automatically. A human review is required, and it is 
 
 Both directions are one-way drops into a mounted inbox — there is no live channel back to the host. `orcan sync` (`compile_context.py`) is what actually turns a drop into a real, git-versioned `propose()`/`accept()`/`reject()`/`retire()` call the next time it runs. In practice this means a decision you make feels instant in the conversation, but only takes effect in the store — and therefore in a future `CONTEXT-ASSERTIONS.md` — at the next sync. This asymmetry is intentional: it is the same boundary that keeps the agent from ever writing to the store directly, just made convenient enough that reviewing candidates costs one keystroke instead of a context switch.
 
+**Spike: auto-import on the host.** After Reflection/scanner fills the inbox and a human decides, you should not need a full `orcan sync` (config/mounts) just to promote drops. Host-side:
+
+```bash
+orcan sync --context              # one compile/import pass
+orcan sync --context --once       # only if inbox/decisions fingerprint changed
+orcan sync --context --watch      # poll (default 15s) — pairs with container context-scan
+```
+
+Still never auto-accepts. Still host-only (`$ORCAN_DATA/context` stays unmounted). Implementation: `scripts/repository/context_syncd.py`.
+
 **Trust model.** Orcan is single-user on one host: you and the agents you run. Inbox drops are plain JSON (not signed). Malformed or unresolvable files are quarantined; only a human accept/reject promotes knowledge into `$ORCAN_DATA/context`. That is enough for the intended threat model — see [Security](../reference/security.md).
 
 ## Batched, automated Reflection
 
 Reflection does not have to be triggered by a human noticing something — but firing a model call after *every single turn* is both wasteful and noisy. `orcan-context-reflect` batches instead: it is wired as a Claude Code `Stop` hook that is **on by default** — `orcan sync` (`apply-config.py`) seeds it into that **workspace's generated root** `.claude/settings.json` the first time a workspace is synced (a merge, not an overwrite). Opting out is what's configurable: `orcan context hook disable [WORKSPACE ...] [--all]` (host) removes it, and because sync only ever seeds a workspace whose `.claude/settings.json` doesn't exist yet, that choice sticks across every later sync — `orcan context hook enable`/`status` check/restore it the same way. It lives at the workspace root — not inside any project checkout — because that is where Claude Code sessions actually launch (tmux windows always start there; see `cursor-tmux-workspace-attach`) and therefore the only place a `Stop` hook can be loaded from. The hook fires after every completed turn, but does almost nothing on most of them:
 
-**Deliberately Claude-only.** Cursor CLI has its own hooks system (1.7+, `~/.cursor/hooks.json`, a `stop` event), but in headless/CLI mode — how Orcan runs it, not the full IDE — its event coverage is unreliable as of this writing, and `orcan-context-reflect` already reads a Claude-Code-specific hook payload and transcript format; wiring Cursor in would need a separate adapter, not just config. Instead Cursor benefits **passively**: `init-workspace` generates `AGENTS.md` (Cursor) and `CLAUDE.md` (Claude) with identical content, so once an accepted assertion lands in the compiled `CONTEXT-ASSERTIONS.md` at the next `orcan sync`, Cursor sees it in that same `AGENTS.md` even though it never drives Reflection itself.
+**Filesystem scanner (Claude + Cursor) — preferred unified path.** Agent hooks are not required. `orcan-context-scan` discovers transcripts on disk and runs a **cascading recap** via `orcan-context-recap` (default; set `ORCAN_CONTEXT_DRIVER=reflect` for the legacy one-shot reflect path):
+
+| Step | What happens |
+| --- | --- |
+| Batch trigger | Every **20 user turns** (default) → compact *that batch only* (haiku) |
+| Merge | Merge batch compact with the session **rolling compact** from earlier batches — repeated facts strengthen, noise drops |
+| Topic drift | When the new batch clearly changes topic → flush the mature rolling compact to `context-inbox` (human review) and start a **fresh cascade** seeded with the new batch |
+| Session end | `orcan-context-scan --flush` processes any remainder and flushes the rolling compact |
+
+State: `<workspace>/.orcan/reflection-state.json` (transcript offsets, shared with the Claude Stop hook) and `<workspace>/.orcan/recap/<session>.json` (rolling compact + cascade metadata). Promotion to the inbox uses `orcan-context-propose --queue --source recap` — human accept/reject unchanged.
+
+| Agent | Transcript layout |
+| --- | --- |
+| Claude | `$CLAUDE_CONFIG_DIR/projects/<encoded-cwd>/<session-id>.jsonl` |
+| Cursor | `~/.cursor/projects/<encoded-cwd>/agent-transcripts/<id>/<id>.jsonl` |
+
+Encoding: absolute cwd, leading `/` stripped, `/` → `-` (Claude also prefixes `-`). The scanner matches the workspace root and each mounted project path, counts unread *user* turns (Claude: real user messages, not `tool_result` echo-backs; Cursor: `role=user`), and at the threshold (default 20) — or with `--flush` for any remainder — invokes recap. Claude keys stay bare session ids so both drivers share `last_transcript_line`; Cursor keys are `cursor:<id>`.
+
+```bash
+orcan-context-scan --dry-run          # list sessions / pending turns
+orcan-context-scan                    # one pass
+orcan-context-scan --all-workspaces   # every enabled workspace (supervisord)
+orcan-context-scan --watch            # poll (default 60s)
+orcan-context-scan --flush            # recap remaining turns + flush rolling compact
+```
+
+After `orcan build` + recreate, **supervisord** runs
+`orcan-context-scan --all-workspaces --watch` in the background for the life
+of the container (`ORCAN_CONTEXT_SCAN=0` to skip). Codex is out of scope for
+this scanner for now. The Claude Stop hook is **still seeded** by `orcan sync`
+during the transition; disable it later with `orcan context hook disable`
+once the scanner is the daily driver. Until then both may run — shared
+offsets keep them from double-processing the same slice.
+
+**Pause / off automation (cockpit `[p]` / `[o]`).** Shared flags in
+`$ORCAN_DATA/history/supervisor/automation.json`:
+
+| Field | Meaning |
+| --- | --- |
+| `enabled: false` | Master off — scan and host `--context` watch idle (**`[o]`** to re-enable) |
+| `paused: true` | Temporary idle while enabled (**`[p]`** to resume) |
+| `model_check` | Cached Claude/Haiku probe — scan skips recap when `ok` is false |
+
+Check manually: `orcan-context-model-check` (in container) or `orcan doctor`.
+Probe-only skip: `ORCAN_CONTEXT_MODEL_PROBE=0` (PATH + `--version` only).
+Permanent disable at compose level: `ORCAN_CONTEXT_SCAN=0` (no worker).
+
+Toggle from the cockpit ASSERTIONS section (**`p`** pause, **`o`** off/on) or edit
+the file; the status block shows automation + model lines. With ASSERTIONS focused,
+**`r`** runs `orcan-context-review` in a tmux popup. Human review is never blocked —
+only automated propose/compile loops.
+
+
+**Legacy note (Stop hook).** Cursor CLI has its own hooks system (1.7+, `~/.cursor/hooks.json`, a `stop` event), but in headless/CLI mode its event coverage is unreliable, so Orcan does not wire it. Cursor still **reads** the compiled pack passively (`AGENTS.md` / `CONTEXT-ASSERTIONS.md`); with `orcan-context-scan` it can also **author** Reflection candidates from its transcripts.
 
 - A per-`session_id` counter and transcript-line offset live in `<workspace_root>/.orcan/reflection-state.json`. Tracking is keyed by session id because a line offset from one session's transcript is meaningless for another's.
 - Below the threshold (default 20 completed turns), the hook just increments the counter and exits — no model call, near-zero cost.
@@ -157,7 +220,7 @@ That is the entire "database". It is a deliberate MVP constraint, not a placehol
 - CLI: `orcan context assert propose|list|show|accept|reject|retire|select|overview|root` (host) — `overview` prints composition + accepted-assertion count for every configured workspace, recomputed live, one line each.
 - In-container inbox: `orcan-context-propose` / `orcan-context-review` drop JSON files into `<workspace_root>/.orcan/context-inbox/` and `context-decisions/`; `compile_context.py` imports them (with quarantine for anything malformed or unresolvable) and regenerates `context-review-queue.json` on every `orcan sync`, before compiling. See "Drafting and reviewing without leaving the session" above.
 - Reconsideration: `orcan-context-propose --flag-existing ID --reason TEXT` marks an already-`accepted` assertion for a second look, tracked in `<workspace_root>/.orcan/context-flags/`; `orcan-context-review` offers `[k]eep`/`[r]etire` for it.
-- Batched automated Reflection: `orcan-context-reflect`, a `Stop` hook — **on by default** — that batches by a per-session turn counter (default 20) before calling a lightweight model and dispatching through the same propose tool. Seeded on the first `orcan sync` for a workspace; opt out (and it sticks) via `orcan context hook disable|enable|status [WORKSPACE ...] [--all]` (`scripts/repository/claude_hook.py`) — merges/removes it in the workspace's generated root `.claude/settings.json` (resolved by name via `workspaces/index.json`), immediately. A `propose` drafted on a non-main/master branch is scoped to it by default, and model-call failures are recorded per session and surfaced via `orcan doctor`. See "Batched, automated Reflection" above.
+- Batched automated Reflection: `orcan-context-reflect`, still also wired as a Claude Code `Stop` hook — **on by default** (seeded on first sync; `orcan context hook disable|enable|status`) — plus **`orcan-context-scan`** / `orcan.session_scan` which discovers Claude + Cursor transcripts on disk and runs **recap** by default (`orcan-context-recap`; `ORCAN_CONTEXT_DRIVER=reflect` for the legacy one-shot path). Shared `reflection-state.json` offsets and `.orcan/recap/` rolling state. A `propose` drafted on a non-main/master branch is scoped to it by default; model-call failures are recorded per session and surfaced via `orcan doctor`. See "Batched, automated Reflection" above.
 
 **Implemented (RFC-0002 — extending the record, not a new subsystem):**
 

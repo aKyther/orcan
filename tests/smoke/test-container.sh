@@ -30,6 +30,10 @@ command -v orcan-session-brief >/dev/null
 command -v orcan-workspaces >/dev/null
 command -v orcan-context-status >/dev/null
 command -v cursor-ttyd >/dev/null
+command -v orcan-supervisord >/dev/null
+command -v orcan-supervisor-status >/dev/null
+command -v orcan-context-scan >/dev/null
+command -v supervisord >/dev/null
 command -v agent-launcher >/dev/null
 command -v cursor-launcher >/dev/null
 command -v tmux >/dev/null

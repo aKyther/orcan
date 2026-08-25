@@ -92,13 +92,75 @@ Nic nie trafia do stanu `accepted` automatycznie. Wymagany jest przegląd człow
 
 Oba kierunki to jednostronne zrzuty do zamontowanej skrzynki — nie ma żywego kanału z powrotem do hosta. To `orcan sync` (`compile_context.py`) faktycznie zamienia zrzut w prawdziwe, wersjonowane gitem wywołanie `propose()`/`accept()`/`reject()`/`retire()`, przy najbliższym uruchomieniu. W praktyce oznacza to, że decyzja czuje się natychmiastowa w rozmowie, ale realnie trafia do store'u — a więc i do przyszłego `CONTEXT-ASSERTIONS.md` — dopiero przy najbliższym sync'u. Ta asymetria jest celowa: to ta sama granica, która chroni przed bezpośrednim zapisem agenta do store'u, tylko na tyle wygodna, że przejrzenie kandydata kosztuje jedno naciśnięcie klawisza, nie przełączenie kontekstu.
 
+**Spike: auto-import na hoście.** Gdy Reflection/skaner zapełni inbox, a człowiek zdecyduje, nie powinien być potrzebny pełny `orcan sync` (config/mounts), żeby wypromować zrzuty. Po stronie hosta:
+
+```bash
+orcan sync --context              # jeden przebieg compile/import
+orcan sync --context --once       # tylko gdy zmienił się fingerprint inbox/decisions
+orcan sync --context --watch      # poll (domyślnie 15s) — para do context-scan w kontenerze
+```
+
+Nadal nigdy nie auto-akceptuje. Nadal tylko host (`$ORCAN_DATA/context` niezamontowany). Implementacja: `scripts/repository/context_syncd.py`.
+
 **Model zaufania.** Orcan to single-user na jednym hoście: Ty i agenci, których odpalasz. Zrzuty inbox to zwykły JSON (bez podpisu). Uszkodzone lub nierozwiązywalne pliki idą do kwarantanny; do `$ORCAN_DATA/context` trafia tylko to, co człowiek zaakceptuje / odrzuci. To wystarcza na zamierzony model zagrożeń — zobacz [Bezpieczeństwo](../reference/security.md).
 
 ## Wsadowa, zautomatyzowana Reflection
 
 Reflection nie musi być wyzwalana przez człowieka, który coś zauważy — ale wywoływanie modelu po *każdej pojedynczej* turze byłoby i marnotrawne, i hałaśliwe. `orcan-context-reflect` batchuje zamiast tego: jest podpięty jako hook `Stop` w Claude Code, który jest **domyślnie włączony** — `orcan sync` (`apply-config.py`) dopisuje go do `.claude/settings.json` w **wygenerowanym katalogu głównym workspace'u** przy pierwszej synchronizacji tego workspace'u (merge, nie nadpisanie). Konfigurowalne jest wyłączenie: `orcan context hook disable [WORKSPACE ...] [--all]` (host) go usuwa, a ponieważ sync dosiewa hook tylko wtedy, gdy `.claude/settings.json` jeszcze nie istnieje, ten wybór zostaje przy każdej kolejnej synchronizacji — `orcan context hook enable`/`status` odpowiednio przywracają/sprawdzają. Żyje w katalogu głównym workspace'u — nie wewnątrz żadnego checkoutu projektu — bo to tam faktycznie startują sesje Claude Code (okna tmux zawsze startują tam; patrz `cursor-tmux-workspace-attach`), więc to jedyne miejsce, z którego hook `Stop` może się w ogóle załadować. Hook odpala się po każdej zakończonej turze, ale przy większości z nich nie robi prawie nic:
 
-**Świadomie Claude-only.** Cursor CLI ma własny system hooków (od 1.7, `~/.cursor/hooks.json`, event `stop`), ale w trybie headless/CLI (tak jak Orcan go uruchamia — nie pełne IDE) jego pokrycie eventów jest na dziś niepewne, a `orcan-context-reflect` i tak czyta payload/transkrypt w formacie specyficznym dla Claude Code — podpięcie Cursora wymagałoby osobnego adaptera, nie samego configu. Zamiast tego Cursor korzysta z efektu **pasywnie**: `init-workspace` generuje `AGENTS.md` (Cursor) i `CLAUDE.md` (Claude) z identyczną treścią, więc gdy zaakceptowany zapis trafi do skompilowanego `CONTEXT-ASSERTIONS.md` przy `orcan sync`, Cursor widzi go w tym samym `AGENTS.md`, mimo że sam nigdy nie napędza Reflection.
+**Skaner filesystemowy (Claude + Cursor) — preferowana, unifikowana ścieżka.** Hooki agentów nie są wymagane. `orcan-context-scan` odkrywa transkrypty na dysku i uruchamia **kaskadowy recap** przez `orcan-context-recap` (domyślnie; `ORCAN_CONTEXT_DRIVER=reflect` = legacy one-shot reflect):
+
+| Krok | Co się dzieje |
+| --- | --- |
+| Batch | Co **20 tur user** (domyślnie) → compact *tylko tego batcha* (haiku) |
+| Merge | Scalenie z **rolling compact** sesji z wcześniejszych batchy — powtarzające się fakty się wzmacniają, szum odpada |
+| Drift tematu | Gdy nowy batch wyraźnie zmienia temat → flush dojrzałego rolling compact do `context-inbox` (review człowieka) i **nowa kaskada** z seedem z nowego batcha |
+| Koniec sesji | `orcan-context-scan --flush` — reszta tur + flush rolling compact |
+
+Stan: `<workspace>/.orcan/reflection-state.json` (offsety, współdzielone z hookiem Stop) oraz `<workspace>/.orcan/recap/<session>.json` (rolling compact + metadane kaskady). Promocja do inbox: `orcan-context-propose --queue --source recap` — accept/reject nadal u człowieka.
+
+| Agent | Layout transkryptu |
+| --- | --- |
+| Claude | `$CLAUDE_CONFIG_DIR/projects/<encoded-cwd>/<session-id>.jsonl` |
+| Cursor | `~/.cursor/projects/<encoded-cwd>/agent-transcripts/<id>/<id>.jsonl` |
+
+Encoding: absolutny cwd, wiodący `/` usunięty, `/` → `-` (Claude dodatkowo dokłada wiodący `-`). Skaner dopasowuje root workspace'u i ścieżkę każdego zamontowanego projektu, liczy nieprzeczytane tury *użytkownika*, i przy progu (domyślnie 20) — albo z `--flush` dla reszty — odpala recap. Klucze Claude pozostają gołym session id; Cursor: `cursor:<id>`.
+
+```bash
+orcan-context-scan --dry-run          # lista sesji / oczekujących tur
+orcan-context-scan                    # jeden przebieg
+orcan-context-scan --all-workspaces   # każdy włączony workspace (supervisord)
+orcan-context-scan --watch            # poll (domyślnie 60s)
+orcan-context-scan --flush            # recap reszty tur + flush rolling compact
+```
+
+Po `orcan build` + recreate **supervisord** odpala w tle
+`orcan-context-scan --all-workspaces --watch` na życie kontenera
+(`ORCAN_CONTEXT_SCAN=0` żeby pominąć). Codex jest na razie poza zakresem
+tego skanera. Hook Stop Claude jest **nadal dosiewany** przez `orcan sync`
+w okresie przejściowym; później wyłącza się go przez
+`orcan context hook disable`, gdy skaner stanie się codziennym driverem.
+Do tego czasu oba mogą działać — współdzielone offsety chronią przed
+podwójnym przetwarzaniem tego samego wycinka.
+
+**Pauza / wyłączenie automatyzacji (cockpit `[p]` / `[o]`).** Wspólne flagi w
+`$ORCAN_DATA/history/supervisor/automation.json`:
+
+| Pole | Znaczenie |
+| --- | --- |
+| `enabled: false` | Master off — scan i host `--context` watch czekają (**`[o]`** włącza) |
+| `paused: true` | Tymczasowa pauza przy włączonej automatyzacji (**`[p]`** wznawia) |
+| `model_check` | Cache probe Claude/Haiku — scan pomija recap gdy `ok` jest false |
+
+Ręcznie: `orcan-context-model-check` (w kontenerze) lub `orcan doctor`.
+Tylko PATH/wersja (bez probe): `ORCAN_CONTEXT_MODEL_PROBE=0`.
+Trwałe wyłączenie w compose: `ORCAN_CONTEXT_SCAN=0`.
+
+Przełącznik w sekcji ASSERTIONS (**`p`**, **`o`**) albo edycja pliku; status pokazuje
+automatyzację i model. Przy fokusie ASSERTIONS **`r`** odpala `orcan-context-review`.
+Review człowieka nigdy nie jest blokowany.
+
+**Uwaga legacy (hook Stop).** Cursor CLI ma własny system hooków (od 1.7, `~/.cursor/hooks.json`, event `stop`), ale w trybie headless/CLI pokrycie eventów jest niepewne, więc Orcan go nie podpina. Cursor nadal **czyta** skompilowany pack pasywnie (`AGENTS.md` / `CONTEXT-ASSERTIONS.md`); z `orcan-context-scan` może też **tworzyć** kandydatów Reflection ze swoich transkryptów.
 
 - Licznik per `session_id` oraz offset w transkrypcie żyją w `<workspace_root>/.orcan/reflection-state.json`. Śledzenie jest kluczowane po id sesji, bo offset z transkryptu jednej sesji nic nie znaczy dla innej.
 - Poniżej progu (domyślnie 20 zakończonych tur) hook tylko inkrementuje licznik i kończy działanie — zero wywołania modelu, koszt bliski zeru.
@@ -157,7 +219,7 @@ To cała „baza danych". To świadome ograniczenie MVP, nie tymczasowy substytu
 - CLI: `orcan context assert propose|list|show|accept|reject|retire|select|overview|root` (host) — `overview` drukuje kompozycję + liczbę zaakceptowanych dopasowań dla każdego skonfigurowanego workspace'u, liczoną na żywo, po jednej linii.
 - Skrzynka wewnątrz kontenera: `orcan-context-propose` / `orcan-context-review` zrzucają pliki JSON do `<workspace_root>/.orcan/context-inbox/` i `context-decisions/`; `compile_context.py` importuje je (kwarantanna dla wszystkiego uszkodzonego lub nierozwiązywalnego) i regeneruje `context-review-queue.json` przy każdym `orcan sync`, przed kompilacją. Patrz „Propozycja i review bez wychodzenia z sesji" wyżej.
 - Ponowne rozpatrzenie: `orcan-context-propose --flag-existing ID --reason TEXT` oznacza już zaakceptowany zapis do drugiego spojrzenia, śledzone w `<workspace_root>/.orcan/context-flags/`; `orcan-context-review` oferuje `[z]achowaj`/`[w]ycofaj`.
-- Wsadowa, zautomatyzowana Reflection: `orcan-context-reflect`, hook `Stop` **domyślnie włączony**, który batchuje po liczniku tur per sesja (domyślnie 20) zanim wywoła lekki model i zdyspatchuje przez ten sam narzędzie propose. Dosiewany przy pierwszej `orcan sync` dla workspace'u; wyłączenie (i to, że zostaje) przez `orcan context hook disable|enable|status [WORKSPACE ...] [--all]` (`scripts/repository/claude_hook.py`) — merge/usunięcie w `.claude/settings.json` wygenerowanego katalogu głównego workspace'u (odnajdywanego po nazwie przez `workspaces/index.json`), natychmiastowe. Zapis `propose` naszkicowany na branchu innym niż main/master jest domyślnie do niego ograniczony, a błędy wywołania modelu są zapisywane per sesja i widoczne w `orcan doctor`. Patrz „Wsadowa, zautomatyzowana Reflection" wyżej.
+- Wsadowa, zautomatyzowana Reflection: `orcan-context-reflect`, nadal też podpięty jako hook `Stop` Claude — **domyślnie włączony** (dosiewany przy pierwszej sync; `orcan context hook disable|enable|status`) — plus **`orcan-context-scan`** / `orcan.session_scan`, który odkrywa transkrypty Claude + Cursor na dysku i uruchamia domyślnie **recap** (`orcan-context-recap`; `ORCAN_CONTEXT_DRIVER=reflect` = legacy one-shot). Współdzielone offsety w `reflection-state.json` i rolling state w `.orcan/recap/`. Zapis `propose` naszkicowany na branchu innym niż main/master jest domyślnie do niego ograniczony; błędy wywołania modelu są zapisywane per sesja i widoczne w `orcan doctor`. Patrz „Wsadowa, zautomatyzowana Reflection" wyżej.
 
 **Zaimplementowane (RFC-0002 — rozszerzenie rekordu, nie nowy podsystem):**
 

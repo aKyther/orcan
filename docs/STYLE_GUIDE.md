@@ -30,8 +30,14 @@ Do not reintroduce Material stock indigo. Keep light-mode accents darker teal fo
 
 ## Agent-facing public index
 
-- `docs/llms.txt` — curated [llms.txt](https://llmstxt.org/) map for external agents (regenerate: `make docs-llms`).
-- Live workspace agents still prefer the **context pack** (`AGENTS.md`, …) over `llms.txt`.
+- `docs/llms.txt` — curated [llms.txt](https://llmstxt.org/) map for external agents
+  (regenerate: `make docs-llms`). Must stay **opinionated**: source priority,
+  what to pay attention to, and explicit non-goals / “do not invent” — not only
+  a link dump.
+- Live workspace agents still prefer the **context pack** (`AGENTS.md`, …) over
+  `llms.txt`.
+- Edit the generator `scripts/repository/generate-llms-txt.py`, not the output
+  by hand (docs-check regenerates it).
 
 ## When to add a page
 

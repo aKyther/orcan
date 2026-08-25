@@ -14,7 +14,7 @@ scan_list="$(mktemp)"
 trap 'rm -f "${scan_list}"' EXIT
 
 {
-    printf '%s\n' README.md AGENTS.md CONTRIBUTING.md CHANGELOG.md LICENSE mkdocs.yml
+    printf '%s\n' README.md AGENTS.md CLAUDE.md CONTRIBUTING.md CHANGELOG.md LICENSE mkdocs.yml
     find docs/en docs/pl docs/assets .cursor/rules -type f \( -name '*.md' -o -name '*.mdc' -o -name '*.yml' -o -name '*.svg' \) 2>/dev/null || true
 } > "${scan_list}"
 

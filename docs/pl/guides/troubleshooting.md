@@ -94,7 +94,16 @@ Zobacz [Path parity](../concepts/path-parity.md). Potwierdź mounty przez `orcan
 
 ## Klawisze tmux nie działają w przeglądarce
 
-Ustaw fokus na panelu terminala. Użyj prefixu tmux (domyślne ustawienia obrazu pod `/etc/tmux`). Prawy przycisk myszy otwiera menu przeglądarki (menu myszy tmux są celowo odwiązane).
+1. Ustaw fokus na **środkowej** kolumnie terminala w cockpicie (nie na liście workspace / sekcji ASSERTIONS).
+2. Pamiętaj: osadzony tmux **≠ native attach** — zobacz **F1** / **?** w cockpicie albo [Terminal UI — dwa terminale](terminal-ui.md#cockpit-browser). Pełny attach: `orcan enter --tmux SESJA`.
+3. Prefix to **C-Space** (nie `C-b`). Skoki okien: **Alt+1**…**Alt+9** (zobacz [Terminal UI](terminal-ui.md)).
+4. Na **macOS** Option musi być Meta: ttyd w obrazie ustawia `macOptionIsMeta=true`. Jeśli Alt wpisuje `¡`/`™` zamiast zmieniać okno — przebuduj/odtwórz kontener, żeby `cursor-ttyd` był aktualny.
+5. Na **Windows Terminal / Linux** Textual może nadal pokazywać glify Option dla ESC+digit; bieżący cockpit mapuje je z powrotem na Meta w `pty_keys.py`. Jeśli Alt nadal wstawia `¡`/`™` — zaktualizuj cockpit (`make dev-restart` albo `orcan build` + recreate).
+6. Prawy przycisk myszy otwiera menu przeglądarki (menu myszy tmux są celowo odwiązane).
+
+## Osadzony tmux nie zmienia rozmiaru z przeglądarką
+
+PTY cockpitu musi mieć controlling tty, żeby resize dostarczył SIGWINCH do tmux. Naprawione w bieżącym cockpicie (`TIOCSCTTY` + `on_resize`). Jeśli pane zostaje przy rozmiarze z attach po resize przeglądarki: zaktualizuj obraz (`orcan build` / `make dev-restart`) i zrób hard-refresh karty. Szczegóły: [Terminal UI — cockpit](terminal-ui.md#cockpit-browser).
 
 ## Długi URL się zawija i trudno kliknąć
 
@@ -148,6 +157,45 @@ orcan context show
 docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config
 orcan logs
 ```
+
+## Automatyzacja context w pauzie, wyłączona albo nieaktualne `CONTEXT-ASSERTIONS.md`
+
+Tło Reflection i kompilacja inboxu respektują wspólne flagi automatyzacji:
+
+```bash
+# sekcja ASSERTIONS w cockpit: p = pauza, o = wyłącz/włącz
+cat "${ORCAN_DATA:-$HOME/.config/orcan}/history/supervisor/automation.json"
+```
+
+Przy `"paused": true` lub `"enabled": false` **`orcan-context-scan`** (supervisord) i
+hostowy **`orcan sync --context --watch`** czekają. Gdy cache `"model_check"` ma
+`ok: false`, scan pomija recap (brak Claude/Haiku — `orcan doctor` albo
+`orcan-context-model-check` w kontenerze). Review człowieka
+(`orcan-context-review`) nadal działa. Po accept/reject kandydatów odśwież
+skompilowany context bez pełnego sync configu:
+
+```bash
+orcan sync --context          # jeden przebieg import/compile
+orcan sync --context --once   # pomiń, gdy fingerprint inboxu bez zmian
+```
+
+Patrz [Context Assertions](../ideas/context-assertions.md) i [FAQ](../faq.md).
+
+## Brak supervisord / `context-scan` po upgrade
+
+`orcan doctor` drukuje linię **`supervisord`**, gdy kontener działa:
+
+```bash
+orcan doctor | rg supervisord
+```
+
+| Komunikat | Naprawa |
+| --- | --- |
+| `image predates supervisord` | `orcan build && orcan down && orcan up` |
+| `process not running` | Recreate po udanym buildzie |
+| `RUNNING` + `context-scan` | Worker działa — gdy Reflection nadal bezczynne, sprawdź **`[p]`** / **`[o]`** / `automation.json`, `model_check` i `orcan logs context-scan` |
+
+Szczegóły: [Docker — układ procesów](../reference/docker.md#process-layout-supervisord).
 
 Więcej o limitach: [Bezpieczeństwo](../reference/security.md).
 

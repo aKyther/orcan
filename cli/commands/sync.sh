@@ -3,13 +3,42 @@
 
 orcan_cmd_sync() {
     local prune_orphans=0
+    local context_only=0
+    local watch=0
+    local once=0
+    local force=0
+    local interval=15
     local arg
-    for arg in "$@"; do
+    local -a rest=()
+
+    while [[ $# -gt 0 ]]; do
+        arg="$1"
+        shift
         case "${arg}" in
             --prune-orphans) prune_orphans=1 ;;
+            --context) context_only=1 ;;
+            --watch) watch=1 ;;
+            --once) once=1 ;;
+            --force) force=1 ;;
+            --interval)
+                interval="${1:-}"
+                shift || orcan_usage_error "--interval needs a value"
+                ;;
             *) orcan_usage_error "orcan sync: unknown argument: ${arg}" ;;
         esac
     done
+
+    if (( context_only )); then
+        if (( prune_orphans )); then
+            orcan_usage_error "orcan sync --context does not take --prune-orphans"
+        fi
+        orcan_sync_context_only "${watch}" "${once}" "${force}" "${interval}"
+        return $?
+    fi
+
+    if (( watch || once || force )); then
+        orcan_usage_error "orcan sync: --watch/--once/--force require --context"
+    fi
 
     orcan_require_python
     orcan_ensure_home_env_example
@@ -38,6 +67,35 @@ orcan_cmd_sync() {
     orcan_ok "sync complete"
     orcan_info "next: orcan up   (skip if live reconcile already applied changes)"
     orcan_info "  orcan build only when the image, Dockerfile, or agent install set changed"
+}
+
+# Narrow path: import inbox/decisions + compile CONTEXT-ASSERTIONS.md only.
+# Host-only (store under $ORCAN_DATA/context). Spike for auto-import after
+# human review — see scripts/repository/context_syncd.py.
+orcan_sync_context_only() {
+    local watch="$1"
+    local once="$2"
+    local force="$3"
+    local interval="$4"
+
+    orcan_require_python
+    mkdir -p "${ORCAN_HOME}/mounts"
+
+    local -a args=("${ORCAN_HOME}")
+    if [[ "${watch}" == "1" ]]; then
+        args+=(--watch --interval "${interval}")
+        orcan_info "context sync watcher → ${ORCAN_HOME} (interval ${interval}s)"
+    elif [[ "${once}" == "1" ]]; then
+        args+=(--once)
+        [[ "${force}" == "1" ]] && args+=(--force)
+        orcan_info "context sync (once if changed) → ${ORCAN_HOME}"
+    else
+        [[ "${force}" == "1" ]] && args+=(--force)
+        orcan_info "context sync (compile only) → ${ORCAN_HOME}"
+    fi
+
+    ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
+        orcan_host_python "${ORCAN_SCRIPTS}/context_syncd.py" "${args[@]}"
 }
 
 # If a container is already running, push the freshly-synced desired state

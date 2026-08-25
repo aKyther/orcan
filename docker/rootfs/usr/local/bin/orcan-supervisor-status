@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Show supervisord program status + recent log tails (in-container).
+# Logs: ~/.local/share/orcan/history/supervisor/ (host: $ORCAN_DATA/history/supervisor/).
+
+set -Eeuo pipefail
+
+STATE_D="${ORCAN_SUPERVISOR_STATE_D:-${HOME}/.local/share/orcan/history/supervisor}"
+CONF="${STATE_D}/supervisord.conf"
+CHILDLOG_D="${STATE_D}/childlog"
+LINES="${ORCAN_SUPERVISOR_LOG_LINES:-40}"
+
+printf 'orcan supervisor\n'
+printf '  state: %s\n' "${STATE_D}"
+
+if [[ ! -d "${STATE_D}" ]]; then
+    printf '  status: not started yet (need orcan build + recreate with orcan-supervisord)\n'
+    exit 0
+fi
+
+if [[ -S "${STATE_D}/supervisor.sock" ]] && command -v supervisorctl >/dev/null 2>&1 && [[ -f "${CONF}" ]]; then
+    printf '  programs:\n'
+    supervisorctl -c "${CONF}" status 2>/dev/null | sed 's/^/    /' || printf '    (supervisorctl failed)\n'
+else
+    printf '  programs: supervisor socket absent (supervisord not running in this container)\n'
+fi
+
+printf '\n  recent supervisord.log:\n'
+if [[ -f "${STATE_D}/supervisord.log" ]]; then
+    tail -n "${LINES}" "${STATE_D}/supervisord.log" | sed 's/^/    /'
+else
+    printf '    (no supervisord.log yet)\n'
+fi
+
+if [[ -d "${CHILDLOG_D}" ]]; then
+    local_found=0
+    for f in "${CHILDLOG_D}"/*.log; do
+        [[ -f "${f}" ]] || continue
+        local_found=1
+        printf '\n  recent %s:\n' "$(basename "${f}")"
+        tail -n "${LINES}" "${f}" | sed 's/^/    /'
+    done
+    if [[ "${local_found}" -eq 0 ]]; then
+        printf '\n  childlog: (empty)\n'
+    fi
+fi

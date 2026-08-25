@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import time
@@ -169,6 +170,43 @@ class ContextReviewPopupCommandTests(unittest.TestCase):
         # (unlike the model-call subprocess calls elsewhere, which explicitly
         # pass stdin=DEVNULL); confirm no unexpected stdin kwarg was added.
         self.assertNotIn("stdin", run.call_args.kwargs)
+
+
+class GitPopupCommandTests(unittest.TestCase):
+    def test_targets_the_given_session(self) -> None:
+        cmd = actions.git_popup_command("my-session")
+        self.assertIn("tmux", cmd)
+        self.assertIn("display-popup", cmd)
+        self.assertIn("=my-session", cmd)
+
+    def test_runs_lazygit(self) -> None:
+        cmd = actions.git_popup_command("s")
+        self.assertIn("lazygit", cmd)
+
+    def test_run_git_popup_never_touches_stdin(self) -> None:
+        from unittest import mock
+
+        with mock.patch.object(actions.subprocess, "run") as run:
+            actions.run_git_popup("s")
+        run.assert_called_once()
+        self.assertNotIn("stdin", run.call_args.kwargs)
+
+
+class AutomationPauseActionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        os.environ["ORCAN_DATA"] = self._tmp.name
+
+    def tearDown(self) -> None:
+        os.environ.pop("ORCAN_DATA", None)
+
+    def test_toggle_flips_status_line(self) -> None:
+        line1 = actions.automation_status_line()
+        self.assertIn("running", line1)
+        state = actions.toggle_automation_pause()
+        self.assertTrue(state["paused"])
+        self.assertIn("paused", actions.automation_status_line())
 
 
 if __name__ == "__main__":

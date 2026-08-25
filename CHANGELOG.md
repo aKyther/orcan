@@ -7,6 +7,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Cockpit `[p]` pause / `[o]` off** for background Context automation (`automation.json`
+  on the history bind: `enabled`, `paused`, cached `model_check`). Scan skips when
+  disabled, paused, or Claude/Haiku probe fails (`orcan-context-model-check`).
+- **Cascading session recap** (default scanner driver): `orcan-context-recap`
+  compacts each 20-turn batch, merges with a per-session rolling compact,
+  flushes to inbox on topic drift or `--flush`. State in
+  `.orcan/recap/`. Legacy one-shot reflect: `ORCAN_CONTEXT_DRIVER=reflect`.
+- **`orcan sync --context`** (spike): host-only import of
+  `.orcan/context-inbox/` + `context-decisions/` and compile of
+  `CONTEXT-ASSERTIONS.md` — no apply-config / reconcile. `--watch` polls;
+  `--once` runs only when the inbox fingerprint changed. Companion to
+  in-container `context-scan` under supervisord. See Context Assertions docs.
+- **supervisord inside the container** — `orcan-supervisord` is the Compose
+  command for both keepalive and ttyd overlays. Programs live under
+  `/etc/orcan/supervisor.d/` (`keepalive` XOR `ttyd`, plus `context-scan`).
+  Mode via `ORCAN_SUPERVISOR_MODE`; disable Reflection scanner with
+  `ORCAN_CONTEXT_SCAN=0`. Durable logs under
+  `~/.local/share/orcan/history/supervisor/` (host: `$ORCAN_DATA/history/supervisor/`).
+  Helpers: `orcan-supervisor-status`, `orcan logs supervisor|context-scan`.
+  See Docker reference (EN+PL).
+- **`orcan-context-scan --all-workspaces`** — scan every enabled workspace
+  from `ORCAN_CONFIG` (what supervisord runs with `--watch`). Default driver:
+  **`orcan-context-recap`** (cascading compact); legacy: `ORCAN_CONTEXT_DRIVER=reflect`.
+- **`orcan-context-scan`** (in-container): filesystem discovery of Claude Code
+  and Cursor agent transcripts → batched Reflection (recap or reflect driver).
+  Shares `.orcan/reflection-state.json` with the Claude Stop hook. Codex is out
+  of scope. See Context Assertions docs (EN+PL).
+- **Developer UX environment** under `scripts/dev/orcan-preview` with
+  `make dev-*` wrappers (`start` / `restart` / `stop` / `status` / `logs` /
+  `doctor` / `smoke` / `shell` / `enter` / `checklist` / `reset`), plus
+  `make dev-visual` / `dev-a11y` (Playwright + axe, viewports including
+  `480x320`) and `make dev-test` isolation smoke. `dev-checklist` lists
+  pre-merge automated targets and the manual browser flow. Isolated image
+  `orcan:dev-ux`, state in `.orcan-dev-ux/`. Also `terminal-ui-preview` for
+  checkout-native tmux chrome. Documented in Testing / Makefile / Terminal UI
+  (EN+PL).
+- **`docs/llms.txt`** rebuilt as an opinionated agent index: source priority,
+  pay-attention / non-goals, and develop-on-Orcan care points (not only links).
+- **Product `AGENTS.md` + `CLAUDE.md` + `.cursor/rules/agents.mdc`** rewritten for agents
+  developing Orcan (30-second map, care / non-goals, cockpit, `make dev-*`, docs/`llms`
+  priority). `AGENTS.md` and `CLAUDE.md` stay identical (Cursor vs Claude Code).
+  Workspace `orcan-dev` pack still points into the project after `cd orcan/`.
+
+### Changed
+
+- Cockpit is a **persistent multi-pane** layout: **top bar** (utility rail +
+  CPU/RAM/clock) \| **main** — left column (workspace list + ASSERTIONS) and
+  center embedded tmux + hint strip \| **bottom status bar** (workspace identity).
+  **F2** toggles ASSERTIONS; **F4** workspaces; **F3** Git; **F1**/`?` shortcuts
+  (footer: embed ≠ native attach); **`r`** review; **`p`** pause; **`o`** off/on automation.
+- **Cockpit visual polish pass:** every panel (top bar, workspace list,
+  ASSERTIONS, terminal, hint strip, status bar) is now a consistent bordered
+  card, cyan-highlighted on focus (dim slate otherwise, matching tmux's own
+  `pane-active-border-style`); trimmed padding to one level per card (no more
+  double-padding from an outer wrapper). The **F4** sidebar hamburger is
+  replaced by a narrow **`‹`/`›`** toggle arrow on the edge of the workspace
+  panel — same action, but the arrow itself shows open/closed state, so the
+  rail icon is gone. Workspace list rows are one line each (compact), the
+  currently **attached** workspace is highlighted distinctly from the
+  keyboard cursor row, and the list scrolls for large workspace counts.
+  ASSERTIONS gained two more buttons (Pause/Resume, Turn off/on) next to
+  Review, all compact (`border: none`, no more oversized default `Button`
+  styling) and state-aware via a new `automation_state()` query in
+  `actions.py`.
+- **Cockpit top bar / center column now line up edge-to-edge:** removed a
+  stray outer padding on the center column that made its cards render
+  narrower than the top bar and side panel; the CPU/RAM/clock text on the
+  right of the top bar is now sized exactly to its content (computed via
+  `rich.cells.cell_len()` in `top_bar.py`) instead of a fixed guess that left
+  a gap before the card's edge.
+- Cockpit shortcut map lives in `shortcuts.py` (app + tmux); host tests keep
+  tmux tokens aligned with `keybindings.conf`. Standalone **prefix ?** popup
+  for tmux-only help.
+- Cockpit embedded terminal reads the pty via `asyncio` reader callbacks
+  instead of a fixed poll interval (lower latency vs native tmux attach).
+- Cockpit terminal render uses pyte **per-cell** colors (status/prompt match
+  native attach).
+
+### Fixed
+
+- **Cockpit top-bar clock/metrics glitch:** the CPU/RAM/clock text would
+  intermittently duplicate its own last character at the card's right edge.
+  Two distinct Rich/Textual rendering bugs, both isolated by testing: (1)
+  `content-align: right` combined with `width: 1fr`, and (2) `width: auto`
+  on a `Static` whose content changes across repeated `.update()` calls (a
+  per-tick clock). Fixed by giving the box an exact width computed in Python
+  instead of relying on either CSS pattern.
+- **Cockpit resize:** child gets a controlling tty (`TIOCSCTTY`) so
+  `TIOCSWINSZ` delivers SIGWINCH to embedded tmux (pane no longer stuck at
+  attach size). Spawn falls back to 80×24 when the widget is still 0×0.
+- **Cockpit Alt/Meta keys:** `alt+1`…`alt+9` (and other `alt+…`) are sent as
+  one ESC-prefixed write so tmux `M-1`… window binds work inside the embedded
+  PTY (two-write ESC+key broke `escape-time`). Textual Option-glyph remaps
+  (`¡`/`™`/…) are reversed back to Meta in `pty_keys.py` (Windows Terminal /
+  Linux). Host test: `tests/host/test_cockpit_pty_keys.py`.
+- **Browser ttyd on macOS:** `macOptionIsMeta=true` so Option/Alt is Meta for
+  tmux shortcuts (not accent composition). Documented in Terminal UI.
+
 ## [3.0.0] - 2026-08-25
 
 ### Added

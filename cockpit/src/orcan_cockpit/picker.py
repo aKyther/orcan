@@ -16,16 +16,22 @@ import subprocess
 import sys
 from typing import Any
 
+from libtmux import Server
+from libtmux.exc import LibTmuxException
+
 from orcan.workspaces import compact_hints, iter_workspaces, load_config
+
+# One shared connection to the default tmux server/socket (same one
+# cursor-tmux-workspace-attach and the rest of orcan target) — not a new
+# server per call.
+_tmux_server = Server()
 
 
 def session_is_live(session: str) -> bool:
-    result = subprocess.run(
-        ["tmux", "has-session", "-t", f"={session}"],
-        capture_output=True,
-        check=False,
-    )
-    return result.returncode == 0
+    try:
+        return _tmux_server.has_session(session)
+    except LibTmuxException:
+        return False
 
 
 def list_workspace_rows(config_path: str | None = None) -> list[dict[str, Any]]:
@@ -99,32 +105,50 @@ def run_fallback_menu() -> int:
         print(f"Enter 1-{len(rows)} or q.", file=sys.stderr)
 
 
-# --- Interactive Textual screen -------------------------------------------
+# --- Interactive Textual widget --------------------------------------------
 # Imported lazily by orcan_cockpit.app (only reached on a real tty) so the
 # non-tty fallback path above never pays for a Textual import it doesn't need.
 
 from textual.app import ComposeResult  # noqa: E402
-from textual.screen import Screen  # noqa: E402
-from textual.widgets import Footer, Header, Label, ListItem, ListView  # noqa: E402
+from textual.widget import Widget  # noqa: E402
+from textual.widgets import Label, ListItem, ListView  # noqa: E402
+
+# Kept fresh enough to notice a session someone killed elsewhere without
+# feeling like a busy-poll — this is cosmetic status (● live / ○ new), not
+# anything time-sensitive.
+_REFRESH_INTERVAL_S = 5.0
 
 
-class WorkspacePicker(Screen):
-    """Initial screen: pick a workspace, then the app hands off to
-    WorkspaceScreen (orcan_cockpit.app) for it."""
+class WorkspaceList(Widget):
+    """Left column: persistent workspace list — like `tmux list-sessions`,
+    always visible, not a one-shot picker screen you navigate away from.
+    Selecting a row tells the app to (re)attach the center terminal to it.
 
-    BINDINGS = [("q", "quit_app", "Quit")]
+    One line per row (not two) — with many workspaces configured, a
+    two-line-per-item list runs out of room fast; ListView is a
+    VerticalScroll under the hood, so it already scrolls/shows a scrollbar
+    once rows overflow the card's height, no extra work needed for that."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    can_focus = True
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.rows: list[dict[str, Any]] = []
+        self.active_session: str | None = None
 
     def compose(self) -> ComposeResult:
-        yield Header()
         yield ListView(id="workspace-list")
-        yield Footer()
 
     def on_mount(self) -> None:
         self.refresh_rows()
+        self.set_interval(_REFRESH_INTERVAL_S, self.refresh_rows)
+
+    def set_active_session(self, session: str | None) -> None:
+        """Called by MainScreen once a workspace is actually attached — a
+        different thing from ListView's own keyboard-cursor `index`
+        (which row you're currently browsing), so tracked separately."""
+        self.active_session = session
+        self._render_rows()
 
     def refresh_rows(self) -> None:
         try:
@@ -132,18 +156,28 @@ class WorkspacePicker(Screen):
         except (OSError, ValueError) as exc:
             self.notify(f"Error reading config: {exc}", severity="error")
             self.rows = []
+        self._render_rows()
+
+    def _render_rows(self) -> None:
         list_view = self.query_one("#workspace-list", ListView)
+        selected = list_view.index
         list_view.clear()
         for row in self.rows:
-            status = "● live" if row["live"] else "○ new"
-            label = f"{row['name']}  {status}   {row['session']}\n  {row['root']}"
-            list_view.append(ListItem(Label(label)))
+            dot = "●" if row["live"] else "○"
+            is_active = row["session"] == self.active_session
+            marker = "▸" if is_active else " "
+            item = ListItem(Label(f"{marker}{dot} {row['name']}"))
+            if is_active:
+                item.add_class("active-workspace")
+            list_view.append(item)
+        if selected is not None and selected < len(self.rows):
+            list_view.index = selected
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         index = event.list_view.index
         if index is None or not (0 <= index < len(self.rows)):
             return
-        self.app.open_workspace(self.rows[index])  # type: ignore[attr-defined]
+        self.app.select_workspace(self.rows[index])  # type: ignore[attr-defined]
 
     def action_quit_app(self) -> None:
         self.app.exit()

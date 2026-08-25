@@ -118,6 +118,28 @@ orcan_cmd_doctor() {
             else
                 check "browser terminal (ttyd)" "1" "off — orcan up --with-ttyd (local: orcan enter)"
             fi
+            # Supervisord (post rebuild): status line + whether durable log dir exists.
+            local sup_line=""
+            sup_line="$(docker exec -u developer "${cname}" bash -lc '
+                if command -v supervisorctl >/dev/null 2>&1 \
+                    && [[ -f ~/.local/share/orcan/history/supervisor/supervisord.conf ]]; then
+                    supervisorctl -c ~/.local/share/orcan/history/supervisor/supervisord.conf status 2>/dev/null \
+                        | tr "\n" "; " | head -c 200
+                elif command -v orcan-supervisord >/dev/null 2>&1; then
+                    echo "image has orcan-supervisord but process not running — recreate after build"
+                else
+                    echo "image predates supervisord — orcan build && orcan down && orcan up"
+                fi
+            ' 2>/dev/null || true)"
+            if [[ -n "${sup_line}" ]]; then
+                if [[ "${sup_line}" == *"RUNNING"* ]]; then
+                    check "supervisord" "1" "${sup_line}"
+                elif [[ "${sup_line}" == *"predates"* ]] || [[ "${sup_line}" == *"not running"* ]]; then
+                    check "supervisord" "1" "${sup_line}"
+                else
+                    check "supervisord" "1" "${sup_line}"
+                fi
+            fi
         else
             check "container ${cname}" "0" "not running — orcan up"
         fi
@@ -183,6 +205,51 @@ if errs:
         fi
     else
         check "context hook" "1" "no workspace manifest yet — run: orcan sync"
+    fi
+
+    local auto_json="${ORCAN_DATA}/history/supervisor/automation.json"
+    if [[ -f "${auto_json}" ]]; then
+        local auto_summary
+        auto_summary="$(python3 -c '
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("unreadable")
+    raise SystemExit(0)
+enabled = d.get("enabled", True)
+paused = bool(d.get("paused"))
+if not enabled:
+    print("disabled (cockpit [o] to enable)")
+elif paused:
+    print("paused (cockpit [p] to resume)")
+else:
+    print("running")
+' "${auto_json}" 2>/dev/null || echo "unreadable")"
+        if [[ "${auto_summary}" == disabled* ]]; then
+            check "context automation" "1" "${auto_summary}"
+        elif [[ "${auto_summary}" == paused* ]]; then
+            check "context automation" "1" "${auto_summary}"
+        elif [[ "${auto_summary}" == running ]]; then
+            check "context automation" "1" "${auto_summary}"
+        else
+            check "context automation" "0" "${auto_summary}"
+        fi
+    else
+        check "context automation" "1" "running (default; no automation.json yet)"
+    fi
+
+    if orcan_have docker; then
+        local cname_mc model_line model_ok model_detail
+        cname_mc="$(orcan_container_name)"
+        if orcan_container_is_running "${cname_mc}"; then
+            model_line="$(docker exec -u developer "${cname_mc}" orcan-context-model-check --quick 2>&1 || true)"
+            model_ok="0"
+            [[ "${model_line}" == recap-model:\ ok* ]] && model_ok="1"
+            model_detail="${model_line#recap-model: ok — }"
+            [[ "${model_ok}" == "0" ]] && model_detail="${model_line#recap-model: FAIL — }"
+            check "recap model (claude haiku)" "${model_ok}" "${model_detail}"
+        fi
     fi
 
     if [[ -S /var/run/docker.sock ]]; then

@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Check Claude/Haiku availability for context recap (doctor / manual).
+
+  orcan-context-model-check           # probe (default)
+  orcan-context-model-check --quick   # PATH + --version only
+  orcan-context-model-check --refresh # update automation.json cache
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+
+from orcan.automation import refresh_model_check  # noqa: E402
+from orcan.context_model_check import check_recap_model  # noqa: E402
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--model", default="haiku")
+    parser.add_argument("--quick", action="store_true", help="Skip claude -p probe")
+    parser.add_argument("--refresh", action="store_true", help="Write result to automation.json")
+    args = parser.parse_args()
+
+    if args.refresh:
+        result = refresh_model_check(model=args.model, force=True)
+    else:
+        result = check_recap_model(args.model, probe=not args.quick)
+
+    ok = bool(result.get("ok"))
+    detail = str(result.get("detail") or "")
+    print(f"recap-model: {'ok' if ok else 'FAIL'} — {detail}")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

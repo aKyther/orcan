@@ -22,7 +22,7 @@ Two things you can propose:
 Usage:
   orcan-context-propose --project NAME (--file PATH|-|--text STRING) \
       --justification TEXT [--title T] [--kind rule|fact|hint|policy] \
-      [applicability flags] [--queue] [--source manual|reflection|consolidation]
+      [applicability flags] [--queue] [--source manual|reflection|consolidation|recap]
   orcan-context-propose --project NAME --flag-existing ID --reason TEXT
 """
 from __future__ import annotations
@@ -160,7 +160,7 @@ def main() -> int:
     parser.add_argument("--justification", default="")
     parser.add_argument("--flag-existing", default="", help="Assertion id to flag for reconsideration instead of proposing new content")
     parser.add_argument("--reason", default="", help="Why the flagged assertion should be reconsidered (required with --flag-existing)")
-    parser.add_argument("--source", default="manual", choices=("manual", "reflection", "consolidation"))
+    parser.add_argument("--source", default="manual", choices=("manual", "reflection", "consolidation", "recap"))
     parser.add_argument("--queue", action="store_true", help="Skip the interactive prompt; leave undecided for orcan-context-review")
     parser.add_argument("--workspace", action="append", default=[])
     parser.add_argument("--repo-all-of", action="append", default=[])

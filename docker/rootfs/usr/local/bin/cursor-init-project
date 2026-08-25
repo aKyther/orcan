@@ -131,6 +131,9 @@ install_templates() {
             AGENTS.md)
                 dest_name="AGENTS.md"
                 ;;
+            CLAUDE.md)
+                dest_name="CLAUDE.md"
+                ;;
             cursorignore)
                 dest_name=".cursorignore"
                 ;;

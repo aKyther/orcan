@@ -1,6 +1,9 @@
 # Local-only overlay for `orcan up` without --with-ttyd.
-# Keeps the container running; use `orcan enter` for a host terminal.
+# Supervisord keeps the container up (keepalive) + background workers;
+# use `orcan enter` for a host terminal.
 services:
   orcan:
-    command: ["sleep", "infinity"]
+    command: ["orcan-supervisord"]
     restart: unless-stopped
+    environment:
+      ORCAN_SUPERVISOR_MODE: keepalive
