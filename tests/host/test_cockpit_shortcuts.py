@@ -84,8 +84,15 @@ class HintsForTests(unittest.TestCase):
 
 
 class EmbedDisclaimerTests(unittest.TestCase):
+    def test_product_metadata_and_docs_url_are_public(self) -> None:
+        self.assertEqual(shortcuts.PRODUCT_NAME, "orcan cockpit")
+        self.assertIn("workspace picker", shortcuts.PRODUCT_SUMMARY)
+        self.assertTrue(shortcuts.DOCS_URL.startswith("https://"))
+
     def test_disclaimer_is_non_empty(self) -> None:
         self.assertIn("native attach", shortcuts.EMBED_DISCLAIMER)
+        self.assertIn("Alt+", shortcuts.BROWSER_KEY_LIMIT)
+        self.assertIn("ttyd", shortcuts.BROWSER_KEY_LIMIT)
 
     def test_cli_render_includes_disclaimer(self) -> None:
         cli_path = ROOT / "cockpit" / "src" / "orcan_cockpit" / "shortcuts_cli.py"
@@ -98,7 +105,11 @@ class EmbedDisclaimerTests(unittest.TestCase):
         cli = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = cli
         spec.loader.exec_module(cli)
-        self.assertIn(shortcuts.EMBED_DISCLAIMER, cli.render_plaintext())
+        rendered = cli.render_plaintext()
+        self.assertIn(shortcuts.EMBED_DISCLAIMER, rendered)
+        self.assertIn(shortcuts.BROWSER_KEY_LIMIT, rendered)
+        self.assertIn(shortcuts.PRODUCT_NAME, rendered)
+        self.assertIn(shortcuts.DOCS_URL, rendered)
 
 
 if __name__ == "__main__":

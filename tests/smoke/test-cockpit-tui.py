@@ -37,15 +37,37 @@ async def main() -> None:
 
         activity = app.screen.query_one("#workspace-activity", WorkspaceActivity)
         rail = app.screen.query_one("#rail", UtilityRail)
-        assert len(rail.query("Button")) == 3
+        # Git/lazygit was intentionally removed from the rail; it remains
+        # available through the `lg` shell alias inside the terminal.
+        assert len(rail.query("Button")) == 2
         rail.set_pending_count(3)
-        assert str(rail.query_one("#rail-assertions").label) == "🔔3"
+        assert str(rail.query_one("#rail-assertions").label) == "🔔 3 Assertions"
+        assert "Context Assertions" in str(rail.query_one("#rail-assertions").tooltip)
+        assert app.screen.query_one("#status-body").tooltip
+        assert app.screen.query_one("#top-bar-right").tooltip
+        assert app.screen.query_one("#activity-pause-btn").tooltip
         assert activity.display
         await pilot.press("f2")
         await pilot.pause()
         assert not activity.display
         await pilot.press("f2")
         await pilot.pause()
+        assert activity.display
+
+        # Exercise the real rail event path, not only the helper method.
+        await pilot.press("f2")
+        await pilot.pause()
+        await pilot.click("#rail-assertions")
+        await pilot.pause()
+        assert activity.display
+
+        # The bottom status summary is also an assertions entry point.
+        app.screen.action_toggle_workspaces()
+        await pilot.pause()
+        assert not app.screen.query_one("#workspaces").display
+        await pilot.click("#status-body")
+        await pilot.pause()
+        assert app.screen.query_one("#workspaces").display
         assert activity.display
 
         # Edge-of-panel toggle arrow (replaces the old rail hamburger; a

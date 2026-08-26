@@ -7,9 +7,11 @@ This is what cli.py launches on a real tty.
 tmux stays the real session/window/pane engine throughout: the center
 column only owns the outer pty (PtyTerminal spawns `tmux attach` as its
 child) and the rest of this app renders around it. Nothing here
-re-implements tmux's own session/window/pane logic — Git and shortcuts are
-launched as real tools via `tmux display-popup` (actions.py), not
-reimplemented as widgets.
+re-implements tmux's own session/window/pane logic — context review is
+launched as a real tool via `tmux display-popup` (actions.py), not
+reimplemented as a widget. (A matching Git/lazygit popup shortcut used to
+live in the rail/F3 — removed on request as redundant with the `lg` shell
+alias already available inside the terminal.)
 """
 
 from __future__ import annotations
@@ -25,7 +27,6 @@ from textual.widgets import ListView, LoadingIndicator, Static
 from orcan_cockpit.activity import WorkspaceActivity
 from orcan_cockpit.actions import (
     run_context_review_popup,
-    run_git_popup,
     toggle_automation_enabled,
     toggle_automation_pause,
 )
@@ -40,7 +41,7 @@ from orcan_cockpit.status import Tier, tier_for_width
 from orcan_cockpit.status_bar import StatusBar
 from orcan_cockpit.top_bar import TopBar
 
-PLACEHOLDER_TEXT = "Select a workspace on the left to attach."
+PLACEHOLDER_TEXT = "Select a workspace on the left to attach.\n\nPress F1 for keyboard shortcuts."
 
 # Maps a focused widget's own id (walked up via .parent — covers any nested
 # descendant, e.g. the ListView inside WorkspaceList) to the hint-strip
@@ -114,6 +115,20 @@ Screen {
     padding: 0 1;
 }
 
+#top-bar-identity {
+    /* Cheap, static brand anchor at the very left edge of the top bar —
+       today the bar opens straight into bare icon buttons with nothing to
+       orient on. The active workspace name is already shown in the bottom
+       status bar (StatusBar.set_workspace) so it isn't repeated here; a
+       fixed wordmark avoids wiring a second, redundant data path for the
+       same fact. */
+    width: auto;
+    height: 1;
+    margin-right: 2;
+    color: #5eead4;
+    text-style: bold;
+}
+
 #rail {
     layout: horizontal;
     width: auto;
@@ -121,10 +136,15 @@ Screen {
 }
 
 #rail Button {
-    width: 3;
+    /* width:auto (not a fixed 3) because the label text itself now varies:
+       icon-only at compact/minimal tiers, "icon + word" at the full tier
+       (UtilityRail.set_tier) — a fixed width would either clip the wide
+       label or leave a gap around the narrow one. */
+    width: auto;
     min-width: 3;
     height: 1;
     margin-right: 1;
+    padding: 0 1;
     background: #0d1520;
     color: #64748b;
     border: none;
@@ -181,6 +201,11 @@ Screen {
     background: transparent;
 }
 
+#workspace-legend {
+    height: 1;
+    color: #64748b;
+}
+
 /* The currently-ATTACHED workspace (not just the keyboard cursor's current
    row) — a light, permanent highlight distinct from ListView's own
    built-in cursor-row style, which only shows while this list has focus. */
@@ -205,6 +230,10 @@ Screen {
 .activity-heading {
     color: #5eead4;
     text-style: bold;
+}
+
+#activity-subtitle {
+    color: #64748b;
     margin-bottom: 1;
 }
 
@@ -307,18 +336,21 @@ Screen {
     /* Bordered card, matching top-bar/side-panels/terminal — height:3 for
        the same reason as #top-bar (border-top + content + border-bottom;
        see that rule's comment for the box-model gotcha this avoids).
-       margin-top gives it the same breathing room from the terminal card
-       above it as the gap between the two left-column cards. width:1fr is
-       NOT a default — without it this card sizes to fit its own text
-       content instead of stretching to match #center-stack's width above
-       it, which is exactly why they looked misaligned/uneven. */
+       No margin-top (previously 1): unlike the two independent cards in
+       the left column, this strip is a caption FOR the terminal above it
+       (contextual hints for whatever has focus), not a separate section —
+       flagged as an unexplained gap in review. Removing it hands that row
+       back to #center-stack's height:1fr, i.e. the embedded terminal gets
+       one more real row instead of it sitting empty as background. width:
+       1fr is NOT a default — without it this card sizes to fit its own
+       text content instead of stretching to match #center-stack's width
+       above it, which is exactly why they looked misaligned/uneven. */
     width: 1fr;
     height: 3;
     background: #0d1520;
     border: round #334155;
     color: #94a3b8;
     padding: 0 1;
-    margin-top: 1;
 }
 
 #status-bar {
@@ -329,6 +361,10 @@ Screen {
     border: round #334155;
     color: #94a3b8;
     padding: 0 1;
+}
+
+#status-body:hover {
+    background: #1e293b;
 }
 
 #sidebar-toggle {
@@ -392,7 +428,6 @@ class MainScreen(Screen):
         # whenever the terminal has focus (see pty_terminal.py's on_key);
         # only bare F-keys reliably reach these bindings regardless of
         # which widget currently has focus.
-        ("f3", "open_git", "Git"),
         ("f1", "open_shortcuts", "Shortcuts"),
         ("question_mark", "open_shortcuts", "Shortcuts"),
         ("f4", "toggle_workspaces", "Toggle workspaces"),
@@ -422,6 +457,14 @@ class MainScreen(Screen):
         if event.widget is not None and event.widget.id == "sidebar-toggle":
             event.stop()
             self.action_toggle_workspaces()
+        elif event.widget is not None and event.widget.id == "status-body":
+            # The status bar shows the same 🔔 N the rail button does — it
+            # looked clickable without being clickable, which reads as
+            # broken rather than glance-only. Made real instead of just
+            # explained away in a tooltip: same destination as the rail's
+            # bell (see _reveal_assertions).
+            event.stop()
+            self._reveal_assertions()
 
     def on_mount(self) -> None:
         # Nothing's attached yet — start with the workspace list focused so
@@ -430,6 +473,7 @@ class MainScreen(Screen):
         self.query_one(HintStrip).set_target("workspaces")
         self._update_focus_highlight("workspaces")
         self._apply_tier(tier_for_width(self.size.width))
+        self.query_one("#sidebar-toggle", Static).tooltip = "Toggle workspace panel (F4)"
 
     def on_resize(self, event: events.Resize) -> None:
         self._apply_tier(tier_for_width(event.size.width))
@@ -441,6 +485,7 @@ class MainScreen(Screen):
         for name in ("tier-full", "tier-compact", "tier-minimal"):
             self.set_class(name == f"tier-{tier}", name)
         self.query_one(StatusBar).set_tier(tier)
+        self.query_one(UtilityRail).set_tier(tier)
         self._update_workspaces_visibility()
 
     def _update_workspaces_visibility(self) -> None:
@@ -516,28 +561,27 @@ class MainScreen(Screen):
             if terminal:
                 terminal.focus()
 
-    def action_open_git(self) -> None:
-        if self._current_session:
-            run_git_popup(self._current_session)
-
     def action_open_shortcuts(self) -> None:
         self.app.push_screen(ShortcutsModal())
 
+    def _reveal_assertions(self) -> None:
+        # Assertions live inside #workspaces now — clicking either bell (the
+        # rail's, or the status bar's — see on_click) should always get you
+        # there, so un-hide the whole left column too if F4 had hidden it,
+        # not just the assertions sub-section. Single method so the two
+        # click sources can't drift into different behavior.
+        if not self._workspaces_visible:
+            self._workspaces_visible = True
+            self._update_workspaces_visibility()
+        activity = self.query_one(WorkspaceActivity)
+        if not self._panel_visible:
+            self._panel_visible = True
+            activity.display = True
+        activity.focus()
+
     def on_utility_rail_tool_selected(self, message: UtilityRail.ToolSelected) -> None:
         if message.tool == "assertions":
-            # Assertions live inside #workspaces now — clicking the bell
-            # should always get you there, so un-hide the whole left column
-            # too if F4 had hidden it, not just the assertions sub-section.
-            if not self._workspaces_visible:
-                self._workspaces_visible = True
-                self._update_workspaces_visibility()
-            activity = self.query_one(WorkspaceActivity)
-            if not self._panel_visible:
-                self._panel_visible = True
-                activity.display = True
-            activity.focus()
-        elif message.tool == "git":
-            self.action_open_git()
+            self._reveal_assertions()
         elif message.tool == "shortcuts":
             self.action_open_shortcuts()
 
@@ -567,7 +611,6 @@ class CockpitApp(App):
         yield SystemCommand("Toggle assertions panel", "F2", screen.action_toggle_panel)
         yield SystemCommand("Toggle workspaces panel", "F4", screen.action_toggle_workspaces)
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
-        yield SystemCommand("Open Git (lazygit)", "F3", screen.action_open_git)
         if screen._current_session:
             session = screen._current_session
             yield SystemCommand(

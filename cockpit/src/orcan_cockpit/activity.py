@@ -44,6 +44,21 @@ except ImportError:  # pragma: no cover - always present in the cockpit venv
 
 PLACEHOLDER = "Select a workspace on the left\nto see pending Context Assertions."
 
+# Short enough to fit on one line at this card's real usable width (~27
+# cols after border+padding, confirmed via real pty render) — the original
+# wording wrapped to 3 lines, which was flagged as making the card
+# noticeably bulkier than before this subtitle existed.
+SUBTITLE = "Proposed, awaiting review"
+
+# Real, hosted docs page (docs/en/ideas/context-assertions.md, published via
+# GitHub Pages — see docs/llms.txt) rendered as a clickable OSC8 hyperlink
+# (Textual's own markup engine, Content.from_markup, interpreted because
+# Static defaults to markup=True). Modern terminals (iTerm2/kitty/WezTerm/
+# Windows Terminal, and ttyd's xterm.js — orcan's two transports) render
+# this as a real clickable link; terminals without OSC8 support just show
+# the plain text, no markup leaks through.
+DOCS_URL = "https://akyther.github.io/orcan/latest/ideas/context-assertions/"
+
 
 class WorkspaceActivity(Widget):
     """Docked info + actions section — persistent, mounted before any
@@ -69,8 +84,16 @@ class WorkspaceActivity(Widget):
 
     def compose(self) -> ComposeResult:
         yield Static("ASSERTIONS", classes="activity-heading")
+        yield Static(SUBTITLE, id="activity-subtitle")
         with Horizontal(id="activity-actions"):
-            yield Button("Review", id="activity-review-btn")
+            yield Button(
+                "Review", id="activity-review-btn",
+                tooltip="Open the pending assertions in lazygit-style review (tmux popup)",
+            )
+            # Pause/Turn-off tooltips are state-dependent (e.g. explaining
+            # *why* Pause is greyed out) — set in _refresh_automation_buttons
+            # instead of a static value here that on_mount would immediately
+            # overwrite anyway.
             yield Button("Pause", id="activity-pause-btn")
             yield Button("Turn off", id="activity-enabled-btn")
         yield Static(PLACEHOLDER, id="activity-body")
@@ -80,6 +103,20 @@ class WorkspaceActivity(Widget):
         # on-off buttons have something correct to show even before a
         # workspace is picked (unlike Review, which needs self.session).
         self._refresh_automation_buttons()
+        # "reflection" and "pending" are terms this box uses without ever
+        # defining — the subtitle above explains "assertions" but not the
+        # background process that produces them. One tooltip on the whole
+        # body covers both rather than inventing separate display wording
+        # that would diverge from context_inbox.py's shared "reflection:"
+        # prefix (also used by orcan doctor — renaming that string would
+        # touch a wider, tested contract for a cockpit-only wording tweak).
+        self.query_one("#activity-body", Static).tooltip = (
+            "pending = facts proposed but not yet reviewed\n"
+            "reflection = the background scan that reads session transcripts "
+            "and proposes them\n"
+            "automation = the on/off switch for that background scan "
+            "(Pause/Turn off buttons above)"
+        )
 
     def set_workspace(self, workspace_root: str, session: str) -> None:
         self.workspace_root = Path(workspace_root)
@@ -94,8 +131,24 @@ class WorkspaceActivity(Widget):
         pause_btn = self.query_one("#activity-pause-btn", Button)
         pause_btn.label = "Resume" if state["paused"] else "Pause"
         pause_btn.disabled = not state["enabled"]
+        # A disabled Button gives no clue *why* it's greyed out — the static
+        # tooltip set at compose() time no longer matched reality once
+        # automation was off, so it's recomputed here alongside the label/
+        # disabled flag on every state change instead.
+        if not state["enabled"]:
+            pause_btn.tooltip = "Automation is off — turn it on first to pause/resume it"
+        elif state["paused"]:
+            pause_btn.tooltip = "Resume automation — go back to proposing new context assertions"
+        else:
+            pause_btn.tooltip = "Pause automation — temporarily stop proposing new context assertions"
+
         enabled_btn = self.query_one("#activity-enabled-btn", Button)
         enabled_btn.label = "Turn on" if not state["enabled"] else "Turn off"
+        enabled_btn.tooltip = (
+            "Turn automation on — resume scanning sessions for new assertions"
+            if not state["enabled"]
+            else "Turn automation off — stop scanning sessions for new assertions"
+        )
 
     def refresh_summary(self) -> None:
         self._refresh_automation_buttons()
@@ -113,7 +166,12 @@ class WorkspaceActivity(Widget):
             reflection,
             *automation_status_lines(),
             "",
-            "Buttons above, or [r] review · [p] pause · [o] on/off",
+            # \[ escapes the literal bracket — unescaped, Rich markup parses
+            # [r]/[p]/[o] as (unclosed) style tags ("r"/"o" are reverse/
+            # overline shorthands) and silently drops the bracketed letters
+            # from the rendered line. Confirmed with Text.from_markup().
+            r"Buttons above, or \[r] review · \[p] pause · \[o] on/off",
+            f'[link="{DOCS_URL}"]Learn more →[/link]',
         ]
         self.query_one("#activity-body", Static).update("\n".join(lines))
         self.post_message(self.SummaryUpdated(count, age, reflection))

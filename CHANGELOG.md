@@ -54,11 +54,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Cockpit is a **persistent multi-pane** layout: **top bar** (utility rail +
-  CPU/RAM/clock) \| **main** — left column (workspace list + ASSERTIONS) and
-  center embedded tmux + hint strip \| **bottom status bar** (workspace identity).
-  **F2** toggles ASSERTIONS; **F4** workspaces; **F3** Git; **F1**/`?` shortcuts
-  (footer: embed ≠ native attach); **`r`** review; **`p`** pause; **`o`** off/on automation.
+- Agent orientation audit: compacted `AGENTS.md` layout scan; `llms.txt` +
+  project-context (EN/PL) call out browser Alt+arrows/`BROWSER_KEY_LIMIT`
+  (do not “fix” in cockpit alone); README links `docs/llms.txt`;
+  `ORCAN_HOME` (config) vs `ORCAN_DATA` (tool data) clarified in AGENTS/`llms`.
+- Documented **known browser limit**: Alt+←/→/↑/↓ pane focus under ttyd/xterm.js
+  (`BROWSER_KEY_LIMIT` in F1/`?` and prefix-? footer; Terminal UI + troubleshooting).
+  tmux binds + `pty_keys.py` verified correct — fix would need ttyd frontend change.
+- Cockpit is a **persistent multi-pane** layout: **top bar** (`◆ orcan` wordmark +
+  utility rail 🔔/? + CPU/RAM/clock) \| **main** — left column (workspace list with
+  `●/○/▸` legend + **`i`** expand + ASSERTIONS) and center embedded tmux + hint strip \|
+  **‹›**/`F4` edge toggle \| **bottom status bar** (click 🔔 → ASSERTIONS).
+  At `full` width the rail shows icon + word (Assertions / Help).
+  **F2** toggles ASSERTIONS; **F4** workspaces; **F1** shortcuts + About
+  (**?** only outside the embedded terminal); no cockpit **F3**/Git —
+  use shell **`lg`** for lazygit; **`r`** review; **`p`** pause; **`o`** off/on.
 - **Cockpit visual polish pass:** every panel (top bar, workspace list,
   ASSERTIONS, terminal, hint strip, status bar) is now a consistent bordered
   card, cyan-highlighted on focus (dim slate otherwise, matching tmux's own
@@ -73,6 +83,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Review, all compact (`border: none`, no more oversized default `Button`
   styling) and state-aware via a new `automation_state()` query in
   `actions.py`.
+- **Cockpit clarity pass** (previously unexplained UI, flagged in review):
+  ASSERTIONS gets a one-line subtitle ("Proposed, awaiting review") instead
+  of a bare heading; hover tooltips on the rail icons, CPU/RAM/clock,
+  Pause/Turn-off (state-aware — explains *why* Pause is greyed out when
+  automation is off), and the `‹›` sidebar toggle; a `[link]` doc reference
+  in ASSERTIONS and the shortcuts modal's new About section; the
+  terminal-column hint strip now lists app-nav (F1–F4) *before* tmux
+  pane/window hints instead of after, since the tmux entries alone already
+  filled the strip's 6-item cap and crowded the app hints out entirely.
+  Browser (ttyd) default font size 19px → 14px, closer to a typical
+  code-editor terminal; still overridable via `TTYD_FONT_SIZE`.
 - **Cockpit top bar / center column now line up edge-to-edge:** removed a
   stray outer padding on the center column that made its cards render
   narrower than the top bar and side panel; the CPU/RAM/clock text on the
@@ -89,6 +110,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **change-map** (EN/PL): automation control path is
+  `docker/rootfs/usr/local/lib/orcan/automation.py` (was a non-existent
+  `orcan/automation.py`).
+- **Cockpit ASSERTIONS: bracketed key hints silently vanished.** `[r]`/`[p]`/
+  `[o]` in the action-hint line and in `automation.py`'s `status_lines()`
+  parsed as (unclosed) Rich markup style tags — the bracketed letters
+  disappeared from the rendered text entirely, since both strings feed a
+  markup-enabled `Static`. Fixed with `\[` escaping at both call sites.
+- **Cockpit shortcuts modal crashed opening `?`/F1:** the new About section's
+  doc link used the full URL as both the tag value and the display text —
+  Textual's own markup engine (`Content.from_markup`, not Rich's) raises
+  `MarkupError` on an unquoted `://` inside a `[link=...]` tag value. Fixed
+  by quoting the URL (`[link="..."]`) and using short anchor text.
 - **Cockpit top-bar clock/metrics glitch:** the CPU/RAM/clock text would
   intermittently duplicate its own last character at the card's right edge.
   Two distinct Rich/Textual rendering bugs, both isolated by testing: (1)

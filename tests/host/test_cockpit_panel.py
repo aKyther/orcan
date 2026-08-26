@@ -172,26 +172,6 @@ class ContextReviewPopupCommandTests(unittest.TestCase):
         self.assertNotIn("stdin", run.call_args.kwargs)
 
 
-class GitPopupCommandTests(unittest.TestCase):
-    def test_targets_the_given_session(self) -> None:
-        cmd = actions.git_popup_command("my-session")
-        self.assertIn("tmux", cmd)
-        self.assertIn("display-popup", cmd)
-        self.assertIn("=my-session", cmd)
-
-    def test_runs_lazygit(self) -> None:
-        cmd = actions.git_popup_command("s")
-        self.assertIn("lazygit", cmd)
-
-    def test_run_git_popup_never_touches_stdin(self) -> None:
-        from unittest import mock
-
-        with mock.patch.object(actions.subprocess, "run") as run:
-            actions.run_git_popup("s")
-        run.assert_called_once()
-        self.assertNotIn("stdin", run.call_args.kwargs)
-
-
 class AutomationPauseActionTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
