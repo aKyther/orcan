@@ -36,6 +36,7 @@ class TopBar(Widget):
         self.query_one("#top-bar-right", Static).tooltip = (
             "💻 system load average · 🧠 memory used · 🕐 clock"
         )
+        self.query_one("#top-bar-identity", Static).tooltip = "About / shortcuts (or press F1)"
         self.refresh_metrics()
         self.set_interval(_REFRESH_INTERVAL_S, self.refresh_metrics)
 

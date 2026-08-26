@@ -88,20 +88,16 @@ def format_status_line(
     workspace: str | None,
     branch: str,
     session: str | None,
-    pending: int,
 ) -> str:
     """The bottom bar: workspace identity. CPU/RAM/clock live in the top bar
-    instead (format_top_bar_right) — showing system metrics in both would
-    just be the same redundant duplication trimming status.conf avoided."""
+    (format_top_bar_right) and the pending-assertions 🔔 lives in the rail
+    (rail.py) exclusively — showing the same bell in both bars read as
+    duplicated chrome, flagged in review."""
     parts = [workspace or "(no workspace)"]
-    if tier == "minimal":
-        parts.append(f"🔔 {pending}")
-        return "  ·  ".join(parts)
     if tier == "full" and branch:
         parts.append(f"⎇ {branch}")
     if tier == "full" and session:
         parts.append(f"tmux:{session}")
-    parts.append(f"🔔 {pending}")
     return "  ·  ".join(parts)
 
 

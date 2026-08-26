@@ -13,6 +13,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -153,23 +154,46 @@ class ContextReviewPopupCommandTests(unittest.TestCase):
     def test_targets_the_given_session(self) -> None:
         cmd = actions.context_review_popup_command("my-session")
         self.assertIn("tmux", cmd)
-        self.assertIn("display-popup", cmd)
-        self.assertIn("=my-session", cmd)
+        self.assertIn("split-window", cmd)
+        self.assertIn("=my-session:", cmd)
 
     def test_runs_orcan_context_review(self) -> None:
         cmd = actions.context_review_popup_command("s")
         self.assertTrue(any("orcan-context-review" in part for part in cmd))
 
-    def test_run_context_review_popup_never_touches_stdin(self) -> None:
+    def test_review_title_command_uses_review_title(self) -> None:
+        cmd = actions.context_review_title_command("%42")
+        self.assertEqual(cmd, ["tmux", "select-pane", "-t", "%42", "-T", "review"])
+
+    def test_run_context_review_popup_splits_and_titles_pane(self) -> None:
         from unittest import mock
 
         with mock.patch.object(actions.subprocess, "run") as run:
+            run.side_effect = [
+                subprocess.CompletedProcess(
+                    args=["tmux"],
+                    returncode=0,
+                    stdout="%42\n",
+                    stderr="",
+                ),
+                subprocess.CompletedProcess(args=["tmux"], returncode=0),
+            ]
+            actions.run_context_review_popup("s")
+        self.assertEqual(run.call_count, 2)
+        first = run.call_args_list[0]
+        second = run.call_args_list[1]
+        self.assertIn("split-window", first.args[0])
+        self.assertEqual(first.kwargs.get("capture_output"), True)
+        self.assertEqual(first.kwargs.get("text"), True)
+        self.assertEqual(second.args[0], ["tmux", "select-pane", "-t", "%42", "-T", "review"])
+
+    def test_run_context_review_popup_skips_title_when_split_fails(self) -> None:
+        from unittest import mock
+
+        with mock.patch.object(actions.subprocess, "run") as run:
+            run.return_value = subprocess.CompletedProcess(args=["tmux"], returncode=1, stdout="", stderr="boom")
             actions.run_context_review_popup("s")
         run.assert_called_once()
-        # Popups own their own controlling terminal — no stdin plumbing needed
-        # (unlike the model-call subprocess calls elsewhere, which explicitly
-        # pass stdin=DEVNULL); confirm no unexpected stdin kwarg was added.
-        self.assertNotIn("stdin", run.call_args.kwargs)
 
 
 class AutomationPauseActionTests(unittest.TestCase):

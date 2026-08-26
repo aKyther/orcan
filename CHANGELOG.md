@@ -7,8 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pty_tmux_nav.py` matched docs:** Ctrl/Alt+arrows focus; Ctrl+Shift+arrows
+  split (code had briefly kept Ctrl=split from conf, contradicting
+  `BROWSER_KEY_LIMIT` / Terminal UI nav mix).
+
+### Changed
+
+- **Cockpit pane nav mix:** Ctrl/Alt+arrows focus panes via `tmux` CLI
+  (`pty_tmux_nav.py`); Ctrl+Shift+arrows split. Many terminals (ttyd, WT/WSL)
+  deliver Alt as Ctrl, so cockpit cannot keep conf’s Ctrl=split + Alt=focus on
+  the same events. `keybindings.conf` unchanged for `orcan enter --tmux`.
+  Documented in F1/`?` (`BROWSER_KEY_LIMIT`), Terminal UI + troubleshooting
+  (EN/PL), AGENTS/CLAUDE, llms generator.
+- **Cockpit color roles split** (was one cyan doing focus, headings, wordmark,
+  and badges at once — flagged as everything blending together): cyan is now
+  keyboard-focus only; violet `#a78bfa` marks static landmarks (`◆ orcan`,
+  `ASSERTIONS`, action-button labels); amber `#fbbf24` marks the pending-count
+  badge. Both colors already existed in the product's ANSI theme — none
+  invented. Scoped to cockpit CSS only (`app.py`, `rail.py`); ttyd/tmux/
+  starship/lazygit untouched.
+- **Cockpit bottom status bar**: dropped the duplicate 🔔 pending-count (the
+  rail's bell already shows it — two bells for one fact read as broken, not
+  glance-only). The `◆ orcan` wordmark is now itself an About/shortcuts entry
+  point (click, or F1) — filled the gap of no visible "about" affordance
+  anywhere in the top bar.
+
 ### Added
 
+- **JVM toolchain**: Temurin JDK 21 (LTS), Gradle 8.11, Maven 3.9.9,
+  Kotlin 2.1.0, Scala 3.5.2, sbt 1.10.5 — always in the image, same as
+  Go/Rust (not gated behind a build arg). Every archive/URL verified for
+  both amd64 and arm64, and every binary actually run (not just extracted)
+  before committing to it.
+- **Modern CLI replacements**, matching the existing rg/fd/eza/bat/delta/
+  difft convention: `btm` (bottom, for top/htop), `dust` (for du), `procs`
+  (for ps), plus `dnsutils` (dig/nslookup — a real gap for a Docker-from-
+  Docker setup where network debugging comes up).
 - **Cockpit `[p]` pause / `[o]` off** for background Context automation (`automation.json`
   on the history bind: `enabled`, `paused`, cached `model_check`). Scan skips when
   disabled, paused, or Claude/Haiku probe fails (`orcan-context-model-check`).

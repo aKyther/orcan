@@ -32,6 +32,7 @@ async def main() -> None:
                 break
         terminal = app.screen.query_one("#terminal", PtyTerminal)
         assert terminal._process is not None and terminal._process.poll() is None
+        assert terminal._session == "dev-ux"
         assert terminal._screen is not None
         assert terminal._screen.columns > 20 and terminal._screen.lines > 5
 
@@ -43,8 +44,8 @@ async def main() -> None:
         rail.set_pending_count(3)
         assert str(rail.query_one("#rail-assertions").label) == "🔔 3 Assertions"
         assert "Context Assertions" in str(rail.query_one("#rail-assertions").tooltip)
-        assert app.screen.query_one("#status-body").tooltip
         assert app.screen.query_one("#top-bar-right").tooltip
+        assert app.screen.query_one("#top-bar-identity").tooltip
         assert app.screen.query_one("#activity-pause-btn").tooltip
         assert activity.display
         await pilot.press("f2")
@@ -61,14 +62,12 @@ async def main() -> None:
         await pilot.pause()
         assert activity.display
 
-        # The bottom status summary is also an assertions entry point.
-        app.screen.action_toggle_workspaces()
+        # The top-bar wordmark is also an About/shortcuts entry point.
+        await pilot.click("#top-bar-identity")
         await pilot.pause()
-        assert not app.screen.query_one("#workspaces").display
-        await pilot.click("#status-body")
+        assert app.screen.__class__.__name__ == "ShortcutsModal"
+        await pilot.press("escape")
         await pilot.pause()
-        assert app.screen.query_one("#workspaces").display
-        assert activity.display
 
         # Edge-of-panel toggle arrow (replaces the old rail hamburger; a
         # plain Static, not a Button — see app.py's CSS comment on why):

@@ -78,7 +78,12 @@ class UtilityRail(Widget):
         wide = self._tier == "full"
         bell = _ICON["assertions"]
         if self._pending_count:
-            bell += f" {self._pending_count}"
+            # Amber, not the default text color — a pending count is an
+            # attention signal, and it's the one warm accent against an
+            # otherwise cool navy/cyan/violet bar (flagged as too
+            # monochrome in review). Button.label parses markup (Textual's
+            # Content.from_markup) same as Static.
+            bell += f" [#fbbf24]{self._pending_count}[/]"
         if wide:
             bell += f" {_TEXT['assertions']}"
         self.query_one("#rail-assertions", Button).label = bell

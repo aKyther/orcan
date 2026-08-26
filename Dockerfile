@@ -44,6 +44,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         build-essential \
         ca-certificates \
         curl \
+        dnsutils \
         fd-find \
         fzf \
         git \
@@ -135,6 +136,52 @@ COPY --from=uv-tools /uvx /usr/local/bin/uvx
 RUN set -eux; \
     uv --version; \
     uvx --version
+
+# ------------------------------------------------------------------------------
+# JVM: Java (Temurin) + Gradle + Maven + Kotlin + Scala + sbt
+# ------------------------------------------------------------------------------
+# Kotlin/Scala/Gradle/Maven/sbt are pure-JVM archives (no per-arch build) —
+# only the JDK itself needs the amd64/arm64 split below. Adoptium's
+# "latest GA build for this major version" endpoint is used for Java instead
+# of a full build string (e.g. 21.0.12+7) so this ARG only has to track a
+# major version, not a moving exact-build filename.
+
+ARG JAVA_VERSION=21
+ARG GRADLE_VERSION=8.11
+ARG MAVEN_VERSION=3.9.9
+ARG KOTLIN_VERSION=2.1.0
+ARG SCALA_VERSION=3.5.2
+ARG SBT_VERSION=1.10.5
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) jdk_arch="x64" ;; \
+        arm64) jdk_arch="aarch64" ;; \
+        *) echo "unsupported architecture for Temurin JDK: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    mkdir -p /opt/java; \
+    curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JAVA_VERSION}/ga/linux/${jdk_arch}/jdk/hotspot/normal/eclipse" \
+        | tar -xz -C /opt/java --strip-components=1; \
+    /opt/java/bin/java -version; \
+    mkdir -p /opt/maven; \
+    curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
+        | tar -xz -C /opt/maven --strip-components=1; \
+    mkdir -p /opt/scala3; \
+    curl -fsSL "https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz" \
+        | tar -xz -C /opt/scala3 --strip-components=1; \
+    mkdir -p /opt/sbt; \
+    curl -fsSL "https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz" \
+        | tar -xz -C /opt/sbt --strip-components=1; \
+    tmp="$(mktemp -d)"; \
+    curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o "${tmp}/gradle.zip"; \
+    unzip -q "${tmp}/gradle.zip" -d "${tmp}"; \
+    mv "${tmp}/gradle-${GRADLE_VERSION}" /opt/gradle; \
+    curl -fsSL "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip" \
+        -o "${tmp}/kotlin.zip"; \
+    unzip -q "${tmp}/kotlin.zip" -d "${tmp}"; \
+    mv "${tmp}/kotlinc" /opt/kotlinc; \
+    rm -rf "${tmp}"
 
 # ------------------------------------------------------------------------------
 # Docker CLI + Compose + Buildx
@@ -329,6 +376,47 @@ RUN set -eux; \
     difft --version
 
 # ------------------------------------------------------------------------------
+# bottom + dust + procs (modern top / du / ps — same "faster replacement"
+# convention as rg/fd/eza/bat/delta/difft above)
+# ------------------------------------------------------------------------------
+
+ARG BOTTOM_VERSION=0.10.2
+ARG DUST_VERSION=1.1.2
+ARG PROCS_VERSION=0.14.9
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) \
+            bottom_arch="x86_64-unknown-linux-gnu"; \
+            dust_arch="x86_64-unknown-linux-gnu"; \
+            procs_arch="x86_64-linux"; \
+            ;; \
+        arm64) \
+            bottom_arch="aarch64-unknown-linux-gnu"; \
+            dust_arch="aarch64-unknown-linux-gnu"; \
+            procs_arch="aarch64-linux"; \
+            ;; \
+        *) echo "unsupported architecture for bottom/dust/procs: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/ClementTsang/bottom/releases/download/${BOTTOM_VERSION}/bottom_${bottom_arch}.tar.gz" \
+        | tar -xz -C /usr/local/bin btm; \
+    chmod 0755 /usr/local/bin/btm; \
+    btm --version; \
+    curl -fsSL "https://github.com/bootandy/dust/releases/download/v${DUST_VERSION}/dust-v${DUST_VERSION}-${dust_arch}.tar.gz" \
+        | tar -xz --strip-components=1 -C /usr/local/bin \
+            "dust-v${DUST_VERSION}-${dust_arch}/dust"; \
+    chmod 0755 /usr/local/bin/dust; \
+    dust --version; \
+    tmp="$(mktemp -d)"; \
+    curl -fsSL "https://github.com/dalance/procs/releases/download/v${PROCS_VERSION}/procs-v${PROCS_VERSION}-${procs_arch}.zip" \
+        -o "${tmp}/procs.zip"; \
+    unzip -q "${tmp}/procs.zip" -d /usr/local/bin; \
+    chmod 0755 /usr/local/bin/procs; \
+    rm -rf "${tmp}"; \
+    procs --version
+
+# ------------------------------------------------------------------------------
 # Container filesystem (scripts, defaults, shell configs)
 # ------------------------------------------------------------------------------
 
@@ -484,6 +572,12 @@ ENV RUSTUP_HOME=/usr/local/rustup
 ENV GOPATH=/home/${USERNAME}/.cache/go
 ENV GOCACHE=/home/${USERNAME}/.cache/go-build
 ENV GOMODCACHE=/home/${USERNAME}/.cache/go/pkg/mod
+ENV JAVA_HOME=/opt/java
+ENV GRADLE_USER_HOME=/home/${USERNAME}/.cache/gradle
+# Maven's local repo (~/.m2) and sbt/Coursier's cache are left at their own
+# tool defaults (Coursier already respects XDG_CACHE_HOME, i.e.
+# ~/.cache/coursier, on Linux) rather than redirected — .m2 in particular is
+# such an established convention that IDEs/other tooling expect it there.
 ENV UV_CACHE_DIR=/home/${USERNAME}/.cache/uv
 ENV RUFF_CACHE_DIR=/home/${USERNAME}/.cache/ruff
 ENV MYPY_CACHE_DIR=/home/${USERNAME}/.cache/mypy
@@ -496,7 +590,15 @@ ENV PYTEST_ADDOPTS="-p no:cacheprovider"
 ENV CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude
 # Prefer system ripgrep on PATH (faster than Claude's bundled wrapper).
 ENV USE_BUILTIN_RIPGREP=0
-ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:${PATH}"
+ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/java/bin:/opt/gradle/bin:/opt/maven/bin:/opt/kotlinc/bin:/opt/scala3/bin:/opt/sbt/bin:${PATH}"
+
+RUN set -eux; \
+    java -version; \
+    gradle --version; \
+    mvn --version; \
+    kotlinc -version; \
+    scala -version; \
+    sbt --script-version
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
