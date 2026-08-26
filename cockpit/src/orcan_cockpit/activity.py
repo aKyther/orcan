@@ -19,6 +19,7 @@ scripts/repository/context_tui.py's established split.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 from textual import events
@@ -36,6 +37,19 @@ from orcan_cockpit.actions import (
     toggle_automation_enabled,
     toggle_automation_pause,
 )
+from orcan_cockpit.problems import pending_across_roots, problems_summary
+from orcan_cockpit.reflection_feedback import last_batch_feedback
+from orcan_cockpit.timeline import format_timeline, recent_decisions
+from orcan_cockpit.tmux_chrome import list_agent_panes, read_pinned_pane
+
+try:
+    from orcan.automation import claude_on_path, sync_automation_to_claude_availability
+except ImportError:  # pragma: no cover
+    def claude_on_path() -> bool:
+        return True
+
+    def sync_automation_to_claude_availability() -> dict:
+        return {}
 
 try:
     from watchfiles import awatch
@@ -71,19 +85,32 @@ class WorkspaceActivity(Widget):
 
     class SummaryUpdated(Message):
         """Posted whenever refresh_summary() recomputes — UtilityRail's
-        assertions badge subscribes (via MainScreen) so it can never
+        problems badge subscribes (via MainScreen) so it can never
         disagree with what's actually shown here."""
 
-        def __init__(self, count: int, age: str, reflection: str) -> None:
+        def __init__(
+            self,
+            count: int,
+            age: str,
+            reflection: str,
+            *,
+            problems_count: int | None = None,
+            tooltip: str = "",
+        ) -> None:
             self.count = count
             self.age = age
             self.reflection = reflection
+            self.problems_count = count if problems_count is None else problems_count
+            self.tooltip = tooltip
             super().__init__()
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.workspace_root: Path | None = None
         self.session: str | None = None
+        self.projects: list | None = None
+        self._dirty_count = 0
+        self._dirty_checked_at = 0.0
 
     def compose(self) -> ComposeResult:
         yield Static("ASSERTIONS", classes="activity-heading")
@@ -121,24 +148,34 @@ class WorkspaceActivity(Widget):
             "(Pause/Turn off buttons above)"
         )
 
-    def set_workspace(self, workspace_root: str, session: str) -> None:
+    def set_workspace(
+        self,
+        workspace_root: str,
+        session: str,
+        *,
+        projects: list | None = None,
+    ) -> None:
         self.workspace_root = Path(workspace_root)
         self.session = session
+        self.projects = projects
         self.refresh_summary()
         # exclusive=True cancels any previous run of this same worker (the
         # prior workspace's watch loop) before starting the new one.
         self.run_worker(self._watch_loop(), exclusive=True, group="watch")
 
     def _refresh_automation_buttons(self) -> None:
+        sync_automation_to_claude_availability()
         state = automation_state()
+        has_claude = claude_on_path()
         pause_btn = self.query_one("#activity-pause-btn", Button)
         pause_btn.label = "Resume" if state["paused"] else "Pause"
-        pause_btn.disabled = not state["enabled"]
-        # A disabled Button gives no clue *why* it's greyed out — the static
-        # tooltip set at compose() time no longer matched reality once
-        # automation was off, so it's recomputed here alongside the label/
-        # disabled flag on every state change instead.
-        if not state["enabled"]:
+        pause_btn.disabled = (not state["enabled"]) or (not has_claude)
+        if not has_claude:
+            pause_btn.tooltip = (
+                "Assertions automation needs Claude Code on PATH "
+                "(auto-propose/recap). Review still works for pending notes."
+            )
+        elif not state["enabled"]:
             pause_btn.tooltip = "Automation is off — turn it on first to pause/resume it"
         elif state["paused"]:
             pause_btn.tooltip = "Resume automation — go back to proposing new context assertions"
@@ -147,11 +184,15 @@ class WorkspaceActivity(Widget):
 
         enabled_btn = self.query_one("#activity-enabled-btn", Button)
         enabled_btn.label = "Turn on" if not state["enabled"] else "Turn off"
-        enabled_btn.tooltip = (
-            "Turn automation on — resume scanning sessions for new assertions"
-            if not state["enabled"]
-            else "Turn automation off — stop scanning sessions for new assertions"
-        )
+        enabled_btn.disabled = not has_claude
+        if not has_claude:
+            enabled_btn.tooltip = (
+                "Install Claude Code in the container to enable assertions automation"
+            )
+        elif not state["enabled"]:
+            enabled_btn.tooltip = "Turn automation on — resume scanning sessions for new assertions"
+        else:
+            enabled_btn.tooltip = "Turn automation off — stop scanning sessions for new assertions"
 
     def refresh_summary(self) -> None:
         self._refresh_automation_buttons()
@@ -161,25 +202,87 @@ class WorkspaceActivity(Widget):
         age = format_pending_age(summary["oldest_mtime"])
         reflection = reflection_status(self.workspace_root)
         count = summary["count"]
+        # Dirty git is throttled — full status on every watchfiles tick is too
+        # expensive for a badge. Re-scan at most every 30s.
+        now = time.time()
+        include_dirty = (now - self._dirty_checked_at) >= 30.0
+        problems = problems_summary(
+            self.workspace_root,
+            projects=self.projects,
+            include_dirty=include_dirty,
+        )
+        if include_dirty:
+            self._dirty_count = int(problems["dirty"])
+            self._dirty_checked_at = now
+        else:
+            problems = dict(problems)
+            problems["dirty"] = self._dirty_count
+            if self._dirty_count and "dirty" not in " ".join(problems["parts"]):
+                problems["parts"] = list(problems["parts"]) + [f"{self._dirty_count} dirty"]
+                problems["count"] = int(problems["pending"]) + int(problems["reflection_errors"]) + self._dirty_count
+                problems["tooltip"] = " · ".join(problems["parts"]) if problems["parts"] else problems["tooltip"]
+
+        # Cross-workspace pending (cheap — no git). Best-effort.
+        global_pending = count
+        try:
+            from orcan_cockpit.picker import list_workspace_rows
+
+            roots = [Path(row["root"]) for row in list_workspace_rows() if row.get("root")]
+            global_pending = pending_across_roots(roots)
+        except Exception:
+            pass
+
         review_btn = self.query_one("#activity-review-btn", Button)
-        # Amber for the count — same "pending = attention" color as the
-        # rail's bell badge (rail.py), so the two don't disagree.
         review_btn.label = f"Review ([#fbbf24]{count}[/])" if count else "Review"
         review_btn.disabled = self.session is None
         lines = [
             f"{count} pending" + (f" (oldest {age})" if age else ""),
             reflection,
+            last_batch_feedback(self.workspace_root),
             *automation_status_lines(),
-            "",
-            # \[ escapes the literal bracket — unescaped, Rich markup parses
-            # [r]/[p]/[o] as (unclosed) style tags ("r"/"o" are reverse/
-            # overline shorthands) and silently drops the bracketed letters
-            # from the rendered line. Confirmed with Text.from_markup().
-            r"Buttons above, or \[r] review · \[p] pause · \[o] on/off",
-            f'[link="{DOCS_URL}"]Learn more →[/link]',
         ]
+        if problems["parts"] and (
+            problems["reflection_errors"] or problems["dirty"]
+        ):
+            lines.append("problems: " + " · ".join(problems["parts"]))
+        if global_pending > count:
+            lines.append(f"all workspaces: {global_pending} pending")
+
+        agents = list_agent_panes(self.session) if self.session else []
+        pinned = read_pinned_pane(self.workspace_root)
+        if agents:
+            bits = []
+            for pane in agents:
+                mark = "★" if pinned and pane["id"] == pinned else "·"
+                bits.append(f"{mark}{pane['cmd']}")
+            lines.append("agents: " + " ".join(bits))
+
+        timeline = format_timeline(recent_decisions(self.workspace_root, limit=3))
+        if timeline:
+            lines.append("recent:")
+            lines.extend(f"  {row}" for row in timeline)
+
+        lines.extend(
+            [
+                "",
+                r"Buttons above, or \[r] review · \[p] pause · \[o] on/off",
+                f'[link="{DOCS_URL}"]Learn more →[/link]',
+            ]
+        )
         self.query_one("#activity-body", Static).update("\n".join(lines))
-        self.post_message(self.SummaryUpdated(count, age, reflection))
+        tooltip = problems["tooltip"]
+        if global_pending > count:
+            tooltip = f"{tooltip} · {global_pending} pending across workspaces"
+        badge = max(int(problems["count"]), int(global_pending))
+        self.post_message(
+            self.SummaryUpdated(
+                count,
+                age,
+                reflection,
+                problems_count=badge,
+                tooltip=tooltip,
+            )
+        )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "activity-review-btn" and self.session is not None:

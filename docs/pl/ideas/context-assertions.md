@@ -106,6 +106,11 @@ Nadal nigdy nie auto-akceptuje. Nadal tylko host (`$ORCAN_DATA/context` niezamon
 
 ## Wsadowa, zautomatyzowana Reflection
 
+**Wymaga Claude Code (`claude` na PATH)** do auto-propose/recap (domyślny
+model: haiku). Bez Claude automation w tle jest wyłączone — **Review**
+pending z inboxa nadal działa ręcznie. Busy fixtures w preview to **atrapy
+UI**, nie wynik reflection z żywej sesji.
+
 Reflection nie musi być wyzwalana przez człowieka, który coś zauważy — ale wywoływanie modelu po *każdej pojedynczej* turze byłoby i marnotrawne, i hałaśliwe. `orcan-context-reflect` batchuje zamiast tego: jest podpięty jako hook `Stop` w Claude Code, który jest **domyślnie włączony** — `orcan sync` (`apply-config.py`) dopisuje go do `.claude/settings.json` w **wygenerowanym katalogu głównym workspace'u** przy pierwszej synchronizacji tego workspace'u (merge, nie nadpisanie). Konfigurowalne jest wyłączenie: `orcan context hook disable [WORKSPACE ...] [--all]` (host) go usuwa, a ponieważ sync dosiewa hook tylko wtedy, gdy `.claude/settings.json` jeszcze nie istnieje, ten wybór zostaje przy każdej kolejnej synchronizacji — `orcan context hook enable`/`status` odpowiednio przywracają/sprawdzają. Żyje w katalogu głównym workspace'u — nie wewnątrz żadnego checkoutu projektu — bo to tam faktycznie startują sesje Claude Code (okna tmux zawsze startują tam; patrz `cursor-tmux-workspace-attach`), więc to jedyne miejsce, z którego hook `Stop` może się w ogóle załadować. Hook odpala się po każdej zakończonej turze, ale przy większości z nich nie robi prawie nic:
 
 **Skaner filesystemowy (Claude + Cursor) — preferowana, unifikowana ścieżka.** Hooki agentów nie są wymagane. `orcan-context-scan` odkrywa transkrypty na dysku i uruchamia **kaskadowy recap** przez `orcan-context-recap` (domyślnie; `ORCAN_CONTEXT_DRIVER=reflect` = legacy one-shot reflect):

@@ -82,7 +82,10 @@ Domyślne (nadpisywalne):
 Wybrany port, bind i scenariusz są zapisywane w `.orcan-dev-ux/settings.env`. Env:
 `ORCAN_PREVIEW_ROOT`, `ORCAN_PREVIEW_IMAGE`, `ORCAN_PREVIEW_PORT`,
 `ORCAN_PREVIEW_BIND`, `ORCAN_PREVIEW_PROJECT`, `ORCAN_PREVIEW_INSTANCE`,
-`ORCAN_PREVIEW_SCENARIO`.
+`ORCAN_PREVIEW_SCENARIO`, `ORCAN_PREVIEW_INSTALL_CLAUDE` (domyślnie `1` —
+Claude w obrazie preview; `0` = lean build). Bez Claude automation
+assertions jest **wyłączone**; **Review** zasianego inboxa nadal działa.
+Busy fixtures to **atrapy UI**, nie wynik żywej reflection.
 
 | Scenariusz | Intencja fixture |
 | --- | --- |

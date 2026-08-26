@@ -32,7 +32,10 @@ from orcan_cockpit.actions import (
     toggle_automation_pause,
 )
 from orcan_cockpit.commands import WorkspaceCommands
+from orcan_cockpit.first_run import FirstRunModal
 from orcan_cockpit.hints import HintStrip
+from orcan_cockpit.onboarding import onboarding_already_seen
+from orcan_cockpit.peek_modal import PeekModal
 from orcan_cockpit.picker import WorkspaceList, bootstrap_workspace
 from orcan_cockpit.pty_terminal import PtyTerminal
 from orcan_cockpit.rail import UtilityRail
@@ -40,6 +43,13 @@ from orcan_cockpit.shortcuts import Context
 from orcan_cockpit.shortcuts_modal import ShortcutsModal
 from orcan_cockpit.status import Tier, tier_for_width
 from orcan_cockpit.status_bar import StatusBar
+from orcan_cockpit.tmux_chrome import (
+    TASK_TEMPLATES,
+    focus_pinned_pane,
+    pin_main_pane,
+    run_url_picker,
+    split_run,
+)
 from orcan_cockpit.top_bar import TopBar
 
 PLACEHOLDER_TEXT = (
@@ -486,6 +496,7 @@ class MainScreen(Screen):
         ("f1", "open_shortcuts", "Shortcuts"),
         ("question_mark", "open_shortcuts", "Shortcuts"),
         ("f4", "toggle_workspaces", "Toggle workspaces"),
+        ("f5", "open_peek", "Peek brief/pending"),
     ]
 
     def __init__(self) -> None:
@@ -493,6 +504,7 @@ class MainScreen(Screen):
         self._panel_visible = True
         self._workspaces_visible = True
         self._current_session: str | None = None
+        self._current_root: str | None = None
         self._tier: Tier = "full"
 
     def compose(self) -> ComposeResult:
@@ -532,6 +544,12 @@ class MainScreen(Screen):
         self._update_focus_highlight("workspaces")
         self._apply_tier(tier_for_width(self.size.width))
         self.query_one("#sidebar-toggle", Static).tooltip = "Toggle workspace panel (F4)"
+        if not onboarding_already_seen():
+            self.set_timer(0.3, self._show_first_run)
+
+    def _show_first_run(self) -> None:
+        if not onboarding_already_seen():
+            self.app.push_screen(FirstRunModal())
 
     def on_resize(self, event: events.Resize) -> None:
         self._apply_tier(tier_for_width(event.size.width))
@@ -593,6 +611,7 @@ class MainScreen(Screen):
             return
 
         self._current_session = row["session"]
+        self._current_root = row["root"]
         # Keep the attaching card until PtyTerminal.Ready — avoids a blank
         # flash between bootstrap and the first PTY paint.
         center.mount(
@@ -603,7 +622,11 @@ class MainScreen(Screen):
             )
         )
         self.query_one("#workspace-list-widget", WorkspaceList).set_active_session(row["session"])
-        self.query_one(WorkspaceActivity).set_workspace(row["root"], row["session"])
+        self.query_one(WorkspaceActivity).set_workspace(
+            row["root"],
+            row["session"],
+            projects=row.get("projects"),
+        )
         self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])
 
     def on_pty_terminal_ready(self, message: PtyTerminal.Ready) -> None:
@@ -636,6 +659,17 @@ class MainScreen(Screen):
     def action_open_shortcuts(self) -> None:
         self.app.push_screen(ShortcutsModal())
 
+    def action_open_peek(self) -> None:
+        if not self._current_root:
+            self.notify("Attach a workspace first", severity="warning")
+            return
+
+        def _after_peek(result: str | None) -> None:
+            if result == "review" and self._current_session:
+                run_context_review_popup(self._current_session)
+
+        self.app.push_screen(PeekModal(self._current_root), _after_peek)
+
     def _reveal_assertions(self) -> None:
         # Assertions live inside #workspaces now — clicking either bell (the
         # rail's, or the status bar's — see on_click) should always get you
@@ -658,7 +692,10 @@ class MainScreen(Screen):
             self.action_open_shortcuts()
 
     def on_workspace_activity_summary_updated(self, message: WorkspaceActivity.SummaryUpdated) -> None:
-        self.query_one(UtilityRail).set_pending_count(message.count)
+        self.query_one(UtilityRail).set_pending_count(
+            message.problems_count,
+            tooltip=message.tooltip or None,
+        )
 
 
 class CockpitApp(App):
@@ -677,17 +714,58 @@ class CockpitApp(App):
         main.select_workspace(row)
 
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
+        def _pin_main(main: MainScreen, sess: str, workspace: str) -> None:
+            if pin_main_pane(sess, workspace):
+                main.query_one(WorkspaceActivity).refresh_summary()
+                main.notify("Pinned main agent pane", severity="information")
+            else:
+                main.notify("Could not pin pane", severity="error")
+
         yield from super().get_system_commands(screen)
         if not isinstance(screen, MainScreen):
             return
         yield SystemCommand("Toggle assertions panel", "F2", screen.action_toggle_panel)
         yield SystemCommand("Toggle workspaces panel", "F4", screen.action_toggle_workspaces)
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
+        yield SystemCommand("Peek brief / next pending", "F5", screen.action_open_peek)
         if screen._current_session:
             session = screen._current_session
+            root = screen._current_root or ""
             yield SystemCommand(
                 "Run context review", "r (panel focused)", lambda: run_context_review_popup(session)
             )
+            yield SystemCommand(
+                "Split pane (vertical)",
+                "tmux",
+                lambda: split_run(session, "zsh", vertical=True),
+            )
+            yield SystemCommand(
+                "Split pane (horizontal)",
+                "tmux",
+                lambda: split_run(session, "zsh", vertical=False),
+            )
+            yield SystemCommand(
+                "Pick URL from panes",
+                "u",
+                lambda: run_url_picker(session),
+            )
+            yield SystemCommand(
+                "Pin current pane as main agent",
+                "★",
+                lambda: _pin_main(screen, session, root),
+            )
+            yield SystemCommand(
+                "Focus pinned main agent",
+                "★",
+                lambda: focus_pinned_pane(session, root),
+            )
+            for name, command in TASK_TEMPLATES.items():
+                yield SystemCommand(
+                    f"Task: start {name}",
+                    "template",
+                    lambda cmd=command: split_run(session, cmd, vertical=True),
+                )
+
             def _toggle_pause() -> None:
                 toggle_automation_pause()
                 screen.query_one(WorkspaceActivity).refresh_summary()

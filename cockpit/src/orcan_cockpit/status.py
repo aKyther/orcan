@@ -88,16 +88,20 @@ def format_status_line(
     workspace: str | None,
     branch: str,
     session: str | None,
+    breadcrumb: str = "",
 ) -> str:
-    """The bottom bar: workspace identity. CPU/RAM/clock live in the top bar
-    (format_top_bar_right) and the pending-assertions 🔔 lives in the rail
-    (rail.py) exclusively — showing the same bell in both bars read as
-    duplicated chrome, flagged in review."""
+    """The bottom bar: workspace identity + optional tmux breadcrumb.
+
+    CPU/RAM/clock live in the top bar (format_top_bar_right) and the problems
+    🔔 lives in the rail (rail.py) exclusively.
+    """
     parts = [workspace or "(no workspace)"]
     if tier == "full" and branch:
         parts.append(f"⎇ {branch}")
     if tier == "full" and session:
         parts.append(f"tmux:{session}")
+    if tier == "full" and breadcrumb:
+        parts.append(breadcrumb)
     return "  ·  ".join(parts)
 
 

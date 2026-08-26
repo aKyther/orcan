@@ -219,4 +219,59 @@ def attach_hyperlink_screen():
                 self._links.pop()
                 self._links.insert(0, [None] * self.columns)
 
-    return HyperlinkScreen, pyte.Stream
+        def scroll_up_region(self, count: int | None = None) -> None:
+            """CSI Ps S (SU) — shift the current scroll region up by
+            *count* lines: the top *count* lines are discarded, *count*
+            blank lines appear at the bottom, cursor position is
+            untouched (unlike ``index``/IND, which is cursor-coupled —
+            SU always applies to the whole region regardless of where
+            the cursor is).
+
+            pyte 0.8.2 has **no implementation of CSI S/T at all** —
+            confirmed no "S"/"T" entry in ``pyte.Stream.csi`` and no
+            ``scroll_up``/``scroll_down`` on ``pyte.Screen``; the CSI
+            dispatcher silently drops both (no exception, no effect).
+            tmux uses exactly this sequence as a redraw optimization —
+            e.g. after a shell `clear`, instead of a full erase+repaint
+            it sets a scroll region and scrolls it by its own height.
+            Without this override, nothing actually moves the buffer
+            rows or clears the revealed ones, so the old content stays
+            on screen after `clear` (cursor moves, text doesn't — root-
+            caused via a real pty+tmux session, not from pyte's docs:
+            reproduced with a bare shell child, first ruling out our
+            own pty relay, then isolated CSI S in pyte directly).
+            Mirrors ``delete_lines``' own buffer-shift loop (same
+            pop/reassign idiom, just unconditional on cursor position).
+            """
+            count = count or 1
+            top, bottom = self.margins or (0, self.lines - 1)
+            self.dirty.update(range(top, bottom + 1))
+            for y in range(top, bottom + 1):
+                src = y + count
+                if src <= bottom and src in self.buffer:
+                    self.buffer[y] = self.buffer.pop(src)
+                else:
+                    self.buffer.pop(y, None)
+                self._links[y] = self._links[src] if src <= bottom else [None] * self.columns
+
+        def scroll_down_region(self, count: int | None = None) -> None:
+            """CSI Ps T (SD) — the scroll_up_region counterpart, shifting
+            the region's content down instead of up."""
+            count = count or 1
+            top, bottom = self.margins or (0, self.lines - 1)
+            self.dirty.update(range(top, bottom + 1))
+            for y in range(bottom, top - 1, -1):
+                src = y - count
+                if src >= top and src in self.buffer:
+                    self.buffer[y] = self.buffer.pop(src)
+                else:
+                    self.buffer.pop(y, None)
+                self._links[y] = self._links[src] if src >= top else [None] * self.columns
+
+    class ScrollAwareStream(pyte.Stream):
+        # Extends, doesn't replace, pyte's own dispatch table — see
+        # HyperlinkScreen.scroll_up_region's docstring for why this is
+        # needed at all (pyte 0.8.2 doesn't wire CSI S/T to anything).
+        csi = {**pyte.Stream.csi, "S": "scroll_up_region", "T": "scroll_down_region"}
+
+    return HyperlinkScreen, ScrollAwareStream

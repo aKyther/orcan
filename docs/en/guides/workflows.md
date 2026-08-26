@@ -53,8 +53,9 @@ shell alias **`lg`** inside the terminal (no cockpit F3).
 | --- | --- |
 | **F2** / rail 🔔 | Toggle left-column ASSERTIONS section (focuses it when shown) |
 | **F4** / ‹› | Toggle left workspaces column |
-| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, use **F1** — **?** goes to the shell |
+| **F5** | Peek brief / next pending |
 | **Click `🌀 orcan`** | About (name, version, docs) |
+| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, use **F1** — **?** goes to the shell |
 | **Ctrl+P** | Command palette (when focus is not in the terminal) |
 | **i** | Expand/collapse workspace details — root + repos (list focused) |
 | **r** | Run `orcan-context-review` (ASSERTIONS section focused) |

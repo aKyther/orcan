@@ -53,8 +53,9 @@ tekstowe. lazygit: alias **`lg`** w shellu (bez F3 w cockpicie).
 | --- | --- |
 | **F2** / rail 🔔 | Przełącz sekcję ASSERTIONS w lewej kolumnie (fokusuje przy pokazaniu) |
 | **F4** / ‹› | Przełącz lewą kolumnę workspace’ów |
-| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu użyj **F1** — **?** idzie do shella |
+| **F5** | Peek briefu / następnej pending |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) |
+| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu użyj **F1** — **?** idzie do shella |
 | **Ctrl+P** | Paleta komend (gdy fokus nie jest w terminalu) |
 | **i** | Rozwiń/zwiń szczegóły workspace — root + repo (fokus na liście) |
 | **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |

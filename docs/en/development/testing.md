@@ -82,7 +82,10 @@ Defaults (overridable):
 The chosen port, bind, and scenario persist in `.orcan-dev-ux/settings.env`. Env overrides:
 `ORCAN_PREVIEW_ROOT`, `ORCAN_PREVIEW_IMAGE`, `ORCAN_PREVIEW_PORT`,
 `ORCAN_PREVIEW_BIND`, `ORCAN_PREVIEW_PROJECT`, `ORCAN_PREVIEW_INSTANCE`,
-`ORCAN_PREVIEW_SCENARIO`.
+`ORCAN_PREVIEW_SCENARIO`, `ORCAN_PREVIEW_INSTALL_CLAUDE` (default `1` —
+Claude in the preview image; set `0` for lean builds). Without Claude,
+assertions **automation** auto-disables; **Review** of seeded inbox still
+works. Busy fixtures are **UI scroll samples**, not live reflection output.
 
 | Scenario | Fixture intent |
 | --- | --- |
