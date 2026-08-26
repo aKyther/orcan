@@ -95,7 +95,7 @@ See [Path parity](../concepts/path-parity.md). Confirm mounts with `orcan contex
 
 1. Focus the **center** terminal column in the cockpit (not the workspace list / ASSERTIONS section).
 2. Remember: embedded tmux **≠ native attach** — see **F1** / **?** in the cockpit or [Terminal UI — two terminals](terminal-ui.md#cockpit-browser). For full attach: `orcan enter --tmux SESSION`.
-3. Prefix is **C-Space** (not `C-b`). Window jumps: **Alt+1**…**Alt+9** (see [Terminal UI](terminal-ui.md)).
+3. Prefix is **C-Space** (not `C-b`). Window jumps: **Alt+1**…**Alt+9** (see [Terminal UI](terminal-ui.md)). In the **browser**, **Alt+arrows** (pane focus) often fail — ttyd/xterm.js limit; use prefix+arrows or native attach.
 4. On **macOS**, Option must be Meta: image ttyd sets `macOptionIsMeta=true`. If Alt types `¡`/`™` instead of switching windows, rebuild/recreate so `cursor-ttyd` is current.
 5. On **Windows Terminal / Linux**, Textual may still surface Option glyphs for ESC+digit; current cockpit maps them back to Meta in `pty_keys.py`. If Alt still inserts `¡`/`™`, update cockpit (`make dev-restart` or `orcan build` + recreate).
 6. Right-click uses the browser menu (tmux mouse menus are unbound on purpose).

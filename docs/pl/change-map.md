@@ -18,7 +18,7 @@ Krótki indeks **gdzie edytować** — i który doc to wyjaśnia. Orientacja age
 | Recap sesji / driver skanu | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap`, `orcan-context-scan` | [Context Assertions](ideas/context-assertions.md), [Environment](reference/environment.md) |
 | Probe modelu recap | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` | [Context Assertions](ideas/context-assertions.md), [Environment](reference/environment.md) |
 | Supervisord / skan Reflection | `docker/rootfs/etc/orcan/supervisor.d/`, `orcan-supervisord`, `orcan-context-scan`, `session_scan.py` | [Docker](reference/docker.md#process-layout-supervisord), [Context Assertions](ideas/context-assertions.md) |
-| Host sync context / kontrola automatyzacji | `scripts/repository/context_syncd.py`, `orcan/automation.py` | [Context Assertions](ideas/context-assertions.md), [CLI](reference/cli.md) |
+| Host sync context / kontrola automatyzacji | `scripts/repository/context_syncd.py`, `docker/rootfs/usr/local/lib/orcan/automation.py` | [Context Assertions](ideas/context-assertions.md), [CLI](reference/cli.md) |
 | Izolowany preview UX / tmux (checkout) | `make dev-*`, `scripts/dev/` | [Testy](development/testing.md), [Makefile](reference/makefile.md) |
 | Schemat config / wizard | `scripts/repository/config-*.py`, `apply-config.py` | [Referencja konfiguracji](reference/configuration.md), [Przewodnik](getting-started/configuration.md) |
 | Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` | [Context Assertions](ideas/context-assertions.md) |

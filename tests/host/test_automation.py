@@ -62,6 +62,38 @@ class AutomationTests(unittest.TestCase):
         self.assertIsInstance(stored, dict)
         self.assertTrue(stored.get("ok"))
 
+    def test_refresh_model_check_reuses_fresh_cache(self) -> None:
+        cached = {
+            "ok": True,
+            "detail": "cached",
+            "model": "haiku",
+            "checked_at": auto._now_iso(),
+        }
+        auto.save_automation({"model_check": cached})
+        with mock.patch.object(mc, "check_recap_model") as check:
+            result = auto.refresh_model_check(max_age_seconds=300)
+        self.assertEqual(result, cached)
+        check.assert_not_called()
+
+    def test_status_lines_explain_model_unavailable(self) -> None:
+        auto.save_automation({
+            "model_check": {
+                "ok": False,
+                "detail": "claude unavailable",
+                "model": "haiku",
+                "checked_at": auto._now_iso(),
+            }
+        })
+        lines = auto.status_lines()
+        self.assertTrue(any("recap model: unavailable" in line for line in lines))
+        self.assertTrue(any("claude unavailable" in line for line in lines))
+
+    def test_status_lines_report_ready_model(self) -> None:
+        auto.save_automation({
+            "model_check": {"ok": True, "detail": "probe ok", "model": "haiku", "checked_at": auto._now_iso()}
+        })
+        self.assertTrue(any("recap model: ok (haiku)" in line for line in auto.status_lines()))
+
 
 class ModelCheckTests(unittest.TestCase):
     def test_missing_claude(self) -> None:

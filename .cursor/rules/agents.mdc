@@ -10,32 +10,40 @@ Agent CLIs (`agent`, `claude`, `codex`) are tools inside it — **models are out
 
 Display name: **Orcan**. Ids: `orcan`, `ORCAN_*`. Only product name in docs/UI text.
 
+## Read order
+
+1. This rule (always on) — compact orientation
+2. Root [`AGENTS.md`](../../AGENTS.md) (= [`CLAUDE.md`](../../CLAUDE.md)) — full SoT; keep identical
+3. [`docs/llms.txt`](../../docs/llms.txt) — public care / non-goals index
+4. [`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md) / [`change-map.md`](../../docs/en/change-map.md)
+
+In workspace `orcan-dev`: honour the workspace context pack, then `cd orcan/` and follow **this repo’s** `AGENTS.md`.
+
 ## 30-second map
 
 | | |
 | --- | --- |
-| **SoT** | Root `AGENTS.md` (= `CLAUDE.md`) — keep them identical |
-| **Public API** | `orcan` CLI — not Make; not deprecated user targets |
-| **Config** | JSON `orcan.config.json`; `orcan sync` after edits (`up` does **not** sync) |
-| **UX work** | `make dev-*` / `scripts/dev/` → `orcan:dev-ux` — not the user’s daily install |
-| **Cockpit** | `cockpit/src/orcan_cockpit/` — top bar (rail + CPU/RAM/clock) \| left: workspaces + ASSERTIONS \| tmux + hints \| bottom: status; **F2** · **`r`** review · **`p`** pause · **`o`** off/on |
+| **Product** | Workspaces + path parity + context pack — **not** model routing |
+| **API** | `orcan` CLI — not Make; not deprecated user targets |
+| **Config** | JSON `orcan.config.json` in **`ORCAN_HOME`**; tool data in **`ORCAN_DATA`** (both default `~/.config/orcan`); `orcan sync` after edits (`up` does **not** sync) |
+| **Runtime** | enter → cockpit → tmux → zsh; CMD `orcan-supervisord` + `context-scan`/`recap` |
+| **Cockpit** | `◆ orcan` + 🔔/? + metrics \| workspaces + ASSERTIONS \| tmux \| status; **F2** · **F4**/‹› · **F1** · **`i`** · **`r`** / **`p`** / **`o`** · **`lg`** (no F3) |
+| **UX work** | `make dev-*` → `orcan:dev-ux` — not the user’s daily install |
 | **Image FS** | `docker/rootfs/` — repo `.cursor/rules/` ≠ image `cursor-defaults/` |
-| **Checks** | `make validate` · `test-host` · `docs-check`; UX: `dev-restart` / `dev-smoke` / `dev-a11y` / `dev-visual` (`dev-checklist`) |
+| **Checks** | `make validate` · `test-host` · `docs-check`; UX: `dev-checklist` |
 
-**Read next:** [`AGENTS.md`](../../AGENTS.md), then
-[`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md) /
-[`docs/llms.txt`](../../docs/llms.txt).
-In workspace `orcan-dev`, honour the workspace context pack, then `cd orcan/` and follow **this repo’s** `AGENTS.md`.
+## Ritual (host)
 
-## Pay attention
+```bash
+orcan init            # or context add / tui / edit orcan.config.json
+orcan sync            # ALWAYS after config changes
+orcan build           # after Dockerfile / docker/rootfs / cockpit image inputs
+orcan up              # daily; --with-ttyd for browser
+orcan sync --context  # inbox compile only (host)
+```
 
-- JSON config only: `orcan.config.json` (`ORCAN_HOME`)
-- `orcan sync` after config changes — **`orcan up` does not sync**
-- Path parity and context pack are the product; do not weaken them for convenience
-- Version SoT: `cockpit/pyproject.toml`; `VERSION` is a mirror
-- EN + PL docs together; STYLE_GUIDE; no invented commands
-- Repo rules ≠ image defaults (`docker/rootfs/opt/cursor-defaults/`)
-- UX iteration: `make dev-*` / `scripts/dev/` — not the user’s `orcan:latest`
+Live reconcile often avoids recreate — `docs/en/ideas/runtime-reconcile.md`.
+When overlays need it: `orcan down && orcan up`.
 
 ## Non-goals (do not invent)
 
@@ -45,62 +53,13 @@ In workspace `orcan-dev`, honour the workspace context pack, then `cd orcan/` an
 - Deprecated user Make targets as the primary UX
 - Drive-by refactors or speculative layers
 
-## Ritual (host)
-
-```bash
-orcan init            # or context add / tui / edit orcan.config.json
-orcan sync            # ALWAYS after config changes
-orcan build           # after Dockerfile / docker/rootfs / cockpit image inputs
-orcan up              # daily; local enter by default; --with-ttyd for browser
-```
-
-Live reconcile often avoids recreate for projects under stable mounts — see
-`docs/en/ideas/runtime-reconcile.md`. When overlays need it: `orcan down && orcan up`.
-
-## Runtime stack
-
-```text
-orcan enter → agent-launcher (cockpit: top bar + workspaces/ASSERTIONS | tmux)
-container CMD → orcan-supervisord (keepalive|ttyd + context-scan/recap)
-optional: ttyd → same stack
-```
-
-Cockpit = top bar (rail + CPU/RAM/clock) + left column (workspaces + ASSERTIONS) + center tmux + bottom status; tmux remains the session engine.
-**F2** ASSERTIONS · **F4** workspaces · **F3** Git · **F1**/`?` shortcuts · **`r`** review · **`p`** pause · **`o`** off/on.
-
-| Concern | SoT |
-| --- | --- |
-| Product agent guide | `AGENTS.md` / `CLAUDE.md` (identical) |
-| Enter / cockpit UX | `docs/en/guides/workflows.md` (#local-terminal) |
-| Terminal UI / shortcuts | `docs/en/guides/terminal-ui.md`; `cockpit/…/shortcuts.py`; `.cursor/rules/terminal-ui.mdc` |
-| Developer UX env | `make dev-*` / `make dev-test`; `docs/en/development/testing.md` |
-| Cockpit | `cockpit/src/orcan_cockpit/` |
-| Supervisord / context-scan | `docker/rootfs/…/orcan-supervisord`, `orcan-context-scan`; [Docker](../../docs/en/reference/docker.md) |
-| ttyd / tmux / zsh seeds | `docker/rootfs/` (see Terminal UI guide) |
-
-## Where to edit
-
-| Change | Place |
-| --- | --- |
-| CLI | `bin/orcan`, `cli/` |
-| Host helpers | `scripts/repository/` |
-| Dev UX preview | `scripts/dev/`, Makefile `dev-*` |
-| Image FS | `docker/rootfs/` |
-| Packages | `Dockerfile` |
-| Docs / llms | `docs/`, `scripts/repository/generate-llms-txt.py` |
-
 ## Done checklist
 
 - [ ] Surgical diff only
 - [ ] `make validate` · `make test-host`
 - [ ] `make docs-check` when docs/interface changed
-- [ ] `make dev-restart` when validating cockpit/ttyd UX (isolated)
-- [ ] `make dev-smoke` / `dev-a11y` / `dev-visual` when cockpit layout or browser chrome changed (see `make dev-checklist`)
-- [ ] `make test` when Docker behaviour changed (if Docker available)
-- [ ] If you change `AGENTS.md`, copy the same content to `CLAUDE.md`
-- [ ] No secrets; report what ran / skipped / limits
-- [ ] No AI commit trailers
+- [ ] UX: `make dev-restart` + `dev-smoke` / `dev-a11y` / `dev-visual` as needed
+- [ ] If you change `AGENTS.md`, copy to `CLAUDE.md`
+- [ ] No secrets; report what ran / skipped; no AI commit trailers
 
-More: [`docs/en/development/overview.md`](../../docs/en/development/overview.md),
-[`docs/en/architecture.md`](../../docs/en/architecture.md),
-[`docs/en/change-map.md`](../../docs/en/change-map.md).
+Pitfalls (Textual box-model, Alt+1..9, F1 vs `?`, browser Alt+arrows/`BROWSER_KEY_LIMIT`, …): see **Cockpit / Textual pitfalls** in `AGENTS.md`.

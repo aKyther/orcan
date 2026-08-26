@@ -40,20 +40,22 @@ docker exec -it orcan-1 agent-launcher
 
 Alias: `orcan go-in` (same as `enter`). Default container name is `orcan-1` (`ORCAN_INSTANCE`). Detach tmux with prefix + `d` — the session keeps running for ttyd and other clients.
 
-On a real tty, `agent-launcher` runs the **cockpit**: **top bar** (utility rail +
-CPU/RAM/clock), **main row** — left column (workspace list above, **ASSERTIONS**
-below) and center embedded `tmux attach` + hint strip — and a **bottom status
-bar** (workspace · branch · tmux session · pending; shortens by width tier).
-Select a workspace with arrows + Enter. Piped/non-interactive use still prints a
-plain-text workspace menu.
+On a real tty, `agent-launcher` runs the **cockpit**: **top bar** (`◆ orcan` +
+utility rail 🔔/? + CPU/RAM/clock), **main row** — left column (workspace list with
+`●/○/▸` legend above, **ASSERTIONS** below) and center embedded `tmux attach` +
+hint strip — edge **‹›** + **F4** toggles the left column — and a **bottom status
+bar** (workspace · branch · tmux session · pending; click 🔔 to open ASSERTIONS).
+Select a workspace with arrows + Enter; **`i`** expands root/repo details.
+Piped/non-interactive use still prints a plain-text workspace menu. lazygit:
+shell alias **`lg`** inside the terminal (no cockpit F3).
 
 | Keys | Action |
 | --- | --- |
 | **F2** / rail 🔔 | Toggle left-column ASSERTIONS section (focuses it when shown) |
-| **F4** / rail ☰ | Toggle left workspaces column |
-| **F3** / rail ⎇ | Open Git (`lazygit` in a tmux popup) |
-| **F1** / **?** / rail ? | Shortcuts overlay (app + tmux; embed ≠ native attach) |
+| **F4** / ‹› | Toggle left workspaces column |
+| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts + About overlay (app + tmux; embed ≠ native attach). With terminal focused, use **F1** — **?** goes to the shell |
 | **Ctrl+P** | Command palette (when focus is not in the terminal) |
+| **i** | Expand/collapse workspace details — root + repos (list focused) |
 | **r** | Run `orcan-context-review` (ASSERTIONS section focused) |
 | **p** | Pause/resume context automation (ASSERTIONS focused) — idle `orcan-context-scan` + `orcan sync --context --watch` while `paused: true` |
 | **o** | Turn context automation off/on (ASSERTIONS focused) — master `enabled` in `automation.json` |
@@ -63,8 +65,9 @@ Inside the center terminal, **tmux shortcuts still apply** (prefix **C-Space**;
 **Alt+1**…**Alt+9** select windows; **prefix ?** opens the standalone tmux
 shortcuts popup). The cockpit must forward those keys and resize events to tmux —
 see [Terminal UI — Cockpit + browser](terminal-ui.md#cockpit-browser). Press **F1**
-/ **?** for the in-app map (footer: embedded tmux ≠ native attach). Full map:
-`cockpit/…/shortcuts.py` (kept in sync with `keybindings.conf` by host tests).
+for the in-app map when the terminal has focus (footer: embedded tmux ≠ native
+attach). Full map: `cockpit/…/shortcuts.py` (kept in sync with `keybindings.conf`
+by host tests).
 
 !!! tip
     Browser + local terminal can share one session: edit in iTerm/Windows Terminal, keep ttyd open on a phone or second screen.

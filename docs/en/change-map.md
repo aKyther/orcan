@@ -18,7 +18,7 @@ Short index for **finding the right place to edit** — and the doc that explain
 | Session recap / scan driver | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap`, `orcan-context-scan` | [Context Assertions](ideas/context-assertions.md), [Environment](reference/environment.md) |
 | Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` | [Context Assertions](ideas/context-assertions.md), [Environment](reference/environment.md) |
 | Supervisord / Reflection scan | `docker/rootfs/etc/orcan/supervisor.d/`, `orcan-supervisord`, `orcan-context-scan`, `session_scan.py` | [Docker](reference/docker.md#process-layout-supervisord), [Context Assertions](ideas/context-assertions.md) |
-| Host context sync / automation control | `scripts/repository/context_syncd.py`, `orcan/automation.py` | [Context Assertions](ideas/context-assertions.md), [CLI](reference/cli.md) |
+| Host context sync / automation control | `scripts/repository/context_syncd.py`, `docker/rootfs/usr/local/lib/orcan/automation.py` | [Context Assertions](ideas/context-assertions.md), [CLI](reference/cli.md) |
 | Isolated UX / tmux preview (checkout) | `make dev-*`, `scripts/dev/` | [Testing](development/testing.md), [Makefile](reference/makefile.md) |
 | Config schema / wizard | `scripts/repository/config-*.py`, `apply-config.py` | [Config reference](reference/configuration.md), [Config guide](getting-started/configuration.md) |
 | Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` | [Context Assertions](ideas/context-assertions.md) |

@@ -507,10 +507,11 @@ Manual UX checks:
   [ ] left workspace list is readable
   [ ] Enter attaches the selected workspace (center column)
   [ ] F2 toggles the left-column ASSERTIONS section
-  [ ] F4 / rail ☰ toggles the left workspaces column
+  [ ] F4 / ‹› edge toggle hides the left workspaces column
   [ ] with ASSERTIONS focused: r runs context review; p pauses automation; o turns automation off/on
-  [ ] F1 / ? opens the shortcuts overlay
-  [ ] F3 / rail opens Git (lazygit popup)
+  [ ] F1 opens the shortcuts overlay with About (from terminal focus — ? is typed into the shell)
+  [ ] i expands workspace details on the list (root + repos)
+  [ ] lg in the terminal opens lazygit (no cockpit F3)
   [ ] terminal receives typing and Ctrl+Space
   [ ] Alt+1..9 switches tmux windows (not typed digits)
   [ ] resizing the browser redraws tmux (not stuck at attach size)
