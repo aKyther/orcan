@@ -53,7 +53,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 - **Ritual** — `orcan init` → `orcan sync` → `orcan build` (when image inputs change) → `orcan up` (daily; does **not** run sync)
 - **Default access** — local `orcan enter`; browser is optional (`orcan up --with-ttyd`)
 - **Runtime stack** — cockpit (`agent-launcher`: top bar + workspaces/ASSERTIONS \| tmux; **F1** help+About; **F2** / **F4** / **`i`** / **`r`** / **`p`** / **`o`**; lazygit via **`lg`**, not F3) → tmux 3.6a → zsh; container CMD `orcan-supervisord` (keepalive|ttyd + `context-scan`/`recap`); host `orcan sync --context` for inbox-only compile
-- **Known browser limit** — under ttyd/xterm.js, **Alt+←/→/↑/↓** pane focus often never reaches tmux (`BROWSER_KEY_LIMIT` in F1); binds/`pty_keys.py` are correct — do not “fix” in cockpit alone; see [Terminal UI]({SITE}/guides/terminal-ui/)
+- **Known key limit** — under ttyd/xterm.js and some desktop terminals, **Alt+←/→/↑/↓** often arrives as Ctrl+arrow. Cockpit: Ctrl/Alt+arrows = focus pane, Ctrl+Shift+arrows = split (`pty_tmux_nav.py`, `BROWSER_KEY_LIMIT` in F1); raw `--tmux` keeps conf — see [Terminal UI — nav mix]({SITE}/guides/terminal-ui/#cockpit-nav-mix)
 - **Version SoT** — `cockpit/pyproject.toml` `version`; root `VERSION` is a CLI/image mirror
 - **Docs** — EN + PL must stay in sync; B1–B2; story before commands; [STYLE_GUIDE]({REPO}/docs/STYLE_GUIDE.md)
 

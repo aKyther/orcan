@@ -57,7 +57,7 @@ Presety w `cursor-ttyd`:
 | UI tmux | `docker/rootfs/etc/tmux/` | build; albo kopia + `tmux source-file` przy iteracji |
 | Layout / chrome cockpit | `cockpit/src/orcan_cockpit/app.py`, `activity.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (izolowane); albo `orcan build` + recreate |
 | Skróty / help cockpit | `cockpit/…/shortcuts.py` (+ `keybindings.conf` dla tokenów tmux) | j.w.; test hosta trzyma tokeny w sync |
-| PTY cockpit | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py` | j.w. — zobacz [Cockpit + przeglądarka](#cockpit-browser) |
+| PTY cockpit | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_tmux_nav.py` | j.w. — zobacz [Cockpit + przeglądarka](#cockpit-browser) / [nav mix](#cockpit-nav-mix) |
 | zsh | `docker/rootfs/etc/skel/.zshrc`, `.zshrc.d/` | build; albo kopia do `~` na test na żywo |
 | kolory fzf / suggest | `docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh` | nowy shell po kopii/buildzie |
 | Starship | `docker/rootfs/opt/orcan/starship.toml` | **missing-only** → `~/.config/starship.toml` |
@@ -88,9 +88,12 @@ Presety w `cursor-ttyd`:
 
 ### Bez prefixu (Meta / Alt — lokalne skróty)
 
-Używają bindów tmux `M-…`. Muszą dojść jako **Meta**, nie jako znaki złożone.
+Używają bindów tmux `M-…` / `C-…` w `keybindings.conf` dla **surowego**
+`orcan enter --tmux`. Muszą dojść jako **Meta**/CSI Ctrl, nie jako znaki
+złożone. **W cockpicie** strzałki działają inaczej — zobacz
+[Cockpit nav mix](#cockpit-nav-mix).
 
-| Klawisze | Akcja |
+| Klawisze | Akcja (`--tmux` / conf) |
 | --- | --- |
 | `Alt+1` … `Alt+9` | Wybór okna 1–9 |
 | `Alt+0` | Ostatnie okno |
@@ -126,22 +129,48 @@ albo użyj pełnego tmux: `orcan enter --tmux NAZWA` (bez cockpitu).
 
 | Moduł | Kierunek | Problem bez tłumacza |
 | --- | --- | --- |
-| `pty_keys.py` | Textual → PTY | pełna mapa `keybindings.conf` ``bind -n`` — patrz tabela poniżej |
+| `pty_tmux_nav.py` | Textual → `tmux` CLI | Ctrl/Alt+strzałki / Ctrl+Shift+strzałki — zob. [Cockpit nav mix](#cockpit-nav-mix) |
+| `pty_keys.py` | Textual → PTY | pozostałe ``bind -n`` z `keybindings.conf` — patrz tabela poniżej |
 | `pty_mouse.py` | Textual → PTY | wheel/klik nie dociera; SGR vs legacy X10 (`@`/`A` na ekranie) |
 | `pty_colors.py` | pyte → Rich | `brown` / bright aliasy psują render |
 | `pty_terminal.py` | PTY ↔ pyte ↔ UI | resize (`TIOCSCTTY`), odświeżanie, selekcja vs tmux, tryby `?1000/1006`, sklejanie `Escape`+klawisz |
 
-**Lokalne bindy tmux (`bind -n`, bez prefixu)** — każdy wymaga poprawnego CSI / Meta w jednym write:
+#### Cockpit nav mix (limit Alt-jako-Ctrl) { #cockpit-nav-mix }
+
+**Ograniczenie:** pod ttyd/xterm.js i w części terminali desktop (Windows Terminal /
+WSL) **Alt+←/→/↑/↓** często dociera do Textual jako **`ctrl+arrow`** — nie ma
+osobnego eventu Meta. Cockpit nie może jednocześnie oferować „Ctrl = split” i
+„Alt = fokus pane”, gdy te chordy wyglądają tak samo.
+
+**Zachowanie cockpitu** (`pty_tmux_nav.py` — wywołuje `tmux select-pane` /
+`split-window` bezpośrednio, bez CSI do child PTY):
+
+| Skrót | Akcja w cockpicie |
+| --- | --- |
+| `Ctrl` lub `Alt` + `←/→/↑/↓` | Fokus pane |
+| `Ctrl+Shift` + `←/→/↑/↓` | Split pane |
+| `prefix -` / `prefix \|` | Split (bez zmian; forward do tmux) |
+
+**Surowy attach** (`orcan enter --tmux`): `keybindings.conf` bez zmian —
+`Ctrl+strzałki` = split, `Alt+strzałki` = fokus **gdy Meta dochodzi**.
+
+Stopki F1 / **?** oraz **prefix ?** pokazują to jako `BROWSER_KEY_LIMIT` w
+`shortcuts.py`. `Alt+1`…`Alt+9` to osobna ścieżka (często OK z
+`macOptionIsMeta` na macOS).
+
+**Lokalne bindy tmux (`bind -n`, bez prefixu)** — nadal dla chordów, które
+cockpit **forwarduje** jako bajty (nie zestaw nav-mix powyżej). Każdy wymaga
+poprawnego CSI / Meta w jednym write:
 
 | Skrót | tmux | Bajty (docelowo) |
 | --- | --- | --- |
 | `Ctrl+Space` | prefix | `\x00` |
-| `Alt+←/→/↑/↓` | focus pane | `\x1b\x1b[D/C/A/B` (legacy Meta) |
 | `prefix z` | zoom pane | `z` po `\x00` (C-Space) — bez mapy w wrapperze |
+| `Ctrl+Alt+←/→` | prev/next window | `\x1b[1;7D/C` |
 | `Alt+c` / `Alt+a` / `Alt+q` | new win / mouse | `\x1bc` / `\x1ba` / `\x1bq` |
 | `Alt+0..9` | select window | `\x1b0` … `\x1b9` |
 
-Textual rozbija wiele z powyższych na `Escape` + drugi klawisz — cockpit skleja z powrotem (`pty_keys.esc_follow_up_bytes` + 50 ms okno w `pty_terminal`).
+Textual rozbija wiele z powyższych na `Escape` + drugi klawisz — cockpit skleja z powrotem (`pty_keys.esc_follow_up_bytes` + okno coalesce w `pty_terminal`).
 
 **Mysz:** tmux wysyła `?1006l` potem `?1006h` przy attach — parser musi brać
 **ostatni** stan (nie `in data`). Inaczej leci legacy encoding i w shellu widać
@@ -163,18 +192,10 @@ zaznaczeniem → schowek; bez zaznaczenia → SIGINT. Wklejanie: `on_paste` → 
 - Przy spawnie, gdy widget ma jeszcze `0×0`, fallback to **80×24** (unika martwego 1×1).
 - Kolory: render per-cell pyte (status/prompt jak przy native attach).
 
-Testy hosta (bez Textual): `tests/host/test_cockpit_pty_{keys,mouse,colors}.py`.
+Testy hosta (bez Textual): `tests/host/test_cockpit_pty_{keys,mouse,colors,tmux_nav}.py`.
 Smoke: `tests/smoke/test-cockpit-tui.py`.
 
 Browser ttyd (`cursor-ttyd`) ustawia **`macOptionIsMeta=true`**, żeby na macOS Option/Alt szło jako Meta (potrzebne do `Alt+1`…), a nie jako `¡` / `™`. Bez wpływu na Windows/Linux.
-
-**Znane ograniczenie przeglądarki:** **Alt+←/→/↑/↓** (fokus pane tmux) często
-nie dociera do osadzonego PTY pod ttyd/xterm.js — bindy Orcana
-(`keybindings.conf`, `pty_keys.py`) są poprawne; naprawa wymagałaby zmiany
-frontendu ttyd/xterm. Workaround: **prefix + strzałki** albo pełny attach
-(`orcan enter --tmux` / terminal desktop). Udokumentowane w stopce F1/`?`
-jako `BROWSER_KEY_LIMIT`. `Alt+1`…`Alt+9` to osobna ścieżka (często OK z
-`macOptionIsMeta`).
 
 ### Chrome cockpitu (warstwa app)
 
@@ -195,9 +216,9 @@ odsłania i fokusuje ASSERTIONS. Legenda listy:
 `● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** przełącza drugi wiersz
 (ścieżka root + nazwy repo). SoT klawiszy: `cockpit/…/shortcuts.py`. Overlay
 **F1** / **?** ma blok **About** (nazwa, wersja, link do docs) oraz stopkę
-embed ≠ native attach (`EMBED_DISCLAIMER`) i limit Alt+strzałek w przeglądarce
-(`BROWSER_KEY_LIMIT`). **Brak** skrótu Git / F3 w cockpicie — w terminalu:
-alias **`lg`** (lazygit).
+embed ≠ native attach (`EMBED_DISCLAIMER`) i limit Alt-jako-Ctrl
+(`BROWSER_KEY_LIMIT` — zob. [Cockpit nav mix](#cockpit-nav-mix)). **Brak**
+skrótu Git / F3 w cockpicie — w terminalu: alias **`lg`** (lazygit).
 
 **Progi szerokości** (kolumny terminala, nie breakpointy CSS — `status.py` /
 `tier_for_width`):

@@ -122,7 +122,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Developer UX environment | `scripts/dev/`, `make dev-*` |
 | Image filesystem / binaries | `docker/rootfs/` |
 | Image packages / agents | `Dockerfile` |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`, `pty_keys.py`, `pty_colors.py`, `pty_mouse.py`) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`, `pty_mouse.py`) |
 | Session recap | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` (`ORCAN_CONTEXT_DRIVER`) |
 | Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
 | Automation control | `docker/rootfs/usr/local/lib/orcan/automation.py`, `$ORCAN_DATA/history/supervisor/automation.json` |
@@ -155,4 +155,4 @@ Hard-won; `run_test()` / headless `Pilot` often miss these — verify thin chrom
 - **`#top-bar-right`:** width from Python via `rich.cells.cell_len()` — avoid `width: auto` / `content-align: right` bugs.
 - **Preview file push:** `docker cp` into `orcan-dev-ux` can silently no-op in this sandbox — use `docker exec -i … cat > path < local`.
 - **F1 vs `?`:** with embedded terminal focused, `?` is typed into the shell — only **F1** opens shortcuts; hint strip shows `F1` only in terminal context.
-- **Browser Alt+arrows:** ttyd/xterm.js often does not deliver Alt+←/→/↑/↓ as Meta — Orcan binds/`pty_keys.py` are fine; see `BROWSER_KEY_LIMIT` in F1 footer. Workaround: prefix+arrows or `orcan enter --tmux`.
+- **Browser Alt+arrows:** ttyd/xterm.js and some desktop terminals often deliver Alt+←/→/↑/↓ as Ctrl+arrow (no distinct Meta). Cockpit maps Ctrl/Alt+arrows → focus and Ctrl+Shift+arrows → split (`pty_tmux_nav.py`); F1/`?` footer = `BROWSER_KEY_LIMIT`. Raw `--tmux` keeps conf. See [Terminal UI — nav mix](docs/en/guides/terminal-ui.md#cockpit-nav-mix).

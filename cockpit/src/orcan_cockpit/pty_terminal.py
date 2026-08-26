@@ -1,12 +1,18 @@
 """Vendored pty+pyte terminal widget — embeds a live child process (in
 practice: `tmux attach`) inside the Textual app, as OUR child under OUR own
-pty. tmux keeps 100% of session/window/pane control; this widget only
+pty. tmux keeps 100% of session/window/pane control; this widget mostly
 relays bytes both ways and propagates resize.
+
+**Nav mix:** Ctrl/Alt+arrows (and Escape+arrow coalesce) call the matching
+tmux pane action via ``pty_tmux_nav`` when a session name is set — no CSI/Meta
+synthesis. Escape+ctrl+arrow is treated as browser/WSL Alt+arrow.
+Other keys still forward through ``pty_keys``. ``keybindings.conf`` is
+unchanged for raw ``tmux attach``.
 
 **Not a native terminal.** Textual owns focus, selection, and mouse; tmux
 expects xterm bytes on a PTY; pyte only emulates the visible screen. Each
 input/output path needs an explicit translator — see sibling modules
-``pty_keys``, ``pty_mouse``, ``pty_colors`` and docs
+``pty_keys``, ``pty_mouse``, ``pty_colors``, ``pty_tmux_nav``, ``pty_links`` and docs
 ``docs/pl/guides/terminal-ui.md`` (section *Cockpit + przeglądarka*).
 
 Written in-repo rather than depending on the third-party `textual-terminal`
@@ -44,7 +50,15 @@ from textual.widget import Widget
 
 from orcan_cockpit.pty_colors import pyte_color_to_rich as _pyte_color_to_rich_raw
 from orcan_cockpit.pty_keys import esc_follow_up_bytes, key_to_bytes
+from orcan_cockpit.pty_links import (
+    annotate_plain_urls,
+    attach_hyperlink_screen,
+    feed_with_osc8,
+    open_url,
+    url_at_screen,
+)
 from orcan_cockpit.pty_mouse import mouse_bytes, parse_mouse_modes
+from orcan_cockpit.pty_tmux_nav import esc_follow_up_nav_key, run_nav
 
 # pyte's fg/bg color values come in three shapes (see pyte.graphics /
 # Screen.select_graphic_rendition): ANSI names (pyte uses classic terminfo
@@ -70,11 +84,11 @@ def _pyte_color_to_rich(value: str) -> str | None:
 _style_cache: dict[tuple, Style] = {}
 
 
-def _char_style(char: "pyte.screens.Char") -> Style:
+def _char_style(char: "pyte.screens.Char", link: str | None = None) -> Style:
     fg, bg = char.fg, char.bg
     if char.reverse:
         fg, bg = bg, fg
-    key = (fg, bg, char.bold, char.italics, char.underscore, char.strikethrough, char.blink)
+    key = (fg, bg, char.bold, char.italics, char.underscore, char.strikethrough, char.blink, link)
     style = _style_cache.get(key)
     if style is None:
         style = Style(
@@ -82,9 +96,10 @@ def _char_style(char: "pyte.screens.Char") -> Style:
             bgcolor=_pyte_color_to_rich(bg),
             bold=char.bold,
             italic=char.italics,
-            underline=char.underscore,
+            underline=char.underscore or bool(link),
             strike=char.strikethrough,
             blink=char.blink,
+            link=link,
         )
         _style_cache[key] = style
     return style
@@ -112,9 +127,17 @@ class PtyTerminal(Widget):
             self.pty_terminal = pty_terminal
             super().__init__()
 
-    def __init__(self, command: Sequence[str], *, env: dict[str, str] | None = None, **kwargs) -> None:
+    def __init__(
+        self,
+        command: Sequence[str],
+        *,
+        session: str | None = None,
+        env: dict[str, str] | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
         self._command = list(command)
+        self._session = session
         self._env = env
         self._master_fd: int | None = None
         self._process: subprocess.Popen | None = None
@@ -123,7 +146,6 @@ class PtyTerminal(Widget):
         self._ready = False
         self._mouse_tracking = False
         self._mouse_sgr = True
-        self._refresh_pending = False
         self._esc_coalesce_until: float | None = None
 
     @property
@@ -204,8 +226,9 @@ class PtyTerminal(Widget):
         os.close(slave_fd)  # child holds its own duplicate; parent doesn't need it
         os.set_blocking(master_fd, False)
         self._master_fd = master_fd
-        self._screen = pyte.Screen(cols, rows)
-        self._stream = pyte.Stream(self._screen)
+        HyperlinkScreen, Stream = attach_hyperlink_screen()
+        self._screen = HyperlinkScreen(cols, rows)
+        self._stream = Stream(self._screen)
 
     def on_resize(self, event: events.Resize) -> None:
         if self._master_fd is None or self._screen is None:
@@ -222,13 +245,11 @@ class PtyTerminal(Widget):
             self._mouse_sgr = sgr
 
     def _schedule_refresh(self) -> None:
-        if self._refresh_pending:
-            return
-        self._refresh_pending = True
-        self.call_later(self._flush_refresh)
-
-    def _flush_refresh(self) -> None:
-        self._refresh_pending = False
+        # Paint on the next idle immediately. Do not go through call_later —
+        # that waits until this widget's *entire* message queue drains, which
+        # visibly lags full-screen CSI clears (shell `clear`) whenever
+        # metrics/status intervals are also posting. refresh() already
+        # coalesces multiple calls and wakes the idle pump (check_idle).
         self.refresh()
 
     def _on_readable(self) -> None:
@@ -249,7 +270,11 @@ class PtyTerminal(Widget):
             got_data = True
             self._note_mouse_modes(data)
             try:
-                self._stream.feed(data.decode("utf-8", errors="replace"))
+                feed_with_osc8(
+                    self._stream,
+                    self._screen,
+                    data.decode("utf-8", errors="replace"),
+                )
             except Exception:
                 # pyte 0.8.2's Stream/Screen dispatch can raise on some
                 # private-mode CSI sequences tmux sends on attach (e.g. a device
@@ -314,6 +339,15 @@ class PtyTerminal(Widget):
                 return
 
         if self._esc_coalesce_until is not None:
+            if (
+                self._session
+                and time.monotonic() < self._esc_coalesce_until
+                and (nav_key := esc_follow_up_nav_key(event.key)) is not None
+            ):
+                self._cancel_esc_coalesce()
+                event.stop()
+                run_nav(self._session, nav_key)
+                return
             combined = esc_follow_up_bytes(event.key)
             if combined is not None and time.monotonic() < self._esc_coalesce_until:
                 self._cancel_esc_coalesce()
@@ -325,6 +359,12 @@ class PtyTerminal(Widget):
 
         if event.key == "escape":
             self._start_esc_coalesce()
+            event.stop()
+            return
+
+        # Ctrl/Alt+arrows: drive tmux directly when we know the session —
+        # skip CSI/Meta PTY writes (and avoid double-firing bind -n).
+        if self._session and run_nav(self._session, event.key):
             event.stop()
             return
 
@@ -391,18 +431,45 @@ class PtyTerminal(Widget):
     def _on_mouse_up(self, event: events.MouseUp) -> None:
         self._write_mouse(event, release=True)
 
+    def on_click(self, event: events.Click) -> None:
+        # Textual owns the mouse, so OSC 8 / bare URLs never reach the outer
+        # terminal's click-to-open. Open http(s) under the click ourselves.
+        if event.button != 1:
+            return
+        url = event.style.link if event.style is not None else None
+        if not url and self._screen is not None:
+            url = url_at_screen(self._screen, int(event.x), int(event.y))
+        if not url:
+            return
+        if open_url(url):
+            event.stop()
+            return
+        # Headless / ttyd: keep Style(link=) in the render so Ctrl+click on
+        # the outer terminal may still work; surface the URL for copy.
+        try:
+            self.app.notify(f"Open URL: {url}", title="Link", timeout=8)
+        except Exception:
+            pass
+        event.stop()
+
     def render(self) -> Text:
         if self._screen is None:
             return Text("(starting tmux…)")
         screen = self._screen
         out = Text()
+        link_at = getattr(screen, "link_at", None)
         for y in range(screen.lines):
             line = screen.buffer[y]
+            line_text = "".join(line[x].data or " " for x in range(screen.columns))
+            hrefs: list[str | None] = [
+                (link_at(x, y) if link_at is not None else None) for x in range(screen.columns)
+            ]
+            annotate_plain_urls(hrefs, line_text)
             run_text: list[str] = []
             run_style: Style | None = None
             for x in range(screen.columns):
                 char = line[x]
-                style = _char_style(char)
+                style = _char_style(char, hrefs[x])
                 if run_style is not None and style == run_style:
                     run_text.append(char.data or " ")
                     continue

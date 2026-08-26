@@ -33,13 +33,18 @@ EMBED_DISCLAIMER = (
     "Full attach: orcan enter --tmux"
 )
 
-# Browser ttyd (xterm.js) often does not deliver Alt+Arrow as Meta to the
-# embedded PTY — verified: tmux binds + cockpit pty_keys.py are correct;
-# fixing it would require replacing/patching the ttyd frontend. Native
-# attach (`orcan enter --tmux`) and many desktop terminals are fine.
+# Browser ttyd (xterm.js) and some desktop terminals (e.g. Windows Terminal /
+# WSL) deliver Alt+Arrow as Ctrl+Arrow — Textual never sees distinct Meta, so
+# cockpit cannot offer both "Ctrl=split" and "Alt=focus" on the same events.
+# Cockpit therefore maps Ctrl/Alt+arrows → pane focus and Ctrl+Shift+arrows →
+# split (pty_tmux_nav.py). Raw ``orcan enter --tmux`` still uses
+# keybindings.conf (Ctrl=split, Alt=focus) when Meta works.
+# Shown in F1 / ? overlay and prefix-? popup footers.
 BROWSER_KEY_LIMIT = (
-    "Browser (ttyd/xterm.js): Alt+←/→/↑/↓ pane focus may not reach tmux — "
-    "use prefix + arrows, or orcan enter --tmux for full Meta"
+    "Limit: many terminals send Alt+arrows as Ctrl+arrows. "
+    "Cockpit: Ctrl/Alt+←/→/↑/↓ = focus pane; Ctrl+Shift+arrows = split "
+    "(also prefix - / |). Raw --tmux keeps conf (Ctrl=split, Alt=focus). "
+    "ttyd/WT — see Terminal UI docs"
 )
 
 # Requested as an IDE-style "Help > About": what is this, what version, where
@@ -98,18 +103,23 @@ SHORTCUTS: list[Shortcut] = [
     # via real pty test: typing "?" while attached lands in the pane.
     Shortcut("F1 / ?", "Open shortcuts", "app", "cockpit",
               ("terminal", "workspaces", "panel", "rail")),
+    # --- app: cockpit nav mix (see pty_tmux_nav — differs from raw --tmux) ---
+    Shortcut("Ctrl/Alt+←/→/↑/↓", "Focus pane", "app", "panes", ("terminal",)),
+    Shortcut("Ctrl+Shift+←/→/↑/↓", "Split pane", "app", "panes", ("terminal",)),
     # --- tmux: panes -------------------------------------------------------
     Shortcut("prefix -", "Split pane (down)", "tmux", "panes", ("terminal",),
               ("bind - split-window -v",)),
     Shortcut("prefix |", "Split pane (right)", "tmux", "panes", ("terminal",),
               ("bind | split-window -h",)),
-    Shortcut("Ctrl+↓/↑/→/←", "Split pane (no prefix)", "tmux", "panes", ("terminal",), (
+    # No "terminal" context: cockpit remaps these (hints show APP rows above).
+    # Still listed under TMUX in F1 / prefix-? for raw ``orcan enter --tmux``.
+    Shortcut("Ctrl+↓/↑/→/←", "Split pane (no prefix; --tmux only)", "tmux", "panes", (), (
         "bind -n C-Down split-window -v",
         "bind -n C-Up split-window -v -b",
         "bind -n C-Right split-window -h",
         "bind -n C-Left split-window -h -b",
     )),
-    Shortcut("Alt+←/→/↑/↓", "Focus pane", "tmux", "panes", ("terminal",), (
+    Shortcut("Alt+←/→/↑/↓", "Focus pane (--tmux when Meta works)", "tmux", "panes", (), (
         "bind -n M-Left select-pane -L",
         "bind -n M-Right select-pane -R",
         "bind -n M-Up select-pane -U",
@@ -126,7 +136,8 @@ SHORTCUTS: list[Shortcut] = [
     )),
     Shortcut("Alt+c", "New window", "tmux", "windows", ("terminal",),
               ("bind -n M-c new-window",)),
-    Shortcut("Ctrl+Shift+←/→", "Swap window", "tmux", "windows", ("terminal",), (
+    # Cockpit intercepts Ctrl+Shift+arrows for split; swap remains --tmux only.
+    Shortcut("Ctrl+Shift+←/→", "Swap window (--tmux only)", "tmux", "windows", (), (
         "bind -n C-S-Left swap-window -t -1",
         "bind -n C-S-Right swap-window -t +1",
     )),
