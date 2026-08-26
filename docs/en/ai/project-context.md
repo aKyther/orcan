@@ -61,7 +61,7 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 | --- | --- |
 | Host UX / targets | `Makefile`, `scripts/repository/` |
 | Isolated UX / tmux preview | `make dev-*` / `scripts/dev/` — [Testing](../development/testing.md) |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (shortcuts: `shortcuts.py`; About: `about_modal.py`; ASSERTIONS: `activity.py`; glance: `session_glance.py`; chrome: `top_bar.py`; PTY: `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (shortcuts: `shortcuts.py`; About: `about_modal.py`; ASSERTIONS: `activity.py`; glance/problems/timeline/peek/feedback: `session_glance.py`, `problems.py`, `timeline.py`, `peek.py`, `reflection_feedback.py`; first-run: `first_run.py`, `onboarding.py`; chrome: `top_bar.py`, `tmux_chrome.py`; PTY: `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`) |
 | Session recap | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` |
 | Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
 | Context Assertions store / compile | `scripts/repository/context_assertions.py`, `compile_context.py` |

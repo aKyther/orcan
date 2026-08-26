@@ -27,19 +27,21 @@ class AutomationTests(unittest.TestCase):
         self.addCleanup(self.env.stop)
 
     def test_default_enabled_not_paused(self) -> None:
-        self.assertTrue(auto.is_enabled())
-        self.assertFalse(auto.is_paused())
-        self.assertTrue(auto.is_active())
-        self.assertIn("running", auto.status_line())
+        with mock.patch.object(auto, "claude_on_path", return_value=True):
+            self.assertTrue(auto.is_enabled())
+            self.assertFalse(auto.is_paused())
+            self.assertTrue(auto.is_active())
+            self.assertIn("running", auto.status_line())
 
     def test_pause_and_enable_independent(self) -> None:
-        auto.set_enabled(False)
-        self.assertFalse(auto.is_active())
-        self.assertIn("off", auto.status_lines()[0])
-        auto.set_enabled(True)
-        auto.set_paused(True)
-        self.assertFalse(auto.is_active())
-        self.assertIn("paused", auto.status_lines()[0])
+        with mock.patch.object(auto, "claude_on_path", return_value=True):
+            auto.set_enabled(False)
+            self.assertFalse(auto.is_active())
+            self.assertIn("off", auto.status_lines()[0])
+            auto.set_enabled(True)
+            auto.set_paused(True)
+            self.assertFalse(auto.is_active())
+            self.assertIn("paused", auto.status_lines()[0])
 
     def test_toggle_enabled_clears_pause(self) -> None:
         auto.set_paused(True)
@@ -92,7 +94,34 @@ class AutomationTests(unittest.TestCase):
         auto.save_automation({
             "model_check": {"ok": True, "detail": "probe ok", "model": "haiku", "checked_at": auto._now_iso()}
         })
-        self.assertTrue(any("recap model: ok (haiku)" in line for line in auto.status_lines()))
+        with mock.patch.object(auto, "claude_on_path", return_value=True):
+            self.assertTrue(any("recap model: ok (haiku)" in line for line in auto.status_lines()))
+
+    def test_sync_disables_when_claude_missing(self) -> None:
+        auto.save_automation({"enabled": True, "paused": False})
+        with mock.patch.object(auto, "claude_on_path", return_value=False):
+            state = auto.sync_automation_to_claude_availability()
+        self.assertFalse(state["enabled"])
+        self.assertTrue(state.get(auto.AUTO_DISABLED_NO_CLAUDE))
+        self.assertFalse(auto.is_active())
+
+    def test_sync_restores_only_auto_disabled(self) -> None:
+        auto.save_automation({
+            "enabled": False,
+            "paused": False,
+            auto.AUTO_DISABLED_NO_CLAUDE: True,
+        })
+        with mock.patch.object(auto, "claude_on_path", return_value=True):
+            state = auto.sync_automation_to_claude_availability()
+        self.assertTrue(state["enabled"])
+        self.assertNotIn(auto.AUTO_DISABLED_NO_CLAUDE, state)
+
+    def test_human_off_not_auto_restored(self) -> None:
+        auto.set_enabled(False)  # clears auto flag
+        with mock.patch.object(auto, "claude_on_path", return_value=True):
+            state = auto.sync_automation_to_claude_availability()
+        self.assertFalse(state["enabled"])
+        self.assertNotIn(auto.AUTO_DISABLED_NO_CLAUDE, state)
 
 
 class ModelCheckTests(unittest.TestCase):

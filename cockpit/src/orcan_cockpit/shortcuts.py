@@ -179,6 +179,8 @@ SHORTCUTS: list[Shortcut] = [
     # --- app (cockpit) layer, remainder (the terminal-context subset lives
     # at the top of this list — see the comment there) ----------------------
     Shortcut("Ctrl+P", "Command palette", "app", "cockpit", ("workspaces", "panel", "rail")),
+    Shortcut("F5", "Peek session brief / next pending", "app", "cockpit",
+             ("terminal", "workspaces", "panel", "rail")),
     Shortcut("r", "Run context review", "app", "cockpit", ("panel",)),
     Shortcut("p", "Pause/resume context automation", "app", "cockpit", ("panel",)),
     Shortcut("o", "Turn context automation off/on", "app", "cockpit", ("panel",)),
@@ -194,15 +196,20 @@ def grouped_by_layer() -> dict[Layer, list[Shortcut]]:
     return groups
 
 
-def hints_for(context: Context, limit: int = 6) -> list[str]:
+def hints_for(context: Context, limit: int = 3) -> list[str]:
     # Rich markup (bold+cyan key, plain description) — safe here because
     # this only ever feeds the Textual-rendered HintStrip (hints.py), which
     # interprets it; format_row() below stays markup-free since it also
     # feeds shortcuts_cli.py's plain-text standalone tmux popup, where
     # markup tags would show up as literal bracketed text.
-    matches = [s for s in SHORTCUTS if context in s.contexts]
+    #
+    # Prefer bindings unique to *this* context so a short strip (limit=3)
+    # surfaces panel review/pause before shared F-keys.
+    matched = [s for s in SHORTCUTS if context in s.contexts]
+    exclusive = [s for s in matched if len(s.contexts) == 1]
+    shared = [s for s in matched if len(s.contexts) > 1]
     rows = []
-    for s in matches[:limit]:
+    for s in (exclusive + shared)[:limit]:
         keys = s.keys
         if context == "terminal" and keys == "F1 / ?":
             # See the "F1 / ?" entry's comment above — "?" doesn't work

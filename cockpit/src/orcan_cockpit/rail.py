@@ -34,8 +34,7 @@ _TOOL_BY_BUTTON_ID = {
 _ICON = {"assertions": "🔔", "shortcuts": "?"}
 _TEXT = {"assertions": "Assertions", "shortcuts": "Help"}
 _TOOLTIP = {
-    "assertions": "Context Assertions — facts the agent proposed about this "
-    "project, awaiting your review",
+    "assertions": "Problems — pending assertions, reflection errors, dirty repos",
     "shortcuts": "Keyboard shortcuts (app + tmux)",
 }
 _PULSE_INTERVAL_S = 0.85
@@ -53,6 +52,7 @@ class UtilityRail(Widget):
         super().__init__(**kwargs)
         self._tier = "full"
         self._pending_count = 0
+        self._problems_tooltip = _TOOLTIP["assertions"]
 
     def compose(self) -> ComposeResult:
         yield Button(_ICON["assertions"], id="rail-assertions", tooltip=_TOOLTIP["assertions"])
@@ -68,8 +68,11 @@ class UtilityRail(Widget):
         if tool:
             self.post_message(self.ToolSelected(tool))
 
-    def set_pending_count(self, count: int) -> None:
+    def set_pending_count(self, count: int, *, tooltip: str | None = None) -> None:
+        """*count* is the aggregated problems badge (pending + errors + dirty)."""
         self._pending_count = count
+        if tooltip is not None:
+            self._problems_tooltip = tooltip
         self._refresh_labels()
         if not count:
             self.query_one("#rail-assertions", Button).remove_class("pending-pulse")
@@ -79,8 +82,8 @@ class UtilityRail(Widget):
         self._refresh_labels()
 
     def _pulse_tick(self) -> None:
-        # Amber blink when something awaits review — catchy without a second
-        # status surface. Off when pending is zero.
+        # Amber blink when something awaits attention — catchy without a
+        # second status surface. Off when problems count is zero.
         btn = self.query_one("#rail-assertions", Button)
         if self._pending_count <= 0:
             btn.remove_class("pending-pulse")
@@ -91,7 +94,7 @@ class UtilityRail(Widget):
         wide = self._tier == "full"
         bell = _ICON["assertions"]
         if self._pending_count:
-            # Amber, not the default text color — a pending count is an
+            # Amber, not the default text color — a problems count is an
             # attention signal, and it's the one warm accent against an
             # otherwise cool navy/cyan/violet bar (flagged as too
             # monochrome in review). Button.label parses markup (Textual's
@@ -99,7 +102,9 @@ class UtilityRail(Widget):
             bell += f" [#fbbf24]{self._pending_count}[/]"
         if wide:
             bell += f" {_TEXT['assertions']}"
-        self.query_one("#rail-assertions", Button).label = bell
+        btn = self.query_one("#rail-assertions", Button)
+        btn.label = bell
+        btn.tooltip = self._problems_tooltip
         icon = _ICON["shortcuts"]
         label = f"{icon} {_TEXT['shortcuts']}" if wide else icon
         self.query_one("#rail-shortcuts", Button).label = label

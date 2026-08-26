@@ -75,6 +75,9 @@ class RunDuplicateCheckTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.workspace_root = Path(self._tmp.name)
+        self._which = mock.patch.object(review.shutil, "which", return_value="/usr/bin/claude")
+        self._which.start()
+        self.addCleanup(self._which.stop)
 
     def test_no_candidates_skips_model_call(self) -> None:
         with mock.patch.object(review.subprocess, "run") as run:
@@ -90,6 +93,19 @@ class RunDuplicateCheckTests(unittest.TestCase):
         run.assert_not_called()
         self.assertEqual(result, {})
 
+    def test_missing_claude_skips_without_subprocess(self) -> None:
+        (self.workspace_root / "CONTEXT-ASSERTIONS.md").write_text("existing", encoding="utf-8")
+        with mock.patch.object(review.shutil, "which", return_value=None), mock.patch.object(
+            review.subprocess, "run"
+        ) as run, mock.patch.object(review, "warn") as warn:
+            result = review.run_duplicate_check(
+                [{"id": "cand1", "title": "T", "content": "C"}], self.workspace_root, "haiku"
+            )
+        run.assert_not_called()
+        self.assertEqual(result, {})
+        warn.assert_called_once()
+        self.assertIn("claude not on PATH", warn.call_args.args[0])
+
     def test_model_call_never_touches_stdin(self) -> None:
         (self.workspace_root / "CONTEXT-ASSERTIONS.md").write_text("existing", encoding="utf-8")
         with mock.patch.object(review.subprocess, "run", return_value=_fake_claude_result([])) as run:
@@ -97,6 +113,7 @@ class RunDuplicateCheckTests(unittest.TestCase):
                 [{"id": "cand1", "title": "T", "content": "C"}], self.workspace_root, "haiku"
             )
         run.assert_called_once()
+        self.assertEqual(run.call_args.args[0][0], "/usr/bin/claude")
         self.assertEqual(run.call_args.kwargs.get("stdin"), subprocess.DEVNULL)
 
     def test_keeps_only_duplicate_and_conflict_verdicts(self) -> None:
@@ -161,13 +178,28 @@ class ReviewCandidatesAnnotationTests(unittest.TestCase):
             review.review_candidates(items, self.decisions_dir, annotations, self.workspace_root)
         return buf.getvalue()
 
-    def test_prints_duplicate_warning_line(self) -> None:
-        items = [{"id": "cand1", "project_name": "orcan", "title": "T", "content": "C", "justification": "J"}]
-        annotations = {"cand1": {"verdict": "duplicate", "related_title": "Existing thing", "note": "same idea"}}
-        out = self._run(items, annotations, ["s"])
-        self.assertIn("possibly duplicates existing", out)
-        self.assertIn("Existing thing", out)
-        self.assertIn("same idea", out)
+    def test_prints_note_title_and_body_clearly(self) -> None:
+        items = [
+            {
+                "id": "cand1",
+                "project_name": "orcan",
+                "title": "Preview item 7",
+                "content": "Dense fixture row 7 for scrolling and review.",
+                "justification": "Developer UX busy-state fixture.",
+            }
+        ]
+        buf = io.StringIO()
+        with mock.patch("builtins.input", side_effect=["s"]) as inp, contextlib.redirect_stdout(buf):
+            review.review_candidates(items, self.decisions_dir, {}, self.workspace_root)
+        out = buf.getvalue()
+        self.assertIn("NOTE (this text becomes lasting project context if you accept)", out)
+        self.assertIn("Title: Preview item 7", out)
+        self.assertIn("Body:  Dense fixture row 7 for scrolling and review.", out)
+        self.assertIn("Why proposed: Developer UX busy-state fixture.", out)
+        inp.assert_called_with(
+            f"  {review.BOLD}{review.CYAN}Accept this note into project context? "
+            f"[y]es / [n]o / [s]kip:{review.RESET} "
+        )
 
     def test_prints_conflict_warning_line(self) -> None:
         items = [{"id": "cand1", "project_name": "orcan", "title": "T", "content": "C", "justification": "J"}]
@@ -248,6 +280,37 @@ class ReviewCandidatesAnnotationTests(unittest.TestCase):
         with mock.patch.object(review, "queue_consolidation") as queue:
             self._run(items, annotations, ["n"])  # reject, not accept — no offer at all
         queue.assert_not_called()
+
+
+class ReviewReconsiderTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.decisions_dir = Path(self._tmp.name) / "decisions"
+
+    def test_retire_records_decision_and_renders_reason(self) -> None:
+        item = {
+            "id": "old1",
+            "project_name": "orcan",
+            "title": "Old note",
+            "content": "No longer true",
+            "reason": "superseded",
+        }
+        buf = io.StringIO()
+        with mock.patch("builtins.input", side_effect=["r"]), contextlib.redirect_stdout(buf):
+            decided = review.review_reconsider([item], self.decisions_dir)
+        self.assertEqual(decided, 1)
+        self.assertIn("already accepted, flagged", buf.getvalue())
+        self.assertIn("Why flagged now: superseded", buf.getvalue())
+        drops = list(self.decisions_dir.glob("*.json"))
+        self.assertEqual(len(drops), 1)
+        self.assertEqual(json.loads(drops[0].read_text())["decision"], "retire")
+
+    def test_skip_does_not_write_decision(self) -> None:
+        item = {"id": "old1", "project_name": "orcan", "title": "Old note"}
+        with mock.patch("builtins.input", side_effect=["s"]):
+            self.assertEqual(review.review_reconsider([item], self.decisions_dir), 0)
+        self.assertFalse(self.decisions_dir.exists())
 
 
 class QueueConsolidationTests(unittest.TestCase):

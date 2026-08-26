@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import uuid
@@ -64,6 +65,22 @@ from orcan.context_inbox import load_inbox_candidates  # noqa: E402
 
 MAX_CONTEXT_CHARS = 8000
 PROPOSE_BIN = Path(__file__).resolve().parent / "orcan-context-propose"
+
+# Plain ANSI truecolor, not Rich: this script is deliberately stdlib-only
+# (see the module docstring's own tooling — argparse/json/subprocess), and
+# it only ever runs interactively in a real terminal (every branch below
+# ends in input()), so there's no non-tty path to guard. Same hex palette
+# as the rest of orcan's terminal UI (docs/*/guides/terminal-ui.md) — cyan
+# for the actual decision prompt, amber for the one thing that's a genuine
+# warning (a duplicate/conflict note), muted for supporting detail. Added
+# because the actual "type here" prompt didn't stand out from the
+# surrounding metadata — everything printed in the same plain white.
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+CYAN = "\033[38;2;94;234;212m"
+MUTED = "\033[38;2;100;116;139m"
+AMBER = "\033[38;2;251;191;36m"
 
 
 def die(msg: str) -> int:
@@ -167,6 +184,13 @@ def run_duplicate_check(candidates: list[dict], workspace_root: Path, model: str
     pack_path = workspace_root / "CONTEXT-ASSERTIONS.md"
     if not pack_path.is_file():
         return {}
+    claude = shutil.which("claude")
+    if not claude:
+        warn(
+            "duplicate/conflict check skipped: claude not on PATH "
+            "(install Claude Code in the container, or pass --no-check)"
+        )
+        return {}
     existing_context = pack_path.read_text(encoding="utf-8")
     if len(existing_context) > MAX_CONTEXT_CHARS:
         existing_context = existing_context[-MAX_CONTEXT_CHARS:]
@@ -174,7 +198,7 @@ def run_duplicate_check(candidates: list[dict], workspace_root: Path, model: str
     prompt = build_check_prompt(candidates, existing_context)
     try:
         result = subprocess.run(
-            ["claude", "-p", "--model", model, prompt],
+            [claude, "-p", "--model", model, prompt],
             capture_output=True,
             text=True,
             timeout=120,
@@ -257,32 +281,68 @@ def queue_consolidation(item: dict, note: dict, workspace_root: Path) -> bool:
     return ok
 
 
+def format_scope_chip(applicability: dict | None) -> str:
+    """Compact IDE-style scope label for a candidate."""
+    if not applicability:
+        return "scope: always"
+    bits: list[str] = []
+    branch = applicability.get("branch")
+    if branch:
+        bits.append(f"branch={branch}")
+    workspace = applicability.get("workspace")
+    if workspace:
+        bits.append(f"workspace={workspace}")
+    for key in ("repo_set_all", "repo_set_any"):
+        val = applicability.get(key)
+        if val:
+            bits.append(f"{key}={val}")
+    return "scope: " + (", ".join(str(b) for b in bits) if bits else "always")
+
+
 def review_candidates(
     items: list[dict], decisions_dir: Path, annotations: dict[str, dict], workspace_root: Path
 ) -> int:
     decided = 0
-    for item in items:
+    total = len(items)
+    for index, item in enumerate(items, start=1):
+        title = item.get("title") or "(no title)"
+        body = item.get("content") or "(no body)"
         print()
-        print(f"[{item.get('project_name')}] {item.get('title')!r}")
+        print(
+            f"{DIM}[{index}/{total}]{RESET} {BOLD}── Project: "
+            f"{item.get('project_name') or '?'} ──{RESET}"
+        )
+        print(f"  {BOLD}NOTE (this text becomes lasting project context if you accept):{RESET}")
+        print(f"    Title: {title}")
+        print(f"    Body:  {body}")
+        print(f"  {MUTED}Pack preview (after orcan sync):{RESET}")
+        print(f"    ## {title}")
+        for line in str(body).splitlines() or [""]:
+            print(f"    {line}")
         note = annotations.get(str(item.get("id") or ""))
         if note:
             verb = "may conflict with" if note.get("verdict") == "conflict" else "possibly duplicates"
             related = note.get("related_title") or note.get("related_id") or "an existing item"
             extra = f" — {note['note']}" if note.get("note") else ""
-            print(f"  ⚠ {verb} existing: {related!r}{extra}")
-        print(f"  {item.get('content')}")
-        print(f"  Problem it solves: {item.get('justification')}")
+            print(f"  {AMBER}⚠ {verb} existing: {related!r}{extra}{RESET}")
+        justification = item.get("justification")
+        if justification:
+            print(f"  {MUTED}Why proposed: {justification}{RESET}")
         applicability = item.get("applicability") or {}
-        print(f"  Applicability: {applicability or '(unconditional under this project)'}")
+        print(f"  {CYAN}{format_scope_chip(applicability if isinstance(applicability, dict) else {})}{RESET}")
         print(
-            f"  Epistemic status: {item.get('epistemic_status', 'fact')}  "
-            f"Criticality: {item.get('criticality', 'normal')}"
+            f"  {MUTED}Kind: {item.get('epistemic_status', 'fact')}  "
+            f"Criticality: {item.get('criticality', 'normal')}{RESET}"
         )
         relations = item.get("relations") or []
         if relations:
-            print(f"  Relations: {relations}")
+            print(f"  {MUTED}Relations: {relations}{RESET}")
+        print()
         while True:
-            choice = input("  Decision: [y]es / [n]o / [s]kip: ").strip().lower()
+            choice = input(
+                f"  {BOLD}{CYAN}Accept this note into project context? "
+                f"[y]es / [n]o / [s]kip:{RESET} "
+            ).strip().lower()
             if choice in ("y", "yes", "n", "no", "s", "skip", ""):
                 break
             print("  Please answer y, n, or s.")
@@ -316,14 +376,25 @@ def review_candidates(
 
 def review_reconsider(items: list[dict], decisions_dir: Path) -> int:
     decided = 0
-    for item in items:
+    total = len(items)
+    for index, item in enumerate(items, start=1):
+        title = item.get("title") or "(no title)"
+        body = item.get("content") or "(no body)"
         print()
-        print(f"[{item.get('project_name')}] Reconsider: {item.get('title')!r}")
-        print(f"  {item.get('content')}")
-        print(f"  Why it was accepted: {item.get('justification')}")
-        print(f"  Why it's flagged now: {item.get('reason')}")
+        print(
+            f"{DIM}[{index}/{total}]{RESET} {BOLD}── Project: "
+            f"{item.get('project_name') or '?'} · already accepted, flagged ──{RESET}"
+        )
+        print(f"  {BOLD}NOTE (already in context — keep or retire):{RESET}")
+        print(f"    Title: {title}")
+        print(f"    Body:  {body}")
+        if item.get("justification"):
+            print(f"  {MUTED}Why it was accepted: {item.get('justification')}{RESET}")
+        if item.get("reason"):
+            print(f"  {MUTED}Why flagged now: {item.get('reason')}{RESET}")
+        print()
         while True:
-            choice = input("  Decision: [k]eep / [r]etire / [s]kip: ").strip().lower()
+            choice = input(f"  {BOLD}{CYAN}Decision: [k]eep / [r]etire / [s]kip:{RESET} ").strip().lower()
             if choice in ("k", "keep", "r", "retire", "s", "skip", ""):
                 break
             print("  Please answer k, r, or s.")
@@ -389,6 +460,11 @@ def main() -> int:
             )
         else:
             print(f"== {len(candidates)} new candidate(s) ==")
+        print(
+            "Each item is a proposed NOTE for lasting project context "
+            "(agents read accepted notes after `orcan sync`). "
+            "y = keep · n = drop · s = decide later."
+        )
         decided += review_candidates(candidates, decisions_dir, annotations, workspace_root)
     if reconsider:
         print(f"\n== {len(reconsider)} flagged for reconsideration ==")

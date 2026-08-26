@@ -38,9 +38,10 @@ def session_is_live(session: str) -> bool:
 
 
 def project_git_label(project: dict[str, Any]) -> str:
-    """One compact token for a single project entry: bare name if it isn't
-    a git repo, `⎇ branch` if it is, `⎇+ branch (worktree)` if it's a
-    *linked* worktree rather than the repo's main checkout.
+    """One compact, colored token for a single project entry: dim bare name
+    if it isn't a git repo, light-cyan `⎇ branch` if it is, amber
+    `⎇+ branch (worktree)` if it's a *linked* worktree rather than the
+    repo's main checkout.
 
     `.git` as a directory vs. a file is the cheap, subprocess-free way to
     tell those two apart (a linked worktree's `.git` is a one-line file
@@ -48,20 +49,29 @@ def project_git_label(project: dict[str, Any]) -> str:
     `scripts/repository/git_worktrees.py`, which orcan already manages
     worktrees through). Distinguishing it matters operationally: a worktree
     shares history with its parent clone and can't be casually deleted or
-    moved on its own the way a plain clone can.
+    moved on its own the way a plain clone can — which is also why it gets
+    amber (attention), not the same muted tone as a plain folder. All
+    three colors are pre-existing cockpit roles, not new: `#67e8f9` is the
+    documented "path / secondary highlight" accent (docs/*/guides/
+    terminal-ui.md's palette table), `#fbbf24` is the same amber the rail's
+    pending-count badge uses, `#64748b` is the standard muted tone. Flagged
+    in review: everything on this line used to be one flat muted color and
+    was hard to tell apart from the panel background.
     """
     name = str(project.get("name") or project.get("alias") or "?").strip() or "?"
     path = str(project.get("path") or "").strip()
     if not path:
-        return name
+        return f"[#64748b]{name}[/]"
     git_path = Path(path) / ".git"
     if git_path.is_file():
         branch = git_branch(path)
-        return f"⎇+ {branch} (worktree)" if branch else f"{name} (worktree)"
+        label = f"⎇+ {branch} (worktree)" if branch else f"{name} (worktree)"
+        return f"[#fbbf24]{label}[/]"
     if git_path.is_dir():
         branch = git_branch(path)
-        return f"⎇ {branch}" if branch else name
-    return name
+        label = f"⎇ {branch}" if branch else name
+        return f"[#67e8f9]{label}[/]"
+    return f"[#64748b]{name}[/]"
 
 
 def list_workspace_rows(config_path: str | None = None) -> list[dict[str, Any]]:
@@ -262,8 +272,15 @@ class WorkspaceList(Widget):
                 root = row["root"]
                 if home and root.startswith(home):
                     root = "~" + root[len(home):]
-                text += f"\n   [#64748b]{root}[/]"
-                text += f"\n   [#64748b]{repos}[/]"
+                # #94a3b8 (lighter muted), not #64748b — the darker tone
+                # was legible enough for short muted labels elsewhere, but
+                # a whole path/line in it read as washed-out against this
+                # card's background (flagged in review). The per-project
+                # git labels below carry their own color (see
+                # project_git_label) and nest correctly inside this span —
+                # Rich markup honors the inner color for its own range.
+                text += f"\n   [#94a3b8]{root}[/]"
+                text += f"\n   [#94a3b8]{repos}[/]"
             item = ListItem(Label(text))
             if is_active:
                 item.add_class("active-workspace")

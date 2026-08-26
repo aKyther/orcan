@@ -214,7 +214,18 @@ Under the workspace list, a **session glance** (`session_glance.py`) shows up
 to three lines for the highlighted row: pending count **with age**
 (`2 pending · 3h`), worktree count / session idle or brief age
 (`2 wt · idle 40m`, or `brief 2h` when not live), and live pane commands
-(`tmux list-panes`). Empty / attach chrome uses the
+(`tmux list-panes`). The ASSERTIONS card also lists **agents** (pinned ★),
+a short **recent decisions** timeline, and the rail 🔔 badge is an aggregated
+**Problems** count (pending + reflection errors + dirty repos). **F5** peeks
+session brief + next pending note without a tmux split; **Ctrl+P** adds split /
+URL / pin-main / task templates. Status bar (full tier) appends a tmux
+breadcrumb (`wN › command`). The ASSERTIONS card also shows **last batch**
+feedback from recap/reflection. **F5** peeks then **Enter** opens Review;
+first launch shows a short onboarding tip. **Preview busy fixtures** (port 8000
+examples, etc.) are **fake scroll data for UI** — not reflection output from a
+live session. Without Claude Code on PATH, assertions **automation** stays off
+(recap/reflect idle); **Review** of pending inbox notes still works. Empty /
+attach chrome uses the
 brand wordmark (`🌀 orcan` / `🌀 attaching name`) instead of a bare spinner.
 ASSERTIONS sit at the bottom of the left column (`activity.py`) with a short
 subtitle, Review / Pause / Turn off buttons, and a docs link. Clicking the
@@ -244,6 +255,7 @@ inside the terminal.
 | **F4** / ‹› | Toggle workspaces column |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
 | **Click `🌀 orcan`** | About (name, version, docs) — `about_modal.py` |
+| **F5** | Peek session brief + next pending; **Enter** / **r** opens Review |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
 | **i** | Expand/collapse workspace details (list focused) |
 | **r** | Run `orcan-context-review` (ASSERTIONS focused) |

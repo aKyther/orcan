@@ -15,7 +15,12 @@ from orcan_cockpit.rail import UtilityRail
 async def main() -> None:
     app = CockpitApp()
     async with app.run_test(size=(140, 42)) as pilot:
-        await pilot.pause()
+        await pilot.pause(0.4)
+        # First-run tips intentionally sit above the cockpit once per profile;
+        # dismiss them so the smoke test exercises the actual workspace UI.
+        if app.screen.__class__.__name__ == "FirstRunModal":
+            await pilot.press("escape")
+            await pilot.pause()
         workspaces = app.screen.query_one("#workspace-list-widget", WorkspaceList)
         rows = workspaces.rows
         assert rows, "workspace picker is empty"
@@ -43,7 +48,10 @@ async def main() -> None:
         assert len(rail.query("Button")) == 2
         rail.set_pending_count(3)
         assert str(rail.query_one("#rail-assertions").label) == "🔔 3 Assertions"
-        assert "Context Assertions" in str(rail.query_one("#rail-assertions").tooltip)
+        rail_tooltip = str(rail.query_one("#rail-assertions").tooltip)
+        assert rail_tooltip and any(
+            token in rail_tooltip for token in ("pending", "dirty", "reflect")
+        ), rail_tooltip
         assert app.screen.query_one("#top-bar-right").tooltip
         assert app.screen.query_one("#top-bar-identity").tooltip
         assert app.screen.query_one("#activity-pause-btn").tooltip

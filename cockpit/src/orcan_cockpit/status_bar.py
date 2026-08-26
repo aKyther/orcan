@@ -12,6 +12,7 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from orcan_cockpit.status import Tier, format_status_line, git_branch
+from orcan_cockpit.tmux_chrome import session_breadcrumb
 
 _REFRESH_INTERVAL_S = 3.0
 
@@ -44,10 +45,12 @@ class StatusBar(Widget):
 
     def refresh_status(self) -> None:
         branch = git_branch(str(self.workspace_root)) if self.workspace_root else ""
+        crumb = session_breadcrumb(self.session) if self.session else ""
         line = format_status_line(
             tier=self.tier,
             workspace=self.workspace_name,
             branch=branch,
             session=self.session,
+            breadcrumb=crumb,
         )
         self.query_one("#status-body", Static).update(line)

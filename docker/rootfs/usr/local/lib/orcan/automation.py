@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,10 @@ from orcan.context_model_check import check_recap_model
 AUTOMATION_FILENAME = "automation.json"
 DEFAULT_MODEL = "haiku"
 MODEL_CHECK_MAX_AGE_SECONDS = 900
+# Set when we auto-disable because Claude Code is missing; cleared when
+# claude returns so we can turn automation back on without fighting a
+# deliberate human "off".
+AUTO_DISABLED_NO_CLAUDE = "auto_disabled_no_claude"
 
 
 def _now_iso() -> str:
@@ -79,11 +84,49 @@ def is_paused() -> bool:
 
 
 def is_active() -> bool:
-    """True when background scan/sync may run (enabled and not paused)."""
+    """True when background scan/sync may run (enabled, not paused, claude OK)."""
     state = load_automation()
     if not state.get("enabled", True):
         return False
-    return not bool(state.get("paused"))
+    if bool(state.get("paused")):
+        return False
+    # Soft gate: if we already know the model is missing, do not claim active.
+    if not claude_on_path():
+        return False
+    mc = state.get("model_check")
+    if isinstance(mc, dict) and mc.get("ok") is False:
+        return False
+    return True
+
+
+def claude_on_path() -> bool:
+    return shutil.which("claude") is not None
+
+
+def sync_automation_to_claude_availability() -> dict[str, Any]:
+    """Disable assertions automation when ``claude`` is missing; restore if we
+    were the ones who turned it off.
+
+    Manual Review of inbox/queue still works — only background propose/recap
+    needs Claude Code. Returns the (possibly updated) automation state.
+    """
+    state = load_automation()
+    if not claude_on_path():
+        if state.get("enabled", True) or not state.get(AUTO_DISABLED_NO_CLAUDE):
+            state["enabled"] = False
+            state["paused"] = False
+            state[AUTO_DISABLED_NO_CLAUDE] = True
+            state["updated_at"] = _now_iso()
+            return save_automation(state)
+        return state
+    # Claude is back — only re-enable if *we* auto-disabled earlier.
+    if state.get(AUTO_DISABLED_NO_CLAUDE):
+        state["enabled"] = True
+        state["paused"] = False
+        state.pop(AUTO_DISABLED_NO_CLAUDE, None)
+        state["updated_at"] = _now_iso()
+        return save_automation(state)
+    return state
 
 
 def set_paused(paused: bool) -> dict[str, Any]:
@@ -98,6 +141,8 @@ def set_enabled(enabled: bool) -> dict[str, Any]:
     state["enabled"] = bool(enabled)
     if not enabled:
         state["paused"] = False
+    # Human toggle overrides auto-disable bookkeeping.
+    state.pop(AUTO_DISABLED_NO_CLAUDE, None)
     state["updated_at"] = _now_iso()
     return save_automation(state)
 
@@ -158,12 +203,18 @@ def status_lines() -> list[str]:
     state = load_automation()
     enabled = bool(state.get("enabled", True))
     paused = bool(state.get("paused"))
+    no_claude = bool(state.get(AUTO_DISABLED_NO_CLAUDE)) or not claude_on_path()
     # \[ escapes the literal bracket for this function's one real consumer,
     # cockpit/activity.py, which splices these lines into a Rich-markup
     # Static — unescaped, [o]/[p] parse as (unclosed) style tags and the
     # bracketed letters silently vanish from the rendered line. Confirmed
     # with rich.text.Text.from_markup()/Console.print().
-    if not enabled:
+    if no_claude and not enabled:
+        lines = [
+            "automation: off — claude not on PATH "
+            "(assertions auto-propose disabled; Review still works for inbox)"
+        ]
+    elif not enabled:
         lines = [r"automation: off  \[o] turn on"]
     elif paused:
         lines = [r"automation: paused  \[p] resume  \[o] turn off"]

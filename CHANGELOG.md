@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Assertion loop smoke test** (`test_assertion_loop_smoke`): inbox accept →
+  compile → fact appears in `CONTEXT-ASSERTIONS.md` (the real human-gated
+  path; preview busy fixtures are not this loop).
+- **Reflection batch feedback** on the ASSERTIONS card (`last batch: N facts ·
+  age · haiku ok/fail`) plus first-run tips (F5 / Ctrl+P / Review), Peek→Review
+  (Enter), throttled dirty-repo scans (30s), cross-workspace pending in the
+  Problems tooltip, and max-3 hint strip. Preview busy fixtures use realistic
+  fact-style notes (port 8000, uv, …) instead of “Dense fixture row N”.
+- **IDE-style cockpit chrome:** aggregated Problems badge on 🔔 (pending +
+  reflection errors + dirty repos), status-bar breadcrumb (`wN › cmd`), F5
+  Peek (brief + next pending), Ctrl+P actions (split, URL pick, pin/focus
+  main agent, task templates `claude`/`review`/`lazygit`), ASSERTIONS panel
+  agents list + recent decisions timeline; review shows pack preview +
+  `scope:` chip.
 - **Live tmux pane labels** (`pane-label.sh`): border strip + window tab follow
   the live process (`claude`, `review`, …) via command/cmdline heuristics —
   Review no longer pins `select-pane -T review`.
@@ -33,8 +47,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   window title. Favicon is compiled into the ttyd binary at its own build
   time — no runtime override exists, left as a separate, bigger decision.
 
+### Changed
+
+- **Preview installs Claude by default** (`INSTALL_CLAUDE=${ORCAN_PREVIEW_INSTALL_CLAUDE:-1}`).
+  Without `claude` on PATH, assertions **automation** auto-disables (recap/reflect
+  idle; cockpit Pause/Turn off greyed); manual **Review** of inbox still works.
+  `make dev-reset` / `orcan-preview reset` also clears the cockpit first-run tip.
+
 ### Fixed
 
+- **Embedded tmux `clear` leaving stale text on screen:** pyte 0.8.2 has no
+  implementation of CSI `S`/`T` (Scroll Up/Down Region) at all — silently a
+  no-op — but tmux sends exactly that as a redraw-efficiency shortcut after a
+  shell `clear` (set scroll region, `Ps S`, restore region) instead of a full
+  erase+repaint. The cursor visibly moved but the buffer never actually
+  scrolled/cleared. Fixed in `pty_links.py`'s existing `HyperlinkScreen`/
+  `Stream` subclassing (same place OSC 8 hyperlink tracking lives): added
+  `scroll_up_region`/`scroll_down_region` (unconditional on cursor position,
+  mirroring pyte's own `delete_lines` buffer-shift idiom) and a
+  `ScrollAwareStream` that wires CSI `S`/`T` to them. Verified with a real
+  `tmux attach` PTY session, not just a unit test.
+- **`orcan-context-review` UI:** each candidate shows an explicit NOTE block
+  (Title / Body) and prompt „Accept this note into project context?” so it is
+  obvious what text would become lasting context — not buried under metadata.
+- **`orcan-context-review` duplicate check:** when `claude` is missing from
+  PATH (common in lean preview images), skip with a clear message instead of
+  `[Errno 2] No such file or directory: 'claude'`. Review itself still runs;
+  use `--no-check` to silence the warning.
 - **`pty_tmux_nav.py` matched docs:** Ctrl/Alt+arrows focus; Ctrl+Shift+arrows
   split (code had briefly kept Ctrl=split from conf, contradicting
   `BROWSER_KEY_LIMIT` / Terminal UI nav mix).
@@ -57,6 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Agent orientation: **F5** peek, 🔔 Problems, decisions timeline, first-run /
+  `reflection_feedback` modules in AGENTS/`llms`/`agents.mdc` and Terminal UI /
+  workflows key tables (EN+PL).
 - Agent orientation: **F1**/`?` = shortcuts only; **About** = click `🌀 orcan`
   (`about_modal.py`); session glance + pane labels called out in AGENTS/`llms`
   / Terminal UI / workflows (EN+PL).

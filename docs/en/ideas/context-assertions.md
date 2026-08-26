@@ -106,6 +106,11 @@ Still never auto-accepts. Still host-only (`$ORCAN_DATA/context` stays unmounted
 
 ## Batched, automated Reflection
 
+**Requires Claude Code (`claude` on PATH)** for auto-propose/recap (default
+model: haiku). If Claude is missing, background automation stays off —
+**Review** of pending inbox notes still works by hand. Preview busy-scenario
+fixtures are **UI scroll samples**, not reflection output from a live session.
+
 Reflection does not have to be triggered by a human noticing something — but firing a model call after *every single turn* is both wasteful and noisy. `orcan-context-reflect` batches instead: it is wired as a Claude Code `Stop` hook that is **on by default** — `orcan sync` (`apply-config.py`) seeds it into that **workspace's generated root** `.claude/settings.json` the first time a workspace is synced (a merge, not an overwrite). Opting out is what's configurable: `orcan context hook disable [WORKSPACE ...] [--all]` (host) removes it, and because sync only ever seeds a workspace whose `.claude/settings.json` doesn't exist yet, that choice sticks across every later sync — `orcan context hook enable`/`status` check/restore it the same way. It lives at the workspace root — not inside any project checkout — because that is where Claude Code sessions actually launch (tmux windows always start there; see `cursor-tmux-workspace-attach`) and therefore the only place a `Stop` hook can be loaded from. The hook fires after every completed turn, but does almost nothing on most of them:
 
 **Filesystem scanner (Claude + Cursor) — preferred unified path.** Agent hooks are not required. `orcan-context-scan` discovers transcripts on disk and runs a **cascading recap** via `orcan-context-recap` (default; set `ORCAN_CONTEXT_DRIVER=reflect` for the legacy one-shot reflect path):

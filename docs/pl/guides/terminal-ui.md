@@ -216,7 +216,16 @@ Pod listą workspace’ów **session glance** (`session_glance.py`) pokazuje do
 trzech linii dla podświetlonego wiersza: pending **z wiekiem**
 (`2 pending · 3h`), licznik worktree / idle sesji albo wiek briefu
 (`2 wt · idle 40m`, albo `brief 2h` gdy nie live) oraz komendy live pane’ów
-(`tmux list-panes`). Empty / attach używa wordmarku
+(`tmux list-panes`). Karta ASSERTIONS pokazuje też **agents** (pin ★), krótką
+oś **recent decisions**, a badge 🔔 to zagregowane **Problems** (pending +
+błędy reflection + dirty repo). **F5** = peek briefu / następnej notki bez
+splitu; **Ctrl+P** = split / URL / pin-main / szablony zadań. Pasek statusu
+(full) dokłada breadcrumb tmux (`wN › command`). Karta ASSERTIONS pokazuje też
+**last batch** (feedback z recap/reflection). **F5** + **Enter** = Peek→Review;
+pierwsze uruchomienie = krótki onboarding. **Busy fixtures w preview** to
+**atrapy UI** (np. port 8000), nie wynik reflection z żywej sesji. Bez Claude
+Code na PATH automation assertions jest **wyłączone**; **Review** pending
+nadal działa. Empty / attach używa wordmarku
 (`🌀 orcan` / `🌀 attaching name`) zamiast gołego spinnera. ASSERTIONS są na
 dole lewej kolumny (`activity.py`) z podtytułem, przyciskami Review /
 Pause / Turn off i linkiem do docs. Klik 🔔 w status-barze (lub w rail)
@@ -245,6 +254,7 @@ skrótu Git / F3 w cockpicie — w terminalu: alias **`lg`** (lazygit).
 | **F4** / ‹› | Przełącz kolumnę workspace’ów |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — `about_modal.py` |
+| **F5** | Peek briefu / następnej pending; **Enter** / **r** → Review |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |
 | **i** | Rozwiń/zwiń szczegóły workspace (fokus na liście) |
 | **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |
