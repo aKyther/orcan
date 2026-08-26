@@ -68,6 +68,45 @@ class PlainUrlAtTests(unittest.TestCase):
         self.assertEqual(hrefs[4], "https://example.com")
 
 
+class ScreenLookupTests(unittest.TestCase):
+    class _Cell:
+        def __init__(self, data: str) -> None:
+            self.data = data
+
+    class _Screen:
+        lines = 2
+        columns = 24
+
+        def __init__(self, text: str, href: str | None = None) -> None:
+            padded = text.ljust(self.columns)
+            self.buffer = {
+                0: [ScreenLookupTests._Cell(char) for char in padded],
+                1: [ScreenLookupTests._Cell(" ") for _ in range(self.columns)],
+            }
+            self.href = href
+
+        def link_at(self, column: int, row: int) -> str | None:
+            return self.href if row == 0 and column == 5 else None
+
+    def test_line_from_screen_is_safe_outside_visible_rows(self) -> None:
+        screen = self._Screen("hello")
+        self.assertEqual(links.line_from_screen(screen, -1), "")
+        self.assertEqual(links.line_from_screen(screen, 2), "")
+        self.assertTrue(links.line_from_screen(screen, 0).startswith("hello"))
+
+    def test_osc8_link_wins_over_plain_url_fallback(self) -> None:
+        screen = self._Screen("go https://plain.example", "https://osc.example")
+        self.assertEqual(links.url_at_screen(screen, 5, 0), "https://osc.example")
+
+    def test_plain_url_lookup_uses_screen_text_when_no_osc8_link(self) -> None:
+        screen = self._Screen("go https://plain.example")
+        self.assertEqual(
+            links.url_at_screen(screen, 8, 0),
+            "https://plain.example",
+        )
+        self.assertIsNone(links.url_at_screen(screen, 0, 1))
+
+
 class OpenUrlTests(unittest.TestCase):
     def test_rejects_non_http(self) -> None:
         self.assertFalse(links.open_url("javascript:alert(1)"))

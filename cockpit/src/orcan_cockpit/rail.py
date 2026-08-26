@@ -38,6 +38,7 @@ _TOOLTIP = {
     "project, awaiting your review",
     "shortcuts": "Keyboard shortcuts (app + tmux)",
 }
+_PULSE_INTERVAL_S = 0.85
 
 
 class UtilityRail(Widget):
@@ -59,6 +60,7 @@ class UtilityRail(Widget):
 
     def on_mount(self) -> None:
         self._refresh_labels()
+        self.set_interval(_PULSE_INTERVAL_S, self._pulse_tick)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         event.stop()
@@ -69,10 +71,21 @@ class UtilityRail(Widget):
     def set_pending_count(self, count: int) -> None:
         self._pending_count = count
         self._refresh_labels()
+        if not count:
+            self.query_one("#rail-assertions", Button).remove_class("pending-pulse")
 
     def set_tier(self, tier: str) -> None:
         self._tier = tier
         self._refresh_labels()
+
+    def _pulse_tick(self) -> None:
+        # Amber blink when something awaits review — catchy without a second
+        # status surface. Off when pending is zero.
+        btn = self.query_one("#rail-assertions", Button)
+        if self._pending_count <= 0:
+            btn.remove_class("pending-pulse")
+            return
+        btn.toggle_class("pending-pulse")
 
     def _refresh_labels(self) -> None:
         wide = self._tier == "full"

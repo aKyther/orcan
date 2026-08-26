@@ -206,6 +206,7 @@ require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
 require_file "docker/rootfs/etc/tmux/scripts/status-right.sh"
 require_file "docker/rootfs/etc/tmux/scripts/pane-border-right.sh"
+require_file "docker/rootfs/etc/tmux/scripts/pane-label.sh"
 require_file "docker/rootfs/etc/tmux/scripts/ai-usage.sh"
 require_file "docker/rootfs/etc/skel/.tmux.conf"
 require_file "docker/rootfs/etc/skel/.vimrc"
@@ -240,6 +241,7 @@ bash_scripts=(
     docker/rootfs/etc/tmux/scripts/status-left.sh
     docker/rootfs/etc/tmux/scripts/status-right.sh
     docker/rootfs/etc/tmux/scripts/pane-border-right.sh
+    docker/rootfs/etc/tmux/scripts/pane-label.sh
     docker/rootfs/etc/tmux/scripts/window-name.sh
     docker/rootfs/etc/tmux/scripts/copy-path.sh
     docker/rootfs/etc/tmux/scripts/session-switch.sh

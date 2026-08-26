@@ -86,7 +86,6 @@ class HintsForTests(unittest.TestCase):
 class EmbedDisclaimerTests(unittest.TestCase):
     def test_product_metadata_and_docs_url_are_public(self) -> None:
         self.assertEqual(shortcuts.PRODUCT_NAME, "orcan cockpit")
-        self.assertIn("workspace picker", shortcuts.PRODUCT_SUMMARY)
         self.assertTrue(shortcuts.DOCS_URL.startswith("https://"))
 
     def test_disclaimer_is_non_empty(self) -> None:

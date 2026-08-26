@@ -70,6 +70,7 @@ Presety w `cursor-ttyd`:
 ## tmux (3.6a)
 
 - Jeden rząd statusu: wyśrodkowane taby okien — workspace/metryki są w górnym/dolnym pasku cockpit (surowy `tmux attach` / `orcan enter --tmux` poza cockpit nie pokaże CPU/RAM/branch)
+- **Żywe etykiety pane’ów** (`scripts/pane-label.sh`): pasek bordera i tab okna (`automatic-rename`) idą za procesem — np. `claude`, `review` (`orcan-context-review` w cmdline), bez pinowanego `select-pane -T`. Odświeżanie = `status-interval` (5s).
 - Feature’y za `%if #{>=:#{version},…}` — starszy serwer nadal może przeładować config
 - Edytuj pliki obrazu w **repo**, nie tylko w działającym kontenerze
 - Prefix: **C-Space** (nie `C-b`). Config: `docker/rootfs/etc/tmux/keybindings.conf`
@@ -200,24 +201,31 @@ Browser ttyd (`cursor-ttyd`) ustawia **`macOptionIsMeta=true`**, żeby na macOS 
 ### Chrome cockpitu (warstwa app)
 
 ```text
-górny pasek:  ◆ orcan  ·  rail (🔔 ?)  ·  CPU / RAM / zegar (prawo)
-główny rząd:  workspaces (+ legenda) + ASSERTIONS  |  terminal + pasek hintów
+górny pasek:  🌀 orcan  ·  rail (🔔 pulse gdy pending · ?)  ·  CPU / RAM / zegar
+główny rząd:  workspaces (+ glance + legenda) + ASSERTIONS  |  terminal + hinty
               przełącznik ‹› (F4) między kolumnami
 dół:          pasek statusu (workspace · branch · tmux · pending) — klik 🔔 → ASSERTIONS
 ```
 
-Górny pasek zaczyna się od stałego wordmarku **`◆ orcan`** (`top_bar.py`), potem
+Górny pasek zaczyna się od stałego wordmarku **`🌀 orcan`** (`top_bar.py`), potem
 utility rail (🔔 / ? — same ikony w compact/minimal; **ikona + słowo** w
-tierze `full`), potem metryki (`💻` load · `🧠` mem · zegar). Przełącznik
-workspace’ów to **‹›** na krawędzi (`#sidebar-toggle`) + **F4**. ASSERTIONS
-są na dole lewej kolumny (`activity.py`) z podtytułem, przyciskami Review /
+tierze `full`), potem metryki (`💻` load · `🧠` mem · zegar). Gdy są pending
+Context Assertions, dzwonek w rail **pulsuje bursztynowo** (`pending-pulse`).
+Przełącznik workspace’ów to **‹›** na krawędzi (`#sidebar-toggle`) + **F4**.
+Pod listą workspace’ów **session glance** (`session_glance.py`) pokazuje do
+trzech linii dla podświetlonego wiersza: pending **z wiekiem**
+(`2 pending · 3h`), licznik worktree / idle sesji albo wiek briefu
+(`2 wt · idle 40m`, albo `brief 2h` gdy nie live) oraz komendy live pane’ów
+(`tmux list-panes`). Empty / attach używa wordmarku
+(`🌀 orcan` / `🌀 attaching name`) zamiast gołego spinnera. ASSERTIONS są na
+dole lewej kolumny (`activity.py`) z podtytułem, przyciskami Review /
 Pause / Turn off i linkiem do docs. Klik 🔔 w status-barze (lub w rail)
 odsłania i fokusuje ASSERTIONS. Legenda listy:
 `● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** przełącza drugi wiersz
 (ścieżka root + nazwy repo). SoT klawiszy: `cockpit/…/shortcuts.py`. Overlay
-**F1** / **?** ma blok **About** (nazwa, wersja, link do docs) oraz stopkę
-embed ≠ native attach (`EMBED_DISCLAIMER`) i limit Alt-jako-Ctrl
-(`BROWSER_KEY_LIMIT` — zob. [Cockpit nav mix](#cockpit-nav-mix)). **Brak**
+**F1** / **?** to **tylko skróty** (stopka embed + `BROWSER_KEY_LIMIT` — zob.
+[Cockpit nav mix](#cockpit-nav-mix)). **About** (nazwa, wersja, docs) jest
+osobnym ekranem (`about_modal.py`) — klik wordmarku **`🌀 orcan`**. **Brak**
 skrótu Git / F3 w cockpicie — w terminalu: alias **`lg`** (lazygit).
 
 **Progi szerokości** (kolumny terminala, nie breakpointy CSS — `status.py` /
@@ -235,7 +243,8 @@ skrótu Git / F3 w cockpicie — w terminalu: alias **`lg`** (lazygit).
 | --- | --- |
 | **F2** / rail 🔔 | Przełącz sekcję ASSERTIONS w lewej kolumnie |
 | **F4** / ‹› | Przełącz kolumnę workspace’ów |
-| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów + About. Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
+| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
+| **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — `about_modal.py` |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |
 | **i** | Rozwiń/zwiń szczegóły workspace (fokus na liście) |
 | **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |

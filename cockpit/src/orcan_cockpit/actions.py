@@ -47,21 +47,15 @@ def context_review_popup_command(session: str) -> list[str]:
     ]
 
 
-def context_review_title_command(pane_id: str) -> list[str]:
-    return ["tmux", "select-pane", "-t", pane_id, "-T", "review"]
-
-
 def run_context_review_popup(session: str) -> subprocess.CompletedProcess:
-    result = subprocess.run(
+    # Pane border / window tab pick up "review" via pane-label.sh (cmdline
+    # contains orcan-context-review) — do not pin select-pane -T.
+    return subprocess.run(
         context_review_popup_command(session),
         check=False,
         capture_output=True,
         text=True,
     )
-    pane_id = (result.stdout or "").strip()
-    if result.returncode == 0 and pane_id.startswith("%"):
-        subprocess.run(context_review_title_command(pane_id), check=False)
-    return result
 
 
 def toggle_automation_pause() -> dict:

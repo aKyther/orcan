@@ -61,7 +61,7 @@ Preferuj live reconcile przez `orcan sync`, gdy to możliwe; recreate gdy wymaga
 | --- | --- |
 | UX hosta / cele | `Makefile`, `scripts/repository/` |
 | Izolowany preview UX / tmux | `make dev-*` / `scripts/dev/` — [Testy](../development/testing.md) |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `about_modal.py`, `activity.py`, `session_glance.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`) |
 | Recap sesji | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` |
 | Probe modelu recap | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
 | Store Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` |

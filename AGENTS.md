@@ -39,7 +39,7 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 | **Config** | JSON only: `orcan.config.json` under **`ORCAN_HOME`** (default `~/.config/orcan/`). Tool data / history: **`ORCAN_DATA`** (same default root; see `orcan help`) |
 | **Ritual** | `orcan init` → `orcan sync` → `orcan build` (when needed) → `orcan up` (**up does not sync**) |
 | **Runtime** | `orcan enter` → cockpit (`agent-launcher`) → tmux 3.6a → zsh; CMD = `orcan-supervisord` (keepalive\|ttyd + `context-scan`/`recap`) |
-| **Cockpit** | Top: `◆ orcan` + 🔔/? + metrics · Left: workspaces + ASSERTIONS · Center: tmux · Bottom: status. Keys: **F2** assertions · **F4**/‹› workspaces · **F1** help+About (**?** outside terminal) · **`i`** expand · **`r`** / **`p`** / **`o`** automation · **`lg`** = lazygit (no F3) |
+| **Cockpit** | Top: `🌀 orcan` (click = **About**) + 🔔/? + metrics · Left: workspaces + session glance + ASSERTIONS · Center: tmux · Bottom: status. Keys: **F2** assertions · **F4**/‹› workspaces · **F1**/? shortcuts only (**?** outside terminal) · **`i`** expand · **`r`** / **`p`** / **`o`** automation · **`lg`** = lazygit (no F3) |
 | **UX preview** | `make dev-*` / `scripts/dev/` → isolated `orcan:dev-ux` — **never** the user’s `orcan:latest` |
 | **Image ≠ repo rules** | Image defaults: `docker/rootfs/` (+ `opt/cursor-defaults/`). Repo rules: `.cursor/rules/` + this file |
 | **Done** | Surgical diff; EN+PL docs if behaviour changed; `make validate` · `test-host` · `docs-check`; UX → `dev-checklist` |
@@ -122,7 +122,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Developer UX environment | `scripts/dev/`, `make dev-*` |
 | Image filesystem / binaries | `docker/rootfs/` |
 | Image packages / agents | `Dockerfile` |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`, `pty_mouse.py`) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `about_modal.py`, `activity.py`, `session_glance.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`, `pty_mouse.py`) |
 | Session recap | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` (`ORCAN_CONTEXT_DRIVER`) |
 | Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
 | Automation control | `docker/rootfs/usr/local/lib/orcan/automation.py`, `$ORCAN_DATA/history/supervisor/automation.json` |
