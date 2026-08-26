@@ -110,6 +110,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ttyd font size default was inconsistent across 7 places.** The default
+  (19px) was lowered to 14px in `cursor-ttyd` alone, which only affects a
+  container with no `TTYD_FONT_SIZE` already set anywhere — `.env.example`,
+  `docker-compose.ttyd.yml`, the dev-preview fixture generator
+  (`scripts/dev/orcan-preview`), and all three config-wizard/apply-config
+  code paths still seeded/defaulted to 19, and `apply-config.py`'s
+  `ensure_env_key_unless_set` never overwrites a `TTYD_FONT_SIZE` a `.env`
+  already has — so an existing `.env` (main or `.orcan-dev-ux/home/.env`)
+  keeps its old value through any `dev-restart`/rebuild regardless of the
+  source default. All 7 defaults now agree at 14px; an existing `.env` with
+  the old value still needs a manual edit (or `dev-reset` for the disposable
+  preview env) since that's by design (host-specific overrides survive).
 - **change-map** (EN/PL): automation control path is
   `docker/rootfs/usr/local/lib/orcan/automation.py` (was a non-existent
   `orcan/automation.py`).

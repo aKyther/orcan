@@ -173,7 +173,7 @@ config = {
     "tmux": {"initial_windows": 3, "window_prefix": "preview"},
     "ttyd": {
         "port": 7681, "host_port": int(port), "bind": bind,
-        "font_size": 19, "theme": "dark", "ping_interval": 20,
+        "font_size": 14, "theme": "dark", "ping_interval": 20,
     },
     "resources": {"cpus": 2, "memory": "4g", "shm_size": "512m", "tmpfs_size": "512m"},
 }

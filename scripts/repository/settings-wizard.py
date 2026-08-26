@@ -35,7 +35,7 @@ DEFAULT_TTYD = {
     "port": 7681,
     "host_port": 7681,
     "bind": "0.0.0.0",
-    "font_size": 19,
+    "font_size": 14,
     "font_family": "Menlo, Monaco, 'Courier New', monospace",
     "theme": "dark",
     "ping_interval": 20,
@@ -85,7 +85,7 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
             warn("unusual bind address — keeping it; prefer 127.0.0.1 or 0.0.0.0")
     if bind in ("0.0.0.0", "::"):
         warn("binding all interfaces — set TTYD_CREDENTIAL=user:pass in .env for basic auth")
-    font = ask("ttyd font size", str(current.get("font_size", 19)))
+    font = ask("ttyd font size", str(current.get("font_size", 14)))
     try:
         cfg["ttyd"] = {
             "port": int(port),
