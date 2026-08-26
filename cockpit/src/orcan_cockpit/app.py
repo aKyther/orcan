@@ -121,12 +121,24 @@ Screen {
        orient on. The active workspace name is already shown in the bottom
        status bar (StatusBar.set_workspace) so it isn't repeated here; a
        fixed wordmark avoids wiring a second, redundant data path for the
-       same fact. */
+       same fact. Also doubles as an About/shortcuts entry point (click —
+       see MainScreen.on_click) since "click the app name" is a common
+       enough convention to be worth the free real estate. */
     width: auto;
     height: 1;
     margin-right: 2;
-    color: #5eead4;
+    /* Violet, not cyan: cyan is reserved for keyboard-focus state
+       exclusively now (see the .focused rules below) — reusing it here
+       too was flagged in review as "everything is the same color".
+       Violet already exists in the product's own ANSI palette
+       (cursor-ttyd's theme JSON, magenta), reused rather than inventing
+       a new hex. */
+    color: #a78bfa;
     text-style: bold;
+}
+
+#top-bar-identity:hover {
+    background: #1e293b;
 }
 
 #rail {
@@ -228,7 +240,9 @@ Screen {
 }
 
 .activity-heading {
-    color: #5eead4;
+    /* Violet — same "static landmark, not focus state" role as
+       #top-bar-identity above. */
+    color: #a78bfa;
     text-style: bold;
 }
 
@@ -256,7 +270,9 @@ Screen {
     height: 1;
     border: none;
     background: #1e293b;
-    color: #5eead4;
+    /* Violet — same "static landmark" role as .activity-heading; cyan
+       stays reserved for the card's own .focused border. */
+    color: #a78bfa;
     content-align: center middle;
 }
 
@@ -363,10 +379,6 @@ Screen {
     padding: 0 1;
 }
 
-#status-body:hover {
-    background: #1e293b;
-}
-
 #sidebar-toggle {
     /* Persistent edge-of-panel toggle (chevron) — lives outside
        #workspaces so it's still visible/clickable when that column is
@@ -457,14 +469,15 @@ class MainScreen(Screen):
         if event.widget is not None and event.widget.id == "sidebar-toggle":
             event.stop()
             self.action_toggle_workspaces()
-        elif event.widget is not None and event.widget.id == "status-body":
-            # The status bar shows the same 🔔 N the rail button does — it
-            # looked clickable without being clickable, which reads as
-            # broken rather than glance-only. Made real instead of just
-            # explained away in a tooltip: same destination as the rail's
-            # bell (see _reveal_assertions).
+        elif event.widget is not None and event.widget.id == "top-bar-identity":
+            # The wordmark as an About/shortcuts entry point — same
+            # destination as F1/the rail's "? Help" button, just a second,
+            # more discoverable way in (flagged as missing from the top bar
+            # in review). No second bell here anymore — see status.py: the
+            # bottom bar's own 🔔 was a duplicate of the rail's and got
+            # dropped rather than kept as a second click target.
             event.stop()
-            self._reveal_assertions()
+            self.action_open_shortcuts()
 
     def on_mount(self) -> None:
         # Nothing's attached yet — start with the workspace list focused so
@@ -529,7 +542,13 @@ class MainScreen(Screen):
             return
 
         self._current_session = row["session"]
-        center.mount(PtyTerminal(["tmux", "attach", "-t", f"={row['session']}"], id="terminal"))
+        center.mount(
+            PtyTerminal(
+                ["tmux", "attach", "-t", f"={row['session']}"],
+                session=row["session"],
+                id="terminal",
+            )
+        )
         self.query_one("#workspace-list-widget", WorkspaceList).set_active_session(row["session"])
         self.query_one(WorkspaceActivity).set_workspace(row["root"], row["session"])
         self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])

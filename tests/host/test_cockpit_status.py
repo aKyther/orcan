@@ -66,37 +66,34 @@ class ProcReadsTests(unittest.TestCase):
 
 
 class FormatStatusLineTests(unittest.TestCase):
-    """CPU/RAM/clock moved to the top bar (format_top_bar_right, below) —
-    the bottom bar is workspace-identity only now."""
+    """CPU/RAM/clock live in the top bar (format_top_bar_right, below) and
+    the pending-assertions 🔔 lives in the rail exclusively (rail.py) — the
+    bottom bar is workspace/branch/session identity only, no duplicate bell."""
 
-    def test_full_tier_includes_every_field(self) -> None:
+    def test_full_tier_includes_branch_and_session(self) -> None:
         line = status.format_status_line(
-            tier="full", workspace="orcan", branch="main", session="orcan-dev", pending=3,
+            tier="full", workspace="orcan", branch="main", session="orcan-dev",
         )
-        for expected in ("orcan", "main", "orcan-dev", "3"):
+        for expected in ("orcan", "main", "orcan-dev"):
             self.assertIn(expected, line)
 
     def test_compact_tier_drops_branch_and_session(self) -> None:
         line = status.format_status_line(
-            tier="compact", workspace="orcan", branch="main", session="orcan-dev", pending=3,
+            tier="compact", workspace="orcan", branch="main", session="orcan-dev",
         )
         self.assertIn("orcan", line)
-        self.assertIn("3", line)
         self.assertNotIn("main", line)
         self.assertNotIn("orcan-dev", line)
 
-    def test_minimal_tier_is_workspace_and_pending_only(self) -> None:
+    def test_minimal_tier_is_workspace_only(self) -> None:
         line = status.format_status_line(
-            tier="minimal", workspace="orcan", branch="main", session="orcan-dev", pending=3,
+            tier="minimal", workspace="orcan", branch="main", session="orcan-dev",
         )
-        self.assertIn("orcan", line)
-        self.assertIn("3", line)
-        for unexpected in ("main", "orcan-dev"):
-            self.assertNotIn(unexpected, line)
+        self.assertEqual(line, "orcan")
 
     def test_missing_workspace_has_a_placeholder(self) -> None:
         line = status.format_status_line(
-            tier="full", workspace=None, branch="", session=None, pending=0,
+            tier="full", workspace=None, branch="", session=None,
         )
         self.assertIn("(no workspace)", line)
 

@@ -28,6 +28,12 @@ Touch only what you must. Don't drive-by refactor. Match existing style. Clean u
 
 Define verifiable success criteria and loop until checked (tests, `make`, lint). Prefer "make X pass" over "make it work".
 
+## When stuck
+
+- Don't assume something is broken — check logs/output first.
+- Fix one root cause at a time; don't guess-fix in a loop.
+- Genuinely blocked? Say so and ask — don't silently pick an interpretation.
+
 ## Setup
 
 ```bash
@@ -57,6 +63,7 @@ uvx ruff check .
 - Do not commit secrets or `.env` files.
 - Respect `.cursorignore` / `.claudeignore` when present; do not read secrets.
 - Run available checks before claiming success; label what you did not run.
+- This runs in a container (Docker-from-Docker) — host tools/paths outside the mounted project may not exist. Ask rather than assume.
 
 ## Do not
 
@@ -64,3 +71,4 @@ uvx ruff check .
 - Run destructive Docker cleanup without approval.
 - Overwrite user configuration without approval.
 - Invent tools or commands that are not in the environment.
+- Force-push, `git reset --hard`, or rewrite history without approval.

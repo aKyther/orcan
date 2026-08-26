@@ -88,7 +88,7 @@ class WorkspaceActivity(Widget):
         with Horizontal(id="activity-actions"):
             yield Button(
                 "Review", id="activity-review-btn",
-                tooltip="Open the pending assertions in lazygit-style review (tmux popup)",
+                tooltip="Open the pending assertions in a dedicated tmux pane (title: review)",
             )
             # Pause/Turn-off tooltips are state-dependent (e.g. explaining
             # *why* Pause is greyed out) — set in _refresh_automation_buttons
@@ -159,7 +159,9 @@ class WorkspaceActivity(Widget):
         reflection = reflection_status(self.workspace_root)
         count = summary["count"]
         review_btn = self.query_one("#activity-review-btn", Button)
-        review_btn.label = f"Review ({count})" if count else "Review"
+        # Amber for the count — same "pending = attention" color as the
+        # rail's bell badge (rail.py), so the two don't disagree.
+        review_btn.label = f"Review ([#fbbf24]{count}[/])" if count else "Review"
         review_btn.disabled = self.session is None
         lines = [
             f"{count} pending" + (f" (oldest {age})" if age else ""),

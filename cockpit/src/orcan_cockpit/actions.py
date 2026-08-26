@@ -3,11 +3,11 @@
 Deliberately stdlib-only (no Textual/pyte import) so it stays directly
 unit-testable on the host, same convention as orcan.context_inbox.
 
-Every action here is dispatched as a separate `tmux display-popup` against
-the control plane — NEVER by writing into the embedded PtyTerminal's master
-fd. That fd belongs to whatever's live in the attached pane; injecting
-synthetic keystrokes into it would be fragile (depends on what's currently
-running there) and is exactly what the user asked this cockpit not to do.
+Every action here is dispatched as tmux control-plane commands — NEVER by
+writing into the embedded PtyTerminal's master fd. That fd belongs to
+whatever's live in the attached pane; injecting synthetic keystrokes into it
+would be fragile (depends on what's currently running there) and is exactly
+what the user asked this cockpit not to do.
 
 Context automation toggles flip JSON flags on the history bind (see
 orcan.automation) — no tmux popup needed.
@@ -36,20 +36,32 @@ from orcan.automation import is_enabled, is_paused, status_lines, toggle_enabled
 def context_review_popup_command(session: str) -> list[str]:
     return [
         "tmux",
-        "display-popup",
+        "split-window",
+        "-v",
+        "-P",
+        "-F",
+        "#{pane_id}",
         "-t",
-        f"={session}",
-        "-E",
-        "-w",
-        "80%",
-        "-h",
-        "80%",
+        f"={session}:",
         REVIEW_COMMAND,
     ]
 
 
+def context_review_title_command(pane_id: str) -> list[str]:
+    return ["tmux", "select-pane", "-t", pane_id, "-T", "review"]
+
+
 def run_context_review_popup(session: str) -> subprocess.CompletedProcess:
-    return subprocess.run(context_review_popup_command(session), check=False)
+    result = subprocess.run(
+        context_review_popup_command(session),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    pane_id = (result.stdout or "").strip()
+    if result.returncode == 0 and pane_id.startswith("%"):
+        subprocess.run(context_review_title_command(pane_id), check=False)
+    return result
 
 
 def toggle_automation_pause() -> dict:
