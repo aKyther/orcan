@@ -668,7 +668,7 @@ def create_fresh() -> dict[str, Any]:
     cfg["ttyd"] = {
         "port": 7681,
         "host_port": 7681,
-        "font_size": 19,
+        "font_size": 14,
         "font_family": "Menlo, Monaco, 'Courier New', monospace",
         "theme": "dark",
         "ping_interval": 20,
