@@ -161,40 +161,32 @@ class ContextReviewPopupCommandTests(unittest.TestCase):
         cmd = actions.context_review_popup_command("s")
         self.assertTrue(any("orcan-context-review" in part for part in cmd))
 
-    def test_review_title_command_uses_review_title(self) -> None:
-        cmd = actions.context_review_title_command("%42")
-        self.assertEqual(cmd, ["tmux", "select-pane", "-t", "%42", "-T", "review"])
-
-    def test_run_context_review_popup_splits_and_titles_pane(self) -> None:
+    def test_run_context_review_popup_splits_without_title_pin(self) -> None:
         from unittest import mock
 
         with mock.patch.object(actions.subprocess, "run") as run:
-            run.side_effect = [
-                subprocess.CompletedProcess(
-                    args=["tmux"],
-                    returncode=0,
-                    stdout="%42\n",
-                    stderr="",
-                ),
-                subprocess.CompletedProcess(args=["tmux"], returncode=0),
-            ]
+            run.return_value = subprocess.CompletedProcess(
+                args=["tmux"],
+                returncode=0,
+                stdout="%42\n",
+                stderr="",
+            )
             actions.run_context_review_popup("s")
-        self.assertEqual(run.call_count, 2)
+        run.assert_called_once()
         first = run.call_args_list[0]
-        second = run.call_args_list[1]
         self.assertIn("split-window", first.args[0])
         self.assertEqual(first.kwargs.get("capture_output"), True)
         self.assertEqual(first.kwargs.get("text"), True)
-        self.assertEqual(second.args[0], ["tmux", "select-pane", "-t", "%42", "-T", "review"])
+        self.assertFalse(hasattr(actions, "context_review_title_command"))
 
-    def test_run_context_review_popup_skips_title_when_split_fails(self) -> None:
+    def test_run_context_review_popup_returns_failed_split(self) -> None:
         from unittest import mock
 
         with mock.patch.object(actions.subprocess, "run") as run:
             run.return_value = subprocess.CompletedProcess(args=["tmux"], returncode=1, stdout="", stderr="boom")
-            actions.run_context_review_popup("s")
+            result = actions.run_context_review_popup("s")
         run.assert_called_once()
-
+        self.assertEqual(result.returncode, 1)
 
 class AutomationPauseActionTests(unittest.TestCase):
     def setUp(self) -> None:

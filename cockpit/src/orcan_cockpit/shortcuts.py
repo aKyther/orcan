@@ -47,17 +47,13 @@ BROWSER_KEY_LIMIT = (
     "ttyd/WT — see Terminal UI docs"
 )
 
-# Requested as an IDE-style "Help > About": what is this, what version, where
-# are the docs — shown alongside the shortcut list (same F1/? overlay and
-# standalone popup) since that's the one place a user already went looking
-# for orientation. Version comes from the installed distribution, not a
-# hardcoded string or a pyproject.toml parse, so it can't drift from what's
-# actually running.
+# Identity only — name, version, docs link. No functional/implementation
+# description here ("Textual TUI", "embedded pty", etc.): that's exactly the
+# kind of detail that belongs in docs, not repeated in the product's own UI
+# (flagged in review — a user opening About doesn't need to know how it's
+# built). Version comes from the installed distribution, not a hardcoded
+# string or a pyproject.toml parse, so it can't drift from what's running.
 PRODUCT_NAME = "orcan cockpit"
-PRODUCT_SUMMARY = (
-    "The Textual TUI behind `orcan enter`: a workspace picker with a live "
-    "tmux session embedded in its own pty."
-)
 DOCS_URL = "https://akyther.github.io/orcan/latest/"
 
 

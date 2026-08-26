@@ -40,7 +40,7 @@ docker exec -it orcan-1 agent-launcher
 
 Alias: `orcan go-in` (same as `enter`). Default container name is `orcan-1` (`ORCAN_INSTANCE`). Detach tmux with prefix + `d` — the session keeps running for ttyd and other clients.
 
-On a real tty, `agent-launcher` runs the **cockpit**: **top bar** (`◆ orcan` +
+On a real tty, `agent-launcher` runs the **cockpit**: **top bar** (`🌀 orcan` +
 utility rail 🔔/? + CPU/RAM/clock), **main row** — left column (workspace list with
 `●/○/▸` legend above, **ASSERTIONS** below) and center embedded `tmux attach` +
 hint strip — edge **‹›** + **F4** toggles the left column — and a **bottom status
@@ -53,7 +53,8 @@ shell alias **`lg`** inside the terminal (no cockpit F3).
 | --- | --- |
 | **F2** / rail 🔔 | Toggle left-column ASSERTIONS section (focuses it when shown) |
 | **F4** / ‹› | Toggle left workspaces column |
-| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts + About overlay (app + tmux; embed ≠ native attach). With terminal focused, use **F1** — **?** goes to the shell |
+| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, use **F1** — **?** goes to the shell |
+| **Click `🌀 orcan`** | About (name, version, docs) |
 | **Ctrl+P** | Command palette (when focus is not in the terminal) |
 | **i** | Expand/collapse workspace details — root + repos (list focused) |
 | **r** | Run `orcan-context-review` (ASSERTIONS section focused) |

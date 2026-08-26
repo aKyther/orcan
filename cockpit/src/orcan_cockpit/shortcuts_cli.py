@@ -16,7 +16,6 @@ from orcan_cockpit.shortcuts import (
     DOCS_URL,
     EMBED_DISCLAIMER,
     PRODUCT_NAME,
-    PRODUCT_SUMMARY,
     format_row,
     grouped_by_layer,
     product_version,
@@ -35,7 +34,6 @@ def render_plaintext() -> str:
         lines.append("  " + format_row(shortcut))
     lines.append("")
     lines.append(f"{PRODUCT_NAME} · v{product_version()}")
-    lines.append(PRODUCT_SUMMARY)
     # Plain text here, no Rich [link=] markup — this prints straight to
     # stdout in a tmux popup, not through Rich/Textual, so markup tags would
     # show up as literal brackets instead of a hyperlink.

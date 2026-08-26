@@ -22,8 +22,9 @@ from textual import events
 from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Container, Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import ListView, LoadingIndicator, Static
+from textual.widgets import ListView, Static
 
+from orcan_cockpit.about_modal import AboutModal
 from orcan_cockpit.activity import WorkspaceActivity
 from orcan_cockpit.actions import (
     run_context_review_popup,
@@ -41,7 +42,11 @@ from orcan_cockpit.status import Tier, tier_for_width
 from orcan_cockpit.status_bar import StatusBar
 from orcan_cockpit.top_bar import TopBar
 
-PLACEHOLDER_TEXT = "Select a workspace on the left to attach.\n\nPress F1 for keyboard shortcuts."
+PLACEHOLDER_TEXT = (
+    "[#a78bfa bold]🌀 orcan[/]\n"
+    "Pick a workspace on the left · Enter to attach\n"
+    "[#64748b]F1 shortcuts · F4 panels · F2 assertions[/]"
+)
 
 # Maps a focused widget's own id (walked up via .parent — covers any nested
 # descendant, e.g. the ListView inside WorkspaceList) to the hint-strip
@@ -121,9 +126,9 @@ Screen {
        orient on. The active workspace name is already shown in the bottom
        status bar (StatusBar.set_workspace) so it isn't repeated here; a
        fixed wordmark avoids wiring a second, redundant data path for the
-       same fact. Also doubles as an About/shortcuts entry point (click —
-       see MainScreen.on_click) since "click the app name" is a common
-       enough convention to be worth the free real estate. */
+       same fact. Also doubles as the About entry point (click — see
+       MainScreen.on_click, about_modal.py) since "click the app name" is
+       a common enough convention to be worth the free real estate. */
     width: auto;
     height: 1;
     margin-right: 2;
@@ -167,6 +172,13 @@ Screen {
     background: #1e293b;
 }
 
+/* Pending assertions pulse (UtilityRail._pulse_tick) — amber blink so the
+   bell is noticeable without a second status surface. */
+#rail-assertions.pending-pulse {
+    color: #fbbf24;
+    background: #1e293b;
+}
+
 #top-bar-spacer {
     width: 1fr;
     height: 1;
@@ -198,11 +210,16 @@ Screen {
 }
 
 #workspace-list-widget {
+    /* No margin-bottom (previously 1): the blank row it left between this
+       card and ASSERTIONS below read as unused space, not intentional
+       breathing room (flagged in review). Removing it hands that row back
+       to this card's own height:1fr — one more visible row in the actual
+       workspace list — instead of sitting empty as a gap. */
+    layout: vertical;
     height: 1fr;
     background: #0d1520;
     border: round #334155;
     padding: 0 1;
-    margin-bottom: 1;
 }
 
 #workspace-list-widget.focused {
@@ -210,11 +227,25 @@ Screen {
 }
 
 #workspaces ListView {
+    height: 1fr;
     background: transparent;
 }
 
+#workspace-glance {
+    /* Session glance under the highlighted workspace — 2–3 lines of
+       pending / reflection / pane commands (session_glance.py). */
+    height: auto;
+    max-height: 4;
+    color: #94a3b8;
+    padding-top: 1;
+}
+
 #workspace-legend {
-    height: 1;
+    /* height:2, not 1: the full legend text (44 cells) is wider than this
+       card's ~30-col usable width and was silently clipping "[i] expand"
+       off the end entirely — found while verifying the `i` expand feature
+       actually renders. Two lines fit both without truncation. */
+    height: 2;
     color: #64748b;
 }
 
@@ -342,27 +373,39 @@ Screen {
 }
 
 #loading {
+    /* Overlay until PtyTerminal.Ready — branded attach card, not a spinner. */
     layer: overlay;
     width: 1fr;
     height: 1fr;
-    color: #5eead4;
+    content-align: center middle;
+    color: #c8d3e0;
+    background: #0a0e17;
 }
 
 #hint-strip {
-    /* Bordered card, matching top-bar/side-panels/terminal — height:3 for
-       the same reason as #top-bar (border-top + content + border-bottom;
-       see that rule's comment for the box-model gotcha this avoids).
-       No margin-top (previously 1): unlike the two independent cards in
-       the left column, this strip is a caption FOR the terminal above it
-       (contextual hints for whatever has focus), not a separate section —
-       flagged as an unexplained gap in review. Removing it hands that row
-       back to #center-stack's height:1fr, i.e. the embedded terminal gets
-       one more real row instead of it sitting empty as background. width:
-       1fr is NOT a default — without it this card sizes to fit its own
-       text content instead of stretching to match #center-stack's width
-       above it, which is exactly why they looked misaligned/uneven. */
+    /* Bordered card, matching top-bar/side-panels/terminal (border-top +
+       content + border-bottom; see #top-bar's comment for the box-model
+       gotcha this avoids). height:auto (was a fixed 3) with a min/max
+       band: the hint text already wraps correctly inside #hint-body at
+       narrow widths (confirmed via Textual's own layout — content wants
+       up to 4 rows at 100 cols), but a fixed height:3 silently clipped
+       every row past the first, which read as "no wrapping" (flagged in
+       review) when it was actually wrapping into space that didn't exist.
+       max-height keeps a very narrow terminal from letting this strip eat
+       too much of the screen — content still simply clips past that,
+       same as before, just only in a genuinely extreme case now instead
+       of always. No margin-top (previously 1): this strip is a caption FOR
+       the terminal above it (contextual hints for whatever has focus), not
+       a separate section — flagged as an unexplained gap in review (the
+       left column's own inter-card gap got the same "unused space" call
+       and was removed too — see #workspace-list-widget). width: 1fr is
+       NOT a default — without it this card sizes to fit its own text
+       content instead of stretching to match #center-stack's width above
+       it, which is exactly why they looked misaligned/uneven. */
     width: 1fr;
-    height: 3;
+    height: auto;
+    min-height: 3;
+    max-height: 6;
     background: #0d1520;
     border: round #334155;
     color: #94a3b8;
@@ -470,14 +513,16 @@ class MainScreen(Screen):
             event.stop()
             self.action_toggle_workspaces()
         elif event.widget is not None and event.widget.id == "top-bar-identity":
-            # The wordmark as an About/shortcuts entry point — same
-            # destination as F1/the rail's "? Help" button, just a second,
-            # more discoverable way in (flagged as missing from the top bar
-            # in review). No second bell here anymore — see status.py: the
-            # bottom bar's own 🔔 was a duplicate of the rail's and got
-            # dropped rather than kept as a second click target.
+            # The wordmark as a dedicated About entry point — separate from
+            # F1/"? Help" (shortcuts), not a second way to reach the same
+            # thing: "what is this app" and "what are the keybindings" are
+            # different questions (flagged in review — About used to be
+            # bundled into the shortcuts modal). No second bell here
+            # anymore either — see status.py: the bottom bar's own 🔔 was a
+            # duplicate of the rail's and got dropped, not kept as a second
+            # click target.
             event.stop()
-            self.action_open_shortcuts()
+            self.app.push_screen(AboutModal())
 
     def on_mount(self) -> None:
         # Nothing's attached yet — start with the workspace list focused so
@@ -532,7 +577,13 @@ class MainScreen(Screen):
 
         center = self.query_one("#center-stack", Container)
         center.remove_children()
-        center.mount(LoadingIndicator(id="loading"))
+        center.mount(
+            Static(
+                f"[#a78bfa bold]🌀[/] attaching [#5eead4]{row['name']}[/]\n"
+                f"[#64748b]tmux:{row['session']}[/]",
+                id="loading",
+            )
+        )
 
         bootstrap = bootstrap_workspace(row)
         if bootstrap.returncode != 0:
@@ -542,6 +593,8 @@ class MainScreen(Screen):
             return
 
         self._current_session = row["session"]
+        # Keep the attaching card until PtyTerminal.Ready — avoids a blank
+        # flash between bootstrap and the first PTY paint.
         center.mount(
             PtyTerminal(
                 ["tmux", "attach", "-t", f"={row['session']}"],

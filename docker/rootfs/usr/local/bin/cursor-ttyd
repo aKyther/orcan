@@ -67,6 +67,12 @@ TTYD_ARGS=(
     # (pty_terminal.py) both expect. No effect on Windows/Linux, where
     # xterm.js already sends Alt as Meta natively.
     --client-option "macOptionIsMeta=true"
+    # Without this, xterm.js follows the terminal's own OSC title updates
+    # (tmux's set-titles-string), so the tab reads "1:tab-1 [...]" instead
+    # of anything recognizably orcan. titleFixed locks it to a constant —
+    # confirmed present in ttyd's actual bundled JS (grepped the served
+    # page's own inline script), not just documented behavior.
+    --client-option "titleFixed=🌀 orcan"
 )
 
 if [[ -n "${TTYD_CREDENTIAL:-}" ]]; then

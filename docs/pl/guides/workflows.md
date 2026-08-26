@@ -41,7 +41,7 @@ docker exec -it orcan-1 agent-launcher
 Alias: `orcan go-in` (to samo co `enter`). Domyślna nazwa kontenera to `orcan-1` (`ORCAN_INSTANCE`). Detach tmux: prefix + `d` — sesja dalej działa dla ttyd i innych klientów.
 
 Na prawdziwym tty `agent-launcher` uruchamia **cockpit**: **górny pasek**
-(`◆ orcan` + utility rail 🔔/? + CPU/RAM/zegar), **główny rząd** — lewa kolumna
+(`🌀 orcan` + utility rail 🔔/? + CPU/RAM/zegar), **główny rząd** — lewa kolumna
 (lista workspace’ów z legendą `●/○/▸` u góry, **ASSERTIONS** na dole) i środek
 z osadzonym `tmux attach` + pasek hintów — przełącznik **‹›** + **F4** chowa
 lewą kolumnę — oraz **dolny pasek statusu** (workspace · branch · sesja tmux ·
@@ -53,7 +53,8 @@ tekstowe. lazygit: alias **`lg`** w shellu (bez F3 w cockpicie).
 | --- | --- |
 | **F2** / rail 🔔 | Przełącz sekcję ASSERTIONS w lewej kolumnie (fokusuje przy pokazaniu) |
 | **F4** / ‹› | Przełącz lewą kolumnę workspace’ów |
-| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów + About (app + tmux; embed ≠ native attach). Przy fokusie w terminalu użyj **F1** — **?** idzie do shella |
+| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu użyj **F1** — **?** idzie do shella |
+| **Klik `🌀 orcan`** | About (nazwa, wersja, docs) |
 | **Ctrl+P** | Paleta komend (gdy fokus nie jest w terminalu) |
 | **i** | Rozwiń/zwiń szczegóły workspace — root + repo (fokus na liście) |
 | **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |

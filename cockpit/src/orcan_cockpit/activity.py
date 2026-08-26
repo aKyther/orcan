@@ -42,7 +42,10 @@ try:
 except ImportError:  # pragma: no cover - always present in the cockpit venv
     awatch = None
 
-PLACEHOLDER = "Select a workspace on the left\nto see pending Context Assertions."
+PLACEHOLDER = (
+    "[#a78bfa]🌀[/] Pick a workspace to see pending assertions.\n"
+    "[#64748b]F2 toggles this panel[/]"
+)
 
 # Short enough to fit on one line at this card's real usable width (~27
 # cols after border+padding, confirmed via real pty render) — the original
@@ -88,7 +91,7 @@ class WorkspaceActivity(Widget):
         with Horizontal(id="activity-actions"):
             yield Button(
                 "Review", id="activity-review-btn",
-                tooltip="Open the pending assertions in a dedicated tmux pane (title: review)",
+                tooltip="Open pending assertions in a tmux pane (live label: review)",
             )
             # Pause/Turn-off tooltips are state-dependent (e.g. explaining
             # *why* Pause is greyed out) — set in _refresh_automation_buttons

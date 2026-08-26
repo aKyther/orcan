@@ -7,14 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Live tmux pane labels** (`pane-label.sh`): border strip + window tab follow
+  the live process (`claude`, `review`, …) via command/cmdline heuristics —
+  Review no longer pins `select-pane -T review`.
+- **Cockpit session glance** under the workspace list: up to three lines for
+  the highlighted row — pending **with age** (`2 pending · 3h`), linked
+  worktree count + session idle / brief age (`2 wt · idle 40m` / `brief 2h`),
+  and live pane commands (`tmux list-panes`) — `session_glance.py` +
+  `#workspace-glance`.
+- **Pending rail pulse:** when assertions are waiting, the 🔔 button toggles
+  amber `pending-pulse` so pending work is visible at a glance.
+- **Per-project git status in the workspace list** (`i`-expand): bare name if
+  a project isn't a git repo, `⎇ branch` if it is, `⎇+ branch (worktree)` if
+  it's a *linked* worktree rather than the main checkout (`.git` as a file
+  vs. a directory — no `git` subprocess needed to tell them apart). Branch
+  lookup only runs for the row actually being rendered expanded, not on
+  every 5s poll of every workspace.
+- **`🌀` (cyclone) logo** — orcan's own elemental branding (hurricane/
+  whirlwind), replacing the placeholder `◆` in the top-bar wordmark and
+  empty-state cards; a plain, old (Unicode 6.0) emoji, no Nerd Font needed.
+  Browser tab now reads "🌀 orcan" via ttyd's `--client-option titleFixed`
+  (confirmed present in ttyd's own bundled JS) instead of following tmux's
+  window title. Favicon is compiled into the ttyd binary at its own build
+  time — no runtime override exists, left as a separate, bigger decision.
+
 ### Fixed
 
 - **`pty_tmux_nav.py` matched docs:** Ctrl/Alt+arrows focus; Ctrl+Shift+arrows
   split (code had briefly kept Ctrl=split from conf, contradicting
   `BROWSER_KEY_LIMIT` / Terminal UI nav mix).
+- **Cockpit left-column text silently clipping, not wrapping** (same root
+  cause, three spots): the `[i] expand` half of the workspace-list legend,
+  the git-status line added by `i`-expand, and the terminal hint strip
+  (`#hint-strip`) all sat in fixed-height boxes narrower than their real
+  content — anything past the first row vanished instead of wrapping, even
+  though the text itself was wrapping correctly *inside* that invisible
+  space (confirmed via Textual's own layout sizing). Legend/expand-row now
+  span two explicit lines instead of one; `#hint-strip` is `height: auto`
+  (`min-height: 3`, `max-height: 6`) instead of a fixed `3`, and the
+  workspace root path abbreviates `$HOME` to `~` to buy back width. No
+  overlap at any terminal width — the left column is a fixed 34 cols
+  whenever shown, and disappears entirely (not shrinks) below the
+  "minimal" tier — confirmed at 160/100/70 cols.
+- **Unused gap between the workspace list and ASSERTIONS cards:** removed
+  `margin-bottom` from the workspace-list card — that row now goes back to
+  the list itself instead of sitting empty between the two cards.
 
 ### Changed
 
+- Agent orientation: **F1**/`?` = shortcuts only; **About** = click `🌀 orcan`
+  (`about_modal.py`); session glance + pane labels called out in AGENTS/`llms`
+  / Terminal UI / workflows (EN+PL).
+- **Cockpit empty / attach chrome:** branded `🌀 orcan` placeholder and
+  `🌀 attaching <workspace>` card (replaces bare spinner) before the first
+  PTY paint.
 - **Cockpit pane nav mix:** Ctrl/Alt+arrows focus panes via `tmux` CLI
   (`pty_tmux_nav.py`); Ctrl+Shift+arrows split. Many terminals (ttyd, WT/WSL)
   deliver Alt as Ctrl, so cockpit cannot keep conf’s Ctrl=split + Alt=focus on
@@ -23,16 +71,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (EN/PL), AGENTS/CLAUDE, llms generator.
 - **Cockpit color roles split** (was one cyan doing focus, headings, wordmark,
   and badges at once — flagged as everything blending together): cyan is now
-  keyboard-focus only; violet `#a78bfa` marks static landmarks (`◆ orcan`,
+  keyboard-focus only; violet `#a78bfa` marks static landmarks (`🌀 orcan`,
   `ASSERTIONS`, action-button labels); amber `#fbbf24` marks the pending-count
   badge. Both colors already existed in the product's ANSI theme — none
   invented. Scoped to cockpit CSS only (`app.py`, `rail.py`); ttyd/tmux/
   starship/lazygit untouched.
 - **Cockpit bottom status bar**: dropped the duplicate 🔔 pending-count (the
   rail's bell already shows it — two bells for one fact read as broken, not
-  glance-only). The `◆ orcan` wordmark is now itself an About/shortcuts entry
-  point (click, or F1) — filled the gap of no visible "about" affordance
-  anywhere in the top bar.
+  glance-only). **About** is its own screen (`about_modal.py`) via click on
+  the `🌀 orcan` wordmark — separate from **F1**/`?` shortcuts.
 
 ### Added
 
@@ -97,7 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented **known browser limit**: Alt+←/→/↑/↓ pane focus under ttyd/xterm.js
   (`BROWSER_KEY_LIMIT` in F1/`?` and prefix-? footer; Terminal UI + troubleshooting).
   tmux binds + `pty_keys.py` verified correct — fix would need ttyd frontend change.
-- Cockpit is a **persistent multi-pane** layout: **top bar** (`◆ orcan` wordmark +
+- Cockpit is a **persistent multi-pane** layout: **top bar** (`🌀 orcan` wordmark +
   utility rail 🔔/? + CPU/RAM/clock) \| **main** — left column (workspace list with
   `●/○/▸` legend + **`i`** expand + ASSERTIONS) and center embedded tmux + hint strip \|
   **‹›**/`F4` edge toggle \| **bottom status bar** (click 🔔 → ASSERTIONS).

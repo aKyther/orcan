@@ -70,6 +70,7 @@ Presets in `cursor-ttyd`:
 ## tmux notes (3.6a)
 
 - One status row: centred window tabs only — workspace/metrics live in the cockpit top/bottom bars (raw `tmux attach` / `orcan enter --tmux` outside the cockpit will not show CPU/RAM/branch)
+- **Live pane labels** (`scripts/pane-label.sh`): pane border strip and window tab (`automatic-rename`) follow the process — e.g. `claude`, `review` (`orcan-context-review` in cmdline), not a pinned `select-pane -T`. Refresh cadence = `status-interval` (5s).
 - Features gated with `%if #{>=:#{version},…}` so an older server can still reload config
 - Prefer editing image files under `/etc/tmux` in the **repo**, not only a running container
 - Prefix is **C-Space** (not `C-b`). Config: `docker/rootfs/etc/tmux/keybindings.conf`
@@ -198,24 +199,31 @@ Browser ttyd (`cursor-ttyd`) sets **`macOptionIsMeta=true`** so macOS Option/Alt
 ### Cockpit chrome (app layer)
 
 ```text
-top bar:    ◆ orcan  ·  rail (🔔 ?)  ·  CPU / RAM / clock (right)
-main row:   workspaces (+ legend) + ASSERTIONS  |  terminal + hint strip
+top bar:    🌀 orcan  ·  rail (🔔 pulse when pending · ?)  ·  CPU / RAM / clock
+main row:   workspaces (+ glance + legend) + ASSERTIONS  |  terminal + hint strip
             ‹› edge toggle (F4) between columns
 bottom:     status bar (workspace · branch · tmux · pending) — click 🔔 → ASSERTIONS
 ```
 
-The top bar opens with a fixed **`◆ orcan`** wordmark (`top_bar.py`), then the
+The top bar opens with a fixed **`🌀 orcan`** wordmark (`top_bar.py`), then the
 utility rail (🔔 / ? — icon-only at compact/minimal; **icon + word** at
-`full` tier), then metrics (`💻` load · `🧠` mem · clock). Workspaces toggle is
-the **‹›** edge control (`#sidebar-toggle`) + **F4**. ASSERTIONS sit at the
-bottom of the left column (`activity.py`) with a short subtitle, Review /
-Pause / Turn off buttons, and a docs link. Clicking the status-bar 🔔 (or the
-rail bell) reveals and focuses ASSERTIONS. Workspace list legend:
-`● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** toggles a second line
-(root path + repo names). SoT for keys: `cockpit/…/shortcuts.py`. **F1** /
-**?** overlay includes an **About** block (product name, version, docs link)
-plus embed ≠ native attach (`EMBED_DISCLAIMER`) and the Alt-as-Ctrl nav
-limit (`BROWSER_KEY_LIMIT` — see [Cockpit nav mix](#cockpit-nav-mix)). There is
+`full` tier), then metrics (`💻` load · `🧠` mem · clock). When Context
+Assertions are pending, the rail bell **pulses amber** (`pending-pulse`).
+Workspaces toggle is the **‹›** edge control (`#sidebar-toggle`) + **F4**.
+Under the workspace list, a **session glance** (`session_glance.py`) shows up
+to three lines for the highlighted row: pending count **with age**
+(`2 pending · 3h`), worktree count / session idle or brief age
+(`2 wt · idle 40m`, or `brief 2h` when not live), and live pane commands
+(`tmux list-panes`). Empty / attach chrome uses the
+brand wordmark (`🌀 orcan` / `🌀 attaching name`) instead of a bare spinner.
+ASSERTIONS sit at the bottom of the left column (`activity.py`) with a short
+subtitle, Review / Pause / Turn off buttons, and a docs link. Clicking the
+status-bar 🔔 (or the rail bell) reveals and focuses ASSERTIONS. Workspace
+list legend: `● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** toggles
+a second line (root path + repo names). SoT for keys: `cockpit/…/shortcuts.py`.
+**F1** / **?** opens **shortcuts only** (embed disclaimer + `BROWSER_KEY_LIMIT` —
+see [Cockpit nav mix](#cockpit-nav-mix)). **About** (name, version, docs) is a
+separate screen (`about_modal.py`) — click the **`🌀 orcan`** wordmark. There is
 **no** cockpit Git / F3 shortcut — use the shell alias **`lg`** (lazygit)
 inside the terminal.
 
@@ -234,7 +242,8 @@ inside the terminal.
 | --- | --- |
 | **F2** / rail 🔔 | Toggle left-column ASSERTIONS section |
 | **F4** / ‹› | Toggle workspaces column |
-| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts + About overlay. With terminal focused, **?** is typed into the shell — use **F1** |
+| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
+| **Click `🌀 orcan`** | About (name, version, docs) — `about_modal.py` |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
 | **i** | Expand/collapse workspace details (list focused) |
 | **r** | Run `orcan-context-review` (ASSERTIONS focused) |

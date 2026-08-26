@@ -62,10 +62,11 @@ async def main() -> None:
         await pilot.pause()
         assert activity.display
 
-        # The top-bar wordmark is also an About/shortcuts entry point.
+        # The top-bar wordmark opens About (separate from F1/? shortcuts,
+        # checked further down) — its own screen, not a shared modal.
         await pilot.click("#top-bar-identity")
         await pilot.pause()
-        assert app.screen.__class__.__name__ == "ShortcutsModal"
+        assert app.screen.__class__.__name__ == "AboutModal"
         await pilot.press("escape")
         await pilot.pause()
 

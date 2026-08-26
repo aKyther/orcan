@@ -19,7 +19,14 @@ _REFRESH_INTERVAL_S = 3.0
 
 class TopBar(Widget):
     def compose(self) -> ComposeResult:
-        yield Static("◆ orcan", id="top-bar-identity")
+        # 🌀 (cyclone) not ◆ — orcan's own branding is elemental (hurricane/
+        # whirlwind), and this is a plain, old (Unicode 6.0) emoji that
+        # renders without needing a Nerd Font, matching the ttyd-safe-fonts
+        # constraint documented in Terminal UI. Static, never updated after
+        # compose, so width:auto here doesn't hit the "duplicate last char"
+        # Rich/Textual bug that content changing via .update() triggers
+        # elsewhere (see #top-bar-right's own comment for that one).
+        yield Static("🌀 orcan", id="top-bar-identity")
         yield UtilityRail(id="rail")
         # An empty width:1fr spacer pushes #top-bar-right to the edge via
         # layout — NOT `content-align: right` on #top-bar-right itself.
@@ -36,7 +43,7 @@ class TopBar(Widget):
         self.query_one("#top-bar-right", Static).tooltip = (
             "💻 system load average · 🧠 memory used · 🕐 clock"
         )
-        self.query_one("#top-bar-identity", Static).tooltip = "About / shortcuts (or press F1)"
+        self.query_one("#top-bar-identity", Static).tooltip = "About orcan cockpit"
         self.refresh_metrics()
         self.set_interval(_REFRESH_INTERVAL_S, self.refresh_metrics)
 
