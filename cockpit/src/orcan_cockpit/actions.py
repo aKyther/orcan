@@ -20,7 +20,6 @@ import sys
 from pathlib import Path
 
 REVIEW_COMMAND = "orcan-context-review; echo; read -p 'Press Enter to close…' _"
-GIT_COMMAND = "lazygit"
 
 # Host unit tests / image: orcan lib under /usr/local/lib or checkout rootfs.
 for _lib in (
@@ -51,25 +50,6 @@ def context_review_popup_command(session: str) -> list[str]:
 
 def run_context_review_popup(session: str) -> subprocess.CompletedProcess:
     return subprocess.run(context_review_popup_command(session), check=False)
-
-
-def git_popup_command(session: str) -> list[str]:
-    return [
-        "tmux",
-        "display-popup",
-        "-t",
-        f"={session}",
-        "-E",
-        "-w",
-        "80%",
-        "-h",
-        "80%",
-        GIT_COMMAND,
-    ]
-
-
-def run_git_popup(session: str) -> subprocess.CompletedProcess:
-    return subprocess.run(git_popup_command(session), check=False)
 
 
 def toggle_automation_pause() -> dict:

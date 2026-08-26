@@ -19,6 +19,7 @@ without the other fails a test instead of quietly going stale.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from importlib.metadata import PackageNotFoundError, version
 from typing import Literal
 
 Layer = Literal["tmux", "app"]
@@ -32,6 +33,35 @@ EMBED_DISCLAIMER = (
     "Full attach: orcan enter --tmux"
 )
 
+# Browser ttyd (xterm.js) often does not deliver Alt+Arrow as Meta to the
+# embedded PTY — verified: tmux binds + cockpit pty_keys.py are correct;
+# fixing it would require replacing/patching the ttyd frontend. Native
+# attach (`orcan enter --tmux`) and many desktop terminals are fine.
+BROWSER_KEY_LIMIT = (
+    "Browser (ttyd/xterm.js): Alt+←/→/↑/↓ pane focus may not reach tmux — "
+    "use prefix + arrows, or orcan enter --tmux for full Meta"
+)
+
+# Requested as an IDE-style "Help > About": what is this, what version, where
+# are the docs — shown alongside the shortcut list (same F1/? overlay and
+# standalone popup) since that's the one place a user already went looking
+# for orientation. Version comes from the installed distribution, not a
+# hardcoded string or a pyproject.toml parse, so it can't drift from what's
+# actually running.
+PRODUCT_NAME = "orcan cockpit"
+PRODUCT_SUMMARY = (
+    "The Textual TUI behind `orcan enter`: a workspace picker with a live "
+    "tmux session embedded in its own pty."
+)
+DOCS_URL = "https://akyther.github.io/orcan/latest/"
+
+
+def product_version() -> str:
+    try:
+        return version("orcan-cockpit")
+    except PackageNotFoundError:
+        return "unknown"
+
 
 @dataclass(frozen=True)
 class Shortcut:
@@ -44,6 +74,30 @@ class Shortcut:
 
 
 SHORTCUTS: list[Shortcut] = [
+    # --- app (cockpit) layer, global-navigation subset — listed FIRST,
+    # deliberately, not just alphabetically/thematically: hints_for() takes
+    # the first `limit` (default 6) matches for a context, and every tmux
+    # pane/window/session entry below also matches "terminal" — with these
+    # listed after them (as they used to be), they got crowded out of the
+    # terminal hint strip entirely (verified: hints_for("terminal") was
+    # 6/6 tmux pane hints, no F1/F2/F4 in any form). Global nav should
+    # always win that race, even while attached to a live tmux session.
+    # (No F3/Git entry — removed on request; lazygit stays reachable via the
+    # `lg` shell alias inside the terminal itself.)
+    Shortcut("F2", "Toggle assertions panel", "app", "cockpit",
+              ("terminal", "workspaces", "panel", "rail")),
+    Shortcut("F4 / ‹›", "Toggle workspaces panel", "app", "cockpit",
+              ("terminal", "workspaces", "panel", "rail")),
+    # "?" is a bare letter, not a function key — PtyTerminal swallows it
+    # (event.stop() in on_key) whenever the terminal has focus and sends it
+    # into the shell/tmux pane as a literal "?" instead; only F1 reliably
+    # opens this from there. Kept as ONE entry (not split by context) so the
+    # shortcuts modal/CLI still show a single "Open shortcuts" row — the
+    # terminal-only trim to bare "F1" happens in hints_for() below, the one
+    # place that actually needs the context-accurate distinction. Confirmed
+    # via real pty test: typing "?" while attached lands in the pane.
+    Shortcut("F1 / ?", "Open shortcuts", "app", "cockpit",
+              ("terminal", "workspaces", "panel", "rail")),
     # --- tmux: panes -------------------------------------------------------
     Shortcut("prefix -", "Split pane (down)", "tmux", "panes", ("terminal",),
               ("bind - split-window -v",)),
@@ -115,20 +169,14 @@ SHORTCUTS: list[Shortcut] = [
               ("bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel",)),
     Shortcut("Escape", "Cancel copy mode", "tmux", "copy-mode", ("terminal",),
               ("bind -T copy-mode-vi Escape send-keys -X cancel",)),
-    # --- app (cockpit) layer — no tmux_tokens: verified by reading app.py directly
-    Shortcut("F2", "Toggle assertions panel", "app", "cockpit",
-              ("terminal", "workspaces", "panel", "rail")),
-    Shortcut("F4 / ‹›", "Toggle workspaces panel", "app", "cockpit",
-              ("terminal", "workspaces", "panel", "rail")),
-    Shortcut("F3", "Open Git (lazygit)", "app", "cockpit",
-              ("terminal", "workspaces", "panel", "rail")),
-    Shortcut("F1 / ?", "Open shortcuts", "app", "cockpit",
-              ("terminal", "workspaces", "panel", "rail")),
+    # --- app (cockpit) layer, remainder (the terminal-context subset lives
+    # at the top of this list — see the comment there) ----------------------
     Shortcut("Ctrl+P", "Command palette", "app", "cockpit", ("workspaces", "panel", "rail")),
     Shortcut("r", "Run context review", "app", "cockpit", ("panel",)),
     Shortcut("p", "Pause/resume context automation", "app", "cockpit", ("panel",)),
     Shortcut("o", "Turn context automation off/on", "app", "cockpit", ("panel",)),
     Shortcut("↑ / ↓, Enter", "Navigate / attach workspace", "app", "cockpit", ("workspaces",)),
+    Shortcut("i", "Expand workspace details (root, repo count)", "app", "cockpit", ("workspaces",)),
 ]
 
 
@@ -146,7 +194,15 @@ def hints_for(context: Context, limit: int = 6) -> list[str]:
     # feeds shortcuts_cli.py's plain-text standalone tmux popup, where
     # markup tags would show up as literal bracketed text.
     matches = [s for s in SHORTCUTS if context in s.contexts]
-    return [f"[bold #5eead4]{s.keys}[/] {s.description}" for s in matches[:limit]]
+    rows = []
+    for s in matches[:limit]:
+        keys = s.keys
+        if context == "terminal" and keys == "F1 / ?":
+            # See the "F1 / ?" entry's comment above — "?" doesn't work
+            # from here, so the hint strip must not claim it does.
+            keys = "F1"
+        rows.append(f"[bold #5eead4]{keys}[/] {s.description}")
+    return rows
 
 
 def format_row(shortcut: Shortcut, *, key_width: int = 20) -> str:

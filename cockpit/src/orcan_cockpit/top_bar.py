@@ -19,6 +19,7 @@ _REFRESH_INTERVAL_S = 3.0
 
 class TopBar(Widget):
     def compose(self) -> ComposeResult:
+        yield Static("◆ orcan", id="top-bar-identity")
         yield UtilityRail(id="rail")
         # An empty width:1fr spacer pushes #top-bar-right to the edge via
         # layout — NOT `content-align: right` on #top-bar-right itself.
@@ -32,6 +33,9 @@ class TopBar(Widget):
         yield Static(id="top-bar-right")
 
     def on_mount(self) -> None:
+        self.query_one("#top-bar-right", Static).tooltip = (
+            "💻 system load average · 🧠 memory used · 🕐 clock"
+        )
         self.refresh_metrics()
         self.set_interval(_REFRESH_INTERVAL_S, self.refresh_metrics)
 

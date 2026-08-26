@@ -158,12 +158,17 @@ def status_lines() -> list[str]:
     state = load_automation()
     enabled = bool(state.get("enabled", True))
     paused = bool(state.get("paused"))
+    # \[ escapes the literal bracket for this function's one real consumer,
+    # cockpit/activity.py, which splices these lines into a Rich-markup
+    # Static — unescaped, [o]/[p] parse as (unclosed) style tags and the
+    # bracketed letters silently vanish from the rendered line. Confirmed
+    # with rich.text.Text.from_markup()/Console.print().
     if not enabled:
-        lines = ["automation: off  [o] turn on"]
+        lines = [r"automation: off  \[o] turn on"]
     elif paused:
-        lines = ["automation: paused  [p] resume  [o] turn off"]
+        lines = [r"automation: paused  \[p] resume  \[o] turn off"]
     else:
-        lines = ["automation: running  [p] pause  [o] turn off"]
+        lines = [r"automation: running  \[p] pause  \[o] turn off"]
 
     mc = model_check_result()
     if mc is None:

@@ -19,7 +19,7 @@ from typing import Any
 from libtmux import Server
 from libtmux.exc import LibTmuxException
 
-from orcan.workspaces import compact_hints, iter_workspaces, load_config
+from orcan.workspaces import compact_hints, iter_workspaces, load_config, repo_names
 
 # One shared connection to the default tmux server/socket (same one
 # cursor-tmux-workspace-attach and the rest of orcan target) — not a new
@@ -45,6 +45,8 @@ def list_workspace_rows(config_path: str | None = None) -> list[dict[str, Any]]:
                 "session": ws["tmux_session"],
                 "hints": compact_hints(ws),
                 "live": session_is_live(ws["tmux_session"]),
+                "repo_count": len(ws["projects"]),
+                "repo_names": repo_names(ws),
             }
         )
     return rows
@@ -109,9 +111,20 @@ def run_fallback_menu() -> int:
 # Imported lazily by orcan_cockpit.app (only reached on a real tty) so the
 # non-tty fallback path above never pays for a Textual import it doesn't need.
 
+from textual import events  # noqa: E402
 from textual.app import ComposeResult  # noqa: E402
 from textual.widget import Widget  # noqa: E402
-from textual.widgets import Label, ListItem, ListView  # noqa: E402
+from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
+
+# ●/○/▸ have no other explanation anywhere in the app (not even the
+# shortcuts modal) — this is the first thing a user sees, so the legend is
+# a permanent caption under the list rather than a hover-only tooltip
+# (which a non-mouse/native-terminal session might never trigger).
+# \[ escapes the literal bracket — Static defaults to markup=True, and an
+# unescaped [i] parses as an (unclosed) Rich style tag that silently drops
+# the letter from the render (same class of bug found and fixed in
+# activity.py's hint line this session — confirmed with Text.from_markup()).
+LEGEND = r"● live   ○ new   ▸ attached   ·   \[i] expand"
 
 # Kept fresh enough to notice a session someone killed elsewhere without
 # feeling like a busy-poll — this is cosmetic status (● live / ○ new), not
@@ -124,10 +137,12 @@ class WorkspaceList(Widget):
     always visible, not a one-shot picker screen you navigate away from.
     Selecting a row tells the app to (re)attach the center terminal to it.
 
-    One line per row (not two) — with many workspaces configured, a
+    One line per row by default — with many workspaces configured, a
     two-line-per-item list runs out of room fast; ListView is a
     VerticalScroll under the hood, so it already scrolls/shows a scrollbar
-    once rows overflow the card's height, no extra work needed for that."""
+    once rows overflow the card's height, no extra work needed for that.
+    `i` toggles a second, muted line per row (root path + repo count/names —
+    just enough to identify a workspace, not a full status readout)."""
 
     can_focus = True
 
@@ -135,13 +150,23 @@ class WorkspaceList(Widget):
         super().__init__(**kwargs)
         self.rows: list[dict[str, Any]] = []
         self.active_session: str | None = None
+        self._expanded = False
 
     def compose(self) -> ComposeResult:
         yield ListView(id="workspace-list")
+        yield Static(LEGEND, id="workspace-legend")
 
     def on_mount(self) -> None:
         self.refresh_rows()
         self.set_interval(_REFRESH_INTERVAL_S, self.refresh_rows)
+
+    def on_key(self, event: events.Key) -> None:
+        # ListView (the actual focus target — see app.py's on_mount) doesn't
+        # bind "i", so this bubbles up to us unstopped.
+        if event.key == "i":
+            self._expanded = not self._expanded
+            self._render_rows()
+            event.stop()
 
     def set_active_session(self, session: str | None) -> None:
         """Called by MainScreen once a workspace is actually attached — a
@@ -166,7 +191,16 @@ class WorkspaceList(Widget):
             dot = "●" if row["live"] else "○"
             is_active = row["session"] == self.active_session
             marker = "▸" if is_active else " "
-            item = ListItem(Label(f"{marker}{dot} {row['name']}"))
+            text = f"{marker}{dot} {row['name']}"
+            if self._expanded:
+                repos = f"{row['repo_count']} repo" + ("" if row["repo_count"] == 1 else "s")
+                if row["repo_names"]:
+                    repos += f": {row['repo_names']}"
+                # Dimmed via markup, not a second CSS rule — this is plain
+                # text glued into a single Label's renderable, not a
+                # separate widget a stylesheet selector could target.
+                text += f"\n   [#64748b]{row['root']} · {repos}[/]"
+            item = ListItem(Label(text))
             if is_active:
                 item.add_class("active-workspace")
             list_view.append(item)

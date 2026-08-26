@@ -11,7 +11,16 @@ one-shot script inside a tmux popup, not a Textual app.
 
 from __future__ import annotations
 
-from orcan_cockpit.shortcuts import EMBED_DISCLAIMER, format_row, grouped_by_layer
+from orcan_cockpit.shortcuts import (
+    BROWSER_KEY_LIMIT,
+    DOCS_URL,
+    EMBED_DISCLAIMER,
+    PRODUCT_NAME,
+    PRODUCT_SUMMARY,
+    format_row,
+    grouped_by_layer,
+    product_version,
+)
 
 
 def render_plaintext() -> str:
@@ -25,8 +34,16 @@ def render_plaintext() -> str:
     for shortcut in groups["tmux"]:
         lines.append("  " + format_row(shortcut))
     lines.append("")
+    lines.append(f"{PRODUCT_NAME} · v{product_version()}")
+    lines.append(PRODUCT_SUMMARY)
+    # Plain text here, no Rich [link=] markup — this prints straight to
+    # stdout in a tmux popup, not through Rich/Textual, so markup tags would
+    # show up as literal brackets instead of a hyperlink.
+    lines.append(DOCS_URL)
+    lines.append("")
     lines.append("─" * 40)
     lines.append(EMBED_DISCLAIMER)
+    lines.append(BROWSER_KEY_LIMIT)
     lines.append("Press Enter to close…")
     return "\n".join(lines) + "\n"
 
