@@ -82,7 +82,7 @@ Config lives in `~/.config/orcan/` by default (install clone: `~/.local/share/or
 | Quickstart (source) | [docs/en/getting-started/quickstart.md](docs/en/getting-started/quickstart.md) |
 | CLI reference | [docs/en/reference/cli.md](docs/en/reference/cli.md) |
 | Development | [docs/en/development/overview.md](docs/en/development/overview.md) |
-| AI / agents | [AGENTS.md](AGENTS.md), [docs/en/ai/project-context.md](docs/en/ai/project-context.md) |
+| AI / agents | [AGENTS.md](AGENTS.md), [docs/llms.txt](docs/llms.txt), [docs/en/ai/project-context.md](docs/en/ai/project-context.md) |
 
 ```bash
 make docs-serve   # maintainers — MkDocs from a git checkout

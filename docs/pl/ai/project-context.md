@@ -18,12 +18,21 @@ W workspace orcan (np. `orcan-dev`) najpierw przeczytaj context pack workspace, 
 - **Cursor** = edytor / CLI Cursor — nie nazwa produktu.
 - Orcan to **orkiestrator kontekstu**, nie menedżer modeli.
 
+| Element | Znaczenie |
+| --- | --- |
+| Workspace | Nazwany zestaw projektów = jedna dzienna praca |
+| Path parity | Te same ścieżki absolutne host ↔ kontener |
+| Context pack | Ignores, AGENTS/CLAUDE, Context Assertions |
+| Dostęp | Domyślnie lokalne `orcan enter`; opcjonalnie `orcan up --with-ttyd` |
+| Cockpit | Top bar + workspaces/ASSERTIONS + osadzony tmux; zob. [Terminal UI](../guides/terminal-ui.md) |
+
 ## Cele
 
 - Workspaces + montowania path parity
 - Context pack (ignores, AGENTS/CLAUDE, Context Assertions)
-- Domyślnie lokalne `enter`; opcjonalnie przeglądarka: ttyd → cockpit (`agent-launcher`: workspaces \| tmux \| assertions)
+- Domyślnie lokalne `enter`; opcjonalnie przeglądarka: ttyd → cockpit (`agent-launcher`) → tmux → zsh
 - Warianty obrazu: pełny i single-agent (`--claude` / `--cursor` / `--codex`)
+- Tło Reflection przez supervisord `context-scan` (domyślnie **recap**; legacy `ORCAN_CONTEXT_DRIVER=reflect`)
 
 ## Non-goals
 
@@ -32,6 +41,8 @@ W workspace orcan (np. `orcan-dev`) najpierw przeczytaj context pack workspace, 
 - YAML user config / host-deps
 - Auto-modyfikacja zamontowanych repozytoriów przy starcie kontenera
 - Mylenie `make dev-*` z publicznym CLI `orcan`
+- Skrót F3/Git w cockpicie — w terminalu alias **`lg`** (lazygit)
+- „Naprawianie” **Alt+strzałek** w przeglądarce samym `pty_keys.py` — limit ttyd/xterm.js (`BROWSER_KEY_LIMIT`); zob. [Terminal UI](../guides/terminal-ui.md)
 
 ## Rytuał (host)
 

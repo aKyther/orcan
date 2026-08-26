@@ -109,8 +109,10 @@ Gdy `agent-launcher` osadza tmux (`cockpit/…/pty_terminal.py`):
 #### Dwa terminale w jednym
 
 Osadzony tmux **nie jest** natywnym attach (`tmux attach` w Windows Terminal).
-Overlay skrótów cockpit **F1** / **?** (oraz popup tmux **prefix ?**) powtarza
-to na dole — zobacz `EMBED_DISCLAIMER` w `shortcuts.py`. To trzy warstwy naraz:
+Overlay skrótów cockpit (**F1** zawsze; **?** gdy fokus poza osadzonym
+terminalem) oraz popup tmux **prefix ?** powtarzają to na dole —
+zobacz `EMBED_DISCLAIMER` w `shortcuts.py`. Przy fokusie w terminalu **?** idzie
+do shella (pasek hintów pokazuje tylko **F1**). To trzy warstwy naraz:
 
 ```text
 Textual (UI, fokus, selekcja, mysz)  ↔  pyte (emulacja VT100)  ↔  tmux attach (PTY)
@@ -166,27 +168,44 @@ Smoke: `tests/smoke/test-cockpit-tui.py`.
 
 Browser ttyd (`cursor-ttyd`) ustawia **`macOptionIsMeta=true`**, żeby na macOS Option/Alt szło jako Meta (potrzebne do `Alt+1`…), a nie jako `¡` / `™`. Bez wpływu na Windows/Linux.
 
+**Znane ograniczenie przeglądarki:** **Alt+←/→/↑/↓** (fokus pane tmux) często
+nie dociera do osadzonego PTY pod ttyd/xterm.js — bindy Orcana
+(`keybindings.conf`, `pty_keys.py`) są poprawne; naprawa wymagałaby zmiany
+frontendu ttyd/xterm. Workaround: **prefix + strzałki** albo pełny attach
+(`orcan enter --tmux` / terminal desktop). Udokumentowane w stopce F1/`?`
+jako `BROWSER_KEY_LIMIT`. `Alt+1`…`Alt+9` to osobna ścieżka (często OK z
+`macOptionIsMeta`).
+
 ### Chrome cockpitu (warstwa app)
 
 ```text
-górny pasek:  utility rail (☰ 🔔 ⎇ ?)  ·  CPU / RAM / zegar (prawo)
-główny rząd:  workspaces + ASSERTIONS  |  terminal + pasek hintów
-dół:          pasek statusu (workspace · branch · tmux · pending)
+górny pasek:  ◆ orcan  ·  rail (🔔 ?)  ·  CPU / RAM / zegar (prawo)
+główny rząd:  workspaces (+ legenda) + ASSERTIONS  |  terminal + pasek hintów
+              przełącznik ‹› (F4) między kolumnami
+dół:          pasek statusu (workspace · branch · tmux · pending) — klik 🔔 → ASSERTIONS
 ```
 
-Utility rail był kiedyś osobną kolumną po prawej — teraz jest w **`top_bar.py`**
-(ikony po lewej; metryki po prawej). ASSERTIONS były osobnym prawym panelem —
-teraz na dole lewej kolumny (`activity.py`). SoT klawiszy:
-`cockpit/src/orcan_cockpit/shortcuts.py`. **F1** / **?** — stopka: osadzony tmux
-≠ native attach (`EMBED_DISCLAIMER`).
+Górny pasek zaczyna się od stałego wordmarku **`◆ orcan`** (`top_bar.py`), potem
+utility rail (🔔 / ? — same ikony w compact/minimal; **ikona + słowo** w
+tierze `full`), potem metryki (`💻` load · `🧠` mem · zegar). Przełącznik
+workspace’ów to **‹›** na krawędzi (`#sidebar-toggle`) + **F4**. ASSERTIONS
+są na dole lewej kolumny (`activity.py`) z podtytułem, przyciskami Review /
+Pause / Turn off i linkiem do docs. Klik 🔔 w status-barze (lub w rail)
+odsłania i fokusuje ASSERTIONS. Legenda listy:
+`● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** przełącza drugi wiersz
+(ścieżka root + nazwy repo). SoT klawiszy: `cockpit/…/shortcuts.py`. Overlay
+**F1** / **?** ma blok **About** (nazwa, wersja, link do docs) oraz stopkę
+embed ≠ native attach (`EMBED_DISCLAIMER`) i limit Alt+strzałek w przeglądarce
+(`BROWSER_KEY_LIMIT`). **Brak** skrótu Git / F3 w cockpicie — w terminalu:
+alias **`lg`** (lazygit).
 
 **Progi szerokości** (kolumny terminala, nie breakpointy CSS — `status.py` /
 `tier_for_width`):
 
 | Tier | Kolumny | Efekt |
 | --- | --- | --- |
-| `full` | ≥ 120 | Pełny dolny pasek (branch + sesja tmux + pending) |
-| `compact` | 90–119 | Krótszy dolny pasek (workspace + pending; bez branch/sesji) |
+| `full` | ≥ 120 | Pełny dolny pasek; rail z etykietami (Assertions / Help) |
+| `compact` | 90–119 | Krótszy dolny pasek; rail tylko ikony |
 | `minimal` | < 90 | Ukrywa **górny pasek** + **lewą kolumnę**; F-ki nadal działają |
 
 **F4** / **F2** nadal przełączają ręcznie workspace’y / ASSERTIONS, gdy widoczne.
@@ -194,14 +213,15 @@ teraz na dole lewej kolumny (`activity.py`). SoT klawiszy:
 | Klawisze | Akcja |
 | --- | --- |
 | **F2** / rail 🔔 | Przełącz sekcję ASSERTIONS w lewej kolumnie |
-| **F4** / rail ☰ | Przełącz kolumnę workspace’ów |
-| **F3** / rail ⎇ | Git (`lazygit` popup) |
-| **F1** / **?** / rail ? | Overlay skrótów (z notą embed ≠ native attach) |
+| **F4** / ‹› | Przełącz kolumnę workspace’ów |
+| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów + About. Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |
+| **i** | Rozwiń/zwiń szczegóły workspace (fokus na liście) |
 | **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |
 | **p** | Pauza/wznowienie automatyzacji context (fokus na ASSERTIONS) |
 | **o** | Wyłącz/włącz automatyzację context (fokus na ASSERTIONS) |
 | **prefix ?** | Samodzielny popup skrótów tmux (bez cockpitu) |
+| **`lg`** (w shellu) | lazygit — nie F-key w cockpicie |
 
 Codzienne wejście: [Workflowy — lokalny terminal](workflows.md#local-terminal).
 

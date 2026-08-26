@@ -40,20 +40,22 @@ docker exec -it orcan-1 agent-launcher
 
 Alias: `orcan go-in` (to samo co `enter`). Domyślna nazwa kontenera to `orcan-1` (`ORCAN_INSTANCE`). Detach tmux: prefix + `d` — sesja dalej działa dla ttyd i innych klientów.
 
-Na prawdziwym tty `agent-launcher` uruchamia **cockpit**: **górny pasek** (utility
-rail + CPU/RAM/zegar), **główny rząd** — lewa kolumna (lista workspace’ów u góry,
-**ASSERTIONS** na dole) i środek z osadzonym `tmux attach` + pasek hintów — oraz
-**dolny pasek statusu** (workspace · branch · sesja tmux · pending; skraca się wg
-tieru szerokości). Wybór workspace: strzałki + Enter. Użycie piped/non-interactive
-nadal wypisuje zwykłe menu tekstowe.
+Na prawdziwym tty `agent-launcher` uruchamia **cockpit**: **górny pasek**
+(`◆ orcan` + utility rail 🔔/? + CPU/RAM/zegar), **główny rząd** — lewa kolumna
+(lista workspace’ów z legendą `●/○/▸` u góry, **ASSERTIONS** na dole) i środek
+z osadzonym `tmux attach` + pasek hintów — przełącznik **‹›** + **F4** chowa
+lewą kolumnę — oraz **dolny pasek statusu** (workspace · branch · sesja tmux ·
+pending; klik 🔔 otwiera ASSERTIONS). Wybór workspace: strzałki + Enter; **`i`**
+rozwija root/repo. Użycie piped/non-interactive nadal wypisuje zwykłe menu
+tekstowe. lazygit: alias **`lg`** w shellu (bez F3 w cockpicie).
 
 | Klawisze | Akcja |
 | --- | --- |
 | **F2** / rail 🔔 | Przełącz sekcję ASSERTIONS w lewej kolumnie (fokusuje przy pokazaniu) |
-| **F4** / rail ☰ | Przełącz lewą kolumnę workspace’ów |
-| **F3** / rail ⎇ | Otwórz Git (`lazygit` w popupie tmux) |
-| **F1** / **?** / rail ? | Overlay skrótów (app + tmux; embed ≠ native attach) |
+| **F4** / ‹› | Przełącz lewą kolumnę workspace’ów |
+| **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów + About (app + tmux; embed ≠ native attach). Przy fokusie w terminalu użyj **F1** — **?** idzie do shella |
 | **Ctrl+P** | Paleta komend (gdy fokus nie jest w terminalu) |
+| **i** | Rozwiń/zwiń szczegóły workspace — root + repo (fokus na liście) |
 | **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |
 | **p** | Pauza/wznowienie automatyzacji context (fokus na ASSERTIONS) — wstrzymuje `orcan-context-scan` + `orcan sync --context --watch` przy `paused: true` |
 | **o** | Wyłącz/włącz automatyzację context (fokus na ASSERTIONS) — master `enabled` w `automation.json` |
@@ -62,9 +64,10 @@ nadal wypisuje zwykłe menu tekstowe.
 W środkowym terminalu **działają skróty tmux** (prefix **C-Space**;
 **Alt+1**…**Alt+9** wybiera okna; **prefix ?** otwiera samodzielny popup
 skrótów tmux). Cockpit musi przekazywać te klawisze i resize do tmux — zobacz
-[Terminal UI — Cockpit + przeglądarka](terminal-ui.md#cockpit-browser). **F1** / **?**
-otwiera mapę w aplikacji (stopka: osadzony tmux ≠ native attach). Pełna mapa:
-`cockpit/…/shortcuts.py` (host testy trzymają ją w sync z `keybindings.conf`).
+[Terminal UI — Cockpit + przeglądarka](terminal-ui.md#cockpit-browser). **F1**
+otwiera mapę w aplikacji, gdy fokus jest w terminalu (stopka: osadzony tmux ≠
+native attach). Pełna mapa: `cockpit/…/shortcuts.py` (host testy trzymają ją w
+sync z `keybindings.conf`).
 
 !!! tip
     Przeglądarka + lokalny terminal mogą dzielić jedną sesję: edytuj w iTerm / Windows Terminal, trzymaj ttyd na telefonie lub drugim ekranie.

@@ -18,12 +18,21 @@ When you are inside an orcan workspace (e.g. `orcan-dev`), read the workspace co
 - **Cursor** means the Cursor editor / CLI — not the product name.
 - Orcan is a **context orchestrator**, not a model manager.
 
+| Piece | Meaning |
+| --- | --- |
+| Workspace | Named set of projects = one daily job |
+| Path parity | Same absolute paths host ↔ container |
+| Context pack | Ignores, AGENTS/CLAUDE, Context Assertions |
+| Access | Local `orcan enter` by default; optional `orcan up --with-ttyd` |
+| Cockpit | Top bar + workspaces/ASSERTIONS + embedded tmux; see [Terminal UI](../guides/terminal-ui.md) |
+
 ## Goals
 
 - Workspaces + path-parity mounts
 - Context pack (ignores, AGENTS/CLAUDE, Context Assertions)
-- Local enter by default; optional browser: ttyd → cockpit (`agent-launcher`: workspaces \| tmux \| assertions)
+- Local enter by default; optional browser: ttyd → cockpit (`agent-launcher`) → tmux → zsh
 - Image variants: full and single-agent (`--claude` / `--cursor` / `--codex`)
+- Background Reflection via supervisord `context-scan` (default **recap**; legacy `ORCAN_CONTEXT_DRIVER=reflect`)
 
 ## Non-goals
 
@@ -32,6 +41,8 @@ When you are inside an orcan workspace (e.g. `orcan-dev`), read the workspace co
 - YAML user config / host-deps
 - Auto-modifying mounted git repos on every container start
 - Confusing `make dev-*` with the public `orcan` CLI
+- Cockpit F3/Git shortcut — use shell **`lg`** (lazygit) inside the terminal
+- “Fixing” browser **Alt+arrows** in `pty_keys.py` alone — ttyd/xterm.js limit (`BROWSER_KEY_LIMIT`); see [Terminal UI](../guides/terminal-ui.md)
 
 ## Ritual (host)
 

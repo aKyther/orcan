@@ -109,8 +109,10 @@ When `agent-launcher` embeds tmux (`cockpit/…/pty_terminal.py`):
 #### Two terminals in one
 
 Embedded tmux is **not** a native attach (`tmux attach` in Windows Terminal).
-The cockpit **F1** / **?** shortcuts overlay (and tmux **prefix ?** popup) repeat
-this at the bottom — see `EMBED_DISCLAIMER` in `shortcuts.py`. Three layers at once:
+The cockpit shortcuts overlay (**F1** always; **?** when focus is outside the
+embedded terminal) and tmux **prefix ?** popup repeat this at the bottom —
+see `EMBED_DISCLAIMER` in `shortcuts.py`. With terminal focus, typing **?** goes
+into the shell (hint strip shows **F1** only). Three layers at once:
 
 ```text
 Textual (UI, focus, selection, mouse)  ↔  pyte (VT100 emulation)  ↔  tmux attach (PTY)
@@ -166,28 +168,44 @@ Smoke: `tests/smoke/test-cockpit-tui.py`.
 
 Browser ttyd (`cursor-ttyd`) sets **`macOptionIsMeta=true`** so macOS Option/Alt sends Meta (needed for `Alt+1`…), not `¡` / `™` composition. No effect on Windows/Linux.
 
+**Known browser limit:** **Alt+←/→/↑/↓** (tmux pane focus) often never reaches the
+embedded PTY under ttyd/xterm.js — Orcan’s `keybindings.conf` and
+`pty_keys.py` are correct; fixing it needs a ttyd/xterm frontend change.
+Workaround: **prefix + arrows**, or full attach (`orcan enter --tmux` /
+desktop terminal). Documented in F1/`?` footer as `BROWSER_KEY_LIMIT`.
+`Alt+1`…`Alt+9` and other Meta keys are a separate path (often OK with
+`macOptionIsMeta`).
+
 ### Cockpit chrome (app layer)
 
 ```text
-top bar:    utility rail (☰ 🔔 ⎇ ?)  ·  CPU / RAM / clock (right)
-main row:   workspaces + ASSERTIONS  |  terminal + hint strip
-bottom:     status bar (workspace · branch · tmux · pending)
+top bar:    ◆ orcan  ·  rail (🔔 ?)  ·  CPU / RAM / clock (right)
+main row:   workspaces (+ legend) + ASSERTIONS  |  terminal + hint strip
+            ‹› edge toggle (F4) between columns
+bottom:     status bar (workspace · branch · tmux · pending) — click 🔔 → ASSERTIONS
 ```
 
-The utility rail used to be a far-right column — it now lives in **`top_bar.py`**
-(left icons; metrics on the right). ASSERTIONS used to be a separate right panel —
-they now sit at the bottom of the left column (`activity.py`). SoT for keys:
-`cockpit/src/orcan_cockpit/shortcuts.py` (host tests assert tmux tokens stay in
-`keybindings.conf`). **F1** / **?** footer: embedded tmux ≠ native attach
-(`EMBED_DISCLAIMER`).
+The top bar opens with a fixed **`◆ orcan`** wordmark (`top_bar.py`), then the
+utility rail (🔔 / ? — icon-only at compact/minimal; **icon + word** at
+`full` tier), then metrics (`💻` load · `🧠` mem · clock). Workspaces toggle is
+the **‹›** edge control (`#sidebar-toggle`) + **F4**. ASSERTIONS sit at the
+bottom of the left column (`activity.py`) with a short subtitle, Review /
+Pause / Turn off buttons, and a docs link. Clicking the status-bar 🔔 (or the
+rail bell) reveals and focuses ASSERTIONS. Workspace list legend:
+`● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** toggles a second line
+(root path + repo names). SoT for keys: `cockpit/…/shortcuts.py`. **F1** /
+**?** overlay includes an **About** block (product name, version, docs link)
+plus embed ≠ native attach (`EMBED_DISCLAIMER`) and the browser Alt+arrow
+limit (`BROWSER_KEY_LIMIT`). There is **no** cockpit Git /
+F3 shortcut — use the shell alias **`lg`** (lazygit) inside the terminal.
 
 **Width tiers** (terminal columns, not browser CSS breakpoints —
 `status.py` / `tier_for_width`):
 
 | Tier | Columns | Effect |
 | --- | --- | --- |
-| `full` | ≥ 120 | Full bottom bar (branch + tmux session + pending) |
-| `compact` | 90–119 | Bottom bar shortens (workspace + pending; no branch/session line) |
+| `full` | ≥ 120 | Full bottom bar; rail labels show icon + word (Assertions / Help) |
+| `compact` | 90–119 | Bottom bar shortens; rail stays icon-only |
 | `minimal` | < 90 | Hides **top bar** + **left column** (terminal full width); F-keys still work |
 
 **F4** / **F2** still toggle workspaces / ASSERTIONS manually when visible.
@@ -195,14 +213,15 @@ they now sit at the bottom of the left column (`activity.py`). SoT for keys:
 | Keys | Action |
 | --- | --- |
 | **F2** / rail 🔔 | Toggle left-column ASSERTIONS section |
-| **F4** / rail ☰ | Toggle workspaces column |
-| **F3** / rail ⎇ | Git (`lazygit` popup) |
-| **F1** / **?** / rail ? | Shortcuts overlay (includes embed ≠ native attach note) |
+| **F4** / ‹› | Toggle workspaces column |
+| **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts + About overlay. With terminal focused, **?** is typed into the shell — use **F1** |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
+| **i** | Expand/collapse workspace details (list focused) |
 | **r** | Run `orcan-context-review` (ASSERTIONS focused) |
 | **p** | Pause/resume context automation (ASSERTIONS focused) |
 | **o** | Turn context automation off/on (ASSERTIONS focused) |
 | **prefix ?** | Standalone tmux shortcuts popup (works without cockpit) |
+| **`lg`** (in shell) | lazygit — not a cockpit F-key |
 
 Daily enter flow: [Workflows — local terminal](workflows.md#local-terminal).
 

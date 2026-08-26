@@ -96,7 +96,7 @@ Zobacz [Path parity](../concepts/path-parity.md). Potwierdź mounty przez `orcan
 
 1. Ustaw fokus na **środkowej** kolumnie terminala w cockpicie (nie na liście workspace / sekcji ASSERTIONS).
 2. Pamiętaj: osadzony tmux **≠ native attach** — zobacz **F1** / **?** w cockpicie albo [Terminal UI — dwa terminale](terminal-ui.md#cockpit-browser). Pełny attach: `orcan enter --tmux SESJA`.
-3. Prefix to **C-Space** (nie `C-b`). Skoki okien: **Alt+1**…**Alt+9** (zobacz [Terminal UI](terminal-ui.md)).
+3. Prefix to **C-Space** (nie `C-b`). Skoki okien: **Alt+1**…**Alt+9** (zobacz [Terminal UI](terminal-ui.md)). W **przeglądarce** **Alt+strzałki** (fokus pane) często nie działają — limit ttyd/xterm.js; użyj prefix+strzałki albo natywnego attach.
 4. Na **macOS** Option musi być Meta: ttyd w obrazie ustawia `macOptionIsMeta=true`. Jeśli Alt wpisuje `¡`/`™` zamiast zmieniać okno — przebuduj/odtwórz kontener, żeby `cursor-ttyd` był aktualny.
 5. Na **Windows Terminal / Linux** Textual może nadal pokazywać glify Option dla ESC+digit; bieżący cockpit mapuje je z powrotem na Meta w `pty_keys.py`. Jeśli Alt nadal wstawia `¡`/`™` — zaktualizuj cockpit (`make dev-restart` albo `orcan build` + recreate).
 6. Prawy przycisk myszy otwiera menu przeglądarki (menu myszy tmux są celowo odwiązane).

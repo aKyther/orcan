@@ -22,15 +22,17 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 | **UX preview** | `make dev-restart` / `dev-doctor` / `dev-smoke` / `dev-visual` under isolated `orcan:dev-ux` |
 | **Where** | CLI `bin/orcan`+`cli/`; cockpit `cockpit/`; image `docker/rootfs/`; helpers `scripts/repository/`; previews `scripts/dev/` |
 | **Done** | Surgical diff; EN+PL docs; `make validate` · `test-host` · `docs-check` |
+
 ## Pay attention to (core product)
 
 - **Workspaces** = named sets of projects that form one daily job
 - **Path parity** = same absolute paths on host and in the container (required for Docker-from-Docker)
 - **Context pack** = ignores, AGENTS/CLAUDE seeds, Context Assertions — what agents should read
-- **Config is JSON only** — `orcan.config.json` (no YAML user profiles, no host PyYAML stack)
+- **Config is JSON only** — `orcan.config.json` under **`ORCAN_HOME`**; tool data / history under **`ORCAN_DATA`** (both default `~/.config/orcan`; no YAML user profiles, no host PyYAML stack)
 - **Ritual** — `orcan init` → `orcan sync` → `orcan build` (when image inputs change) → `orcan up` (daily; does **not** run sync)
 - **Default access** — local `orcan enter`; browser is optional (`orcan up --with-ttyd`)
-- **Runtime stack** — cockpit (`agent-launcher`: top bar + workspaces/ASSERTIONS \| tmux; **F1** embed disclaimer; **F2** / **`r`** / **`p`** / **`o`**) → tmux 3.6a → zsh; container CMD `orcan-supervisord` (keepalive|ttyd + `context-scan`/`recap`); host `orcan sync --context` for inbox-only compile
+- **Runtime stack** — cockpit (`agent-launcher`: top bar + workspaces/ASSERTIONS \| tmux; **F1** help+About; **F2** / **F4** / **`i`** / **`r`** / **`p`** / **`o`**; lazygit via **`lg`**, not F3) → tmux 3.6a → zsh; container CMD `orcan-supervisord` (keepalive|ttyd + `context-scan`/`recap`); host `orcan sync --context` for inbox-only compile
+- **Known browser limit** — under ttyd/xterm.js, **Alt+←/→/↑/↓** pane focus often never reaches tmux (`BROWSER_KEY_LIMIT` in F1); binds/`pty_keys.py` are correct — do not “fix” in cockpit alone; see [Terminal UI](https://akyther.github.io/orcan/latest/guides/terminal-ui/)
 - **Version SoT** — `cockpit/pyproject.toml` `version`; root `VERSION` is a CLI/image mirror
 - **Docs** — EN + PL must stay in sync; B1–B2; story before commands; [STYLE_GUIDE](https://github.com/aKyther/orcan/blob/main/docs/STYLE_GUIDE.md)
 

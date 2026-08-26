@@ -115,7 +115,7 @@ under `.orcan-dev-ux/playwright-node/`, and write failure artifacts under
 
 `make dev-checklist` prints the **Before merge (automated)** list
 (`dev-doctor`, `dev-smoke`, `dev-a11y`, `dev-visual`, `dev-test`) plus the
-manual browser flow (F2/F4/F1/F3, r/p/o, Alt+1…9, resize, compact `900x700`, tiny
+manual browser flow (F2/F4/F1, r/p/o, i, Alt+1…9, resize, compact `900x700`, tiny
 `480x320`, axe). The accessibility suite also asserts Tab reaches the terminal
 and that a `480x320` viewport keeps the xterm usable.
 
