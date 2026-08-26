@@ -42,7 +42,7 @@ W workspace orcan (np. `orcan-dev`) najpierw przeczytaj context pack workspace, 
 - Auto-modyfikacja zamontowanych repozytoriów przy starcie kontenera
 - Mylenie `make dev-*` z publicznym CLI `orcan`
 - Skrót F3/Git w cockpicie — w terminalu alias **`lg`** (lazygit)
-- „Naprawianie” **Alt+strzałek** w przeglądarce samym `pty_keys.py` — limit ttyd/xterm.js (`BROWSER_KEY_LIMIT`); zob. [Terminal UI](../guides/terminal-ui.md)
+- „Naprawianie” **Alt+strzałek** przez przywrócenie Ctrl=split w cockpicie — wiele terminali dostarcza Alt jako Ctrl; nav mix jest zamierzony (`pty_tmux_nav.py` / `BROWSER_KEY_LIMIT`); zob. [Terminal UI — nav mix](../guides/terminal-ui.md#cockpit-nav-mix)
 
 ## Rytuał (host)
 
@@ -61,7 +61,7 @@ Preferuj live reconcile przez `orcan sync`, gdy to możliwe; recreate gdy wymaga
 | --- | --- |
 | UX hosta / cele | `Makefile`, `scripts/repository/` |
 | Izolowany preview UX / tmux | `make dev-*` / `scripts/dev/` — [Testy](../development/testing.md) |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`, `pty_keys.py`, `pty_colors.py`) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`) |
 | Recap sesji | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` |
 | Probe modelu recap | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
 | Store Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` |

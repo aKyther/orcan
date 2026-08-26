@@ -57,7 +57,7 @@ Presets in `cursor-ttyd`:
 | tmux UI | `docker/rootfs/etc/tmux/` (`status.conf`, `options.conf`, `keybindings.conf`, `scripts/`) | build; or copy + `tmux source-file` for iteration |
 | Cockpit layout / chrome | `cockpit/src/orcan_cockpit/app.py`, `activity.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (isolated); or `orcan build` + recreate |
 | Cockpit keys / help | `cockpit/…/shortcuts.py` (+ `keybindings.conf` for tmux tokens) | same; host test keeps tokens aligned |
-| Cockpit PTY | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py` | same — see [Cockpit + browser](#cockpit-browser) |
+| Cockpit PTY | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_tmux_nav.py` | same — see [Cockpit + browser](#cockpit-browser) / [nav mix](#cockpit-nav-mix) |
 | zsh | `docker/rootfs/etc/skel/.zshrc`, `.zshrc.d/` | build (skel → home on new image); or copy into `~` for live test |
 | fzf / suggest colours | `docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh` | new shell after copy/build |
 | Starship | `docker/rootfs/opt/orcan/starship.toml` | **missing-only** → `~/.config/starship.toml` |
@@ -88,9 +88,12 @@ Presets in `cursor-ttyd`:
 
 ### Prefix-free (Meta / Alt — local shortcuts)
 
-These use tmux `M-…` binds. They must arrive as **Meta**, not as composed characters.
+These use tmux `M-…` / `C-…` binds in `keybindings.conf` for **raw**
+`orcan enter --tmux`. They must arrive as **Meta**/Ctrl CSI, not as composed
+characters. **Inside the cockpit** the arrow chords differ — see
+[Cockpit nav mix](#cockpit-nav-mix).
 
-| Keys | Action |
+| Keys | Action (`--tmux` / conf) |
 | --- | --- |
 | `Alt+1` … `Alt+9` | Select window 1–9 |
 | `Alt+0` | Select last window |
@@ -126,26 +129,50 @@ status clicks, bracketed paste, …) may need dedicated logic — or use full tm
 
 | Module | Direction | Without translation |
 | --- | --- | --- |
-| `pty_keys.py` | Textual → PTY | full `keybindings.conf` ``bind -n`` map — see table below |
+| `pty_tmux_nav.py` | Textual → `tmux` CLI | Ctrl/Alt+arrows / Ctrl+Shift+arrows — see [Cockpit nav mix](#cockpit-nav-mix) |
+| `pty_keys.py` | Textual → PTY | other `keybindings.conf` ``bind -n`` chords — see table below |
 | `pty_mouse.py` | Textual → PTY | wheel/clicks never reach tmux; SGR vs legacy X10 (`@`/`A` on screen) |
 | `pty_colors.py` | pyte → Rich | `brown` / bright aliases break render |
 | `pty_terminal.py` | PTY ↔ pyte ↔ UI | resize (`TIOCSCTTY`), refresh, selection vs tmux, `?1000/1006` modes, `Escape`+key coalesce |
 
-**Local tmux binds (`bind -n`, no prefix)** — each needs correct CSI / Meta in one write:
+#### Cockpit nav mix (Alt-as-Ctrl limit) { #cockpit-nav-mix }
+
+**Limitation:** under ttyd/xterm.js and some desktop terminals (Windows Terminal /
+WSL), **Alt+←/→/↑/↓** often arrives at Textual as **`ctrl+arrow`** — there is no
+separate Meta event. Cockpit cannot implement both “Ctrl = split” and
+“Alt = focus pane” when those chords look identical.
+
+**Cockpit behaviour** (`pty_tmux_nav.py` — calls `tmux select-pane` /
+`split-window` directly, no CSI to the child PTY):
+
+| Shortcut | Cockpit action |
+| --- | --- |
+| `Ctrl` or `Alt` + `←/→/↑/↓` | Focus pane |
+| `Ctrl+Shift` + `←/→/↑/↓` | Split pane |
+| `prefix -` / `prefix \|` | Split (unchanged; forwarded to tmux) |
+
+**Raw attach** (`orcan enter --tmux`): `keybindings.conf` is unchanged —
+`Ctrl+arrows` = split, `Alt+arrows` = focus **when Meta is delivered**.
+
+F1 / **?** and **prefix ?** footers show this as `BROWSER_KEY_LIMIT` in
+`shortcuts.py`. `Alt+1`…`Alt+9` is a separate path (often OK with
+`macOptionIsMeta` on macOS).
+
+**Local tmux binds (`bind -n`, no prefix)** — still used for chords that the
+cockpit **forwards** as bytes (not the nav-mix set above). Each needs correct
+CSI / Meta in one write:
 
 | Shortcut | tmux | Target bytes |
 | --- | --- | --- |
 | `Ctrl+Space` | prefix | `\x00` |
-| `Alt+←/→/↑/↓` | focus pane | `\x1b\x1b[D/C/A/B` (legacy Meta) |
 | `prefix z` | zoom pane | `z` after `\x00` (C-Space) — no wrapper map |
-| `Ctrl+←/→/↑/↓` | split | `\x1b[1;5D/C/A/B` |
 | `Ctrl+Alt+←/→` | prev/next window | `\x1b[1;7D/C` |
-| `Ctrl+Shift+←/→` | swap window | `\x1b[1;6D/C` |
 | `Alt+c` / `Alt+a` / `Alt+q` | new win / mouse | `\x1bc` / `\x1ba` / `\x1bq` |
 | `Alt+0..9` | select window | `\x1b0` … `\x1b9` |
 
 Textual splits many of the above into `Escape` + a second key — the cockpit
-recombines them (`pty_keys.esc_follow_up_bytes` + 50 ms window in `pty_terminal`).
+recombines them (`pty_keys.esc_follow_up_bytes` + coalesce window in
+`pty_terminal`).
 
 **Mouse:** tmux sends `?1006l` then `?1006h` on attach — parser must take the
 **last** state (not substring `in data`). Forward mouse only after tmux enables `?1000h`.
@@ -163,18 +190,10 @@ and redraws the pane — the wheel must reach tmux as SGR.
 - Spawn size falls back to **80×24** when the widget is still `0×0` at mount (avoids a 1×1 dead terminal).
 - Colors: pyte per-cell render (status/prompt match native attach).
 
-Host tests (no Textual): `tests/host/test_cockpit_pty_{keys,mouse,colors}.py`.
+Host tests (no Textual): `tests/host/test_cockpit_pty_{keys,mouse,colors,tmux_nav}.py`.
 Smoke: `tests/smoke/test-cockpit-tui.py`.
 
 Browser ttyd (`cursor-ttyd`) sets **`macOptionIsMeta=true`** so macOS Option/Alt sends Meta (needed for `Alt+1`…), not `¡` / `™` composition. No effect on Windows/Linux.
-
-**Known browser limit:** **Alt+←/→/↑/↓** (tmux pane focus) often never reaches the
-embedded PTY under ttyd/xterm.js — Orcan’s `keybindings.conf` and
-`pty_keys.py` are correct; fixing it needs a ttyd/xterm frontend change.
-Workaround: **prefix + arrows**, or full attach (`orcan enter --tmux` /
-desktop terminal). Documented in F1/`?` footer as `BROWSER_KEY_LIMIT`.
-`Alt+1`…`Alt+9` and other Meta keys are a separate path (often OK with
-`macOptionIsMeta`).
 
 ### Cockpit chrome (app layer)
 
@@ -195,9 +214,10 @@ rail bell) reveals and focuses ASSERTIONS. Workspace list legend:
 `● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** toggles a second line
 (root path + repo names). SoT for keys: `cockpit/…/shortcuts.py`. **F1** /
 **?** overlay includes an **About** block (product name, version, docs link)
-plus embed ≠ native attach (`EMBED_DISCLAIMER`) and the browser Alt+arrow
-limit (`BROWSER_KEY_LIMIT`). There is **no** cockpit Git /
-F3 shortcut — use the shell alias **`lg`** (lazygit) inside the terminal.
+plus embed ≠ native attach (`EMBED_DISCLAIMER`) and the Alt-as-Ctrl nav
+limit (`BROWSER_KEY_LIMIT` — see [Cockpit nav mix](#cockpit-nav-mix)). There is
+**no** cockpit Git / F3 shortcut — use the shell alias **`lg`** (lazygit)
+inside the terminal.
 
 **Width tiers** (terminal columns, not browser CSS breakpoints —
 `status.py` / `tier_for_width`):

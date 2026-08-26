@@ -42,7 +42,7 @@ When you are inside an orcan workspace (e.g. `orcan-dev`), read the workspace co
 - Auto-modifying mounted git repos on every container start
 - Confusing `make dev-*` with the public `orcan` CLI
 - Cockpit F3/Git shortcut — use shell **`lg`** (lazygit) inside the terminal
-- “Fixing” browser **Alt+arrows** in `pty_keys.py` alone — ttyd/xterm.js limit (`BROWSER_KEY_LIMIT`); see [Terminal UI](../guides/terminal-ui.md)
+- “Fixing” browser **Alt+arrows** by restoring Ctrl=split in cockpit — many terminals deliver Alt as Ctrl; cockpit nav mix is intentional (`pty_tmux_nav.py` / `BROWSER_KEY_LIMIT`); see [Terminal UI — nav mix](../guides/terminal-ui.md#cockpit-nav-mix)
 
 ## Ritual (host)
 
@@ -61,7 +61,7 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 | --- | --- |
 | Host UX / targets | `Makefile`, `scripts/repository/` |
 | Isolated UX / tmux preview | `make dev-*` / `scripts/dev/` — [Testing](../development/testing.md) |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (shortcuts: `shortcuts.py`; ASSERTIONS: `activity.py`; chrome: `top_bar.py`; PTY: `pty_keys.py`, `pty_colors.py`) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (shortcuts: `shortcuts.py`; ASSERTIONS: `activity.py`; chrome: `top_bar.py`; PTY: `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`) |
 | Session recap | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` |
 | Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
 | Context Assertions store / compile | `scripts/repository/context_assertions.py`, `compile_context.py` |
