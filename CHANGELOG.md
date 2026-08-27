@@ -59,6 +59,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   idle; cockpit Pause/Turn off greyed); manual **Review** of inbox still works.
   `make dev-reset` / `orcan-preview reset` also clears the cockpit first-run tip.
 
+### Added
+
+- **Multi-agent restraint** guideline in the generated workspace `AGENTS.md`/
+  `CLAUDE.md` (`reconcile.py`): spawning subagents costs tokens per agent —
+  poll on backoff not a tight loop, and don't act on (or re-poll past) a
+  garbled/unfounded subagent result. Extends the existing Karpathy-inspired
+  behavioral list rather than a separate section, same reasoning as the
+  earlier "think before coding" / "surgical changes" points.
+
 ### Fixed
 
 - **CI failing `Host tests`** (`test_refresh_model_check_persists`): the test
