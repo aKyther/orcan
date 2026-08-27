@@ -8,7 +8,20 @@ ROOT = Path(__file__).resolve().parents[2]
 PREVIEW = ROOT / "scripts" / "dev" / "terminal-ui-preview"
 
 
-@unittest.skipUnless(shutil.which("tmux"), "tmux is not installed")
+@unittest.skipUnless(
+    shutil.which("tmux") and shutil.which("zsh"),
+    "tmux or zsh is not installed",
+)
+# `terminal-ui-preview` runs docker/rootfs/etc/tmux/options.conf's
+# `default-shell /bin/zsh` directly on *this host* (unlike the real product,
+# which always has zsh via the Dockerfile) — on a host without zsh, tmux's
+# `new-session -d` can't spawn the pane's shell at all, so it dies right
+# after starting and every later command reports "no server running" (or
+# "server exited unexpectedly", depending on which command hits the dead
+# socket first) — confirmed by reproducing it locally with a fake
+# nonexistent default-shell. A CI runner has no reason to carry zsh just for
+# this host-side dev preview tool, so skip it there instead of installing a
+# shell the product itself never uses on the host.
 class TerminalUiPreviewTests(unittest.TestCase):
     def test_check_loads_ui_on_an_isolated_server(self):
         result = subprocess.run(

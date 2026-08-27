@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.3] - 2026-08-27
+
+### Fixed
+
+- **CI `Host tests` failing on `test_check_loads_ui_on_an_isolated_server`:**
+  `scripts/dev/terminal-ui-preview` runs `docker/rootfs/etc/tmux/options.conf`'s
+  `default-shell /bin/zsh` directly on the *host* machine (unlike the real
+  product, which always has zsh via the Dockerfile) — a CI runner has no
+  reason to carry zsh just for this dev-only preview tool, so tmux's
+  `new-session -d` couldn't spawn the pane's shell, the server died right
+  after starting, and every later command reported "no server running" /
+  "server exited unexpectedly". Reproduced locally with a fake nonexistent
+  default-shell — identical symptom and exit code. Skip the test (like the
+  existing tmux-not-installed skip) when the host has no `zsh`, rather than
+  changing what the tool previews.
+
 ## [3.0.2] - 2026-08-27
 
 ### Added
