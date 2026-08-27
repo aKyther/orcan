@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-08-27
+
+### Fixed
+
+- **Cockpit crash `DuplicateIds: ... ID 'terminal'`/`'loading'` when switching
+  workspaces (only visible with more than one project/workspace attached):**
+  `MainScreen.select_workspace()` called `center.remove_children()` without
+  awaiting it — that call only *posts* a removal message, it doesn't apply
+  it synchronously — then immediately mounted a new same-id widget
+  (`#loading`, then `#terminal`) into the same container. Switching to a
+  second workspace before the first one's removal had actually been
+  processed left the old widget still present when the new one tried to
+  claim the same ID, crashing the app. Reproduced end-to-end against a real
+  cockpit run (confirmed the exact crash on the pre-fix code, then confirmed
+  it's gone after), fixed by awaiting `remove_children()` before mounting,
+  and locked in with a regression case in `tests/smoke/test-cockpit-tui.py`
+  that switches workspaces back-to-back with no settle time in between.
+
 ## [3.0.3] - 2026-08-27
 
 ### Fixed

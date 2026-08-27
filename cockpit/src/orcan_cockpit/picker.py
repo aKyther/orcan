@@ -312,11 +312,11 @@ class WorkspaceList(Widget):
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
         self._update_glance()
 
-    def on_list_view_selected(self, event: ListView.Selected) -> None:
+    async def on_list_view_selected(self, event: ListView.Selected) -> None:
         index = event.list_view.index
         if index is None or not (0 <= index < len(self.rows)):
             return
-        self.app.select_workspace(self.rows[index])  # type: ignore[attr-defined]
+        await self.app.select_workspace(self.rows[index])  # type: ignore[attr-defined]
 
     def action_quit_app(self) -> None:
         self.app.exit()
