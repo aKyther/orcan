@@ -41,11 +41,42 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _writable_candidate(raw: str) -> Path | None:
+    """``Path(raw)/history/supervisor`` if this process can write there
+    (checked at that exact path's nearest existing ancestor — the
+    target itself, or "history", or *raw* itself, whichever exists),
+    else None.
+
+    Host tools legitimately point ``$ORCAN_DATA`` at a real, writable
+    directory. Inside the container it's set to the *same host path*
+    for docs/other host-side tools (see ``doctor.sh``) even though the
+    actual bind for this subtree lands elsewhere (compose:
+    ``${ORCAN_DATA}/history`` -> ``~/.local/share/orcan/history``) — so
+    that host path (or a subdir under it) may exist in-container (as an
+    unrelated bind's auto-created, root-owned parent, or with a stale
+    owner) without being writable. Trust it only when it demonstrably
+    is, checked against the *actual* target, not just $ORCAN_DATA's own
+    root — a corrupted "history" alone, with "raw" itself still owned
+    by this user, must fall back too (confirmed live: chmod'ing only
+    "history" while "raw" stayed writable still crashed a first cut of
+    this fix that only checked "raw").
+    """
+    candidate = Path(raw) / "history" / "supervisor"
+    probe = candidate
+    while not probe.exists():
+        if probe.parent == probe:
+            return None
+        probe = probe.parent
+    return candidate if os.access(probe, os.W_OK) else None
+
+
 def automation_dir() -> Path:
     """Durable dir shared host ↔ container via the history bind."""
     data = (os.environ.get("ORCAN_DATA") or "").strip()
     if data:
-        return Path(data) / "history" / "supervisor"
+        candidate = _writable_candidate(data)
+        if candidate is not None:
+            return candidate
     return Path.home() / ".local" / "share" / "orcan" / "history" / "supervisor"
 
 

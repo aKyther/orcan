@@ -70,7 +70,8 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan url` | URL terminala w przeglądarce (wymaga `orcan up --with-ttyd`) |
 | `orcan logs [docker\|supervisor\|context-scan]` | Logi kontenera (domyślnie) albo trwałe logi supervisord / skanera Reflection |
 | `orcan enter` / `orcan go-in` | Lokalny terminal do działającego kontenera (`--launcher` domyślnie, `--shell`, `--tmux [SESSION]`) |
-| `orcan update [--release\|--main]` | Najnowszy tag release `vX.Y.Z` (domyślnie); `--main` = bleeding edge |
+| `orcan update [--release\|--main\|--to VERSION]` | Najnowszy tag release `vX.Y.Z` (domyślnie); `--main` = bleeding edge; `--to` przypina release |
+| `orcan downgrade [--to VERSION]` | Poprzedni release SemVer, albo starszy `--to` (odmawia nowszych targetów) |
 | `orcan doctor` | Zdrowie hosta / configu / kontenera (supervisord, stan automatyzacji context, probe modelu recap — gdy obraz to wspiera) |
 | `orcan uninstall [--purge-data]` | Usuń CLI (opcjonalnie `ORCAN_DATA`) |
 | `orcan version` / `orcan help` | Wersja / pomoc |

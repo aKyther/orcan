@@ -42,6 +42,7 @@ require_file "cli/commands/pull.sh"
 require_file "cli/commands/publish.sh"
 require_file "cli/commands/doctor.sh"
 require_file "cli/commands/update.sh"
+require_file "cli/commands/downgrade.sh"
 require_file "cli/commands/uninstall.sh"
 require_file "cli/commands/context.sh"
 require_file "cli/commands/enter.sh"
@@ -268,6 +269,8 @@ bash_scripts=(
     cli/commands/enter.sh
     cli/commands/settings.sh
     cli/commands/migrate.sh
+    cli/commands/update.sh
+    cli/commands/downgrade.sh
     tests/smoke/test-container.sh
     tests/integration/test-path-parity.sh
     tests/integration/test-runtime-reconcile.sh

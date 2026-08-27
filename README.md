@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **3.0.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **3.0.1**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -62,7 +62,7 @@ After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). 
 | `orcan up` / `orcan up --with-ttyd` / `orcan up --with-docker \| --with-network NAME` / `orcan up --with-git` / `orcan down` | Start container (local by default; optional browser / DinD **or** network / SSH) / stop |
 | `orcan build [--claude\|--cursor\|--codex]` | All → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor\|codex` |
 | `orcan publish` | Manual image push (maintainers) |
-| `orcan update` | Newest release tag `vX.Y.Z` (`--main` for bleeding edge) |
+| `orcan update [--to VERSION]` / `orcan downgrade` | Newest release / pin / one step back |
 | `orcan uninstall` | Remove CLI (`--purge-data` also deletes logins/caches) |
 
 Config lives in `~/.config/orcan/` by default (install clone: `~/.local/share/orcan`).

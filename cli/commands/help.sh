@@ -59,7 +59,9 @@ Commands:
   enter [--launcher|--shell|--tmux [SESSION]]
                            Local terminal into the running container
                            (default: agent-launcher; alias: go-in)
-  update [--release|--main] Checkout newest release tag (default) or main
+  update [--release|--main|--to VERSION]
+                           Newest release tag (default), main, or pin VERSION
+  downgrade [--to VERSION] Previous SemVer release, or pin an older VERSION
   doctor                   Host / config / container health (supervisord, context automation, recap model when running)
   uninstall [--purge-data] Remove CLI (and optionally ORCAN_DATA)
   version                  Print version

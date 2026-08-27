@@ -70,7 +70,8 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
 | `orcan logs [docker\|supervisor\|context-scan]` | Follow container stdout (default) or show durable supervisord / Reflection scanner logs |
 | `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
-| `orcan update [--release\|--main]` | Newest release tag `vX.Y.Z` (default); `--main` for bleeding edge |
+| `orcan update [--release\|--main\|--to VERSION]` | Newest release tag `vX.Y.Z` (default); `--main` for bleeding edge; `--to` pins a release |
+| `orcan downgrade [--to VERSION]` | Previous SemVer release, or pin an older `--to` (refuses newer targets) |
 | `orcan doctor` | Host / config / container health (supervisord, context automation state, recap model probe when the image supports them) |
 | `orcan uninstall [--purge-data]` | Remove CLI (optional wipe of `ORCAN_DATA`) |
 | `orcan version` / `orcan help` | Version / help |
