@@ -30,6 +30,18 @@ from orcan_cockpit.status import git_branch
 _tmux_server = Server()
 
 
+def live_session_names() -> set[str]:
+    """All live tmux session names in one query.
+
+    Prefer this over N× ``has_session`` on the 5s workspace-list poll —
+    each has_session is its own server round-trip.
+    """
+    try:
+        return {str(session.name) for session in _tmux_server.sessions}
+    except LibTmuxException:
+        return set()
+
+
 def session_is_live(session: str) -> bool:
     try:
         return _tmux_server.has_session(session)
@@ -74,8 +86,64 @@ def project_git_label(project: dict[str, Any]) -> str:
     return f"[#64748b]{name}[/]"
 
 
+def format_workspace_row_text(
+    row: dict[str, Any],
+    *,
+    active_session: str | None,
+    expanded: bool,
+) -> str:
+    """Markup for one ListView row — shared by paint + signature so a no-op
+    refresh can skip tear-down when the visible text would be identical."""
+    dot = "●" if row["live"] else "○"
+    is_active = row["session"] == active_session
+    marker = "▸" if is_active else " "
+    text = f"{marker}{dot} {row['name']}"
+    if not expanded:
+        return text
+    repos = f"{row['repo_count']} repo" + ("" if row["repo_count"] == 1 else "s")
+    # git status per project only for the expanded row being rendered —
+    # see the "projects" comment in list_workspace_rows().
+    labels = [project_git_label(p) for p in row["projects"] if isinstance(p, dict)]
+    if labels:
+        repos += f": {', '.join(labels)}"
+    home = os.path.expanduser("~")
+    root = row["root"]
+    if home and root.startswith(home):
+        root = "~" + root[len(home) :]
+    # #94a3b8 (lighter muted), not #64748b — whole path/line in the darker
+    # tone read as washed-out against this card's background.
+    text += f"\n   [#94a3b8]{root}[/]"
+    text += f"\n   [#94a3b8]{repos}[/]"
+    return text
+
+
+def workspace_list_structure(rows: list[dict[str, Any]]) -> tuple[str, ...]:
+    """Stable identity of list membership/order (not ●/○ or ▸)."""
+    return tuple(str(row.get("session") or "") for row in rows)
+
+
+def workspace_list_paint_signature(
+    rows: list[dict[str, Any]],
+    *,
+    active_session: str | None,
+    expanded: bool,
+) -> tuple[tuple[str, bool], ...]:
+    """What the ListView would show — poll stays frequent; paint skips when
+    this matches the last painted signature (avoids clear()+rebuild flicker)."""
+    return tuple(
+        (
+            format_workspace_row_text(
+                row, active_session=active_session, expanded=expanded
+            ),
+            row["session"] == active_session,
+        )
+        for row in rows
+    )
+
+
 def list_workspace_rows(config_path: str | None = None) -> list[dict[str, Any]]:
     cfg = load_config(config_path)
+    live = live_session_names()
     rows: list[dict[str, Any]] = []
     for ws in iter_workspaces(cfg):
         rows.append(
@@ -84,7 +152,7 @@ def list_workspace_rows(config_path: str | None = None) -> list[dict[str, Any]]:
                 "root": ws["root"],
                 "session": ws["tmux_session"],
                 "hints": compact_hints(ws),
-                "live": session_is_live(ws["tmux_session"]),
+                "live": ws["tmux_session"] in live,
                 "repo_count": len(ws["projects"]),
                 # Raw project list (name/path), not a pre-joined names
                 # string: git status (below) is only ever computed for the
@@ -95,6 +163,17 @@ def list_workspace_rows(config_path: str | None = None) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+def workspace_roots(config_path: str | None = None) -> list[Path]:
+    """Enabled workspace roots from config only — no tmux live probes.
+
+    Used when callers only need paths (e.g. cross-workspace pending counts),
+    so a watchfiles burst does not pay N× ``has_session`` via
+    ``list_workspace_rows``.
+    """
+    cfg = load_config(config_path)
+    return [Path(ws["root"]) for ws in iter_workspaces(cfg) if ws.get("root")]
 
 
 def format_fallback_menu(rows: list[dict[str, Any]]) -> str:
@@ -203,6 +282,11 @@ class WorkspaceList(Widget):
         self.rows: list[dict[str, Any]] = []
         self.active_session: str | None = None
         self._expanded = False
+        # Last painted ListView / glance — poll stays on the timer; paint
+        # skips when signatures match so idle refresh does not flicker.
+        self._list_paint_sig: tuple[tuple[str, bool], ...] | None = None
+        self._list_structure: tuple[str, ...] | None = None
+        self._glance_text: str | None = None
 
     def compose(self) -> ComposeResult:
         yield ListView(id="workspace-list")
@@ -239,54 +323,38 @@ class WorkspaceList(Widget):
         self._update_glance()
 
     def _render_rows(self) -> None:
+        paint_sig = workspace_list_paint_signature(
+            self.rows,
+            active_session=self.active_session,
+            expanded=self._expanded,
+        )
+        if paint_sig == self._list_paint_sig:
+            return
         list_view = self.query_one("#workspace-list", ListView)
-        selected = list_view.index
-        list_view.clear()
-        for row in self.rows:
-            dot = "●" if row["live"] else "○"
-            is_active = row["session"] == self.active_session
-            marker = "▸" if is_active else " "
-            text = f"{marker}{dot} {row['name']}"
-            if self._expanded:
-                repos = f"{row['repo_count']} repo" + ("" if row["repo_count"] == 1 else "s")
-                # git status per project only gets computed here, for the
-                # expanded row actually being rendered — see the comment on
-                # "projects" in list_workspace_rows() for why (a real `git`
-                # subprocess per project, per row, on every 5s poll would be
-                # wasted work for rows nobody has expanded).
-                labels = [project_git_label(p) for p in row["projects"] if isinstance(p, dict)]
-                if labels:
-                    repos += f": {', '.join(labels)}"
-                # Two separate lines, not one "root · repos" line: ListView's
-                # own DEFAULT_CSS sets overflow:hidden on ListItem, and this
-                # card is only ~30 cols wide — a real workspace root like
-                # /home/developer/workspaces/dev-ux (34 chars) already fills
-                # that on its own, so appending git status after it on the
-                # same line silently clipped the whole thing off-screen
-                # (confirmed via Textual's own item.size — width demanded
-                # was 53, box was 30). ~ for $HOME buys back some of that
-                # width too. Dimmed via markup, not a second CSS rule — this
-                # is plain text glued into a single Label's renderable, not
-                # a separate widget a stylesheet selector could target.
-                home = os.path.expanduser("~")
-                root = row["root"]
-                if home and root.startswith(home):
-                    root = "~" + root[len(home):]
-                # #94a3b8 (lighter muted), not #64748b — the darker tone
-                # was legible enough for short muted labels elsewhere, but
-                # a whole path/line in it read as washed-out against this
-                # card's background (flagged in review). The per-project
-                # git labels below carry their own color (see
-                # project_git_label) and nest correctly inside this span —
-                # Rich markup honors the inner color for its own range.
-                text += f"\n   [#94a3b8]{root}[/]"
-                text += f"\n   [#94a3b8]{repos}[/]"
-            item = ListItem(Label(text))
-            if is_active:
-                item.add_class("active-workspace")
-            list_view.append(item)
-        if selected is not None and selected < len(self.rows):
-            list_view.index = selected
+        structure = workspace_list_structure(self.rows)
+        items = list(list_view.query(ListItem))
+        # Same membership/order → mutate labels in place (●/○ / ▸ / expand)
+        # instead of clear()+append, which flashes even for one-cell edits.
+        if (
+            structure == self._list_structure
+            and len(items) == len(self.rows)
+            and self._list_structure is not None
+        ):
+            for item, (text, is_active) in zip(items, paint_sig):
+                item.query_one(Label).update(text)
+                item.set_class(is_active, "active-workspace")
+        else:
+            selected = list_view.index
+            list_view.clear()
+            for (text, is_active), row in zip(paint_sig, self.rows):
+                item = ListItem(Label(text))
+                if is_active:
+                    item.add_class("active-workspace")
+                list_view.append(item)
+            if selected is not None and selected < len(self.rows):
+                list_view.index = selected
+        self._list_paint_sig = paint_sig
+        self._list_structure = structure
 
     def _highlighted_row(self) -> dict[str, Any] | None:
         list_view = self.query_one("#workspace-list", ListView)
@@ -297,17 +365,20 @@ class WorkspaceList(Widget):
 
     def _update_glance(self) -> None:
         row = self._highlighted_row()
-        body = self.query_one("#workspace-glance", Static)
         if row is None:
-            body.update(format_glance([], empty_hint=_GLANCE_EMPTY))
+            text = format_glance([], empty_hint=_GLANCE_EMPTY)
+        else:
+            lines = glance_lines(
+                row["session"],
+                row["root"],
+                live=bool(row["live"]),
+                projects=row.get("projects"),
+            )
+            text = format_glance(lines, empty_hint=_GLANCE_EMPTY)
+        if text == self._glance_text:
             return
-        lines = glance_lines(
-            row["session"],
-            row["root"],
-            live=bool(row["live"]),
-            projects=row.get("projects"),
-        )
-        body.update(format_glance(lines, empty_hint=_GLANCE_EMPTY))
+        self._glance_text = text
+        self.query_one("#workspace-glance", Static).update(text)
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
         self._update_glance()

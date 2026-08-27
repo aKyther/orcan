@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.5] - 2026-08-27
+
+### Fixed
+
+- **Cockpit idle flicker (workspace list / status / metrics / ASSERTIONS):**
+  periodic and watch-driven refreshes always re-painted even when nothing
+  visible had changed — the workspace list did a full `ListView.clear()` +
+  rebuild every 5s, which showed up as a micro-blink. Poll and file-watch
+  intervals are unchanged (fresh data every tick); only the Textual paint is
+  skipped when the painted signature matches, with in-place label updates
+  when membership is stable but ●/○ or ▸ changes. Locked in with host
+  signature tests and a smoke check that no-op `refresh_rows()` keeps the
+  same `ListItem` identities.
+
+- **Cockpit background work on idle / ASSERTIONS watch bursts:** workspace
+  list live-status used one tmux `has_session` per workspace every poll;
+  now one `sessions` listing. Cross-workspace pending in ASSERTIONS called
+  full `list_workspace_rows()` (live probes included) on every watchfiles
+  tick — now `workspace_roots()` (config paths only). Intervals unchanged.
+
 ## [3.0.4] - 2026-08-27
 
 ### Fixed

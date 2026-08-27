@@ -24,6 +24,7 @@ class StatusBar(Widget):
         self.workspace_root: Path | None = None
         self.session: str | None = None
         self.tier: Tier = "full"
+        self._painted_line: str | None = None
 
     def compose(self) -> ComposeResult:
         yield Static(id="status-body")
@@ -53,4 +54,7 @@ class StatusBar(Widget):
             session=self.session,
             breadcrumb=crumb,
         )
+        if line == self._painted_line:
+            return
+        self._painted_line = line
         self.query_one("#status-body", Static).update(line)

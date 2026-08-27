@@ -3,7 +3,7 @@
 
 import asyncio
 
-from textual.widgets import Button, ListView, Static
+from textual.widgets import Button, ListItem, ListView, Static
 
 from orcan_cockpit.activity import WorkspaceActivity
 from orcan_cockpit.app import CockpitApp
@@ -114,6 +114,18 @@ async def main() -> None:
         await pilot.pause()
         assert app.screen.has_class("tier-full")
         assert app.screen.query_one("#workspaces").display
+
+        # Idle workspace-list refresh must not tear down ListItems when
+        # nothing changed — that clear()+rebuild was the main cockpit
+        # flicker. Two back-to-back refresh_rows() calls with stable data
+        # should keep the same widget identities.
+        list_view = app.screen.query_one("#workspace-list", ListView)
+        before = [id(item) for item in list_view.query(ListItem)]
+        assert before, "workspace list has no rows to paint-skip against"
+        workspaces.refresh_rows()
+        workspaces.refresh_rows()
+        after = [id(item) for item in list_view.query(ListItem)]
+        assert after == before, "no-op refresh_rows rebuilt ListItems (flicker)"
 
         # Regression: switching to a second workspace without waiting for
         # the first one's #center-stack teardown to finish used to crash
