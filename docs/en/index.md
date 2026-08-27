@@ -12,7 +12,7 @@ Orcan orchestrates **work context** for coding agents: which repositories belong
 
 It does **not** choose models — Cursor CLI (`agent`) and Claude Code (`claude`) keep their own accounts.
 
-<span class="orcan-version">Version **3.0.0**</span>
+<span class="orcan-version">Version **3.0.1**</span>
 
 </div>
 

@@ -57,7 +57,15 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(auto.load_automation(), before)
 
     def test_refresh_model_check_persists(self) -> None:
-        with mock.patch.object(mc, "check_recap_model", return_value={"ok": True, "detail": "ok", "model": "haiku", "checked_at": "t"}):
+        # Patch where it's *used* (automation.py does `from ... import
+        # check_recap_model`, binding its own name at import time) — a
+        # patch on the source module (`mc`) never intercepts that call.
+        # This silently exercised the real, unmocked probe instead, which
+        # only "passed" by coincidence when `claude` happened to be on
+        # PATH; it fails deterministically wherever it isn't (a fresh CI
+        # runner, confirmed by reproducing the CI failure locally with an
+        # empty $HOME/minimal $PATH).
+        with mock.patch.object(auto, "check_recap_model", return_value={"ok": True, "detail": "ok", "model": "haiku", "checked_at": "t"}):
             result = auto.refresh_model_check(force=True)
         self.assertTrue(result["ok"])
         stored = auto.load_automation().get("model_check")
@@ -72,7 +80,7 @@ class AutomationTests(unittest.TestCase):
             "checked_at": auto._now_iso(),
         }
         auto.save_automation({"model_check": cached})
-        with mock.patch.object(mc, "check_recap_model") as check:
+        with mock.patch.object(auto, "check_recap_model") as check:
             result = auto.refresh_model_check(max_age_seconds=300)
         self.assertEqual(result, cached)
         check.assert_not_called()
@@ -122,6 +130,50 @@ class AutomationTests(unittest.TestCase):
             state = auto.sync_automation_to_claude_availability()
         self.assertFalse(state["enabled"])
         self.assertNotIn(auto.AUTO_DISABLED_NO_CLAUDE, state)
+
+
+class AutomationDirFallbackTests(unittest.TestCase):
+    """Regression: inside the container, $ORCAN_DATA is the *host* path,
+    passed through unchanged for other host-side tools (doctor.sh) — not
+    necessarily writable, or even related to the real (fixed) container
+    bind target. A container process must fall back rather than crash.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.addCleanup(os.environ.pop, "ORCAN_DATA", None)
+
+    def test_unwritable_data_root_falls_back_to_container_default(self) -> None:
+        unwritable = Path(self._tmp.name) / "orcan"
+        unwritable.mkdir(mode=0o500)
+        self.addCleanup(os.chmod, unwritable, 0o700)  # let tempdir cleanup remove it
+        os.environ["ORCAN_DATA"] = str(unwritable)
+        self.assertEqual(
+            auto.automation_dir(),
+            Path.home() / ".local" / "share" / "orcan" / "history" / "supervisor",
+        )
+
+    def test_unwritable_history_subdir_falls_back_even_if_root_is_writable(self) -> None:
+        # The root ($ORCAN_DATA itself) can be writable while a deeper
+        # directory along the real target path isn't (e.g. a stale owner
+        # on just "history") — must still fall back, not just check the
+        # root (a first cut of this fix only checked the root and missed
+        # exactly this case, confirmed against a real cockpit run).
+        data = Path(self._tmp.name)
+        history = data / "history"
+        history.mkdir(mode=0o500)
+        self.addCleanup(os.chmod, history, 0o700)
+        os.environ["ORCAN_DATA"] = str(data)
+        self.assertEqual(
+            auto.automation_dir(),
+            Path.home() / ".local" / "share" / "orcan" / "history" / "supervisor",
+        )
+
+    def test_writable_data_root_is_still_preferred(self) -> None:
+        data = Path(self._tmp.name)
+        os.environ["ORCAN_DATA"] = str(data)
+        self.assertEqual(auto.automation_dir(), data / "history" / "supervisor")
 
 
 class ModelCheckTests(unittest.TestCase):

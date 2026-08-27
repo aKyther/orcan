@@ -143,6 +143,8 @@ Nie jako obsługiwany przełącznik. Launcher startuje tmux. Zamiast tego używa
 
 ```bash
 orcan update                         # najnowszy tag release vX.Y.Z
+orcan update --to v0.2.0             # przypnij konkretny release
+orcan downgrade                      # jeden krok SemVer wstecz
 orcan sync                           # gdy zmienił się schemat konfiguracji
 orcan build --force                  # gdy zmienił się Dockerfile/rootfs
 orcan down && orcan up

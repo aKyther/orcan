@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-08-27
+
 ### Added
 
+- **`orcan update --to VERSION`** and **`orcan downgrade [--to VERSION]`**: pin a
+  SemVer release, or step one release back after a bad update (image still needs
+  `orcan build` when rootfs changed).
 - **Assertion loop smoke test** (`test_assertion_loop_smoke`): inbox accept →
   compile → fact appears in `CONTEXT-ASSERTIONS.md` (the real human-gated
   path; preview busy fixtures are not this loop).
@@ -56,6 +61,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CI failing `Host tests`** (`test_refresh_model_check_persists`): the test
+  patched `context_model_check.check_recap_model`, but `automation.py` calls
+  it via a directly-imported name (`from ... import check_recap_model`), so
+  the patch never intercepted the call — it silently exercised the real,
+  unmocked `claude`-probe instead. That only "passed" by coincidence on a
+  machine with `claude` on `PATH`; a fresh CI runner has none, so it failed
+  deterministically. Patch the consumer (`automation.check_recap_model`)
+  instead. Reproduced the exact CI failure locally (clean checkout, empty
+  `$HOME`, minimal `$PATH`, `TZ=UTC`) before and after the fix.
+- **Cockpit crash on selecting a workspace** (`PermissionError` from
+  `WorkspaceActivity._watch_loop`, worker traceback over the whole screen):
+  `automation_dir()` trusted `$ORCAN_DATA` as a filesystem path unconditionally,
+  but inside the container that env var is the *host's* path, passed through
+  only for other host-side tools (`doctor.sh`) — the actual bind for this data
+  lands at a fixed container path. That host path can happen to exist
+  in-container too (an unrelated bind's auto-created, root-owned parent dir),
+  so every `mkdir()` off it hit `PermissionError`, not just a missing-path
+  error. `automation_dir()` now only trusts `$ORCAN_DATA` when this process can
+  actually write the *real* target path (checked at `history/supervisor`
+  itself, not just `$ORCAN_DATA`'s own root — a corrupted `history` alone
+  must fall back too), falling back to the container-local default otherwise
+  — fixes both the new activity watcher and the pre-existing `[p]`/`[o]`
+  automation-toggle write path, which had the same latent bug. Reproduced and
+  confirmed fixed against the real cockpit (`scripts/dev/orcan-preview`, a
+  live `orcan-cockpit` pty session), not just a unit test.
 - **Embedded tmux `clear` leaving stale text on screen:** pyte 0.8.2 has no
   implementation of CSI `S`/`T` (Scroll Up/Down Region) at all — silently a
   no-op — but tmux sends exactly that as a redraw-efficiency shortcut after a

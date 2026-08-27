@@ -212,12 +212,15 @@ rm -rf /absolute/path/to/orcan                    # opcjonalnie
 
 Zamontowane repo projektów zostają, dopóki sam ich nie usuniesz.
 
-## Aktualizacja Orcana
+## Aktualizacja / downgrade Orcana
 
 ```bash
 cd /absolute/path/to/orcan
 orcan update                # najnowszy tag GitHub Release (vX.Y.Z)
+# orcan update --to v0.2.0  # przypnij konkretny release (w górę lub w dół)
 # orcan update --main       # zamiast tego śledź main
+orcan downgrade             # jeden krok SemVer wstecz (escape hatch po złym update)
+# orcan downgrade --to v0.1.0
 orcan sync                  # gdy zmienił się schemat konfiguracji
 orcan build --force         # gdy zmienił się Dockerfile/rootfs
 orcan down && orcan up

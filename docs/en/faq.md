@@ -139,6 +139,8 @@ Not as a supported switch. The launcher starts tmux. Use multiple tmux windows/p
 
 ```bash
 orcan update                         # newest release tag vX.Y.Z
+orcan update --to v0.2.0             # pin a specific release
+orcan downgrade                      # one SemVer step back
 orcan sync                           # when config schema changed
 orcan build --force                  # when Dockerfile/rootfs changed
 orcan down && orcan up
