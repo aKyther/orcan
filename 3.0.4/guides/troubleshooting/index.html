@@ -1,0 +1,2779 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+      
+      
+        <meta name="author" content="Orcan contributors">
+      
+      
+        <link rel="canonical" href="https://akyther.github.io/orcan/latest/guides/troubleshooting/">
+      
+      
+        <link rel="prev" href="../terminal-ui/">
+      
+      
+        <link rel="next" href="../../architecture/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../pl/guides/troubleshooting/" hreflang="pl">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Troubleshooting - Orcan</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+  
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+  
+  <style>:root{.md-tag.md-tag--concept{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M12%202a7%207%200%200%201%207%207c0%202.38-1.19%204.47-3%205.74V17a1%201%200%200%201-1%201H9a1%201%200%200%201-1-1v-2.26C6.19%2013.47%205%2011.38%205%209a7%207%200%200%201%207-7M9%2021v-1h6v1a1%201%200%200%201-1%201h-4a1%201%200%200%201-1-1m3-17a5%205%200%200%200-5%205c0%202.05%201.23%203.81%203%204.58V16h4v-2.42c1.77-.77%203-2.53%203-4.58a5%205%200%200%200-5-5%22/%3E%3C/svg%3E');}.md-tag.md-tag--guide{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%204H3a2%202%200%200%200-2%202v13a2%202%200%200%200%202%202h18a2%202%200%200%200%202-2V6a2%202%200%200%200-2-2M3%2019V6h8v13zm18%200h-8V6h8zm-7-9.5h6V11h-6zm0%202.5h6v1.5h-6zm0%202.5h6V16h-6z%22/%3E%3C/svg%3E');}.md-tag.md-tag--reference{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M6%202a2%202%200%200%200-2%202v16a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V8l-6-6zm0%202h7v5h5v11H6zm2%208v2h8v-2zm0%204v2h5v-2z%22/%3E%3C/svg%3E');}.md-tag.md-tag--develop{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22m13.78%2015.3%206%206%202.11-2.16-6-6zm3.72-5.2c-.39%200-.81-.05-1.14-.19L4.97%2021.25l-2.11-2.11%207.41-7.4L8.5%209.96l-.72.7-1.45-1.41v2.86l-.7.7-3.52-3.56.7-.7h2.81l-1.4-1.41%203.56-3.56a2.976%202.976%200%200%201%204.22%200L9.89%205.74l1.41%201.4-.71.71%201.79%201.78%201.82-1.88c-.14-.33-.2-.75-.2-1.12a3.49%203.49%200%200%201%203.5-3.52c.59%200%201.11.14%201.58.42L16.41%206.2l1.5%201.5%202.67-2.67c.28.47.42.97.42%201.6%200%201.92-1.55%203.47-3.5%203.47%22/%3E%3C/svg%3E');}.md-tag.md-tag--security{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%2011c0%205.55-3.84%2010.74-9%2012-5.16-1.26-9-6.45-9-12V5l9-4%209%204zm-9%2010c3.75-1%207-5.46%207-9.78V6.3l-7-3.12L5%206.3v4.92C5%2015.54%208.25%2020%2012%2021%22/%3E%3C/svg%3E');}}</style>
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/orcan.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  
+  <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Troubleshooting — Orcan">
+  <meta property="og:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta property="og:url" content="https://akyther.github.io/orcan/latest/guides/troubleshooting/">
+  <meta property="og:site_name" content="Orcan">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Troubleshooting — Orcan">
+  <meta name="twitter:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#troubleshooting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest release documentation.
+  <a href="../../..">
+    <strong>Switch to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-header__button md-logo" aria-label="Orcan" data-md-component="logo">
+      
+  <img src="../../assets/images/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Orcan
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Troubleshooting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <div class="orcan-version-select" hidden>
+        <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
+          <span class="orcan-version-select__label">v3.0.4</span>
+          <span class="orcan-version-select__caret" aria-hidden="true"></span>
+        </button>
+        <ul class="orcan-version-select__list" role="listbox" hidden></ul>
+      </div>
+      <a class="orcan-header-version" href="../../changelog/" title="Product SemVer — open changelog">
+        <span class="orcan-header-version__label">v3.0.4</span>
+      </a>
+    
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../pl/guides/troubleshooting/" hreflang="pl" class="md-select__link">
+              Polski
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aKyther/orcan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    aKyther/orcan
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../why-orcan/" class="md-tabs__link">
+          
+  
+  
+  Understand
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../workflows/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/cli/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/overview/" class="md-tabs__link">
+          
+  
+  
+  Develop
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-nav__button md-logo" aria-label="Orcan" data-md-component="logo">
+      
+  <img src="../../assets/images/favicon.svg" alt="logo">
+
+    </a>
+    Orcan
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aKyther/orcan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    aKyther/orcan
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understand
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Understand
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../why-orcan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why Orcan?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ideas
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Ideas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/core-ideas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Ideas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/mental-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mental Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/context-assertions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context Assertions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/workspaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/path-parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../change-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dotfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User dotfiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../terminal-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browser-terminal-will-not-open" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browser terminal will not open
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frequent-reconnecting-on-phone-mobile-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequent “reconnecting” on phone / mobile network
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layout-glitches-when-the-on-screen-keyboard-opens-phone-tablet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout glitches when the on-screen keyboard opens (phone / tablet)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#launcher-is-empty-wrong-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Launcher is empty / wrong projects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#orcan-sync-require-generated-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        orcan sync / require-generated fails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-or-claude-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent or Claude missing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-socket-errors-inside-the-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker socket errors inside the container
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-parity-nested-compose-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Path parity / nested Compose fails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tmux-keys-do-not-work-in-the-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tmux keys do not work in the browser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#embedded-tmux-does-not-resize-with-the-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embedded tmux does not resize with the browser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#long-url-wraps-and-is-hard-to-click" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long URL wraps and is hard to click
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disable-tmux-plain-shell-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        “Disable tmux” / plain shell only
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#host-gitconfig-became-a-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host ~/.gitconfig became a directory
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#leftover-space-is-rootroot-after-upgrading-to-20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leftover space/ is root:root after upgrading to 2.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostics-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context-automation-paused-off-or-context-assertionsmd-stale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context automation paused, off, or CONTEXT-ASSERTIONS.md stale
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervisord-context-scan-missing-after-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supervisord / context-scan missing after upgrade
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Makefile (maintainers)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/environment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cursor-and-claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cursor and Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host and container interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Develop
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Develop
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/release/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ai/project-context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browser-terminal-will-not-open" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browser terminal will not open
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frequent-reconnecting-on-phone-mobile-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequent “reconnecting” on phone / mobile network
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layout-glitches-when-the-on-screen-keyboard-opens-phone-tablet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout glitches when the on-screen keyboard opens (phone / tablet)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#launcher-is-empty-wrong-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Launcher is empty / wrong projects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#orcan-sync-require-generated-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        orcan sync / require-generated fails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-or-claude-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent or Claude missing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-socket-errors-inside-the-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker socket errors inside the container
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-parity-nested-compose-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Path parity / nested Compose fails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tmux-keys-do-not-work-in-the-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tmux keys do not work in the browser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#embedded-tmux-does-not-resize-with-the-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embedded tmux does not resize with the browser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#long-url-wraps-and-is-hard-to-click" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long URL wraps and is hard to click
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disable-tmux-plain-shell-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        “Disable tmux” / plain shell only
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#host-gitconfig-became-a-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host ~/.gitconfig became a directory
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#leftover-space-is-rootroot-after-upgrading-to-20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leftover space/ is root:root after upgrading to 2.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostics-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context-automation-paused-off-or-context-assertionsmd-stale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context automation paused, off, or CONTEXT-ASSERTIONS.md stale
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervisord-context-scan-missing-after-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supervisord / context-scan missing after upgrade
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/aKyther/orcan/edit/main/docs/en/guides/troubleshooting.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/aKyther/orcan/raw/main/docs/en/guides/troubleshooting.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+    </a>
+  
+
+
+<h1 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h1>
+<h2 id="what-this-does">What this does<a class="headerlink" href="#what-this-does" title="Permanent link">&para;</a></h2>
+<p>Lists common failures and how to diagnose them on the <strong>host</strong>.</p>
+<h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
+<p>From the Orcan install (or git checkout):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>doctor
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>mounts/compose-projects.generated.yml<span class="w"> </span>config
+</span></code></pre></div>
+<p>The <code>docker compose config</code> command prints the resolved Compose file (needs generated <code>mounts/</code> files from <code>orcan sync</code>).</p>
+<h2 id="browser-terminal-will-not-open">Browser terminal will not open<a class="headerlink" href="#browser-terminal-will-not-open" title="Permanent link">&para;</a></h2>
+<p>Requires <code>orcan up --with-ttyd</code> (plain <code>orcan up</code> is local-only — use <code>orcan enter</code> instead).</p>
+<ol>
+<li>Confirm the container is up: <code>orcan logs</code></li>
+<li>Confirm ttyd is on: <code>orcan doctor</code> (Runtime section) or <code>orcan url</code></li>
+<li>Confirm the URL: <code>orcan url</code> (prints <code>http://localhost:7681</code> when <code>TTYD_BIND</code> is <code>0.0.0.0</code>)</li>
+<li>If the port is busy, change <code>ttyd.host_port</code> in <code>orcan.config.json</code>, then <code>orcan sync</code> and <code>orcan down &amp;&amp; orcan up --with-ttyd</code></li>
+</ol>
+<h2 id="frequent-reconnecting-on-phone-mobile-network">Frequent “reconnecting” on phone / mobile network<a class="headerlink" href="#frequent-reconnecting-on-phone-mobile-network" title="Permanent link">&para;</a></h2>
+<p>Cellular handoffs drop the ttyd WebSocket; that is expected. Processes inside tmux survive.</p>
+<ul>
+<li>After reconnect, <code>agent-launcher</code> auto-reattaches to the last workspace (Enter during the countdown → menu).</li>
+<li>Disable auto-reattach: <code>ORCAN_AUTO_REATTACH=0</code> on the container.</li>
+<li>Prefer Tailscale / VPN over exposing the port; still expect brief reconnects on LTE.</li>
+<li>Optional: <code>ttyd.ping_interval</code> / <code>TTYD_PING_INTERVAL</code> (default <code>20</code>).</li>
+</ul>
+<h2 id="layout-glitches-when-the-on-screen-keyboard-opens-phone-tablet">Layout glitches when the on-screen keyboard opens (phone / tablet)<a class="headerlink" href="#layout-glitches-when-the-on-screen-keyboard-opens-phone-tablet" title="Permanent link">&para;</a></h2>
+<p>Known upstream ttyd limitation, not an orcan config issue: ttyd's bundled
+xterm.js frontend doesn't sync the terminal container with the browser's
+<code>visualViewport</code> when a mobile soft keyboard opens/closes — can show as
+resizing/zooming, a blank strip at the bottom, or scroll not matching the
+visible screen. Tracked upstream: <a href="https://github.com/tsl0922/ttyd/pull/1531">tsl0922/ttyd#1531</a>
+(open, not merged; no ttyd release has it yet — the pinned <code>1.7.7</code> in the
+<code>Dockerfile</code> is still the latest release, so there's no version to bump to).</p>
+<p>Workarounds until upstream merges:</p>
+<ul>
+<li>Use a physical/Bluetooth keyboard — avoids triggering the soft keyboard.</li>
+<li>Landscape orientation is usually more stable than portrait.</li>
+<li>If the layout sticks after closing the keyboard, tap/focus the terminal
+  once, or reload the page.</li>
+</ul>
+<h2 id="launcher-is-empty-wrong-projects">Launcher is empty / wrong projects<a class="headerlink" href="#launcher-is-empty-wrong-projects" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Check <code>orcan.config.json</code> has <code>workspaces</code> with absolute <code>projects[].path</code></li>
+<li>Run <code>orcan sync</code> (terminal targets do not refresh config)</li>
+<li><code>orcan down &amp;&amp; orcan up</code></li>
+</ol>
+<p>Do <strong>not</strong> pass <code>PROJECT_DIR=…</code> on <code>orcan up</code>. Switch projects by editing config + <code>orcan sync</code>.</p>
+<h2 id="orcan-sync-require-generated-fails"><code>orcan sync</code> / <code>require-generated</code> fails<a class="headerlink" href="#orcan-sync-require-generated-fails" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.env</code> missing</td>
+<td><code>orcan sync</code> or <code>orcan init</code></td>
+</tr>
+<tr>
+<td>Generated files stale</td>
+<td>Config is newer than <code>mounts/*</code> — run <code>orcan sync</code></td>
+</tr>
+<tr>
+<td>Invalid <code>PROJECT_DIR</code></td>
+<td>Absolute path; avoid <code>/</code>, <code>/home</code>, <code>/etc</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="agent-or-claude-missing">Agent or Claude missing<a class="headerlink" href="#agent-or-claude-missing" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Full image: <code>orcan build</code> then recreate container</li>
+<li>Claude-only: <code>orcan build --claude</code> then <code>IMAGE_LOCAL=orcan:&lt;VERSION&gt;-claude orcan up</code> — <code>agent</code> is not installed (expected)</li>
+<li>Auth lives under <code>$ORCAN_DATA</code> (<code>~/.config/orcan</code>)</li>
+</ul>
+<h2 id="docker-socket-errors-inside-the-container">Docker socket errors inside the container<a class="headerlink" href="#docker-socket-errors-inside-the-container" title="Permanent link">&para;</a></h2>
+<p>Use <code>orcan up --with-docker</code>. Plain <code>orcan up</code> does not mount the socket.</p>
+<p>If <code>docker</code> needs <code>sudo</code> inside the container, the host socket GID must match <code>DOCKER_GID</code> in <code>.env</code>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>stat<span class="w"> </span>-c<span class="w"> </span><span class="s1">'%g'</span><span class="w"> </span>/var/run/docker.sock
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>DOCKER_GID<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">ORCAN_HOME</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/.env"</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
+</span></code></pre></div>
+<p><code>orcan sync</code> re-detects the socket GID from the host (do not leave a stale <code>999</code> from <code>.env.example</code>).</p>
+<h2 id="path-parity-nested-compose-fails">Path parity / nested Compose fails<a class="headerlink" href="#path-parity-nested-compose-fails" title="Permanent link">&para;</a></h2>
+<p>See <a href="../../concepts/path-parity/">Path parity</a>. Confirm mounts with <code>orcan context show</code>.</p>
+<h2 id="tmux-keys-do-not-work-in-the-browser">tmux keys do not work in the browser<a class="headerlink" href="#tmux-keys-do-not-work-in-the-browser" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Focus the <strong>center</strong> terminal column in the cockpit (not the workspace list / ASSERTIONS section).</li>
+<li>Remember: embedded tmux <strong>≠ native attach</strong> — see <strong>F1</strong> / <strong>?</strong> in the cockpit or <a href="../terminal-ui/#cockpit-browser">Terminal UI — two terminals</a>. For full attach: <code>orcan enter --tmux SESSION</code>.</li>
+<li>Prefix is <strong>C-Space</strong> (not <code>C-b</code>). Window jumps: <strong>Alt+1</strong>…<strong>Alt+9</strong> (see <a href="../terminal-ui/">Terminal UI</a>). In the <strong>cockpit</strong>, <strong>Ctrl/Alt+arrows</strong> focus panes and <strong>Ctrl+Shift+arrows</strong> split — many terminals deliver Alt as Ctrl (<a href="../terminal-ui/#cockpit-nav-mix">nav mix</a>). Raw <code>orcan enter --tmux</code> keeps conf (Ctrl=split, Alt=focus when Meta works).</li>
+<li>On <strong>macOS</strong>, Option must be Meta: image ttyd sets <code>macOptionIsMeta=true</code>. If Alt types <code>¡</code>/<code>™</code> instead of switching windows, rebuild/recreate so <code>cursor-ttyd</code> is current.</li>
+<li>On <strong>Windows Terminal / Linux</strong>, Textual may still surface Option glyphs for ESC+digit; current cockpit maps them back to Meta in <code>pty_keys.py</code>. If Alt still inserts <code>¡</code>/<code>™</code>, update cockpit (<code>make dev-restart</code> or <code>orcan build</code> + recreate).</li>
+<li>Right-click uses the browser menu (tmux mouse menus are unbound on purpose).</li>
+</ol>
+<h2 id="embedded-tmux-does-not-resize-with-the-browser">Embedded tmux does not resize with the browser<a class="headerlink" href="#embedded-tmux-does-not-resize-with-the-browser" title="Permanent link">&para;</a></h2>
+<p>The cockpit PTY must own a controlling tty so resize delivers SIGWINCH to tmux. Fixed in current cockpit (<code>TIOCSCTTY</code> + <code>on_resize</code>). If the pane stays at attach size after a browser resize: update the image (<code>orcan build</code> / <code>make dev-restart</code>) and hard-refresh the tab. Details: <a href="../terminal-ui/#cockpit-browser">Terminal UI — cockpit</a>.</p>
+<h2 id="long-url-wraps-and-is-hard-to-click">Long URL wraps and is hard to click<a class="headerlink" href="#long-url-wraps-and-is-hard-to-click" title="Permanent link">&para;</a></h2>
+<p>Browser/terminal linkify usually matches <strong>one screen row</strong>. Soft-wrapped <code>https://…</code> links break into pieces, so click-to-open fails.</p>
+<p>Workaround (image default): <strong>prefix <code>u</code></strong> (<code>C-Space</code> then <code>u</code>) — joins wrapped lines in the pane, then copies the URL (menu if several). Paste with prefix <code>]</code> or the browser paste shortcut.</p>
+<p>Apps that emit OSC 8 hyperlinks can stay clickable across wraps when the outer terminal supports them; plain printed URLs still need prefix <code>u</code>.</p>
+<h2 id="disable-tmux-plain-shell-only">“Disable tmux” / plain shell only<a class="headerlink" href="#disable-tmux-plain-shell-only" title="Permanent link">&para;</a></h2>
+<p>tmux is started by the launcher (<code>cursor-ttyd</code> → <code>agent-launcher</code>), not by a block in <code>50-orcan-shell.zsh</code>. There is no supported “turn off tmux” switch today. You can still open extra shells inside tmux windows.</p>
+<h2 id="host-gitconfig-became-a-directory">Host <code>~/.gitconfig</code> became a directory<a class="headerlink" href="#host-gitconfig-became-a-directory" title="Permanent link">&para;</a></h2>
+<p>An older layout could create a root-owned directory. Fix ownership or replace with a normal file, then update Orcan and recreate the container.</p>
+<p>Orcan does <strong>not</strong> mount host <code>~/.gitconfig</code>. Instead <code>orcan sync</code> copies <code>user.name</code> / <code>user.email</code> into <code>.env</code> (<code>GIT_AUTHOR_*</code> / <code>GIT_COMMITTER_*</code>) so commits inside the container match the host author.</p>
+<p>For <code>git push</code> / <code>git pull</code> over SSH:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># combine with DinD:</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
+</span></code></pre></div>
+<p>That mounts host <code>~/.ssh</code> read-only (and the SSH agent when <code>SSH_AUTH_SOCK</code> is set). Plain <code>orcan up</code> does not.</p>
+<h2 id="leftover-space-is-rootroot-after-upgrading-to-20">Leftover <code>space/</code> is <code>root:root</code> after upgrading to 2.0<a class="headerlink" href="#leftover-space-is-rootroot-after-upgrading-to-20" title="Permanent link">&para;</a></h2>
+<p>v2.0 renamed the managed projects root <code>space/</code> → <code>sandbox/</code>. If <code>.env</code> still
+has <code>ORCAN_PROJECTS_ROOT=…/space</code> after the rename, the next <code>orcan up</code>
+bind-mounts a <strong>missing</strong> host path and the Docker daemon creates it as
+<code>root:root</code>. <code>orcan doctor</code> flags this (legacy <code>space/</code> check).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>down
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># empty leftover (typical):</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>sudo<span class="w"> </span>rmdir<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">ORCAN_DATA</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/space"</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># or, if it still has your checkouts:</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>bash<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">ORCAN_ROOT</span><span class="si">}</span><span class="s2">/scripts/migrations/rename-space-to-sandbox.sh"</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
+</span></code></pre></div>
+<h2 id="diagnostics-checklist">Diagnostics checklist<a class="headerlink" href="#diagnostics-checklist" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>doctor
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>mounts/compose-projects.generated.yml<span class="w"> </span>config
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>orcan<span class="w"> </span>logs
+</span></code></pre></div>
+<h2 id="context-automation-paused-off-or-context-assertionsmd-stale">Context automation paused, off, or <code>CONTEXT-ASSERTIONS.md</code> stale<a class="headerlink" href="#context-automation-paused-off-or-context-assertionsmd-stale" title="Permanent link">&para;</a></h2>
+<p>Background Reflection and inbox compile respect shared automation flags:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># cockpit ASSERTIONS section: p = pause, o = off/on</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>cat<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">ORCAN_DATA</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/history/supervisor/automation.json"</span>
+</span></code></pre></div>
+<p>When <code>"paused": true</code> or <code>"enabled": false</code>, <strong><code>orcan-context-scan</code></strong> (supervisord)
+and host <strong><code>orcan sync --context --watch</code></strong> idle. When cached <code>"model_check"</code> reports
+<code>ok: false</code>, scan skips recap (Claude/Haiku unavailable — check <code>orcan doctor</code> or
+<code>orcan-context-model-check</code> in container). Human review (<code>orcan-context-review</code>)
+still works. After accepting/rejecting candidates, refresh compiled context without
+a full config sync:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>sync<span class="w"> </span>--context<span class="w">          </span><span class="c1"># one import/compile pass</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>sync<span class="w"> </span>--context<span class="w"> </span>--once<span class="w">   </span><span class="c1"># skip if inbox fingerprint unchanged</span>
+</span></code></pre></div>
+<p>See <a href="../../ideas/context-assertions/">Context Assertions</a> and <a href="../../faq/">FAQ</a>.</p>
+<h2 id="supervisord-context-scan-missing-after-upgrade">Supervisord / <code>context-scan</code> missing after upgrade<a class="headerlink" href="#supervisord-context-scan-missing-after-upgrade" title="Permanent link">&para;</a></h2>
+<p><code>orcan doctor</code> prints a <strong><code>supervisord</code></strong> line when the container is running:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>doctor<span class="w"> </span><span class="p">|</span><span class="w"> </span>rg<span class="w"> </span>supervisord
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>image predates supervisord</code></td>
+<td><code>orcan build &amp;&amp; orcan down &amp;&amp; orcan up</code></td>
+</tr>
+<tr>
+<td><code>process not running</code></td>
+<td>Recreate after a successful build</td>
+</tr>
+<tr>
+<td><code>RUNNING</code> + <code>context-scan</code></td>
+<td>Worker is up — if Reflection still idle, check <strong><code>[p]</code></strong> / <strong><code>[o]</code></strong> / <code>automation.json</code>, <code>model_check</code>, and <code>orcan logs context-scan</code></td>
+</tr>
+</tbody>
+</table>
+<p>Details: <a href="../../reference/docker/#process-layout-supervisord">Docker — process layout</a>.</p>
+<p>More on limits: <a href="../../reference/security/">Security</a>.</p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 26, 2026 14:56:25 UTC">August 26, 2026</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Created">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 13:06:39 UTC">July 23, 2026</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../terminal-ui/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Terminal UI">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Terminal UI
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../architecture/" class="md-footer__link md-footer__link--next" aria-label="Next: Architecture">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Architecture
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Orcan contributors · <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/aKyther/orcan" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://github.com/aKyther/orcan/issues" target="_blank" rel="noopener" title="Issues" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M192 96c0-53 43-96 96-96s96 43 96 96v3.6c0 15.7-12.7 28.4-28.4 28.4H220.5c-15.7 0-28.4-12.7-28.4-28.4V96zm345.6 12.8c10.6 14.1 7.7 34.2-6.4 44.8l-97.8 73.3c5.3 8.9 9.3 18.7 11.8 29.1H544c17.7 0 32 14.3 32 32s-14.3 32-32 32h-96v32c0 2.6-.1 5.3-.2 7.9l83.4 62.5c14.1 10.6 17 30.7 6.4 44.8s-30.7 17-44.8 6.4l-63.1-47.3c-23.2 44.2-66.5 76.2-117.7 83.9V280c0-13.3-10.7-24-24-24s-24 10.7-24 24v230.2c-51.2-7.7-94.5-39.7-117.7-83.9l-63.1 47.3c-14.1 10.6-34.2 7.7-44.8-6.4s-7.7-34.2 6.4-44.8l83.4-62.5c-.1-2.6-.2-5.2-.2-7.9v-32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32h98.8c2.5-10.4 6.5-20.2 11.8-29.1l-97.8-73.3c-14.1-10.6-17-30.7-6.4-44.8s30.7-17 44.8-6.4L192 184c12.3-5.1 25.8-8 40-8h112c14.2 0 27.7 2.8 40 8l108.8-81.6c14.1-10.6 34.2-7.7 44.8 6.4"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://github.com/aKyther/orcan/releases" target="_blank" rel="noopener" title="Releases" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m401.2 39.1 148.2 150.3c27.7 28.1 27.7 73.1 0 101.2L393 448.9c-9.3 9.4-24.5 9.5-33.9.2s-9.5-24.5-.2-33.9l156.4-158.4c9.2-9.3 9.2-24.4 0-33.7L367 72.9c-9.3-9.4-9.2-24.6.2-33.9s24.6-9.2 33.9.2zM32.1 229.5V96c0-35.3 28.7-64 64-64h133.5c17 0 33.3 6.7 45.3 18.7l144 144c25 25 25 65.5 0 90.5L285.4 418.7c-25 25-65.5 25-90.5 0l-144-144c-12-12-18.7-28.3-18.7-45.3zm144-85.5a32 32 0 1 0-64 0 32 32 0 1 0 64 0"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": {"concept": "concept", "develop": "develop", "guide": "guide", "reference": "reference", "security": "security"}, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../assets/javascripts/mike-i18n.js"></script>
+      
+        <script src="../../assets/javascripts/orcan-version.js"></script>
+      
+        <script src="../../assets/javascripts/orcan-mermaid.js"></script>
+      
+    
+  </body>
+</html>

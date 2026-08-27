@@ -1,0 +1,3140 @@
+
+<!doctype html>
+<html lang="pl" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Wygląd terminala — paleta navy/cyan (ttyd, tmux, zsh, starship, fzf, lazygit). Gdzie edytować i jak rozszerzać.">
+      
+      
+        <meta name="author" content="Orcan contributors">
+      
+      
+        <link rel="canonical" href="https://akyther.github.io/orcan/latest/pl/guides/terminal-ui/">
+      
+      
+        <link rel="prev" href="../dotfiles/">
+      
+      
+        <link rel="next" href="../troubleshooting/">
+      
+      
+        
+          <link rel="alternate" href="../../../guides/terminal-ui/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="pl">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Terminal UI - Orcan</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+  
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+  
+  <style>:root{.md-tag.md-tag--concept{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M12%202a7%207%200%200%201%207%207c0%202.38-1.19%204.47-3%205.74V17a1%201%200%200%201-1%201H9a1%201%200%200%201-1-1v-2.26C6.19%2013.47%205%2011.38%205%209a7%207%200%200%201%207-7M9%2021v-1h6v1a1%201%200%200%201-1%201h-4a1%201%200%200%201-1-1m3-17a5%205%200%200%200-5%205c0%202.05%201.23%203.81%203%204.58V16h4v-2.42c1.77-.77%203-2.53%203-4.58a5%205%200%200%200-5-5%22/%3E%3C/svg%3E');}.md-tag.md-tag--guide{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%204H3a2%202%200%200%200-2%202v13a2%202%200%200%200%202%202h18a2%202%200%200%200%202-2V6a2%202%200%200%200-2-2M3%2019V6h8v13zm18%200h-8V6h8zm-7-9.5h6V11h-6zm0%202.5h6v1.5h-6zm0%202.5h6V16h-6z%22/%3E%3C/svg%3E');}.md-tag.md-tag--reference{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M6%202a2%202%200%200%200-2%202v16a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V8l-6-6zm0%202h7v5h5v11H6zm2%208v2h8v-2zm0%204v2h5v-2z%22/%3E%3C/svg%3E');}.md-tag.md-tag--develop{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22m13.78%2015.3%206%206%202.11-2.16-6-6zm3.72-5.2c-.39%200-.81-.05-1.14-.19L4.97%2021.25l-2.11-2.11%207.41-7.4L8.5%209.96l-.72.7-1.45-1.41v2.86l-.7.7-3.52-3.56.7-.7h2.81l-1.4-1.41%203.56-3.56a2.976%202.976%200%200%201%204.22%200L9.89%205.74l1.41%201.4-.71.71%201.79%201.78%201.82-1.88c-.14-.33-.2-.75-.2-1.12a3.49%203.49%200%200%201%203.5-3.52c.59%200%201.11.14%201.58.42L16.41%206.2l1.5%201.5%202.67-2.67c.28.47.42.97.42%201.6%200%201.92-1.55%203.47-3.5%203.47%22/%3E%3C/svg%3E');}.md-tag.md-tag--security{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%2011c0%205.55-3.84%2010.74-9%2012-5.16-1.26-9-6.45-9-12V5l9-4%209%204zm-9%2010c3.75-1%207-5.46%207-9.78V6.3l-7-3.12L5%206.3v4.92C5%2015.54%208.25%2020%2012%2021%22/%3E%3C/svg%3E');}}</style>
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/orcan.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  
+  <meta name="description" content="Wygląd terminala — paleta navy/cyan (ttyd, tmux, zsh, starship, fzf, lazygit). Gdzie edytować i jak rozszerzać.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Terminal UI — Orcan">
+  <meta property="og:description" content="Wygląd terminala — paleta navy/cyan (ttyd, tmux, zsh, starship, fzf, lazygit). Gdzie edytować i jak rozszerzać.">
+  <meta property="og:url" content="https://akyther.github.io/orcan/latest/pl/guides/terminal-ui/">
+  <meta property="og:site_name" content="Orcan">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Terminal UI — Orcan">
+  <meta name="twitter:description" content="Wygląd terminala — paleta navy/cyan (ttyd, tmux, zsh, starship, fzf, lazygit). Gdzie edytować i jak rozszerzać.">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#terminal-ui" class="md-skip">
+          Przejdź do treści
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest release documentation.
+  <a href="../../../..">
+    <strong>Switch to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Nagłówek">
+    <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-header__button md-logo" aria-label="Orcan" data-md-component="logo">
+      
+  <img src="../../../assets/images/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Orcan
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Terminal UI
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <div class="orcan-version-select" hidden>
+        <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
+          <span class="orcan-version-select__label">v3.0.4</span>
+          <span class="orcan-version-select__caret" aria-hidden="true"></span>
+        </button>
+        <ul class="orcan-version-select__list" role="listbox" hidden></ul>
+      </div>
+      <a class="orcan-header-version" href="../../../changelog/" title="Product SemVer — open changelog">
+        <span class="orcan-header-version__label">v3.0.4</span>
+      </a>
+    
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Wybierz język">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../guides/terminal-ui/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="pl" class="md-select__link">
+              Polski
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Szukaj" placeholder="Szukaj" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Szukaj">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Udostępnij" aria-label="Udostępnij" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Wyczyść" aria-label="Wyczyść" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicjowanie wyszukiwania
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aKyther/orcan" title="Przejdź do repozytorium" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    aKyther/orcan
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Zakładki" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Pierwsze kroki
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../why-orcan/" class="md-tabs__link">
+          
+  
+  
+  Zrozum
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../workflows/" class="md-tabs__link">
+          
+  
+  
+  Przewodniki
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/cli/" class="md-tabs__link">
+          
+  
+  
+  Referencja
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/overview/" class="md-tabs__link">
+          
+  
+  
+  Rozwijaj
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Nawigacja" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-nav__button md-logo" aria-label="Orcan" data-md-component="logo">
+      
+  <img src="../../../assets/images/favicon.svg" alt="logo">
+
+    </a>
+    Orcan
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aKyther/orcan" title="Przejdź do repozytorium" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    aKyther/orcan
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pierwsze kroki
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pierwsze kroki
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Instalacja
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Szybki start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Przewodnik po konfiguracji
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zrozum
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Zrozum
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../why-orcan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dlaczego Orcan?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Idee
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Idee
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/core-ideas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Idee podstawowe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/mental-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model mentalny
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/context-assertions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context Assertions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/agent-inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skrzynka agentów
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/runtime-reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Koncepcje
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Koncepcje
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/workspaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/path-parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../change-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mapa zmian
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tagi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Przewodniki
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Przewodniki
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Przepływy pracy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dotfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dotfiles użytkownika
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Spis treści
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#paleta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paleta
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gdzie-zmieniac-co" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gdzie zmieniać co
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tmux-36a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tmux (3.6a)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="tmux (3.6a)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bindings-z-prefixem-po-c-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bindings z prefixem (po C-Space)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bez-prefixu-meta-alt-lokalne-skroty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bez prefixu (Meta / Alt — lokalne skróty)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit + przeglądarka (nie psuć)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cockpit + przeglądarka (nie psuć)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dwa-terminale-w-jednym" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dwa terminale w jednym
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-nav-mix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit nav mix (limit Alt-jako-Ctrl)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#konkretne-wymagania-regresja" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Konkretne wymagania (regresja)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chrome-cockpitu-warstwa-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chrome cockpitu (warstwa app)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preview-bez-ruszania-codziennego-orcana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preview bez ruszania codziennego Orcana
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rozszerzanie-wygladu-checklist-dla-agentow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rozszerzanie wyglądu (checklist dla agentów)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#powiazane" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Powiązane
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rozwiązywanie problemów
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architektura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencja
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencja
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Makefile (maintainers)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencja konfiguracji
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/environment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zmienne środowiskowe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cursor-and-claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cursor i Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bezpieczeństwo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interfejs hosta i kontenera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rozwijaj
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Rozwijaj
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Przegląd
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/release/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proces wydania
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ai/project-context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kontekst AI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wdrożenie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Spis treści">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Spis treści
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#paleta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paleta
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gdzie-zmieniac-co" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gdzie zmieniać co
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tmux-36a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tmux (3.6a)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="tmux (3.6a)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bindings-z-prefixem-po-c-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bindings z prefixem (po C-Space)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bez-prefixu-meta-alt-lokalne-skroty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bez prefixu (Meta / Alt — lokalne skróty)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit + przeglądarka (nie psuć)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cockpit + przeglądarka (nie psuć)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dwa-terminale-w-jednym" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dwa terminale w jednym
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-nav-mix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit nav mix (limit Alt-jako-Ctrl)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#konkretne-wymagania-regresja" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Konkretne wymagania (regresja)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chrome-cockpitu-warstwa-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chrome cockpitu (warstwa app)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preview-bez-ruszania-codziennego-orcana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preview bez ruszania codziennego Orcana
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rozszerzanie-wygladu-checklist-dla-agentow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rozszerzanie wyglądu (checklist dla agentów)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#powiazane" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Powiązane
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+        
+        
+          
+        
+      
+      
+        <a href="../../tags/#tag:develop" class="md-tag md-tag-icon md-tag--develop">develop</a>
+      
+    
+      
+      
+      
+        
+        
+          
+        
+      
+      
+        <a href="../../tags/#tag:guide" class="md-tag md-tag-icon md-tag--guide">guide</a>
+      
+    
+  </nav>
+
+
+  
+    <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/guides/terminal-ui.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/aKyther/orcan/raw/main/docs/pl/guides/terminal-ui.md" title="Zobacz kod źródłowy tej strony" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+    </a>
+  
+
+
+<h1 id="terminal-ui">Terminal UI<a class="headerlink" href="#terminal-ui" title="Permanent link">&para;</a></h1>
+<p>Terminal w przeglądarce i lokalny mają jeden wygląd: <strong>dark navy / near-black / subtle cyan</strong>. Ta strona to mapa dla ludzi i agentów zmieniających ten stack.</p>
+<h2 id="stack">Stack<a class="headerlink" href="#stack" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ttyd (motyw xterm.js) → tmux 3.6a → zsh
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ├── prompt Starship
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  ├── zsh-autosuggestions + syntax-highlighting + fzf
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  ├── aliasy (/etc/orcan/shell/aliases.sh)
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  └── lazygit / delta (UI gita)
+</span></code></pre></div>
+<p>Ograniczenia (nie łamać):</p>
+<ul>
+<li><strong>ttyd-safe</strong> — Menlo / Monaco / Courier; <strong>bez wymogu Nerd Font</strong></li>
+<li>Zwykłe Unicode w statusie tmux (bez glifów Powerline)</li>
+<li>Defaulty obrazu w <code>docker/rootfs/</code>; nadpisania w <code>$ORCAN_DATA/dotfiles</code></li>
+</ul>
+<h2 id="paleta">Paleta<a class="headerlink" href="#paleta" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Rola</th>
+<th>Hex</th>
+<th>Użycie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tło</td>
+<td><code>#0a0e17</code></td>
+<td>ttyd, aktywny panel</td>
+</tr>
+<tr>
+<td>Status / elevated</td>
+<td><code>#0d1520</code>, <code>#111827</code></td>
+<td>status tmux, chrome</td>
+</tr>
+<tr>
+<td>Zaznaczenie</td>
+<td><code>#152033</code>, <code>#164e63</code></td>
+<td>fzf/lazygit, copy-mode</td>
+</tr>
+<tr>
+<td>Tekst</td>
+<td><code>#c8d3e0</code></td>
+<td>domyślny foreground</td>
+</tr>
+<tr>
+<td>Wyciszony</td>
+<td><code>#64748b</code>, <code>#334155</code></td>
+<td>nieaktywne taby, separatory</td>
+</tr>
+<tr>
+<td>Akcent</td>
+<td><code>#5eead4</code></td>
+<td>aktywny tab, ramki, kursor</td>
+</tr>
+<tr>
+<td>Akcent jasny</td>
+<td><code>#67e8f9</code></td>
+<td>ścieżka, drugorzędne highlighty</td>
+</tr>
+<tr>
+<td>Ostrzeżenie / błąd</td>
+<td><code>#fbbf24</code>, <code>#f87171</code></td>
+<td>activity, błędy, niska bateria</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Site MkDocs</strong> używa tych samych tokenów (<code>docs/assets/stylesheets/orcan.css</code>, favicon). W jasnym trybie docs — ciemniejszy teal dla czytelnych linków na białym.</p>
+<p>Presety w <code>cursor-ttyd</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>TTYD_THEME</code> / <code>ttyd.theme</code></th>
+<th>Znaczenie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dark</code> lub <code>navy</code> (domyślne)</td>
+<td>Ta paleta</td>
+</tr>
+<tr>
+<td><code>mocha</code> / <code>catppuccin</code></td>
+<td>Stary Catppuccin Mocha</td>
+</tr>
+<tr>
+<td>surowy JSON <code>{...}</code></td>
+<td>Własny motyw xterm.js</td>
+</tr>
+</tbody>
+</table>
+<h2 id="gdzie-zmieniac-co">Gdzie zmieniać co<a class="headerlink" href="#gdzie-zmieniac-co" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Warstwa</th>
+<th>Ścieżka w repo</th>
+<th>Jak wdrożyć</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>motyw ttyd</td>
+<td><code>docker/rootfs/usr/local/bin/cursor-ttyd</code></td>
+<td><code>orcan build</code> + recreate kontenera</td>
+</tr>
+<tr>
+<td>binarka tmux</td>
+<td><code>Dockerfile</code> (<code>ARG TMUX_VERSION=3.6a</code>)</td>
+<td>build — static z <code>tmux/tmux-builds</code></td>
+</tr>
+<tr>
+<td>UI tmux</td>
+<td><code>docker/rootfs/etc/tmux/</code></td>
+<td>build; albo kopia + <code>tmux source-file</code> przy iteracji</td>
+</tr>
+<tr>
+<td>Layout / chrome cockpit</td>
+<td><code>cockpit/src/orcan_cockpit/app.py</code>, <code>activity.py</code>, <code>top_bar.py</code>, <code>rail.py</code>, <code>status_bar.py</code></td>
+<td><code>make dev-restart</code> (izolowane); albo <code>orcan build</code> + recreate</td>
+</tr>
+<tr>
+<td>Skróty / help cockpit</td>
+<td><code>cockpit/…/shortcuts.py</code> (+ <code>keybindings.conf</code> dla tokenów tmux)</td>
+<td>j.w.; test hosta trzyma tokeny w sync</td>
+</tr>
+<tr>
+<td>PTY cockpit</td>
+<td><code>pty_terminal.py</code>, <code>pty_keys.py</code>, <code>pty_colors.py</code>, <code>pty_tmux_nav.py</code></td>
+<td>j.w. — zobacz <a href="#cockpit-browser">Cockpit + przeglądarka</a> / <a href="#cockpit-nav-mix">nav mix</a></td>
+</tr>
+<tr>
+<td>zsh</td>
+<td><code>docker/rootfs/etc/skel/.zshrc</code>, <code>.zshrc.d/</code></td>
+<td>build; albo kopia do <code>~</code> na test na żywo</td>
+</tr>
+<tr>
+<td>kolory fzf / suggest</td>
+<td><code>docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh</code></td>
+<td>nowy shell po kopii/buildzie</td>
+</tr>
+<tr>
+<td>Starship</td>
+<td><code>docker/rootfs/opt/orcan/starship.toml</code></td>
+<td><strong>missing-only</strong> → <code>~/.config/starship.toml</code></td>
+</tr>
+<tr>
+<td>lazygit</td>
+<td><code>docker/rootfs/opt/orcan/lazygit-config.yml</code></td>
+<td><strong>missing-only</strong> → <code>~/.config/lazygit/config.yml</code></td>
+</tr>
+<tr>
+<td>git / delta</td>
+<td><code>docker/rootfs/opt/orcan/gitconfig</code></td>
+<td>missing-only → <code>~/.gitconfig</code></td>
+</tr>
+<tr>
+<td>Overlay użytkownika</td>
+<td><code>$ORCAN_DATA/dotfiles</code></td>
+<td>montowane; zobacz <a href="../dotfiles/">Dotfiles</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Missing-only</strong> = istniejący plik w home developera <strong>nie</strong> jest nadpisywany przy starcie. Po zmianie seeda w obrazie: usuń kopię w home raz albo zrób merge ręcznie.</p>
+<h2 id="tmux-36a">tmux (3.6a)<a class="headerlink" href="#tmux-36a" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Jeden rząd statusu: wyśrodkowane taby okien — workspace/metryki są w górnym/dolnym pasku cockpit (surowy <code>tmux attach</code> / <code>orcan enter --tmux</code> poza cockpit nie pokaże CPU/RAM/branch)</li>
+<li><strong>Żywe etykiety pane’ów</strong> (<code>scripts/pane-label.sh</code>): pasek bordera i tab okna (<code>automatic-rename</code>) idą za procesem — np. <code>claude</code>, <code>review</code> (<code>orcan-context-review</code> w cmdline), bez pinowanego <code>select-pane -T</code>. Odświeżanie = <code>status-interval</code> (5s).</li>
+<li>Feature’y za <code>%if #{&gt;=:#{version},…}</code> — starszy serwer nadal może przeładować config</li>
+<li>Edytuj pliki obrazu w <strong>repo</strong>, nie tylko w działającym kontenerze</li>
+<li>Prefix: <strong>C-Space</strong> (nie <code>C-b</code>). Config: <code>docker/rootfs/etc/tmux/keybindings.conf</code></li>
+</ul>
+<h3 id="bindings-z-prefixem-po-c-space">Bindings z prefixem (po <code>C-Space</code>)<a class="headerlink" href="#bindings-z-prefixem-po-c-space" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Klawisze</th>
+<th>Akcja</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>r</code></td>
+<td>Przeładuj <code>/etc/tmux/tmux.conf</code></td>
+</tr>
+<tr>
+<td><code>s</code> / <code>w</code></td>
+<td>Przełącz sesję workspace orcan</td>
+</tr>
+<tr>
+<td><code>W</code></td>
+<td>Wybór okna (jak IDE)</td>
+</tr>
+<tr>
+<td><code>u</code></td>
+<td>Wybierz/skopiuj URL http(s) (łączy soft-wrap)</td>
+</tr>
+<tr>
+<td><code>P</code></td>
+<td>Helper kopiowania ścieżki</td>
+</tr>
+<tr>
+<td><code>-</code> / <code>\|</code></td>
+<td>Split pionowy / poziomy</td>
+</tr>
+<tr>
+<td><code>x</code></td>
+<td>Zabij pane</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bez-prefixu-meta-alt-lokalne-skroty">Bez prefixu (Meta / Alt — lokalne skróty)<a class="headerlink" href="#bez-prefixu-meta-alt-lokalne-skroty" title="Permanent link">&para;</a></h3>
+<p>Używają bindów tmux <code>M-…</code> / <code>C-…</code> w <code>keybindings.conf</code> dla <strong>surowego</strong>
+<code>orcan enter --tmux</code>. Muszą dojść jako <strong>Meta</strong>/CSI Ctrl, nie jako znaki
+złożone. <strong>W cockpicie</strong> strzałki działają inaczej — zobacz
+<a href="#cockpit-nav-mix">Cockpit nav mix</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Klawisze</th>
+<th>Akcja (<code>--tmux</code> / conf)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Alt+1</code> … <code>Alt+9</code></td>
+<td>Wybór okna 1–9</td>
+</tr>
+<tr>
+<td><code>Alt+0</code></td>
+<td>Ostatnie okno</td>
+</tr>
+<tr>
+<td><code>Alt+←/→/↑/↓</code></td>
+<td>Fokus pane</td>
+</tr>
+<tr>
+<td><code>prefix z</code></td>
+<td>Zoom pane</td>
+</tr>
+<tr>
+<td><code>Alt+c</code></td>
+<td>Nowe okno</td>
+</tr>
+<tr>
+<td><code>Alt+a</code> / <code>Alt+q</code></td>
+<td>Mysz włącz / wyłącz</td>
+</tr>
+<tr>
+<td><code>Ctrl+←/→/↑/↓</code></td>
+<td>Split (kierunek)</td>
+</tr>
+<tr>
+<td><code>Ctrl+Alt+←/→</code></td>
+<td>Poprzednie / następne okno</td>
+</tr>
+<tr>
+<td><code>Ctrl+Shift+←/→</code></td>
+<td>Zamień okno w lewo / prawo</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cockpit-browser">Cockpit + przeglądarka (nie psuć)<a class="headerlink" href="#cockpit-browser" title="Permanent link">&para;</a></h3>
+<p>Gdy <code>agent-launcher</code> osadza tmux (<code>cockpit/…/pty_terminal.py</code>):</p>
+<h4 id="dwa-terminale-w-jednym">Dwa terminale w jednym<a class="headerlink" href="#dwa-terminale-w-jednym" title="Permanent link">&para;</a></h4>
+<p>Osadzony tmux <strong>nie jest</strong> natywnym attach (<code>tmux attach</code> w Windows Terminal).
+Overlay skrótów cockpit (<strong>F1</strong> zawsze; <strong>?</strong> gdy fokus poza osadzonym
+terminalem) oraz popup tmux <strong>prefix ?</strong> powtarzają to na dole —
+zobacz <code>EMBED_DISCLAIMER</code> w <code>shortcuts.py</code>. Przy fokusie w terminalu <strong>?</strong> idzie
+do shella (pasek hintów pokazuje tylko <strong>F1</strong>). To trzy warstwy naraz:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Textual (UI, fokus, selekcja, mysz)  ↔  pyte (emulacja VT100)  ↔  tmux attach (PTY)
+</span></code></pre></div>
+<p>Textual <strong>nie</strong> przekazuje klawiatury/myszy/sklejki automatycznie — każdy kanał
+wymaga własnego tłumacza w repo. To oczekiwane, nie bug pojedynczej funkcji.
+Przy <code>make dev-enter</code> / cockpicie zakładaj, że <strong>każdy nowy input</strong> (scroll,
+copy, klik w status tmux, bracketed paste, …) może wymagać osobnej logiki —
+albo użyj pełnego tmux: <code>orcan enter --tmux NAZWA</code> (bez cockpitu).</p>
+<table>
+<thead>
+<tr>
+<th>Moduł</th>
+<th>Kierunek</th>
+<th>Problem bez tłumacza</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pty_tmux_nav.py</code></td>
+<td>Textual → <code>tmux</code> CLI</td>
+<td>Ctrl/Alt+strzałki / Ctrl+Shift+strzałki — zob. <a href="#cockpit-nav-mix">Cockpit nav mix</a></td>
+</tr>
+<tr>
+<td><code>pty_keys.py</code></td>
+<td>Textual → PTY</td>
+<td>pozostałe <code>bind -n</code> z <code>keybindings.conf</code> — patrz tabela poniżej</td>
+</tr>
+<tr>
+<td><code>pty_mouse.py</code></td>
+<td>Textual → PTY</td>
+<td>wheel/klik nie dociera; SGR vs legacy X10 (<code>@</code>/<code>A</code> na ekranie)</td>
+</tr>
+<tr>
+<td><code>pty_colors.py</code></td>
+<td>pyte → Rich</td>
+<td><code>brown</code> / bright aliasy psują render</td>
+</tr>
+<tr>
+<td><code>pty_terminal.py</code></td>
+<td>PTY ↔ pyte ↔ UI</td>
+<td>resize (<code>TIOCSCTTY</code>), odświeżanie, selekcja vs tmux, tryby <code>?1000/1006</code>, sklejanie <code>Escape</code>+klawisz</td>
+</tr>
+</tbody>
+</table>
+<h4 id="cockpit-nav-mix">Cockpit nav mix (limit Alt-jako-Ctrl)<a class="headerlink" href="#cockpit-nav-mix" title="Permanent link">&para;</a></h4>
+<p><strong>Ograniczenie:</strong> pod ttyd/xterm.js i w części terminali desktop (Windows Terminal /
+WSL) <strong>Alt+←/→/↑/↓</strong> często dociera do Textual jako <strong><code>ctrl+arrow</code></strong> — nie ma
+osobnego eventu Meta. Cockpit nie może jednocześnie oferować „Ctrl = split” i
+„Alt = fokus pane”, gdy te chordy wyglądają tak samo.</p>
+<p><strong>Zachowanie cockpitu</strong> (<code>pty_tmux_nav.py</code> — wywołuje <code>tmux select-pane</code> /
+<code>split-window</code> bezpośrednio, bez CSI do child PTY):</p>
+<table>
+<thead>
+<tr>
+<th>Skrót</th>
+<th>Akcja w cockpicie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ctrl</code> lub <code>Alt</code> + <code>←/→/↑/↓</code></td>
+<td>Fokus pane</td>
+</tr>
+<tr>
+<td><code>Ctrl+Shift</code> + <code>←/→/↑/↓</code></td>
+<td>Split pane</td>
+</tr>
+<tr>
+<td><code>prefix -</code> / <code>prefix \|</code></td>
+<td>Split (bez zmian; forward do tmux)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Surowy attach</strong> (<code>orcan enter --tmux</code>): <code>keybindings.conf</code> bez zmian —
+<code>Ctrl+strzałki</code> = split, <code>Alt+strzałki</code> = fokus <strong>gdy Meta dochodzi</strong>.</p>
+<p>Stopki F1 / <strong>?</strong> oraz <strong>prefix ?</strong> pokazują to jako <code>BROWSER_KEY_LIMIT</code> w
+<code>shortcuts.py</code>. <code>Alt+1</code>…<code>Alt+9</code> to osobna ścieżka (często OK z
+<code>macOptionIsMeta</code> na macOS).</p>
+<p><strong>Lokalne bindy tmux (<code>bind -n</code>, bez prefixu)</strong> — nadal dla chordów, które
+cockpit <strong>forwarduje</strong> jako bajty (nie zestaw nav-mix powyżej). Każdy wymaga
+poprawnego CSI / Meta w jednym write:</p>
+<table>
+<thead>
+<tr>
+<th>Skrót</th>
+<th>tmux</th>
+<th>Bajty (docelowo)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ctrl+Space</code></td>
+<td>prefix</td>
+<td><code>\x00</code></td>
+</tr>
+<tr>
+<td><code>prefix z</code></td>
+<td>zoom pane</td>
+<td><code>z</code> po <code>\x00</code> (C-Space) — bez mapy w wrapperze</td>
+</tr>
+<tr>
+<td><code>Ctrl+Alt+←/→</code></td>
+<td>prev/next window</td>
+<td><code>\x1b[1;7D/C</code></td>
+</tr>
+<tr>
+<td><code>Alt+c</code> / <code>Alt+a</code> / <code>Alt+q</code></td>
+<td>new win / mouse</td>
+<td><code>\x1bc</code> / <code>\x1ba</code> / <code>\x1bq</code></td>
+</tr>
+<tr>
+<td><code>Alt+0..9</code></td>
+<td>select window</td>
+<td><code>\x1b0</code> … <code>\x1b9</code></td>
+</tr>
+</tbody>
+</table>
+<p>Textual rozbija wiele z powyższych na <code>Escape</code> + drugi klawisz — cockpit skleja z powrotem (<code>pty_keys.esc_follow_up_bytes</code> + okno coalesce w <code>pty_terminal</code>).</p>
+<p><strong>Mysz:</strong> tmux wysyła <code>?1006l</code> potem <code>?1006h</code> przy attach — parser musi brać
+<strong>ostatni</strong> stan (nie <code>in data</code>). Inaczej leci legacy encoding i w shellu widać
+<code>A_5</code>, <code>@_5</code>. Wysyłaj zdarzenia myszy dopiero gdy tmux włączy <code>?1000h</code>.</p>
+<p><strong>Kopiowanie:</strong> zaznaczenie to selekcja Textual (nie xterm). <code>Ctrl+C</code> z
+zaznaczeniem → schowek; bez zaznaczenia → SIGINT. Wklejanie: <code>on_paste</code> → PTY.</p>
+<p><strong>Scrollback:</strong> pyte trzyma <strong>bieżący</strong> ekran; przewijanie historii robi tmux
+(copy-mode) i przerysowuje pane — mysz musi trafić do tmux jako SGR.</p>
+<p><strong>Scrollback:</strong> pyte trzyma <strong>bieżący</strong> ekran; przewijanie historii robi tmux
+(copy-mode) i przerysowuje pane — mysz musi trafić do tmux jako SGR.</p>
+<h4 id="konkretne-wymagania-regresja">Konkretne wymagania (regresja)<a class="headerlink" href="#konkretne-wymagania-regresja" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>C-Space</code> i <code>Alt+…</code> muszą dojść do tmux</strong> — widget mapuje klawisze Textual na bajty pty (<code>ctrl+space</code> → <code>\x00</code>; <code>alt+1</code> → jeden zapis <code>\x1b</code> + <code>1</code>). Rozdzielenie ESC i klawisza bazowego na dwa write’y psuje <code>escape-time</code> (tmux traktuje ESC osobno). Textual mapuje też <code>ESC+digit</code> na glify macOS Option (<code>¡</code>/<code>™</code>/<code>£</code>); cockpit odwraca to z powrotem na Meta (<code>pty_keys.py</code>), żeby Windows Terminal / Linux Alt+1…9 działało jak przy zwykłym <code>tmux attach</code>.</li>
+<li><strong>Resize</strong> wymaga controlling tty w childzie (<code>TIOCSCTTY</code>), żeby <code>TIOCSWINSZ</code> dostarczył <strong>SIGWINCH</strong> do tmux — inaczej pane zostaje przy rozmiarze z attach.</li>
+<li>Przy spawnie, gdy widget ma jeszcze <code>0×0</code>, fallback to <strong>80×24</strong> (unika martwego 1×1).</li>
+<li>Kolory: render per-cell pyte (status/prompt jak przy native attach).</li>
+</ul>
+<p>Testy hosta (bez Textual): <code>tests/host/test_cockpit_pty_{keys,mouse,colors,tmux_nav}.py</code>.
+Smoke: <code>tests/smoke/test-cockpit-tui.py</code>.</p>
+<p>Browser ttyd (<code>cursor-ttyd</code>) ustawia <strong><code>macOptionIsMeta=true</code></strong>, żeby na macOS Option/Alt szło jako Meta (potrzebne do <code>Alt+1</code>…), a nie jako <code>¡</code> / <code>™</code>. Bez wpływu na Windows/Linux.</p>
+<h3 id="chrome-cockpitu-warstwa-app">Chrome cockpitu (warstwa app)<a class="headerlink" href="#chrome-cockpitu-warstwa-app" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>górny pasek:  🌀 orcan  ·  rail (🔔 pulse gdy pending · ?)  ·  CPU / RAM / zegar
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>główny rząd:  workspaces (+ glance + legenda) + ASSERTIONS  |  terminal + hinty
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>              przełącznik ‹› (F4) między kolumnami
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>dół:          pasek statusu (workspace · branch · tmux · pending) — klik 🔔 → ASSERTIONS
+</span></code></pre></div>
+<p>Górny pasek zaczyna się od stałego wordmarku <strong><code>🌀 orcan</code></strong> (<code>top_bar.py</code>), potem
+utility rail (🔔 / ? — same ikony w compact/minimal; <strong>ikona + słowo</strong> w
+tierze <code>full</code>), potem metryki (<code>💻</code> load · <code>🧠</code> mem · zegar). Gdy są pending
+Context Assertions, dzwonek w rail <strong>pulsuje bursztynowo</strong> (<code>pending-pulse</code>).
+Przełącznik workspace’ów to <strong>‹›</strong> na krawędzi (<code>#sidebar-toggle</code>) + <strong>F4</strong>.
+Pod listą workspace’ów <strong>session glance</strong> (<code>session_glance.py</code>) pokazuje do
+trzech linii dla podświetlonego wiersza: pending <strong>z wiekiem</strong>
+(<code>2 pending · 3h</code>), licznik worktree / idle sesji albo wiek briefu
+(<code>2 wt · idle 40m</code>, albo <code>brief 2h</code> gdy nie live) oraz komendy live pane’ów
+(<code>tmux list-panes</code>). Karta ASSERTIONS pokazuje też <strong>agents</strong> (pin ★), krótką
+oś <strong>recent decisions</strong>, a badge 🔔 to zagregowane <strong>Problems</strong> (pending +
+błędy reflection + dirty repo). <strong>F5</strong> = peek briefu / następnej notki bez
+splitu; <strong>Ctrl+P</strong> = split / URL / pin-main / szablony zadań. Pasek statusu
+(full) dokłada breadcrumb tmux (<code>wN › command</code>). Karta ASSERTIONS pokazuje też
+<strong>last batch</strong> (feedback z recap/reflection). <strong>F5</strong> + <strong>Enter</strong> = Peek→Review;
+pierwsze uruchomienie = krótki onboarding. <strong>Busy fixtures w preview</strong> to
+<strong>atrapy UI</strong> (np. port 8000), nie wynik reflection z żywej sesji. Bez Claude
+Code na PATH automation assertions jest <strong>wyłączone</strong>; <strong>Review</strong> pending
+nadal działa. Empty / attach używa wordmarku
+(<code>🌀 orcan</code> / <code>🌀 attaching name</code>) zamiast gołego spinnera. ASSERTIONS są na
+dole lewej kolumny (<code>activity.py</code>) z podtytułem, przyciskami Review /
+Pause / Turn off i linkiem do docs. Klik 🔔 w status-barze (lub w rail)
+odsłania i fokusuje ASSERTIONS. Legenda listy:
+<code>● live   ○ new   ▸ attached   ·   [i] expand</code> — <strong><code>i</code></strong> przełącza drugi wiersz
+(ścieżka root + nazwy repo). SoT klawiszy: <code>cockpit/…/shortcuts.py</code>. Overlay
+<strong>F1</strong> / <strong>?</strong> to <strong>tylko skróty</strong> (stopka embed + <code>BROWSER_KEY_LIMIT</code> — zob.
+<a href="#cockpit-nav-mix">Cockpit nav mix</a>). <strong>About</strong> (nazwa, wersja, docs) jest
+osobnym ekranem (<code>about_modal.py</code>) — klik wordmarku <strong><code>🌀 orcan</code></strong>. <strong>Brak</strong>
+skrótu Git / F3 w cockpicie — w terminalu: alias <strong><code>lg</code></strong> (lazygit).</p>
+<p><strong>Progi szerokości</strong> (kolumny terminala, nie breakpointy CSS — <code>status.py</code> /
+<code>tier_for_width</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Kolumny</th>
+<th>Efekt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>full</code></td>
+<td>≥ 120</td>
+<td>Pełny dolny pasek; rail z etykietami (Assertions / Help)</td>
+</tr>
+<tr>
+<td><code>compact</code></td>
+<td>90–119</td>
+<td>Krótszy dolny pasek; rail tylko ikony</td>
+</tr>
+<tr>
+<td><code>minimal</code></td>
+<td>&lt; 90</td>
+<td>Ukrywa <strong>górny pasek</strong> + <strong>lewą kolumnę</strong>; F-ki nadal działają</td>
+</tr>
+</tbody>
+</table>
+<p><strong>F4</strong> / <strong>F2</strong> nadal przełączają ręcznie workspace’y / ASSERTIONS, gdy widoczne.</p>
+<table>
+<thead>
+<tr>
+<th>Klawisze</th>
+<th>Akcja</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>F2</strong> / rail 🔔</td>
+<td>Przełącz sekcję ASSERTIONS w lewej kolumnie</td>
+</tr>
+<tr>
+<td><strong>F4</strong> / ‹›</td>
+<td>Przełącz kolumnę workspace’ów</td>
+</tr>
+<tr>
+<td><strong>F1</strong> (zawsze) · <strong>?</strong> (poza terminalem) / rail ?</td>
+<td>Overlay skrótów (nie About). Przy fokusie w terminalu <strong>?</strong> idzie do shella — użyj <strong>F1</strong></td>
+</tr>
+<tr>
+<td><strong>Klik <code>🌀 orcan</code></strong></td>
+<td>About (nazwa, wersja, docs) — <code>about_modal.py</code></td>
+</tr>
+<tr>
+<td><strong>F5</strong></td>
+<td>Peek briefu / następnej pending; <strong>Enter</strong> / <strong>r</strong> → Review</td>
+</tr>
+<tr>
+<td><strong>Ctrl+P</strong></td>
+<td>Paleta komend (poza fokusem terminala)</td>
+</tr>
+<tr>
+<td><strong>i</strong></td>
+<td>Rozwiń/zwiń szczegóły workspace (fokus na liście)</td>
+</tr>
+<tr>
+<td><strong>r</strong></td>
+<td>Uruchom <code>orcan-context-review</code> (fokus na ASSERTIONS)</td>
+</tr>
+<tr>
+<td><strong>p</strong></td>
+<td>Pauza/wznowienie automatyzacji context (fokus na ASSERTIONS)</td>
+</tr>
+<tr>
+<td><strong>o</strong></td>
+<td>Wyłącz/włącz automatyzację context (fokus na ASSERTIONS)</td>
+</tr>
+<tr>
+<td><strong>prefix ?</strong></td>
+<td>Samodzielny popup skrótów tmux (bez cockpitu)</td>
+</tr>
+<tr>
+<td><strong><code>lg</code></strong> (w shellu)</td>
+<td>lazygit — nie F-key w cockpicie</td>
+</tr>
+</tbody>
+</table>
+<p>Codzienne wejście: <a href="../workflows/#local-terminal">Workflowy — lokalny terminal</a>.</p>
+<p>Po edycji UX: <code>make dev-restart</code>, potem <code>make dev-smoke</code> (oraz <code>make dev-visual</code>, gdy ważne są screenshoty layoutu/chrome); spróbuj <code>Alt+1</code> / resize okna przeglądarki; albo <code>./scripts/dev/terminal-ui-preview</code> tylko na chrome.</p>
+<h2 id="preview-bez-ruszania-codziennego-orcana">Preview bez ruszania codziennego Orcana<a class="headerlink" href="#preview-bez-ruszania-codziennego-orcana" title="Permanent link">&para;</a></h2>
+<p>Z checkoutu gita (nie publiczne CLI):</p>
+<table>
+<thead>
+<tr>
+<th>Potrzeba</th>
+<th>Komenda</th>
+<th>Uwagi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tylko status / klawisze / layout tmux</td>
+<td><code>./scripts/dev/terminal-ui-preview</code></td>
+<td>Osobny socket tmux; <strong>C-Space r</strong> przeładowuje pliki z checkoutu</td>
+</tr>
+<tr>
+<td>Pełny UX przeglądarkowy (ttyd + cockpit + obraz)</td>
+<td><code>make dev-start</code></td>
+<td>Obraz <code>orcan:dev-ux</code>, port/home pod <code>.orcan-dev-ux/</code></td>
+</tr>
+<tr>
+<td>Po edycji UX</td>
+<td><code>make dev-restart</code></td>
+<td>Odśwież cockpit z checkoutu; recreate; czeka na healthy</td>
+</tr>
+<tr>
+<td>Automatyczne checki</td>
+<td><code>make dev-smoke</code> / <code>dev-a11y</code> / <code>dev-visual</code></td>
+<td>Textual+PTY; Playwright a11y + screenshoty (preview musi działać)</td>
+</tr>
+<tr>
+<td>Lista przed merge’em</td>
+<td><code>make dev-checklist</code></td>
+<td>Cele automatyczne + ręczny flow w przeglądarce</td>
+</tr>
+<tr>
+<td>Weryfikacja izolacji</td>
+<td><code>make dev-doctor</code></td>
+<td>Tożsamość Dockera, health, HTTP</td>
+</tr>
+</tbody>
+</table>
+<p>Szczegóły, flagi i reguły izolacji: <a href="../../development/testing/">Testy — preview maintainerów</a>.</p>
+<h2 id="rozszerzanie-wygladu-checklist-dla-agentow">Rozszerzanie wyglądu (checklist dla agentów)<a class="headerlink" href="#rozszerzanie-wygladu-checklist-dla-agentow" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Wybierz wiersz z tabeli; edytuj ścieżkę w <strong>repo</strong>.</li>
+<li>Trzymaj spójne hexy palety (albo zaktualizuj ten doc + wszystkie warstwy naraz).</li>
+<li><strong>Nie</strong> dodawaj TPM / Catppuccin-tmux / Oh My Zsh / Powerlevel10k bez decyzji produktowej.</li>
+<li>Iteruj przez <code>./scripts/dev/terminal-ui-preview</code> (tmux) albo <code>make dev-restart</code> (pełny UX); weryfikuj <code>make dev-smoke</code> / <code>make dev-visual</code> w razie potrzeby.</li>
+<li>Zaktualizuj docs <strong>EN + PL</strong> i <code>CHANGELOG.md</code> <code>[Unreleased]</code>.</li>
+<li><code>make validate</code> i <code>make docs-check</code>.</li>
+<li>Dla Dockerfile / rootfs w obrazie: <code>orcan build &amp;&amp; orcan down &amp;&amp; orcan up</code>.</li>
+</ol>
+<p>Reguła Cursora (gdy ruszasz te ścieżki): <code>.cursor/rules/terminal-ui.mdc</code>.</p>
+<h2 id="powiazane">Powiązane<a class="headerlink" href="#powiazane" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../dotfiles/">Dotfiles użytkownika</a> — własne nadpisania bez rebuilda</li>
+<li><a href="../../development/testing/">Testy</a> — <code>make dev-*</code> / <code>scripts/dev/</code></li>
+<li><a href="../../reference/docker/">Docker — referencja</a> — zawartość obrazu, tmux 3.6a</li>
+<li><a href="../../reference/environment/">Zmienne środowiskowe</a> — <code>TTYD_THEME</code>, fonty</li>
+<li><a href="../../ai/project-context/">Kontekst AI</a> — rytuał agenta</li>
+</ul>
+
+
+
+
+
+
+
+  
+    
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Ostatnia aktualizacja">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="26 sierpnia 2026 19:39:31 UTC">26 sierpnia 2026</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Utworzony">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="13 sierpnia 2026 19:44:34 UTC">13 sierpnia 2026</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Powrót do góry
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Stopka" >
+        
+          
+          <a href="../dotfiles/" class="md-footer__link md-footer__link--prev" aria-label="Poprzednia strona: Dotfiles użytkownika">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Poprzednia strona
+              </span>
+              <div class="md-ellipsis">
+                Dotfiles użytkownika
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../troubleshooting/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Rozwiązywanie problemów">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Następna strona
+              </span>
+              <div class="md-ellipsis">
+                Rozwiązywanie problemów
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Orcan contributors · <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/aKyther/orcan" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://github.com/aKyther/orcan/issues" target="_blank" rel="noopener" title="Issues" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M192 96c0-53 43-96 96-96s96 43 96 96v3.6c0 15.7-12.7 28.4-28.4 28.4H220.5c-15.7 0-28.4-12.7-28.4-28.4V96zm345.6 12.8c10.6 14.1 7.7 34.2-6.4 44.8l-97.8 73.3c5.3 8.9 9.3 18.7 11.8 29.1H544c17.7 0 32 14.3 32 32s-14.3 32-32 32h-96v32c0 2.6-.1 5.3-.2 7.9l83.4 62.5c14.1 10.6 17 30.7 6.4 44.8s-30.7 17-44.8 6.4l-63.1-47.3c-23.2 44.2-66.5 76.2-117.7 83.9V280c0-13.3-10.7-24-24-24s-24 10.7-24 24v230.2c-51.2-7.7-94.5-39.7-117.7-83.9l-63.1 47.3c-14.1 10.6-34.2 7.7-44.8-6.4s-7.7-34.2 6.4-44.8l83.4-62.5c-.1-2.6-.2-5.2-.2-7.9v-32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32h98.8c2.5-10.4 6.5-20.2 11.8-29.1l-97.8-73.3c-14.1-10.6-17-30.7-6.4-44.8s30.7-17 44.8-6.4L192 184c12.3-5.1 25.8-8 40-8h112c14.2 0 27.7 2.8 40 8l108.8-81.6c14.1-10.6 34.2-7.7 44.8 6.4"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://github.com/aKyther/orcan/releases" target="_blank" rel="noopener" title="Releases" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m401.2 39.1 148.2 150.3c27.7 28.1 27.7 73.1 0 101.2L393 448.9c-9.3 9.4-24.5 9.5-33.9.2s-9.5-24.5-.2-33.9l156.4-158.4c9.2-9.3 9.2-24.4 0-33.7L367 72.9c-9.3-9.4-9.2-24.6.2-33.9s24.6-9.2 33.9.2zM32.1 229.5V96c0-35.3 28.7-64 64-64h133.5c17 0 33.3 6.7 45.3 18.7l144 144c25 25 25 65.5 0 90.5L285.4 418.7c-25 25-65.5 25-90.5 0l-144-144c-12-12-18.7-28.3-18.7-45.3zm144-85.5a32 32 0 1 0-64 0 32 32 0 1 0 64 0"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": {"concept": "concept", "develop": "develop", "guide": "guide", "reference": "reference", "security": "security"}, "translations": {"clipboard.copied": "Skopiowano do schowka", "clipboard.copy": "Kopiuj do schowka", "search.result.more.one": "1 wi\u0119cej na tej stronie", "search.result.more.other": "# wi\u0119cej na tej stronie", "search.result.none": "Brak wynik\u00f3w wyszukiwania", "search.result.one": "Wyniki wyszukiwania: 1", "search.result.other": "Wyniki wyszukiwania: #", "search.result.placeholder": "Zacznij pisa\u0107, aby szuka\u0107", "search.result.term.missing": "Brak", "select.version": "Wybierz wersj\u0119"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/javascripts/mike-i18n.js"></script>
+      
+        <script src="../../../assets/javascripts/orcan-version.js"></script>
+      
+        <script src="../../../assets/javascripts/orcan-mermaid.js"></script>
+      
+    
+  </body>
+</html>
