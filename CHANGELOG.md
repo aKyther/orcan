@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-08-27
+
+### Added
+
+- **Multi-agent restraint** guideline in the generated workspace `AGENTS.md`/
+  `CLAUDE.md` (`reconcile.py`): spawning subagents costs tokens per agent —
+  poll on backoff not a tight loop, and don't act on (or re-poll past) a
+  garbled/unfounded subagent result. Extends the existing Karpathy-inspired
+  behavioral list rather than a separate section, same reasoning as the
+  earlier "think before coding" / "surgical changes" points.
+
 ## [3.0.1] - 2026-08-27
 
 ### Added
@@ -58,15 +69,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Without `claude` on PATH, assertions **automation** auto-disables (recap/reflect
   idle; cockpit Pause/Turn off greyed); manual **Review** of inbox still works.
   `make dev-reset` / `orcan-preview reset` also clears the cockpit first-run tip.
-
-### Added
-
-- **Multi-agent restraint** guideline in the generated workspace `AGENTS.md`/
-  `CLAUDE.md` (`reconcile.py`): spawning subagents costs tokens per agent —
-  poll on backoff not a tight loop, and don't act on (or re-poll past) a
-  garbled/unfounded subagent result. Extends the existing Karpathy-inspired
-  behavioral list rather than a separate section, same reasoning as the
-  earlier "think before coding" / "surgical changes" points.
 
 ### Fixed
 
