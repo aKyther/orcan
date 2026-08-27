@@ -12,7 +12,7 @@
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/dev/guides/terminal-ui/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/latest/guides/terminal-ui/">
       
       
         <link rel="prev" href="../dotfiles/">
@@ -45,6 +45,51 @@
       
 
 
+  
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+  
+  <style>:root{.md-tag.md-tag--concept{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M12%202a7%207%200%200%201%207%207c0%202.38-1.19%204.47-3%205.74V17a1%201%200%200%201-1%201H9a1%201%200%200%201-1-1v-2.26C6.19%2013.47%205%2011.38%205%209a7%207%200%200%201%207-7M9%2021v-1h6v1a1%201%200%200%201-1%201h-4a1%201%200%200%201-1-1m3-17a5%205%200%200%200-5%205c0%202.05%201.23%203.81%203%204.58V16h4v-2.42c1.77-.77%203-2.53%203-4.58a5%205%200%200%200-5-5%22/%3E%3C/svg%3E');}.md-tag.md-tag--guide{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%204H3a2%202%200%200%200-2%202v13a2%202%200%200%200%202%202h18a2%202%200%200%200%202-2V6a2%202%200%200%200-2-2M3%2019V6h8v13zm18%200h-8V6h8zm-7-9.5h6V11h-6zm0%202.5h6v1.5h-6zm0%202.5h6V16h-6z%22/%3E%3C/svg%3E');}.md-tag.md-tag--reference{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M6%202a2%202%200%200%200-2%202v16a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V8l-6-6zm0%202h7v5h5v11H6zm2%208v2h8v-2zm0%204v2h5v-2z%22/%3E%3C/svg%3E');}.md-tag.md-tag--develop{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22m13.78%2015.3%206%206%202.11-2.16-6-6zm3.72-5.2c-.39%200-.81-.05-1.14-.19L4.97%2021.25l-2.11-2.11%207.41-7.4L8.5%209.96l-.72.7-1.45-1.41v2.86l-.7.7-3.52-3.56.7-.7h2.81l-1.4-1.41%203.56-3.56a2.976%202.976%200%200%201%204.22%200L9.89%205.74l1.41%201.4-.71.71%201.79%201.78%201.82-1.88c-.14-.33-.2-.75-.2-1.12a3.49%203.49%200%200%201%203.5-3.52c.59%200%201.11.14%201.58.42L16.41%206.2l1.5%201.5%202.67-2.67c.28.47.42.97.42%201.6%200%201.92-1.55%203.47-3.5%203.47%22/%3E%3C/svg%3E');}.md-tag.md-tag--security{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%2011c0%205.55-3.84%2010.74-9%2012-5.16-1.26-9-6.45-9-12V5l9-4%209%204zm-9%2010c3.75-1%207-5.46%207-9.78V6.3l-7-3.12L5%206.3v4.92C5%2015.54%208.25%2020%2012%2021%22/%3E%3C/svg%3E');}}</style>
+
     
     
       
@@ -54,10 +99,12 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/orcan.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -71,7 +118,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Terminal UI — Orcan">
   <meta property="og:description" content="Terminal look — navy/cyan palette across ttyd, tmux, zsh, starship, fzf, and lazygit. Where to edit and how to extend.">
-  <meta property="og:url" content="https://akyther.github.io/orcan/dev/guides/terminal-ui/">
+  <meta property="og:url" content="https://akyther.github.io/orcan/latest/guides/terminal-ui/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Terminal UI — Orcan">
@@ -87,7 +134,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
   
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -126,7 +173,7 @@
 
   
 
-<header class="md-header md-header--shadow" data-md-component="header">
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-header__button md-logo" aria-label="Orcan" data-md-component="logo">
       
@@ -154,13 +201,25 @@
       </div>
     </div>
     
+      <div class="orcan-version-select" hidden>
+        <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
+          <span class="orcan-version-select__label">v3.0.3</span>
+          <span class="orcan-version-select__caret" aria-hidden="true"></span>
+        </button>
+        <ul class="orcan-version-select__list" role="listbox" hidden></ul>
+      </div>
+      <a class="orcan-header-version" href="../../changelog/" title="Product SemVer — open changelog">
+        <span class="orcan-header-version__label">v3.0.3</span>
+      </a>
+    
+    
       
         <form class="md-header__option" data-md-component="palette">
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
@@ -170,7 +229,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -180,7 +239,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -283,13 +342,143 @@
     
   </nav>
   
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../why-orcan/" class="md-tabs__link">
+          
+  
+  
+  Understand
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../workflows/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/cli/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/overview/" class="md-tabs__link">
+          
+  
+  
+  Develop
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
       
-        
-          
         
       
       <main class="md-main" data-md-component="main">
@@ -303,8 +492,10 @@
                     
 
 
+  
 
-<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-nav__button md-logo" aria-label="Orcan" data-md-component="logo">
       
@@ -361,6 +552,205 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understand
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Understand
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../why-orcan/" class="md-nav__link">
         
@@ -381,33 +771,34 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
     
       
-      
-  
-  
-  
-  
-    
-    
-    
-    
       
         
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
             
   
   
@@ -425,8 +816,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -582,33 +973,34 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
     
       
-      
-  
-  
-  
-  
-    
-    
-    
-    
       
         
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
             
   
   
@@ -626,8 +1018,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -699,60 +1091,7 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Getting Started
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Getting Started
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -761,14 +1100,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/installation/" class="md-nav__link">
+      <a href="../../change-map/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Installation
+    Change map
   
 
     
@@ -789,42 +1128,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../tags/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Quick Start
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/configuration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Config guide
+    Tags
   
 
     
@@ -861,23 +1172,26 @@
         
         
       
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    Typical Workflows
+    Guides
   
 
     
@@ -888,12 +1202,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Typical Workflows
+    Guides
   
 
           </label>
@@ -1063,6 +1377,106 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="tmux notes (3.6a)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefix-bindings-after-c-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix bindings (after C-Space)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prefix-free-meta-alt-local-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix-free (Meta / Alt — local shortcuts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit + browser (do not break)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cockpit + browser (do not break)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#two-terminals-in-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two terminals in one
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-nav-mix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit nav mix (Alt-as-Ctrl limit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#concrete-requirements-regression" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concrete requirements (regression)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-chrome-app-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit chrome (app layer)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preview-without-disturbing-daily-orcan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preview without disturbing daily Orcan
+      
+    </span>
+  </a>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1124,15 +1538,8 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
+              
+                
   
   
   
@@ -1157,6 +1564,42 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
       
       
@@ -1168,22 +1611,22 @@
     
     
     
+      
       
         
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1201,8 +1644,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1454,28 +1897,28 @@
     
     
       
-        
+      
         
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Development
+    Develop
   
 
     
@@ -1486,12 +1929,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Development
+    Develop
   
 
           </label>
@@ -1609,15 +2052,8 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
+              
+                
   
   
   
@@ -1642,36 +2078,10 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    FAQ
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -1693,6 +2103,14 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1765,6 +2183,106 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="tmux notes (3.6a)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefix-bindings-after-c-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix bindings (after C-Space)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prefix-free-meta-alt-local-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix-free (Meta / Alt — local shortcuts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit + browser (do not break)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cockpit + browser (do not break)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#two-terminals-in-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two terminals in one
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-nav-mix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit nav mix (Alt-as-Ctrl limit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#concrete-requirements-regression" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concrete requirements (regression)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cockpit-chrome-app-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cockpit chrome (app layer)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preview-without-disturbing-daily-orcan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preview without disturbing daily Orcan
+      
+    </span>
+  </a>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1803,6 +2321,34 @@
               <article class="md-content__inner md-typeset">
                 
                   
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+        
+        
+          
+        
+      
+      
+        <a href="../../tags/#tag:develop" class="md-tag md-tag-icon md-tag--develop">develop</a>
+      
+    
+      
+      
+      
+        
+        
+          
+        
+      
+      
+        <a href="../../tags/#tag:guide" class="md-tag md-tag-icon md-tag--guide">guide</a>
+      
+    
+  </nav>
 
 
   
@@ -1889,6 +2435,7 @@
 </tr>
 </tbody>
 </table>
+<p>The <strong>MkDocs site</strong> reuses these tokens (<code>docs/assets/stylesheets/orcan.css</code>, favicon). Light docs mode uses a darker teal accent for readable links on white.</p>
 <p>Presets in <code>cursor-ttyd</code>:</p>
 <table>
 <thead>
@@ -1938,6 +2485,21 @@
 <td>build; or copy + <code>tmux source-file</code> for iteration</td>
 </tr>
 <tr>
+<td>Cockpit layout / chrome</td>
+<td><code>cockpit/src/orcan_cockpit/app.py</code>, <code>activity.py</code>, <code>top_bar.py</code>, <code>rail.py</code>, <code>status_bar.py</code></td>
+<td><code>make dev-restart</code> (isolated); or <code>orcan build</code> + recreate</td>
+</tr>
+<tr>
+<td>Cockpit keys / help</td>
+<td><code>cockpit/…/shortcuts.py</code> (+ <code>keybindings.conf</code> for tmux tokens)</td>
+<td>same; host test keeps tokens aligned</td>
+</tr>
+<tr>
+<td>Cockpit PTY</td>
+<td><code>pty_terminal.py</code>, <code>pty_keys.py</code>, <code>pty_colors.py</code>, <code>pty_tmux_nav.py</code></td>
+<td>same — see <a href="#cockpit-browser">Cockpit + browser</a> / <a href="#cockpit-nav-mix">nav mix</a></td>
+</tr>
+<tr>
 <td>zsh</td>
 <td><code>docker/rootfs/etc/skel/.zshrc</code>, <code>.zshrc.d/</code></td>
 <td>build (skel → home on new image); or copy into <code>~</code> for live test</td>
@@ -1972,16 +2534,422 @@
 <p><strong>Missing-only</strong> means an existing file in the developer home is <strong>not</strong> overwritten on container start. After changing the image seed, either delete the home copy once, or tell the user to merge manually.</p>
 <h2 id="tmux-notes-36a">tmux notes (3.6a)<a class="headerlink" href="#tmux-notes-36a" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Two status rows: centred window tabs (row 0), workspace + metrics (row 1)</li>
+<li>One status row: centred window tabs only — workspace/metrics live in the cockpit top/bottom bars (raw <code>tmux attach</code> / <code>orcan enter --tmux</code> outside the cockpit will not show CPU/RAM/branch)</li>
+<li><strong>Live pane labels</strong> (<code>scripts/pane-label.sh</code>): pane border strip and window tab (<code>automatic-rename</code>) follow the process — e.g. <code>claude</code>, <code>review</code> (<code>orcan-context-review</code> in cmdline), not a pinned <code>select-pane -T</code>. Refresh cadence = <code>status-interval</code> (5s).</li>
 <li>Features gated with <code>%if #{&gt;=:#{version},…}</code> so an older server can still reload config</li>
 <li>Prefer editing image files under <code>/etc/tmux</code> in the <strong>repo</strong>, not only a running container</li>
-<li>Prefix is <code>C-Space</code>. Useful: <code>r</code> reload, <code>s</code>/<code>w</code> session switch, <code>u</code> URL pick, <code>P</code> copy path</li>
+<li>Prefix is <strong>C-Space</strong> (not <code>C-b</code>). Config: <code>docker/rootfs/etc/tmux/keybindings.conf</code></li>
 </ul>
+<h3 id="prefix-bindings-after-c-space">Prefix bindings (after <code>C-Space</code>)<a class="headerlink" href="#prefix-bindings-after-c-space" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Keys</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>r</code></td>
+<td>Reload <code>/etc/tmux/tmux.conf</code></td>
+</tr>
+<tr>
+<td><code>s</code> / <code>w</code></td>
+<td>Switch orcan workspace session</td>
+</tr>
+<tr>
+<td><code>W</code></td>
+<td>Choose window (IDE-style)</td>
+</tr>
+<tr>
+<td><code>u</code></td>
+<td>Pick/copy http(s) URL (joins soft-wrapped lines)</td>
+</tr>
+<tr>
+<td><code>P</code></td>
+<td>Copy path helper</td>
+</tr>
+<tr>
+<td><code>-</code> / <code>\|</code></td>
+<td>Split vertical / horizontal</td>
+</tr>
+<tr>
+<td><code>x</code></td>
+<td>Kill pane</td>
+</tr>
+</tbody>
+</table>
+<h3 id="prefix-free-meta-alt-local-shortcuts">Prefix-free (Meta / Alt — local shortcuts)<a class="headerlink" href="#prefix-free-meta-alt-local-shortcuts" title="Permanent link">&para;</a></h3>
+<p>These use tmux <code>M-…</code> / <code>C-…</code> binds in <code>keybindings.conf</code> for <strong>raw</strong>
+<code>orcan enter --tmux</code>. They must arrive as <strong>Meta</strong>/Ctrl CSI, not as composed
+characters. <strong>Inside the cockpit</strong> the arrow chords differ — see
+<a href="#cockpit-nav-mix">Cockpit nav mix</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Keys</th>
+<th>Action (<code>--tmux</code> / conf)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Alt+1</code> … <code>Alt+9</code></td>
+<td>Select window 1–9</td>
+</tr>
+<tr>
+<td><code>Alt+0</code></td>
+<td>Select last window</td>
+</tr>
+<tr>
+<td><code>Alt+←/→/↑/↓</code></td>
+<td>Focus pane</td>
+</tr>
+<tr>
+<td><code>prefix z</code></td>
+<td>Zoom pane</td>
+</tr>
+<tr>
+<td><code>Alt+c</code></td>
+<td>New window</td>
+</tr>
+<tr>
+<td><code>Alt+a</code> / <code>Alt+q</code></td>
+<td>Mouse on / off</td>
+</tr>
+<tr>
+<td><code>Ctrl+←/→/↑/↓</code></td>
+<td>Split (direction)</td>
+</tr>
+<tr>
+<td><code>Ctrl+Alt+←/→</code></td>
+<td>Previous / next window</td>
+</tr>
+<tr>
+<td><code>Ctrl+Shift+←/→</code></td>
+<td>Swap window left / right</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cockpit-browser">Cockpit + browser (do not break)<a class="headerlink" href="#cockpit-browser" title="Permanent link">&para;</a></h3>
+<p>When <code>agent-launcher</code> embeds tmux (<code>cockpit/…/pty_terminal.py</code>):</p>
+<h4 id="two-terminals-in-one">Two terminals in one<a class="headerlink" href="#two-terminals-in-one" title="Permanent link">&para;</a></h4>
+<p>Embedded tmux is <strong>not</strong> a native attach (<code>tmux attach</code> in Windows Terminal).
+The cockpit shortcuts overlay (<strong>F1</strong> always; <strong>?</strong> when focus is outside the
+embedded terminal) and tmux <strong>prefix ?</strong> popup repeat this at the bottom —
+see <code>EMBED_DISCLAIMER</code> in <code>shortcuts.py</code>. With terminal focus, typing <strong>?</strong> goes
+into the shell (hint strip shows <strong>F1</strong> only). Three layers at once:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Textual (UI, focus, selection, mouse)  ↔  pyte (VT100 emulation)  ↔  tmux attach (PTY)
+</span></code></pre></div>
+<p>Textual does <strong>not</strong> forward keyboard/mouse/paste automatically — each channel
+needs its own translator in-repo. That is expected, not a one-off bug. With
+<code>make dev-enter</code> / the cockpit, assume <strong>every new input</strong> (scroll, copy, tmux
+status clicks, bracketed paste, …) may need dedicated logic — or use full tmux:
+<code>orcan enter --tmux NAME</code> (no cockpit).</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Direction</th>
+<th>Without translation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pty_tmux_nav.py</code></td>
+<td>Textual → <code>tmux</code> CLI</td>
+<td>Ctrl/Alt+arrows / Ctrl+Shift+arrows — see <a href="#cockpit-nav-mix">Cockpit nav mix</a></td>
+</tr>
+<tr>
+<td><code>pty_keys.py</code></td>
+<td>Textual → PTY</td>
+<td>other <code>keybindings.conf</code> <code>bind -n</code> chords — see table below</td>
+</tr>
+<tr>
+<td><code>pty_mouse.py</code></td>
+<td>Textual → PTY</td>
+<td>wheel/clicks never reach tmux; SGR vs legacy X10 (<code>@</code>/<code>A</code> on screen)</td>
+</tr>
+<tr>
+<td><code>pty_colors.py</code></td>
+<td>pyte → Rich</td>
+<td><code>brown</code> / bright aliases break render</td>
+</tr>
+<tr>
+<td><code>pty_terminal.py</code></td>
+<td>PTY ↔ pyte ↔ UI</td>
+<td>resize (<code>TIOCSCTTY</code>), refresh, selection vs tmux, <code>?1000/1006</code> modes, <code>Escape</code>+key coalesce</td>
+</tr>
+</tbody>
+</table>
+<h4 id="cockpit-nav-mix">Cockpit nav mix (Alt-as-Ctrl limit)<a class="headerlink" href="#cockpit-nav-mix" title="Permanent link">&para;</a></h4>
+<p><strong>Limitation:</strong> under ttyd/xterm.js and some desktop terminals (Windows Terminal /
+WSL), <strong>Alt+←/→/↑/↓</strong> often arrives at Textual as <strong><code>ctrl+arrow</code></strong> — there is no
+separate Meta event. Cockpit cannot implement both “Ctrl = split” and
+“Alt = focus pane” when those chords look identical.</p>
+<p><strong>Cockpit behaviour</strong> (<code>pty_tmux_nav.py</code> — calls <code>tmux select-pane</code> /
+<code>split-window</code> directly, no CSI to the child PTY):</p>
+<table>
+<thead>
+<tr>
+<th>Shortcut</th>
+<th>Cockpit action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ctrl</code> or <code>Alt</code> + <code>←/→/↑/↓</code></td>
+<td>Focus pane</td>
+</tr>
+<tr>
+<td><code>Ctrl+Shift</code> + <code>←/→/↑/↓</code></td>
+<td>Split pane</td>
+</tr>
+<tr>
+<td><code>prefix -</code> / <code>prefix \|</code></td>
+<td>Split (unchanged; forwarded to tmux)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Raw attach</strong> (<code>orcan enter --tmux</code>): <code>keybindings.conf</code> is unchanged —
+<code>Ctrl+arrows</code> = split, <code>Alt+arrows</code> = focus <strong>when Meta is delivered</strong>.</p>
+<p>F1 / <strong>?</strong> and <strong>prefix ?</strong> footers show this as <code>BROWSER_KEY_LIMIT</code> in
+<code>shortcuts.py</code>. <code>Alt+1</code>…<code>Alt+9</code> is a separate path (often OK with
+<code>macOptionIsMeta</code> on macOS).</p>
+<p><strong>Local tmux binds (<code>bind -n</code>, no prefix)</strong> — still used for chords that the
+cockpit <strong>forwards</strong> as bytes (not the nav-mix set above). Each needs correct
+CSI / Meta in one write:</p>
+<table>
+<thead>
+<tr>
+<th>Shortcut</th>
+<th>tmux</th>
+<th>Target bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ctrl+Space</code></td>
+<td>prefix</td>
+<td><code>\x00</code></td>
+</tr>
+<tr>
+<td><code>prefix z</code></td>
+<td>zoom pane</td>
+<td><code>z</code> after <code>\x00</code> (C-Space) — no wrapper map</td>
+</tr>
+<tr>
+<td><code>Ctrl+Alt+←/→</code></td>
+<td>prev/next window</td>
+<td><code>\x1b[1;7D/C</code></td>
+</tr>
+<tr>
+<td><code>Alt+c</code> / <code>Alt+a</code> / <code>Alt+q</code></td>
+<td>new win / mouse</td>
+<td><code>\x1bc</code> / <code>\x1ba</code> / <code>\x1bq</code></td>
+</tr>
+<tr>
+<td><code>Alt+0..9</code></td>
+<td>select window</td>
+<td><code>\x1b0</code> … <code>\x1b9</code></td>
+</tr>
+</tbody>
+</table>
+<p>Textual splits many of the above into <code>Escape</code> + a second key — the cockpit
+recombines them (<code>pty_keys.esc_follow_up_bytes</code> + coalesce window in
+<code>pty_terminal</code>).</p>
+<p><strong>Mouse:</strong> tmux sends <code>?1006l</code> then <code>?1006h</code> on attach — parser must take the
+<strong>last</strong> state (not substring <code>in data</code>). Forward mouse only after tmux enables <code>?1000h</code>.</p>
+<p><strong>Copy:</strong> selection is Textual (not xterm). <code>Ctrl+C</code> with selection → clipboard;
+without selection → SIGINT. Paste: <code>on_paste</code> → PTY.</p>
+<p><strong>Scrollback:</strong> pyte holds the <strong>current</strong> screen; tmux scrolls history (copy-mode)
+and redraws the pane — the wheel must reach tmux as SGR.</p>
+<h4 id="concrete-requirements-regression">Concrete requirements (regression)<a class="headerlink" href="#concrete-requirements-regression" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>C-Space</code> and <code>Alt+…</code> must reach tmux</strong> — the widget remaps Textual keys to raw pty bytes (<code>ctrl+space</code> → <code>\x00</code>; <code>alt+1</code> → one write <code>\x1b</code> + <code>1</code>). Splitting ESC and the base key into two writes breaks <code>escape-time</code> (tmux treats ESC alone). Textual also maps <code>ESC+digit</code> to macOS Option glyphs (<code>¡</code>/<code>™</code>/<code>£</code>); the cockpit reverses those back to Meta (<code>pty_keys.py</code>) so Windows Terminal / Linux Alt+1…9 works like a plain <code>tmux attach</code>.</li>
+<li><strong>Resize</strong> needs a controlling tty on the child (<code>TIOCSCTTY</code>) so <code>TIOCSWINSZ</code> delivers <strong>SIGWINCH</strong> to tmux; otherwise the pane stays at attach size.</li>
+<li>Spawn size falls back to <strong>80×24</strong> when the widget is still <code>0×0</code> at mount (avoids a 1×1 dead terminal).</li>
+<li>Colors: pyte per-cell render (status/prompt match native attach).</li>
+</ul>
+<p>Host tests (no Textual): <code>tests/host/test_cockpit_pty_{keys,mouse,colors,tmux_nav}.py</code>.
+Smoke: <code>tests/smoke/test-cockpit-tui.py</code>.</p>
+<p>Browser ttyd (<code>cursor-ttyd</code>) sets <strong><code>macOptionIsMeta=true</code></strong> so macOS Option/Alt sends Meta (needed for <code>Alt+1</code>…), not <code>¡</code> / <code>™</code> composition. No effect on Windows/Linux.</p>
+<h3 id="cockpit-chrome-app-layer">Cockpit chrome (app layer)<a class="headerlink" href="#cockpit-chrome-app-layer" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>top bar:    🌀 orcan  ·  rail (🔔 pulse when pending · ?)  ·  CPU / RAM / clock
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>main row:   workspaces (+ glance + legend) + ASSERTIONS  |  terminal + hint strip
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>            ‹› edge toggle (F4) between columns
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>bottom:     status bar (workspace · branch · tmux · pending) — click 🔔 → ASSERTIONS
+</span></code></pre></div>
+<p>The top bar opens with a fixed <strong><code>🌀 orcan</code></strong> wordmark (<code>top_bar.py</code>), then the
+utility rail (🔔 / ? — icon-only at compact/minimal; <strong>icon + word</strong> at
+<code>full</code> tier), then metrics (<code>💻</code> load · <code>🧠</code> mem · clock). When Context
+Assertions are pending, the rail bell <strong>pulses amber</strong> (<code>pending-pulse</code>).
+Workspaces toggle is the <strong>‹›</strong> edge control (<code>#sidebar-toggle</code>) + <strong>F4</strong>.
+Under the workspace list, a <strong>session glance</strong> (<code>session_glance.py</code>) shows up
+to three lines for the highlighted row: pending count <strong>with age</strong>
+(<code>2 pending · 3h</code>), worktree count / session idle or brief age
+(<code>2 wt · idle 40m</code>, or <code>brief 2h</code> when not live), and live pane commands
+(<code>tmux list-panes</code>). The ASSERTIONS card also lists <strong>agents</strong> (pinned ★),
+a short <strong>recent decisions</strong> timeline, and the rail 🔔 badge is an aggregated
+<strong>Problems</strong> count (pending + reflection errors + dirty repos). <strong>F5</strong> peeks
+session brief + next pending note without a tmux split; <strong>Ctrl+P</strong> adds split /
+URL / pin-main / task templates. Status bar (full tier) appends a tmux
+breadcrumb (<code>wN › command</code>). The ASSERTIONS card also shows <strong>last batch</strong>
+feedback from recap/reflection. <strong>F5</strong> peeks then <strong>Enter</strong> opens Review;
+first launch shows a short onboarding tip. <strong>Preview busy fixtures</strong> (port 8000
+examples, etc.) are <strong>fake scroll data for UI</strong> — not reflection output from a
+live session. Without Claude Code on PATH, assertions <strong>automation</strong> stays off
+(recap/reflect idle); <strong>Review</strong> of pending inbox notes still works. Empty /
+attach chrome uses the
+brand wordmark (<code>🌀 orcan</code> / <code>🌀 attaching name</code>) instead of a bare spinner.
+ASSERTIONS sit at the bottom of the left column (<code>activity.py</code>) with a short
+subtitle, Review / Pause / Turn off buttons, and a docs link. Clicking the
+status-bar 🔔 (or the rail bell) reveals and focuses ASSERTIONS. Workspace
+list legend: <code>● live   ○ new   ▸ attached   ·   [i] expand</code> — <strong><code>i</code></strong> toggles
+a second line (root path + repo names). SoT for keys: <code>cockpit/…/shortcuts.py</code>.
+<strong>F1</strong> / <strong>?</strong> opens <strong>shortcuts only</strong> (embed disclaimer + <code>BROWSER_KEY_LIMIT</code> —
+see <a href="#cockpit-nav-mix">Cockpit nav mix</a>). <strong>About</strong> (name, version, docs) is a
+separate screen (<code>about_modal.py</code>) — click the <strong><code>🌀 orcan</code></strong> wordmark. There is
+<strong>no</strong> cockpit Git / F3 shortcut — use the shell alias <strong><code>lg</code></strong> (lazygit)
+inside the terminal.</p>
+<p><strong>Width tiers</strong> (terminal columns, not browser CSS breakpoints —
+<code>status.py</code> / <code>tier_for_width</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Columns</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>full</code></td>
+<td>≥ 120</td>
+<td>Full bottom bar; rail labels show icon + word (Assertions / Help)</td>
+</tr>
+<tr>
+<td><code>compact</code></td>
+<td>90–119</td>
+<td>Bottom bar shortens; rail stays icon-only</td>
+</tr>
+<tr>
+<td><code>minimal</code></td>
+<td>&lt; 90</td>
+<td>Hides <strong>top bar</strong> + <strong>left column</strong> (terminal full width); F-keys still work</td>
+</tr>
+</tbody>
+</table>
+<p><strong>F4</strong> / <strong>F2</strong> still toggle workspaces / ASSERTIONS manually when visible.</p>
+<table>
+<thead>
+<tr>
+<th>Keys</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>F2</strong> / rail 🔔</td>
+<td>Toggle left-column ASSERTIONS section</td>
+</tr>
+<tr>
+<td><strong>F4</strong> / ‹›</td>
+<td>Toggle workspaces column</td>
+</tr>
+<tr>
+<td><strong>F1</strong> (always) · <strong>?</strong> (outside terminal) / rail ?</td>
+<td>Shortcuts overlay (not About). With terminal focused, <strong>?</strong> is typed into the shell — use <strong>F1</strong></td>
+</tr>
+<tr>
+<td><strong>Click <code>🌀 orcan</code></strong></td>
+<td>About (name, version, docs) — <code>about_modal.py</code></td>
+</tr>
+<tr>
+<td><strong>F5</strong></td>
+<td>Peek session brief + next pending; <strong>Enter</strong> / <strong>r</strong> opens Review</td>
+</tr>
+<tr>
+<td><strong>Ctrl+P</strong></td>
+<td>Command palette (outside the terminal focus)</td>
+</tr>
+<tr>
+<td><strong>i</strong></td>
+<td>Expand/collapse workspace details (list focused)</td>
+</tr>
+<tr>
+<td><strong>r</strong></td>
+<td>Run <code>orcan-context-review</code> (ASSERTIONS focused)</td>
+</tr>
+<tr>
+<td><strong>p</strong></td>
+<td>Pause/resume context automation (ASSERTIONS focused)</td>
+</tr>
+<tr>
+<td><strong>o</strong></td>
+<td>Turn context automation off/on (ASSERTIONS focused)</td>
+</tr>
+<tr>
+<td><strong>prefix ?</strong></td>
+<td>Standalone tmux shortcuts popup (works without cockpit)</td>
+</tr>
+<tr>
+<td><strong><code>lg</code></strong> (in shell)</td>
+<td>lazygit — not a cockpit F-key</td>
+</tr>
+</tbody>
+</table>
+<p>Daily enter flow: <a href="../workflows/#local-terminal">Workflows — local terminal</a>.</p>
+<p>Verify after UX edits: <code>make dev-restart</code>, then <code>make dev-smoke</code> (and <code>make dev-visual</code> when chrome/layout screenshots matter); try <code>Alt+1</code> / resize the browser; or <code>./scripts/dev/terminal-ui-preview</code> for chrome-only.</p>
+<h2 id="preview-without-disturbing-daily-orcan">Preview without disturbing daily Orcan<a class="headerlink" href="#preview-without-disturbing-daily-orcan" title="Permanent link">&para;</a></h2>
+<p>From a git checkout (not the public CLI):</p>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>Command</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tmux status / keys / layout only</td>
+<td><code>./scripts/dev/terminal-ui-preview</code></td>
+<td>Isolated tmux socket; <strong>C-Space r</strong> reloads checkout files</td>
+</tr>
+<tr>
+<td>Full browser UX (ttyd + cockpit + image)</td>
+<td><code>make dev-start</code></td>
+<td>Own image <code>orcan:dev-ux</code>, port/home under <code>.orcan-dev-ux/</code></td>
+</tr>
+<tr>
+<td>After UX edits</td>
+<td><code>make dev-restart</code></td>
+<td>Refresh cockpit from checkout; recreate; wait until healthy</td>
+</tr>
+<tr>
+<td>Automated checks</td>
+<td><code>make dev-smoke</code> / <code>dev-a11y</code> / <code>dev-visual</code></td>
+<td>Textual+PTY; Playwright a11y + screenshots (preview must be up)</td>
+</tr>
+<tr>
+<td>Pre-merge list</td>
+<td><code>make dev-checklist</code></td>
+<td>Prints automated targets + manual browser flow</td>
+</tr>
+<tr>
+<td>Verify isolation</td>
+<td><code>make dev-doctor</code></td>
+<td>Docker identity, health, HTTP</td>
+</tr>
+</tbody>
+</table>
+<p>Details, flags, and isolation rules: <a href="../../development/testing/">Testing — maintainer previews</a>.</p>
 <h2 id="extending-the-look-checklist-for-agents">Extending the look (checklist for agents)<a class="headerlink" href="#extending-the-look-checklist-for-agents" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Pick the layer table row; edit the <strong>repo</strong> path.</li>
 <li>Keep the palette hex values aligned (or update this doc + all layers together).</li>
 <li>Do <strong>not</strong> add TPM / Catppuccin-tmux / Oh My Zsh / Powerlevel10k unless product decision says so.</li>
+<li>Iterate with <code>./scripts/dev/terminal-ui-preview</code> (tmux) or <code>make dev-restart</code> (full UX); verify with <code>make dev-smoke</code> / <code>make dev-visual</code> as needed.</li>
 <li>Update <strong>EN + PL</strong> docs and <code>CHANGELOG.md</code> <code>[Unreleased]</code>.</li>
 <li><code>make validate</code> and <code>make docs-check</code>.</li>
 <li>For Dockerfile / rootfs that ships in the image: <code>orcan build &amp;&amp; orcan down &amp;&amp; orcan up</code>.</li>
@@ -1990,6 +2958,7 @@
 <h2 id="related">Related<a class="headerlink" href="#related" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../dotfiles/">User dotfiles</a> — personal overrides without rebuilding</li>
+<li><a href="../../development/testing/">Testing</a> — <code>make dev-*</code> / <code>scripts/dev/</code></li>
 <li><a href="../../reference/docker/">Docker reference</a> — image contents including tmux 3.6a</li>
 <li><a href="../../reference/environment/">Environment variables</a> — <code>TTYD_THEME</code>, fonts</li>
 <li><a href="../../ai/project-context/">AI project context</a> — agent ritual</li>
@@ -2016,7 +2985,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2026 19:44:34 UTC">August 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 26, 2026 19:39:31 UTC">August 26, 2026</span>
   </span>
 
     
@@ -2157,12 +3126,16 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": {"concept": "concept", "develop": "develop", "guide": "guide", "reference": "reference", "security": "security"}, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/mike-i18n.js"></script>
+      
+        <script src="../../assets/javascripts/orcan-version.js"></script>
+      
+        <script src="../../assets/javascripts/orcan-mermaid.js"></script>
       
     
   </body>

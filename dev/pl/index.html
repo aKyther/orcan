@@ -12,17 +12,17 @@
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/latest/pl/">
       
       
       
-        <link rel="next" href="why-orcan/">
+        <link rel="next" href="getting-started/installation/">
       
       
         
-          <link rel="alternate" href="/orcan/dev/" hreflang="en">
+          <link rel="alternate" href="/orcan/latest/" hreflang="en">
         
-          <link rel="alternate" href="/orcan/dev/pl/" hreflang="pl">
+          <link rel="alternate" href="/orcan/latest/pl/" hreflang="pl">
         
       
       
@@ -43,6 +43,51 @@
       
 
 
+  
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+  
+  <style>:root{.md-tag.md-tag--concept{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M12%202a7%207%200%200%201%207%207c0%202.38-1.19%204.47-3%205.74V17a1%201%200%200%201-1%201H9a1%201%200%200%201-1-1v-2.26C6.19%2013.47%205%2011.38%205%209a7%207%200%200%201%207-7M9%2021v-1h6v1a1%201%200%200%201-1%201h-4a1%201%200%200%201-1-1m3-17a5%205%200%200%200-5%205c0%202.05%201.23%203.81%203%204.58V16h4v-2.42c1.77-.77%203-2.53%203-4.58a5%205%200%200%200-5-5%22/%3E%3C/svg%3E');}.md-tag.md-tag--guide{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%204H3a2%202%200%200%200-2%202v13a2%202%200%200%200%202%202h18a2%202%200%200%200%202-2V6a2%202%200%200%200-2-2M3%2019V6h8v13zm18%200h-8V6h8zm-7-9.5h6V11h-6zm0%202.5h6v1.5h-6zm0%202.5h6V16h-6z%22/%3E%3C/svg%3E');}.md-tag.md-tag--reference{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M6%202a2%202%200%200%200-2%202v16a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V8l-6-6zm0%202h7v5h5v11H6zm2%208v2h8v-2zm0%204v2h5v-2z%22/%3E%3C/svg%3E');}.md-tag.md-tag--develop{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22m13.78%2015.3%206%206%202.11-2.16-6-6zm3.72-5.2c-.39%200-.81-.05-1.14-.19L4.97%2021.25l-2.11-2.11%207.41-7.4L8.5%209.96l-.72.7-1.45-1.41v2.86l-.7.7-3.52-3.56.7-.7h2.81l-1.4-1.41%203.56-3.56a2.976%202.976%200%200%201%204.22%200L9.89%205.74l1.41%201.4-.71.71%201.79%201.78%201.82-1.88c-.14-.33-.2-.75-.2-1.12a3.49%203.49%200%200%201%203.5-3.52c.59%200%201.11.14%201.58.42L16.41%206.2l1.5%201.5%202.67-2.67c.28.47.42.97.42%201.6%200%201.92-1.55%203.47-3.5%203.47%22/%3E%3C/svg%3E');}.md-tag.md-tag--security{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%2011c0%205.55-3.84%2010.74-9%2012-5.16-1.26-9-6.45-9-12V5l9-4%209%204zm-9%2010c3.75-1%207-5.46%207-9.78V6.3l-7-3.12L5%206.3v4.92C5%2015.54%208.25%2020%2012%2021%22/%3E%3C/svg%3E');}}</style>
+
     
     
       
@@ -52,10 +97,12 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../assets/stylesheets/orcan.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -69,7 +116,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Start — Orcan">
   <meta property="og:description" content="Orkiestrator kontekstu pracy dla agentów kodujących — wiele repozytoriów, jeden kontekst.">
-  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/">
+  <meta property="og:url" content="https://akyther.github.io/orcan/latest/pl/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Start — Orcan">
@@ -85,7 +132,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
   
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -124,7 +171,7 @@
 
   
 
-<header class="md-header md-header--shadow" data-md-component="header">
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Nagłówek">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-header__button md-logo" aria-label="Orcan" data-md-component="logo">
       
@@ -152,13 +199,25 @@
       </div>
     </div>
     
+      <div class="orcan-version-select" hidden>
+        <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
+          <span class="orcan-version-select__label">v3.0.3</span>
+          <span class="orcan-version-select__caret" aria-hidden="true"></span>
+        </button>
+        <ul class="orcan-version-select__list" role="listbox" hidden></ul>
+      </div>
+      <a class="orcan-header-version" href="../changelog/" title="Product SemVer — open changelog">
+        <span class="orcan-header-version__label">v3.0.3</span>
+      </a>
+    
+    
       
         <form class="md-header__option" data-md-component="palette">
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
@@ -168,7 +227,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -178,7 +237,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -202,13 +261,13 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="/orcan/dev/" hreflang="en" class="md-select__link">
+            <a href="/orcan/latest/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
         
           <li class="md-select__item">
-            <a href="/orcan/dev/pl/" hreflang="pl" class="md-select__link">
+            <a href="/orcan/latest/pl/" hreflang="pl" class="md-select__link">
               Polski
             </a>
           </li>
@@ -281,13 +340,143 @@
     
   </nav>
   
+    
+      
+<nav class="md-tabs" aria-label="Zakładki" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Pierwsze kroki
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="why-orcan/" class="md-tabs__link">
+          
+  
+  
+  Zrozum
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="guides/workflows/" class="md-tabs__link">
+          
+  
+  
+  Przewodniki
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="reference/cli/" class="md-tabs__link">
+          
+  
+  
+  Referencja
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="development/overview/" class="md-tabs__link">
+          
+  
+  
+  Rozwijaj
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
       
-        
-          
         
       
       <main class="md-main" data-md-component="main">
@@ -301,8 +490,10 @@
                     
 
 
+  
 
-<nav class="md-nav md-nav--primary" aria-label="Nawigacja" data-md-level="0">
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Nawigacja" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-nav__button md-logo" aria-label="Orcan" data-md-component="logo">
       
@@ -393,10 +584,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#problem" class="md-nav__link">
+  <a href="#zacznij-tutaj" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Problem
+        Zacznij tutaj
       
     </span>
   </a>
@@ -404,10 +595,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rozwiazanie" class="md-nav__link">
+  <a href="#trzy-sowa" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rozwiązanie
+        Trzy słowa
       
     </span>
   </a>
@@ -415,43 +606,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#dzien-pracy" class="md-nav__link">
+  <a href="#sprobuj" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dzień pracy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#jak-czytac-te-docs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Jak czytać te docs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sprobuj-po-idei" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Spróbuj (po idei)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status
+        Spróbuj
       
     </span>
   </a>
@@ -483,6 +641,205 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pierwsze kroki
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pierwsze kroki
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Instalacja
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Szybki start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Przewodnik po konfiguracji
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zrozum
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Zrozum
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="why-orcan/" class="md-nav__link">
         
@@ -503,33 +860,34 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
     
       
-      
-  
-  
-  
-  
-    
-    
-    
-    
       
         
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
             
   
   
@@ -547,8 +905,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -704,33 +1062,34 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
     
       
-      
-  
-  
-  
-  
-    
-    
-    
-    
       
         
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
             
   
   
@@ -748,8 +1107,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -821,60 +1180,7 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Pierwsze kroki
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Pierwsze kroki
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -883,14 +1189,14 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/installation/" class="md-nav__link">
+      <a href="change-map/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Instalacja
+    Mapa zmian
   
 
     
@@ -911,42 +1217,14 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/quickstart/" class="md-nav__link">
+      <a href="tags/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Szybki start
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="getting-started/configuration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Przewodnik po konfiguracji
+    Tagi
   
 
     
@@ -978,28 +1256,28 @@
     
     
       
-        
+      
         
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Typowe workflowy
+    Przewodniki
   
 
     
@@ -1010,12 +1288,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Typowe workflowy
+    Przewodniki
   
 
           </label>
@@ -1133,15 +1411,8 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
+              
+                
   
   
   
@@ -1166,6 +1437,42 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
       
       
@@ -1177,22 +1484,22 @@
     
     
     
+      
       
         
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1210,8 +1517,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1463,28 +1770,28 @@
     
     
       
-        
+      
         
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Rozwój
+    Rozwijaj
   
 
     
@@ -1495,12 +1802,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Rozwój
+    Rozwijaj
   
 
           </label>
@@ -1618,15 +1925,8 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
+              
+                
   
   
   
@@ -1651,36 +1951,10 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    FAQ
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -1702,6 +1976,14 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1733,10 +2015,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#problem" class="md-nav__link">
+  <a href="#zacznij-tutaj" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Problem
+        Zacznij tutaj
       
     </span>
   </a>
@@ -1744,10 +2026,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rozwiazanie" class="md-nav__link">
+  <a href="#trzy-sowa" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rozwiązanie
+        Trzy słowa
       
     </span>
   </a>
@@ -1755,43 +2037,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#dzien-pracy" class="md-nav__link">
+  <a href="#sprobuj" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dzień pracy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#jak-czytac-te-docs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Jak czytać te docs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sprobuj-po-idei" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Spróbuj (po idei)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status
+        Spróbuj
       
     </span>
   </a>
@@ -1824,6 +2073,22 @@
                 
                   
 
+  <nav class="md-tags" >
+    
+      
+      
+      
+        
+        
+          
+        
+      
+      
+        <a href="tags/#tag:concept" class="md-tag md-tag-icon md-tag--concept">concept</a>
+      
+    
+  </nav>
+
 
   
     <a href="https://github.com/aKyther/orcan/edit/main/docs/pl/index.md" title="Edytuj tę stronę" class="md-content__button md-icon" rel="edit">
@@ -1843,62 +2108,84 @@
 
 
 <h1 id="orcan">Orcan<a class="headerlink" href="#orcan" title="Permanent link">&para;</a></h1>
+<div class="orcan-hero">
 <p>Orcan orkiestruje <strong>kontekst pracy</strong> dla agentów kodujących: które repozytoria należą do siebie, jak są montowane i jak wchodzisz do tego środowiska w Dockerze.</p>
-<p><strong>Nie</strong> wybiera modeli. Cursor CLI (<code>agent</code>) i Claude Code (<code>claude</code>) zachowują własne konta i ustawienia modeli.</p>
-<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">&para;</a></h2>
-<p>Utrzymujesz wiele repozytoriów. Często pochodzą z różnych organizacji. Niektóre współpracują. Niektóre przypinają wersje wspólnych bibliotek. Każdy laptop zbiera inny zestaw narzędzi i nawyków startu.</p>
-<p>Po kilku miesiącach kosztowna nie jest komenda <code>git clone</code>. Kosztowne jest <strong>odtworzenie pełnego kontekstu</strong>: które checkouty tworzą dzisiejszą pracę, co agenci powinni przeczytać najpierw i które ścieżki bezwzględne nadal działają, gdy Docker uruchamia Dockera.</p>
-<h2 id="rozwiazanie">Rozwiązanie<a class="headerlink" href="#rozwiazanie" title="Permanent link">&para;</a></h2>
-<p>Orcan nie zarządza produktami. Zarządza <strong>kontekstem</strong>.</p>
+<p><strong>Nie</strong> wybiera modeli — Cursor CLI (<code>agent</code>) i Claude Code (<code>claude</code>) zachowują własne konta.</p>
+<p><span class="orcan-version">Wersja <strong>3.0.3</strong></span></p>
+</div>
+<h2 id="zacznij-tutaj">Zacznij tutaj<a class="headerlink" href="#zacznij-tutaj" title="Permanent link">&para;</a></h2>
+<div class="grid cards">
 <ul>
-<li><strong>Project</strong> to jeden checkout (ścieżka bezwzględna).</li>
-<li><strong>Workspace</strong> to nazwany zbiór projektów, które należą do siebie.</li>
-<li><strong>Context</strong> to odtwarzalne środowisko wokół tego zbioru: mounty, wspólne instrukcje, ignores oraz sesja tmux — lokalnie (<code>orcan enter</code>) albo opcjonalnie w przeglądarce (<code>orcan up --with-ttyd</code>).</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 5v6h1.17L12 13.17 9.83 11H11V5zm2-2H9v6H5l7 7 7-7h-4zm4 15H5v2h14z"/></svg></span> <strong>Instalacja</strong></p>
+<hr />
+<p>Dodaj <code>orcan</code> do PATH, potem sync i build.</p>
+<p><a href="getting-started/installation/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Instalacja</a></p>
+<p><a href="getting-started/quickstart/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Szybki start</a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7M9 21v-1h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1m3-17a5 5 0 0 0-5 5c0 2.05 1.23 3.81 3 4.58V16h4v-2.42c1.77-.77 3-2.53 3-4.58a5 5 0 0 0-5-5"/></svg></span> <strong>Zrozum</strong></p>
+<hr />
+<p>Po co jest Orcan, Project / Workspace / Context i model mentalny.</p>
+<p><a href="why-orcan/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Dlaczego Orcan?</a></p>
+<p><a href="ideas/core-ideas/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Idee podstawowe</a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 12c2.5 0 4.5 2 4.5 4.5 0 .88-.25 1.7-.69 2.4l3.08 3.1L21 23.39l-3.12-3.07c-.69.43-1.51.68-2.38.68-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5m0 2a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5m4-12a.5.5 0 0 1 .5.5v9.31c-.58-.55-1.25-1-2-1.31V4.7l-3 1.16V10c-.7.07-1.38.24-2 .5V5.87l-4-1.4V16.5c0 .64.09 1.26.26 1.84L8 17.9l-5.34 2.07-.16.03a.5.5 0 0 1-.5-.5V4.38c0-.23.15-.41.36-.48L8 2l6 2.1 5.34-2.07zM4 5.46v11.85l3-1.16V4.45z"/></svg></span> <strong>Znajdź zmianę</strong></p>
+<hr />
+<p>Macierz <em>co chcesz zmienić</em> → <em>gdzie w repo</em> → <em>który doc</em>.</p>
+<p><a href="change-map/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Mapa zmian</a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 12c2.5 0 4.5 2 4.5 4.5 0 .88-.25 1.71-.69 2.4l3.08 3.1L21 23.39l-3.12-3.07c-.69.43-1.51.68-2.38.68-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5m0 2a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5M13 4v8l-2.5-2.25L8 12V4H6v16h4c.54.81 1.23 1.5 2.03 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7.81c-.58-.55-1.25-1-2-1.31V4z"/></svg></span> <strong>Szukaj w referencji</strong></p>
+<hr />
+<p>Flagi CLI, zmienne env, Compose, bezpieczeństwo — po opowieści.</p>
+<p><a href="reference/cli/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Referencja CLI</a></p>
+<p><a href="faq/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> FAQ</a></p>
+</li>
 </ul>
+</div>
+<h2 id="trzy-sowa">Trzy słowa<a class="headerlink" href="#trzy-sowa" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Termin</th>
+<th>Znaczenie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Project</strong></td>
+<td>Jeden checkout — ścieżka bezwzględna na dysku</td>
+</tr>
+<tr>
+<td><strong>Workspace</strong></td>
+<td>Nazwany zbiór projektów + jedna sesja tmux</td>
+</tr>
+<tr>
+<td><strong>Context</strong></td>
+<td>Odtwarzalne środowisko: mounty, instrukcje, ignores, wejście</td>
+</tr>
+</tbody>
+</table>
 <p>Konfiguracja opisuje te relacje. <code>orcan sync</code> i Docker je stosują. Agenci i ludzie dzielą ten sam układ.</p>
-<h2 id="dzien-pracy">Dzień pracy<a class="headerlink" href="#dzien-pracy" title="Permanent link">&para;</a></h2>
-<p>Rano możesz jednocześnie tknąć:</p>
-<ul>
-<li>backend API  </li>
-<li>frontend  </li>
-<li>wspólną bibliotekę  </li>
-<li>infrastrukturę  </li>
-<li>dokumentację  </li>
-</ul>
-<p>Każde to osobne repozytorium. Każde może żyć pod inną organizacją. Razem to nadal <strong>jedna praca</strong>. Orcan pozwala nazwać tę pracę jako workspace i otworzyć ją jako jedną sesję.</p>
-<pre class="mermaid"><code>graph TD
-  day["Workspace dzisiaj"] --&gt; api[backend]
-  day --&gt; web[frontend]
-  day --&gt; lib[shared-lib]
-  day --&gt; infra[infra]
-  day --&gt; docs[docs]</code></pre>
-<p><strong>Podpis:</strong> Jeden workspace, wiele projektów — jednostką pracy jest zbiór, nie pojedynczy folder.</p>
-<h2 id="jak-czytac-te-docs">Jak czytać te docs<a class="headerlink" href="#jak-czytac-te-docs" title="Permanent link">&para;</a></h2>
-<ol>
-<li><a href="why-orcan/">Dlaczego Orcan?</a> — kiedy pomaga, a kiedy nie  </li>
-<li><a href="ideas/core-ideas/">Idee podstawowe</a> — Project, Workspace, Context  </li>
-<li><a href="ideas/mental-model/">Model mentalny</a> — jak elementy się łączą  </li>
-<li><a href="getting-started/quickstart/">Szybki start</a> — uruchom, gdy rozumiesz ideę  </li>
-</ol>
-<p>Strony referencyjne (CLI, zmienne, Compose) są <strong>po</strong> tym łuku.</p>
-<h2 id="sprobuj-po-idei">Spróbuj (po idei)<a class="headerlink" href="#sprobuj-po-idei" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/aKyther/orcan.git
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>orcan
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>orcan<span class="w"> </span>init<span class="w"> </span>/absolute/path/to/your/repo<span class="w">   </span><span class="c1"># zawiera orcan sync raz</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>orcan<span class="w"> </span>sync<span class="w">                                             </span><span class="c1"># .env + mounts/* dla Compose</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>orcan<span class="w"> </span>build
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>orcan<span class="w"> </span>up
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># lokalnie: orcan enter — wybierz workspace, uruchom agent lub claude</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># zdalnie w przeglądarce: orcan up --with-ttyd &amp;&amp; orcan url</span>
+<h2 id="sprobuj">Spróbuj<a class="headerlink" href="#sprobuj" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/aKyther/orcan/main/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>doctor
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>orcan<span class="w"> </span>init<span class="w"> </span>/absolute/path/to/your-repo
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># lokalnie: orcan enter</span>
 </span></code></pre></div>
-<p>Po <code>orcan up</code> użyj <code>orcan enter</code> na tej samej maszynie (albo <code>orcan up --with-ttyd</code>, potem <code>orcan url</code> dla przeglądarki). Po zmianach konfiguracji zawsze <code>orcan sync</code> przed odtworzeniem.</p>
-<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Wersja <strong>2.2.0</strong> (zobacz <a href="changelog/">Changelog</a>). Dystrybucja jako <strong>CLI</strong> (<code>orcan</code>). <code>orcan build</code> pobiera obraz dla tej wersji, gdy jest dostępny, w przeciwnym razie buduje lokalnie. Publikacja obrazów jest <strong>ręczna</strong> (<code>orcan publish</code>); CI nie publikuje obrazów kontenerów.</p>
+<p>Pełne kroki: <a href="getting-started/installation/">Instalacja</a> · <a href="getting-started/quickstart/">Szybki start</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Po zmianach konfiguracji zawsze <code>orcan sync</code> przed odtworzeniem (<code>orcan down &amp;&amp; orcan up</code>). Obraz przebudowuj tylko gdy zmienia się Dockerfile lub zestaw instalacji agentów.</p>
+</div>
 <h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
 <ul>
+<li><a href="ideas/mental-model/">Model mentalny</a> — jak elementy się łączą  </li>
 <li><a href="architecture/">Architektura</a>  </li>
-<li><a href="faq/">FAQ</a>  </li>
-<li><a href="https://github.com/aKyther/orcan">Repozytorium na GitHubie</a></li>
+<li><a href="changelog/">Changelog</a> · <a href="https://github.com/aKyther/orcan">GitHub</a></li>
 </ul>
 
 
@@ -1922,7 +2209,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="24 sierpnia 2026 14:29:59 UTC">24 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="27 sierpnia 2026 08:34:57 UTC">27 sierpnia 2026</span>
   </span>
 
     
@@ -1970,13 +2257,13 @@
         
         
           
-          <a href="why-orcan/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Dlaczego Orcan?">
+          <a href="getting-started/installation/" class="md-footer__link md-footer__link--next" aria-label="Następna strona: Instalacja">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Następna strona
               </span>
               <div class="md-ellipsis">
-                Dlaczego Orcan?
+                Instalacja
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -2047,12 +2334,16 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Skopiowano do schowka", "clipboard.copy": "Kopiuj do schowka", "search.result.more.one": "1 wi\u0119cej na tej stronie", "search.result.more.other": "# wi\u0119cej na tej stronie", "search.result.none": "Brak wynik\u00f3w wyszukiwania", "search.result.one": "Wyniki wyszukiwania: 1", "search.result.other": "Wyniki wyszukiwania: #", "search.result.placeholder": "Zacznij pisa\u0107, aby szuka\u0107", "search.result.term.missing": "Brak", "select.version": "Wybierz wersj\u0119"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": {"concept": "concept", "develop": "develop", "guide": "guide", "reference": "reference", "security": "security"}, "translations": {"clipboard.copied": "Skopiowano do schowka", "clipboard.copy": "Kopiuj do schowka", "search.result.more.one": "1 wi\u0119cej na tej stronie", "search.result.more.other": "# wi\u0119cej na tej stronie", "search.result.none": "Brak wynik\u00f3w wyszukiwania", "search.result.one": "Wyniki wyszukiwania: 1", "search.result.other": "Wyniki wyszukiwania: #", "search.result.placeholder": "Zacznij pisa\u0107, aby szuka\u0107", "search.result.term.missing": "Brak", "select.version": "Wybierz wersj\u0119"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../assets/javascripts/mike-i18n.js"></script>
+      
+        <script src="../assets/javascripts/orcan-version.js"></script>
+      
+        <script src="../assets/javascripts/orcan-mermaid.js"></script>
       
     
   </body>

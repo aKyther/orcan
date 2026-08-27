@@ -1,0 +1,112 @@
+# Orcan
+
+> Work-context orchestrator for coding agents (Cursor CLI, Claude Code, Codex) in Docker — workspaces, path parity, context pack. Does **not** choose, route, or pin models.
+
+Prefer this file over crawling the whole docs site. In a **live** Orcan workspace, the context pack (`AGENTS.md` / `CLAUDE.md`, `.manifest.json`, `.orcan/session-brief.md` if present, `CONTEXT-ASSERTIONS.md`) is stronger than this public index — read that first.
+
+## Source priority (highest first)
+
+1. Live workspace context pack + session brief
+2. Repo [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AGENTS.md) / [`CLAUDE.md`](https://github.com/aKyther/orcan/blob/main/CLAUDE.md) (keep identical) + [AI project context](https://akyther.github.io/orcan/latest/ai/project-context/) when editing Orcan itself
+3. This `llms.txt`
+4. Linked pages below
+5. Do **not** invent Make targets, CLI flags, or product features from memory
+
+## Editing this repository (30 seconds)
+
+| | |
+| --- | --- |
+| **What** | Context orchestrator — workspaces, path parity, context pack; **not** model routing |
+| **API** | `orcan` CLI; Make is maintainer / `make dev-*` preview only |
+| **Ritual** | `orcan init` → `orcan sync` → `orcan build` (if needed) → `orcan up` (does **not** sync) |
+| **UX preview** | `make dev-restart` / `dev-doctor` / `dev-smoke` / `dev-visual` under isolated `orcan:dev-ux` |
+| **Where** | CLI `bin/orcan`+`cli/`; cockpit `cockpit/`; image `docker/rootfs/`; helpers `scripts/repository/`; previews `scripts/dev/` |
+| **Done** | Surgical diff; EN+PL docs; `make validate` · `test-host` · `docs-check` |
+
+## Pay attention to (core product)
+
+- **Workspaces** = named sets of projects that form one daily job
+- **Path parity** = same absolute paths on host and in the container (required for Docker-from-Docker)
+- **Context pack** = ignores, AGENTS/CLAUDE seeds, Context Assertions — what agents should read
+- **Config is JSON only** — `orcan.config.json` under **`ORCAN_HOME`**; tool data / history under **`ORCAN_DATA`** (both default `~/.config/orcan`; no YAML user profiles, no host PyYAML stack)
+- **Ritual** — `orcan init` → `orcan sync` → `orcan build` (when image inputs change) → `orcan up` (daily; does **not** run sync)
+- **Default access** — local `orcan enter`; browser is optional (`orcan up --with-ttyd`)
+- **Runtime stack** — cockpit (`agent-launcher`: click **🌀 orcan** = About; 🔔 = Problems badge; workspaces + glance + ASSERTIONS + decisions timeline \| tmux; **F1**/? shortcuts; **F5** peek; **F2** / **F4** / **`i`** / **`r`** / **`p`** / **`o`**; **`lg`**, not F3) → tmux 3.6a → zsh; CMD `orcan-supervisord` (keepalive|ttyd + `context-scan`/`recap`); host `orcan sync --context`
+- **Known key limit** — under ttyd/xterm.js and some desktop terminals, **Alt+←/→/↑/↓** often arrives as Ctrl+arrow. Cockpit: Ctrl/Alt+arrows = focus pane, Ctrl+Shift+arrows = split (`pty_tmux_nav.py`, `BROWSER_KEY_LIMIT` in F1); raw `--tmux` keeps conf — see [Terminal UI — nav mix](https://akyther.github.io/orcan/latest/guides/terminal-ui/#cockpit-nav-mix)
+- **Version SoT** — `cockpit/pyproject.toml` `version`; root `VERSION` is a CLI/image mirror
+- **Docs** — EN + PL must stay in sync; B1–B2; story before commands; [STYLE_GUIDE](https://github.com/aKyther/orcan/blob/main/docs/STYLE_GUIDE.md)
+
+## Do not invent / out of scope (non-goals)
+
+- Model selection UI, provider abstraction, or auto-routing between `agent` / `claude` / `codex`
+- Treating Orcan as an image registry product — users `install.sh` + `orcan build`; publish is **manual** (`orcan publish`); CI does **not** publish images
+- YAML user config / reintroducing `host-deps` or `requirements-host.txt`
+- Documenting deprecated user Make targets (`setup`, `env`, `terminal-docker`, …) — end users use the **`orcan` CLI**
+- Confusing **`scripts/dev/`** / `make dev-*` with the public CLI — that is checkout-only developer UX testing
+- Confusing **repo** rules (`.cursor/rules/`, this repo’s `AGENTS.md` / `CLAUDE.md`) with **image** defaults (`docker/rootfs/opt/cursor-defaults/`)
+- Auto-modifying mounted git repos on every container start
+- Drive-by refactors, speculative abstractions, or docs that invent commands
+
+## Care about when changing the Orcan repo
+
+- Surgical diffs; match existing style; update EN **and** PL docs when behaviour changes
+- After UX/cockpit/ttyd edits: `make dev-restart` (isolated; loads checkout cockpit) — not the user’s daily `orcan:latest`; verify with `make dev-doctor` / `dev-smoke` / `dev-a11y` / `dev-visual` (see `make dev-checklist`)
+- Context inbox / automation: `orcan sync --context` (host); cockpit **`[p]`** pause / **`[o]`** off → `automation.json`; scan skips recap when cached `model_check` fails (`orcan-context-model-check`)
+- Fast tmux-only chrome: `./scripts/dev/terminal-ui-preview`
+- Optional Docker isolation smoke: `make dev-test` (skips cleanly if image/daemon missing)
+- Before claiming done: `make validate`, `make test-host`, `make docs-check` (and `make test` when Docker behaviour changes)
+- Regenerate this file with `make docs-llms` (also runs before `docs` / `docs-check`)
+- No `Co-Authored-By` (or similar AI attribution) on commits
+
+## Start here (product story)
+
+- [Why Orcan?](https://akyther.github.io/orcan/latest/why-orcan/): Problem, when to use / not use, design non-goals
+- [Core Ideas](https://akyther.github.io/orcan/latest/ideas/core-ideas/): Project, Workspace, Context
+- [Mental Model](https://akyther.github.io/orcan/latest/ideas/mental-model/): How the pieces relate (incl. path parity)
+- [Quick Start](https://akyther.github.io/orcan/latest/getting-started/quickstart/): First successful run
+- [Change map](https://akyther.github.io/orcan/latest/change-map/): What to edit → where in the repo → which doc
+
+## Concepts (read before deep reference)
+
+- [Workspaces](https://akyther.github.io/orcan/latest/concepts/workspaces/): Named project sets and sessions
+- [Path parity](https://akyther.github.io/orcan/latest/concepts/path-parity/): Same absolute paths host ↔ container
+- [Architecture](https://akyther.github.io/orcan/latest/architecture/): Layers and why they look this way
+- [Context Assertions](https://akyther.github.io/orcan/latest/ideas/context-assertions/): Compiled, human-approved context
+- [Runtime reconcile](https://akyther.github.io/orcan/latest/ideas/runtime-reconcile/): How sync affects a running container
+- [Agent inbox](https://akyther.github.io/orcan/latest/ideas/agent-inbox/): Structured handoff notes (not chat dumps)
+
+## Reference (after the story)
+
+- [CLI](https://akyther.github.io/orcan/latest/reference/cli/): Public `orcan` commands and flags
+- [Configuration](https://akyther.github.io/orcan/latest/reference/configuration/): `orcan.config.json` fields
+- [Environment variables](https://akyther.github.io/orcan/latest/reference/environment/): Host / container env
+- [Docker](https://akyther.github.io/orcan/latest/reference/docker/): Image contents and Compose
+- [Makefile](https://akyther.github.io/orcan/latest/reference/makefile/): Maintainer targets + `make dev-*`
+- [Security](https://akyther.github.io/orcan/latest/reference/security/): Capability ladder and mount trade-offs
+- [Host and container interface](https://akyther.github.io/orcan/latest/interface/): What crosses the boundary
+
+## Develop on Orcan
+
+- [AI project context](https://akyther.github.io/orcan/latest/ai/project-context/): Goals, non-goals, where-to-change table
+- [Terminal UI](https://akyther.github.io/orcan/latest/guides/terminal-ui/): Navy/cyan palette; iteration via `make dev-*`
+- [Testing](https://akyther.github.io/orcan/latest/development/testing/): validate, host tests, `make dev-*` / `dev-test` / `dev-smoke` / `dev-a11y` / `dev-visual` / `dev-checklist`
+- [Development overview](https://akyther.github.io/orcan/latest/development/overview/): Repo map and separation rules
+- [AGENTS.md / CLAUDE.md (repo)](https://github.com/aKyther/orcan/blob/main/AGENTS.md): Rules for agents editing this repository (keep both files identical)
+
+## Markdown sources (EN)
+
+- [Why Orcan (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/why-orcan.md)
+- [Core Ideas (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/ideas/core-ideas.md)
+- [Mental Model (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/ideas/mental-model.md)
+- [Change map (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/change-map.md)
+- [AI project context (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/ai/project-context.md)
+- [Testing (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/development/testing.md)
+- [CLI (md)](https://raw.githubusercontent.com/aKyther/orcan/main/docs/en/reference/cli.md)
+
+## Optional
+
+- [Polish docs root](https://akyther.github.io/orcan/latest/pl/): Same content in Polish
+- [FAQ](https://akyther.github.io/orcan/latest/faq/)
+- [Changelog](https://akyther.github.io/orcan/latest/changelog/)
+- [Deployment](https://akyther.github.io/orcan/latest/deployment/)
+- [GitHub repository](https://github.com/aKyther/orcan)
