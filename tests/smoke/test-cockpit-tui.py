@@ -29,7 +29,7 @@ async def main() -> None:
         for widget_id in ("#top-bar", "#workspace-activity", "#hint-strip", "#rail", "#status-bar"):
             assert app.screen.query_one(widget_id), f"missing cockpit widget: {widget_id}"
 
-        app.select_workspace(next(row for row in rows if row["name"] == "dev-ux"))
+        await app.select_workspace(next(row for row in rows if row["name"] == "dev-ux"))
         for _ in range(30):
             await pilot.pause(0.1)
             terminals = app.screen.query(PtyTerminal)
@@ -114,6 +114,27 @@ async def main() -> None:
         await pilot.pause()
         assert app.screen.has_class("tier-full")
         assert app.screen.query_one("#workspaces").display
+
+        # Regression: switching to a second workspace without waiting for
+        # the first one's #center-stack teardown to finish used to crash
+        # with DuplicateIds on "loading"/"terminal" — remove_children()
+        # only *posts* the removal, it doesn't apply it synchronously, so
+        # a bare (unawaited) call let the next mount() collide with the
+        # not-yet-gone widget (confirmed via a real user crash report and
+        # by reproducing it against the pre-fix code). No second configured
+        # workspace needed — any row with a different tmux session will do.
+        base = next(r for r in rows if r["name"] == "dev-ux")
+        row_b = {**base, "session": "dev-ux-regress-b"}
+        row_c = {**base, "session": "dev-ux-regress-c"}
+        # No pilot.pause() between these two — that's the point: each await
+        # must fully settle its own teardown/mount before the next call's
+        # mount() can run, or this raises DuplicateIds just like it did for
+        # the real user.
+        await app.select_workspace(row_b)
+        await app.select_workspace(row_c)
+        await pilot.pause(1.0)
+        assert len(app.screen.query(PtyTerminal)) == 1
+        assert app.screen.query_one("#terminal", PtyTerminal)._session == "dev-ux-regress-c"
 
     print("Cockpit Textual + tmux PTY smoke OK")
 

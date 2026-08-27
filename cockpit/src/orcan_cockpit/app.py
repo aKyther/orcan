@@ -589,12 +589,20 @@ class MainScreen(Screen):
         for selector in set(_FOCUS_BORDER_IDS.values()):
             self.query_one(selector).set_class(selector == target_selector, "focused")
 
-    def select_workspace(self, row: dict) -> None:
+    async def select_workspace(self, row: dict) -> None:
         if row["session"] == self._current_session:
             return  # already attached here — no need to tear down and respawn
 
         center = self.query_one("#center-stack", Container)
-        center.remove_children()
+        # Must await: remove_children() only *posts* a Prune message — the
+        # old child (e.g. PtyTerminal(id="terminal")) is still present in
+        # center's children until that message is processed. Switching
+        # workspaces again (or a fast double Enter) before this completed
+        # mounted a new same-id widget alongside the not-yet-removed old
+        # one, raising DuplicateIds — only reachable with >1 workspace/
+        # project configured, since selecting the *same* one short-circuits
+        # above (confirmed via a real duplicate-ID crash report).
+        await center.remove_children()
         center.mount(
             Static(
                 f"[#a78bfa bold]🌀[/] attaching [#5eead4]{row['name']}[/]\n"
@@ -606,7 +614,7 @@ class MainScreen(Screen):
         bootstrap = bootstrap_workspace(row)
         if bootstrap.returncode != 0:
             self._current_session = None
-            center.remove_children()
+            await center.remove_children()
             center.mount(Static(f"Could not bootstrap session {row['session']!r}", id="error"))
             return
 
@@ -708,10 +716,10 @@ class CockpitApp(App):
     def on_mount(self) -> None:
         self.push_screen(MainScreen())
 
-    def select_workspace(self, row: dict) -> None:
+    async def select_workspace(self, row: dict) -> None:
         main = self.screen
         assert isinstance(main, MainScreen)
-        main.select_workspace(row)
+        await main.select_workspace(row)
 
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
         def _pin_main(main: MainScreen, sess: str, workspace: str) -> None:
