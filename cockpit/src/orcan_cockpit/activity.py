@@ -111,6 +111,9 @@ class WorkspaceActivity(Widget):
         self.projects: list | None = None
         self._dirty_count = 0
         self._dirty_checked_at = 0.0
+        # Last painted chrome — watchfiles can fire bursts; skip Textual
+        # updates when the visible summary is unchanged.
+        self._painted: tuple | None = None
 
     def compose(self) -> ComposeResult:
         yield Static("ASSERTIONS", classes="activity-heading")
@@ -158,45 +161,74 @@ class WorkspaceActivity(Widget):
         self.workspace_root = Path(workspace_root)
         self.session = session
         self.projects = projects
+        self._painted = None  # force paint for the new workspace
         self.refresh_summary()
         # exclusive=True cancels any previous run of this same worker (the
         # prior workspace's watch loop) before starting the new one.
         self.run_worker(self._watch_loop(), exclusive=True, group="watch")
 
-    def _refresh_automation_buttons(self) -> None:
+    def _automation_paint(self) -> tuple:
         sync_automation_to_claude_availability()
         state = automation_state()
         has_claude = claude_on_path()
-        pause_btn = self.query_one("#activity-pause-btn", Button)
-        pause_btn.label = "Resume" if state["paused"] else "Pause"
-        pause_btn.disabled = (not state["enabled"]) or (not has_claude)
+        pause_label = "Resume" if state["paused"] else "Pause"
+        pause_disabled = (not state["enabled"]) or (not has_claude)
         if not has_claude:
-            pause_btn.tooltip = (
+            pause_tooltip = (
                 "Assertions automation needs Claude Code on PATH "
                 "(auto-propose/recap). Review still works for pending notes."
             )
         elif not state["enabled"]:
-            pause_btn.tooltip = "Automation is off — turn it on first to pause/resume it"
+            pause_tooltip = "Automation is off — turn it on first to pause/resume it"
         elif state["paused"]:
-            pause_btn.tooltip = "Resume automation — go back to proposing new context assertions"
+            pause_tooltip = "Resume automation — go back to proposing new context assertions"
         else:
-            pause_btn.tooltip = "Pause automation — temporarily stop proposing new context assertions"
+            pause_tooltip = "Pause automation — temporarily stop proposing new context assertions"
 
-        enabled_btn = self.query_one("#activity-enabled-btn", Button)
-        enabled_btn.label = "Turn on" if not state["enabled"] else "Turn off"
-        enabled_btn.disabled = not has_claude
+        enabled_label = "Turn on" if not state["enabled"] else "Turn off"
+        enabled_disabled = not has_claude
         if not has_claude:
-            enabled_btn.tooltip = (
+            enabled_tooltip = (
                 "Install Claude Code in the container to enable assertions automation"
             )
         elif not state["enabled"]:
-            enabled_btn.tooltip = "Turn automation on — resume scanning sessions for new assertions"
+            enabled_tooltip = "Turn automation on — resume scanning sessions for new assertions"
         else:
-            enabled_btn.tooltip = "Turn automation off — stop scanning sessions for new assertions"
+            enabled_tooltip = "Turn automation off — stop scanning sessions for new assertions"
+        return (
+            pause_label,
+            pause_disabled,
+            pause_tooltip,
+            enabled_label,
+            enabled_disabled,
+            enabled_tooltip,
+        )
+
+    def _apply_automation_paint(self, paint: tuple) -> None:
+        (
+            pause_label,
+            pause_disabled,
+            pause_tooltip,
+            enabled_label,
+            enabled_disabled,
+            enabled_tooltip,
+        ) = paint
+        pause_btn = self.query_one("#activity-pause-btn", Button)
+        pause_btn.label = pause_label
+        pause_btn.disabled = pause_disabled
+        pause_btn.tooltip = pause_tooltip
+        enabled_btn = self.query_one("#activity-enabled-btn", Button)
+        enabled_btn.label = enabled_label
+        enabled_btn.disabled = enabled_disabled
+        enabled_btn.tooltip = enabled_tooltip
+
+    def _refresh_automation_buttons(self) -> None:
+        self._apply_automation_paint(self._automation_paint())
 
     def refresh_summary(self) -> None:
-        self._refresh_automation_buttons()
+        auto = self._automation_paint()
         if self.workspace_root is None:
+            self._apply_automation_paint(auto)
             return
         summary = pending_summary(self.workspace_root)
         age = format_pending_age(summary["oldest_mtime"])
@@ -222,19 +254,18 @@ class WorkspaceActivity(Widget):
                 problems["count"] = int(problems["pending"]) + int(problems["reflection_errors"]) + self._dirty_count
                 problems["tooltip"] = " · ".join(problems["parts"]) if problems["parts"] else problems["tooltip"]
 
-        # Cross-workspace pending (cheap — no git). Best-effort.
+        # Cross-workspace pending (cheap — config roots only, no tmux live
+        # probes; list_workspace_rows would re-check every session here).
         global_pending = count
         try:
-            from orcan_cockpit.picker import list_workspace_rows
+            from orcan_cockpit.picker import workspace_roots
 
-            roots = [Path(row["root"]) for row in list_workspace_rows() if row.get("root")]
-            global_pending = pending_across_roots(roots)
+            global_pending = pending_across_roots(workspace_roots())
         except Exception:
             pass
 
-        review_btn = self.query_one("#activity-review-btn", Button)
-        review_btn.label = f"Review ([#fbbf24]{count}[/])" if count else "Review"
-        review_btn.disabled = self.session is None
+        review_label = f"Review ([#fbbf24]{count}[/])" if count else "Review"
+        review_disabled = self.session is None
         lines = [
             f"{count} pending" + (f" (oldest {age})" if age else ""),
             reflection,
@@ -269,11 +300,20 @@ class WorkspaceActivity(Widget):
                 f'[link="{DOCS_URL}"]Learn more →[/link]',
             ]
         )
-        self.query_one("#activity-body", Static).update("\n".join(lines))
+        body = "\n".join(lines)
         tooltip = problems["tooltip"]
         if global_pending > count:
             tooltip = f"{tooltip} · {global_pending} pending across workspaces"
         badge = max(int(problems["count"]), int(global_pending))
+        painted = (auto, review_label, review_disabled, body, count, age, reflection, badge, tooltip)
+        if painted == self._painted:
+            return
+        self._painted = painted
+        self._apply_automation_paint(auto)
+        review_btn = self.query_one("#activity-review-btn", Button)
+        review_btn.label = review_label
+        review_btn.disabled = review_disabled
+        self.query_one("#activity-body", Static).update(body)
         self.post_message(
             self.SummaryUpdated(
                 count,

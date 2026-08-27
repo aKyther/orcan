@@ -18,6 +18,10 @@ _REFRESH_INTERVAL_S = 3.0
 
 
 class TopBar(Widget):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._painted_metrics: str | None = None
+
     def compose(self) -> ComposeResult:
         # 🌀 (cyclone) not ◆ — orcan's own branding is elemental (hurricane/
         # whirlwind), and this is a plain, old (Unicode 6.0) emoji that
@@ -49,6 +53,9 @@ class TopBar(Widget):
 
     def refresh_metrics(self) -> None:
         line = format_top_bar_right(cpu=read_loadavg(), mem=read_mem_percent(), clock=now_hhmm())
+        if line == self._painted_metrics:
+            return
+        self._painted_metrics = line
         right = self.query_one("#top-bar-right", Static)
         # width:auto also has a real Rich/Textual bug (see #top-bar-right's
         # CSS comment) — a fixed width sidesteps it, but the actual text

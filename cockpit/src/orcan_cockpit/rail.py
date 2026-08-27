@@ -70,6 +70,9 @@ class UtilityRail(Widget):
 
     def set_pending_count(self, count: int, *, tooltip: str | None = None) -> None:
         """*count* is the aggregated problems badge (pending + errors + dirty)."""
+        tooltip_changed = tooltip is not None and tooltip != self._problems_tooltip
+        if count == self._pending_count and not tooltip_changed:
+            return
         self._pending_count = count
         if tooltip is not None:
             self._problems_tooltip = tooltip
