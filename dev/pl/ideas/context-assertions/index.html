@@ -12,7 +12,7 @@
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/dev/pl/ideas/context-assertions/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/latest/pl/ideas/context-assertions/">
       
       
         <link rel="prev" href="../mental-model/">
@@ -45,6 +45,51 @@
       
 
 
+  
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+    
+      
+      
+        
+      
+      
+    
+  
+  
+  <style>:root{.md-tag.md-tag--concept{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M12%202a7%207%200%200%201%207%207c0%202.38-1.19%204.47-3%205.74V17a1%201%200%200%201-1%201H9a1%201%200%200%201-1-1v-2.26C6.19%2013.47%205%2011.38%205%209a7%207%200%200%201%207-7M9%2021v-1h6v1a1%201%200%200%201-1%201h-4a1%201%200%200%201-1-1m3-17a5%205%200%200%200-5%205c0%202.05%201.23%203.81%203%204.58V16h4v-2.42c1.77-.77%203-2.53%203-4.58a5%205%200%200%200-5-5%22/%3E%3C/svg%3E');}.md-tag.md-tag--guide{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%204H3a2%202%200%200%200-2%202v13a2%202%200%200%200%202%202h18a2%202%200%200%200%202-2V6a2%202%200%200%200-2-2M3%2019V6h8v13zm18%200h-8V6h8zm-7-9.5h6V11h-6zm0%202.5h6v1.5h-6zm0%202.5h6V16h-6z%22/%3E%3C/svg%3E');}.md-tag.md-tag--reference{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M6%202a2%202%200%200%200-2%202v16a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V8l-6-6zm0%202h7v5h5v11H6zm2%208v2h8v-2zm0%204v2h5v-2z%22/%3E%3C/svg%3E');}.md-tag.md-tag--develop{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22m13.78%2015.3%206%206%202.11-2.16-6-6zm3.72-5.2c-.39%200-.81-.05-1.14-.19L4.97%2021.25l-2.11-2.11%207.41-7.4L8.5%209.96l-.72.7-1.45-1.41v2.86l-.7.7-3.52-3.56.7-.7h2.81l-1.4-1.41%203.56-3.56a2.976%202.976%200%200%201%204.22%200L9.89%205.74l1.41%201.4-.71.71%201.79%201.78%201.82-1.88c-.14-.33-.2-.75-.2-1.12a3.49%203.49%200%200%201%203.5-3.52c.59%200%201.11.14%201.58.42L16.41%206.2l1.5%201.5%202.67-2.67c.28.47.42.97.42%201.6%200%201.92-1.55%203.47-3.5%203.47%22/%3E%3C/svg%3E');}.md-tag.md-tag--security{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M21%2011c0%205.55-3.84%2010.74-9%2012-5.16-1.26-9-6.45-9-12V5l9-4%209%204zm-9%2010c3.75-1%207-5.46%207-9.78V6.3l-7-3.12L5%206.3v4.92C5%2015.54%208.25%2020%2012%2021%22/%3E%3C/svg%3E');}}</style>
+
     
     
       
@@ -54,10 +99,12 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/orcan.css">
     
     <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -71,7 +118,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Context Assertions — Orcan">
   <meta property="og:description" content="Context Assertions — zatwierdzone przez człowieka, warunkowe stwierdzenia, które Context Compiler może dołączyć do Context Packa danego workspace'u, i dlaczego to nie jest "wiedza projektu".">
-  <meta property="og:url" content="https://akyther.github.io/orcan/dev/pl/ideas/context-assertions/">
+  <meta property="og:url" content="https://akyther.github.io/orcan/latest/pl/ideas/context-assertions/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Context Assertions — Orcan">
@@ -87,7 +134,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
   
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -126,7 +173,7 @@
 
   
 
-<header class="md-header md-header--shadow" data-md-component="header">
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Nagłówek">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-header__button md-logo" aria-label="Orcan" data-md-component="logo">
       
@@ -154,13 +201,25 @@
       </div>
     </div>
     
+      <div class="orcan-version-select" hidden>
+        <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
+          <span class="orcan-version-select__label">v3.0.3</span>
+          <span class="orcan-version-select__caret" aria-hidden="true"></span>
+        </button>
+        <ul class="orcan-version-select__list" role="listbox" hidden></ul>
+      </div>
+      <a class="orcan-header-version" href="../../../changelog/" title="Product SemVer — open changelog">
+        <span class="orcan-header-version__label">v3.0.3</span>
+      </a>
+    
+    
       
         <form class="md-header__option" data-md-component="palette">
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
@@ -170,7 +229,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -180,7 +239,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -283,13 +342,143 @@
     
   </nav>
   
+    
+      
+<nav class="md-tabs" aria-label="Zakładki" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Pierwsze kroki
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../why-orcan/" class="md-tabs__link">
+          
+  
+  
+  Zrozum
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/workflows/" class="md-tabs__link">
+          
+  
+  
+  Przewodniki
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/cli/" class="md-tabs__link">
+          
+  
+  
+  Referencja
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/overview/" class="md-tabs__link">
+          
+  
+  
+  Rozwijaj
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
       
-        
-          
         
       
       <main class="md-main" data-md-component="main">
@@ -303,8 +492,10 @@
                     
 
 
+  
 
-<nav class="md-nav md-nav--primary" aria-label="Nawigacja" data-md-level="0">
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Nawigacja" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-nav__button md-logo" aria-label="Orcan" data-md-component="logo">
       
@@ -361,15 +552,69 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pierwsze kroki
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pierwsze kroki
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../../why-orcan/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Dlaczego Orcan?
+    Instalacja
   
 
     
@@ -378,6 +623,70 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Szybki start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Przewodnik po konfiguracji
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -398,6 +707,9 @@
         
         
       
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
@@ -408,6 +720,91 @@
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zrozum
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Zrozum
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../why-orcan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dlaczego Orcan?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
             
   
   
@@ -425,8 +822,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -750,19 +1147,23 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
     
       
-      
-  
-  
-  
-  
-    
-    
-    
-    
       
         
+          
+          
         
       
     
@@ -773,10 +1174,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
             
   
   
@@ -794,8 +1195,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -867,60 +1268,7 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Pierwsze kroki
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Pierwsze kroki
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
             
               
                 
@@ -929,14 +1277,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/installation/" class="md-nav__link">
+      <a href="../../change-map/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Instalacja
+    Mapa zmian
   
 
     
@@ -957,42 +1305,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../tags/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Szybki start
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/configuration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Przewodnik po konfiguracji
+    Tagi
   
 
     
@@ -1024,28 +1344,28 @@
     
     
       
-        
+      
         
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Typowe workflowy
+    Przewodniki
   
 
     
@@ -1056,12 +1376,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Typowe workflowy
+    Przewodniki
   
 
           </label>
@@ -1179,15 +1499,8 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
+              
+                
   
   
   
@@ -1212,6 +1525,42 @@
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
       
       
@@ -1223,22 +1572,22 @@
     
     
     
+      
       
         
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1256,8 +1605,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1509,28 +1858,28 @@
     
     
       
-        
+      
         
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Rozwój
+    Rozwijaj
   
 
     
@@ -1541,12 +1890,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Rozwój
+    Rozwijaj
   
 
           </label>
@@ -1664,15 +2013,8 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
+              
+                
   
   
   
@@ -1697,36 +2039,10 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    FAQ
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -1748,6 +2064,14 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -2011,10 +2335,111 @@
 <p><strong>Sprawdzenie duplikatów/sprzeczności (w kontenerze, best-effort).</strong> Zanim pokaże <code>candidates</code> (nie <code>reconsider</code> — te były już raz decydowane), <code>orcan-context-review</code> odpala jedno wsadowe wywołanie <code>claude -p --model haiku</code>, porównujące każdego czekającego kandydata z <code>&lt;workspace_root&gt;/CONTEXT-ASSERTIONS.md</code> — tym samym skompilowanym plikiem, który już czyta <code>orcan-context-reflect</code>. Dzieje się to w całości w kontenerze, nigdy na hoście: <code>claude</code> jest gwarantowane obecne tylko tam (Dockerfile je instaluje), a skrypty host-side (<code>scripts/repository/*.py</code>) są celowo stdlib-only i nie mogą zakładać, że na maszynie, gdzie działa sam <code>orcan</code>, jest zainstalowane Claude Code. Kandydat oflagowany przez model dostaje jedną dodatkową linię nad swoimi szczegółami — <code>⚠ possibly duplicates existing: "..."</code> albo <code>⚠ may conflict with existing: "..."</code> — przed tym samym promptem <code>[t]ak/[n]ie/[s]kip</code> co zawsze. To podpowiedź, nie bramka: nic nie jest pomijane, blokowane ani decydowane automatycznie, a sprawdzenie wyłącza się przez <code>--no-check</code> albo cicho pomija (nigdy nie blokuje review) gdy <code>claude</code> jest niedostępne, wywołanie się nie powiedzie/przekroczy czas, albo <code>CONTEXT-ASSERTIONS.md</code> jeszcze nie istnieje. Zastrzeżenie co do pokrycia: widzi tylko assertions, których predykat applicability aktualnie pasuje do <em>tego</em> workspace'u — skoro assertions są zakotwiczone tożsamością projektu, nie workspace'u (patrz <code>project_id</code> wyżej), a applicability domyślnie jest nieograniczone, ponowne otwarcie projektu w innym workspace i tak skompiluje jego wcześniejsze fakty z powrotem, więc to nieistotne dla typowego przypadku.</p>
 <p><strong>Propozycja konsolidacji.</strong> To samo wywołanie modelu z pre-checku od razu szkicuje też scaloną wersję dla wszystkiego, co oflaguje jako <code>duplicate</code>/<code>conflict</code> (<code>consolidated_title</code>/<code>consolidated_content</code> w jego odpowiedzi JSON — bez drugiego wywołania). Jeśli potem zaakceptujesz takiego kandydata, <code>orcan-context-review</code> dopyta jeszcze raz: zakolejkować naszkicowaną konsolidację i oflagować nakładający się istniejący zapis do wycofania? "Tak" po prostu odpala <code>orcan-context-propose</code> jeszcze dwa razy — zwykłą propozycję <code>--queue</code> ze scaloną treścią (<code>--source consolidation</code>) i <code>--flag-existing</code> na starym zapisie — dokładnie takie same zrzuty jak te ręczne/z Reflection, recenzowane w następnym cyklu jak wszystko inne. Nic nie scala się ani nie wycofuje od razu — to tylko kolejkuje <em>więcej</em> pracy do następnej rundy review, nigdy jej nie omija. Dzięki temu store zostaje spójnym, oczyszczonym z duplikatów zbiorem wiedzy, a nie rosnącym liniowo logiem — konsolidacja dzieje się dokładnie w momencie, w którym i tak zaakceptowałbyś prawie-duplikat.</p>
 <p>Oba kierunki to jednostronne zrzuty do zamontowanej skrzynki — nie ma żywego kanału z powrotem do hosta. To <code>orcan sync</code> (<code>compile_context.py</code>) faktycznie zamienia zrzut w prawdziwe, wersjonowane gitem wywołanie <code>propose()</code>/<code>accept()</code>/<code>reject()</code>/<code>retire()</code>, przy najbliższym uruchomieniu. W praktyce oznacza to, że decyzja czuje się natychmiastowa w rozmowie, ale realnie trafia do store'u — a więc i do przyszłego <code>CONTEXT-ASSERTIONS.md</code> — dopiero przy najbliższym sync'u. Ta asymetria jest celowa: to ta sama granica, która chroni przed bezpośrednim zapisem agenta do store'u, tylko na tyle wygodna, że przejrzenie kandydata kosztuje jedno naciśnięcie klawisza, nie przełączenie kontekstu.</p>
+<p><strong>Spike: auto-import na hoście.</strong> Gdy Reflection/skaner zapełni inbox, a człowiek zdecyduje, nie powinien być potrzebny pełny <code>orcan sync</code> (config/mounts), żeby wypromować zrzuty. Po stronie hosta:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>sync<span class="w"> </span>--context<span class="w">              </span><span class="c1"># jeden przebieg compile/import</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>sync<span class="w"> </span>--context<span class="w"> </span>--once<span class="w">       </span><span class="c1"># tylko gdy zmienił się fingerprint inbox/decisions</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span>--context<span class="w"> </span>--watch<span class="w">      </span><span class="c1"># poll (domyślnie 15s) — para do context-scan w kontenerze</span>
+</span></code></pre></div>
+<p>Nadal nigdy nie auto-akceptuje. Nadal tylko host (<code>$ORCAN_DATA/context</code> niezamontowany). Implementacja: <code>scripts/repository/context_syncd.py</code>.</p>
 <p><strong>Model zaufania.</strong> Orcan to single-user na jednym hoście: Ty i agenci, których odpalasz. Zrzuty inbox to zwykły JSON (bez podpisu). Uszkodzone lub nierozwiązywalne pliki idą do kwarantanny; do <code>$ORCAN_DATA/context</code> trafia tylko to, co człowiek zaakceptuje / odrzuci. To wystarcza na zamierzony model zagrożeń — zobacz <a href="../../reference/security/">Bezpieczeństwo</a>.</p>
 <h2 id="wsadowa-zautomatyzowana-reflection">Wsadowa, zautomatyzowana Reflection<a class="headerlink" href="#wsadowa-zautomatyzowana-reflection" title="Permanent link">&para;</a></h2>
+<p><strong>Wymaga Claude Code (<code>claude</code> na PATH)</strong> do auto-propose/recap (domyślny
+model: haiku). Bez Claude automation w tle jest wyłączone — <strong>Review</strong>
+pending z inboxa nadal działa ręcznie. Busy fixtures w preview to <strong>atrapy
+UI</strong>, nie wynik reflection z żywej sesji.</p>
 <p>Reflection nie musi być wyzwalana przez człowieka, który coś zauważy — ale wywoływanie modelu po <em>każdej pojedynczej</em> turze byłoby i marnotrawne, i hałaśliwe. <code>orcan-context-reflect</code> batchuje zamiast tego: jest podpięty jako hook <code>Stop</code> w Claude Code, który jest <strong>domyślnie włączony</strong> — <code>orcan sync</code> (<code>apply-config.py</code>) dopisuje go do <code>.claude/settings.json</code> w <strong>wygenerowanym katalogu głównym workspace'u</strong> przy pierwszej synchronizacji tego workspace'u (merge, nie nadpisanie). Konfigurowalne jest wyłączenie: <code>orcan context hook disable [WORKSPACE ...] [--all]</code> (host) go usuwa, a ponieważ sync dosiewa hook tylko wtedy, gdy <code>.claude/settings.json</code> jeszcze nie istnieje, ten wybór zostaje przy każdej kolejnej synchronizacji — <code>orcan context hook enable</code>/<code>status</code> odpowiednio przywracają/sprawdzają. Żyje w katalogu głównym workspace'u — nie wewnątrz żadnego checkoutu projektu — bo to tam faktycznie startują sesje Claude Code (okna tmux zawsze startują tam; patrz <code>cursor-tmux-workspace-attach</code>), więc to jedyne miejsce, z którego hook <code>Stop</code> może się w ogóle załadować. Hook odpala się po każdej zakończonej turze, ale przy większości z nich nie robi prawie nic:</p>
-<p><strong>Świadomie Claude-only.</strong> Cursor CLI ma własny system hooków (od 1.7, <code>~/.cursor/hooks.json</code>, event <code>stop</code>), ale w trybie headless/CLI (tak jak Orcan go uruchamia — nie pełne IDE) jego pokrycie eventów jest na dziś niepewne, a <code>orcan-context-reflect</code> i tak czyta payload/transkrypt w formacie specyficznym dla Claude Code — podpięcie Cursora wymagałoby osobnego adaptera, nie samego configu. Zamiast tego Cursor korzysta z efektu <strong>pasywnie</strong>: <code>init-workspace</code> generuje <code>AGENTS.md</code> (Cursor) i <code>CLAUDE.md</code> (Claude) z identyczną treścią, więc gdy zaakceptowany zapis trafi do skompilowanego <code>CONTEXT-ASSERTIONS.md</code> przy <code>orcan sync</code>, Cursor widzi go w tym samym <code>AGENTS.md</code>, mimo że sam nigdy nie napędza Reflection.</p>
+<p><strong>Skaner filesystemowy (Claude + Cursor) — preferowana, unifikowana ścieżka.</strong> Hooki agentów nie są wymagane. <code>orcan-context-scan</code> odkrywa transkrypty na dysku i uruchamia <strong>kaskadowy recap</strong> przez <code>orcan-context-recap</code> (domyślnie; <code>ORCAN_CONTEXT_DRIVER=reflect</code> = legacy one-shot reflect):</p>
+<table>
+<thead>
+<tr>
+<th>Krok</th>
+<th>Co się dzieje</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Batch</td>
+<td>Co <strong>20 tur user</strong> (domyślnie) → compact <em>tylko tego batcha</em> (haiku)</td>
+</tr>
+<tr>
+<td>Merge</td>
+<td>Scalenie z <strong>rolling compact</strong> sesji z wcześniejszych batchy — powtarzające się fakty się wzmacniają, szum odpada</td>
+</tr>
+<tr>
+<td>Drift tematu</td>
+<td>Gdy nowy batch wyraźnie zmienia temat → flush dojrzałego rolling compact do <code>context-inbox</code> (review człowieka) i <strong>nowa kaskada</strong> z seedem z nowego batcha</td>
+</tr>
+<tr>
+<td>Koniec sesji</td>
+<td><code>orcan-context-scan --flush</code> — reszta tur + flush rolling compact</td>
+</tr>
+</tbody>
+</table>
+<p>Stan: <code>&lt;workspace&gt;/.orcan/reflection-state.json</code> (offsety, współdzielone z hookiem Stop) oraz <code>&lt;workspace&gt;/.orcan/recap/&lt;session&gt;.json</code> (rolling compact + metadane kaskady). Promocja do inbox: <code>orcan-context-propose --queue --source recap</code> — accept/reject nadal u człowieka.</p>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Layout transkryptu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude</td>
+<td><code>$CLAUDE_CONFIG_DIR/projects/&lt;encoded-cwd&gt;/&lt;session-id&gt;.jsonl</code></td>
+</tr>
+<tr>
+<td>Cursor</td>
+<td><code>~/.cursor/projects/&lt;encoded-cwd&gt;/agent-transcripts/&lt;id&gt;/&lt;id&gt;.jsonl</code></td>
+</tr>
+</tbody>
+</table>
+<p>Encoding: absolutny cwd, wiodący <code>/</code> usunięty, <code>/</code> → <code>-</code> (Claude dodatkowo dokłada wiodący <code>-</code>). Skaner dopasowuje root workspace'u i ścieżkę każdego zamontowanego projektu, liczy nieprzeczytane tury <em>użytkownika</em>, i przy progu (domyślnie 20) — albo z <code>--flush</code> dla reszty — odpala recap. Klucze Claude pozostają gołym session id; Cursor: <code>cursor:&lt;id&gt;</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan-context-scan<span class="w"> </span>--dry-run<span class="w">          </span><span class="c1"># lista sesji / oczekujących tur</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan-context-scan<span class="w">                    </span><span class="c1"># jeden przebieg</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan-context-scan<span class="w"> </span>--all-workspaces<span class="w">   </span><span class="c1"># każdy włączony workspace (supervisord)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>orcan-context-scan<span class="w"> </span>--watch<span class="w">            </span><span class="c1"># poll (domyślnie 60s)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>orcan-context-scan<span class="w"> </span>--flush<span class="w">            </span><span class="c1"># recap reszty tur + flush rolling compact</span>
+</span></code></pre></div>
+<p>Po <code>orcan build</code> + recreate <strong>supervisord</strong> odpala w tle
+<code>orcan-context-scan --all-workspaces --watch</code> na życie kontenera
+(<code>ORCAN_CONTEXT_SCAN=0</code> żeby pominąć). Codex jest na razie poza zakresem
+tego skanera. Hook Stop Claude jest <strong>nadal dosiewany</strong> przez <code>orcan sync</code>
+w okresie przejściowym; później wyłącza się go przez
+<code>orcan context hook disable</code>, gdy skaner stanie się codziennym driverem.
+Do tego czasu oba mogą działać — współdzielone offsety chronią przed
+podwójnym przetwarzaniem tego samego wycinka.</p>
+<p><strong>Pauza / wyłączenie automatyzacji (cockpit <code>[p]</code> / <code>[o]</code>).</strong> Wspólne flagi w
+<code>$ORCAN_DATA/history/supervisor/automation.json</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Pole</th>
+<th>Znaczenie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled: false</code></td>
+<td>Master off — scan i host <code>--context</code> watch czekają (<strong><code>[o]</code></strong> włącza)</td>
+</tr>
+<tr>
+<td><code>paused: true</code></td>
+<td>Tymczasowa pauza przy włączonej automatyzacji (<strong><code>[p]</code></strong> wznawia)</td>
+</tr>
+<tr>
+<td><code>model_check</code></td>
+<td>Cache probe Claude/Haiku — scan pomija recap gdy <code>ok</code> jest false</td>
+</tr>
+</tbody>
+</table>
+<p>Ręcznie: <code>orcan-context-model-check</code> (w kontenerze) lub <code>orcan doctor</code>.
+Tylko PATH/wersja (bez probe): <code>ORCAN_CONTEXT_MODEL_PROBE=0</code>.
+Trwałe wyłączenie w compose: <code>ORCAN_CONTEXT_SCAN=0</code>.</p>
+<p>Przełącznik w sekcji ASSERTIONS (<strong><code>p</code></strong>, <strong><code>o</code></strong>) albo edycja pliku; status pokazuje
+automatyzację i model. Przy fokusie ASSERTIONS <strong><code>r</code></strong> odpala <code>orcan-context-review</code>.
+Review człowieka nigdy nie jest blokowany.</p>
+<p><strong>Uwaga legacy (hook Stop).</strong> Cursor CLI ma własny system hooków (od 1.7, <code>~/.cursor/hooks.json</code>, event <code>stop</code>), ale w trybie headless/CLI pokrycie eventów jest niepewne, więc Orcan go nie podpina. Cursor nadal <strong>czyta</strong> skompilowany pack pasywnie (<code>AGENTS.md</code> / <code>CONTEXT-ASSERTIONS.md</code>); z <code>orcan-context-scan</code> może też <strong>tworzyć</strong> kandydatów Reflection ze swoich transkryptów.</p>
 <ul>
 <li>Licznik per <code>session_id</code> oraz offset w transkrypcie żyją w <code>&lt;workspace_root&gt;/.orcan/reflection-state.json</code>. Śledzenie jest kluczowane po id sesji, bo offset z transkryptu jednej sesji nic nie znaczy dla innej.</li>
 <li>Poniżej progu (domyślnie 20 zakończonych tur) hook tylko inkrementuje licznik i kończy działanie — zero wywołania modelu, koszt bliski zeru.</li>
@@ -2035,12 +2460,12 @@
 <p>Jeśli Compiler nie potrafi podać obu, element nie trafia do packa. Dlatego Context Pack jest artefaktem kompilacji ze ścieżką audytu, nie rosnącym stosem notatek — i dlatego istnieje twardy limit liczby zapisów w jednej kompilacji, wymuszający priorytetyzację zamiast akumulacji.</p>
 <h2 id="bez-bazy-danych-zwyke-pliki-wersjonowane-gitem">Bez bazy danych — zwykłe pliki, wersjonowane gitem<a class="headerlink" href="#bez-bazy-danych-zwyke-pliki-wersjonowane-gitem" title="Permanent link">&para;</a></h2>
 <p>Nie ma tu SQLite, vector store'a ani serwera. Każdy anchor projektu to jeden katalog:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$ORCAN_DATA/context/&lt;project-id&gt;/
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── .git/            ← historia = wersjonowanie (każda zmiana to commit)
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── index.json        ← płaski indeks (id → title/status/kind/daty) do szybkiego list/select
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>└── objects/
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    ├── &lt;id-1&gt;.json    ← jeden pełny rekord Context Assertion
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    └── &lt;id-2&gt;.json
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$ORCAN_DATA/context/&lt;project-id&gt;/
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├── .git/            ← historia = wersjonowanie (każda zmiana to commit)
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>├── index.json        ← płaski indeks (id → title/status/kind/daty) do szybkiego list/select
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>└── objects/
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    ├── &lt;id-1&gt;.json    ← jeden pełny rekord Context Assertion
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    └── &lt;id-2&gt;.json
 </span></code></pre></div>
 <p>To cała „baza danych". To świadome ograniczenie MVP, nie tymczasowy substytut docelowej: pliki + git + prosty indeks, żeby cały mechanizm dało się prześledzić <code>cat</code>-em i <code>git log</code>-iem, a każda przyszła zmiana sposobu przechowywania będzie szczegółem implementacyjnym pod tymi samymi funkcjami, nie przeprojektowaniem.</p>
 <h2 id="czego-swiadomie-nie-robi">Czego świadomie nie robi<a class="headerlink" href="#czego-swiadomie-nie-robi" title="Permanent link">&para;</a></h2>
@@ -2062,7 +2487,7 @@
 <li>CLI: <code>orcan context assert propose|list|show|accept|reject|retire|select|overview|root</code> (host) — <code>overview</code> drukuje kompozycję + liczbę zaakceptowanych dopasowań dla każdego skonfigurowanego workspace'u, liczoną na żywo, po jednej linii.</li>
 <li>Skrzynka wewnątrz kontenera: <code>orcan-context-propose</code> / <code>orcan-context-review</code> zrzucają pliki JSON do <code>&lt;workspace_root&gt;/.orcan/context-inbox/</code> i <code>context-decisions/</code>; <code>compile_context.py</code> importuje je (kwarantanna dla wszystkiego uszkodzonego lub nierozwiązywalnego) i regeneruje <code>context-review-queue.json</code> przy każdym <code>orcan sync</code>, przed kompilacją. Patrz „Propozycja i review bez wychodzenia z sesji" wyżej.</li>
 <li>Ponowne rozpatrzenie: <code>orcan-context-propose --flag-existing ID --reason TEXT</code> oznacza już zaakceptowany zapis do drugiego spojrzenia, śledzone w <code>&lt;workspace_root&gt;/.orcan/context-flags/</code>; <code>orcan-context-review</code> oferuje <code>[z]achowaj</code>/<code>[w]ycofaj</code>.</li>
-<li>Wsadowa, zautomatyzowana Reflection: <code>orcan-context-reflect</code>, hook <code>Stop</code> <strong>domyślnie włączony</strong>, który batchuje po liczniku tur per sesja (domyślnie 20) zanim wywoła lekki model i zdyspatchuje przez ten sam narzędzie propose. Dosiewany przy pierwszej <code>orcan sync</code> dla workspace'u; wyłączenie (i to, że zostaje) przez <code>orcan context hook disable|enable|status [WORKSPACE ...] [--all]</code> (<code>scripts/repository/claude_hook.py</code>) — merge/usunięcie w <code>.claude/settings.json</code> wygenerowanego katalogu głównego workspace'u (odnajdywanego po nazwie przez <code>workspaces/index.json</code>), natychmiastowe. Zapis <code>propose</code> naszkicowany na branchu innym niż main/master jest domyślnie do niego ograniczony, a błędy wywołania modelu są zapisywane per sesja i widoczne w <code>orcan doctor</code>. Patrz „Wsadowa, zautomatyzowana Reflection" wyżej.</li>
+<li>Wsadowa, zautomatyzowana Reflection: <code>orcan-context-reflect</code>, nadal też podpięty jako hook <code>Stop</code> Claude — <strong>domyślnie włączony</strong> (dosiewany przy pierwszej sync; <code>orcan context hook disable|enable|status</code>) — plus <strong><code>orcan-context-scan</code></strong> / <code>orcan.session_scan</code>, który odkrywa transkrypty Claude + Cursor na dysku i uruchamia domyślnie <strong>recap</strong> (<code>orcan-context-recap</code>; <code>ORCAN_CONTEXT_DRIVER=reflect</code> = legacy one-shot). Współdzielone offsety w <code>reflection-state.json</code> i rolling state w <code>.orcan/recap/</code>. Zapis <code>propose</code> naszkicowany na branchu innym niż main/master jest domyślnie do niego ograniczony; błędy wywołania modelu są zapisywane per sesja i widoczne w <code>orcan doctor</code>. Patrz „Wsadowa, zautomatyzowana Reflection" wyżej.</li>
 </ul>
 <p><strong>Zaimplementowane (RFC-0002 — rozszerzenie rekordu, nie nowy podsystem):</strong></p>
 <p>Pytanie za RFC-0002 brzmiało, czy Orcan potrzebuje osobnego, samopogłębiającego się systemu „rozumienia" ponad RFC-0001. Werdykt: nie — to wymagałoby, żeby system sam interpretował i wnioskował, czyli dokładnie tego reasoningu, którego Orcan nie może robić. Zaakceptowany kierunek to małe, zdyscyplinowane <em>rozszerzenie</em> istniejącego rekordu Context Assertion — dziś już zaimplementowane:</p>
@@ -2102,7 +2527,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="23 sierpnia 2026 09:26:50 UTC">23 sierpnia 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="26 sierpnia 2026 19:39:31 UTC">26 sierpnia 2026</span>
   </span>
 
     
@@ -2243,12 +2668,16 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Skopiowano do schowka", "clipboard.copy": "Kopiuj do schowka", "search.result.more.one": "1 wi\u0119cej na tej stronie", "search.result.more.other": "# wi\u0119cej na tej stronie", "search.result.none": "Brak wynik\u00f3w wyszukiwania", "search.result.one": "Wyniki wyszukiwania: 1", "search.result.other": "Wyniki wyszukiwania: #", "search.result.placeholder": "Zacznij pisa\u0107, aby szuka\u0107", "search.result.term.missing": "Brak", "select.version": "Wybierz wersj\u0119"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": {"concept": "concept", "develop": "develop", "guide": "guide", "reference": "reference", "security": "security"}, "translations": {"clipboard.copied": "Skopiowano do schowka", "clipboard.copy": "Kopiuj do schowka", "search.result.more.one": "1 wi\u0119cej na tej stronie", "search.result.more.other": "# wi\u0119cej na tej stronie", "search.result.none": "Brak wynik\u00f3w wyszukiwania", "search.result.one": "Wyniki wyszukiwania: 1", "search.result.other": "Wyniki wyszukiwania: #", "search.result.placeholder": "Zacznij pisa\u0107, aby szuka\u0107", "search.result.term.missing": "Brak", "select.version": "Wybierz wersj\u0119"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../assets/javascripts/mike-i18n.js"></script>
+      
+        <script src="../../../assets/javascripts/orcan-version.js"></script>
+      
+        <script src="../../../assets/javascripts/orcan-mermaid.js"></script>
       
     
   </body>
