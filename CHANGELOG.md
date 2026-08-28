@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`orcan upgrade` (new) — release channel split from `orcan update`.**
+  `orcan update` is now the dev channel only: fast-forwards this checkout to
+  `origin/main`, nothing else (dropped `--release`/`--main`/`--to`). `orcan
+  upgrade [--to VERSION]` is the release channel — newest SemVer release tag
+  by default, or pin a specific one (up or down); this is what the old
+  bare `orcan update` did. `orcan downgrade` is unchanged, but its "pin any
+  release" pointer now says `orcan upgrade --to VERSION`. Soft
+  update-available hints (`orcan up`, `orcan doctor`) now say `orcan
+  upgrade`. This is a clean behavior change on `orcan update` — anyone
+  running it expecting the old "newest release" default now gets the dev
+  channel instead; use `orcan upgrade` for that.
+
 ## [3.0.6] - 2026-08-28
 
 ### Added
@@ -14,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`make tag` / `make release` split** — routine commits no longer imply a
   version bump or tag. `make tag` is a frequent, personal SemVer checkpoint
   (bump + CHANGELOG cut + commit + tag, fully pushed under
-  `checkpoint/vX.Y.Z` so it can never become an `orcan update`/`downgrade`
+  `checkpoint/vX.Y.Z` so it can never become an `orcan upgrade`/`downgrade`
   target or trigger `release.yml`). `make release` is the rare, deliberate
   public stop, labeled CalVer `YY.Q` (e.g. `26.3`): ensures a real bare
   `vX.Y.Z` tag, adds its own CalVer tag at the same commit, groups every

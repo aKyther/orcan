@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Git helpers for orcan update + soft update hints.
+# Git helpers for orcan update (dev/main) / upgrade / downgrade (release
+# channel) + soft upgrade hints.
 # shellcheck shell=bash
 
 # Latest SemVer release tag locally (vX.Y.Z only — no -rc / -beta).
@@ -123,11 +124,15 @@ orcan_git_checkout_release_tag() {
     orcan_ok "now on ${tag} ($(git -C "${ORCAN_ROOT}" rev-parse --short HEAD))"
 }
 
-# Soft check used by orcan up (and similar). Never fails the command.
+# Soft check used by orcan up (and similar) — hints at a newer *release*,
+# not at origin/main. Never fails the command. Env var names/cache file
+# kept as ORCAN_*UPDATE_CHECK*/update-check (unchanged) even though the
+# hint now points at `orcan upgrade` — renaming them would break anyone's
+# existing env config for no functional gain.
 # Skip: ORCAN_NO_UPDATE_CHECK=1
 # Force: ORCAN_UPDATE_CHECK=1 (ignore cache)
 # Cache TTL hours: ORCAN_UPDATE_CHECK_HOURS (default 12)
-orcan_maybe_hint_update() {
+orcan_maybe_hint_upgrade() {
     local cache_dir cache_file now ttl last local_tag remote_tag
 
     if [[ -n "${ORCAN_NO_UPDATE_CHECK:-}" ]]; then
@@ -153,7 +158,7 @@ orcan_maybe_hint_update() {
             local_tag="$(awk -F= '/^local=/{print $2}' "${cache_file}" 2>/dev/null || true)"
             if [[ -n "${remote_tag}" && -n "${local_tag}" ]] \
                 && orcan_git_tag_newer "${local_tag}" "${remote_tag}"; then
-                orcan_warn "update available: ${remote_tag} (you have ${local_tag}) — run: orcan update"
+                orcan_warn "upgrade available: ${remote_tag} (you have ${local_tag}) — run: orcan upgrade"
             fi
             return 0
         fi
@@ -171,28 +176,37 @@ orcan_maybe_hint_update() {
         return 0
     fi
     if orcan_git_tag_newer "${local_tag}" "${remote_tag}"; then
-        orcan_warn "update available: ${remote_tag} (you have ${local_tag}) — run: orcan update"
+        orcan_warn "upgrade available: ${remote_tag} (you have ${local_tag}) — run: orcan upgrade"
     fi
 }
 
+# orcan update — dev channel: fast-forward the checkout to origin/main.
+# No release/tag involved; use `orcan upgrade` for that.
 orcan_git_update() {
+    local current
+    orcan_git_fetch_origin
+    (
+        cd "${ORCAN_ROOT}"
+        orcan_info "fast-forward origin/main"
+        git checkout main 2>/dev/null || git checkout -B main origin/main
+        git pull --ff-only origin main
+        current="$(git rev-parse --short HEAD)"
+        orcan_ok "on main @ ${current}"
+    )
+    orcan_git_clear_update_hint_cache
+}
+
+# orcan upgrade — release channel: newest release tag (default), or an
+# explicit --to VERSION pin (up or down).
+orcan_git_upgrade() {
     local channel="${1:-release}"
     local target="${2:-}"
-    local tag current
+    local tag
 
     orcan_git_fetch_origin
 
     (
         cd "${ORCAN_ROOT}"
-
-        if [[ "${channel}" == "main" ]]; then
-            orcan_info "channel=main — fast-forward origin/main"
-            git checkout main 2>/dev/null || git checkout -B main origin/main
-            git pull --ff-only origin main
-            current="$(git rev-parse --short HEAD)"
-            orcan_ok "on main @ ${current}"
-            return 0
-        fi
 
         if [[ "${channel}" == "to" ]]; then
             orcan_git_checkout_release_tag "${target}"
@@ -201,7 +215,7 @@ orcan_git_update() {
 
         tag="$(orcan_git_latest_release_tag || true)"
         if [[ -z "${tag}" ]]; then
-            orcan_die "no release tags (vX.Y.Z) found — try: orcan update --main"
+            orcan_die "no release tags (vX.Y.Z) found — try: orcan update (dev/main)"
         fi
         orcan_git_checkout_release_tag "${tag}"
     )
@@ -222,7 +236,7 @@ orcan_git_downgrade() {
             tag="$(orcan_git_normalize_release_tag "${target}")"
             current="$(orcan_git_local_release_tag 2>/dev/null || true)"
             if [[ -n "${current}" ]] && orcan_git_tag_newer "${current}" "${tag}"; then
-                orcan_die "${tag} is newer than ${current} — use: orcan update --to ${tag}"
+                orcan_die "${tag} is newer than ${current} — use: orcan upgrade --to ${tag}"
             fi
             orcan_git_checkout_release_tag "${tag}"
             return 0

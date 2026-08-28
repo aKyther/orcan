@@ -28,7 +28,7 @@ The `orcan` command is **Bash**, but config work on the host uses **Python 3** (
 
 | Need | Used by |
 | --- | --- |
-| Bash, Git | CLI, install, `orcan update` |
+| Bash, Git | CLI, install, `orcan update`/`upgrade`/`downgrade` |
 | **Python 3** | `orcan sync`, `init`, `context` (show / add / hook) |
 | Docker Compose v2 | `orcan build`, `up`, `down`, … |
 
@@ -70,7 +70,8 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
 | `orcan logs [docker\|supervisor\|context-scan]` | Follow container stdout (default) or show durable supervisord / Reflection scanner logs |
 | `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
-| `orcan update [--release\|--main\|--to VERSION]` | Newest release tag `vX.Y.Z` (default); `--main` for bleeding edge; `--to` pins a release |
+| `orcan update` | Dev channel: fast-forward this checkout to `origin/main` |
+| `orcan upgrade [--to VERSION]` | Release channel: newest release tag `vX.Y.Z` (default), or `--to` pins one (up or down) |
 | `orcan downgrade [--to VERSION]` | Previous SemVer release, or pin an older `--to` (refuses newer targets) |
 | `orcan doctor` | Host / config / container health (supervisord, context automation state, recap model probe when the image supports them) |
 | `orcan uninstall [--purge-data]` | Remove CLI (optional wipe of `ORCAN_DATA`) |

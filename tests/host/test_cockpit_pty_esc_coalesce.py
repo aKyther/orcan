@@ -22,9 +22,17 @@ def _load_pty_terminal():
     return module
 
 
-pty_terminal = _load_pty_terminal()
+try:
+    pty_terminal = _load_pty_terminal()
+    _PTY_IMPORT_ERROR: str | None = None
+except ModuleNotFoundError as exc:
+    # Host suite intentionally has no Textual/pyte dependency; the real
+    # cockpit image exercises this module through the Docker smoke tests.
+    pty_terminal = None
+    _PTY_IMPORT_ERROR = str(exc)
 
 
+@unittest.skipIf(pty_terminal is None, "cockpit dependencies unavailable: " + str(_PTY_IMPORT_ERROR))
 class EscCoalesceFlushTests(unittest.TestCase):
     def _terminal(self) -> pty_terminal.PtyTerminal:
         term = pty_terminal.PtyTerminal(["true"], session="dev")

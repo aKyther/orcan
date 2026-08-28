@@ -62,7 +62,8 @@ After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). 
 | `orcan up` / `orcan up --with-ttyd` / `orcan up --with-docker \| --with-network NAME` / `orcan up --with-git` / `orcan down` | Start container (local by default; optional browser / DinD **or** network / SSH) / stop |
 | `orcan build [--claude\|--cursor\|--codex]` | All → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor\|codex` |
 | `orcan publish` | Manual image push (maintainers) |
-| `orcan update [--to VERSION]` / `orcan downgrade` | Newest release / pin / one step back |
+| `orcan upgrade [--to VERSION]` / `orcan downgrade` | Newest release / pin / one step back |
+| `orcan update` | Dev channel: fast-forward to `origin/main` |
 | `orcan uninstall` | Remove CLI (`--purge-data` also deletes logins/caches) |
 
 Config lives in `~/.config/orcan/` by default (install clone: `~/.local/share/orcan`).
