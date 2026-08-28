@@ -12,7 +12,7 @@ Orcan orkiestruje **kontekst pracy** dla agentów kodujących: które repozytori
 
 **Nie** wybiera modeli — Cursor CLI (`agent`) i Claude Code (`claude`) zachowują własne konta.
 
-<span class="orcan-version">Wersja **3.0.5**</span>
+<span class="orcan-version">Wersja **3.0.6**</span>
 
 </div>
 
