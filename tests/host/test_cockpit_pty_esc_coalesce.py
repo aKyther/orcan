@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""ESC coalesce in embedded tmux — bare Esc must reach the PTY."""
+
+from __future__ import annotations
+
+import importlib.util
+import sys
+import time
+import unittest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+ROOT = Path(__file__).resolve().parents[2]
+PTY_TERMINAL_PATH = ROOT / "cockpit" / "src" / "orcan_cockpit" / "pty_terminal.py"
+
+
+def _load_pty_terminal():
+    spec = importlib.util.spec_from_file_location("cockpit_pty_terminal", PTY_TERMINAL_PATH)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+pty_terminal = _load_pty_terminal()
+
+
+class EscCoalesceFlushTests(unittest.TestCase):
+    def _terminal(self) -> pty_terminal.PtyTerminal:
+        term = pty_terminal.PtyTerminal(["true"], session="dev")
+        term._master_fd = 1
+        term._write_pty = MagicMock()
+        term.set_timer = MagicMock(return_value=MagicMock())
+        return term
+
+    def test_flush_reschedules_when_timer_fires_early(self) -> None:
+        term = self._terminal()
+        term._esc_coalesce_until = time.monotonic() + 0.01
+        term._flush_esc_coalesce()
+        term._write_pty.assert_not_called()
+        term.set_timer.assert_called_once()
+        delay = term.set_timer.call_args[0][0]
+        self.assertGreater(delay, 0)
+        self.assertLessEqual(delay, 0.01)
+
+    def test_flush_writes_esc_when_window_expired(self) -> None:
+        term = self._terminal()
+        term._esc_coalesce_until = time.monotonic() - 0.001
+        term._flush_esc_coalesce()
+        term._write_pty.assert_called_once_with(b"\x1b")
+        self.assertIsNone(term._esc_coalesce_until)
+
+    def test_flush_if_pending_at_key_boundary(self) -> None:
+        term = self._terminal()
+        term._esc_coalesce_until = time.monotonic() - 0.001
+        term._flush_esc_if_pending()
+        term._write_pty.assert_called_once_with(b"\x1b")
+
+    def test_start_esc_coalesce_uses_set_timer_not_call_later(self) -> None:
+        term = self._terminal()
+        term._start_esc_coalesce()
+        term.set_timer.assert_called_once()
+        callback = term.set_timer.call_args[0][1]
+        self.assertEqual(callback, term._flush_esc_coalesce)
+
+    def test_close_cancels_pending_esc_timer(self) -> None:
+        term = self._terminal()
+        timer = MagicMock()
+        term._esc_coalesce_timer = timer
+        term._esc_coalesce_until = 1.0
+        term._close()
+        timer.stop.assert_called_once()
+        self.assertIsNone(term._esc_coalesce_until)
+        self.assertIsNone(term._esc_coalesce_timer)
+
+
+if __name__ == "__main__":
+    unittest.main()

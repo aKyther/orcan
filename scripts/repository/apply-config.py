@@ -183,6 +183,8 @@ def parse_projects(
     projects_raw: list,
     ws_root: str,
     label: str,
+    *,
+    repo_root: Path | None = None,
 ) -> list[dict]:
     if not isinstance(projects_raw, list) or not projects_raw:
         die(f"{label} must contain at least one project")
@@ -219,6 +221,23 @@ def parse_projects(
         path_key = str(resolved)
         if path_key in seen_paths:
             die(f"duplicate project path in {label}: {path_key}")
+        if repo_root is not None:
+            meta_root = (repo_root / "workspaces").resolve()
+            if _is_under(resolved, meta_root):
+                die(
+                    f"{label}[{i}].path must not live under workspace meta "
+                    f"({meta_root}) — use a path-parity checkout (e.g. under "
+                    f"$ORCAN_PROJECTS_ROOT), not the generated "
+                    f"{DEFAULT_DEVELOPER_WORKSPACES}/<name>/ navigation tree"
+                )
+            dev_ws = Path(DEFAULT_DEVELOPER_WORKSPACES).resolve()
+            if _is_under(resolved, dev_ws):
+                die(
+                    f"{label}[{i}].path must not live under "
+                    f"{DEFAULT_DEVELOPER_WORKSPACES} — that tree is workspace "
+                    f"navigation (symlinks) inside the container, not a project "
+                    f"checkout location"
+                )
         seen_names.add(name)
         seen_paths.add(path_key)
 
@@ -317,7 +336,7 @@ def build_workspace_entry(
         die(f"duplicate tmux session name: {tmux_name}")
     seen_tmux.add(tmux_name)
 
-    projects = parse_projects(projects_raw, ws_root, label)
+    projects = parse_projects(projects_raw, ws_root, label, repo_root=repo_root)
 
     for p in projects:
         wp = p["workspace_path"]

@@ -55,8 +55,10 @@ Obejścia do czasu scalenia upstream:
 ## Launcher jest pusty / złe projekty
 
 1. Sprawdź, że `orcan.config.json` ma `workspaces` z bezwzględnymi `projects[].path`
-2. Uruchom `orcan sync` (cele terminal nie odświeżają konfiguracji)
-3. `orcan down && orcan up`
+2. Uruchom `orcan sync` (cele terminal nie odświeżają konfiguracji). Sync robi reconcile meta workspace'u na hoście nawet gdy kontener stoi; live reconcile w kontenerze, gdy jest w górze.
+3. `orcan down && orcan up`, gdy `orcan doctor` zgłasza ścieżkę niewidoczną w kontenerze.
+
+Jeśli projekt leżał bezpośrednio pod folderem workspace'u (katalog zamiast symlinku), `orcan sync` przenosi go do `*.orcan-reconcile-bak` i odtwarza symlink (live reconcile w kontenerze). Szukaj w outputcie sync `relocated stale checkout dirs`.
 
 **Nie** przekazuj `PROJECT_DIR=…` przy `orcan up`. Przełączaj projekty przez edycję konfiguracji + `orcan sync`.
 

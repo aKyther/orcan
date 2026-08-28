@@ -10,7 +10,7 @@ tools still use their normal homes (`~/.cursor`, `~/.claude`, …).
 | `agents/claude` | `~/.claude` | Claude Code auth / settings |
 | `agents/codex` | `~/.codex` | Codex CLI auth / state |
 | `cache` | `~/.cache` | All tool caches (npm, pnpm, cargo, go, uv, …) |
-| `history` | `~/.local/share/orcan/history` | Shell history (`HISTFILE`) |
+| `history` | `~/.local/share/orcan/history` | Shell history — one file per workspace in tmux (`history/workspaces/<name>/`) |
 | `dotfiles` | `~/.config/orcan/dotfiles` | Your shell/tmux/vim overlays |
 | `workspaces` | `~/workspaces` | Workspace navigation roots |
 

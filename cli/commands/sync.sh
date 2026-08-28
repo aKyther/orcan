@@ -62,6 +62,7 @@ orcan_cmd_sync() {
     ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
         orcan_host_python "${ORCAN_SCRIPTS}/compile_context.py" "${ORCAN_HOME}"
 
+    orcan_sync_reconcile_host
     orcan_sync_reconcile_running_container "${prune_orphans}"
 
     orcan_ok "sync complete"
@@ -98,6 +99,40 @@ orcan_sync_context_only() {
         orcan_host_python "${ORCAN_SCRIPTS}/context_syncd.py" "${args[@]}"
 }
 
+# Host-side reconcile: $ORCAN_HOME/workspaces/<name>/ symlinks are written here
+# (meta_path), bind-mounted as /home/developer/workspaces/<name>/ in the
+# container. Runs even when the container is down.
+orcan_sync_reconcile_host() {
+    orcan_info "reconciling workspace meta on host"
+    local host_out
+    host_out="$(ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" \
+        orcan_host_python "${ORCAN_SCRIPTS}/reconcile-host.py" 2>&1)" || {
+        orcan_warn "host workspace reconcile failed"
+        return 0
+    }
+    printf '%s\n' "${host_out}"
+    orcan_sync_reconcile_report_warnings "${host_out}" 0
+    orcan_ok "host workspace reconcile complete"
+}
+
+orcan_sync_reconcile_report_warnings() {
+    local reconcile_out="$1"
+    local in_container="${2:-0}"
+    if grep -q 'skip missing repo mount' <<<"${reconcile_out}"; then
+        if [[ "${in_container}" == "1" ]]; then
+            orcan_warn "some project paths are not visible in the container — run: orcan down && orcan up"
+        else
+            orcan_warn "some project paths are not visible on this machine — check paths and mounts"
+        fi
+    fi
+    if grep -q 'replaced real directory with backup' <<<"${reconcile_out}"; then
+        orcan_info "relocated stale checkout dirs that blocked symlinks (see *.orcan-reconcile-bak)"
+    fi
+    if grep -q 'skip: could not relocate blocking directory' <<<"${reconcile_out}"; then
+        orcan_warn "reconcile could not fix every blocking directory — check logs above"
+    fi
+}
+
 # If a container is already running, push the freshly-synced desired state
 # into it immediately (same reconcile mechanism container boot uses) instead
 # of telling the user to `orcan down && orcan up`. A brand-new project path
@@ -115,6 +150,7 @@ orcan_sync_reconcile_running_container() {
     orcan_load_env
     cname="$(orcan_container_name)"
     if ! docker ps -q -f "name=^${cname}$" 2>/dev/null | grep -q .; then
+        orcan_info "container not running — host workspace meta reconciled; run orcan up for tmux/runtime"
         return 0
     fi
     orcan_info "container is running — reconciling live (no restart)"
@@ -122,9 +158,12 @@ orcan_sync_reconcile_running_container() {
     if [[ "${prune_orphans}" == "1" ]]; then
         reconcile_cmd+=(--prune-orphans)
     fi
-    if docker exec -i "${cname}" "${reconcile_cmd[@]}"; then
-        orcan_ok "live reconcile complete"
-    else
+    local reconcile_out
+    reconcile_out="$(docker exec -i "${cname}" "${reconcile_cmd[@]}" 2>&1)" || {
         orcan_warn "live reconcile failed — falling back to: orcan down && orcan up"
-    fi
+        return 0
+    }
+    printf '%s\n' "${reconcile_out}"
+    orcan_sync_reconcile_report_warnings "${reconcile_out}" 1
+    orcan_ok "live reconcile complete"
 }

@@ -52,6 +52,7 @@ class WorkspaceReport:
     repo_count: int
     symlinks_created: list[str] = field(default_factory=list)
     symlinks_removed: list[str] = field(default_factory=list)
+    dirs_relocated: list[str] = field(default_factory=list)
     skipped_missing_repos: list[str] = field(default_factory=list)
 
 
@@ -65,7 +66,8 @@ class ReconcileReport:
 
     def changed(self) -> bool:
         return bool(self.stale_workspace_dirs_removed) or any(
-            w.symlinks_created or w.symlinks_removed for w in self.workspaces
+            w.symlinks_created or w.symlinks_removed or w.dirs_relocated
+            for w in self.workspaces
         )
 
 
@@ -88,6 +90,58 @@ def _copy_missing(src: Path, dst: Path) -> None:
         return
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
+
+
+def _resolve_path(path: Path) -> Path:
+    try:
+        return path.resolve()
+    except OSError:
+        return path
+
+
+def _prepare_symlink_target(target: Path, src: Path) -> tuple[bool, str | None]:
+    """Clear *target* so ``symlink_to(src)`` can run.
+
+    Project slots under a workspace root must always be symlinks — a real
+    directory there (legacy layout, manual clone, pre-worktree checkout) is
+    relocated to ``<name>.orcan-reconcile-bak`` rather than left blocking.
+
+    Returns ``(ready, backup_path)``. *backup_path* is set when a directory
+    was moved aside.
+    """
+    if not target.exists() and not target.is_symlink():
+        return True, None
+
+    if target.is_symlink() or target.is_file():
+        if target.is_symlink() and _resolve_path(target) == _resolve_path(src):
+            return False, None
+        target.unlink()
+        return True, None
+
+    if target.is_dir():
+        if _resolve_path(target) == _resolve_path(src):
+            return False, None
+        bak = target.with_name(f"{target.name}.orcan-reconcile-bak")
+        if bak.exists():
+            suffix = 2
+            while bak.exists():
+                bak = target.with_name(f"{target.name}.orcan-reconcile-bak-{suffix}")
+                suffix += 1
+        try:
+            target.rename(bak)
+        except OSError as exc:
+            print(
+                f"skip: could not relocate blocking directory {target}: {exc}",
+                file=sys.stderr,
+            )
+            return False, None
+        print(
+            f"replaced real directory with backup: {target} -> {bak}",
+            file=sys.stderr,
+        )
+        return True, str(bak)
+
+    return True, None
 
 
 def _write_if_changed(path: Path, content: str) -> None:
@@ -318,15 +372,11 @@ def _apply_one_workspace(
             print(f"skip missing repo mount: {host_path}", file=sys.stderr)
             report.skipped_missing_repos.append(host_path)
             continue
-        already_ok = target.is_symlink() and target.resolve() == src.resolve()
-        if target.exists() or target.is_symlink():
-            if already_ok:
-                continue
-            if target.is_symlink() or target.is_file():
-                target.unlink()
-            else:
-                print(f"skip non-symlink in the way: {target}", file=sys.stderr)
-                continue
+        ready, backup = _prepare_symlink_target(target, src)
+        if not ready:
+            continue
+        if backup is not None:
+            report.dirs_relocated.append(f"{target} -> {backup}")
         target.symlink_to(src, target_is_directory=True)
         report.symlinks_created.append(str(target))
 

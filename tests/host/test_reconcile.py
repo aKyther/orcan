@@ -94,6 +94,29 @@ class ApplyWorkspacesTests(unittest.TestCase):
         self.assertIn("project's `AGENTS.md` / `CLAUDE.md` is SoT", agents)
         self.assertEqual(report.workspaces[0].symlinks_created, [str(self.ws_root / "app")])
 
+    def test_replaces_real_directory_blocking_symlink_slot(self) -> None:
+        cfg = _cfg(
+            [
+                _ws(
+                    "demo",
+                    self.ws_root,
+                    [_project("app", self.repo, self.ws_root / "app")],
+                )
+            ]
+        )
+        stale = self.ws_root / "app"
+        stale.mkdir(parents=True, exist_ok=True)
+        (stale / "old.txt").write_text("legacy\n", encoding="utf-8")
+
+        report = self._apply(cfg)
+
+        self.assertTrue((self.ws_root / "app").is_symlink())
+        self.assertEqual((self.ws_root / "app").resolve(), self.repo.resolve())
+        self.assertEqual(len(report.workspaces[0].dirs_relocated), 1)
+        bak = self.ws_root / "app.orcan-reconcile-bak"
+        self.assertTrue(bak.is_dir())
+        self.assertEqual((bak / "old.txt").read_text(encoding="utf-8"), "legacy\n")
+
     def test_second_run_with_no_change_is_a_no_op(self) -> None:
         cfg = _cfg(
             [

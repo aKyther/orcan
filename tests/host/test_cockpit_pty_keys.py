@@ -50,6 +50,28 @@ class KeyToBytesTests(unittest.TestCase):
         self.assertIsNone(pty_keys.key_to_bytes("escape", None))
         self.assertIsNone(pty_keys.key_to_bytes("escape", "\x1b"))
 
+    def test_page_keys_textual_spellings(self) -> None:
+        self.assertEqual(pty_keys.key_to_bytes("pageup", None), b"\x1b[5~")
+        self.assertEqual(pty_keys.key_to_bytes("page_up", None), b"\x1b[5~")
+        self.assertEqual(pty_keys.key_to_bytes("pagedown", None), b"\x1b[6~")
+        self.assertEqual(pty_keys.key_to_bytes("page_down", None), b"\x1b[6~")
+
+    def test_insert_and_modified_page_keys(self) -> None:
+        self.assertEqual(pty_keys.key_to_bytes("insert", None), b"\x1b[2~")
+        self.assertEqual(pty_keys.key_to_bytes("shift+page_up", None), b"\x1b[5;2~")
+        self.assertEqual(pty_keys.key_to_bytes("ctrl+pagedown", None), b"\x1b[6;5~")
+
+    def test_f6_through_f12_forwarded_f1_through_f5_not(self) -> None:
+        self.assertIsNone(pty_keys.key_to_bytes("f1", None))
+        self.assertIsNone(pty_keys.key_to_bytes("f5", None))
+        self.assertEqual(pty_keys.key_to_bytes("f6", None), b"\x1b[17~")
+        self.assertEqual(pty_keys.key_to_bytes("f12", None), b"\x1b[24~")
+
+    def test_ctrl_bracket_keys_for_vim(self) -> None:
+        self.assertEqual(pty_keys.key_to_bytes("ctrl+right_square_brace", None), b"\x1d")
+        self.assertEqual(pty_keys.key_to_bytes("ctrl+backslash", None), b"\x1c")
+        self.assertEqual(pty_keys.key_to_bytes("ctrl+underscore", None), b"\x1f")
+
 
 class EscCoalesceTests(unittest.TestCase):
     def test_meta_arrows_focus_pane_legacy(self) -> None:

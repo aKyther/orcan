@@ -46,6 +46,7 @@ from rich.text import Text
 from textual import events
 from textual.actions import SkipAction
 from textual.message import Message
+from textual.timer import Timer
 from textual.widget import Widget
 
 from orcan_cockpit.pty_colors import pyte_color_to_rich as _pyte_color_to_rich_raw
@@ -109,8 +110,18 @@ def _char_style(char: "pyte.screens.Char", link: str | None = None) -> Style:
 # to tmux (otherwise Ctrl+C is SIGINT and the OS clipboard never updates).
 _COPY_KEYS = frozenset({"ctrl+c", "ctrl+insert", "super+c", "ctrl+shift+c"})
 
+# F1–F5 are cockpit chrome (shortcuts, panels, peek) — let them bubble when
+# unmapped; swallow other unknown keys so they do not hit browser / Screen binds.
+_COCKPIT_FUNCTION_KEYS = frozenset({"f1", "f2", "f3", "f4", "f5"})
+
+# Ctrl+[ is Esc on real terminals — Textual names it ctrl+left_square_brace.
+_ESCAPE_KEYS = frozenset({"escape", "ctrl+left_square_brace"})
+
 # tmux toggles these on attach — see pty_mouse.parse_mouse_modes.
-_ESC_COALESCE_S = 0.1
+# Match context_tui's curses escdelay (25ms): long enough to recombine
+# Textual's Escape+key pairs for Meta/Alt, short enough that bare Esc in
+# vim/shell feels immediate.
+_ESC_COALESCE_S = 0.025
 
 
 class PtyTerminal(Widget):
@@ -147,6 +158,7 @@ class PtyTerminal(Widget):
         self._mouse_tracking = False
         self._mouse_sgr = True
         self._esc_coalesce_until: float | None = None
+        self._esc_coalesce_timer: Timer | None = None
 
     @property
     def allow_vertical_scroll(self) -> bool:
@@ -307,15 +319,31 @@ class PtyTerminal(Widget):
 
     def _cancel_esc_coalesce(self) -> None:
         self._esc_coalesce_until = None
+        if self._esc_coalesce_timer is not None:
+            self._esc_coalesce_timer.stop()
+            self._esc_coalesce_timer = None
+
+    def _schedule_esc_coalesce_flush(self, delay: float) -> None:
+        if self._esc_coalesce_timer is not None:
+            self._esc_coalesce_timer.stop()
+        self._esc_coalesce_timer = self.set_timer(
+            delay,
+            self._flush_esc_coalesce,
+            name="pty-esc-coalesce",
+        )
 
     def _start_esc_coalesce(self) -> None:
         self._esc_coalesce_until = time.monotonic() + _ESC_COALESCE_S
-        self.call_later(_ESC_COALESCE_S, self._flush_esc_coalesce)
+        self._schedule_esc_coalesce_flush(_ESC_COALESCE_S)
 
     def _flush_esc_coalesce(self) -> None:
-        if self._esc_coalesce_until is None:
+        if self._esc_coalesce_until is None or self._master_fd is None:
+            self._cancel_esc_coalesce()
             return
-        if time.monotonic() < self._esc_coalesce_until:
+        remaining = self._esc_coalesce_until - time.monotonic()
+        if remaining > 0:
+            # Timer may fire a hair early — reschedule instead of dropping Esc.
+            self._schedule_esc_coalesce_flush(remaining)
             return
         self._write_pty(b"\x1b")
         self._cancel_esc_coalesce()
@@ -328,7 +356,10 @@ class PtyTerminal(Widget):
 
     def on_key(self, event: events.Key) -> None:
         if self._master_fd is None:
+            if event.key not in _COCKPIT_FUNCTION_KEYS:
+                event.stop()
             return
+        self._flush_esc_if_pending()
         if event.key in _COPY_KEYS and self.text_selection is not None:
             try:
                 self.screen.action_copy_text()
@@ -357,7 +388,7 @@ class PtyTerminal(Widget):
             self._write_pty(b"\x1b")
             self._cancel_esc_coalesce()
 
-        if event.key == "escape":
+        if event.key in _ESCAPE_KEYS:
             self._start_esc_coalesce()
             event.stop()
             return
@@ -370,6 +401,8 @@ class PtyTerminal(Widget):
 
         data = key_to_bytes(event.key, event.character)
         if data is None:
+            if event.key not in _COCKPIT_FUNCTION_KEYS:
+                event.stop()
             return
         event.stop()  # this widget owns the keyboard while focused
         self._write_pty(data)
@@ -432,6 +465,9 @@ class PtyTerminal(Widget):
         self._write_mouse(event, release=True)
 
     def on_click(self, event: events.Click) -> None:
+        # Clicks in the rendered tmux pane must keep keyboard focus here —
+        # otherwise Esc and other keys bubble to the cockpit / browser.
+        self.focus()
         # Textual owns the mouse, so OSC 8 / bare URLs never reach the outer
         # terminal's click-to-open. Open http(s) under the click ourselves.
         if event.button != 1:
@@ -484,6 +520,7 @@ class PtyTerminal(Widget):
         return out
 
     def _close(self) -> None:
+        self._cancel_esc_coalesce()
         if self._master_fd is not None:
             try:
                 asyncio.get_running_loop().remove_reader(self._master_fd)

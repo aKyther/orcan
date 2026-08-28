@@ -102,7 +102,7 @@ Default host root: `~/.config/orcan`.
 | `claude/` | `~/.claude` (`CLAUDE_CONFIG_DIR` — OAuth + settings survive restarts) |
 | `codex/` | `~/.codex` |
 | `cache/` | `~/.cache` (npm / pnpm / cargo / go / uv / … nest here via env) |
-| `history/` | `~/.local/share/orcan/history` (`HISTFILE`) |
+| `history/` | `~/.local/share/orcan/history` (`HISTFILE`; per-workspace files under `history/workspaces/<name>/` in tmux) |
 | `dotfiles/` | `~/.config/orcan/dotfiles` |
 
 Inside the container, `~/orcan-map/` is a symlink map (agents, cache, history,

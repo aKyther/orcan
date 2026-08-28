@@ -54,7 +54,7 @@ Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `orcan sync` na no
 | --- | --- |
 | `ORCAN_VARIANT` | `full` lub `claude` (z `/etc/orcan/variant`) |
 | `ORCAN_VERSION` | Z `/etc/orcan/version` |
-| `HISTFILE` | `~/.local/share/orcan/history/.zsh_history` (bind: `$ORCAN_DATA/history`) |
+| `HISTFILE` | Domyślnie `~/.local/share/orcan/history/.zsh_history`; w tmux per workspace: `…/history/workspaces/<name>/.zsh_history` (bind: `$ORCAN_DATA/history`) |
 | `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Pod `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |
 | `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Ta sama tożsamość commitów co użytkownik hosta |
 | `SSH_AUTH_SOCK` | Agent hosta (tylko z `orcan up --with-git`) |

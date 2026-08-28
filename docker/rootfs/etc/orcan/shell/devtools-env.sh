@@ -28,8 +28,20 @@ export GOCACHE="${GOCACHE:-${XDG_CACHE_HOME}/go-build}"
 export GOMODCACHE="${GOMODCACHE:-${GOPATH}/pkg/mod}"
 export TURBO_CACHE_DIR="${TURBO_CACHE_DIR:-${XDG_CACHE_HOME}/turbo}"
 
-# Shell history under $HOME (Compose bind: $ORCAN_DATA/history)
-export HISTFILE="${HISTFILE:-${HOME}/.local/share/orcan/history/.zsh_history}"
+# Shell history under $HOME (Compose bind: $ORCAN_DATA/history).
+# Per-workspace files when ORCAN_WORKSPACE_NAME / WORKSPACE_NAME is set —
+# see workspace-history.sh (tmux session attach sets both).
+_orcan_hist_root="${HOME}/.local/share/orcan/history"
+if [[ -f /etc/orcan/shell/workspace-history.sh ]]; then
+    # shellcheck source=/etc/orcan/shell/workspace-history.sh
+    . /etc/orcan/shell/workspace-history.sh
+fi
+if declare -F orcan_apply_workspace_histfile >/dev/null 2>&1; then
+    orcan_apply_workspace_histfile || export HISTFILE="${HISTFILE:-${_orcan_hist_root}/.zsh_history}"
+else
+    export HISTFILE="${HISTFILE:-${_orcan_hist_root}/.zsh_history}"
+fi
+unset _orcan_hist_root
 
 # pytest: do not create .pytest_cache/ inside repos (append if user already set opts)
 _orcan_pytest_no_cache="-p no:cacheprovider"

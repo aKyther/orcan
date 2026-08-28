@@ -23,6 +23,7 @@ Short index for **finding the right place to edit** — and the doc that explain
 | Config schema / wizard | `scripts/repository/config-*.py`, `apply-config.py` | [Config reference](reference/configuration.md), [Config guide](getting-started/configuration.md) |
 | Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` | [Context Assertions](ideas/context-assertions.md) |
 | Managed workspaces / worktrees | `scripts/repository/managed_workspace.py`, `git_worktrees.py` | [Workspaces](concepts/workspaces.md), [Runtime reconcile](ideas/runtime-reconcile.md) |
+| Host workspace reconcile / doctor audit | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; `docker/rootfs/usr/local/lib/orcan/reconcile.py` | [Runtime reconcile](ideas/runtime-reconcile.md), [CLI](reference/cli.md) |
 | Container runtime binaries | `docker/rootfs/usr/local/bin/` | [Docker](reference/docker.md), [Interface](interface.md) |
 | Image packages / agents | `Dockerfile` | [Docker](reference/docker.md), [Deployment](deployment.md) |
 | Terminal look (ttyd / tmux / zsh / …) | `docker/rootfs/` (see Terminal UI map) | [Terminal UI](guides/terminal-ui.md) |

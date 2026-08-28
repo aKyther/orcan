@@ -153,6 +153,39 @@ orcan_cmd_doctor() {
         check "docker daemon" "0" "needed for: orcan up"
     fi
 
+    printf '\nWorkspace mapping\n'
+    local runtime_cfg="${ORCAN_CONFIG_HOST:-${ORCAN_RUNTIME_DIR}/runtime-config.json}"
+    if [[ -f "${runtime_cfg}" ]]; then
+        local audit_container="" audit_level audit_label audit_detail
+        if orcan_have docker; then
+            orcan_load_env 2>/dev/null || true
+            local audit_cname
+            audit_cname="$(orcan_container_name 2>/dev/null || true)"
+            if [[ -n "${audit_cname}" ]] && orcan_container_is_running "${audit_cname}"; then
+                audit_container="${audit_cname}"
+            fi
+        fi
+        while IFS=$'\t' read -r audit_level audit_label audit_detail; do
+            [[ -z "${audit_level}" ]] && continue
+            case "${audit_level}" in
+                ok) check "${audit_label}" "1" "${audit_detail}" ;;
+                warn) check "${audit_label}" "1" "WARN: ${audit_detail}" ;;
+                fail) check "${audit_label}" "0" "${audit_detail}" ;;
+            esac
+        done < <(
+            ORCAN_HOME="${ORCAN_HOME}" \
+                ORCAN_DATA="${ORCAN_DATA:-}" \
+                ORCAN_PROJECTS_ROOT="${ORCAN_PROJECTS_ROOT:-}" \
+                ORCAN_COMPOSE_PROJECTS="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_RUNTIME_DIR}/compose-projects.generated.yml}" \
+                orcan_host_python "${ORCAN_SCRIPTS}/workspace-audit.py" \
+                    --home "${ORCAN_HOME}" \
+                    --container "${audit_container}" \
+                    --format doctor 2>/dev/null
+        )
+    else
+        check "workspace mapping" "1" "no runtime config — run: orcan sync"
+    fi
+
     printf '\nContext\n'
     if [[ -f "${ORCAN_HOME}/workspaces/index.json" ]]; then
         local hook_lines

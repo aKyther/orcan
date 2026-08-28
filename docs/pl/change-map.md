@@ -23,6 +23,7 @@ Krótki indeks **gdzie edytować** — i który doc to wyjaśnia. Orientacja age
 | Schemat config / wizard | `scripts/repository/config-*.py`, `apply-config.py` | [Referencja konfiguracji](reference/configuration.md), [Przewodnik](getting-started/configuration.md) |
 | Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` | [Context Assertions](ideas/context-assertions.md) |
 | Managed workspaces / worktrees | `scripts/repository/managed_workspace.py`, `git_worktrees.py` | [Workspaces](concepts/workspaces.md), [Runtime reconcile](ideas/runtime-reconcile.md) |
+| Reconcile host / audit workspace | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; `docker/rootfs/usr/local/lib/orcan/reconcile.py` | [Runtime reconcile](ideas/runtime-reconcile.md), [CLI](reference/cli.md) |
 | Binaria runtime w kontenerze | `docker/rootfs/usr/local/bin/` | [Docker](reference/docker.md), [Interfejs](interface.md) |
 | Pakiety obrazu / agenci | `Dockerfile` | [Docker](reference/docker.md), [Wdrożenie](deployment.md) |
 | Wygląd terminala (ttyd / tmux / zsh / …) | `docker/rootfs/` (mapa w Terminal UI) | [Terminal UI](guides/terminal-ui.md) |
