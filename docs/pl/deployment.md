@@ -35,19 +35,21 @@ Docs używają [mike](https://github.com/jimporter/mike) + selektora wersji Mate
 
 | Alias / wersja | Znaczenie | Typowy URL |
 | --- | --- | --- |
-| `latest` | Ostatni **release** (git tag) | https://akyther.github.io/orcan/latest/ |
-| `0.1.0` | Snapshot SemVer | https://akyther.github.io/orcan/0.1.0/ |
-| `dev` | Tip `main` (nieopublikowane) | https://akyther.github.io/orcan/dev/ |
+| `latest` | Bieżący czubek `main` — domyślna strona lądowania | https://akyther.github.io/orcan/latest/ |
+| `0.1.0` | Przypięty snapshot dla tego SemVer, z `make release` | https://akyther.github.io/orcan/0.1.0/ |
+| `26.3` | Alias do tego samego snapshotu (etykieta CalVer) | https://akyther.github.io/orcan/26.3/ |
 | `/` | Redirect do aliasu domyślnego (`latest`) | https://akyther.github.io/orcan/ |
 
-Strony PL: `/latest/pl/`, `/0.1.0/pl/` itd.
+`latest` oznacza tutaj „co jest teraz na `main`”, nie „ostatni release” —
+patrz [Proces wydania](development/release.md) po pełny podział
+`make tag` / `make release`. Strony PL: `/latest/pl/`, `/0.1.0/pl/` itd.
 
 ### Co publikuje co
 
 | Zdarzenie Git | Akcja docs |
 | --- | --- |
-| Push tagu `vX.Y.Z` | `mike deploy X.Y.Z` + alias `latest` + set-default (workflow Release) |
-| Push na `main` | `mike deploy` alias `dev` (CI) |
+| Push tagu `vX.Y.Z` (z `make release`) | `mike deploy X.Y.Z` + alias `YY.Q` (workflow Release) — `latest` bez zmian |
+| Push na `main` | `mike deploy` alias `latest` + set-default (CI) |
 | Pull request | Tylko build/check — **bez** publish |
 
 CI `docs-dev` i Release dzielą grupę concurrency `docs-gh-pages`, żeby nie pchać brancha jednocześnie. `docs-mike.sh` przed każdym deployem ponownie pobiera `gh-pages` i przy odrzuceniu pusha robi retry.
@@ -56,7 +58,7 @@ CI `docs-dev` i Release dzielą grupę concurrency `docs-gh-pages`, żeby nie pc
 
 ```bash
 DOCS_MIKE_PUSH=0 make docs-mike-release
-DOCS_MIKE_PUSH=0 make docs-mike-dev
+DOCS_MIKE_PUSH=0 make docs-mike-latest
 ./scripts/repository/docs-mike.sh list
 ```
 
@@ -72,7 +74,7 @@ Bez orphan wipe — mike trzyma wszystkie wersje na branchu.
 
 Użyj **dropdownu wersji** w nagłówku razem z **Language**:
 
-- **Dropdown wersji docs** — lista `latest`, `dev` i folderów SemVer z
+- **Dropdown wersji docs** — lista `latest`, folderów SemVer i ich aliasów `YY.Q` z
   [versions.json](https://akyther.github.io/orcan/versions.json). Działa na
   GitHub Pages **oraz** przy lokalnym `mkdocs serve` (pobiera opublikowany JSON).
   Przy przełączaniu zachowuje ścieżkę strony (np. Instalacja → ta sama strona na `2.0.0`).

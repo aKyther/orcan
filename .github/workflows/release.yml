@@ -61,6 +61,19 @@ jobs:
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "Resolved ${tag} → ${tag_v}"
 
+          # Cosmetic label only (release title + extra docs alias) — CalVer
+          # never replaces vX.Y.Z as the source of truth (orcan update/
+          # downgrade and this workflow's trigger both still key off it).
+          # `make release` drops a "## YY.Q — DATE" divider in CHANGELOG.md
+          # directly above this version's "## [X.Y.Z]" section; read it
+          # back from the tagged tree. Empty for pre-CalVer tags.
+          calver="$(awk -v target="## [${tag_v}]" '
+              /^## [0-9][0-9]\.[0-9]+ /{cv=$2}
+              index($0, target) == 1 {print cv; exit}
+          ' CHANGELOG.md)"
+          echo "calver=${calver}" >> "$GITHUB_OUTPUT"
+          [[ -n "${calver}" ]] && echo "CalVer label: ${calver}" || echo "No CalVer label for ${tag} (pre-scheme tag)"
+
       - name: Fetch gh-pages
         run: git fetch origin gh-pages --force || echo "gh-pages not present yet"
 
@@ -83,14 +96,14 @@ jobs:
       - name: Deploy versioned docs (mike)
         env:
           DOCS_MIKE_PUSH: "1"
-        run: ./scripts/repository/docs-mike.sh release "${{ steps.ver.outputs.version }}"
+        run: ./scripts/repository/docs-mike.sh release "${{ steps.ver.outputs.version }}" "${{ steps.ver.outputs.calver }}"
 
       - name: Create GitHub Release
         if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
-          name: Orcan v${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.calver && format('Orcan {0} (v{1})', steps.ver.outputs.calver, steps.ver.outputs.version) || format('Orcan v{0}', steps.ver.outputs.version) }}
           generate_release_notes: true
           body: |
             ## Install / upgrade

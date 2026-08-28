@@ -35,19 +35,22 @@ Docs use [mike](https://github.com/jimporter/mike) + Material’s version select
 
 | Alias / version | Meaning | Typical URL |
 | --- | --- | --- |
-| `latest` | Last **release** (git tag) | https://akyther.github.io/orcan/latest/ |
-| `0.1.0` | Snapshot for that SemVer | https://akyther.github.io/orcan/0.1.0/ |
-| `dev` | Tip of `main` (unreleased) | https://akyther.github.io/orcan/dev/ |
+| `latest` | Rolling tip of `main` — default landing page | https://akyther.github.io/orcan/latest/ |
+| `0.1.0` | Pinned snapshot for that SemVer, from a `make release` | https://akyther.github.io/orcan/0.1.0/ |
+| `26.3` | Alias to that same release's snapshot (its CalVer label) | https://akyther.github.io/orcan/26.3/ |
 | `/` | Redirects to default alias (`latest`) | https://akyther.github.io/orcan/ |
 
-Polish pages live under the same version prefix, e.g. `/latest/pl/`, `/0.1.0/pl/`.
+`latest` here means "what's on `main` right now", not "last release" —
+see [Release process](development/release.md) for the full `make tag` /
+`make release` split. Polish pages live under the same version prefix,
+e.g. `/latest/pl/`, `/0.1.0/pl/`.
 
 ### What publishes what
 
 | Git event | Docs action |
 | --- | --- |
-| Push tag `vX.Y.Z` | `mike deploy X.Y.Z` + alias `latest` + set-default (Release workflow) |
-| Push to `main` | `mike deploy` alias `dev` (CI) |
+| Push tag `vX.Y.Z` (from `make release`) | `mike deploy X.Y.Z` + alias `YY.Q` (Release workflow) — `latest` untouched |
+| Push to `main` | `mike deploy` alias `latest` + set-default (CI) |
 | Pull request | Build/check only — **no** publish |
 
 CI `docs-dev` and Release share concurrency group `docs-gh-pages` so they do not push the branch at the same time. `docs-mike.sh` also re-fetches `gh-pages` before each deploy and retries on push rejection.
@@ -56,7 +59,7 @@ CI `docs-dev` and Release share concurrency group `docs-gh-pages` so they do not
 
 ```bash
 DOCS_MIKE_PUSH=0 make docs-mike-release   # VERSION → local gh-pages only
-DOCS_MIKE_PUSH=0 make docs-mike-dev
+DOCS_MIKE_PUSH=0 make docs-mike-latest
 ./scripts/repository/docs-mike.sh list
 ```
 
@@ -72,7 +75,7 @@ Do **not** use orphan wipe deploys; mike keeps all versions on that branch.
 
 Use the header **version dropdown** together with **Language**:
 
-- **Docs version dropdown** — lists `latest`, `dev`, and SemVer folders from
+- **Docs version dropdown** — lists `latest`, SemVer folders, and their `YY.Q` aliases from
   [versions.json](https://akyther.github.io/orcan/versions.json). Works on
   GitHub Pages **and** on local `mkdocs serve` (fetches the published JSON).
   Keeps the current page path when switching (e.g. Installation → same page on `2.0.0`).

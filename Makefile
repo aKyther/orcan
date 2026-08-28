@@ -17,8 +17,8 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 .PHONY: help deprecate-user \
 	validate test test-host test-path-parity dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
-	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-dev docs-mike-release \
-	version bump-patch bump-minor bump-major release-tag release-push release \
+	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release \
+	version bump-patch bump-minor bump-major tag release release-tag release-push \
 	registry-show registry-login publish pull \
 	setup env build rebuild build-claude rebuild-claude build-cursor rebuild-cursor \
 	terminal terminal-docker terminal-url \
@@ -139,42 +139,45 @@ docs-check: docs-venv docs-llms ## Strict docs build + product-name check
 	@$(DOCS_MKDOCS) build --strict
 	@printf 'docs-check OK\n'
 
-docs-mike-dev: docs-venv ## Deploy mike alias "dev"
-	@./scripts/repository/docs-mike.sh dev
+docs-mike-latest: docs-venv ## Deploy mike alias "latest" (rolling tip of main)
+	@./scripts/repository/docs-mike.sh latest
 
-docs-mike-release: docs-venv ## Deploy mike version from pyproject + latest
+docs-mike-release: docs-venv ## Deploy mike version from pyproject (called by `make release`)
 	@./scripts/repository/docs-mike.sh release "$$(./scripts/repository/release.sh print | tr -d '[:space:]')"
 
 docs-publish: ## Trigger CI docs deploy
 	@if ! command -v gh >/dev/null 2>&1; then \
-		printf 'gh CLI required, or run: make docs-mike-dev / docs-mike-release\n' >&2; \
+		printf 'gh CLI required, or run: make docs-mike-latest / docs-mike-release\n' >&2; \
 		exit 1; \
 	fi
 	@gh workflow run ci.yml
-	@printf 'Triggered CI (checks + docs-dev on main).\n'
+	@printf 'Triggered CI (checks + docs "latest" deploy on main).\n'
 
 docs-deploy: docs-publish ## Alias for docs-publish
 
 version: ## Show product version (cockpit/pyproject.toml)
 	@./scripts/repository/release.sh show
 
-bump-patch: ## Bump product version patch (pyproject + synced copies)
+bump-patch: ## Low-level: bump product version patch (prefer `make tag`)
 	@./scripts/repository/release.sh bump patch
 
-bump-minor: ## Bump product version minor (pyproject + synced copies)
+bump-minor: ## Low-level: bump product version minor (prefer `make tag`)
 	@./scripts/repository/release.sh bump minor
 
-bump-major: ## Bump product version major (pyproject + synced copies)
+bump-major: ## Low-level: bump product version major (prefer `make tag`)
 	@./scripts/repository/release.sh bump major
 
-release-tag: ## Create annotated git tag from pyproject version
+tag: ## Checkpoint: bump + CHANGELOG cut + commit + LOCAL tag vX.Y.Z (not pushed; PART=patch|minor|major)
+	@./scripts/repository/release.sh checkpoint $(or $(PART),patch)
+
+release: ## The real, deliberate release: CalVer divider + tag + push vX.Y.Z (Q=YY.Q, default: current quarter)
+	@./scripts/repository/release.sh release $(Q)
+
+release-tag: ## Low-level: create annotated git tag from pyproject version
 	@./scripts/repository/release.sh tag
 
-release-push: ## Push version tag to origin
+release-push: ## Low-level: push version tag to origin
 	@./scripts/repository/release.sh push-tag
-
-release: ## Tag + push → GitHub Release
-	@./scripts/repository/release.sh release
 
 registry-show: ## Show local/remote image names
 	@./scripts/repository/registry.sh show

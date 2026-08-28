@@ -2,9 +2,14 @@
 # Deploy versioned MkDocs docs with mike (Material version selector).
 # Host-only — publishes to the gh-pages branch (does not use force_orphan).
 #
+# "latest" is the rolling tip of main (deployed on every push, default
+# landing page) — NOT "most recent release". A real `make release` only
+# adds its own pinned snapshot (X.Y.Z + an optional CalVer alias); it
+# never touches "latest".
+#
 # Usage:
-#   ./scripts/repository/docs-mike.sh release <X.Y.Z>   # version + alias latest + set-default
-#   ./scripts/repository/docs-mike.sh dev               # tip-of-tree alias "dev"
+#   ./scripts/repository/docs-mike.sh latest               # rolling tip-of-tree, sets default
+#   ./scripts/repository/docs-mike.sh release <X.Y.Z> [YY.Q]  # pinned snapshot (+ CalVer alias)
 #   ./scripts/repository/docs-mike.sh list
 #
 # Env:
@@ -113,18 +118,19 @@ cmd_list() {
     "${MIKE}" list
 }
 
-cmd_dev() {
+cmd_latest() {
     ensure_mike
     ensure_git_identity
-    printf 'Deploying docs alias: dev\n'
-    mike_run deploy "${push_flags[@]}" --update-aliases dev
-    printf 'OK: docs alias "dev" updated\n'
-    printf 'URL: https://akyther.github.io/orcan/dev/\n'
+    printf 'Deploying docs alias: latest (rolling tip of main)\n'
+    mike_run deploy "${push_flags[@]}" --update-aliases latest
+    mike_run set-default "${push_flags[@]}" latest
+    printf 'OK: docs alias "latest" updated (default)\n'
+    printf 'URL: https://akyther.github.io/orcan/latest/\n'
 }
 
 cmd_release() {
-    local ver="${1:-}"
-    [[ -n "${ver}" ]] || die "usage: docs-mike.sh release <X.Y.Z>"
+    local ver="${1:-}" calver="${2:-}"
+    [[ -n "${ver}" ]] || die "usage: docs-mike.sh release <X.Y.Z> [YY.Q]"
     [[ "${ver}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "version must be SemVer X.Y.Z (got: ${ver})"
 
     local file_v
@@ -134,31 +140,33 @@ cmd_release() {
         die "cockpit/pyproject.toml (${file_v}) != release argument (${ver})"
     fi
 
+    local aliases=()
+    [[ -n "${calver}" ]] && aliases=("${calver}")
+
     ensure_mike
     ensure_git_identity
-    printf 'Deploying docs version %s (alias latest)\n' "${ver}"
-    mike_run deploy "${push_flags[@]}" --update-aliases "${ver}" latest
-    mike_run set-default "${push_flags[@]}" latest
-    printf 'OK: docs %s → latest (default)\n' "${ver}"
-    printf 'URL: https://akyther.github.io/orcan/latest/\n'
-    printf '     https://akyther.github.io/orcan/%s/\n' "${ver}"
+    printf 'Deploying docs version %s%s (does not touch "latest")\n' "${ver}" "${calver:+ + alias ${calver}}"
+    mike_run deploy "${push_flags[@]}" --update-aliases "${ver}" "${aliases[@]}"
+    printf 'OK: docs %s deployed\n' "${ver}"
+    printf 'URL: https://akyther.github.io/orcan/%s/\n' "${ver}"
+    [[ -n "${calver}" ]] && printf '     https://akyther.github.io/orcan/%s/\n' "${calver}"
 }
 
 usage() {
     cat <<'EOF'
-Usage: docs-mike.sh <release|dev|list> [version]
+Usage: docs-mike.sh <latest|release|list> [version] [calver]
 
-  release X.Y.Z  Deploy SemVer docs + alias latest + set-default
-  dev            Deploy/update alias "dev" from the current tree
-  list           Show mike versions on gh-pages
+  latest           Deploy/update rolling alias "latest" from the current tree + set default
+  release X.Y.Z [YY.Q]  Deploy a pinned SemVer snapshot (+ optional CalVer alias)
+  list             Show mike versions on gh-pages
 
 Set DOCS_MIKE_PUSH=0 to commit locally without pushing.
 EOF
 }
 
 case "${1:-}" in
-    release) cmd_release "${2:-}" ;;
-    dev) cmd_dev ;;
+    release) cmd_release "${2:-}" "${3:-}" ;;
+    latest) cmd_latest ;;
     list) cmd_list ;;
     -h|--help|help|"") usage; [[ -n "${1:-}" ]] || exit 1 ;;
     *) die "unknown command: $1" ;;
