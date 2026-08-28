@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`make tag` / `make release` split** — routine commits no longer imply a
+  version bump or tag. `make tag` is a frequent, personal SemVer checkpoint
+  (bump + CHANGELOG cut + commit + tag, fully pushed under
+  `checkpoint/vX.Y.Z` so it can never become an `orcan update`/`downgrade`
+  target or trigger `release.yml`). `make release` is the rare, deliberate
+  public stop, labeled CalVer `YY.Q` (e.g. `26.3`): ensures a real bare
+  `vX.Y.Z` tag, adds its own CalVer tag at the same commit, groups every
+  checkpoint since the last release under one CHANGELOG divider, and drives
+  docs (`latest` now tracks rolling `main`; a release adds its own
+  `X.Y.Z` snapshot + `YY.Q` alias, never touching `latest`). See
+  [Release process](docs/en/development/release.md).
+
 ## [3.0.5] - 2026-08-27
 
 ### Fixed

@@ -191,6 +191,14 @@ current_branch() {
 cmd_checkpoint() {
     local part="${1:-patch}"
     require_clean_tree
+
+    # Validate everything that can fail *before* touching any file —
+    # a checkpoint that dies partway must never leave a half-bumped,
+    # uncommitted working tree behind.
+    local body
+    body="$(changelog_unreleased_body | sed '/^[[:space:]]*$/d')"
+    [[ -n "${body}" ]] || die "${CHANGELOG}: [Unreleased] is empty — nothing to checkpoint"
+
     local old new today
     old="$(read_version)"
     new="$(bump_semver "${part}")"
@@ -200,6 +208,7 @@ cmd_checkpoint() {
     if git rev-parse "checkpoint/v${new}" >/dev/null 2>&1; then
         die "tag checkpoint/v${new} already exists"
     fi
+
     write_version "${new}"
     sync_version_displays "${old}" "${new}"
     today="$(date +%F)"
@@ -226,6 +235,12 @@ cmd_release() {
     local calver="${1:-$(compute_calver)}"
     [[ "${calver}" =~ ^[0-9]{2}\.[0-9]+$ ]] || die "release label must look like YY.Q (got: ${calver})"
     require_clean_tree
+    # Validate everything that can fail *before* committing/tagging
+    # anything — a reused label must not leave a half-finished release
+    # (an extra local commit or tag) behind.
+    if git rev-parse "${calver}" >/dev/null 2>&1; then
+        die "tag ${calver} already exists — pick a different release label"
+    fi
 
     local unreleased
     unreleased="$(changelog_unreleased_body | sed '/^[[:space:]]*$/d')"
@@ -249,10 +264,7 @@ cmd_release() {
     # Plus its own CalVer tag — a second, human-named pointer at the same
     # commit ("from here to here is release 26.3"). Bare (no "v" prefix),
     # so it can't collide with vX.Y.Z matching in cli/lib/git.sh or with
-    # release.yml's "v*.*.*" tag-push trigger.
-    if git rev-parse "${calver}" >/dev/null 2>&1; then
-        die "tag ${calver} already exists — pick a different release label"
-    fi
+    # release.yml's "v*.*.*" tag-push trigger. Already confirmed free above.
     git tag -a "${calver}" -m "orcan release ${calver} (v${v})"
 
     git push origin "$(current_branch)"
