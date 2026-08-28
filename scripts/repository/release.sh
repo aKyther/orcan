@@ -19,7 +19,7 @@
 #   - `release` (make release): the rare, deliberate public stop, labeled
 #     CalVer YY.Q (e.g. 26.3). Ensures a real, pushed bare vX.Y.Z tag
 #     exists for the commit being released (creating one if `make tag`
-#     hasn't already) — that's what CI, `orcan update`/`downgrade`, and
+#     hasn't already) — that's what CI, `orcan upgrade`/`downgrade`, and
 #     GitHub Releases key off, unchanged. On top of it, pushes a second,
 #     bare CalVer tag (e.g. "26.3") at the same commit — a human-named
 #     "everything from here to here is release 26.3" pointer, plus a
@@ -179,9 +179,9 @@ current_branch() {
 # make tag: a personal, frequent stop, fully pushed (commit + tag) —
 # nothing hidden on your machine only. Safe because checkpoint tags live
 # in their own "checkpoint/vX.Y.Z" namespace, never bare "vX.Y.Z":
-#   - orcan update/downgrade (cli/lib/git.sh) only ever look for tags
+#   - orcan upgrade/downgrade (cli/lib/git.sh) only ever look for tags
 #     matching ^v[0-9]+\.[0-9]+\.[0-9]+$ — "checkpoint/..." never matches,
-#     so a checkpoint can never become an update/downgrade target.
+#     so a checkpoint can never become an upgrade/downgrade target.
 #   - release.yml's trigger glob "v*.*.*" requires the tag to literally
 #     start with "v" — "checkpoint/..." doesn't, so pushing one can't
 #     fire the release pipeline either.

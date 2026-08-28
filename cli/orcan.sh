@@ -33,7 +33,8 @@ Commands:
   url          Print browser terminal URL
   logs         Follow container logs
   enter        Local terminal into the container (alias: go-in)
-  update       Checkout newest release tag (--main / --to VERSION)
+  update       Dev channel: fast-forward to origin/main
+  upgrade      Release channel: checkout newest release tag (or --to VERSION)
   downgrade    Previous release (or --to VERSION)
   doctor       Check host dependencies and config
   uninstall    Remove the CLI install (optional --purge-data)
@@ -68,7 +69,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | migrate | context | settings | up | down | build | pull | publish | url | logs | seed | update | downgrade | doctor | uninstall | enter | go-in)
+        init | sync | migrate | context | settings | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | uninstall | enter | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;

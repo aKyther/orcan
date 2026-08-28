@@ -78,7 +78,7 @@ class GitReleaseHelperTests(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertEqual(r.stdout.strip(), "v0.2.0")
 
-            r = _bash('orcan_git_update to 0.1.0', env=env)
+            r = _bash('orcan_git_upgrade to 0.1.0', env=env)
             self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
             desc = subprocess.check_output(
                 ["git", "-C", str(root), "describe", "--tags", "--exact-match"],
@@ -124,6 +124,40 @@ class GitReleaseHelperTests(unittest.TestCase):
             r = _bash("orcan_git_downgrade", env=env)
             self.assertNotEqual(r.returncode, 0)
             self.assertIn("not on a release tag", r.stderr)
+
+
+class UpdateDowngradeCliTests(unittest.TestCase):
+    def _cli(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [str(ROOT / "bin" / "orcan"), *args],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            env={**os.environ, "ORCAN_NO_COLOR": "1"},
+            check=False,
+        )
+
+    def test_help_documents_version_pin_commands(self) -> None:
+        update = self._cli("update", "--help")
+        upgrade = self._cli("upgrade", "--help")
+        downgrade = self._cli("downgrade", "--help")
+        self.assertEqual(update.returncode, 0, update.stderr)
+        self.assertEqual(upgrade.returncode, 0, upgrade.stderr)
+        self.assertEqual(downgrade.returncode, 0, downgrade.stderr)
+        self.assertIn("Dev channel", update.stdout)
+        self.assertIn("--to VERSION", upgrade.stdout)
+        self.assertIn("upgrade", upgrade.stdout)
+        self.assertIn("previous SemVer release", downgrade.stdout)
+
+    def test_update_rejects_release_only_arguments(self) -> None:
+        result = self._cli("update", "--main")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unknown argument", result.stderr)
+
+    def test_downgrade_requires_version_after_to(self) -> None:
+        result = self._cli("downgrade", "--to")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--to needs a version", result.stderr)
 
 
 if __name__ == "__main__":

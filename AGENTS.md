@@ -156,13 +156,13 @@ this" / "test this":
   `[X.Y.Z]` + commits + tags, **fully pushed** (commit and tag both
   reach origin — nothing local-only). The tag lives under
   `checkpoint/vX.Y.Z`, not bare `vX.Y.Z`, so it stays invisible to
-  `orcan update`/`downgrade` (they only match `^v[0-9]+\.[0-9]+\.[0-9]+$`)
+  `orcan upgrade`/`downgrade` (they only match `^v[0-9]+\.[0-9]+\.[0-9]+$`)
   and to `release.yml`'s `v*.*.*` trigger — a checkpoint can never become
   an update target or fire a release on its own.
 - `make release` (`Q=YY.Q`, default: current quarter) — the rare,
   deliberate public stop. Ensures a real, pushed bare `vX.Y.Z` tag
   exists (creating one if `make tag` hasn't already — this is what CI /
-  `orcan update`/`downgrade` / GitHub Releases key off, unchanged),
+  `orcan upgrade`/`downgrade` / GitHub Releases key off, unchanged),
   pushes a second bare CalVer tag (e.g. `26.3`) at the same commit, and
   adds a CHANGELOG divider + extra mike docs alias.
 

@@ -216,13 +216,13 @@ Mounted project repos are untouched unless you delete them yourself.
 
 ```bash
 cd /absolute/path/to/orcan
-orcan update                # newest GitHub Release tag (vX.Y.Z)
-# orcan update --to v0.2.0  # pin a specific release (up or down)
-# orcan update --main       # follow main instead
-orcan downgrade             # one SemVer step back (bad release escape hatch)
+orcan upgrade                # newest GitHub Release tag (vX.Y.Z)
+# orcan upgrade --to v0.2.0  # pin a specific release (up or down)
+# orcan update               # dev channel: follow main instead
+orcan downgrade              # one SemVer step back (bad release escape hatch)
 # orcan downgrade --to v0.1.0
-orcan sync                  # if config schema changed
-orcan build --force         # if Dockerfile/rootfs changed
+orcan sync                   # if config schema changed
+orcan build --force          # if Dockerfile/rootfs changed
 orcan down && orcan up
 ```
 

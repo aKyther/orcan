@@ -304,7 +304,7 @@ else:
     fi
 
     printf '\n'
-    orcan_maybe_hint_update
+    orcan_maybe_hint_upgrade
 
     if (( fail > 0 )); then
         orcan_error "${fail} check(s) failed, ${pass} passed"

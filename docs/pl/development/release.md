@@ -5,7 +5,7 @@
 | Co robisz | Docs / produkt |
 | --- | --- |
 | PR → merge do `main` | Aktualizuje się alias docs **`latest`** (bieżący czubek main). Bez nowego taga. Bez GitHub Release. |
-| `make tag` — Twój checkpoint | Podbija SemVer, przenosi `[Unreleased]` w `CHANGELOG.md` do `[X.Y.Z]`, commit + tag, **w pełni pushowane** — ale tag żyje pod `checkpoint/vX.Y.Z`, nie gołym `vX.Y.Z`, więc nie może odpalić release'u ani stać się celem update'u. |
+| `make tag` — Twój checkpoint | Podbija SemVer, przenosi `[Unreleased]` w `CHANGELOG.md` do `[X.Y.Z]`, commit + tag, **w pełni pushowane** — ale tag żyje pod `checkpoint/vX.Y.Z`, nie gołym `vX.Y.Z`, więc nie może odpalić release'u ani stać się celem upgrade'u. |
 | `make release` — właściwy, świadomy stop | Upewnia się, że istnieje realny, pushnięty goły tag `vX.Y.Z`, dokłada własny tag CalVer (`26.3`) na tym samym commicie, separator w CHANGELOG nad wszystkim, co się nazbierało od ostatniego release'u, GitHub Release, snapshot docs `X.Y.Z` (+ alias `26.3`). |
 
 `latest` = „co jest teraz na main” (rolling — zastępuje dawną nazwę aliasu `dev`).
@@ -17,8 +17,8 @@ na innym komputerze — nigdy nie ruszają wersji ani tagów. Robią to wyłącz
 
 ## Model
 
-- SemVer w `cockpit/pyproject.toml` (`version = "X.Y.Z"`; root `VERSION` to zsynchronizowane lustro). Goły tag git `vX.Y.Z` to na czym opierają się `orcan update`/`orcan downgrade`, CI i GitHub Releases — tworzy go wyłącznie `make release`.
-- Tagi checkpointów (`checkpoint/vX.Y.Z`, z `make tag`) to osobna przestrzeń nazw. `orcan update`/`downgrade` dopasowują tylko `^v[0-9]+\.[0-9]+\.[0-9]+$`, a `release.yml` odpala się tylko na `v*.*.*` — żadne z nich nie dopasuje tagu `checkpoint/...`, więc checkpointy są w pełni pushowane i widoczne na GitHubie, nigdy nie będąc kandydatem na release/update.
+- SemVer w `cockpit/pyproject.toml` (`version = "X.Y.Z"`; root `VERSION` to zsynchronizowane lustro). Goły tag git `vX.Y.Z` to na czym opierają się `orcan upgrade`/`orcan downgrade`, CI i GitHub Releases — tworzy go wyłącznie `make release`.
+- Tagi checkpointów (`checkpoint/vX.Y.Z`, z `make tag`) to osobna przestrzeń nazw. `orcan upgrade`/`downgrade` dopasowują tylko `^v[0-9]+\.[0-9]+\.[0-9]+$`, a `release.yml` odpala się tylko na `v*.*.*` — żadne z nich nie dopasuje tagu `checkpoint/...`, więc checkpointy są w pełni pushowane i widoczne na GitHubie, nigdy nie będąc kandydatem na release/upgrade.
 - CalVer (`YY.Q`, np. `26.3`) dostaje przy release'ie własny, goły tag — „wszystko stąd dotąd to release 26.3” — plus separator `## YY.Q — DATA` w `CHANGELOG.md`, dodatkowy alias w `mike`, tytuł GitHub Release. To drugi, nazwany po ludzku wskaźnik na ten sam commit co tag `vX.Y.Z` release'u, nie jego zamiennik.
 - Wersjonowane docs przez **mike**: `latest` (rolling), `X.Y.Z` (każdy release), `YY.Q` (alias do tego samego release'u).
 - **Brak** publikacji obrazu kontenera z CI.
@@ -39,7 +39,7 @@ Podbija `cockpit/pyproject.toml` + zsynchronizowane kopie, przenosi
 zawartość `## [Unreleased]` w `CHANGELOG.md` do nowej sekcji
 `## [X.Y.Z] - DATA`, commituje (`chore: checkpoint vX.Y.Z`), taguje jako
 `checkpoint/vX.Y.Z` i pushuje oba — commit i tag, nic nie zostaje
-lokalnie. Wciąż jest niewidoczny dla `orcan update`/`downgrade` i
+lokalnie. Wciąż jest niewidoczny dla `orcan upgrade`/`downgrade` i
 `release.yml` (patrz Model wyżej), więc push nie może odpalić release'u
 ani publikacji docs; job `checks` w CI i tak testuje commit (odpala się
 na każdy push do `main`, niezależnie od tagów).
