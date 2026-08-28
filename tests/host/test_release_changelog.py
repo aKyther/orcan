@@ -104,6 +104,9 @@ class ReleaseFixture:
         )
         return proc.stdout.strip()
 
+    def is_clean(self) -> bool:
+        return run(["git", "status", "--porcelain"], cwd=self.root).stdout == ""
+
 
 class CheckpointTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -117,6 +120,11 @@ class CheckpointTests(unittest.TestCase):
         proc = self.fx.sh("checkpoint", "patch", check=False)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("nothing to checkpoint", proc.stderr)
+        # A checkpoint that dies on validation must leave zero residue —
+        # regression: this used to bump/write version files (and leave
+        # them uncommitted) *before* checking Unreleased had content.
+        self.assertEqual(self.fx.sh("print").stdout.strip(), "3.0.5")
+        self.assertTrue(self.fx.is_clean(), "checkpoint left the tree dirty after failing")
 
     def test_checkpoint_bumps_cuts_and_pushes_under_checkpoint_namespace(self) -> None:
         self.fx.add_unreleased("Fixed", "a real fix")
@@ -204,9 +212,15 @@ class ReleaseTests(unittest.TestCase):
         self.fx.add_unreleased("Fixed", "first release")
         self.fx.sh("release", "26.9")
         self.fx.add_unreleased("Fixed", "second release")
+        head_before = self.fx.local_head()
         proc = self.fx.sh("release", "26.9", check=False)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("already exists", proc.stderr)
+        # Regression: this used to auto-checkpoint + commit the CHANGELOG
+        # divider + tag vX.Y.Z *before* discovering the label collision,
+        # leaving a half-finished release (extra local commit/tag) behind.
+        self.assertEqual(self.fx.local_head(), head_before, "release left an extra commit behind")
+        self.assertTrue(self.fx.is_clean(), "release left the tree dirty after failing")
 
 
 class UpdateHintSafetyTests(unittest.TestCase):
