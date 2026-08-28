@@ -58,8 +58,10 @@ orcan migrate [--yes]       # optional managed-root move (dry-run without --yes)
 ```
 
 Live reconcile often avoids recreate for projects under `$ORCAN_PROJECTS_ROOT` /
-`$ORCAN_HOME/workspaces/` — see `docs/en/ideas/runtime-reconcile.md`. Overlays that
-need recreate: `orcan down && orcan up`.
+`$ORCAN_HOME/workspaces/` — see `docs/en/ideas/runtime-reconcile.md`. **`orcan sync`**
+always reconciles workspace meta on the **host** (`reconcile-host.py`); when the
+container is up it also runs live reconcile in-container. Overlays that need recreate:
+`orcan down && orcan up`.
 
 ```text
 orcan enter → agent-launcher (cockpit) → tmux 3.6a → zsh
@@ -122,6 +124,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | --- | --- |
 | Public CLI | `bin/orcan`, `cli/` |
 | Host helpers / validate / release | `scripts/repository/` |
+| Host workspace reconcile / audit | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; core `docker/rootfs/usr/local/lib/orcan/reconcile.py` |
 | Developer UX environment | `scripts/dev/`, `make dev-*` |
 | Image filesystem / binaries | `docker/rootfs/` |
 | Image packages / agents | `Dockerfile` |
@@ -142,7 +145,26 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 `docker/rootfs/` · `cockpit/` (image venv `/opt/orcan-cockpit/venv`) ·
 `scripts/repository/` · `scripts/dev/` · `Makefile` · `docs/` · `tests/`
 
-Release (maintainers): `make bump-patch` → update `CHANGELOG.md` → commit → `make release`.
+Three tiers, on explicit maintainer request only — never implied by "fix
+this" / "test this":
+
+- Regular commits (incl. fixes pushed out just to test somewhere) do
+  **not** bump the version or tag — commit normally; `CHANGELOG.md`
+  entries stay under `[Unreleased]`.
+- `make tag` (`PART=patch|minor|major`, default patch) — a personal,
+  frequent SemVer checkpoint: bumps + moves `[Unreleased]` into
+  `[X.Y.Z]` + commits + tags, **fully pushed** (commit and tag both
+  reach origin — nothing local-only). The tag lives under
+  `checkpoint/vX.Y.Z`, not bare `vX.Y.Z`, so it stays invisible to
+  `orcan update`/`downgrade` (they only match `^v[0-9]+\.[0-9]+\.[0-9]+$`)
+  and to `release.yml`'s `v*.*.*` trigger — a checkpoint can never become
+  an update target or fire a release on its own.
+- `make release` (`Q=YY.Q`, default: current quarter) — the rare,
+  deliberate public stop. Ensures a real, pushed bare `vX.Y.Z` tag
+  exists (creating one if `make tag` hasn't already — this is what CI /
+  `orcan update`/`downgrade` / GitHub Releases key off, unchanged),
+  pushes a second bare CalVer tag (e.g. `26.3`) at the same commit, and
+  adds a CHANGELOG divider + extra mike docs alias.
 
 ---
 

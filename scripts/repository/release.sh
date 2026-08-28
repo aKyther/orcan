@@ -5,21 +5,35 @@
 # Synced copies (written by bump): root VERSION (CLI/image hot path),
 # mkdocs.yml, README, Home docs, cockpit/uv.lock package stanza.
 #
+# Two-tier model — commits are free, tags/releases are deliberate:
+#   - Regular dev commits (incl. fixes pushed out just to test somewhere)
+#     never touch version/CHANGELOG here — plain `git commit`.
+#   - `checkpoint` (make tag): a personal, frequent SemVer stop — bump +
+#     move CHANGELOG Unreleased → [X.Y.Z] + commit + tag, fully pushed
+#     (nothing local-only). The tag lives under checkpoint/vX.Y.Z, not
+#     bare vX.Y.Z — that's what keeps it invisible to orcan
+#     update/downgrade (they only match ^v[0-9]+\.[0-9]+\.[0-9]+$) and to
+#     release.yml's "v*.*.*" trigger, so a checkpoint can never become an
+#     update target or fire a release on its own. The commit is still
+#     tested by CI (`checks` runs on every push to main, tag or not).
+#   - `release` (make release): the rare, deliberate public stop, labeled
+#     CalVer YY.Q (e.g. 26.3). Ensures a real, pushed bare vX.Y.Z tag
+#     exists for the commit being released (creating one if `make tag`
+#     hasn't already) — that's what CI, `orcan update`/`downgrade`, and
+#     GitHub Releases key off, unchanged. On top of it, pushes a second,
+#     bare CalVer tag (e.g. "26.3") at the same commit — a human-named
+#     "everything from here to here is release 26.3" pointer, plus a
+#     CHANGELOG divider and an extra mike docs alias. Pushing vX.Y.Z →
+#     triggers .github/workflows/release.yml as before.
+#
 # Usage:
 #   ./scripts/repository/release.sh show
 #   ./scripts/repository/release.sh bump patch|minor|major
 #   ./scripts/repository/release.sh check
-#   ./scripts/repository/release.sh tag          # annotated tag vX.Y.Z
-#   ./scripts/repository/release.sh push-tag    # push tag to origin
-#   ./scripts/repository/release.sh release     # tag + push (clean tree required)
-#
-# Release ritual:
-#   1. Edit CHANGELOG.md (move Unreleased → version section)
-#   2. make bump-patch   # bumps pyproject + synced copies
-#   3. git add cockpit/pyproject.toml cockpit/uv.lock VERSION CHANGELOG.md \
-#        mkdocs.yml README.md docs/en/index.md docs/pl/index.md
-#   4. git commit -m "release: vX.Y.Z"
-#   5. make release      # creates vX.Y.Z and pushes → GitHub Release (no image publish)
+#   ./scripts/repository/release.sh checkpoint [patch|minor|major]  # make tag
+#   ./scripts/repository/release.sh release [YY.Q]                  # make release
+#   ./scripts/repository/release.sh tag          # low-level: annotated tag vX.Y.Z
+#   ./scripts/repository/release.sh push-tag     # low-level: push tag to origin
 
 set -Eeuo pipefail
 
@@ -29,6 +43,7 @@ cd "${ROOT_DIR}"
 PYPROJECT="${ROOT_DIR}/cockpit/pyproject.toml"
 UV_LOCK="${ROOT_DIR}/cockpit/uv.lock"
 VERSION_FILE="${ROOT_DIR}/VERSION"
+CHANGELOG="${ROOT_DIR}/CHANGELOG.md"
 
 die() {
     printf 'Error: %s\n' "$1" >&2
@@ -110,11 +125,140 @@ cmd_bump() {
     sync_version_displays "${old}" "${new}"
     printf 'Bumped (pyproject): %s → %s\n' "${old}" "${new}"
     printf 'Synced: cockpit/uv.lock, VERSION, mkdocs.yml, README.md, docs/en/index.md, docs/pl/index.md\n'
-    printf 'Next:\n'
-    printf '  1. Update CHANGELOG.md for %s (move Unreleased → [%s])\n' "${new}" "${new}"
-    printf '  2. git add cockpit/pyproject.toml cockpit/uv.lock VERSION CHANGELOG.md mkdocs.yml README.md docs/en/index.md docs/pl/index.md\n'
-    printf '  3. git commit -m "release: v%s"\n' "${new}"
-    printf '  4. make release\n'
+    printf '(Low-level — usually you want: make tag)\n'
+}
+
+# --- CHANGELOG.md surgery -----------------------------------------------
+# Convention: "## [Unreleased]" stays permanently at the top, empty
+# between checkpoints. checkpoint() renames it to "## [X.Y.Z] - DATE" and
+# opens a fresh empty one above. cut_release() leaves those version
+# sections untouched and just drops a "## YY.Q — DATE" divider above the
+# ones accumulated since the previous divider (visual grouping, no
+# heading-level surgery needed).
+
+changelog_unreleased_body() {
+    [[ -f "${CHANGELOG}" ]] || die "missing ${CHANGELOG}"
+    grep -q '^## \[Unreleased\]$' "${CHANGELOG}" || die "${CHANGELOG}: no '## [Unreleased]' heading"
+    awk '/^## \[Unreleased\]$/{f=1;next} /^## /{f=0} f' "${CHANGELOG}"
+}
+
+changelog_checkpoint() {
+    local version="$1" date="$2"
+    local body
+    body="$(changelog_unreleased_body | sed '/^[[:space:]]*$/d')"
+    [[ -n "${body}" ]] || die "${CHANGELOG}: [Unreleased] is empty — nothing to checkpoint"
+    awk -v ver="${version}" -v d="${date}" '
+        /^## \[Unreleased\]$/ { print; print ""; print "## [" ver "] - " d; next }
+        { print }
+    ' "${CHANGELOG}" >"${CHANGELOG}.tmp" && mv "${CHANGELOG}.tmp" "${CHANGELOG}"
+}
+
+changelog_cut_release() {
+    local calver="$1" date="$2"
+    grep -q '^## \[Unreleased\]$' "${CHANGELOG}" || die "${CHANGELOG}: no '## [Unreleased]' heading"
+    awk -v cv="${calver}" -v d="${date}" '
+        /^## \[Unreleased\]$/ { print; print ""; print "## " cv " — " d; next }
+        { print }
+    ' "${CHANGELOG}" >"${CHANGELOG}.tmp" && mv "${CHANGELOG}.tmp" "${CHANGELOG}"
+}
+
+# Calver label directly above a version'"'"'s "## [X.Y.Z]" section (empty if
+# that version predates this scheme, or has no release divider yet).
+changelog_calver_for() {
+    local version="$1"
+    awk -v target="## [${version}]" '
+        /^## [0-9][0-9]\.[0-9]+ /{cv=$2}
+        index($0, target) == 1 {print cv; exit}
+    ' "${CHANGELOG}"
+}
+
+current_branch() {
+    git rev-parse --abbrev-ref HEAD
+}
+
+# make tag: a personal, frequent stop, fully pushed (commit + tag) —
+# nothing hidden on your machine only. Safe because checkpoint tags live
+# in their own "checkpoint/vX.Y.Z" namespace, never bare "vX.Y.Z":
+#   - orcan update/downgrade (cli/lib/git.sh) only ever look for tags
+#     matching ^v[0-9]+\.[0-9]+\.[0-9]+$ — "checkpoint/..." never matches,
+#     so a checkpoint can never become an update/downgrade target.
+#   - release.yml's trigger glob "v*.*.*" requires the tag to literally
+#     start with "v" — "checkpoint/..." doesn't, so pushing one can't
+#     fire the release pipeline either.
+# CI's `checks` job still tests the commit (triggers on every push to
+# main, tag or not). Only a real `vX.Y.Z` tag — created solely by
+# `make release` — is ever a release candidate.
+cmd_checkpoint() {
+    local part="${1:-patch}"
+    require_clean_tree
+    local old new today
+    old="$(read_version)"
+    new="$(bump_semver "${part}")"
+    if git rev-parse "v${new}" >/dev/null 2>&1; then
+        die "tag v${new} already exists (released) — bump would reuse a shipped version"
+    fi
+    if git rev-parse "checkpoint/v${new}" >/dev/null 2>&1; then
+        die "tag checkpoint/v${new} already exists"
+    fi
+    write_version "${new}"
+    sync_version_displays "${old}" "${new}"
+    today="$(date +%F)"
+    changelog_checkpoint "${new}" "${today}"
+    git add cockpit/pyproject.toml cockpit/uv.lock VERSION CHANGELOG.md \
+        mkdocs.yml README.md docs/en/index.md docs/pl/index.md
+    git commit -m "chore: checkpoint v${new}" >/dev/null
+    git tag -a "checkpoint/v${new}" -m "orcan checkpoint v${new}"
+    git push origin "$(current_branch)"
+    git push origin "checkpoint/v${new}"
+    printf 'Checkpoint: v%s (commit + tag checkpoint/v%s pushed — CI runs tests, no release triggered)\n' "${new}" "${new}"
+}
+
+compute_calver() {
+    local q
+    q=$(( ($(date +%-m) - 1) / 3 + 1 ))
+    printf '%s.%s' "$(date +%y)" "${q}"
+}
+
+# make release: the rare, deliberate public stop. Auto-checkpoints
+# anything still sitting in Unreleased, drops a CalVer divider in the
+# CHANGELOG, tags vX.Y.Z if needed, and pushes (CI takes it from there).
+cmd_release() {
+    local calver="${1:-$(compute_calver)}"
+    [[ "${calver}" =~ ^[0-9]{2}\.[0-9]+$ ]] || die "release label must look like YY.Q (got: ${calver})"
+    require_clean_tree
+
+    local unreleased
+    unreleased="$(changelog_unreleased_body | sed '/^[[:space:]]*$/d')"
+    if [[ -n "${unreleased}" ]]; then
+        cmd_checkpoint patch
+    fi
+
+    local v today
+    v="$(read_version)"
+    today="$(date +%F)"
+    changelog_cut_release "${calver}" "${today}"
+    git add CHANGELOG.md
+    git commit -m "release: ${calver} (v${v})" >/dev/null
+
+    # Release always ships from a real, pushed SemVer tag — create it if
+    # `make tag` hasn't already (e.g. releasing straight off Unreleased).
+    if ! git rev-parse "v${v}" >/dev/null 2>&1; then
+        git tag -a "v${v}" -m "orcan v${v} — release ${calver}"
+    fi
+
+    # Plus its own CalVer tag — a second, human-named pointer at the same
+    # commit ("from here to here is release 26.3"). Bare (no "v" prefix),
+    # so it can't collide with vX.Y.Z matching in cli/lib/git.sh or with
+    # release.yml's "v*.*.*" tag-push trigger.
+    if git rev-parse "${calver}" >/dev/null 2>&1; then
+        die "tag ${calver} already exists — pick a different release label"
+    fi
+    git tag -a "${calver}" -m "orcan release ${calver} (v${v})"
+
+    git push origin "$(current_branch)"
+    git push origin "v${v}" "${calver}"
+    printf 'Released %s → v%s (both pushed)\n' "${calver}" "${v}"
+    printf 'CI: validates, deploys docs %s (+ alias %s), creates GitHub Release\n' "${v}" "${calver}"
 }
 
 # Keep display copies in sync (enforced by tests/host/test_version.py).
@@ -199,29 +343,25 @@ cmd_tag() {
 cmd_push_tag() {
     local v
     v="$(read_version)"
-    git rev-parse "v${v}" >/dev/null 2>&1 || die "tag v${v} missing — run: make release-tag"
+    git rev-parse "v${v}" >/dev/null 2>&1 || die "tag v${v} missing — run: release.sh tag"
     git push origin "v${v}"
     printf 'Pushed v%s → origin\n' "${v}"
     printf 'GitHub Actions: Release workflow validates + creates GitHub Release\n'
     printf 'Users: git checkout v%s && orcan build && orcan up\n' "${v}"
 }
 
-cmd_release() {
-    cmd_tag
-    cmd_push_tag
-}
-
 usage() {
     cat <<'EOF'
-Usage: release.sh <show|print|bump|check|tag|push-tag|release>
+Usage: release.sh <show|print|bump|check|checkpoint|release|tag|push-tag>
 
-  show       Print version (from cockpit/pyproject.toml) and local image tags
-  print      Print SemVer only (scripting)
-  bump PART  Bump SemVer in pyproject (patch|minor|major) + sync copies
-  check      Validate pyproject SemVer and VERSION mirror
-  tag        Create annotated git tag vX.Y.Z (clean tree)
-  push-tag   Push tag to origin
-  release    tag + push-tag (triggers GitHub Release; no image publish)
+  show               Print version (from cockpit/pyproject.toml) and local image tags
+  print              Print SemVer only (scripting)
+  bump PART          Low-level: bump SemVer in pyproject (patch|minor|major) + sync copies
+  check              Validate pyproject SemVer and VERSION mirror
+  checkpoint [PART]  make tag: bump + CHANGELOG cut + commit + LOCAL tag vX.Y.Z (not pushed)
+  release [YY.Q]     make release: CalVer divider in CHANGELOG + tag + push vX.Y.Z
+  tag                Low-level: create annotated git tag vX.Y.Z from current HEAD (clean tree)
+  push-tag           Low-level: push tag to origin
 EOF
 }
 
@@ -230,9 +370,10 @@ case "${1:-}" in
     print) cmd_print ;;
     bump) cmd_bump "${2:-}" ;;
     check) cmd_check ;;
+    checkpoint) cmd_checkpoint "${2:-patch}" ;;
+    release) cmd_release "${2:-}" ;;
     tag) cmd_tag ;;
     push-tag) cmd_push_tag ;;
-    release) cmd_release ;;
     -h|--help|help|"") usage; [[ -n "${1:-}" ]] || exit 1 ;;
     *) die "unknown command: $1" ;;
 esac
