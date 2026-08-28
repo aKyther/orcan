@@ -54,8 +54,10 @@ Workarounds until upstream merges:
 ## Launcher is empty / wrong projects
 
 1. Check `orcan.config.json` has `workspaces` with absolute `projects[].path`
-2. Run `orcan sync` (terminal targets do not refresh config)
-3. `orcan down && orcan up`
+2. Run `orcan sync` (terminal targets do not refresh config). Sync reconciles workspace meta on the host even when the container is down; live reconcile runs when the container is up.
+3. `orcan down && orcan up` when `orcan doctor` reports a path not visible in the container.
+
+If a project lived directly under the workspace folder (real directory instead of a symlink), `orcan sync` relocates it to `*.orcan-reconcile-bak` and recreates the symlink when the container is running (live reconcile). Check sync output for `relocated stale checkout dirs`.
 
 Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing config + `orcan sync`.
 

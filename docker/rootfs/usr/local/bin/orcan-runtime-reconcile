@@ -52,6 +52,10 @@ def main() -> int:
             print(f"  + symlink: {created}")
         for removed in ws.symlinks_removed:
             print(f"  - symlink: {removed}")
+        for relocated in ws.dirs_relocated:
+            print(f"  ~ relocated: {relocated}")
+        for missing in ws.skipped_missing_repos:
+            print(f"  ! skip missing repo mount: {missing}")
     for removed in report.stale_workspace_dirs_removed:
         print(f"  - DELETED (rm -rf, no undo): {removed}")
     print(

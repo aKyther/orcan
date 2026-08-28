@@ -281,6 +281,74 @@ class CreateIntegrationTests(unittest.TestCase):
                 os.environ.pop("ORCAN_PROJECTS_ROOT", None)
                 os.environ.pop("ORCAN_HOME", None)
 
+    def test_force_replace_switches_unmanaged_path_to_managed_worktree(self) -> None:
+        import os
+        import subprocess
+
+        from managed_workspace import create_managed_workspace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "orcan-data"
+            home = root / "home"
+            home.mkdir()
+            os.environ["ORCAN_DATA"] = str(data)
+            os.environ["ORCAN_PROJECTS_ROOT"] = str(data / "sandbox")
+            os.environ["ORCAN_HOME"] = str(home)
+            try:
+                repo = root / "api"
+                repo.mkdir()
+                subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+                subprocess.run(
+                    ["git", "config", "user.email", "t@example.com"],
+                    cwd=repo,
+                    check=True,
+                    capture_output=True,
+                )
+                subprocess.run(
+                    ["git", "config", "user.name", "t"], cwd=repo, check=True, capture_output=True
+                )
+                (repo / "f").write_text("x\n", encoding="utf-8")
+                subprocess.run(["git", "add", "f"], cwd=repo, check=True, capture_output=True)
+                subprocess.run(
+                    ["git", "commit", "-m", "i"], cwd=repo, check=True, capture_output=True
+                )
+
+                cfg_path = home / "orcan.config.json"
+                cfg_path.write_text(
+                    __import__("json").dumps(
+                        {
+                            "workspaces": [
+                                {
+                                    "name": "feat-x",
+                                    "projects": [{"name": "backend", "path": str(repo)}],
+                                }
+                            ]
+                        }
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+
+                create_managed_workspace(
+                    config_path=cfg_path,
+                    workspace="feat-x",
+                    branch="feat-x",
+                    projects=[("backend", repo)],
+                    force=True,
+                )
+
+                cfg = __import__("json").loads(cfg_path.read_text(encoding="utf-8"))
+                new_path = Path(cfg["workspaces"][0]["projects"][0]["path"])
+                expected = data / "sandbox" / ".worktrees" / "feat-x" / "backend"
+                self.assertEqual(new_path.resolve(), expected.resolve())
+                self.assertTrue(repo.is_dir(), "original checkout must remain")
+                self.assertTrue(expected.is_dir())
+            finally:
+                os.environ.pop("ORCAN_DATA", None)
+                os.environ.pop("ORCAN_PROJECTS_ROOT", None)
+                os.environ.pop("ORCAN_HOME", None)
+
 
 class PruneTests(unittest.TestCase):
     def test_prune_reconciles_stale_orphan_and_config(self) -> None:

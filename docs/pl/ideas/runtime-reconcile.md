@@ -33,19 +33,26 @@ manifesty i sesje tmux".
 
 ## Co reconcile faktycznie robi
 
-Ta sama funkcja, `orcan.reconcile.apply_workspaces()`, działa w dwóch
+Ta sama funkcja, `orcan.reconcile.apply_workspaces()`, działa w trzech
 miejscach:
 
 ```mermaid
 flowchart LR
   boot["Boot kontenera\n(init-workspace)"] --> reconcile[apply_workspaces]
-  sync["orcan sync\n(host)"] -->|docker exec| live["orcan-runtime-reconcile\n(w kontenerze)"] --> reconcile
+  sync["orcan sync\n(host)"] --> host["reconcile-host.py\n($ORCAN_HOME/workspaces/)"] --> reconcile
+  sync -->|kontener w górze| live["orcan-runtime-reconcile\n(w kontenerze)"] --> reconcile
   reconcile --> fs["Filesystem:\nsymlinki, .manifest.json,\nAGENTS.md/CLAUDE.md,\nignore"]
   reconcile --> tmux["orcan-tmux-reconcile-sessions:\nzapewnia sesję per workspace"]
 ```
 
-Boot kontenera to po prostu pierwszy reconcile, nie osobna ścieżka kodu —
-dlatego live `orcan sync` i świeży boot dają identyczny stan na dysku.
+Reconcile hosta działa przy każdym `orcan sync` — nawet gdy kontener stoi —
+żeby symlinki workspace'ów pod `$ORCAN_HOME/workspaces/` były poprawne przed
+`orcan up`. Live reconcile w kontenerze jest idempotentny, gdy kontener już
+działa.
+
+Boot kontenera to po prostu pierwszy reconcile w kontenerze, nie osobna
+ścieżka kodu — dlatego live `orcan sync` i świeży boot dają identyczny stan
+na dysku w kontenerze.
 
 Po stronie filesystemu: tworzy brakujące symlinki projektów, usuwa
 osierocone, (ponownie) zapisuje `.manifest.json` / `AGENTS.md` / `CLAUDE.md`

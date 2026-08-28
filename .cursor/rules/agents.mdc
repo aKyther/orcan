@@ -43,7 +43,8 @@ orcan sync --context  # inbox compile only (host)
 ```
 
 Live reconcile often avoids recreate — `docs/en/ideas/runtime-reconcile.md`.
-When overlays need it: `orcan down && orcan up`.
+When overlays need it: `orcan down && orcan up`. **`orcan sync`** = host workspace
+reconcile always + live in-container reconcile when running.
 
 ## Non-goals (do not invent)
 

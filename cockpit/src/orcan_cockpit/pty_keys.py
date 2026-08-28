@@ -52,6 +52,27 @@ _ARROW_CSI_SUFFIX: dict[str, str] = {
     "end": "F",
 }
 
+
+def _csi_tilde(code: int, modifier: int | None = None) -> bytes:
+    if modifier is None:
+        return f"\x1b[{code}~".encode("latin-1")
+    return f"\x1b[{code};{modifier}~".encode("latin-1")
+
+
+# xterm ``modifyOtherKeys``-style tilde codes (F1=11 … F12=24 with gap at 16).
+_F_KEY_BYTES: dict[str, bytes] = {
+    f"f{n}": _csi_tilde(code)
+    for n, code in (
+        (6, 17),
+        (7, 18),
+        (8, 19),
+        (9, 20),
+        (10, 21),
+        (11, 23),
+        (12, 24),
+    )
+}
+
 _KEY_BYTES: dict[str, bytes] = {
     "enter": b"\r",
     "return": b"\r",
@@ -66,10 +87,34 @@ _KEY_BYTES: dict[str, bytes] = {
     "home": b"\x1b[H",
     "end": b"\x1b[F",
     "delete": b"\x1b[3~",
-    "pageup": b"\x1b[5~",
-    "pagedown": b"\x1b[6~",
+    "insert": _csi_tilde(2),
+    "pageup": _csi_tilde(5),
+    "page_up": _csi_tilde(5),
+    "pagedown": _csi_tilde(6),
+    "page_down": _csi_tilde(6),
     "space": b" ",
     "ctrl+space": b"\x00",  # prefix C-Space (keybindings.conf)
+}
+
+# Textual uses both ``pageup`` and ``page_up`` spellings; xterm modified tilde keys.
+_MODIFIER_TILDE_BYTES: dict[str, bytes] = {
+    "shift+pageup": _csi_tilde(5, 2),
+    "shift+page_up": _csi_tilde(5, 2),
+    "shift+pagedown": _csi_tilde(6, 2),
+    "shift+page_down": _csi_tilde(6, 2),
+    "ctrl+pageup": _csi_tilde(5, 5),
+    "ctrl+page_up": _csi_tilde(5, 5),
+    "ctrl+pagedown": _csi_tilde(6, 5),
+    "ctrl+page_down": _csi_tilde(6, 5),
+    "shift+insert": _csi_tilde(2, 2),
+}
+
+# Textual spellings for control chars outside ``ctrl+<letter>`` (``len==6``) pattern.
+_CTRL_SPECIAL_BYTES: dict[str, bytes] = {
+    "ctrl+right_square_brace": b"\x1d",  # Ctrl+] — vim tag jump
+    "ctrl+backslash": b"\x1c",  # Ctrl+\ — vim nested command / SIGQUIT
+    "ctrl+underscore": b"\x1f",  # Ctrl+_ / Ctrl+/
+    "ctrl+circumflex_accent": b"\x1e",  # Ctrl+^
 }
 
 # Direct Textual names → bytes for keybindings.conf ``bind -n`` chords.
@@ -150,6 +195,12 @@ def key_to_bytes(key: str, character: str | None) -> bytes | None:
         return None
     if key in _KEY_BYTES:
         return _KEY_BYTES[key]
+    if key in _MODIFIER_TILDE_BYTES:
+        return _MODIFIER_TILDE_BYTES[key]
+    if key in _F_KEY_BYTES:
+        return _F_KEY_BYTES[key]
+    if key in _CTRL_SPECIAL_BYTES:
+        return _CTRL_SPECIAL_BYTES[key]
     if key in _MODIFIER_ARROW_BYTES:
         return _MODIFIER_ARROW_BYTES[key]
     if key.startswith("ctrl+") and len(key) == 6 and key[5].isalpha():

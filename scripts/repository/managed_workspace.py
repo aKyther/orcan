@@ -27,9 +27,13 @@ from git_worktrees import (  # noqa: E402
     is_git_repo,
     load_manifest,
     managed_root,
+    managed_worktree_path,
     manifest_remove,
+    manifest_upsert,
     remove_worktree,
     safe_segment,
+    is_under_managed_root,
+    ManifestEntry,
 )
 
 
@@ -119,11 +123,41 @@ def create_managed_workspace(
 
     created: list[dict[str, str]] = []
     for proj_name, repo in projects:
+        expected = managed_worktree_path(ws_name, proj_name)
         reuse_path = existing_paths.get(proj_name)
-        if reuse_path and Path(reuse_path).exists():
-            info(f"  worktree: {proj_name} (unchanged) → {reuse_path}")
-            created.append({"name": proj_name, "path": reuse_path})
+
+        if reuse_path:
+            reuse = Path(reuse_path)
+            if reuse.exists() and reuse.resolve() == expected.resolve():
+                info(f"  worktree: {proj_name} (unchanged) → {reuse_path}")
+                created.append({"name": proj_name, "path": reuse_path})
+                continue
+
+        if force and reuse_path:
+            old = Path(reuse_path)
+            if (
+                old.exists()
+                and old.resolve() != expected.resolve()
+                and is_under_managed_root(old)
+            ):
+                info(f"  removing superseded managed worktree: {proj_name} ← {old}")
+                remove_worktree(old, force=True, allow_unmanaged=False)
+                manifest_remove(workspace=ws_name, project=proj_name)
+
+        if expected.exists() and is_git_repo(expected):
+            info(f"  worktree: {proj_name} (exists) → {expected}")
+            created.append({"name": proj_name, "path": str(expected)})
+            manifest_upsert(
+                ManifestEntry(
+                    workspace=ws_name,
+                    project=proj_name,
+                    repo=str(repo.resolve()),
+                    path=str(expected),
+                    branch=branch,
+                )
+            )
             continue
+
         info(f"  worktree: {proj_name} ← {repo} @ {branch}")
         wt = create_worktree(
             repo,

@@ -524,6 +524,11 @@ class MainScreen(Screen):
         if event.widget is not None and event.widget.id == "sidebar-toggle":
             event.stop()
             self.action_toggle_workspaces()
+        elif event.widget is not None and event.widget.id == "center-stack":
+            terminal = self.query("#terminal")
+            if terminal:
+                terminal.focus()
+                event.stop()
         elif event.widget is not None and event.widget.id == "top-bar-identity":
             # The wordmark as a dedicated About entry point — separate from
             # F1/"? Help" (shortcuts), not a second way to reach the same

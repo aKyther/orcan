@@ -225,6 +225,20 @@ class ManagedRootTests(unittest.TestCase):
 
         self.assertIn(f"{proj}:{proj}", text)
 
+    def test_rejects_project_path_under_workspace_meta(self) -> None:
+        meta_proj = self.root / "workspaces" / "demo" / "app"
+        meta_proj.mkdir(parents=True)
+        cfg = {
+            "workspaces": [
+                {
+                    "name": "demo",
+                    "projects": [{"name": "app", "path": str(meta_proj.resolve())}],
+                }
+            ],
+        }
+        with self.assertRaises(SystemExit):
+            apply_config.build_from_config(cfg, self.root)
+
 
 class ApplyConfigE2ETests(unittest.TestCase):
     def test_apply_writes_runtime_artifacts(self) -> None:

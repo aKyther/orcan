@@ -66,6 +66,7 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 | Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
 | Context Assertions store / compile | `scripts/repository/context_assertions.py`, `compile_context.py` |
 | Host context sync daemon | `scripts/repository/context_syncd.py` (`orcan sync --context`) |
+| Host workspace reconcile / audit | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; `docker/rootfs/usr/local/lib/orcan/reconcile.py` |
 | Automation control | `docker/rootfs/usr/local/lib/orcan/automation.py` + `$ORCAN_DATA/history/supervisor/automation.json` (cockpit **`[p]`** / **`[o]`**) |
 | Supervisord / context-scan | `orcan-supervisord`, `orcan-context-scan` under `docker/rootfs/usr/local/bin/` |
 | Container runtime | `docker/rootfs/usr/local/bin/` |

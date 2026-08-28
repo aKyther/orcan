@@ -119,6 +119,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Agent orientation: **`orcan sync`** = host workspace reconcile (`reconcile-host.py`)
+  always + live in-container reconcile when up; `workspace-audit.py` in
+  `orcan doctor` — AGENTS/`llms`/`agents.mdc`, runtime-reconcile + troubleshooting
+  (EN+PL), change-map, project-context.
 - **Preview installs Claude by default** (`INSTALL_CLAUDE=${ORCAN_PREVIEW_INSTALL_CLAUDE:-1}`).
   Without `claude` on PATH, assertions **automation** auto-disables (recap/reflect
   idle; cockpit Pause/Turn off greyed); manual **Review** of inbox still works.

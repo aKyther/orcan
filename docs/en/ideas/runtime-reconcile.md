@@ -33,19 +33,26 @@ manifests, and tmux sessions exist."
 
 ## What reconcile actually does
 
-The same function, `orcan.reconcile.apply_workspaces()`, runs at two call
+The same function, `orcan.reconcile.apply_workspaces()`, runs at three call
 sites:
 
 ```mermaid
 flowchart LR
   boot["Container boot\n(init-workspace)"] --> reconcile[apply_workspaces]
-  sync["orcan sync\n(host)"] -->|docker exec| live["orcan-runtime-reconcile\n(in container)"] --> reconcile
+  sync["orcan sync\n(host)"] --> host["reconcile-host.py\n($ORCAN_HOME/workspaces/)"] --> reconcile
+  sync -->|container up| live["orcan-runtime-reconcile\n(in container)"] --> reconcile
   reconcile --> fs["Filesystem:\nsymlinks, .manifest.json,\nAGENTS.md/CLAUDE.md,\nignores"]
   reconcile --> tmux["orcan-tmux-reconcile-sessions:\nensure a session per workspace"]
 ```
 
-Container boot is just the first reconcile, not a separate code path — that's
-why a live `orcan sync` and a fresh boot produce identical on-disk state.
+Host reconcile runs on every `orcan sync` — even when the container is down —
+so workspace symlinks under `$ORCAN_HOME/workspaces/` are fixed before you
+`orcan up`. Live in-container reconcile is idempotent when the container is
+already running.
+
+Container boot is just the first in-container reconcile, not a separate code
+path — that's why a live `orcan sync` and a fresh boot produce identical
+on-disk state inside the container.
 
 On the filesystem side: create missing project symlinks, remove orphaned
 ones, (re)write `.manifest.json` / `AGENTS.md` / `CLAUDE.md` /
