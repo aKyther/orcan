@@ -477,6 +477,10 @@ Screen {
 MainScreen.tier-minimal #top-bar {
     display: none;
 }
+
+MainScreen.tier-minimal #workspaces {
+    width: 1fr;
+}
 """
 
 
@@ -503,6 +507,7 @@ class MainScreen(Screen):
         super().__init__()
         self._panel_visible = True
         self._workspaces_visible = True
+        self._minimal_workspaces_visible = False
         self._current_session: str | None = None
         self._current_root: str | None = None
         self._tier: Tier = "full"
@@ -562,6 +567,8 @@ class MainScreen(Screen):
     def _apply_tier(self, tier: Tier) -> None:
         if tier == self._tier and self.has_class(f"tier-{tier}"):
             return
+        if tier == "minimal" and self._tier != "minimal":
+            self._minimal_workspaces_visible = False
         self._tier = tier
         for name in ("tier-full", "tier-compact", "tier-minimal"):
             self.set_class(name == f"tier-{tier}", name)
@@ -575,8 +582,17 @@ class MainScreen(Screen):
         # this can't just be a stylesheet class rule like #rail's. Single
         # place both #workspaces' actual visibility AND the arrow's label
         # get set from, so they can never disagree.
-        visible = self._workspaces_visible and self._tier != "minimal"
+        visible = (
+            self._minimal_workspaces_visible
+            if self._tier == "minimal"
+            else self._workspaces_visible
+        )
         self.query_one("#workspaces").display = visible
+        # At phone widths the picker and terminal cannot usefully fit side
+        # by side. Treat the picker as a full-width alternate view instead.
+        self.query_one("#center").display = not (
+            self._tier == "minimal" and self._minimal_workspaces_visible
+        )
         self.query_one("#sidebar-toggle", Static).update("‹" if visible else "›")
 
     def on_descendant_focus(self, event: events.DescendantFocus) -> None:
@@ -660,9 +676,16 @@ class MainScreen(Screen):
                 terminal.focus()
 
     def action_toggle_workspaces(self) -> None:
-        self._workspaces_visible = not self._workspaces_visible
+        if self._tier == "minimal":
+            self._minimal_workspaces_visible = not self._minimal_workspaces_visible
+        else:
+            self._workspaces_visible = not self._workspaces_visible
         self._update_workspaces_visibility()
-        if self._workspaces_visible and self._tier != "minimal":
+        if (
+            self._minimal_workspaces_visible
+            if self._tier == "minimal"
+            else self._workspaces_visible
+        ):
             self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
         else:
             terminal = self.query("#terminal")

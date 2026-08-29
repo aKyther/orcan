@@ -108,6 +108,17 @@ async def main() -> None:
         await pilot.pause()
         assert app.screen.has_class("tier-minimal")
         assert not app.screen.query_one("#workspaces").display
+        assert app.screen.query_one("#center").display
+        app.screen.action_toggle_workspaces()
+        await pilot.pause()
+        assert app.screen.query_one("#workspaces").display
+        assert not app.screen.query_one("#center").display
+        assert toggle_arrow._Static__content == "‹"
+        app.screen.action_toggle_workspaces()
+        await pilot.pause()
+        assert not app.screen.query_one("#workspaces").display
+        assert app.screen.query_one("#center").display
+        assert toggle_arrow._Static__content == "›"
         # The rail is CSS-hidden at minimal tier; its computed visibility is
         # covered by the browser/a11y checks.
         app.screen._apply_tier("full")

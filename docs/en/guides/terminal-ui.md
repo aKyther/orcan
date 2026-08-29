@@ -245,9 +245,11 @@ inside the terminal.
 | --- | --- | --- |
 | `full` | ≥ 120 | Full bottom bar; rail labels show icon + word (Assertions / Help) |
 | `compact` | 90–119 | Bottom bar shortens; rail stays icon-only |
-| `minimal` | < 90 | Hides **top bar** + **left column** (terminal full width); F-keys still work |
+| `minimal` | < 90 | Hides the **top bar**; **F4** / ‹› switches between the full-width terminal and workspace picker |
 
-**F4** / **F2** still toggle workspaces / ASSERTIONS manually when visible.
+**F4** / **F2** still toggle workspaces / ASSERTIONS manually. At minimal
+width, the workspace picker opens as a full-width alternate view so projects
+remain selectable in ttyd on a phone.
 
 | Keys | Action |
 | --- | --- |

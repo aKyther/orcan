@@ -244,9 +244,11 @@ skrótu Git / F3 w cockpicie — w terminalu: alias **`lg`** (lazygit).
 | --- | --- | --- |
 | `full` | ≥ 120 | Pełny dolny pasek; rail z etykietami (Assertions / Help) |
 | `compact` | 90–119 | Krótszy dolny pasek; rail tylko ikony |
-| `minimal` | < 90 | Ukrywa **górny pasek** + **lewą kolumnę**; F-ki nadal działają |
+| `minimal` | < 90 | Ukrywa **górny pasek**; **F4** / ‹› przełącza między pełną szerokością terminala i listy workspace’ów |
 
-**F4** / **F2** nadal przełączają ręcznie workspace’y / ASSERTIONS, gdy widoczne.
+**F4** / **F2** nadal przełączają ręcznie workspace’y / ASSERTIONS. Przy
+minimalnej szerokości lista workspace’ów otwiera się jako pełnoekranowy widok,
+więc projekty pozostają dostępne w ttyd na telefonie.
 
 | Klawisze | Akcja |
 | --- | --- |
