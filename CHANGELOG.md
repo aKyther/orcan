@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Tmux visual language:** window tabs, pane titles, menus, copy mode, and
+  focus indicators now use the same restrained graphite/plum hierarchy as
+  the cockpit instead of bright cyan pills and separator-heavy chrome.
+
 - **Cockpit visual language:** replaced the framed navy/cyan admin-console
   treatment with quieter graphite/plum surfaces, restrained violet focus,
   borderless terminal chrome, and text labels instead of decorative emoji.

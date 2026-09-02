@@ -9,8 +9,9 @@ tags:
 
 Cockpit Orcana używa spokojnych powierzchni **grafit / prawie czarny /
 stonowana śliwka**. Jeden fioletowy akcent oznacza interakcję; pozostałe
-kolory są zarezerwowane dla stanu. Narzędzia wewnątrz tmux zachowują własną
-paletę terminalową. Ta strona to mapa dla ludzi i agentów zmieniających ten stack.
+kolory są zarezerwowane dla stanu. Chrome tmux używa tej samej hierarchii,
+a programy wewnątrz paneli zachowują własną paletę terminalową. Ta strona to
+mapa dla ludzi i agentów zmieniających ten stack.
 
 ## Stack
 
