@@ -14,6 +14,17 @@ services:
     cpus: ${CPUS:-2}
     mem_limit: ${MEMORY:-4g}
     shm_size: ${SHM_SIZE:-512m}
+    # High file-descriptor / process ceilings. supervisord aborts on start
+    # when its soft RLIMIT_NOFILE is under minfds (1024) and it cannot
+    # raise it; ttyd + tmux + node/uv tooling under it also burn FDs fast.
+    # Override via ULIMIT_NOFILE / ULIMIT_NPROC in .env if needed.
+    ulimits:
+      nofile:
+        soft: ${ULIMIT_NOFILE:-1048576}
+        hard: ${ULIMIT_NOFILE:-1048576}
+      nproc:
+        soft: ${ULIMIT_NPROC:-65536}
+        hard: ${ULIMIT_NPROC:-65536}
     build:
       context: .
       args:
