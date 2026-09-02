@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Workspace navigation:** the top bar now keeps the active workspace in a
-  visible pill that toggles its browser. On wide screens the multi-workspace
-  sidebar remains pinned by default for fast scanning; compact/tablet screens
-  use the same list as an overlay drawer that does not resize the tmux pane.
+  visible pill that opens one compact picker on desktop and tablet. The picker
+  shows workspace roots, projects, Git branches, and tmux state on demand and
+  always overlays the terminal, so switching context never resizes tmux.
 
 - **Tablet browser UX:** a one-finger vertical drag over the embedded tmux pane
   now scrolls tmux history. The ttyd bridge handles touch events only, leaving
