@@ -199,7 +199,9 @@ Klawisze launchera: numer workspace'a, `s` = status, `i` = wskazówka init, `q` 
 
 ```bash
 orcan down                 # zatrzymaj; zachowaj ~/.config/orcan
-orcan uninstall --purge-data           # DESTRUKCYJNE: usuwa ORCAN_DATA (wpisz yes)
+orcan uninstall                         # usuń runtime + CLI; zachowaj dane/projekty/obrazy
+orcan uninstall --purge-data            # usuń też config/loginy/cache; zachowaj projekty
+orcan uninstall --purge-images          # usuń też lokalne tagi obrazów orcan:*
 ```
 
 Pełne usunięcie: [Odinstalowanie](#uninstall).
@@ -207,15 +209,22 @@ Pełne usunięcie: [Odinstalowanie](#uninstall).
 ## Odinstalowanie { #uninstall }
 
 ```bash
-cd /absolute/path/to/orcan
-orcan down
-orcan uninstall --purge-data
-docker images 'orcan*'
-docker rmi orcan:latest 'orcan:*'   # opcjonalnie: usuń lokalne tagi
-rm -rf /absolute/path/to/orcan                    # opcjonalnie
+orcan uninstall --purge-data --purge-images
 ```
 
-Zamontowane repo projektów zostają, dopóki sam ich nie usuniesz.
+Komenda prosi o wpisanie `yes`, zatrzymuje warianty Compose Orcana oraz usuwa
+launcher i standardowy klon instalatora. Checkout developerski jest raportowany
+i zostaje. `--purge-data` usuwa zawartość `ORCAN_HOME`/`ORCAN_DATA`, ale chroni
+cały `ORCAN_PROJECTS_ROOT` i skonfigurowane ścieżki projektów. Przy domyślnym
+układzie `~/.config/orcan/sandbox` zostaje. `--purge-images` celuje tylko w
+lokalne tagi `orcan:*`; obraz używany przez inny kontener zostaje z raportem.
+
+!!! warning
+
+    Granica ochrony pochodzi z `$ORCAN_HOME/.env` i bieżącego
+    `orcan.config.json`. Nie trzymaj niezarejestrowanych repo w innym miejscu
+    pod `ORCAN_DATA`. Uszkodzony config albo niebezpieczny/symlinkowany root
+    danych zatrzymuje purge zamiast zgadywać.
 
 ## Aktualizacja / downgrade Orcana
 

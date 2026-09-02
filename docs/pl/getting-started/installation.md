@@ -114,7 +114,8 @@ Tożsamość autora Gita wypełnia `orcan sync`. Żeby podpiąć hostowe klucze 
 
 ```bash
 orcan uninstall              # usuń launcher + klon instalacji
-orcan uninstall --purge-data # także usuń ORCAN_DATA po potwierdzeniu
+orcan uninstall --purge-data # usuń też config/loginy/cache; projekty zostają
+orcan uninstall --purge-images # usuń też lokalne tagi obrazów orcan:*
 ```
 
 Zobacz [Workflowy — uninstall](../guides/workflows.md#uninstall) lub [FAQ](../faq.md#uninstall).

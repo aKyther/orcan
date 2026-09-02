@@ -14,6 +14,7 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Runtime config mount |
 | `ORCAN_COMPOSE_PROJECTS` | Generated Compose overlay (project mounts) |
 | `ORCAN_DATA` | Host data root (default `$HOME/.config/orcan`) — includes `dotfiles/` for personal shell/tmux/vim overlays |
+| `ORCAN_PROJECTS_ROOT` | Stable host root mounted for managed checkouts (default `$ORCAN_DATA/sandbox`) |
 | `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Host `git config --global` identity for in-container commits |
 | `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Same as author (kept in sync) |
 
@@ -33,6 +34,39 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 | `ORCAN_INSTANCE` | Container name suffix → `orcan-1`, `orcan-2`, … (default `1`) |
 
 Edit via `orcan.config.json` (`resources`, `ttyd`) then `orcan sync` for new machines; existing `.env` values may be preserved depending on `update-env.sh` rules — prefer config file as source of truth for new setups.
+
+### `ORCAN_PROJECTS_ROOT` safety and edge cases
+
+`orcan sync` writes the resolved value to `$ORCAN_HOME/.env`. With no override:
+
+```text
+ORCAN_DATA=$HOME/.config/orcan
+ORCAN_PROJECTS_ROOT=$ORCAN_DATA/sandbox
+```
+
+The nested default gives Docker one stable bind mount and lets Orcan add managed
+worktrees without recreating the container. It also means project checkouts are
+physically below the data directory. `orcan uninstall --purge-data` therefore
+uses a selective purge: it preserves the complete `ORCAN_PROJECTS_ROOT` tree and
+every project path still listed in `orcan.config.json`.
+
+You may instead use an external root such as `/home/me/Projects/orcan`. Set it
+before `orcan sync`; it must be an absolute host path. Important edge cases:
+
+- Changing `.env` does **not** move existing repositories or rewrite project
+  paths in `orcan.config.json`. Move them and update the JSON paths first, then
+  run `orcan sync`.
+- If `ORCAN_PROJECTS_ROOT` equals `ORCAN_DATA`, a safe data purge keeps that
+  whole directory because data and projects cannot be separated.
+- A symlink *inside* `ORCAN_DATA` used as `ORCAN_PROJECTS_ROOT` is preserved
+  without following it during deletion. A symlink used as `ORCAN_DATA` or
+  `ORCAN_HOME` is rejected by purge; point the variable at its real directory.
+- Multiple Orcan setups sharing one projects root are safe from uninstall, but
+  changing or deleting repositories still affects every setup that references
+  them.
+- Repositories neither below `ORCAN_PROJECTS_ROOT` nor present in the current
+  `orcan.config.json` are ordinary files as far as purge is concerned. Do not
+  store unregistered repositories under `ORCAN_DATA`.
 
 ## Image selection
 

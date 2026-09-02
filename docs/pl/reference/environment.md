@@ -14,6 +14,7 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 | `ORCAN_CONFIG_HOST` / `ORCAN_CONFIG` | Mount runtime config |
 | `ORCAN_COMPOSE_PROJECTS` | Wygenerowana nakładka Compose (mounty projektów) |
 | `ORCAN_DATA` | Root danych hosta (domyślnie `$HOME/.config/orcan`) — w tym `dotfiles/` na własne aliasy/tmux/vim |
+| `ORCAN_PROJECTS_ROOT` | Stały root hosta montowany dla zarządzanych checkoutów (domyślnie `$ORCAN_DATA/sandbox`) |
 | `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Tożsamość z hostowego `git config --global` (commity w kontenerze) |
 | `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Jak autor (trzymane w syncu) |
 
@@ -33,6 +34,38 @@ Użyj tej strony przy debugowaniu `.env` lub Compose. Przy nowych setupach prefe
 | `ORCAN_INSTANCE` | Sufiks nazwy kontenera → `orcan-1`, `orcan-2`, … (domyślnie `1`) |
 
 Edytuj przez `orcan.config.json` (`resources`, `ttyd`), potem `orcan sync` na nowych maszynach; istniejące wartości `.env` mogą być zachowane zależnie od reguł `update-env.sh` — przy nowych setupach preferuj plik konfiguracji jako źródło prawdy.
+
+### Bezpieczeństwo i edge case'y `ORCAN_PROJECTS_ROOT`
+
+`orcan sync` zapisuje rozwiązaną wartość w `$ORCAN_HOME/.env`. Bez nadpisania:
+
+```text
+ORCAN_DATA=$HOME/.config/orcan
+ORCAN_PROJECTS_ROOT=$ORCAN_DATA/sandbox
+```
+
+Domyślne zagnieżdżenie daje Dockerowi jeden stały bind mount i pozwala Orcanowi
+dodawać zarządzane worktree bez odtwarzania kontenera. Oznacza też, że checkouty
+fizycznie leżą pod katalogiem danych. Dlatego `orcan uninstall --purge-data`
+czyści selektywnie: zachowuje całe drzewo `ORCAN_PROJECTS_ROOT` oraz każdą
+ścieżkę projektu nadal wpisaną w `orcan.config.json`.
+
+Możesz użyć zewnętrznego rootu, np. `/home/me/Projects/orcan`. Ustaw go przed
+`orcan sync`; musi być bezwzględną ścieżką hosta. Ważne edge case'y:
+
+- Zmiana `.env` **nie** przenosi istniejących repozytoriów ani nie przepisuje
+  ścieżek w `orcan.config.json`. Najpierw przenieś repo i popraw ścieżki JSON,
+  potem uruchom `orcan sync`.
+- Gdy `ORCAN_PROJECTS_ROOT` jest równy `ORCAN_DATA`, bezpieczny purge zachowuje
+  cały ten katalog, bo nie da się rozdzielić danych od projektów.
+- Symlink *wewnątrz* `ORCAN_DATA`, użyty jako `ORCAN_PROJECTS_ROOT`, zostaje
+  zachowany bez podążania za nim podczas kasowania. Symlink jako `ORCAN_DATA`
+  albo `ORCAN_HOME` blokuje purge; wskaż zmienną na rzeczywisty katalog.
+- Wiele instalacji Orcana może bezpiecznie współdzielić projects root, ale
+  zmiana lub usunięcie repo wpływa na każdą instalację, która go używa.
+- Repo poza `ORCAN_PROJECTS_ROOT`, którego nie ma w bieżącym
+  `orcan.config.json`, jest dla purge zwykłym plikiem. Nie trzymaj
+  niezarejestrowanych repozytoriów pod `ORCAN_DATA`.
 
 ## Wybór obrazu
 

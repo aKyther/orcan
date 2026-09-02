@@ -64,7 +64,7 @@ After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). 
 | `orcan publish` | Manual image push (maintainers) |
 | `orcan upgrade [--to VERSION]` / `orcan downgrade` | Newest release / pin / one step back |
 | `orcan update` | Dev channel: fast-forward to `origin/main` |
-| `orcan uninstall` | Remove CLI (`--purge-data` also deletes logins/caches) |
+| `orcan uninstall` | Remove Orcan (`--purge-data` removes logins/cache, `--purge-images` images; projects stay) |
 
 Config lives in `~/.config/orcan/` by default (install clone: `~/.local/share/orcan`).
 

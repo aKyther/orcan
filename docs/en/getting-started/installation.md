@@ -114,7 +114,8 @@ Git author identity is filled by `orcan sync`. To attach host SSH keys for push/
 
 ```bash
 orcan uninstall              # remove launcher + install clone
-orcan uninstall --purge-data # also delete ORCAN_DATA after confirmation
+orcan uninstall --purge-data # also delete config/logins/cache; projects are preserved
+orcan uninstall --purge-images # also remove local orcan:* image tags
 ```
 
 See [Workflows — uninstall](../guides/workflows.md#uninstall) or [FAQ](../faq.md#uninstall).

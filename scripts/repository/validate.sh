@@ -44,6 +44,7 @@ require_file "cli/commands/doctor.sh"
 require_file "cli/commands/update.sh"
 require_file "cli/commands/downgrade.sh"
 require_file "cli/commands/uninstall.sh"
+require_file "scripts/repository/uninstall_data.py"
 require_file "cli/commands/context.sh"
 require_file "cli/commands/enter.sh"
 require_file "VERSION"
@@ -352,6 +353,7 @@ for script in \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
     scripts/repository/config-wizard.py \
+    scripts/repository/uninstall_data.py \
     scripts/repository/context_tui.py \
     scripts/repository/wizard_ui.py \
     scripts/repository/settings-wizard.py \

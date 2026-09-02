@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Safe uninstall:** `orcan uninstall --purge-data` no longer removes the
+  default `$ORCAN_DATA/sandbox`. It selectively purges config, logins, history,
+  and caches while preserving `ORCAN_PROJECTS_ROOT`, configured project paths,
+  and development checkouts. New `--purge-images` removes local `orcan:*` tags;
+  path guards fail closed for malformed config, unsafe roots, and symlinked
+  data/home roots.
+
 - Cockpit now restores the last attached workspace after a ttyd WebSocket
   reconnect or browser refresh. The reconnect hint is container-local in
   `/tmp`; tmux remains the source of truth for the active window and pane.
