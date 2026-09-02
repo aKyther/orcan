@@ -359,6 +359,11 @@ Screen {
     layers: base overlay;
     width: 1fr;
     height: 1fr;
+    /* The embedded terminal already has a one-cell visual gutter on its
+       right edge (scrollbar/cursor boundary). Match it on the left so the
+       content does not look pasted to the viewport while retaining almost
+       the full tmux width. */
+    margin-left: 1;
     background: #0e0c13;
 }
 

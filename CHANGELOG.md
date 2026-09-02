@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Terminal spacing:** the embedded tmux viewport now has a matching
+  one-cell left gutter, balancing its right scrollbar edge without restoring
+  the wide card padding removed by the modern theme.
+
 - **Workspace picker:** workspace rows stay compact while root, project,
   Git/worktree, branch, and tmux details follow only the highlighted row.
   This keeps large workspace lists scannable without losing context.
