@@ -78,10 +78,14 @@ Defaults (overridable):
 | Bind | `0.0.0.0` (LAN); set `ORCAN_PREVIEW_BIND=127.0.0.1` for loopback only |
 | Scenario | `busy` |
 
-| Scenario | Fixture intent |
+Set `ORCAN_PREVIEW_SCENARIO` (or edit the saved `settings.env`) to choose the
+`orcan.config.json` fixture that `write_fixture` generates:
+
+| Scenario | Fixture written to `orcan.config.json` |
 | --- | --- |
-| `errors` | Assertion aimed at a missing project name |
-| `long-names` | Very long title/body (wrapping / clipping) |
+| `busy` | Default — one `dev-ux` workspace, the checkout as its only project, 3 windows |
+| `empty` | One bare `scratch` workspace, single window — the near-empty cockpit |
+| `long-names` | Overlong workspace and project names plus a second project, to test rail wrapping / clipping |
 
 The next `start`/`restart` applies a changed scenario. If a saved/default port
 is occupied, preview chooses the next free port; an explicitly requested busy
