@@ -27,12 +27,6 @@ orcan up              # local — orcan enter on the same machine
 
 Plain `orcan up` is local-only (no published port). **`orcan enter`** is the default path on the same machine. Add **`--with-ttyd`** when you need the browser (remote / phone).
 
-```bash
-orcan enter                 # cockpit: top bar + workspaces/ASSERTIONS | tmux + status
-orcan enter --tmux          # list sessions; attach if only one
-orcan enter --tmux my-ws    # attach a named session
-orcan enter --shell         # plain zsh (not in tmux)
-
 # equivalent low-level:
 docker exec -it orcan-1 tmux ls
 docker exec -it orcan-1 agent-launcher
@@ -45,27 +39,14 @@ automatically reattaches to its last workspace. tmux restores that session's
 active window and pane. This reconnect hint lives only in `/tmp`, so restarting
 the container may return to the workspace picker; tmux sessions remain intact.
 
-On a real tty, `agent-launcher` runs the **cockpit**: **top bar** (`🌀 orcan` +
-utility rail 🔔/? + CPU/RAM/clock), **main row** — left column (workspace list with
-`●/○/▸` legend above, **ASSERTIONS** below) and center embedded `tmux attach` +
-hint strip — edge **‹›** + **F4** toggles the left column — and a **bottom status
-bar** (workspace · branch · tmux session · pending; click 🔔 to open ASSERTIONS).
-Select a workspace with arrows + Enter; **`i`** expands root/repo details.
-Piped/non-interactive use still prints a plain-text workspace menu. lazygit:
-shell alias **`lg`** inside the terminal (no cockpit F3).
-
 | Keys | Action |
 | --- | --- |
-| **F2** / rail 🔔 | Toggle left-column ASSERTIONS section (focuses it when shown) |
 | **F4** / ‹› | Toggle left workspaces column |
 | **F5** | Peek brief / next pending |
 | **Click `🌀 orcan`** | About (name, version, docs) |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, use **F1** — **?** goes to the shell |
 | **Ctrl+P** | Command palette (when focus is not in the terminal) |
 | **i** | Expand/collapse workspace details — root + repos (list focused) |
-| **r** | Run `orcan-context-review` (ASSERTIONS section focused) |
-| **p** | Pause/resume context automation (ASSERTIONS focused) — idle `orcan-context-scan` + `orcan sync --context --watch` while `paused: true` |
-| **o** | Turn context automation off/on (ASSERTIONS focused) — master `enabled` in `automation.json` |
 | arrows + Enter | Navigate / attach workspace (workspaces list focused) |
 
 Inside the center terminal, **tmux shortcuts still apply** (prefix **C-Space**;
@@ -186,7 +167,6 @@ orcan context show
 | Need | Command |
 | --- | --- |
 | List workspaces | `orcan-workspaces` |
-| Context pack status | `orcan-context-status` |
 | Seed all projects | `orcan-init-projects` |
 | Session brief | `orcan-session-brief` |
 | AI status line helper | `orcan-ai-statusline` |

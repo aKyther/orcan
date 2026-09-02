@@ -19,10 +19,6 @@ odróżnić „to ustaliliśmy" od „nadal się o to spieraliśmy".
 
 ## Jak to działa
 
-Zadanie to plik JSON przechodzący przez ustalony zestaw stanów, powielający
-wzorzec propose → review → accept, który już działa w
-[Context Assertions](context-assertions.md):
-
 ```mermaid
 flowchart LR
   propose[propose] -->|policy=draft| proposals[proposals/]
@@ -60,26 +56,4 @@ od `execution.executor`.
 
 ## Kompromisy
 
-- **Domyślnie wymaga człowieka.** `approve` to domyślna polityka — zadanie
-  siedzi w `proposals/`, aż ktoś odpali `approve`. `auto` jest opt-in per
-  zadanie.
-- **Executor shell to prawdziwe wykonanie polecenia.**
-  `execution.executor: shell` uruchamia `execution.command` bezpośrednio. W
-  połączeniu z `policy: auto` zadanie jest podjęte i wykonane bez żadnego
-  kroku człowieka pomiędzy — to ten sam kompromis granicy zaufania co reszta
-  Orcana (zobacz [Bezpieczeństwo](../reference/security.md)), nie
-  sandboksowana ewaluacja.
-- **Bez podpisu.** Tak jak skrzynka Context Assertions, JSON zadań to zwykłe,
-  niepodpisane pliki. Cokolwiek potrafi zapisać do `.orcan/tasks/inbox/`,
-  może zakolejkować pracę dla dowolnego watchera, który tam nasłuchuje.
-- **Jeden workspace, jedna kolejka.** Nie ma routingu między workspace'ami —
-  zadanie zaproponowane w workspace A jest podejmowalne wyłącznie przez
-  watcher wskazujący na `.orcan/tasks/` workspace'u A.
-
 ## Dalej
-
-- [Bezpieczeństwo](../reference/security.md) — model zaufania i konkretnie
-  kombinacja `auto` + `shell`
-- [Context Assertions](context-assertions.md) — wzorzec propose/review, który
-  jest tu ponownie użyty
-- [Model mentalny](mental-model.md)

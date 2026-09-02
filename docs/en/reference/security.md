@@ -59,26 +59,8 @@ the container**. That is intentional:
 | --- | --- | --- |
 | `$ORCAN_PROJECTS_ROOT` (default `…/sandbox`) | Anchor for managed project clones and `.worktrees/` | Everything under the sandbox is visible in the container — one stable mount, no recreate when you add a checkout |
 | `$ORCAN_HOME/workspaces/` → `/home/developer/workspaces/` | Workspace UX roots (symlinks, context pack, inbox) | **All** configured workspaces share one parent mount — an agent in workspace A can see paths under workspace B. That enables adding/removing workspaces at runtime |
-| `$ORCAN_DATA/context/` | Git-versioned Context Assertions store | **Not** mounted into the container — agents only drop into the workspace inbox; `orcan sync` on the host imports |
-
-!!! warning
-    Removing a workspace from config deletes its entire on-disk tree on the
-    next reconcile (`orcan-runtime-reconcile`, or container boot) — not just
-    the managed symlinks. Any `.orcan/session-brief.md`, agent-inbox tasks, or
-    Context Assertions drops not yet synced under that workspace root are
-    deleted with it, with no undo. This is intentional (no quarantine step),
-    not a bug — see `reconcile.py`.
-
-Orcan assumes a **single-user trust model** (you + agents on your host). Inbox
-JSON is not cryptographically signed; malformed drops are quarantined, and
-only a human accept/reject moves knowledge into the store. See
-[Context Assertions](../ideas/context-assertions.md).
 
 ## Agent inbox / task execution
-
-The [agent inbox](../ideas/agent-inbox.md) (`<workspace_root>/.orcan/tasks/`) hands
-structured task manifests from a planning agent to an execution agent. Same
-trust model as Context Assertions — unsigned JSON files, single host:
 
 - Default policy (`approve`) requires a human `orcan-inbox approve` before a
   task is claimable. `draft` is never claimable. Both are safe to leave

@@ -23,7 +23,7 @@ CONTENT = f"""# Orcan
 
 > Work-context orchestrator for coding agents (Cursor CLI, Claude Code, Codex) in Docker — workspaces, path parity, context pack. Does **not** choose, route, or pin models.
 
-Prefer this file over crawling the whole docs site. In a **live** Orcan workspace, the context pack (`AGENTS.md` / `CLAUDE.md`, `.manifest.json`, `.orcan/session-brief.md` if present, `CONTEXT-ASSERTIONS.md`) is stronger than this public index — read that first.
+Prefer this file over crawling the whole docs site. In a **live** Orcan workspace, the context pack (`AGENTS.md` / `CLAUDE.md`, `.manifest.json`, `.orcan/session-brief.md` if present) is stronger than this public index — read that first.
 
 ## Source priority (highest first)
 
@@ -48,11 +48,11 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 
 - **Workspaces** = named sets of projects that form one daily job
 - **Path parity** = same absolute paths on host and in the container (required for Docker-from-Docker)
-- **Context pack** = ignores, AGENTS/CLAUDE seeds, Context Assertions — what agents should read
+- **Context pack** = paths, ignores, AGENTS/CLAUDE seeds, and optional session brief
 - **Config is JSON only** — `orcan.config.json` under **`ORCAN_HOME`**; tool data / history under **`ORCAN_DATA`** (both default `~/.config/orcan`; no YAML user profiles, no host PyYAML stack)
 - **Ritual** — `orcan init` → `orcan sync` → `orcan build` (when image inputs change) → `orcan up` (daily; does **not** run sync). **`orcan sync`** reconciles workspace meta on the host even when the container is down; live in-container reconcile when it is up — see [Runtime reconcile]({SITE}/ideas/runtime-reconcile/)
 - **Default access** — local `orcan enter`; browser is optional (`orcan up --with-ttyd`)
-- **Runtime stack** — cockpit (`agent-launcher`: click **🌀 orcan** = About; 🔔 = Problems badge; workspaces + glance + ASSERTIONS + decisions timeline \| tmux; **F1**/? shortcuts; **F5** peek; **F2** / **F4** / **`i`** / **`r`** / **`p`** / **`o`**; **`lg`**, not F3) → tmux 3.6a → zsh; CMD `orcan-supervisord` (keepalive|ttyd + `context-scan`/`recap`); host `orcan sync --context`
+- **Runtime stack** — cockpit (`agent-launcher`: About, Help, workspaces + glance | tmux; **F1**/? shortcuts; **F4** workspace toggle; **F5** session brief; **`lg`**, not F3) → tmux 3.6a → zsh; CMD `orcan-supervisord` (keepalive|ttyd)
 - **Known key limit** — under ttyd/xterm.js and some desktop terminals, **Alt+←/→/↑/↓** often arrives as Ctrl+arrow. Cockpit: Ctrl/Alt+arrows = focus pane, Ctrl+Shift+arrows = split (`pty_tmux_nav.py`, `BROWSER_KEY_LIMIT` in F1); raw `--tmux` keeps conf — see [Terminal UI — nav mix]({SITE}/guides/terminal-ui/#cockpit-nav-mix)
 - **Version SoT** — `cockpit/pyproject.toml` `version`; root `VERSION` is a CLI/image mirror
 - **Docs** — EN + PL must stay in sync; B1–B2; story before commands; [STYLE_GUIDE]({REPO}/docs/STYLE_GUIDE.md)
@@ -72,7 +72,6 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 
 - Surgical diffs; match existing style; update EN **and** PL docs when behaviour changes
 - After UX/cockpit/ttyd edits: `make dev-restart` (isolated; loads checkout cockpit) — not the user’s daily `orcan:latest`; verify with `make dev-doctor` / `dev-smoke` / `dev-a11y` / `dev-visual` (see `make dev-checklist`)
-- Context inbox / automation: `orcan sync --context` (host); cockpit **`[p]`** pause / **`[o]`** off → `automation.json`; scan skips recap when cached `model_check` fails (`orcan-context-model-check`)
 - Fast tmux-only chrome: `./scripts/dev/terminal-ui-preview`
 - Optional Docker isolation smoke: `make dev-test` (skips cleanly if image/daemon missing)
 - Before claiming done: `make validate`, `make test-host`, `make docs-check` (and `make test` when Docker behaviour changes)
@@ -92,7 +91,6 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 - [Workspaces]({SITE}/concepts/workspaces/): Named project sets and sessions
 - [Path parity]({SITE}/concepts/path-parity/): Same absolute paths host ↔ container
 - [Architecture]({SITE}/architecture/): Layers and why they look this way
-- [Context Assertions]({SITE}/ideas/context-assertions/): Compiled, human-approved context
 - [Runtime reconcile]({SITE}/ideas/runtime-reconcile/): How sync affects a running container
 - [Agent inbox]({SITE}/ideas/agent-inbox/): Structured handoff notes (not chat dumps)
 

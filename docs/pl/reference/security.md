@@ -61,27 +61,8 @@ bez recreate kontenera**. To celowe:
 | --- | --- | --- |
 | `$ORCAN_PROJECTS_ROOT` (domyślnie `…/sandbox`) | Kotwica managed klonów i `.worktrees/` | Wszystko pod sandboxem widać w kontenerze — jeden stabilny mount, bez recreate przy dodaniu checkoutu |
 | `$ORCAN_HOME/workspaces/` → `/home/developer/workspaces/` | Korzenie UX workspace’ów (symlinki, context pack, inbox) | **Wszystkie** skonfigurowane workspace’y dzielą jeden parent mount — agent w workspace A może widzieć ścieżki workspace B. To umożliwia dodawanie/usuwanie workspace’ów w runtime |
-| `$ORCAN_DATA/context/` | Store Context Assertions (git) | **Nie** montowany do kontenera — agenci tylko zrzucają do inboxu workspace; `orcan sync` na hoście importuje |
-
-!!! warning
-    Usunięcie workspace'u z configu kasuje całe jego drzewo na dysku przy
-    najbliższym reconcile (`orcan-runtime-reconcile` albo boot kontenera) —
-    nie tylko zarządzane symlinki. Wszystko pod tym katalogiem, czego jeszcze
-    nie zsynchronizowano — `.orcan/session-brief.md`, zadania agent-inbox,
-    niezsynchronizowane zrzuty Context Assertions — ginie razem z nim, bez
-    cofnięcia. To celowe (bez kwarantanny), nie błąd — zobacz `reconcile.py`.
-
-Orcan zakłada **model zaufania single-user** (Ty + agenci na Twoim hoście).
-JSON w inboxie nie jest kryptograficznie podpisany; uszkodzone zrzuty idą do
-kwarantanny, a do store’u trafia tylko to, co człowiek zaakceptuje / odrzuci.
-Zobacz [Context Assertions](../ideas/context-assertions.md).
 
 ## Skrzynka agentów / wykonywanie zadań
-
-[Skrzynka agentów](../ideas/agent-inbox.md) (`<workspace_root>/.orcan/tasks/`)
-przekazuje ustrukturyzowane manifesty zadań od agenta planującego do agenta
-wykonującego. Ten sam model zaufania co Context Assertions — niepodpisane
-pliki JSON, jeden host:
 
 - Domyślna polityka (`approve`) wymaga ludzkiego `orcan-inbox approve`, zanim
   zadanie da się podjąć. `draft` nigdy nie jest podejmowalne. Obie są

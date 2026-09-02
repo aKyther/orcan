@@ -231,14 +231,6 @@ sync_fixture() {
         tail -n 30 "${setup_log}" >&2
         die "could not prepare the developer UX fixture (full log: ${setup_log})"
     fi
-    if ! ORCAN_HOME="${PREVIEW_HOME}" ORCAN_DATA="${PREVIEW_DATA}" \
-        ORCAN_PROJECTS_ROOT="${PREVIEW_DATA}/sandbox" \
-        "${ROOT_DIR}/scripts/repository/python.sh" \
-            "${ROOT_DIR}/scripts/repository/compile_context.py" "${PREVIEW_HOME}" \
-            >>"${setup_log}" 2>&1; then
-        tail -n 30 "${setup_log}" >&2
-        die "could not compile preview context (full log: ${setup_log})"
-    fi
     cat >"${PREVIEW_HOME}/compose-source.generated.yml" <<EOF
 # Generated developer override: run cockpit Python directly from this checkout.
 services:
@@ -246,42 +238,7 @@ services:
     environment:
       PYTHONPATH: ${ROOT_DIR}/cockpit/src:/usr/local/lib
 EOF
-    local inbox="${PREVIEW_HOME}/workspaces/dev-ux/.orcan/context-inbox"
-    mkdir -p "${inbox}"
-    rm -f -- "${inbox}"/preview-*.json
-    [[ "${PREVIEW_SCENARIO}" != "empty" ]] || return 0
-    cat >"${inbox}/preview-navigation.json" <<'EOF'
-{"project_name":"orcan","title":"Workspace picker is keyboard-first","content":"Navigate and attach workspaces with arrows and Enter; mouse is optional.","justification":"Observed in cockpit UX — agents should not assume click-only flows."}
-EOF
-    cat >"${inbox}/preview-testing.json" <<'EOF'
-{"project_name":"orcan","title":"Prefer uv for Python deps","content":"Use uv / uvx in this environment; do not pip install into system Python.","justification":"Standing project rule for orcan containers and agents."}
-EOF
-    if [[ "${PREVIEW_SCENARIO}" == "busy" ]]; then
-        cat >"${inbox}/preview-busy-3.json" <<'EOF'
-{"project_name":"orcan","title":"App listen port","content":"The service listens on port 8000 in local preview.","justification":"Typical session fact a human would confirm after noticing bind logs."}
-EOF
-        cat >"${inbox}/preview-busy-4.json" <<'EOF'
-{"project_name":"orcan","title":"Canonical paths for Docker binds","content":"Use projects[].path from .manifest.json for Docker bind mounts, not workspace symlinks.","justification":"Path parity rule — symlink vs canonical path breaks mounts."}
-EOF
-        cat >"${inbox}/preview-busy-5.json" <<'EOF'
-{"project_name":"orcan","title":"tmux prefix is Ctrl-Space","content":"Inside orcan sessions the tmux prefix is Ctrl-Space, not Ctrl-b.","justification":"Easy to re-discover every session; worth standing context."}
-EOF
-        cat >"${inbox}/preview-busy-6.json" <<'EOF'
-{"project_name":"orcan","title":"Review is human-gated","content":"Automated reflection may only propose or flag Context Assertions; accept/reject stays human.","justification":"Core product invariant of the context system."}
-EOF
-        cat >"${inbox}/preview-busy-7.json" <<'EOF'
-{"project_name":"orcan","title":"Cockpit pane nav mix","content":"In the embedded cockpit, Ctrl/Alt+arrows focus panes; Ctrl+Shift+arrows split.","justification":"Browser Alt-as-Ctrl limit — agents should not invent conflicting shortcuts."}
-EOF
-        cat >"${inbox}/preview-busy-8.json" <<'EOF'
-{"project_name":"orcan","title":"lazygit alias","content":"Open git UI with the shell alias lg inside the terminal; there is no F3 Git shortcut in cockpit.","justification":"Avoid hunting for a removed rail binding."}
-EOF
-    elif [[ "${PREVIEW_SCENARIO}" == "errors" ]]; then
-        printf '{"project_name":"missing-project","title":"Preview: unavailable project","content":"Exercise an unavailable target.","justification":"Developer UX error-state fixture."}\n' \
-            >"${inbox}/preview-error.json"
-    elif [[ "${PREVIEW_SCENARIO}" == "long-names" ]]; then
-        printf '{"project_name":"orcan","title":"Preview: an intentionally very long assertion title that must remain readable without breaking the side panel","content":"An intentionally long body used to verify wrapping, clipping, scrolling, and focus behavior in constrained browser sizes.","justification":"Developer UX long-content fixture."}\n' \
-            >"${inbox}/preview-long-names.json"
-    fi
+
 }
 
 build_image() {
@@ -520,17 +477,13 @@ Manual UX checks:
   Browser/manual flow:
   [ ] left workspace list is readable
   [ ] Enter attaches the selected workspace (center column)
-  [ ] F2 toggles the left-column ASSERTIONS section
   [ ] F4 / ‹› edge toggle hides the left workspaces column
-  [ ] with ASSERTIONS focused: r runs context review; p pauses automation; o turns automation off/on
   [ ] F1 opens the shortcuts overlay with About (from terminal focus — ? is typed into the shell)
   [ ] i expands workspace details on the list (root + repos)
   [ ] lg in the terminal opens lazygit (no cockpit F3)
   [ ] terminal receives typing and Ctrl+Space
   [ ] Alt+1..9 switches tmux windows (not typed digits)
   [ ] resizing the browser redraws tmux (not stuck at attach size)
-  [ ] pending assertions match the active scenario
-  [ ] review action opens in the correct session
   [ ] browser refresh preserves the tmux session
   [ ] compact viewport (900x700) has no clipping or horizontal scroll
   [ ] tiny viewport (480x320) keeps the terminal usable

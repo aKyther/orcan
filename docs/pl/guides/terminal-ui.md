@@ -55,7 +55,7 @@ Presety w `cursor-ttyd`:
 | motyw ttyd | `docker/rootfs/usr/local/bin/cursor-ttyd` | `orcan build` + recreate kontenera |
 | binarka tmux | `Dockerfile` (`ARG TMUX_VERSION=3.6a`) | build — static z `tmux/tmux-builds` |
 | UI tmux | `docker/rootfs/etc/tmux/` | build; albo kopia + `tmux source-file` przy iteracji |
-| Layout / chrome cockpit | `cockpit/src/orcan_cockpit/app.py`, `activity.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (izolowane); albo `orcan build` + recreate |
+| Layout / chrome cockpit | `cockpit/src/orcan_cockpit/app.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (izolowane); albo `orcan build` + recreate |
 | Skróty / help cockpit | `cockpit/…/shortcuts.py` (+ `keybindings.conf` dla tokenów tmux) | j.w.; test hosta trzyma tokeny w sync |
 | PTY cockpit | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_tmux_nav.py` | j.w. — zobacz [Cockpit + przeglądarka](#cockpit-browser) / [nav mix](#cockpit-nav-mix) |
 | zsh | `docker/rootfs/etc/skel/.zshrc`, `.zshrc.d/` | build; albo kopia do `~` na test na żywo |
@@ -68,12 +68,6 @@ Presety w `cursor-ttyd`:
 **Missing-only** = istniejący plik w home developera **nie** jest nadpisywany przy starcie. Po zmianie seeda w obrazie: usuń kopię w home raz albo zrób merge ręcznie.
 
 ## tmux (3.6a)
-
-- Jeden rząd statusu: wyśrodkowane taby okien — workspace/metryki są w górnym/dolnym pasku cockpit (surowy `tmux attach` / `orcan enter --tmux` poza cockpit nie pokaże CPU/RAM/branch)
-- **Żywe etykiety pane’ów** (`scripts/pane-label.sh`): pasek bordera i tab okna (`automatic-rename`) idą za procesem — np. `claude`, `review` (`orcan-context-review` w cmdline), bez pinowanego `select-pane -T`. Odświeżanie = `status-interval` (5s).
-- Feature’y za `%if #{>=:#{version},…}` — starszy serwer nadal może przeładować config
-- Edytuj pliki obrazu w **repo**, nie tylko w działającym kontenerze
-- Prefix: **C-Space** (nie `C-b`). Config: `docker/rootfs/etc/tmux/keybindings.conf`
 
 ### Bindings z prefixem (po `C-Space`)
 
@@ -200,68 +194,22 @@ Browser ttyd (`cursor-ttyd`) ustawia **`macOptionIsMeta=true`**, żeby na macOS 
 
 ### Chrome cockpitu (warstwa app)
 
-```text
-górny pasek:  🌀 orcan  ·  rail (🔔 pulse gdy pending · ?)  ·  CPU / RAM / zegar
-główny rząd:  workspaces (+ glance + legenda) + ASSERTIONS  |  terminal + hinty
-              przełącznik ‹› (F4) między kolumnami
-dół:          pasek statusu (workspace · branch · tmux · pending) — klik 🔔 → ASSERTIONS
-```
-
-Górny pasek zaczyna się od stałego wordmarku **`🌀 orcan`** (`top_bar.py`), potem
-utility rail (🔔 / ? — same ikony w compact/minimal; **ikona + słowo** w
-tierze `full`), potem metryki (`💻` load · `🧠` mem · zegar). Gdy są pending
-Context Assertions, dzwonek w rail **pulsuje bursztynowo** (`pending-pulse`).
-Przełącznik workspace’ów to **‹›** na krawędzi (`#sidebar-toggle`) + **F4**.
-Pod listą workspace’ów **session glance** (`session_glance.py`) pokazuje do
-trzech linii dla podświetlonego wiersza: pending **z wiekiem**
-(`2 pending · 3h`), licznik worktree / idle sesji albo wiek briefu
-(`2 wt · idle 40m`, albo `brief 2h` gdy nie live) oraz komendy live pane’ów
-(`tmux list-panes`). Karta ASSERTIONS pokazuje też **agents** (pin ★), krótką
-oś **recent decisions**, a badge 🔔 to zagregowane **Problems** (pending +
-błędy reflection + dirty repo). **F5** = peek briefu / następnej notki bez
-splitu; **Ctrl+P** = split / URL / pin-main / szablony zadań. Pasek statusu
-(full) dokłada breadcrumb tmux (`wN › command`). Karta ASSERTIONS pokazuje też
-**last batch** (feedback z recap/reflection). **F5** + **Enter** = Peek→Review;
-pierwsze uruchomienie = krótki onboarding. **Busy fixtures w preview** to
-**atrapy UI** (np. port 8000), nie wynik reflection z żywej sesji. Bez Claude
-Code na PATH automation assertions jest **wyłączone**; **Review** pending
-nadal działa. Empty / attach używa wordmarku
-(`🌀 orcan` / `🌀 attaching name`) zamiast gołego spinnera. ASSERTIONS są na
-dole lewej kolumny (`activity.py`) z podtytułem, przyciskami Review /
-Pause / Turn off i linkiem do docs. Klik 🔔 w status-barze (lub w rail)
-odsłania i fokusuje ASSERTIONS. Legenda listy:
-`● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** przełącza drugi wiersz
-(ścieżka root + nazwy repo). SoT klawiszy: `cockpit/…/shortcuts.py`. Overlay
-**F1** / **?** to **tylko skróty** (stopka embed + `BROWSER_KEY_LIMIT` — zob.
-[Cockpit nav mix](#cockpit-nav-mix)). **About** (nazwa, wersja, docs) jest
-osobnym ekranem (`about_modal.py`) — klik wordmarku **`🌀 orcan`**. **Brak**
-skrótu Git / F3 w cockpicie — w terminalu: alias **`lg`** (lazygit).
-
 **Progi szerokości** (kolumny terminala, nie breakpointy CSS — `status.py` /
 `tier_for_width`):
 
 | Tier | Kolumny | Efekt |
 | --- | --- | --- |
-| `full` | ≥ 120 | Pełny dolny pasek; rail z etykietami (Assertions / Help) |
 | `compact` | 90–119 | Krótszy dolny pasek; rail tylko ikony |
 | `minimal` | < 90 | Ukrywa **górny pasek**; **F4** / ‹› przełącza między pełną szerokością terminala i listy workspace’ów |
 
-**F4** / **F2** nadal przełączają ręcznie workspace’y / ASSERTIONS. Przy
-minimalnej szerokości lista workspace’ów otwiera się jako pełnoekranowy widok,
-więc projekty pozostają dostępne w ttyd na telefonie.
-
 | Klawisze | Akcja |
 | --- | --- |
-| **F2** / rail 🔔 | Przełącz sekcję ASSERTIONS w lewej kolumnie |
 | **F4** / ‹› | Przełącz kolumnę workspace’ów |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — `about_modal.py` |
 | **F5** | Peek briefu / następnej pending; **Enter** / **r** → Review |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |
 | **i** | Rozwiń/zwiń szczegóły workspace (fokus na liście) |
-| **r** | Uruchom `orcan-context-review` (fokus na ASSERTIONS) |
-| **p** | Pauza/wznowienie automatyzacji context (fokus na ASSERTIONS) |
-| **o** | Wyłącz/włącz automatyzację context (fokus na ASSERTIONS) |
 | **prefix ?** | Samodzielny popup skrótów tmux (bez cockpitu) |
 | **`lg`** (w shellu) | lazygit — nie F-key w cockpicie |
 

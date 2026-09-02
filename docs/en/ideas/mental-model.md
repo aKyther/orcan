@@ -123,10 +123,6 @@ that change take effect in a running container, see
 
 ## Cross-workspace visibility (by design)
 
-`$ORCAN_HOME/workspaces/` is mounted once as `/home/developer/workspaces/`.
-Each workspace is a subdirectory (symlinks, `AGENTS.md`,
-`CONTEXT-ASSERTIONS.md`, `.orcan/context-inbox/`, …).
-
 **Tradeoff:** an agent started in workspace A can also see workspace B’s tree.
 That is intentional — it lets you add, remove, and switch workspaces without
 growing a per-workspace bind list and recreating the container. Orcan is

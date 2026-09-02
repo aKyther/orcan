@@ -77,7 +77,6 @@ Config lives in `~/.config/orcan/` by default (install clone: `~/.local/share/or
 | Why Orcan? | [docs/en/why-orcan.md](docs/en/why-orcan.md) |
 | Core Ideas | [docs/en/ideas/core-ideas.md](docs/en/ideas/core-ideas.md) |
 | Mental Model | [docs/en/ideas/mental-model.md](docs/en/ideas/mental-model.md) |
-| Context Assertions | [docs/en/ideas/context-assertions.md](docs/en/ideas/context-assertions.md) |
 | Agent inbox | [docs/en/ideas/agent-inbox.md](docs/en/ideas/agent-inbox.md) |
 | Runtime reconcile | [docs/en/ideas/runtime-reconcile.md](docs/en/ideas/runtime-reconcile.md) |
 | Quickstart (source) | [docs/en/getting-started/quickstart.md](docs/en/getting-started/quickstart.md) |

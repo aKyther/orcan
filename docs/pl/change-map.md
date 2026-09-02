@@ -14,14 +14,9 @@ Krótki indeks **gdzie edytować** — i który doc to wyjaśnia. Orientacja age
 | Chcesz zmienić… | Edytuj tu | Czytaj |
 | --- | --- | --- |
 | UX hosta / cele Make | `Makefile`, `scripts/repository/` | [Makefile](reference/makefile.md) |
-| Cockpit TUI (`agent-launcher`) | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `activity.py`, `top_bar.py`) | [Workflowy — lokalny terminal](guides/workflows.md#local-terminal), [Terminal UI](guides/terminal-ui.md) |
-| Recap sesji / driver skanu | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap`, `orcan-context-scan` | [Context Assertions](ideas/context-assertions.md), [Environment](reference/environment.md) |
-| Probe modelu recap | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` | [Context Assertions](ideas/context-assertions.md), [Environment](reference/environment.md) |
-| Supervisord / skan Reflection | `docker/rootfs/etc/orcan/supervisor.d/`, `orcan-supervisord`, `orcan-context-scan`, `session_scan.py` | [Docker](reference/docker.md#process-layout-supervisord), [Context Assertions](ideas/context-assertions.md) |
-| Host sync context / kontrola automatyzacji | `scripts/repository/context_syncd.py`, `docker/rootfs/usr/local/lib/orcan/automation.py` | [Context Assertions](ideas/context-assertions.md), [CLI](reference/cli.md) |
+| Cockpit TUI (`agent-launcher`) | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `top_bar.py`, `rail.py`) | [Workflowy — lokalny terminal](guides/workflows.md#local-terminal), [Terminal UI](guides/terminal-ui.md) |
 | Izolowany preview UX / tmux (checkout) | `make dev-*`, `scripts/dev/` | [Testy](development/testing.md), [Makefile](reference/makefile.md) |
 | Schemat config / wizard | `scripts/repository/config-*.py`, `apply-config.py` | [Referencja konfiguracji](reference/configuration.md), [Przewodnik](getting-started/configuration.md) |
-| Context Assertions / compile | `scripts/repository/context_assertions.py`, `compile_context.py` | [Context Assertions](ideas/context-assertions.md) |
 | Managed workspaces / worktrees | `scripts/repository/managed_workspace.py`, `git_worktrees.py` | [Workspaces](concepts/workspaces.md), [Runtime reconcile](ideas/runtime-reconcile.md) |
 | Reconcile host / audit workspace | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; `docker/rootfs/usr/local/lib/orcan/reconcile.py` | [Runtime reconcile](ideas/runtime-reconcile.md), [CLI](reference/cli.md) |
 | Binaria runtime w kontenerze | `docker/rootfs/usr/local/bin/` | [Docker](reference/docker.md), [Interfejs](interface.md) |

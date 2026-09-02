@@ -193,13 +193,6 @@ orcan_cmd_up() {
     if [[ -n "${WORKSPACE_NAME:-}" ]]; then
         printf '  Workspace: %s\n' "${WORKSPACE_NAME}"
         printf '  Start dir (container): %s\n' "${WORKSPACE_ROOT:-${CONTAINER_PROJECT_DIR:-}}"
-        orcan_require_python
-        local hook_line hook_state
-        hook_line="$(ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/claude_hook.py" \
-            status "${WORKSPACE_NAME}" --home "${ORCAN_HOME}" 2>/dev/null)" || true
-        hook_state="${hook_line%% *}"
-        printf '  Hook (Claude Stop: orcan-context-reflect): %s\n' "${hook_state:-unknown}"
-        printf '  Toggle: orcan context hook enable|disable [WORKSPACE] [--all]\n'
     fi
     if (( with_git )); then
         printf '  Git/SSH: host ~/.ssh'

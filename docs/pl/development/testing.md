@@ -54,7 +54,6 @@ make dev-reset                           # stop + usuń domyślny stan fixture
 | — | `rebuild [--no-cache]` | Pełny rebuild dla zmian Dockerfile, rootfs lub zależności |
 | `dev-status` | `status` / `url` | Health + URL |
 | `dev-doctor` | `doctor` | Docker, tożsamość izolacji, health, HTTP, bind checkoutu, cockpit z checkoutu |
-| `dev-smoke` | `smoke` | Prawdziwy layout Textual (`#top-bar`, workspace'y, ASSERTIONS, `#status-bar`), bootstrap tmux, osadzony PTY; F2 przełącza ASSERTIONS |
 | `dev-visual` | — | Regresja screenshotów Chromium (`dev-ux.spec.js`; wymaga healthy preview) |
 | `dev-visual-update` | — | Świadoma aktualizacja wzorców po przeglądzie |
 | `dev-a11y` | — | Tab/focus, brak overflow, axe serious/critical, tiny `480x320` (`dev-a11y.spec.js`) |
@@ -79,18 +78,8 @@ Domyślne (nadpisywalne):
 | Bind | `0.0.0.0` (LAN); `ORCAN_PREVIEW_BIND=127.0.0.1` tylko loopback |
 | Scenariusz | `busy` |
 
-Wybrany port, bind i scenariusz są zapisywane w `.orcan-dev-ux/settings.env`. Env:
-`ORCAN_PREVIEW_ROOT`, `ORCAN_PREVIEW_IMAGE`, `ORCAN_PREVIEW_PORT`,
-`ORCAN_PREVIEW_BIND`, `ORCAN_PREVIEW_PROJECT`, `ORCAN_PREVIEW_INSTANCE`,
-`ORCAN_PREVIEW_SCENARIO`, `ORCAN_PREVIEW_INSTALL_CLAUDE` (domyślnie `1` —
-Claude w obrazie preview; `0` = lean build). Bez Claude automation
-assertions jest **wyłączone**; **Review** zasianego inboxa nadal działa.
-Busy fixtures to **atrapy UI**, nie wynik żywej reflection.
-
 | Scenariusz | Intencja fixture |
 | --- | --- |
-| `empty` | Brak pending Context Assertions |
-| `busy` (domyślny) | Wiele assertions (scrolling / gęstość review) |
 | `errors` | Assertion na nieistniejący projekt |
 | `long-names` | Bardzo długi tytuł/treść (wrapping / clipping) |
 
@@ -121,12 +110,6 @@ pod `.orcan-dev-ux/playwright-node/` i zapisują artefakty błędów w
 flow w przeglądarce (F2/F4/F1, r/p/o, i, Alt+1…9, resize, compact `900x700`, tiny
 `480x320`, axe). Pakiet dostępności sprawdza też, że Tab dochodzi do terminala
 i że viewport `480x320` zostawia użyteczny xterm.
-
-Fixture montuje ten checkout jako projekt `orcan` w workspace `dev-ux`, buduje
-z samym Codexem (`INSTALL_CURSOR=0`, `INSTALL_CLAUDE=0`) i dokłada dane inbox
-zależne od scenariusza, żeby ćwiczyć sekcję **ASSERTIONS** w lewej kolumnie
-(**F2** przełącza sekcję; **`r`** odpala review; lista workspace’ów zostaje
-nad nią). Błędy setupu trafiają do `.orcan-dev-ux/setup.log`.
 
 !!! warning
     Domyślny bind to `0.0.0.0` (dostęp LAN). Nie uruchamiaj w niezaufanej sieci bez uwierzytelniania ttyd.

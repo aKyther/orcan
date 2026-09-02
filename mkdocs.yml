@@ -129,7 +129,6 @@ plugins:
             Why Orcan?: Dlaczego Orcan?
             Core Ideas: Idee podstawowe
             Mental Model: Model mentalny
-            Context Assertions: Context Assertions
             Agent inbox: Skrzynka agentów
             Runtime reconcile: Runtime reconcile
             Ideas: Idee
@@ -217,7 +216,6 @@ nav:
       - Ideas:
           - Core Ideas: ideas/core-ideas.md
           - Mental Model: ideas/mental-model.md
-          - Context Assertions: ideas/context-assertions.md
           - Agent inbox: ideas/agent-inbox.md
           - Runtime reconcile: ideas/runtime-reconcile.md
       - Concepts:

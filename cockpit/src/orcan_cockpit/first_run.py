@@ -52,13 +52,11 @@ class FirstRunModal(ModalScreen[None]):
         with Container(id="first-run-dialog"):
             yield Static("Welcome to orcan cockpit", classes="first-run-title")
             yield Static(
-                "F5  Peek brief / next pending note\n"
-                "Ctrl+P  Command palette (review, split, tasks)\n"
-                "F2  Assertions · Review = lasting context notes\n"
+                "F5  Peek session brief\n"
+                "F4  Toggle workspace list\n"
+                "Ctrl+P  Command palette (split, tasks)\n"
                 "\n"
-                "Reflection (~20 turns) proposes short facts — you say y/n.\n"
-                "Preview busy fixtures are fake scroll data, not session facts.\n"
-                "No Claude Code → automation stays off; Review still works.",
+                "Your tmux sessions survive cockpit and browser reconnects.",
                 classes="first-run-body",
             )
             yield Static("Enter / Esc — dismiss (won't show again)", classes="first-run-footer")

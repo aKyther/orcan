@@ -1,5 +1,5 @@
 """Textual cockpit app: a single, persistent layout — top bar (utility rail
-+ CPU/RAM/clock) · workspaces + ASSERTIONS activity (left column) ·
++ CPU/RAM/clock) · workspaces (left column) ·
 embedded live tmux session + contextual hint strip (center) · status bar
 (bottom, workspace identity).
 This is what cli.py launches on a real tty.
@@ -25,12 +25,6 @@ from textual.screen import Screen
 from textual.widgets import ListView, Static
 
 from orcan_cockpit.about_modal import AboutModal
-from orcan_cockpit.activity import WorkspaceActivity
-from orcan_cockpit.actions import (
-    run_context_review_popup,
-    toggle_automation_enabled,
-    toggle_automation_pause,
-)
 from orcan_cockpit.commands import WorkspaceCommands
 from orcan_cockpit.first_run import FirstRunModal
 from orcan_cockpit.hints import HintStrip
@@ -56,19 +50,13 @@ from orcan_cockpit.top_bar import TopBar
 PLACEHOLDER_TEXT = (
     "[#a78bfa bold]🌀 orcan[/]\n"
     "Pick a workspace on the left · Enter to attach\n"
-    "[#64748b]F1 shortcuts · F4 panels · F2 assertions[/]"
+    "[#64748b]F1 shortcuts · F4 workspaces · F5 session brief[/]"
 )
 
-# Maps a focused widget's own id (walked up via .parent — covers any nested
-# descendant, e.g. the ListView inside WorkspaceList) to the hint-strip
-# context it represents. "panel" now means "the ASSERTIONS section at the
-# bottom of the left column" (activity.py's WorkspaceActivity) rather than a
-# separate right-hand panel — the Context literal name is kept as "panel" so
-# shortcuts.py's existing manifest entries (r, p, etc.) don't need renaming.
+# Maps a focused widget to the hint-strip context it represents.
 _CONTEXT_ROOT_IDS: dict[str, Context] = {
     "terminal": "terminal",
     "workspace-list-widget": "workspaces",
-    "workspace-activity": "panel",
     "rail": "rail",
 }
 
@@ -83,7 +71,7 @@ def _classify_focus(widget) -> Context | None:
     return None
 
 
-# Each of the three main panels (workspace list, assertions, terminal) is
+# The workspace list and terminal are
 # its own bordered card — cyan on focus, matching tmux's own
 # pane-active-border-style (status.conf). "terminal" maps to #center-stack
 # (the card wraps the terminal/placeholder/loading stack, not the hint
@@ -95,7 +83,6 @@ def _classify_focus(widget) -> Context | None:
 # whole-row border highlight would be redundant.
 _FOCUS_BORDER_IDS: dict[Context, str] = {
     "workspaces": "#workspace-list-widget",
-    "panel": "#workspace-activity",
     "terminal": "#center-stack",
 }
 
@@ -183,12 +170,6 @@ Screen {
     background: #1e293b;
 }
 
-/* Pending assertions pulse (UtilityRail._pulse_tick) — amber blink so the
-   bell is noticeable without a second status surface. */
-#rail-assertions.pending-pulse {
-    color: #fbbf24;
-    background: #1e293b;
-}
 
 #top-bar-spacer {
     width: 1fr;
@@ -222,7 +203,7 @@ Screen {
 
 #workspace-list-widget {
     /* No margin-bottom (previously 1): the blank row it left between this
-       card and ASSERTIONS below read as unused space, not intentional
+       card reads as unused space, not intentional
        breathing room (flagged in review). Removing it hands that row back
        to this card's own height:1fr — one more visible row in the actual
        workspace list — instead of sitting empty as a gap. */
@@ -244,7 +225,7 @@ Screen {
 
 #workspace-glance {
     /* Session glance under the highlighted workspace — 2–3 lines of
-       pending / reflection / pane commands (session_glance.py). */
+       brief / pane commands (session_glance.py). */
     height: auto;
     max-height: 4;
     color: #94a3b8;
@@ -487,12 +468,11 @@ MainScreen.tier-minimal #workspaces {
 
 class MainScreen(Screen):
     """The one persistent screen: top bar (utility rail + CPU/RAM/clock),
-    left workspace list + ASSERTIONS activity, center terminal + hints,
+    left workspace list, center terminal + hints,
     bottom status bar — all mounted together, never torn down and
     rebuilt."""
 
     BINDINGS = [
-        ("f2", "toggle_panel", "Toggle panel"),
         # Bare function keys — not letters/Ctrl/Alt — because PtyTerminal
         # swallows (event.stop()) any key it can translate to pty bytes
         # whenever the terminal has focus (see pty_terminal.py's on_key);
@@ -501,12 +481,11 @@ class MainScreen(Screen):
         ("f1", "open_shortcuts", "Shortcuts"),
         ("question_mark", "open_shortcuts", "Shortcuts"),
         ("f4", "toggle_workspaces", "Toggle workspaces"),
-        ("f5", "open_peek", "Peek brief/pending"),
+        ("f5", "open_peek", "Peek session brief"),
     ]
 
     def __init__(self) -> None:
         super().__init__()
-        self._panel_visible = True
         self._workspaces_visible = True
         self._minimal_workspaces_visible = False
         self._current_session: str | None = None
@@ -518,7 +497,6 @@ class MainScreen(Screen):
         with Horizontal(id="main-row"):
             with Vertical(id="workspaces"):
                 yield WorkspaceList(id="workspace-list-widget")
-                yield WorkspaceActivity(id="workspace-activity")
             yield Static("‹", id="sidebar-toggle")
             with Container(id="center"):
                 with Container(id="center-stack"):
@@ -669,11 +647,6 @@ class MainScreen(Screen):
             )
         )
         self.query_one("#workspace-list-widget", WorkspaceList).set_active_session(row["session"])
-        self.query_one(WorkspaceActivity).set_workspace(
-            row["root"],
-            row["session"],
-            projects=row.get("projects"),
-        )
         self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])
 
     def on_pty_terminal_ready(self, message: PtyTerminal.Ready) -> None:
@@ -681,17 +654,6 @@ class MainScreen(Screen):
         if loading:
             loading.remove()
         message.pty_terminal.focus()
-
-    def action_toggle_panel(self) -> None:
-        activity = self.query_one(WorkspaceActivity)
-        self._panel_visible = not self._panel_visible
-        activity.display = self._panel_visible
-        if self._panel_visible:
-            activity.focus()
-        else:
-            terminal = self.query("#terminal")
-            if terminal:
-                terminal.focus()
 
     def action_toggle_workspaces(self) -> None:
         if self._tier == "minimal":
@@ -718,38 +680,11 @@ class MainScreen(Screen):
             self.notify("Attach a workspace first", severity="warning")
             return
 
-        def _after_peek(result: str | None) -> None:
-            if result == "review" and self._current_session:
-                run_context_review_popup(self._current_session)
-
-        self.app.push_screen(PeekModal(self._current_root), _after_peek)
-
-    def _reveal_assertions(self) -> None:
-        # Assertions live inside #workspaces now — clicking either bell (the
-        # rail's, or the status bar's — see on_click) should always get you
-        # there, so un-hide the whole left column too if F4 had hidden it,
-        # not just the assertions sub-section. Single method so the two
-        # click sources can't drift into different behavior.
-        if not self._workspaces_visible:
-            self._workspaces_visible = True
-            self._update_workspaces_visibility()
-        activity = self.query_one(WorkspaceActivity)
-        if not self._panel_visible:
-            self._panel_visible = True
-            activity.display = True
-        activity.focus()
+        self.app.push_screen(PeekModal(self._current_root))
 
     def on_utility_rail_tool_selected(self, message: UtilityRail.ToolSelected) -> None:
-        if message.tool == "assertions":
-            self._reveal_assertions()
-        elif message.tool == "shortcuts":
+        if message.tool == "shortcuts":
             self.action_open_shortcuts()
-
-    def on_workspace_activity_summary_updated(self, message: WorkspaceActivity.SummaryUpdated) -> None:
-        self.query_one(UtilityRail).set_pending_count(
-            message.problems_count,
-            tooltip=message.tooltip or None,
-        )
 
 
 class CockpitApp(App):
@@ -770,7 +705,6 @@ class CockpitApp(App):
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
         def _pin_main(main: MainScreen, sess: str, workspace: str) -> None:
             if pin_main_pane(sess, workspace):
-                main.query_one(WorkspaceActivity).refresh_summary()
                 main.notify("Pinned main agent pane", severity="information")
             else:
                 main.notify("Could not pin pane", severity="error")
@@ -778,16 +712,12 @@ class CockpitApp(App):
         yield from super().get_system_commands(screen)
         if not isinstance(screen, MainScreen):
             return
-        yield SystemCommand("Toggle assertions panel", "F2", screen.action_toggle_panel)
         yield SystemCommand("Toggle workspaces panel", "F4", screen.action_toggle_workspaces)
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
-        yield SystemCommand("Peek brief / next pending", "F5", screen.action_open_peek)
+        yield SystemCommand("Peek session brief", "F5", screen.action_open_peek)
         if screen._current_session:
             session = screen._current_session
             root = screen._current_root or ""
-            yield SystemCommand(
-                "Run context review", "r (panel focused)", lambda: run_context_review_popup(session)
-            )
             yield SystemCommand(
                 "Split pane (vertical)",
                 "tmux",
@@ -820,24 +750,6 @@ class CockpitApp(App):
                     lambda cmd=command: split_run(session, cmd, vertical=True),
                 )
 
-            def _toggle_pause() -> None:
-                toggle_automation_pause()
-                screen.query_one(WorkspaceActivity).refresh_summary()
-
-            def _toggle_enabled() -> None:
-                toggle_automation_enabled()
-                screen.query_one(WorkspaceActivity).refresh_summary()
-
-            yield SystemCommand(
-                "Pause/resume context automation",
-                "p (panel focused)",
-                _toggle_pause,
-            )
-            yield SystemCommand(
-                "Turn context automation off/on",
-                "o (panel focused)",
-                _toggle_enabled,
-            )
 
 
 def run_cockpit() -> int:

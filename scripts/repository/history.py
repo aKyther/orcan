@@ -2,26 +2,49 @@
 """Usage history: recent projects / workspaces / worktrees / work items.
 
 Same upsert-by-key JSON idiom as the worktree registry
-(git_worktrees.py's registry.json) — one small file, no database. Reuses
-context_assertions.project_id() (git-common-dir based, worktree-stable) as
-the canonical project identity instead of inventing a parallel one, per
-the existing pattern: canonical project identity is more stable than a
-workspace or worktree name.
+(git_worktrees.py's registry.json) — one small file, no database. Uses a git-common-dir based, worktree-stable project identity so history
+remains stable across linked worktrees.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
+import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from context_assertions import project_id  # noqa: E402
-
 DEFAULT_FILENAME = "history.json"
+
+
+def _git_common_dir(project_path: Path) -> Path | None:
+    result = subprocess.run(
+        ["git", "-C", str(project_path), "rev-parse", "--git-common-dir"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    path = Path(result.stdout.strip())
+    if not path.is_absolute():
+        path = project_path / path
+    return path.resolve()
+
+
+def project_id(project_path: Path) -> str:
+    """Stable identity shared by a repository and its linked worktrees."""
+    resolved = project_path.resolve()
+    common_dir = _git_common_dir(resolved)
+    identity = common_dir or resolved
+    base_source = common_dir.parent if common_dir and common_dir.name == ".git" else identity
+    digest = hashlib.sha256(str(identity).encode("utf-8")).hexdigest()[:10]
+    base = re.sub(r"[^A-Za-z0-9._-]+", "-", base_source.name).strip("-") or "project"
+    return f"{base}-{digest}"
 
 
 def store_path(orcan_data: Path) -> Path:

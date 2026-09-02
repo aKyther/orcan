@@ -33,7 +33,7 @@ Dark navy / near-black / subtle cyan — hex used across ttyd, tmux, starship, f
 | tmux | `docker/rootfs/etc/tmux/` | status, options, keybindings (`M-1`… window select), scripts; gate 3.5+/3.6+ with `%if` |
 | Cockpit PTY | `cockpit/src/orcan_cockpit/pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_mouse.py` | must forward `C-Space` / `alt+…` as one write; reverse Option glyphs → Meta; wheel/clicks to tmux; `TIOCSCTTY` for resize SIGWINCH |
 | Cockpit shortcuts | `cockpit/src/orcan_cockpit/shortcuts.py` | app + tmux SoT; modal/`?` + host test vs `keybindings.conf` |
-| Cockpit layout / ASSERTIONS | `app.py`, `activity.py`, `top_bar.py`, `rail.py`, `status.py`, `status_bar.py` | top bar + workspaces+ASSERTIONS; width tiers |
+| Cockpit layout / chrome | `app.py`, `top_bar.py`, `rail.py`, `status.py`, `status_bar.py` | top bar + workspaces; width tiers |
 | tmux binary | `Dockerfile` (`TMUX_VERSION`) | static 3.6a from `tmux/tmux-builds` |
 | zsh | `docker/rootfs/etc/skel/.zshrc` + `.zshrc.d/` | fzf/autosuggest in `70-plugins.zsh` |
 | starship | `docker/rootfs/opt/orcan/starship.toml` | **missing-only** → `~/.config/starship.toml` |

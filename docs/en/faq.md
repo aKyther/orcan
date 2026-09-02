@@ -37,7 +37,7 @@ Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
 ## Must I use the browser (ttyd)?
 
-**No.** ttyd is great for remote / phone. Locally use `orcan enter` (or `orcan go-in`) — the cockpit (top bar: rail + metrics \| main: workspaces + ASSERTIONS \| tmux) by default; `--tmux` / `--shell` for other modes. See [Workflows — local terminal](guides/workflows.md#local-terminal).
+**No.** ttyd is great for remote / phone. Locally use `orcan enter` (or `orcan go-in`) — the cockpit (top bar: rail + metrics \| main: workspaces \| tmux) by default; `--tmux` / `--shell` for other modes. See [Workflows — local terminal](guides/workflows.md#local-terminal).
 
 ## Why does ttyd say “reconnecting” on mobile / in the car?
 
@@ -52,34 +52,6 @@ After reconnect, the launcher **auto-reattaches** to the last workspace (2s coun
 **Push/pull over SSH:** start with `orcan up --with-git` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --with-docker --with-git`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
 
 **Worktrees:** optional. Mount a normal clone path by default; use the wizard’s advanced help or `orcan context worktree` when you want a separate checkout under `$ORCAN_PROJECTS_ROOT/.worktrees` (default `~/.config/orcan/sandbox/.worktrees` — covered by the stable projects mount, so no container recreate). See [Workspaces](concepts/workspaces.md#git-worktrees).
-
-## How does automated Reflection find agent transcripts?
-
-By default the container runs **`orcan-context-scan`** under supervisord (Claude +
-Cursor transcripts on disk → same inbox / human review as before). Disable with
-`ORCAN_CONTEXT_SCAN=0` in the container environment, then recreate. Inspect with
-`orcan logs context-scan` / `orcan logs supervisor`. Details: [Context Assertions](ideas/context-assertions.md), [Docker](reference/docker.md#process-layout-supervisord).
-
-## Upgraded Orcan but `context-scan` / supervisord is missing?
-
-Run **`orcan doctor`** and read the **`supervisord`** line:
-
-- **`image predates supervisord`** — rebuild and recreate:
-  `orcan build && orcan down && orcan up`
-- **`process not running`** — same recreate after a successful build
-- **`RUNNING`** with `context-scan` — worker is up; use `orcan logs context-scan` if
-  Reflection still looks idle (check cockpit **`[p]`** pause, **`[o]`** off, or failed
-  recap model probe — `orcan doctor` / `orcan-context-model-check` in container)
-
-## After review, how do I refresh `CONTEXT-ASSERTIONS.md` without a full sync?
-
-Use host-only **`orcan sync --context`** (one pass) or **`orcan sync --context --watch`**
-to poll the inbox while the container keeps scanning. **`--once`** skips when nothing
-changed. This never auto-accepts proposals — same human gate as a full `orcan sync`.
-If automation looks stuck, check cockpit **`[p]`** / **`[o]`** /
-`$ORCAN_DATA/history/supervisor/automation.json` (`paused: true` or `enabled: false`
-idles both `orcan-context-scan` and `orcan sync --context --watch`; `model_check.ok:
-false` skips recap until Claude/Haiku is available).
 
 ## Which agents are installed?
 

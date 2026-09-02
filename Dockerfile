@@ -434,9 +434,6 @@ RUN chmod 0755 \
         /usr/local/bin/orcan-session-brief \
         /usr/local/bin/orcan-workspaces \
         /usr/local/bin/orcan-context-status \
-        /usr/local/bin/orcan-context-propose \
-        /usr/local/bin/orcan-context-review \
-        /usr/local/bin/orcan-context-reflect \
         /usr/local/bin/orcan-prompt-clean \
         /usr/local/bin/cursor-ttyd \
         /usr/local/bin/agent-launcher \
