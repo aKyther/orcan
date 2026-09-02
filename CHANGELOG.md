@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Workspace picker:** pressing **Enter** now always confirms and closes the
+  picker, including when the highlighted workspace is already attached. The
+  existing tmux PTY is kept alive and focus returns to the terminal.
+
 - **Cockpit:** clicking the embedded tmux pane (or any repaint with no new
   terminal output) no longer crashes with `VisualError: unable to display
   '_RenderCache' type`. The pane's frame cache was stored under
