@@ -80,6 +80,10 @@ container CMD → orcan-supervisord → keepalive|ttyd
 
 ### UX preview (checkout only)
 
+To confirm a change actually runs (not just `make test-host`), drive the app
+via the isolated dev stack below — needs Docker in the container
+(`orcan up --with-docker`; check with `docker info`).
+
 ```bash
 make dev-start         # isolated orcan:dev-ux (default :17681)
 make dev-restart       # after cockpit UX edits (loads checkout source)
