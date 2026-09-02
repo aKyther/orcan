@@ -148,6 +148,52 @@ ensure_orcan_home_map() {
     fi
 }
 
+seed_managed_default() {
+    # Refresh image defaults only while the user's copy is still byte-for-byte
+    # a previously shipped default. A sidecar records the version copied by
+    # Orcan for future upgrades; legacy hashes bridge installs created before
+    # sidecars existed. Any user edit makes the hashes differ and is preserved.
+    local source_file="$1"
+    local target_file="$2"
+    local state_name="$3"
+    shift 3
+    local state_dir="${HOME}/.local/state/orcan/defaults"
+    local state_file="${state_dir}/${state_name}.sha256"
+    local source_hash current_hash recorded_hash="" legacy_hash
+
+    [[ -f "${source_file}" ]] || return 0
+    source_hash="$(sha256sum -- "${source_file}" | awk '{print $1}')"
+    mkdir -p "$(dirname "${target_file}")" "${state_dir}"
+
+    if [[ ! -e "${target_file}" ]]; then
+        cp -- "${source_file}" "${target_file}"
+        printf '%s\n' "${source_hash}" >"${state_file}"
+        return 0
+    fi
+    [[ -f "${target_file}" && ! -L "${target_file}" ]] || return 0
+
+    current_hash="$(sha256sum -- "${target_file}" | awk '{print $1}')"
+    if [[ -f "${state_file}" ]]; then
+        read -r recorded_hash <"${state_file}" || recorded_hash=""
+    fi
+    if [[ "${current_hash}" == "${source_hash}" ]]; then
+        printf '%s\n' "${source_hash}" >"${state_file}"
+        return 0
+    fi
+    if [[ -n "${recorded_hash}" && "${current_hash}" == "${recorded_hash}" ]]; then
+        cp -- "${source_file}" "${target_file}"
+        printf '%s\n' "${source_hash}" >"${state_file}"
+        return 0
+    fi
+    for legacy_hash in "$@"; do
+        if [[ "${current_hash}" == "${legacy_hash}" ]]; then
+            cp -- "${source_file}" "${target_file}"
+            printf '%s\n' "${source_hash}" >"${state_file}"
+            return 0
+        fi
+    done
+}
+
 ensure_shell_home() {
     # Seed bashrc.d / zshrc.d from skel; drop legacy cursor-dev names.
     # Always refresh managed PATH/cwd/user-overlay snippets so image logic stays in sync.
@@ -214,16 +260,21 @@ ensure_shell_home() {
     if [[ -f "${dotfiles}/starship.toml" ]]; then
         mkdir -p "${HOME}/.config"
         ln -sfn "${dotfiles}/starship.toml" "${HOME}/.config/starship.toml"
-    elif [[ -f /opt/orcan/starship.toml && ! -e "${HOME}/.config/starship.toml" ]]; then
-        cp -- /opt/orcan/starship.toml "${HOME}/.config/starship.toml"
+    else
+        seed_managed_default \
+            /opt/orcan/starship.toml \
+            "${HOME}/.config/starship.toml" \
+            starship \
+            97686dd3c62b3b0875e9a9044b0a1f63a0639fd5f1b5f39d952e165dc4af9a9a
     fi
     if [[ -f /opt/orcan/gitconfig && ! -e "${HOME}/.gitconfig" ]]; then
         cp -- /opt/orcan/gitconfig "${HOME}/.gitconfig"
     fi
-    if [[ -f /opt/orcan/lazygit-config.yml && ! -e "${HOME}/.config/lazygit/config.yml" ]]; then
-        mkdir -p "${HOME}/.config/lazygit"
-        cp -- /opt/orcan/lazygit-config.yml "${HOME}/.config/lazygit/config.yml"
-    fi
+    seed_managed_default \
+        /opt/orcan/lazygit-config.yml \
+        "${HOME}/.config/lazygit/config.yml" \
+        lazygit \
+        06b3fc5333e9a77d6f811b5add37c0888be8cbe50a0648060b5e952567416c07
 
     # Apply host identity from Compose env (orcan sync). GIT_AUTHOR_* alone is
     # enough for commits; user.* keeps tools that only read gitconfig consistent.
@@ -280,4 +331,6 @@ main() {
     exec "$@"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

@@ -63,12 +63,16 @@ Presets in `cursor-ttyd`:
 | Cockpit PTY | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_tmux_nav.py` | same — see [Cockpit + browser](#cockpit-browser) / [nav mix](#cockpit-nav-mix) |
 | zsh | `docker/rootfs/etc/skel/.zshrc`, `.zshrc.d/` | build (skel → home on new image); or copy into `~` for live test |
 | fzf / suggest colours | `docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh` | new shell after copy/build |
-| Starship | `docker/rootfs/opt/orcan/starship.toml` | **missing-only** → `~/.config/starship.toml` |
-| lazygit | `docker/rootfs/opt/orcan/lazygit-config.yml` | **missing-only** → `~/.config/lazygit/config.yml` |
+| Starship | `docker/rootfs/opt/orcan/starship.toml` | managed default → `~/.config/starship.toml` |
+| lazygit | `docker/rootfs/opt/orcan/lazygit-config.yml` | managed default → `~/.config/lazygit/config.yml` |
 | git / delta | `docker/rootfs/opt/orcan/gitconfig` | missing-only → `~/.gitconfig` |
 | User overlays | `$ORCAN_DATA/dotfiles` | bind-mounted; see [User dotfiles](dotfiles.md) |
 
-**Missing-only** means an existing file in the developer home is **not** overwritten on container start. After changing the image seed, either delete the home copy once, or tell the user to merge manually.
+Starship and lazygit use **managed defaults**: Orcan records the exact seed it
+wrote and refreshes it on a later image only while the file remains unchanged.
+Known defaults from older images are migrated once by checksum. A user edit or
+dotfile overlay stops management and is never overwritten. Git config remains
+strictly missing-only.
 
 ## tmux notes (3.6a)
 

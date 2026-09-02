@@ -247,6 +247,13 @@ Screen {
     padding-top: 1;
 }
 
+#workspace-details {
+    height: auto;
+    max-height: 8;
+    color: #918a9d;
+    padding-top: 1;
+}
+
 #workspace-legend {
     /* height:2, not 1: the full legend text (44 cells) is wider than this
        card's ~30-col usable width and was silently clipping "[i] expand"

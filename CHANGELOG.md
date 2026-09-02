@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Workspace picker:** workspace rows stay compact while root, project,
+  Git/worktree, branch, and tmux details follow only the highlighted row.
+  This keeps large workspace lists scannable without losing context.
+- **Safe default upgrades:** Starship and lazygit defaults now refresh across
+  image updates only when the installed copy still matches a default Orcan
+  previously wrote. User-edited files and dotfile overlays remain untouched.
+
 - **Terminal theme:** ttyd, Starship, fzf, zsh highlighting, and lazygit now
   share the cockpit's quieter graphite/plum foundation. The prompt is a
   compact two-line context, while semantic ANSI colours remain distinct for
