@@ -190,6 +190,12 @@ Smoke: `tests/smoke/test-cockpit-tui.py`.
 
 Browser ttyd (`cursor-ttyd`) sets **`macOptionIsMeta=true`** so macOS Option/Alt sends Meta (needed for `Alt+1`…), not `¡` / `™` composition. No effect on Windows/Linux.
 
+On touch screens, a one-finger vertical drag over the embedded terminal is
+translated to tmux scrollback. The bridge listens only to browser touch events;
+mouse, trackpad, keyboard, native `orcan enter`, and Windows Terminal / WSL
+input keep their existing paths. A short tap stays a tap because scrolling
+starts only after a vertical movement threshold.
+
 ### Cockpit chrome (app layer)
 
 **Width tiers** (terminal columns, not browser CSS breakpoints —

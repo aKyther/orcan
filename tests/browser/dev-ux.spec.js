@@ -33,3 +33,24 @@ test('developer UX remains readable at desktop and compact sizes', async ({ page
     maxDiffPixelRatio: 0.08,
   });
 });
+
+test('one-finger vertical drag becomes wheel input', async ({ page }) => {
+  await assertTerminalReady(page);
+  const result = await page.locator('.xterm').evaluate((terminal) => {
+    const wheelDeltas = [];
+    terminal.addEventListener('wheel', (event) => wheelDeltas.push(event.deltaY), { capture: true });
+    const touch = (x, y) => new Touch({
+      identifier: 1, target: terminal, clientX: x, clientY: y,
+    });
+    terminal.dispatchEvent(new TouchEvent('touchstart', {
+      bubbles: true, touches: [touch(100, 200)],
+    }));
+    terminal.dispatchEvent(new TouchEvent('touchmove', {
+      bubbles: true, cancelable: true, touches: [touch(102, 170)],
+    }));
+    terminal.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [] }));
+    return { installed: terminal.dataset.orcanTouchScroll, wheelDeltas };
+  });
+  expect(result.installed).toBe('on');
+  expect(result.wheelDeltas).toEqual([30]);
+});

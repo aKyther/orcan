@@ -54,6 +54,7 @@ fi
 
 TTYD_ARGS=(
     --writable
+    --index /opt/orcan/ttyd-index.html
     --interface 0.0.0.0
     --port "${TTYD_PORT}"
     --ping-interval "${TTYD_PING_INTERVAL}"
