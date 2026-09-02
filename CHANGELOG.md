@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mouse, trackpad, keyboard, native terminal, and Windows Terminal / WSL input
   unchanged.
 
+### Changed
+
+- **Cockpit:** dropped the contextual keyboard-hint strip under the terminal.
+  It cost 3–6 rows for a subset of what **F1** / **?** (and tmux **prefix ?**)
+  already list in full; the embedded tmux pane now gets that height back. The
+  focus-context tracking that also drove the cyan focus border is unchanged.
+
 ### Fixed
 
 - **Cockpit:** clicking the embedded tmux pane (or any repaint with no new

@@ -162,12 +162,12 @@ this" / "test this":
 
 Hard-won; `run_test()` / headless `Pilot` often miss these — verify thin chrome via real pty + `pyte` when needed.
 
-- **Box model:** a Textual widget with `height: 1` *and* a single-sided `border-top`/`border-bottom` consumes the whole row (content never appears). `#top-bar` / `#hint-strip` / `#status-bar` use background contrast only — do not reintroduce borders without pty verification.
+- **Box model:** a Textual widget with `height: 1` *and* a single-sided `border-top`/`border-bottom` consumes the whole row (content never appears). `#top-bar` / `#status-bar` are `height: 3` bordered cards for this reason — keep an even height if you re-add a border.
 - **tmux status:** `status on` (one row, window tabs). Identity/metrics live in cockpit bars — raw `tmux attach` / `orcan enter --tmux` will not show CPU/RAM/branch. Prefer `status on` over `status 1` (live reload `prefix r` rejects `1`).
 - **Alt+1..9:** right-Alt/AltGr on international Windows layouts often fails — use `prefix 0`..`prefix 9` fallback (`keybindings.conf`).
 - **Buttons:** override Textual `DEFAULT_CSS` (`border: none; min-width: 0`) for compact rows; very narrow forced `Button` can corrupt a row — prefer `Static` + `on_click` (`#sidebar-toggle`). `Button.press()` debounces ~0.2s — space `pilot.click()` with `pause(0.3)`.
 - **`#center`:** no outer padding on `#center` itself (aligns with `#workspaces` / `#top-bar`).
 - **`#top-bar-right`:** width from Python via `rich.cells.cell_len()` — avoid `width: auto` / `content-align: right` bugs.
 - **Preview file push:** `docker cp` into `orcan-dev-ux` can silently no-op in this sandbox — use `docker exec -i … cat > path < local`.
-- **F1 vs `?`:** with embedded terminal focused, `?` is typed into the shell — only **F1** opens shortcuts; hint strip shows `F1` only in terminal context.
+- **F1 vs `?`:** with embedded terminal focused, `?` is typed into the shell — only **F1** opens shortcuts from there.
 - **Browser Alt+arrows:** ttyd/xterm.js and some desktop terminals often deliver Alt+←/→/↑/↓ as Ctrl+arrow (no distinct Meta). Cockpit maps Ctrl/Alt+arrows → focus and Ctrl+Shift+arrows → split (`pty_tmux_nav.py`); F1/`?` footer = `BROWSER_KEY_LIMIT`. Raw `--tmux` keeps conf. See [Terminal UI — nav mix](docs/en/guides/terminal-ui.md#cockpit-nav-mix).

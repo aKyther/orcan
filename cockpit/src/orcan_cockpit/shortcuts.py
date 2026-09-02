@@ -75,14 +75,9 @@ class Shortcut:
 
 
 SHORTCUTS: list[Shortcut] = [
-    # --- app (cockpit) layer, global-navigation subset — listed FIRST,
-    # deliberately, not just alphabetically/thematically: hints_for() takes
-    # the first `limit` (default 6) matches for a context, and every tmux
-    # pane/window/session entry below also matches "terminal" — with these
-    # listed after them (as they used to be), they got crowded out of the
-    # terminal hint strip entirely (verified: hints_for("terminal") was
-    # 6/6 tmux pane hints, no F1/F4 in any form). Global nav should
-    # always win that race, even while attached to a live tmux session.
+    # --- app (cockpit) layer, global-navigation subset — listed FIRST so the
+    # F1/? overlay (and prefix-? popup) lead with global nav before the long
+    # tmux pane/window/session list.
     # (No F3/Git entry — removed on request; lazygit stays reachable via the
     # `lg` shell alias inside the terminal itself.)
     Shortcut("F4 / ‹›", "Toggle workspaces panel", "app", "cockpit",
@@ -90,11 +85,9 @@ SHORTCUTS: list[Shortcut] = [
     # "?" is a bare letter, not a function key — PtyTerminal swallows it
     # (event.stop() in on_key) whenever the terminal has focus and sends it
     # into the shell/tmux pane as a literal "?" instead; only F1 reliably
-    # opens this from there. Kept as ONE entry (not split by context) so the
-    # shortcuts modal/CLI still show a single "Open shortcuts" row — the
-    # terminal-only trim to bare "F1" happens in hints_for() below, the one
-    # place that actually needs the context-accurate distinction. Confirmed
-    # via real pty test: typing "?" while attached lands in the pane.
+    # opens this from there. One entry (not split by context) so the shortcuts
+    # modal/CLI show a single "Open shortcuts" row. Confirmed via real pty
+    # test: typing "?" while attached lands in the pane.
     Shortcut("F1 / ?", "Open shortcuts", "app", "cockpit",
               ("terminal", "workspaces", "rail")),
     # --- app: cockpit nav mix (see pty_tmux_nav — differs from raw --tmux) ---
@@ -105,8 +98,9 @@ SHORTCUTS: list[Shortcut] = [
               ("bind - split-window -v",)),
     Shortcut("prefix |", "Split pane (right)", "tmux", "panes", ("terminal",),
               ("bind | split-window -h",)),
-    # No "terminal" context: cockpit remaps these (hints show APP rows above).
-    # Still listed under TMUX in F1 / prefix-? for raw ``orcan enter --tmux``.
+    # No "terminal" context: cockpit remaps these (the APP "Split pane" row
+    # above covers the cockpit case). Still listed under TMUX in F1 /
+    # prefix-? for raw ``orcan enter --tmux``.
     Shortcut("Ctrl+↓/↑/→/←", "Split pane (no prefix; --tmux only)", "tmux", "panes", (), (
         "bind -n C-Down split-window -v",
         "bind -n C-Up split-window -v -b",
@@ -189,29 +183,6 @@ def grouped_by_layer() -> dict[Layer, list[Shortcut]]:
     for shortcut in SHORTCUTS:
         groups[shortcut.layer].append(shortcut)
     return groups
-
-
-def hints_for(context: Context, limit: int = 3) -> list[str]:
-    # Rich markup (bold+cyan key, plain description) — safe here because
-    # this only ever feeds the Textual-rendered HintStrip (hints.py), which
-    # interprets it; format_row() below stays markup-free since it also
-    # feeds shortcuts_cli.py's plain-text standalone tmux popup, where
-    # markup tags would show up as literal bracketed text.
-    #
-    # Prefer bindings unique to *this* context so a short strip (limit=3)
-    # surfaces panel review/pause before shared F-keys.
-    matched = [s for s in SHORTCUTS if context in s.contexts]
-    exclusive = [s for s in matched if len(s.contexts) == 1]
-    shared = [s for s in matched if len(s.contexts) > 1]
-    rows = []
-    for s in (exclusive + shared)[:limit]:
-        keys = s.keys
-        if context == "terminal" and keys == "F1 / ?":
-            # See the "F1 / ?" entry's comment above — "?" doesn't work
-            # from here, so the hint strip must not claim it does.
-            keys = "F1"
-        rows.append(f"[bold #5eead4]{keys}[/] {s.description}")
-    return rows
 
 
 def format_row(shortcut: Shortcut, *, key_width: int = 20) -> str:
