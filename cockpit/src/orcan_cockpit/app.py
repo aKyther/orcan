@@ -565,8 +565,17 @@ class MainScreen(Screen):
             self.query_one(selector).set_class(selector == target_selector, "focused")
 
     async def select_workspace(self, row: dict) -> None:
+        workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
+        for index, candidate in enumerate(workspace_list.rows):
+            if candidate["session"] == row["session"]:
+                workspace_list.query_one(ListView).index = index
+                break
         if row["session"] == self._current_session:
-            return  # already attached here — no need to tear down and respawn
+            # Enter always confirms the picker. Re-selecting the attached
+            # workspace should close it and return focus to the terminal,
+            # without tearing down or respawning the healthy tmux PTY.
+            self._set_workspaces_visible(False, focus_terminal=True)
+            return
 
         center = self.query_one("#center-stack", Container)
         # Must await: remove_children() only *posts* a Prune message — the
@@ -605,7 +614,7 @@ class MainScreen(Screen):
                 id="terminal",
             )
         )
-        self.query_one("#workspace-list-widget", WorkspaceList).set_active_session(row["session"])
+        workspace_list.set_active_session(row["session"])
         self.query_one(TopBar).set_workspace(row["name"])
         self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])
         self._set_workspaces_visible(False)

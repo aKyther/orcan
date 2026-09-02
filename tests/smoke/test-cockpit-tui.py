@@ -67,10 +67,15 @@ async def main() -> None:
         assert app.screen.query_one("#workspaces").display
         assert terminal.size == terminal_size
         assert workspaces._expanded
-        await pilot.click("#center-stack")
+        # Confirming the already-attached row closes the picker too; it must
+        # not restart the PTY merely because Enter was used as confirmation.
+        process = terminal._process
+        await pilot.press("enter")
         await pilot.pause()
         assert not app.screen.query_one("#workspaces").display
         assert terminal.size == terminal_size
+        assert terminal._process is process
+        assert terminal.has_focus
 
         await pilot.press("f1")
         await pilot.pause()
