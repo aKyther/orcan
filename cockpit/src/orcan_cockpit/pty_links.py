@@ -9,17 +9,30 @@ Claude-style nested OSC 8 links open in a browser by themselves. This module:
 4. Opens URLs with ``webbrowser`` (works for local ``orcan enter``; under
    ttyd may fail — callers should still render ``Style(link=…)`` so the
    outer terminal can Ctrl+click OSC 8)
+5. Pulls OSC 52 clipboard writes out of the stream so a caller can forward
+   them to the real outer terminal (pyte drops OSC 52 entirely)
 
 Stdlib-only — host-testable without Textual.
 """
 
 from __future__ import annotations
 
+import base64
 import re
 import webbrowser
 
 # OSC 8: ESC ] 8 ; params ; uri BEL  or  ESC ] 8 ; params ; uri ESC \
 _OSC8_RE = re.compile(r"\x1b\]8;[^\x07\x1b]*;([^\x07\x1b]*)(?:\x07|\x1b\\)")
+
+# OSC 52: ESC ] 52 ; <targets> ; <base64 | ?> (BEL | ESC \). tmux emits this
+# on every yank when ``set -s set-clipboard on`` (copy-mode y, mouse drag,
+# prefix-u / prefix-P). pyte has no OSC 52 handler, so unless it is pulled
+# out here the child's clipboard writes die inside the emulator.
+_OSC52_RE = re.compile(r"\x1b\]52;[^;\x07\x1b]*;([^\x07\x1b]*)(?:\x07|\x1b\\)")
+
+# One yanked selection is small; cap the decode so a pathological payload
+# cannot turn a single paint into a multi-MB clipboard write.
+_OSC52_MAX_DECODED = 512 * 1024
 
 # Same shape as pick-url.sh — allow trailing punctuation to be trimmed later.
 _URL_RE = re.compile(r"https?://[^\s<>\"'`)\]]+")
@@ -48,8 +61,42 @@ def split_osc8(text: str) -> list[tuple[str, str | None]]:
     return out
 
 
-def feed_with_osc8(stream, screen, text: str) -> None:
-    """Feed *text* to a pyte Stream, applying OSC 8 to ``screen.active_href``."""
+def extract_osc52(text: str) -> tuple[str, list[str]]:
+    """Pull OSC 52 clipboard-set sequences out of *text*.
+
+    Returns ``(text_without_osc52, payloads)`` — each payload is the decoded
+    UTF-8 string the child asked to place on the clipboard. Query forms
+    (``ESC ] 52 ; c ; ?``), oversized and undecodable payloads are dropped.
+    """
+    if "\x1b]52;" not in text:
+        return text, []
+    payloads: list[str] = []
+
+    def _take(match: "re.Match[str]") -> str:
+        raw = match.group(1)
+        if raw and raw != "?":
+            try:
+                decoded = base64.b64decode(raw, validate=True)
+            except ValueError:  # binascii.Error is a ValueError subclass
+                return ""
+            if len(decoded) <= _OSC52_MAX_DECODED:
+                payloads.append(decoded.decode("utf-8", errors="replace"))
+        return ""
+
+    return _OSC52_RE.sub(_take, text), payloads
+
+
+def feed_with_osc8(stream, screen, text: str, on_clipboard=None) -> None:
+    """Feed *text* to a pyte Stream, applying OSC 8 to ``screen.active_href``.
+
+    When *on_clipboard* is given, OSC 52 clipboard writes are pulled out of
+    *text* first and each decoded payload is handed to it — pyte would
+    otherwise silently swallow them.
+    """
+    if on_clipboard is not None:
+        text, clips = extract_osc52(text)
+        for clip in clips:
+            on_clipboard(clip)
     for chunk, href_update in split_osc8(text):
         if href_update is not None:
             screen.active_href = href_update or None

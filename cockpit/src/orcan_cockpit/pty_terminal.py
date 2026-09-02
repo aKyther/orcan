@@ -159,6 +159,11 @@ class PtyTerminal(Widget):
         self._mouse_sgr = True
         self._esc_coalesce_until: float | None = None
         self._esc_coalesce_timer: Timer | None = None
+        # Per-line render cache — only pyte's dirty rows are rebuilt each
+        # paint (typing, spinners and status ticks touch a line or two; a
+        # full rebuild every frame is what made scroll / heavy output lag).
+        self._line_cache: list[Text] = []
+        self._render_cache: Text | None = None
 
     @property
     def allow_vertical_scroll(self) -> bool:
@@ -248,6 +253,9 @@ class PtyTerminal(Widget):
         rows, cols = self._term_size()
         self._screen.resize(rows, cols)
         self._set_winsize(self._master_fd, rows, cols)
+        # Column count changed → every cached line is the wrong width.
+        self._line_cache = []
+        self._render_cache = None
 
     def _note_mouse_modes(self, data: bytes) -> None:
         tracking, sgr = parse_mouse_modes(data)
@@ -286,6 +294,7 @@ class PtyTerminal(Widget):
                     self._stream,
                     self._screen,
                     data.decode("utf-8", errors="replace"),
+                    on_clipboard=self._copy_from_child,
                 )
             except Exception:
                 # pyte 0.8.2's Stream/Screen dispatch can raise on some
@@ -416,6 +425,17 @@ class PtyTerminal(Widget):
         except OSError:
             pass
 
+    def _copy_from_child(self, text: str) -> None:
+        """A yank inside tmux (copy-mode ``y``, mouse drag, ``prefix u`` /
+        ``prefix P``) emits OSC 52; pyte drops it, so relay it to the real
+        outer terminal / browser via Textual's own clipboard write."""
+        if not text:
+            return
+        try:
+            self.app.copy_to_clipboard(text)
+        except Exception:
+            pass
+
     def _write_mouse(
         self,
         event: events.MouseEvent,
@@ -488,36 +508,76 @@ class PtyTerminal(Widget):
             pass
         event.stop()
 
-    def render(self) -> Text:
-        if self._screen is None:
-            return Text("(starting tmux…)")
-        screen = self._screen
-        out = Text()
-        link_at = getattr(screen, "link_at", None)
-        for y in range(screen.lines):
-            line = screen.buffer[y]
-            line_text = "".join(line[x].data or " " for x in range(screen.columns))
-            hrefs: list[str | None] = [
-                (link_at(x, y) if link_at is not None else None) for x in range(screen.columns)
-            ]
+    def _render_line(self, screen, y: int, cols: int, link_at) -> Text:
+        line = screen.buffer[y]
+        line_text = "".join(line[x].data or " " for x in range(cols))
+        hrefs: list[str | None] = [None] * cols
+        has_href = False
+        if link_at is not None:
+            for x in range(cols):
+                href = link_at(x, y)
+                if href is not None:
+                    hrefs[x] = href
+                    has_href = True
+        # annotate_plain_urls scans the row with a regex — skip it entirely
+        # for the overwhelmingly common line that holds no URL.
+        if "http" in line_text:
             annotate_plain_urls(hrefs, line_text)
-            run_text: list[str] = []
-            run_style: Style | None = None
-            for x in range(screen.columns):
-                char = line[x]
-                style = _char_style(char, hrefs[x])
-                if run_style is not None and style == run_style:
-                    run_text.append(char.data or " ")
-                    continue
-                if run_style is not None:
-                    out.append("".join(run_text), style=run_style)
-                run_text = [char.data or " "]
-                run_style = style
+            has_href = True
+        out = Text()
+        run_text: list[str] = []
+        run_style: Style | None = None
+        for x in range(cols):
+            char = line[x]
+            style = _char_style(char, hrefs[x] if has_href else None)
+            if run_style is not None and style == run_style:
+                run_text.append(char.data or " ")
+                continue
             if run_style is not None:
                 out.append("".join(run_text), style=run_style)
-            if y != screen.lines - 1:
-                out.append("\n")
+            run_text = [char.data or " "]
+            run_style = style
+        if run_style is not None:
+            out.append("".join(run_text), style=run_style)
         return out
+
+    def render(self) -> Text:
+        screen = self._screen
+        if screen is None:
+            return Text("(starting tmux…)")
+        lines, cols = screen.lines, screen.columns
+        link_at = getattr(screen, "link_at", None)
+
+        if len(self._line_cache) != lines:
+            self._line_cache = [Text() for _ in range(lines)]
+            dirty: object = range(lines)
+        else:
+            dirty = screen.dirty
+            if not dirty and self._render_cache is not None:
+                return self._render_cache
+
+        for y in dirty:
+            if 0 <= y < lines:
+                self._line_cache[y] = self._render_line(screen, y, cols, link_at)
+        screen.dirty.clear()
+
+        out = Text()
+        for y in range(lines):
+            out.append_text(self._line_cache[y])
+            if y != lines - 1:
+                out.append("\n")
+        self._render_cache = out
+        return out
+
+    def get_selection(self, selection):
+        """Textual drag-select copy. Every rendered row is space-padded to
+        the full terminal width; strip that trailing filler so the clipboard
+        gets the real text instead of a rectangle of spaces."""
+        result = super().get_selection(selection)
+        if result is None:
+            return None
+        text, ending = result
+        return "\n".join(part.rstrip() for part in text.split("\n")), ending
 
     def _close(self) -> None:
         self._cancel_esc_coalesce()
