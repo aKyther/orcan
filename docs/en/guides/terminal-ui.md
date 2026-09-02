@@ -47,7 +47,7 @@ Presets in `cursor-ttyd`:
 
 | `TTYD_THEME` / `ttyd.theme` | Meaning |
 | --- | --- |
-| `dark` or `navy` (default) | This palette |
+| `dark` or `navy` (default) | Graphite/plum palette (legacy preset name) |
 | `mocha` / `catppuccin` | Legacy Catppuccin Mocha |
 | raw `{...}` JSON | Custom xterm.js theme |
 

@@ -20,7 +20,7 @@ FirstRunModal {
     height: auto;
     background: #17131d;
     border-left: solid #9b87b8;
-    padding: 1 2;
+    padding: 1;
 }
 
 .first-run-title {
