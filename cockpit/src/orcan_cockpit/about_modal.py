@@ -25,18 +25,18 @@ AboutModal {
 #about-dialog {
     width: 44;
     height: auto;
-    background: #0d1520;
-    border: solid #a78bfa;
+    background: #17131d;
+    border-left: solid #9b87b8;
     padding: 1 2;
 }
 
 #about-name {
-    color: #a78bfa;
+    color: #b9a7d6;
     text-style: bold;
 }
 
 #about-footer {
-    color: #64748b;
+    color: #756f82;
     margin-top: 1;
 }
 """

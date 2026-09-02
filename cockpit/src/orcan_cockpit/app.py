@@ -46,9 +46,9 @@ from orcan_cockpit.tmux_chrome import (
 from orcan_cockpit.top_bar import TopBar
 
 PLACEHOLDER_TEXT = (
-    "[#a78bfa bold]🌀 orcan[/]\n"
+    "[#b9a7d6 bold]🌀 orcan[/]\n"
     "Open the workspace picker above · Enter to attach\n"
-    "[#64748b]F1 shortcuts · F4 workspaces · F5 session brief[/]"
+    "[#756f82]F1 shortcuts · F4 workspaces · F5 session brief[/]"
 )
 
 # Maps a focused widget to the context that drives its focus-highlight border.
@@ -91,7 +91,7 @@ _FOCUS_BORDER_IDS: dict[Context, str] = {
 # product, not a bolted-on framework default.
 _CSS = """
 Screen {
-    background: #0a0e17;
+    background: #0e0c13;
 }
 
 #top-bar {
@@ -110,10 +110,9 @@ Screen {
        stack on top of this padding, the same double-padding bug already
        fixed once for the side panels this session. */
     layout: horizontal;
-    height: 3;
-    background: #0d1520;
-    border: round #334155;
-    padding: 0 1;
+    height: 2;
+    background: #141119;
+    padding: 0 2;
 }
 
 #top-bar-identity {
@@ -134,12 +133,11 @@ Screen {
        Violet already exists in the product's own ANSI palette
        (cursor-ttyd's theme JSON, magenta), reused rather than inventing
        a new hex. */
-    color: #a78bfa;
-    text-style: bold;
+    color: #b9a7d6;
 }
 
 #top-bar-identity:hover {
-    background: #1e293b;
+    color: #d8d2e2;
 }
 
 #workspace-trigger {
@@ -147,19 +145,19 @@ Screen {
     height: 1;
     margin-right: 2;
     padding: 0 1;
-    color: #c8d3e0;
-    background: #171b22;
+    color: #b9b3c2;
+    background: #211b29;
 }
 
 #workspace-trigger:hover, #workspace-trigger.picker-open {
-    color: #5eead4;
-    background: #1e293b;
+    color: #d2c3e8;
+    background: #2a2235;
 }
 
 #rail {
     layout: horizontal;
     width: auto;
-    background: #0d1520;
+    background: #141119;
 }
 
 #rail Button {
@@ -172,14 +170,14 @@ Screen {
     height: 1;
     margin-right: 1;
     padding: 0 1;
-    background: #0d1520;
-    color: #64748b;
+    background: #141119;
+    color: #756f82;
     border: none;
 }
 
 #rail Button:hover, #rail Button:focus {
-    color: #5eead4;
-    background: #1e293b;
+    color: #c6b5df;
+    background: #211b29;
 }
 
 
@@ -201,7 +199,7 @@ Screen {
        static oversized guess left. #top-bar-spacer above does the "push to
        the right edge" job via layout, not text alignment. */
     height: 1;
-    color: #94a3b8;
+    color: #756f82;
 }
 
 #main-row {
@@ -215,7 +213,7 @@ Screen {
     width: 52;
     height: 80%;
     margin-left: 1;
-    background: #0d1520;
+    background: #17131d;
 }
 
 #workspace-list-widget {
@@ -226,13 +224,13 @@ Screen {
        workspace list — instead of sitting empty as a gap. */
     layout: vertical;
     height: 1fr;
-    background: #0d1520;
-    border: round #334155;
-    padding: 0 1;
+    background: #17131d;
+    border-left: solid #4a3d59;
+    padding: 1 2;
 }
 
 #workspace-list-widget.focused {
-    border: round #5eead4;
+    border-left: solid #9b87b8;
 }
 
 #workspaces ListView {
@@ -245,7 +243,7 @@ Screen {
        brief / pane commands (session_glance.py). */
     height: auto;
     max-height: 4;
-    color: #94a3b8;
+    color: #918a9d;
     padding-top: 1;
 }
 
@@ -255,39 +253,39 @@ Screen {
        off the end entirely — found while verifying the `i` expand feature
        actually renders. Two lines fit both without truncation. */
     height: 2;
-    color: #64748b;
+    color: #756f82;
 }
 
 /* The currently-ATTACHED workspace (not just the keyboard cursor's current
    row) — a light, permanent highlight distinct from ListView's own
    built-in cursor-row style, which only shows while this list has focus. */
 #workspace-list ListItem.active-workspace {
-    background: #1e293b;
+    background: #241e2c;
 }
 
 #workspace-activity {
     height: auto;
     max-height: 60%;
-    background: #0d1520;
-    border: round #334155;
+    background: #17131d;
+    border-left: solid #4a3d59;
     padding: 0 1;
-    color: #64748b;
+    color: #756f82;
     overflow-y: auto;
 }
 
 #workspace-activity.focused {
-    border: round #5eead4;
+    border-left: solid #9b87b8;
 }
 
 .activity-heading {
     /* Violet — same "static landmark, not focus state" role as
        #top-bar-identity above. */
-    color: #a78bfa;
+    color: #b9a7d6;
     text-style: bold;
 }
 
 #activity-subtitle {
-    color: #64748b;
+    color: #756f82;
     margin-bottom: 1;
 }
 
@@ -309,19 +307,19 @@ Screen {
     min-width: 0;
     height: 1;
     border: none;
-    background: #1e293b;
+    background: #211b29;
     /* Violet — same "static landmark" role as .activity-heading; cyan
        stays reserved for the card's own .focused border. */
-    color: #a78bfa;
+    color: #b9a7d6;
     content-align: center middle;
 }
 
 #activity-actions Button:hover {
-    background: #334155;
+    background: #2a2235;
 }
 
 #activity-actions Button:disabled {
-    color: #475569;
+    color: #554e61;
 }
 
 #activity-pause-btn,
@@ -354,13 +352,11 @@ Screen {
     layers: base overlay;
     width: 1fr;
     height: 1fr;
-    background: #0d1520;
-    border: round #334155;
-    padding: 1;
+    background: #0e0c13;
 }
 
 #center-stack.focused {
-    border: round #5eead4;
+    background: #100d16;
 }
 
 #terminal {
@@ -374,7 +370,7 @@ Screen {
     width: 1fr;
     height: 1fr;
     content-align: center middle;
-    color: #64748b;
+    color: #756f82;
 }
 
 #error {
@@ -387,18 +383,17 @@ Screen {
     width: 1fr;
     height: 1fr;
     content-align: center middle;
-    color: #c8d3e0;
-    background: #0a0e17;
+    color: #d8d2e2;
+    background: #0e0c13;
 }
 
 #status-bar {
     /* Bordered card, matching #top-bar (the other full-width bookend) —
        same height:3 reasoning as #top-bar's comment. */
-    height: 3;
-    background: #0d1520;
-    border: round #334155;
-    color: #94a3b8;
-    padding: 0 1;
+    height: 2;
+    background: #141119;
+    color: #756f82;
+    padding: 0 2;
 }
 
 /* Terminal-column tiers (MainScreen.on_resize) — not browser breakpoints.
@@ -573,8 +568,8 @@ class MainScreen(Screen):
         await center.remove_children()
         center.mount(
             Static(
-                f"[#a78bfa bold]🌀[/] attaching [#5eead4]{row['name']}[/]\n"
-                f"[#64748b]tmux:{row['session']}[/]",
+                f"attaching [#b9a7d6]{row['name']}[/]\n"
+                f"[#756f82]tmux:{row['session']}[/]",
                 id="loading",
             )
         )

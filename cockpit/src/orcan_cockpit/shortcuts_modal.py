@@ -28,13 +28,13 @@ ShortcutsModal {
     width: 74;
     height: auto;
     max-height: 80%;
-    background: #0d1520;
-    border: solid #5eead4;
+    background: #17131d;
+    border-left: solid #9b87b8;
     padding: 1 2;
 }
 
 .shortcuts-heading {
-    color: #5eead4;
+    color: #b9a7d6;
     text-style: bold;
     margin-top: 1;
 }
@@ -44,7 +44,7 @@ ShortcutsModal {
 }
 
 .shortcuts-footer {
-    color: #64748b;
+    color: #756f82;
     margin-top: 1;
 }
 """

@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Cockpit visual language:** replaced the framed navy/cyan admin-console
+  treatment with quieter graphite/plum surfaces, restrained violet focus,
+  borderless terminal chrome, and text labels instead of decorative emoji.
+
 - **Cockpit:** dropped the contextual keyboard-hint strip under the terminal.
   It cost 3–6 rows for a subset of what **F1** / **?** (and tmux **prefix ?**)
   already list in full; the embedded tmux pane now gets that height back. The

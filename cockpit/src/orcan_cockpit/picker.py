@@ -78,11 +78,11 @@ def project_git_label(project: dict[str, Any]) -> str:
     if git_path.is_file():
         branch = git_branch(path)
         label = f"⎇+ {branch} (worktree)" if branch else f"{name} (worktree)"
-        return f"[#fbbf24]{label}[/]"
+        return f"[#c4a7b7]{label}[/]"
     if git_path.is_dir():
         branch = git_branch(path)
         label = f"⎇ {branch}" if branch else name
-        return f"[#67e8f9]{label}[/]"
+        return f"[#aa9bc2]{label}[/]"
     return f"[#64748b]{name}[/]"
 
 
@@ -112,8 +112,8 @@ def format_workspace_row_text(
         root = "~" + root[len(home) :]
     # #94a3b8 (lighter muted), not #64748b — whole path/line in the darker
     # tone read as washed-out against this card's background.
-    text += f"\n   [#94a3b8]{root}[/]"
-    text += f"\n   [#94a3b8]{repos}[/]"
+    text += f"\n   [#918a9d]{root}[/]"
+    text += f"\n   [#918a9d]{repos}[/]"
     return text
 
 
