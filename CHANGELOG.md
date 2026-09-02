@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Workspace navigation:** the top bar now keeps the active workspace in a
+  visible pill that toggles its browser. On wide screens the multi-workspace
+  sidebar remains pinned by default for fast scanning; compact/tablet screens
+  use the same list as an overlay drawer that does not resize the tmux pane.
+
 - **Tablet browser UX:** a one-finger vertical drag over the embedded tmux pane
   now scrolls tmux history. The ttyd bridge handles touch events only, leaving
   mouse, trackpad, keyboard, native terminal, and Windows Terminal / WSL input
@@ -33,9 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cockpit now restores the last attached workspace after a ttyd WebSocket
   reconnect or browser refresh. The reconnect hint is container-local in
   `/tmp`; tmux remains the source of truth for the active window and pane.
-- Cockpit: on very narrow ttyd/mobile screens, **F4** / the ‹› edge control
-  now opens the workspace picker as a full-width alternate view instead of
-  leaving it permanently collapsed.
+- Cockpit: on very narrow ttyd/mobile screens, **F4** / the workspace pill
+  opens the workspace picker as an overlay drawer above the full-width
+  terminal.
 - **tmux:** typing lag in panes running a coding agent (codex / cursor-agent)
   is gone. The pane-border strip evaluated `#(pane-label.sh #{pane_id})` on
   every redraw, and that script ran three `tmux display` round-trips each

@@ -31,6 +31,7 @@ class TopBar(Widget):
         # Rich/Textual bug that content changing via .update() triggers
         # elsewhere (see #top-bar-right's own comment for that one).
         yield Static("🌀 orcan", id="top-bar-identity")
+        yield Static("○ Select workspace  ⌄", id="workspace-trigger")
         yield UtilityRail(id="rail")
         # An empty width:1fr spacer pushes #top-bar-right to the edge via
         # layout — NOT `content-align: right` on #top-bar-right itself.
@@ -48,6 +49,8 @@ class TopBar(Widget):
             "💻 system load average · 🧠 memory used · 🕐 clock"
         )
         self.query_one("#top-bar-identity", Static).tooltip = "About orcan cockpit"
+        self.query_one("#workspace-trigger", Static).tooltip = "Open workspaces (F4)"
+        self.set_workspace(None)
         self.refresh_metrics()
         self.set_interval(_REFRESH_INTERVAL_S, self.refresh_metrics)
 
@@ -65,3 +68,10 @@ class TopBar(Widget):
         # oversized static guess leaving a gap before the card's edge.
         right.styles.width = cell_len(line)
         right.update(line)
+
+    def set_workspace(self, name: str | None) -> None:
+        """Keep the current context visible while the drawer is closed."""
+        line = f"● {name}  ⌄" if name else "○ Select workspace  ⌄"
+        trigger = self.query_one("#workspace-trigger", Static)
+        trigger.styles.width = cell_len(line) + 2
+        trigger.update(line)

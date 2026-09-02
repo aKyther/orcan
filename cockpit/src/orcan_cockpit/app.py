@@ -20,7 +20,7 @@ from typing import Iterable
 
 from textual import events
 from textual.app import App, ComposeResult, SystemCommand
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Vertical
 from textual.screen import Screen
 from textual.widgets import ListView, Static
 
@@ -144,6 +144,20 @@ Screen {
     background: #1e293b;
 }
 
+#workspace-trigger {
+    width: auto;
+    height: 1;
+    margin-right: 2;
+    padding: 0 1;
+    color: #c8d3e0;
+    background: #171b22;
+}
+
+#workspace-trigger:hover, #workspace-trigger.drawer-open {
+    color: #5eead4;
+    background: #1e293b;
+}
+
 #rail {
     layout: horizontal;
     width: auto;
@@ -197,8 +211,10 @@ Screen {
 }
 
 #workspaces {
+    dock: left;
     width: 34;
-    background: #0a0e17;
+    height: 1fr;
+    background: #0d1520;
 }
 
 #workspace-list-widget {
@@ -326,6 +342,14 @@ Screen {
     height: 1fr;
 }
 
+/* On a wide screen the workspace browser is a pinned navigation surface.
+   Compact/minimal tiers leave #center at full width and float the same
+   widget above it as a drawer. Docking avoids resizing tmux in drawer mode;
+   the margin reserves its width only while the wide layout is pinned. */
+MainScreen.drawer-pinned #center {
+    margin-left: 34;
+}
+
 #center-stack {
     /* base = terminal; overlay = loading spinner shown on top of it while
        tmux attaches, removed once PtyTerminal.Ready fires — see
@@ -414,37 +438,6 @@ Screen {
     padding: 0 1;
 }
 
-#sidebar-toggle {
-    /* Persistent edge-of-panel toggle (chevron) — lives outside
-       #workspaces so it's still visible/clickable when that column is
-       hidden (F4 or this arrow both drive the same
-       _update_workspaces_visibility, which also keeps this arrow's label
-       in sync — one state, two controls, matching the rest of this file's
-       "one source of truth, multiple renderers" pattern). Replaces the
-       rail's old hamburger button (removed from rail.py) — this is the
-       more standard IDE affordance for a collapsible sidebar.
-
-       A plain Static, not a Button: Button's own DEFAULT_CSS carries a
-       "tall" border and padding that fought this widget's width:1 and
-       corrupted that entire terminal row's compositing (confirmed via
-       real pty+pyte rendering — see AGENTS.md's box-model gotcha note for
-       why this class of bug needs that verification, not just headless).
-       Static has no such baggage. background matches the card borders'
-       own color (#334155) rather than the screen background, so this
-       1-column strip reads as a thickened, clickable continuation of the
-       card's edge rather than a separate gap next to it. */
-    width: 1;
-    height: 1fr;
-    background: #334155;
-    color: #0a0e17;
-    text-style: bold;
-    content-align: center middle;
-}
-
-#sidebar-toggle:hover {
-    background: #5eead4;
-}
-
 /* Terminal-column tiers (MainScreen.on_resize) — not browser breakpoints.
    #workspaces is NOT listed here even though it hides at the minimal tier:
    it also has a manual F4/hamburger toggle (_workspaces_visible), and
@@ -456,7 +449,9 @@ Screen {
    has no manual toggle, so a plain CSS rule is fine for it — hidden at the
    minimal tier along with everything else to maximize terminal space; its
    F1-F4 bindings keep working even while it's invisible. */
-MainScreen.tier-minimal #top-bar {
+MainScreen.tier-minimal #rail,
+MainScreen.tier-minimal #top-bar-spacer,
+MainScreen.tier-minimal #top-bar-right {
     display: none;
 }
 
@@ -487,17 +482,16 @@ class MainScreen(Screen):
     def __init__(self) -> None:
         super().__init__()
         self._workspaces_visible = True
-        self._minimal_workspaces_visible = False
+        self._desktop_workspaces_visible = True
         self._current_session: str | None = None
         self._current_root: str | None = None
         self._tier: Tier = "full"
 
     def compose(self) -> ComposeResult:
         yield TopBar(id="top-bar")
-        with Horizontal(id="main-row"):
+        with Container(id="main-row"):
             with Vertical(id="workspaces"):
                 yield WorkspaceList(id="workspace-list-widget")
-            yield Static("‹", id="sidebar-toggle")
             with Container(id="center"):
                 with Container(id="center-stack"):
                     yield Static(PLACEHOLDER_TEXT, id="placeholder")
@@ -505,25 +499,33 @@ class MainScreen(Screen):
         yield StatusBar(id="status-bar")
 
     def on_click(self, event: events.Click) -> None:
-        if event.widget is not None and event.widget.id == "sidebar-toggle":
+        if event.widget is not None and event.widget.id == "workspace-trigger":
             event.stop()
             self.action_toggle_workspaces()
+        elif event.widget is not None and event.widget.id == "top-bar-identity":
+            event.stop()
+            self.app.push_screen(AboutModal())
+        elif (
+            self._tier != "full"
+            and self._workspaces_visible
+            and not self._event_is_within(event, "workspaces")
+        ):
+            self._set_workspaces_visible(False, focus_terminal=True)
+            event.stop()
         elif event.widget is not None and event.widget.id == "center-stack":
             terminal = self.query("#terminal")
             if terminal:
                 terminal.focus()
                 event.stop()
-        elif event.widget is not None and event.widget.id == "top-bar-identity":
-            # The wordmark as a dedicated About entry point — separate from
-            # F1/"? Help" (shortcuts), not a second way to reach the same
-            # thing: "what is this app" and "what are the keybindings" are
-            # different questions (flagged in review — About used to be
-            # bundled into the shortcuts modal). No second bell here
-            # anymore either — see status.py: the bottom bar's own 🔔 was a
-            # duplicate of the rail's and got dropped, not kept as a second
-            # click target.
-            event.stop()
-            self.app.push_screen(AboutModal())
+
+    @staticmethod
+    def _event_is_within(event: events.Click, widget_id: str) -> bool:
+        widget = event.widget
+        while widget is not None:
+            if widget.id == widget_id:
+                return True
+            widget = widget.parent
+        return False
 
     def on_mount(self) -> None:
         # Nothing's attached yet — start with the workspace list focused so
@@ -532,7 +534,6 @@ class MainScreen(Screen):
         self.query_one(HintStrip).set_target("workspaces")
         self._update_focus_highlight("workspaces")
         self._apply_tier(tier_for_width(self.size.width))
-        self.query_one("#sidebar-toggle", Static).tooltip = "Toggle workspace panel (F4)"
         # A ttyd WebSocket reconnect starts a fresh cockpit process. Restore
         # its last workspace after child widgets have mounted and populated
         # the list; tmux itself retains that session's active window/pane.
@@ -562,9 +563,15 @@ class MainScreen(Screen):
     def _apply_tier(self, tier: Tier) -> None:
         if tier == self._tier and self.has_class(f"tier-{tier}"):
             return
-        if tier == "minimal" and self._tier != "minimal":
-            self._minimal_workspaces_visible = False
+        previous = self._tier
         self._tier = tier
+        if tier == "full":
+            self._workspaces_visible = self._desktop_workspaces_visible
+        elif previous == "full":
+            # First entry still needs an obvious place to choose context.
+            # Once attached, compact/tablet layouts start with the drawer
+            # closed so the terminal keeps the whole viewport.
+            self._workspaces_visible = self._current_session is None
         for name in ("tier-full", "tier-compact", "tier-minimal"):
             self.set_class(name == f"tier-{tier}", name)
         self.query_one(StatusBar).set_tier(tier)
@@ -577,18 +584,26 @@ class MainScreen(Screen):
         # this can't just be a stylesheet class rule like #rail's. Single
         # place both #workspaces' actual visibility AND the arrow's label
         # get set from, so they can never disagree.
-        visible = (
-            self._minimal_workspaces_visible
-            if self._tier == "minimal"
-            else self._workspaces_visible
+        self.query_one("#workspaces").display = self._workspaces_visible
+        self.query_one("#workspace-trigger", Static).set_class(
+            self._workspaces_visible, "drawer-open"
         )
-        self.query_one("#workspaces").display = visible
-        # At phone widths the picker and terminal cannot usefully fit side
-        # by side. Treat the picker as a full-width alternate view instead.
-        self.query_one("#center").display = not (
-            self._tier == "minimal" and self._minimal_workspaces_visible
+        self.set_class(
+            self._tier == "full" and self._workspaces_visible,
+            "drawer-pinned",
         )
-        self.query_one("#sidebar-toggle", Static).update("‹" if visible else "›")
+
+    def _set_workspaces_visible(self, visible: bool, *, focus_terminal: bool = False) -> None:
+        self._workspaces_visible = visible
+        if self._tier == "full":
+            self._desktop_workspaces_visible = visible
+        self._update_workspaces_visibility()
+        if visible:
+            self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
+        elif focus_terminal:
+            terminal = self.query("#terminal")
+            if terminal:
+                terminal.focus()
 
     def on_descendant_focus(self, event: events.DescendantFocus) -> None:
         context = _classify_focus(event.widget)
@@ -647,7 +662,10 @@ class MainScreen(Screen):
             )
         )
         self.query_one("#workspace-list-widget", WorkspaceList).set_active_session(row["session"])
+        self.query_one(TopBar).set_workspace(row["name"])
         self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])
+        if self._tier != "full":
+            self._set_workspaces_visible(False)
 
     def on_pty_terminal_ready(self, message: PtyTerminal.Ready) -> None:
         loading = self.query("#loading")
@@ -656,21 +674,10 @@ class MainScreen(Screen):
         message.pty_terminal.focus()
 
     def action_toggle_workspaces(self) -> None:
-        if self._tier == "minimal":
-            self._minimal_workspaces_visible = not self._minimal_workspaces_visible
-        else:
-            self._workspaces_visible = not self._workspaces_visible
-        self._update_workspaces_visibility()
-        if (
-            self._minimal_workspaces_visible
-            if self._tier == "minimal"
-            else self._workspaces_visible
-        ):
-            self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
-        else:
-            terminal = self.query("#terminal")
-            if terminal:
-                terminal.focus()
+        self._set_workspaces_visible(
+            not self._workspaces_visible,
+            focus_terminal=self._workspaces_visible,
+        )
 
     def action_open_shortcuts(self) -> None:
         self.app.push_screen(ShortcutsModal())
