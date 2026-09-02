@@ -162,8 +162,13 @@ class PtyTerminal(Widget):
         # Per-line render cache — only pyte's dirty rows are rebuilt each
         # paint (typing, spinners and status ticks touch a line or two; a
         # full rebuild every frame is what made scroll / heavy output lag).
+        # NB: must not be named `_render_cache` — Textual's Widget owns that
+        # attribute for its own strip cache (a `_RenderCache` namedtuple).
+        # Sharing the name let a no-output repaint (e.g. a click) return
+        # Textual's namedtuple from render() → "VisualError: unable to
+        # display '_RenderCache' type".
         self._line_cache: list[Text] = []
-        self._render_cache: Text | None = None
+        self._frame_cache: Text | None = None
 
     @property
     def allow_vertical_scroll(self) -> bool:
@@ -255,7 +260,7 @@ class PtyTerminal(Widget):
         self._set_winsize(self._master_fd, rows, cols)
         # Column count changed → every cached line is the wrong width.
         self._line_cache = []
-        self._render_cache = None
+        self._frame_cache = None
 
     def _note_mouse_modes(self, data: bytes) -> None:
         tracking, sgr = parse_mouse_modes(data)
@@ -553,8 +558,8 @@ class PtyTerminal(Widget):
             dirty: object = range(lines)
         else:
             dirty = screen.dirty
-            if not dirty and self._render_cache is not None:
-                return self._render_cache
+            if not dirty and self._frame_cache is not None:
+                return self._frame_cache
 
         for y in dirty:
             if 0 <= y < lines:
@@ -566,7 +571,7 @@ class PtyTerminal(Widget):
             out.append_text(self._line_cache[y])
             if y != lines - 1:
                 out.append("\n")
-        self._render_cache = out
+        self._frame_cache = out
         return out
 
     def get_selection(self, selection):
