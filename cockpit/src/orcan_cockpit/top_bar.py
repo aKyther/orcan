@@ -31,7 +31,7 @@ class TopBar(Widget):
         # Rich/Textual bug that content changing via .update() triggers
         # elsewhere (see #top-bar-right's own comment for that one).
         yield Static("🌀 orcan", id="top-bar-identity")
-        yield Static("○ Select workspace  ⌄", id="workspace-trigger")
+        yield Static("Select workspace  ⌄", id="workspace-trigger")
         yield UtilityRail(id="rail")
         # An empty width:1fr spacer pushes #top-bar-right to the edge via
         # layout — NOT `content-align: right` on #top-bar-right itself.
@@ -46,7 +46,7 @@ class TopBar(Widget):
 
     def on_mount(self) -> None:
         self.query_one("#top-bar-right", Static).tooltip = (
-            "💻 system load average · 🧠 memory used · 🕐 clock"
+            "system load · memory used · clock"
         )
         self.query_one("#top-bar-identity", Static).tooltip = "About orcan cockpit"
         self.query_one("#workspace-trigger", Static).tooltip = (
@@ -73,7 +73,7 @@ class TopBar(Widget):
 
     def set_workspace(self, name: str | None) -> None:
         """Keep the current context visible while the picker is closed."""
-        line = f"● {name}  ⌄" if name else "○ Select workspace  ⌄"
+        line = f"{name}  ⌄" if name else "Select workspace  ⌄"
         trigger = self.query_one("#workspace-trigger", Static)
         trigger.styles.width = cell_len(line) + 2
         trigger.update(line)

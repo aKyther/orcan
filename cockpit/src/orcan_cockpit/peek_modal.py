@@ -21,13 +21,13 @@ PeekModal {
     width: 72;
     height: auto;
     max-height: 80%;
-    background: #0d1520;
-    border: solid #a78bfa;
+    background: #17131d;
+    border-left: solid #9b87b8;
     padding: 1 2;
 }
 
 .peek-heading {
-    color: #a78bfa;
+    color: #b9a7d6;
     text-style: bold;
     margin-top: 1;
 }
@@ -37,11 +37,11 @@ PeekModal {
 }
 
 .peek-body {
-    color: #c8d3e0;
+    color: #d8d2e2;
 }
 
 .peek-footer {
-    color: #64748b;
+    color: #756f82;
     margin-top: 1;
 }
 """

@@ -1,5 +1,5 @@
 ---
-description: Wygląd terminala — paleta navy/cyan (ttyd, tmux, zsh, starship, fzf, lazygit). Gdzie edytować i jak rozszerzać.
+description: Wygląd terminala — stonowany grafitowo-śliwkowy chrome wokół narzędzi terminalowych. Gdzie edytować i jak rozszerzać.
 tags:
   - guide
   - develop
@@ -7,7 +7,10 @@ tags:
 
 # Terminal UI
 
-Terminal w przeglądarce i lokalny mają jeden wygląd: **dark navy / near-black / subtle cyan**. Ta strona to mapa dla ludzi i agentów zmieniających ten stack.
+Cockpit Orcana używa spokojnych powierzchni **grafit / prawie czarny /
+stonowana śliwka**. Jeden fioletowy akcent oznacza interakcję; pozostałe
+kolory są zarezerwowane dla stanu. Narzędzia wewnątrz tmux zachowują własną
+paletę terminalową. Ta strona to mapa dla ludzi i agentów zmieniających ten stack.
 
 ## Stack
 
@@ -29,13 +32,12 @@ Ograniczenia (nie łamać):
 
 | Rola | Hex | Użycie |
 | --- | --- | --- |
-| Tło | `#0a0e17` | ttyd, aktywny panel |
-| Status / elevated | `#0d1520`, `#111827` | status tmux, chrome |
-| Zaznaczenie | `#152033`, `#164e63` | fzf/lazygit, copy-mode |
-| Tekst | `#c8d3e0` | domyślny foreground |
-| Wyciszony | `#64748b`, `#334155` | nieaktywne taby, separatory |
-| Akcent | `#5eead4` | aktywny tab, ramki, kursor |
-| Akcent jasny | `#67e8f9` | ścieżka, drugorzędne highlighty |
+| Tło | `#0e0c13` | cockpit i puste stany |
+| Podniesione | `#141119`, `#17131d` | paski, picker, dialogi |
+| Zaznaczenie | `#211b29`, `#2a2235` | aktywne i wskazane powierzchnie |
+| Tekst | `#d8d2e2` | główny tekst |
+| Wyciszony | `#756f82`, `#918a9d` | metadane i tekst drugorzędny |
+| Akcent | `#9b87b8`, `#b9a7d6` | fokus i interaktywna tożsamość |
 | Ostrzeżenie / błąd | `#fbbf24`, `#f87171` | activity, błędy, niska bateria |
 
 **Site MkDocs** używa tych samych tokenów (`docs/assets/stylesheets/orcan.css`, favicon). W jasnym trybie docs — ciemniejszy teal dla czytelnych linków na białym.
@@ -206,12 +208,12 @@ progu ruchu w pionie.
 
 | Tier | Kolumny | Efekt |
 | --- | --- | --- |
-| `compact` | 90–119 | Krótszy dolny pasek; workspace’y otwierają się jako drawer nad terminalem |
+| `compact` | 90–119 | Krótszy dolny pasek; picker workspace’a nakłada się na terminal |
 | `minimal` | < 90 | Ukrywa rail i metryki; pill workspace’a zostaje nad terminalem pełnej szerokości |
 
 | Klawisze | Akcja |
 | --- | --- |
-| **F4** / pill workspace’a | Przełącz workspace’y: przypięty sidebar na szerokim ekranie, drawer na compact |
+| **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — `about_modal.py` |
 | **Klik bieżącego workspace’a** | Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie |

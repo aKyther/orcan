@@ -1,5 +1,5 @@
 ---
-description: Terminal look — navy/cyan palette across ttyd, tmux, zsh, starship, fzf, and lazygit. Where to edit and how to extend.
+description: Terminal look — restrained graphite and plum chrome around the terminal toolchain. Where to edit and how to extend.
 tags:
   - guide
   - develop
@@ -7,7 +7,10 @@ tags:
 
 # Terminal UI
 
-Orcan’s browser and local terminal share one look: **dark navy / near-black / subtle cyan**. This page is the map for humans and agents changing that stack.
+Orcan’s cockpit uses quiet **graphite / near-black / muted plum** surfaces. A
+single violet accent marks interaction; colour is otherwise reserved for
+state. Tools inside tmux retain their terminal-native palette. This page is
+the map for humans and agents changing that stack.
 
 ## Stack
 
@@ -29,13 +32,12 @@ Constraints (do not break these):
 
 | Role | Hex | Used for |
 | --- | --- | --- |
-| Background | `#0a0e17` | ttyd bg, active pane |
-| Status / elevated | `#0d1520`, `#111827` | tmux status, inactive chrome |
-| Selection | `#152033`, `#164e63` | fzf/lazygit selection, copy-mode |
-| Foreground | `#c8d3e0` | default text |
-| Muted | `#64748b`, `#334155` | inactive tabs, separators |
-| Accent | `#5eead4` | active tab, borders, cursor |
-| Accent bright | `#67e8f9` | path, secondary highlights |
+| Background | `#0e0c13` | cockpit and empty states |
+| Elevated | `#141119`, `#17131d` | bars, picker, dialogs |
+| Selection | `#211b29`, `#2a2235` | active and hover surfaces |
+| Foreground | `#d8d2e2` | primary text |
+| Muted | `#756f82`, `#918a9d` | metadata and secondary text |
+| Accent | `#9b87b8`, `#b9a7d6` | focus and interactive identity |
 | Warn / alert | `#fbbf24`, `#f87171` | activity, errors, low battery |
 
 The **MkDocs site** reuses these tokens (`docs/assets/stylesheets/orcan.css`, favicon). Light docs mode uses a darker teal accent for readable links on white.
@@ -203,12 +205,12 @@ starts only after a vertical movement threshold.
 
 | Tier | Columns | Effect |
 | --- | --- | --- |
-| `compact` | 90–119 | Bottom bar shortens; workspaces open as a drawer over the terminal |
+| `compact` | 90–119 | Bottom bar shortens; the workspace picker overlays the terminal |
 | `minimal` | < 90 | Hides rail and metrics; the workspace pill remains available above the full-width terminal |
 
 | Keys | Action |
 | --- | --- |
-| **F4** / workspace pill | Toggle workspaces: pinned sidebar on wide screens, overlay drawer on compact screens |
+| **F4** / workspace pill | Open the workspace picker without resizing the terminal |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
 | **Click `🌀 orcan`** | About (name, version, docs) — `about_modal.py` |
 | **Click current workspace** | Open/close the workspace browser without losing the active workspace identity |

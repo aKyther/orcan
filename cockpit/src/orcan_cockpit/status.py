@@ -108,18 +108,8 @@ def format_status_line(
 def format_top_bar_right(*, cpu: str | None, mem: str | None, clock: str) -> str:
     parts = []
     if cpu:
-        # Was ⚙ (U+2699, no VS16): Unicode East-Asian-Width "Neutral", so
-        # Rich's cell_len/wcwidth measure it as 1 cell while most terminals'
-        # emoji fonts actually draw it at 2, eating the following space (a
-        # visible "⚙0.1" with no gap). Tried fixing that by appending U+FE0F
-        # (emoji-presentation selector) to make cell_len agree (1 → 2) — but
-        # real pty testing showed Textual's *paint* path doesn't handle that
-        # combining sequence the same way cell_len's math does: the whole
-        # top-bar-right box came out corrupted/truncated. 💻 (U+1F4BB) is
-        # natively East-Asian-Width "Wide" — cell_len already reports 2, no
-        # variation selector involved, and it renders correctly (verified).
-        parts.append(f"💻 {cpu}")
+        parts.append(f"load {cpu}")
     if mem:
-        parts.append(f"🧠 {mem}")
-    parts.append(f"🕐 {clock}")
+        parts.append(f"mem {mem}")
+    parts.append(clock)
     return "  ·  ".join(parts)
