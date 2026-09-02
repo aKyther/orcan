@@ -40,6 +40,11 @@ docker exec -it orcan-1 agent-launcher
 
 Alias: `orcan go-in` (to samo co `enter`). Domyślna nazwa kontenera to `orcan-1` (`ORCAN_INSTANCE`). Detach tmux: prefix + `d` — sesja dalej działa dla ttyd i innych klientów.
 
+Gdy ttyd zerwie połączenie albo odświeżysz stronę, nowy proces cockpitu
+automatycznie dołącza do ostatniego workspace'u. tmux odtwarza aktywne okno i
+pane tej sesji. Wskazówka do ponownego połączenia jest tylko w `/tmp`, więc po
+restarcie kontenera może wrócić lista workspace'ów; sesje tmux pozostają całe.
+
 Na prawdziwym tty `agent-launcher` uruchamia **cockpit**: **górny pasek**
 (`🌀 orcan` + utility rail 🔔/? + CPU/RAM/zegar), **główny rząd** — lewa kolumna
 (lista workspace’ów z legendą `●/○/▸` u góry, **ASSERTIONS** na dole) i środek

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Cockpit now restores the last attached workspace after a ttyd WebSocket
+  reconnect or browser refresh. The reconnect hint is container-local in
+  `/tmp`; tmux remains the source of truth for the active window and pane.
 - Cockpit: on very narrow ttyd/mobile screens, **F4** / the ‹› edge control
   now opens the workspace picker as a full-width alternate view instead of
   leaving it permanently collapsed.

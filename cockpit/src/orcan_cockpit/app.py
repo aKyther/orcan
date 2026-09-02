@@ -43,6 +43,7 @@ from orcan_cockpit.shortcuts import Context
 from orcan_cockpit.shortcuts_modal import ShortcutsModal
 from orcan_cockpit.status import Tier, tier_for_width
 from orcan_cockpit.status_bar import StatusBar
+from orcan_cockpit.state import read_last_session, remember_session
 from orcan_cockpit.tmux_chrome import (
     TASK_TEMPLATES,
     focus_pinned_pane,
@@ -554,8 +555,24 @@ class MainScreen(Screen):
         self._update_focus_highlight("workspaces")
         self._apply_tier(tier_for_width(self.size.width))
         self.query_one("#sidebar-toggle", Static).tooltip = "Toggle workspace panel (F4)"
+        # A ttyd WebSocket reconnect starts a fresh cockpit process. Restore
+        # its last workspace after child widgets have mounted and populated
+        # the list; tmux itself retains that session's active window/pane.
+        self.call_after_refresh(self._restore_workspace)
         if not onboarding_already_seen():
             self.set_timer(0.3, self._show_first_run)
+
+    async def _restore_workspace(self) -> None:
+        session = read_last_session()
+        if session is None:
+            return
+        workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
+        for index, row in enumerate(workspace_list.rows):
+            if row["session"] != session:
+                continue
+            workspace_list.query_one(ListView).index = index
+            await self.select_workspace(row)
+            return
 
     def _show_first_run(self) -> None:
         if not onboarding_already_seen():
@@ -641,6 +658,7 @@ class MainScreen(Screen):
 
         self._current_session = row["session"]
         self._current_root = row["root"]
+        remember_session(row["session"])
         # Keep the attaching card until PtyTerminal.Ready — avoids a blank
         # flash between bootstrap and the first PTY paint.
         center.mount(

@@ -158,6 +158,26 @@ async def main() -> None:
         await pilot.pause(1.0)
         assert len(app.screen.query(PtyTerminal)) == 1
         assert app.screen.query_one("#terminal", PtyTerminal)._session == "dev-ux-regress-c"
+        # Return to a configured workspace before testing reconnect. The
+        # synthetic regression sessions above deliberately are not picker
+        # rows, and stale/non-configured state must be ignored.
+        await app.select_workspace(base)
+        await pilot.pause(1.0)
+        assert app.screen.query_one("#terminal", PtyTerminal)._session == "dev-ux"
+
+    # A ttyd reconnect launches a new cockpit process in the same container.
+    # It should consume the /tmp hint written above and attach without making
+    # the user pick the workspace again; tmux owns the retained window/pane.
+    reconnected = CockpitApp()
+    async with reconnected.run_test(size=(140, 42)) as pilot:
+        for _ in range(30):
+            await pilot.pause(0.1)
+            terminals = reconnected.screen.query(PtyTerminal)
+            if terminals and terminals.first()._ready:
+                break
+        terminal = reconnected.screen.query_one("#terminal", PtyTerminal)
+        assert terminal._session == "dev-ux"
+        assert terminal._process is not None and terminal._process.poll() is None
 
     print("Cockpit Textual + tmux PTY smoke OK")
 
