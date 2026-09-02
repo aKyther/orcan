@@ -52,10 +52,8 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context worktree remove --path PATH` | Usuń jeden managed worktree |
 | `orcan context worktree remove --workspace NAME` | Usuń wszystkie managed worktree workspace'a (i wypnij z configu) |
 | `orcan context worktree prune [--force] [--no-config]` | Pogódź `$ORCAN_PROJECTS_ROOT/.worktrees/registry.json` ze stanem na dysku (i `orcan.config.json`); domyślnie dry-run, `--force` sprząta |
-| `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, albo `accepted` → `retired` — nigdy automatycznie |
-| `orcan context assert list\|show\|select\|root` | Przegląd store'u; `select` pokazuje podgląd tego, co skompilowałby `orcan sync` |
 | *(wewnątrz kontenera)* `orcan-inbox` | Kolejka przekazywania zadań agentów w `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). Patrz [Skrzynka agentów](../ideas/agent-inbox.md) |
-| `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start kontenera (`orcan enter` lokalnie; **jedna** ścieżka przeglądarki: `--with-ttyd` albo `--with-ttyd-auth`); opcjonalnie socket **albo** join sieci (wybierz jedno) + SSH; podpowiada nowszy release; status hooka `Stop` (Claude) |
+| `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start kontenera (`orcan enter` lokalnie; **jedna** ścieżka przeglądarki: `--with-ttyd` albo `--with-ttyd-auth`); opcjonalnie socket **albo** join sieci (wybierz jedno) + SSH; podpowiada nowszy release |
 | `orcan down` | Stop kontenerów |
 | `orcan build [--claude|--cursor] [--force] [--no-cache]` | Obaj agenci → `orcan:latest` + `orcan:<VERSION>` (pull lub build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (bez pull; nie nadpisuje `latest`). Nigdy nie publikuje |
 | `orcan pull` | Pull obu agentów `orcan:<VERSION>` → `orcan:latest` |
