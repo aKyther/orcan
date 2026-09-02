@@ -29,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cockpit: on very narrow ttyd/mobile screens, **F4** / the ‹› edge control
   now opens the workspace picker as a full-width alternate view instead of
   leaving it permanently collapsed.
+- **tmux:** typing lag in panes running a coding agent (codex / cursor-agent)
+  is gone. The pane-border strip evaluated `#(pane-label.sh #{pane_id})` on
+  every redraw, and that script ran three `tmux display` round-trips each
+  time; a busy agent pane redraws constantly, so tmux's single thread spent
+  its time forking the label helper instead of processing keystrokes. The
+  helper now takes `#{pane_current_command}` / `#{pane_pid}` from native
+  format vars (no `tmux` subprocess), and window auto-rename uses the plain
+  native command name.
 
 ## [3.1.0] - 2026-08-28
 
