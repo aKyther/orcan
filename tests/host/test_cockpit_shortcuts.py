@@ -67,19 +67,6 @@ class ManifestSanityTests(unittest.TestCase):
             seen[shortcut.layer].add(shortcut.keys)
 
 
-class HintsForTests(unittest.TestCase):
-    def test_respects_limit(self) -> None:
-        hints = shortcuts.hints_for("terminal", limit=3)
-        self.assertLessEqual(len(hints), 3)
-
-
-    def test_unknown_context_yields_nothing(self) -> None:
-        # contexts is a tuple of Context literals — nothing in SHORTCUTS
-        # uses a context outside VALID_CONTEXTS (enforced by
-        # ManifestSanityTests above), so an unrelated string matches none.
-        self.assertEqual(shortcuts.hints_for("nonexistent"), [])  # type: ignore[arg-type]
-
-
 class EmbedDisclaimerTests(unittest.TestCase):
     def test_product_metadata_and_docs_url_are_public(self) -> None:
         self.assertEqual(shortcuts.PRODUCT_NAME, "orcan cockpit")

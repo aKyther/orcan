@@ -189,7 +189,6 @@ require_file "cockpit/src/orcan_cockpit/rail.py"
 require_file "cockpit/src/orcan_cockpit/status.py"
 require_file "cockpit/src/orcan_cockpit/status_bar.py"
 require_file "cockpit/src/orcan_cockpit/top_bar.py"
-require_file "cockpit/src/orcan_cockpit/hints.py"
 require_file "cockpit/src/orcan_cockpit/shortcuts.py"
 require_file "cockpit/src/orcan_cockpit/shortcuts_modal.py"
 require_file "cockpit/src/orcan_cockpit/shortcuts_cli.py"
@@ -321,7 +320,6 @@ for script in \
     cockpit/src/orcan_cockpit/status.py \
     cockpit/src/orcan_cockpit/status_bar.py \
     cockpit/src/orcan_cockpit/top_bar.py \
-    cockpit/src/orcan_cockpit/hints.py \
     cockpit/src/orcan_cockpit/shortcuts.py \
     cockpit/src/orcan_cockpit/shortcuts_modal.py \
     cockpit/src/orcan_cockpit/shortcuts_cli.py \

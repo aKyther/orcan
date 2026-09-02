@@ -25,7 +25,7 @@ async def main() -> None:
         assert rows, "workspace picker is empty"
         assert any(row["name"] == "dev-ux" for row in rows), rows
         assert app.screen.query_one("#workspace-list", ListView).has_focus
-        for widget_id in ("#top-bar", "#hint-strip", "#rail", "#status-bar"):
+        for widget_id in ("#top-bar", "#rail", "#status-bar", "#workspace-trigger"):
             assert app.screen.query_one(widget_id), f"missing cockpit widget: {widget_id}"
 
         await app.select_workspace(next(row for row in rows if row["name"] == "dev-ux"))

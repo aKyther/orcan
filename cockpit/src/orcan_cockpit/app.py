@@ -1,7 +1,6 @@
 """Textual cockpit app: a single, persistent layout — top bar (utility rail
-+ CPU/RAM/clock) · workspaces (left column) ·
-embedded live tmux session + contextual hint strip (center) · status bar
-(bottom, workspace identity).
++ CPU/RAM/clock) · workspaces (left column) · embedded live tmux session
+(center) · status bar (bottom, workspace identity).
 This is what cli.py launches on a real tty.
 
 tmux stays the real session/window/pane engine throughout: the center
@@ -27,7 +26,6 @@ from textual.widgets import ListView, Static
 from orcan_cockpit.about_modal import AboutModal
 from orcan_cockpit.commands import WorkspaceCommands
 from orcan_cockpit.first_run import FirstRunModal
-from orcan_cockpit.hints import HintStrip
 from orcan_cockpit.onboarding import onboarding_already_seen
 from orcan_cockpit.peek_modal import PeekModal
 from orcan_cockpit.picker import WorkspaceList, bootstrap_workspace
@@ -53,7 +51,7 @@ PLACEHOLDER_TEXT = (
     "[#64748b]F1 shortcuts · F4 workspaces · F5 session brief[/]"
 )
 
-# Maps a focused widget to the hint-strip context it represents.
+# Maps a focused widget to the context that drives its focus-highlight border.
 _CONTEXT_ROOT_IDS: dict[str, Context] = {
     "terminal": "terminal",
     "workspace-list-widget": "workspaces",
@@ -71,13 +69,13 @@ def _classify_focus(widget) -> Context | None:
     return None
 
 
-# The workspace list and terminal are
-# its own bordered card — cyan on focus, matching tmux's own
-# pane-active-border-style (status.conf). "terminal" maps to #center-stack
-# (the card wraps the terminal/placeholder/loading stack, not the hint
-# strip below it) — giving the terminal a border/padding was an explicit,
-# deliberate tradeoff (costs a couple of real tmux columns/rows) confirmed
-# with the user rather than assumed. No "rail" entry: it's a row of
+# The workspace list and terminal each get their own bordered card — cyan on
+# focus, matching tmux's own pane-active-border-style (status.conf).
+# "terminal" maps to #center-stack (the card wraps the
+# terminal/placeholder/loading stack) — giving the terminal a border/padding
+# was an explicit, deliberate tradeoff (costs a couple of real tmux
+# columns/rows) confirmed with the user rather than assumed. No "rail" entry:
+# it's a row of
 # individually-focusable buttons in the top bar now, not a bordered column —
 # each button already gets its own :hover/:focus color (rail.py's CSS), so a
 # whole-row border highlight would be redundant.
@@ -333,10 +331,10 @@ Screen {
        sidebar column, carries none either; its cards' own borders sit
        flush against the column edge, with padding only *inside* each card
        (#workspace-list-widget's `padding: 0 1`, for its text, not its
-       border position). #center's outer padding was making #center-stack/
-       #hint-strip render narrower than #top-bar's true full-width span
-       above them and #workspaces' cards beside them — exactly the
-       misalignment being fixed here. */
+       border position). #center's outer padding was making #center-stack
+       render narrower than #top-bar's true full-width span above it and
+       #workspaces' cards beside it — exactly the misalignment being fixed
+       here. */
     layout: vertical;
     width: 1fr;
     height: 1fr;
@@ -396,36 +394,6 @@ MainScreen.drawer-pinned #center {
     content-align: center middle;
     color: #c8d3e0;
     background: #0a0e17;
-}
-
-#hint-strip {
-    /* Bordered card, matching top-bar/side-panels/terminal (border-top +
-       content + border-bottom; see #top-bar's comment for the box-model
-       gotcha this avoids). height:auto (was a fixed 3) with a min/max
-       band: the hint text already wraps correctly inside #hint-body at
-       narrow widths (confirmed via Textual's own layout — content wants
-       up to 4 rows at 100 cols), but a fixed height:3 silently clipped
-       every row past the first, which read as "no wrapping" (flagged in
-       review) when it was actually wrapping into space that didn't exist.
-       max-height keeps a very narrow terminal from letting this strip eat
-       too much of the screen — content still simply clips past that,
-       same as before, just only in a genuinely extreme case now instead
-       of always. No margin-top (previously 1): this strip is a caption FOR
-       the terminal above it (contextual hints for whatever has focus), not
-       a separate section — flagged as an unexplained gap in review (the
-       left column's own inter-card gap got the same "unused space" call
-       and was removed too — see #workspace-list-widget). width: 1fr is
-       NOT a default — without it this card sizes to fit its own text
-       content instead of stretching to match #center-stack's width above
-       it, which is exactly why they looked misaligned/uneven. */
-    width: 1fr;
-    height: auto;
-    min-height: 3;
-    max-height: 6;
-    background: #0d1520;
-    border: round #334155;
-    color: #94a3b8;
-    padding: 0 1;
 }
 
 #status-bar {
@@ -495,7 +463,6 @@ class MainScreen(Screen):
             with Container(id="center"):
                 with Container(id="center-stack"):
                     yield Static(PLACEHOLDER_TEXT, id="placeholder")
-                yield HintStrip(id="hint-strip")
         yield StatusBar(id="status-bar")
 
     def on_click(self, event: events.Click) -> None:
@@ -531,7 +498,6 @@ class MainScreen(Screen):
         # Nothing's attached yet — start with the workspace list focused so
         # arrow keys + Enter work immediately, no Tab hunting required.
         self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
-        self.query_one(HintStrip).set_target("workspaces")
         self._update_focus_highlight("workspaces")
         self._apply_tier(tier_for_width(self.size.width))
         # A ttyd WebSocket reconnect starts a fresh cockpit process. Restore
@@ -608,7 +574,6 @@ class MainScreen(Screen):
     def on_descendant_focus(self, event: events.DescendantFocus) -> None:
         context = _classify_focus(event.widget)
         if context is not None:
-            self.query_one(HintStrip).set_target(context)
             self._update_focus_highlight(context)
 
     def _update_focus_highlight(self, context: Context) -> None:
