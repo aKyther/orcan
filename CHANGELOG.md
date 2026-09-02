@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cockpit:** clicking the embedded tmux pane (or any repaint with no new
+  terminal output) no longer crashes with `VisualError: unable to display
+  '_RenderCache' type`. The pane's frame cache was stored under
+  `self._render_cache`, the same attribute Textual's `Widget` uses for its
+  own strip cache; a no-output repaint could return Textual's internal
+  namedtuple from `render()`. Renamed to `self._frame_cache`.
+
 - **Safe uninstall:** `orcan uninstall --purge-data` no longer removes the
   default `$ORCAN_DATA/sandbox`. It selectively purges config, logins, history,
   and caches while preserving `ORCAN_PROJECTS_ROOT`, configured project paths,
