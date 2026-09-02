@@ -74,7 +74,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan upgrade [--to VERSION]` | Kanał release: najnowszy tag release `vX.Y.Z` (domyślnie), albo `--to` przypina konkretny (w górę lub w dół) |
 | `orcan downgrade [--to VERSION]` | Poprzedni release SemVer, albo starszy `--to` (odmawia nowszych targetów) |
 | `orcan doctor` | Zdrowie hosta / configu / kontenera (supervisord, stan automatyzacji context, probe modelu recap — gdy obraz to wspiera) |
-| `orcan uninstall [--purge-data]` | Usuń CLI (opcjonalnie `ORCAN_DATA`) |
+| `orcan uninstall [--purge-data] [--purge-images]` | Zatrzymaj/usuń runtime i CLI Orcana. Dane/obrazy są opt-in; `ORCAN_PROJECTS_ROOT` i skonfigurowane projekty zostają |
 | `orcan version` / `orcan help` | Wersja / pomoc |
 
 ### Opcjonalne

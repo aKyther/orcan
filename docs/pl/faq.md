@@ -154,12 +154,13 @@ orcan down && orcan up
 ## Jak odinstalować? { #uninstall }
 
 ```bash
-cd /absolute/path/to/orcan
-orcan down
-orcan uninstall --purge-data          # destrukcyjne: usuwa ~/.config/orcan (wpisz yes)
-docker images 'orcan*'   # opcjonalnie: docker rmi …
-# potem usuń katalog clone'a, jeśli go nie potrzebujesz
+orcan uninstall --purge-data --purge-images
 ```
+
+`--purge-data` usuwa config, loginy, historię i cache, ale zachowuje
+`ORCAN_PROJECTS_ROOT` (domyślnie `~/.config/orcan/sandbox`) oraz każdą
+skonfigurowaną ścieżkę projektu. Bez tej flagi wszystkie dane zostają. Edge
+case'y opisuje [referencja środowiska](reference/environment.md#bezpieczenstwo-i-edge-casey-orcan_projects_root).
 
 Szczegóły: [Workflowy — odinstalowanie](guides/workflows.md#uninstall).
 

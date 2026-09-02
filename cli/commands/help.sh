@@ -63,7 +63,8 @@ Commands:
   upgrade [--to VERSION]   Release channel: newest release tag (default), or pin VERSION
   downgrade [--to VERSION] Previous SemVer release, or pin an older VERSION
   doctor                   Host / config / container health (supervisord, context automation, recap model when running)
-  uninstall [--purge-data] Remove CLI (and optionally ORCAN_DATA)
+  uninstall [--purge-data] [--purge-images]
+                           Remove Orcan; data/images are opt-in, projects are always kept
   version                  Print version
   help                     Show this help
 

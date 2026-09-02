@@ -37,7 +37,7 @@ Commands:
   upgrade      Release channel: checkout newest release tag (or --to VERSION)
   downgrade    Previous release (or --to VERSION)
   doctor       Check host dependencies and config
-  uninstall    Remove the CLI install (optional --purge-data)
+  uninstall    Remove Orcan; optional --purge-data / --purge-images (projects kept)
   version      Print version
   help         Show this help
 

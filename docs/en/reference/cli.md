@@ -74,7 +74,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan upgrade [--to VERSION]` | Release channel: newest release tag `vX.Y.Z` (default), or `--to` pins one (up or down) |
 | `orcan downgrade [--to VERSION]` | Previous SemVer release, or pin an older `--to` (refuses newer targets) |
 | `orcan doctor` | Host / config / container health (supervisord, context automation state, recap model probe when the image supports them) |
-| `orcan uninstall [--purge-data]` | Remove CLI (optional wipe of `ORCAN_DATA`) |
+| `orcan uninstall [--purge-data] [--purge-images]` | Stop/remove Orcan runtime and CLI. Data/images are opt-in; `ORCAN_PROJECTS_ROOT` and configured projects are preserved |
 | `orcan version` / `orcan help` | Version / help |
 
 ### Optional

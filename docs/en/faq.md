@@ -150,12 +150,13 @@ orcan down && orcan up
 ## How do I uninstall? { #uninstall }
 
 ```bash
-cd /absolute/path/to/orcan
-orcan down
-orcan uninstall --purge-data          # destructive: deletes ~/.config/orcan (type yes)
-docker images 'orcan*'   # optional: docker rmi …
-# then remove the git clone directory if you no longer need it
+orcan uninstall --purge-data --purge-images
 ```
+
+`--purge-data` deletes config, logins, history, and caches, but preserves
+`ORCAN_PROJECTS_ROOT` (default `~/.config/orcan/sandbox`) and every configured
+project path. Without that flag, all data is kept. See the environment
+reference for [projects-root edge cases](reference/environment.md#orcan_projects_root-safety-and-edge-cases).
 
 Details: [Workflows — uninstall](guides/workflows.md#uninstall).
 
