@@ -47,7 +47,7 @@ Presety w `cursor-ttyd`:
 
 | `TTYD_THEME` / `ttyd.theme` | Znaczenie |
 | --- | --- |
-| `dark` lub `navy` (domyślne) | Ta paleta |
+| `dark` lub `navy` (domyślne) | Paleta grafit/śliwka (stara nazwa presetu) |
 | `mocha` / `catppuccin` | Stary Catppuccin Mocha |
 | surowy JSON `{...}` | Własny motyw xterm.js |
 

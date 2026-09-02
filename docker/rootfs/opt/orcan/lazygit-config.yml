@@ -1,35 +1,33 @@
 # Default lazygit config for orcan (missing-only copy to ~/.config/lazygit/config.yml).
-# Theme matches the orcan terminal palette (dark navy / subtle cyan) — see
+# Theme matches the restrained graphite/plum terminal palette — see
 # docs/en/guides/terminal-ui.md when changing colours.
 
 gui:
   theme:
     activeBorderColor:
-      - "#5eead4"
-      - bold
+      - "#9b87b8"
     inactiveBorderColor:
-      - "#1e293b"
+      - "#4a3d59"
     searchingActiveBorderColor:
-      - "#fbbf24"
-      - bold
+      - "#c9a86a"
     optionsTextColor:
-      - "#67e8f9"
+      - "#aa9bc2"
     selectedLineBgColor:
-      - "#152033"
+      - "#2a2235"
     inactiveViewSelectedLineBgColor:
-      - "#111827"
+      - "#211b29"
     cherryPickedCommitFgColor:
-      - "#0a0e17"
+      - "#0e0c13"
     cherryPickedCommitBgColor:
-      - "#5eead4"
+      - "#9b87b8"
     markedBaseCommitFgColor:
-      - "#0a0e17"
+      - "#0e0c13"
     markedBaseCommitBgColor:
-      - "#fbbf24"
+      - "#c9a86a"
     unstagedChangesColor:
-      - "#f87171"
+      - "#d98282"
     defaultFgColor:
-      - "#c8d3e0"
+      - "#d8d2e2"
 
 git:
   paging:

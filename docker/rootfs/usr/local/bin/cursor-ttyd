@@ -21,8 +21,9 @@ if [[ -z "${TTYD_THEME:-}" ]]; then
     TTYD_THEME="dark"
 fi
 
-# Default: dark navy / near-black / subtle cyan (matches /etc/tmux status).
-TTYD_THEME_NAVY='{"background":"#0a0e17","foreground":"#c8d3e0","cursor":"#5eead4","cursorAccent":"#0a0e17","selectionBackground":"#164e63","black":"#0d1520","red":"#f87171","green":"#4ade80","yellow":"#fbbf24","blue":"#38bdf8","magenta":"#a78bfa","cyan":"#5eead4","white":"#c8d3e0","brightBlack":"#475569","brightRed":"#fca5a5","brightGreen":"#86efac","brightYellow":"#fde68a","brightBlue":"#7dd3fc","brightMagenta":"#c4b5fd","brightCyan":"#67e8f9","brightWhite":"#e2e8f0"}'
+# Default: graphite / near-black / muted plum (matches /etc/tmux status).
+# ANSI hues remain distinct for logs, diffs, tests, and application state.
+TTYD_THEME_NAVY='{"background":"#0e0c13","foreground":"#d8d2e2","cursor":"#9b87b8","cursorAccent":"#0e0c13","selectionBackground":"#382e46","black":"#141119","red":"#d98282","green":"#85ad8c","yellow":"#c9a86a","blue":"#8498bd","magenta":"#9b87b8","cyan":"#82aaa7","white":"#d8d2e2","brightBlack":"#554e61","brightRed":"#e2a0a0","brightGreen":"#a3c5a8","brightYellow":"#d7bd8d","brightBlue":"#a2b1cc","brightMagenta":"#b9a7d6","brightCyan":"#a0c1be","brightWhite":"#eee9f2"}'
 
 # Legacy Catppuccin Mocha — opt in with TTYD_THEME=mocha.
 TTYD_THEME_MOCHA='{"background":"#1e1e2e","foreground":"#cdd6f4","cursor":"#f5e0dc","selectionBackground":"#585b70","black":"#45475a","red":"#f38ba8","green":"#a6e3a1","yellow":"#f9e2af","blue":"#89b4fa","magenta":"#f5c2e7","cyan":"#94e2d5","white":"#bac2de","brightBlack":"#585b70","brightRed":"#f38ba8","brightGreen":"#a6e3a1","brightYellow":"#f9e2af","brightBlue":"#89b4fa","brightMagenta":"#f5c2e7","brightCyan":"#94e2d5","brightWhite":"#a6adc8"}'

@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Terminal theme:** ttyd, Starship, fzf, zsh highlighting, and lazygit now
+  share the cockpit's quieter graphite/plum foundation. The prompt is a
+  compact two-line context, while semantic ANSI colours remain distinct for
+  diffs, logs, warnings, and errors.
+
 - **Tmux visual language:** window tabs, pane titles, menus, copy mode, and
   focus indicators now use the same restrained graphite/plum hierarchy as
   the cockpit instead of bright cyan pills and separator-heavy chrome.

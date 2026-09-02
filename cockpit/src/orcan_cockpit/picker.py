@@ -94,10 +94,9 @@ def format_workspace_row_text(
 ) -> str:
     """Markup for one ListView row — shared by paint + signature so a no-op
     refresh can skip tear-down when the visible text would be identical."""
-    dot = "●" if row["live"] else "○"
     is_active = row["session"] == active_session
-    marker = "▸" if is_active else " "
-    text = f"{marker}{dot} {row['name']}"
+    state = "active" if is_active else ("live" if row["live"] else "new")
+    text = f"{row['name']}  [#756f82]{state}[/]"
     if not expanded:
         return text
     repos = f"{row['repo_count']} repo" + ("" if row["repo_count"] == 1 else "s")
@@ -118,7 +117,7 @@ def format_workspace_row_text(
 
 
 def workspace_list_structure(rows: list[dict[str, Any]]) -> tuple[str, ...]:
-    """Stable identity of list membership/order (not ●/○ or ▸)."""
+    """Stable identity of list membership/order (not runtime state)."""
     return tuple(str(row.get("session") or "") for row in rows)
 
 
@@ -240,20 +239,19 @@ from textual.app import ComposeResult  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
 
-# ●/○/▸ have no other explanation anywhere in the app (not even the
-# shortcuts modal) — this is the first thing a user sees, so the legend is
-# a permanent caption under the list rather than a hover-only tooltip
-# (which a non-mouse/native-terminal session might never trigger).
+# Runtime labels have a permanent caption under the list rather than a
+# hover-only tooltip (which a non-mouse/native-terminal session might never
+# trigger).
 # \[ escapes the literal bracket — Static defaults to markup=True, and an
 # unescaped [i] parses as an (unclosed) Rich style tag that silently drops
 # the letter from the render (confirmed with Text.from_markup()).
 # Two lines, not one: the full text is 44 cells, wider than this card's
 # ~30-col usable width — on one line "[i] expand" silently clipped off the
 # end entirely (found while verifying the feature it's advertising).
-LEGEND = "● live   ○ new   ▸ attached\n" r"Enter attach   \[i] compact/details"
+LEGEND = "active current · live running · new stopped\n" r"Enter attach   \[i] compact/details"
 
 # Kept fresh enough to notice a session someone killed elsewhere without
-# feeling like a busy-poll — this is cosmetic status (● live / ○ new), not
+# feeling like a busy-poll — this is cosmetic session status, not
 # anything time-sensitive.
 _REFRESH_INTERVAL_S = 5.0
 _GLANCE_EMPTY = "↑ Enter to attach"
@@ -335,7 +333,7 @@ class WorkspaceList(Widget):
         list_view = self.query_one("#workspace-list", ListView)
         structure = workspace_list_structure(self.rows)
         items = list(list_view.query(ListItem))
-        # Same membership/order → mutate labels in place (●/○ / ▸ / expand)
+        # Same membership/order → mutate labels in place (state / expand)
         # instead of clear()+append, which flashes even for one-cell edits.
         if (
             structure == self._list_structure

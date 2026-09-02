@@ -169,8 +169,8 @@ class WorkspaceListPaintSignatureTests(unittest.TestCase):
             active_session="dev",
             expanded=False,
         )
-        self.assertIn("●", text)
-        self.assertIn("▸", text)
+        self.assertIn("active", text)
+        self.assertNotIn("●", text)
         self.assertIn("ws", text)
 
     def test_expanded_includes_root(self) -> None:

@@ -47,8 +47,8 @@ from orcan_cockpit.top_bar import TopBar
 
 PLACEHOLDER_TEXT = (
     "[#b9a7d6 bold]🌀 orcan[/]\n"
-    "Open the workspace picker above · Enter to attach\n"
-    "[#756f82]F1 shortcuts · F4 workspaces · F5 session brief[/]"
+    "Choose a workspace\n"
+    "[#756f82]Your sessions and projects will appear here.[/]"
 )
 
 # Maps a focused widget to the context that drives its focus-highlight border.
@@ -112,7 +112,7 @@ Screen {
     layout: horizontal;
     height: 2;
     background: #141119;
-    padding: 0 2;
+    padding: 0 1;
 }
 
 #top-bar-identity {
@@ -226,7 +226,7 @@ Screen {
     height: 1fr;
     background: #17131d;
     border-left: solid #4a3d59;
-    padding: 1 2;
+    padding: 0 1;
 }
 
 #workspace-list-widget.focused {
@@ -393,7 +393,7 @@ Screen {
     height: 2;
     background: #141119;
     color: #756f82;
-    padding: 0 2;
+    padding: 0 1;
 }
 
 /* Terminal-column tiers (MainScreen.on_resize) — not browser breakpoints.
@@ -568,8 +568,8 @@ class MainScreen(Screen):
         await center.remove_children()
         center.mount(
             Static(
-                f"attaching [#b9a7d6]{row['name']}[/]\n"
-                f"[#756f82]tmux:{row['session']}[/]",
+                f"Opening [#b9a7d6]{row['name']}[/]\n"
+                "[#756f82]Restoring your session…[/]",
                 id="loading",
             )
         )
