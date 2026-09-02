@@ -47,9 +47,10 @@ restarcie kontenera może wrócić lista workspace'ów; sesje tmux pozostają ca
 
 | Klawisze | Akcja |
 | --- | --- |
-| **F4** / ‹› | Przełącz lewą kolumnę workspace’ów |
+| **F4** / pill workspace’a | Przełącz workspace’y; przypięte na szerokim ekranie, drawer na compact |
 | **F5** | Peek briefu / następnej pending |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) |
+| **Klik bieżącego workspace’a** | Otwórz/zamknij listę workspace’ów |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu użyj **F1** — **?** idzie do shella |
 | **Ctrl+P** | Paleta komend (gdy fokus nie jest w terminalu) |
 | **i** | Rozwiń/zwiń szczegóły workspace — root + repo (fokus na liście) |

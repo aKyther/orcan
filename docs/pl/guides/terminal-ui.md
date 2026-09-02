@@ -110,7 +110,7 @@ Osadzony tmux **nie jest** natywnym attach (`tmux attach` w Windows Terminal).
 Overlay skrótów cockpit (**F1** zawsze; **?** gdy fokus poza osadzonym
 terminalem) oraz popup tmux **prefix ?** powtarzają to na dole —
 zobacz `EMBED_DISCLAIMER` w `shortcuts.py`. Przy fokusie w terminalu **?** idzie
-do shella (pasek hintów pokazuje tylko **F1**). To trzy warstwy naraz:
+do shella — użyj tam **F1**. To trzy warstwy naraz:
 
 ```text
 Textual (UI, fokus, selekcja, mysz)  ↔  pyte (emulacja VT100)  ↔  tmux attach (PTY)
@@ -206,14 +206,15 @@ progu ruchu w pionie.
 
 | Tier | Kolumny | Efekt |
 | --- | --- | --- |
-| `compact` | 90–119 | Krótszy dolny pasek; rail tylko ikony |
-| `minimal` | < 90 | Ukrywa **górny pasek**; **F4** / ‹› przełącza między pełną szerokością terminala i listy workspace’ów |
+| `compact` | 90–119 | Krótszy dolny pasek; workspace’y otwierają się jako drawer nad terminalem |
+| `minimal` | < 90 | Ukrywa rail i metryki; pill workspace’a zostaje nad terminalem pełnej szerokości |
 
 | Klawisze | Akcja |
 | --- | --- |
-| **F4** / ‹› | Przełącz kolumnę workspace’ów |
+| **F4** / pill workspace’a | Przełącz workspace’y: przypięty sidebar na szerokim ekranie, drawer na compact |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — `about_modal.py` |
+| **Klik bieżącego workspace’a** | Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie |
 | **F5** | Peek briefu / następnej pending; **Enter** / **r** → Review |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |
 | **i** | Rozwiń/zwiń szczegóły workspace (fokus na liście) |

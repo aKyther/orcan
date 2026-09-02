@@ -110,7 +110,7 @@ Embedded tmux is **not** a native attach (`tmux attach` in Windows Terminal).
 The cockpit shortcuts overlay (**F1** always; **?** when focus is outside the
 embedded terminal) and tmux **prefix ?** popup repeat this at the bottom —
 see `EMBED_DISCLAIMER` in `shortcuts.py`. With terminal focus, typing **?** goes
-into the shell (hint strip shows **F1** only). Three layers at once:
+into the shell — use **F1** there. Three layers at once:
 
 ```text
 Textual (UI, focus, selection, mouse)  ↔  pyte (VT100 emulation)  ↔  tmux attach (PTY)
@@ -203,14 +203,15 @@ starts only after a vertical movement threshold.
 
 | Tier | Columns | Effect |
 | --- | --- | --- |
-| `compact` | 90–119 | Bottom bar shortens; rail stays icon-only |
-| `minimal` | < 90 | Hides the **top bar**; **F4** / ‹› switches between the full-width terminal and workspace picker |
+| `compact` | 90–119 | Bottom bar shortens; workspaces open as a drawer over the terminal |
+| `minimal` | < 90 | Hides rail and metrics; the workspace pill remains available above the full-width terminal |
 
 | Keys | Action |
 | --- | --- |
-| **F4** / ‹› | Toggle workspaces column |
+| **F4** / workspace pill | Toggle workspaces: pinned sidebar on wide screens, overlay drawer on compact screens |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
 | **Click `🌀 orcan`** | About (name, version, docs) — `about_modal.py` |
+| **Click current workspace** | Open/close the workspace browser without losing the active workspace identity |
 | **F5** | Peek session brief + next pending; **Enter** / **r** opens Review |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
 | **i** | Expand/collapse workspace details (list focused) |
