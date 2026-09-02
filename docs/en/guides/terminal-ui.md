@@ -9,8 +9,9 @@ tags:
 
 Orcan’s cockpit uses quiet **graphite / near-black / muted plum** surfaces. A
 single violet accent marks interaction; colour is otherwise reserved for
-state. Tools inside tmux retain their terminal-native palette. This page is
-the map for humans and agents changing that stack.
+state. Tmux chrome follows the same hierarchy while programs inside panes
+retain their terminal-native palette. This page is the map for humans and
+agents changing that stack.
 
 ## Stack
 
