@@ -248,7 +248,7 @@ from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
 # Two lines, not one: the full text is 44 cells, wider than this card's
 # ~30-col usable width — on one line "[i] expand" silently clipped off the
 # end entirely (found while verifying the feature it's advertising).
-LEGEND = "active current · live running · new stopped\n" r"Enter attach   \[i] compact/details"
+LEGEND = "active current · live running · new stopped\n" r"Enter attach   \[i] hide/show details"
 
 # Kept fresh enough to notice a session someone killed elsewhere without
 # feeling like a busy-poll — this is cosmetic session status, not
@@ -262,15 +262,9 @@ class WorkspaceList(Widget):
     always visible, not a one-shot picker screen you navigate away from.
     Selecting a row tells the app to (re)attach the center terminal to it.
 
-    One line per row by default — with many workspaces configured, a
-    two-line-per-item list runs out of room fast; ListView is a
-    VerticalScroll under the hood, so it already scrolls/shows a scrollbar
-    once rows overflow the card's height, no extra work needed for that.
-    `i` toggles a second, muted line per row (root path + per-project git
-    status — plain name if not a git repo, `⎇ branch` if it is, `⎇+ branch
-    (worktree)` if it's a linked worktree rather than the main checkout;
-    see project_git_label() — just enough to identify a workspace, not a
-    full status readout)."""
+    Rows stay one line tall even with many configured workspaces. Details for
+    only the highlighted row appear below the list: root path plus project
+    Git/worktree/branch identity. `i` hides or restores that detail area."""
 
     can_focus = True
 
@@ -278,9 +272,7 @@ class WorkspaceList(Widget):
         super().__init__(**kwargs)
         self.rows: list[dict[str, Any]] = []
         self.active_session: str | None = None
-        # Workspace identity is more than its name: show the root, project
-        # kind and Git branch when the picker opens. `i` remains a quick way
-        # to collapse a long multi-workspace list before switching.
+        # Details belong to the highlighted workspace, never every row.
         self._expanded = True
         # Last painted ListView / glance — poll stays on the timer; paint
         # skips when signatures match so idle refresh does not flicker.
@@ -290,6 +282,7 @@ class WorkspaceList(Widget):
 
     def compose(self) -> ComposeResult:
         yield ListView(id="workspace-list")
+        yield Static(id="workspace-details")
         yield Static(format_glance([], empty_hint=_GLANCE_EMPTY), id="workspace-glance")
         yield Static(LEGEND, id="workspace-legend")
 
@@ -302,7 +295,7 @@ class WorkspaceList(Widget):
         # bind "i", so this bubbles up to us unstopped.
         if event.key == "i":
             self._expanded = not self._expanded
-            self._render_rows()
+            self._update_details()
             event.stop()
 
     def set_active_session(self, session: str | None) -> None:
@@ -311,6 +304,7 @@ class WorkspaceList(Widget):
         (which row you're currently browsing), so tracked separately."""
         self.active_session = session
         self._render_rows()
+        self._update_details()
         self._update_glance()
 
     def refresh_rows(self) -> None:
@@ -320,13 +314,14 @@ class WorkspaceList(Widget):
             self.notify(f"Error reading config: {exc}", severity="error")
             self.rows = []
         self._render_rows()
+        self._update_details()
         self._update_glance()
 
     def _render_rows(self) -> None:
         paint_sig = workspace_list_paint_signature(
             self.rows,
             active_session=self.active_session,
-            expanded=self._expanded,
+            expanded=False,
         )
         if paint_sig == self._list_paint_sig:
             return
@@ -380,7 +375,25 @@ class WorkspaceList(Widget):
         self._glance_text = text
         self.query_one("#workspace-glance", Static).update(text)
 
+    def _update_details(self) -> None:
+        details = self.query_one("#workspace-details", Static)
+        details.display = self._expanded
+        row = self._highlighted_row()
+        if not self._expanded or row is None:
+            details.update("")
+            return
+        expanded = format_workspace_row_text(
+            row,
+            active_session=self.active_session,
+            expanded=True,
+        ).splitlines()[1:]
+        session_state = "running" if row["live"] else "stopped"
+        details.update(
+            "\n".join(expanded + [f"   [#756f82]tmux {row['session']} · {session_state}[/]"])
+        )
+
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
+        self._update_details()
         self._update_glance()
 
     async def on_list_view_selected(self, event: ListView.Selected) -> None:
