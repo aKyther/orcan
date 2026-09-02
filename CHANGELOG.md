@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   helper now takes `#{pane_current_command}` / `#{pane_pid}` from native
   format vars (no `tmux` subprocess), and window auto-rename uses the plain
   native command name.
+- Dev preview: `ORCAN_PREVIEW_SCENARIO` now actually changes the generated
+  `orcan.config.json`. `busy` (default) is unchanged; `empty` writes one bare
+  single-window workspace and `long-names` writes overlong workspace/project
+  names plus a second project for rail wrap/clip checks. The unimplemented
+  `errors` scenario was dropped (developer tooling only).
 
 ## [3.1.0] - 2026-08-28
 

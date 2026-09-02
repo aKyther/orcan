@@ -71,7 +71,10 @@ Commands:
 
 Environment overrides:
   ORCAN_PREVIEW_ROOT, ORCAN_PREVIEW_IMAGE, ORCAN_PREVIEW_PORT, ORCAN_PREVIEW_BIND
-  ORCAN_PREVIEW_PROJECT, ORCAN_PREVIEW_INSTANCE, ORCAN_PREVIEW_SCENARIO
+  ORCAN_PREVIEW_PROJECT, ORCAN_PREVIEW_INSTANCE
+  ORCAN_PREVIEW_SCENARIO   fixture written to orcan.config.json:
+                           empty | busy (default) | long-names
+                           applied on the next start / restart
 
 This is development/test infrastructure, not the public Orcan CLI.
 The default preview URL is http://127.0.0.1:17681.
@@ -141,8 +144,8 @@ validate_bind() {
 }
 
 validate_scenario() {
-    case "${PREVIEW_SCENARIO}" in empty|busy|errors|long-names) return 0 ;; esac
-    die "invalid preview scenario: ${PREVIEW_SCENARIO} (expected empty, busy, errors, or long-names)"
+    case "${PREVIEW_SCENARIO}" in empty|busy|long-names) return 0 ;; esac
+    die "invalid preview scenario: ${PREVIEW_SCENARIO} (expected empty, busy, or long-names)"
 }
 
 assert_isolation() {
@@ -162,21 +165,44 @@ write_fixture() {
     require_command python3
     assert_isolation
     mkdir -p "${PREVIEW_HOME}" "${PREVIEW_DATA}"
-    python3 - "${PREVIEW_HOME}/orcan.config.json" "${ROOT_DIR}" "${PREVIEW_PORT}" "${PREVIEW_BIND}" <<'PY'
+    python3 - "${PREVIEW_HOME}/orcan.config.json" "${ROOT_DIR}" "${PREVIEW_PORT}" \
+        "${PREVIEW_BIND}" "${PREVIEW_SCENARIO}" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-target, checkout, port, bind = sys.argv[1:]
-config = {
-    "workspaces": [{"name": "dev-ux", "projects": [{"name": "orcan", "path": checkout}]}],
-    "tmux": {"initial_windows": 3, "window_prefix": "preview"},
-    "ttyd": {
-        "port": 7681, "host_port": int(port), "bind": bind,
-        "font_size": 14, "theme": "dark", "ping_interval": 20,
-    },
-    "resources": {"cpus": 2, "memory": "4g", "shm_size": "512m", "tmpfs_size": "512m"},
+target, checkout, port, bind, scenario = sys.argv[1:]
+
+ttyd = {
+    "port": 7681, "host_port": int(port), "bind": bind,
+    "font_size": 14, "theme": "dark", "ping_interval": 20,
 }
+resources = {"cpus": 2, "memory": "4g", "shm_size": "512m", "tmpfs_size": "512m"}
+
+if scenario == "empty":
+    # One bare workspace, a single window — the near-empty cockpit.
+    workspaces = [{"name": "scratch", "projects": [{"name": "orcan", "path": checkout}]}]
+    tmux = {"initial_windows": 1, "window_prefix": "scratch"}
+elif scenario == "long-names":
+    # Overlong workspace / project names and a second project, to exercise
+    # rail wrapping and clipping.
+    workspaces = [{
+        "name": "orcan-dev-ux-overlong-workspace-name-for-wrap-and-clip",
+        "projects": [
+            {"name": "orcan", "path": checkout},
+            {
+                "name": "documentation-with-a-deliberately-verbose-name",
+                "path": str(Path(checkout) / "docs"),
+            },
+        ],
+    }]
+    tmux = {"initial_windows": 3, "window_prefix": "longname"}
+else:
+    # "busy" — the default; keep this fixture stable for visual baselines.
+    workspaces = [{"name": "dev-ux", "projects": [{"name": "orcan", "path": checkout}]}]
+    tmux = {"initial_windows": 3, "window_prefix": "preview"}
+
+config = {"workspaces": workspaces, "tmux": tmux, "ttyd": ttyd, "resources": resources}
 Path(target).write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 PY
     cat >"${PREVIEW_HOME}/.env" <<EOF

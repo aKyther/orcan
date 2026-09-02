@@ -153,12 +153,40 @@ exit 0
             self.assertIn("refusing to touch", result.stderr)
 
     def test_fixture_scenarios_are_validated_and_persisted(self) -> None:
-        for scenario in ("empty", "busy", "errors", "long-names"):
+        for scenario in ("empty", "busy", "long-names"):
             with self.subTest(scenario=scenario):
                 result = self.run_preview("check", ORCAN_PREVIEW_SCENARIO=scenario)
                 self.assertEqual(result.returncode, 0, result.stderr)
-        result = self.run_preview("check", ORCAN_PREVIEW_SCENARIO="production")
-        self.assertNotEqual(result.returncode, 0)
+        for scenario in ("errors", "production"):
+            with self.subTest(scenario=scenario):
+                result = self.run_preview("check", ORCAN_PREVIEW_SCENARIO=scenario)
+                self.assertNotEqual(result.returncode, 0)
+
+    def test_scenario_changes_the_generated_fixture(self) -> None:
+        import json
+
+        configs: dict[str, dict] = {}
+        for scenario in ("empty", "busy", "long-names"):
+            with tempfile.TemporaryDirectory() as tmp:
+                env = {
+                    **os.environ,
+                    "ORCAN_PREVIEW_ROOT": tmp,
+                    "ORCAN_PREVIEW_SCENARIO": scenario,
+                }
+                result = subprocess.run(
+                    [str(PREVIEW), "check"], cwd=ROOT, env=env, check=False,
+                    text=True, capture_output=True, timeout=10,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                cfg = Path(tmp) / "home" / "orcan.config.json"
+                configs[scenario] = json.loads(cfg.read_text(encoding="utf-8"))
+
+        rendered = {json.dumps(c, sort_keys=True) for c in configs.values()}
+        self.assertEqual(len(rendered), 3, "each scenario must write a distinct fixture")
+        # "busy" stays the stable visual-regression baseline.
+        self.assertEqual(configs["busy"]["workspaces"][0]["name"], "dev-ux")
+        self.assertEqual(configs["empty"]["tmux"]["initial_windows"], 1)
+        self.assertEqual(len(configs["long-names"]["workspaces"][0]["projects"]), 2)
 
     def test_mutating_command_refuses_an_existing_operation_lock(self) -> None:
         with tempfile.TemporaryDirectory(dir=ROOT, prefix=".dev-ux-test-") as tmp:

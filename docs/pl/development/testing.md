@@ -78,10 +78,14 @@ Domyślne (nadpisywalne):
 | Bind | `0.0.0.0` (LAN); `ORCAN_PREVIEW_BIND=127.0.0.1` tylko loopback |
 | Scenariusz | `busy` |
 
-| Scenariusz | Intencja fixture |
+Ustaw `ORCAN_PREVIEW_SCENARIO` (lub zmień zapisany `settings.env`), aby wybrać
+fixture `orcan.config.json` generowany przez `write_fixture`:
+
+| Scenariusz | Fixture zapisywany do `orcan.config.json` |
 | --- | --- |
-| `errors` | Assertion na nieistniejący projekt |
-| `long-names` | Bardzo długi tytuł/treść (wrapping / clipping) |
+| `busy` | Domyślny — jeden workspace `dev-ux`, checkout jako jedyny projekt, 3 okna |
+| `empty` | Jeden goły workspace `scratch`, jedno okno — niemal pusty cockpit |
+| `long-names` | Bardzo długie nazwy workspace i projektu oraz drugi projekt, do testu zawijania / przycinania w railu |
 
 Zmiana scenariusza jest stosowana przy kolejnym `start`/`restart`. Gdy zapisany
 lub domyślny port jest zajęty, preview wybiera kolejny wolny; jawnie podany
