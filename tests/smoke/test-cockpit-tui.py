@@ -39,8 +39,9 @@ async def main() -> None:
         assert terminal._session == "dev-ux"
         assert terminal._screen is not None
         assert terminal._screen.columns > 20 and terminal._screen.lines > 5
-        assert app.screen.query_one("#workspaces").display
-        assert app.screen.has_class("drawer-pinned")
+        # Selecting closes the combobox-like overlay at every viewport size.
+        # The terminal keeps the same dimensions whether it is open or not.
+        assert not app.screen.query_one("#workspaces").display
 
         rail = app.screen.query_one("#rail", UtilityRail)
         assert len(rail.query("Button")) == 1
@@ -56,18 +57,20 @@ async def main() -> None:
         await pilot.press("escape")
         await pilot.pause()
 
-        # The current-workspace pill replaces the ambiguous edge chevron.
-        # On wide screens it toggles a pinned sidebar; F4 shares the state.
+        # The current-workspace pill opens one overlay picker at every tier;
+        # F4 shares the state and no longer changes the terminal's geometry.
         workspace_trigger = app.screen.query_one("#workspace-trigger", Static)
         assert "dev-ux" in str(workspace_trigger._Static__content)
+        terminal_size = terminal.size
         app.screen.action_toggle_workspaces()
         await pilot.pause()
-        assert not app.screen.query_one("#workspaces").display
-        assert not app.screen.has_class("drawer-pinned")
-        await pilot.click("#workspace-trigger")
-        await pilot.pause()
         assert app.screen.query_one("#workspaces").display
-        assert app.screen.has_class("drawer-pinned")
+        assert terminal.size == terminal_size
+        assert workspaces._expanded
+        await pilot.click("#center-stack")
+        await pilot.pause()
+        assert not app.screen.query_one("#workspaces").display
+        assert terminal.size == terminal_size
 
         await pilot.press("f1")
         await pilot.pause()
@@ -89,7 +92,6 @@ async def main() -> None:
         await pilot.pause()
         assert app.screen.query_one("#workspaces").display
         assert app.screen.query_one("#center").display
-        assert not app.screen.has_class("drawer-pinned")
         app.screen.action_toggle_workspaces()
         await pilot.pause()
         assert not app.screen.query_one("#workspaces").display
@@ -99,8 +101,7 @@ async def main() -> None:
         app.screen._apply_tier("full")
         await pilot.pause()
         assert app.screen.has_class("tier-full")
-        assert app.screen.query_one("#workspaces").display
-        assert app.screen.has_class("drawer-pinned")
+        assert not app.screen.query_one("#workspaces").display
 
         # Idle workspace-list refresh must not tear down ListItems when
         # nothing changed — that clear()+rebuild was the main cockpit

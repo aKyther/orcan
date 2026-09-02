@@ -250,7 +250,7 @@ from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
 # Two lines, not one: the full text is 44 cells, wider than this card's
 # ~30-col usable width — on one line "[i] expand" silently clipped off the
 # end entirely (found while verifying the feature it's advertising).
-LEGEND = "● live   ○ new   ▸ attached\n" r"\[i] expand"
+LEGEND = "● live   ○ new   ▸ attached\n" r"Enter attach   \[i] compact/details"
 
 # Kept fresh enough to notice a session someone killed elsewhere without
 # feeling like a busy-poll — this is cosmetic status (● live / ○ new), not
@@ -280,7 +280,10 @@ class WorkspaceList(Widget):
         super().__init__(**kwargs)
         self.rows: list[dict[str, Any]] = []
         self.active_session: str | None = None
-        self._expanded = False
+        # Workspace identity is more than its name: show the root, project
+        # kind and Git branch when the picker opens. `i` remains a quick way
+        # to collapse a long multi-workspace list before switching.
+        self._expanded = True
         # Last painted ListView / glance — poll stays on the timer; paint
         # skips when signatures match so idle refresh does not flicker.
         self._list_paint_sig: tuple[tuple[str, bool], ...] | None = None

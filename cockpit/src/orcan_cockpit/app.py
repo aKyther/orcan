@@ -1,5 +1,5 @@
 """Textual cockpit app: a single, persistent layout — top bar (utility rail
-+ CPU/RAM/clock) · workspaces (left column) · embedded live tmux session
++ CPU/RAM/clock) · workspace picker (overlay) · embedded live tmux session
 (center) · status bar (bottom, workspace identity).
 This is what cli.py launches on a real tty.
 
@@ -47,7 +47,7 @@ from orcan_cockpit.top_bar import TopBar
 
 PLACEHOLDER_TEXT = (
     "[#a78bfa bold]🌀 orcan[/]\n"
-    "Pick a workspace on the left · Enter to attach\n"
+    "Open the workspace picker above · Enter to attach\n"
     "[#64748b]F1 shortcuts · F4 workspaces · F5 session brief[/]"
 )
 
@@ -151,7 +151,7 @@ Screen {
     background: #171b22;
 }
 
-#workspace-trigger:hover, #workspace-trigger.drawer-open {
+#workspace-trigger:hover, #workspace-trigger.picker-open {
     color: #5eead4;
     background: #1e293b;
 }
@@ -205,13 +205,16 @@ Screen {
 }
 
 #main-row {
+    layers: base overlay;
     height: 1fr;
 }
 
 #workspaces {
+    layer: overlay;
     dock: left;
-    width: 34;
-    height: 1fr;
+    width: 52;
+    height: 80%;
+    margin-left: 1;
     background: #0d1520;
 }
 
@@ -340,14 +343,6 @@ Screen {
     height: 1fr;
 }
 
-/* On a wide screen the workspace browser is a pinned navigation surface.
-   Compact/minimal tiers leave #center at full width and float the same
-   widget above it as a drawer. Docking avoids resizing tmux in drawer mode;
-   the margin reserves its width only while the wide layout is pinned. */
-MainScreen.drawer-pinned #center {
-    margin-left: 34;
-}
-
 #center-stack {
     /* base = terminal; overlay = loading spinner shown on top of it while
        tmux attaches, removed once PtyTerminal.Ready fires — see
@@ -407,8 +402,7 @@ MainScreen.drawer-pinned #center {
 }
 
 /* Terminal-column tiers (MainScreen.on_resize) — not browser breakpoints.
-   #workspaces is NOT listed here even though it hides at the minimal tier:
-   it also has a manual F4/hamburger toggle (_workspaces_visible), and
+   #workspaces is NOT listed here because it has a manual F4/pill toggle, and
    Python's widget.display assignment and a stylesheet display:none class
    both drive the same underlying style — mixing them is exactly the kind
    of two-sources-of-truth bug that's easy to get wrong. MainScreen
@@ -450,7 +444,6 @@ class MainScreen(Screen):
     def __init__(self) -> None:
         super().__init__()
         self._workspaces_visible = True
-        self._desktop_workspaces_visible = True
         self._current_session: str | None = None
         self._current_root: str | None = None
         self._tier: Tier = "full"
@@ -472,11 +465,7 @@ class MainScreen(Screen):
         elif event.widget is not None and event.widget.id == "top-bar-identity":
             event.stop()
             self.app.push_screen(AboutModal())
-        elif (
-            self._tier != "full"
-            and self._workspaces_visible
-            and not self._event_is_within(event, "workspaces")
-        ):
+        elif self._workspaces_visible and not self._event_is_within(event, "workspaces"):
             self._set_workspaces_visible(False, focus_terminal=True)
             event.stop()
         elif event.widget is not None and event.widget.id == "center-stack":
@@ -529,15 +518,7 @@ class MainScreen(Screen):
     def _apply_tier(self, tier: Tier) -> None:
         if tier == self._tier and self.has_class(f"tier-{tier}"):
             return
-        previous = self._tier
         self._tier = tier
-        if tier == "full":
-            self._workspaces_visible = self._desktop_workspaces_visible
-        elif previous == "full":
-            # First entry still needs an obvious place to choose context.
-            # Once attached, compact/tablet layouts start with the drawer
-            # closed so the terminal keeps the whole viewport.
-            self._workspaces_visible = self._current_session is None
         for name in ("tier-full", "tier-compact", "tier-minimal"):
             self.set_class(name == f"tier-{tier}", name)
         self.query_one(StatusBar).set_tier(tier)
@@ -545,24 +526,15 @@ class MainScreen(Screen):
         self._update_workspaces_visibility()
 
     def _update_workspaces_visibility(self) -> None:
-        # Combines the tier-driven auto-collapse with the manual F4/edge-
-        # arrow toggle — see the CSS comment above _CSS's tier rules for why
-        # this can't just be a stylesheet class rule like #rail's. Single
-        # place both #workspaces' actual visibility AND the arrow's label
-        # get set from, so they can never disagree.
+        # The picker is always an overlay, at every tier. Its visibility can
+        # therefore never resize the embedded tmux viewport.
         self.query_one("#workspaces").display = self._workspaces_visible
         self.query_one("#workspace-trigger", Static).set_class(
-            self._workspaces_visible, "drawer-open"
-        )
-        self.set_class(
-            self._tier == "full" and self._workspaces_visible,
-            "drawer-pinned",
+            self._workspaces_visible, "picker-open"
         )
 
     def _set_workspaces_visible(self, visible: bool, *, focus_terminal: bool = False) -> None:
         self._workspaces_visible = visible
-        if self._tier == "full":
-            self._desktop_workspaces_visible = visible
         self._update_workspaces_visibility()
         if visible:
             self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
@@ -629,8 +601,7 @@ class MainScreen(Screen):
         self.query_one("#workspace-list-widget", WorkspaceList).set_active_session(row["session"])
         self.query_one(TopBar).set_workspace(row["name"])
         self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])
-        if self._tier != "full":
-            self._set_workspaces_visible(False)
+        self._set_workspaces_visible(False)
 
     def on_pty_terminal_ready(self, message: PtyTerminal.Ready) -> None:
         loading = self.query("#loading")
@@ -684,7 +655,7 @@ class CockpitApp(App):
         yield from super().get_system_commands(screen)
         if not isinstance(screen, MainScreen):
             return
-        yield SystemCommand("Toggle workspaces panel", "F4", screen.action_toggle_workspaces)
+        yield SystemCommand("Open workspace picker", "F4", screen.action_toggle_workspaces)
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
         yield SystemCommand("Peek session brief", "F5", screen.action_open_peek)
         if screen._current_session:

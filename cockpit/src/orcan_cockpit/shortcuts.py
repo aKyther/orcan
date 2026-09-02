@@ -80,7 +80,7 @@ SHORTCUTS: list[Shortcut] = [
     # tmux pane/window/session list.
     # (No F3/Git entry — removed on request; lazygit stays reachable via the
     # `lg` shell alias inside the terminal itself.)
-    Shortcut("F4 / ‹›", "Toggle workspaces panel", "app", "cockpit",
+    Shortcut("F4", "Open workspace picker", "app", "cockpit",
               ("terminal", "workspaces", "rail")),
     # "?" is a bare letter, not a function key — PtyTerminal swallows it
     # (event.stop() in on_key) whenever the terminal has focus and sends it
