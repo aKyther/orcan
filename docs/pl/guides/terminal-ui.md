@@ -192,6 +192,13 @@ Smoke: `tests/smoke/test-cockpit-tui.py`.
 
 Browser ttyd (`cursor-ttyd`) ustawia **`macOptionIsMeta=true`**, żeby na macOS Option/Alt szło jako Meta (potrzebne do `Alt+1`…), a nie jako `¡` / `™`. Bez wpływu na Windows/Linux.
 
+Na ekranach dotykowych pionowe przeciągnięcie jednym palcem nad osadzonym
+terminalem przewija historię tmuxa. Most reaguje tylko na zdarzenia dotykowe
+przeglądarki; mysz, touchpad, klawiatura, natywne `orcan enter` oraz Windows
+Terminal / WSL zachowują dotychczasowe ścieżki wejścia. Krótkie dotknięcie
+pozostaje tapnięciem, ponieważ przewijanie zaczyna się dopiero po przekroczeniu
+progu ruchu w pionie.
+
 ### Chrome cockpitu (warstwa app)
 
 **Progi szerokości** (kolumny terminala, nie breakpointy CSS — `status.py` /

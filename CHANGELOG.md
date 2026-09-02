@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Tablet browser UX:** a one-finger vertical drag over the embedded tmux pane
+  now scrolls tmux history. The ttyd bridge handles touch events only, leaving
+  mouse, trackpad, keyboard, native terminal, and Windows Terminal / WSL input
+  unchanged.
+
 ### Fixed
 
 - **Cockpit:** clicking the embedded tmux pane (or any repaint with no new

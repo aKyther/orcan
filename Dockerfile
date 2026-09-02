@@ -422,6 +422,29 @@ RUN set -eux; \
 
 COPY docker/rootfs/ /
 
+RUN set -eux; \
+    ttyd --writable --interface 127.0.0.1 --port 17778 sh >/tmp/ttyd-index-build.log 2>&1 & \
+    ttyd_pid="$!"; \
+    trap 'kill "${ttyd_pid}" 2>/dev/null || true' EXIT; \
+    for attempt in $(seq 1 50); do \
+        if curl -fsS http://127.0.0.1:17778/ -o /tmp/ttyd-index.html; then break; fi; \
+        sleep 0.1; \
+    done; \
+    test -s /tmp/ttyd-index.html; \
+    python3 - <<'PY'
+from pathlib import Path
+
+index = Path("/tmp/ttyd-index.html").read_text(encoding="utf-8")
+touch = Path("/opt/orcan/ttyd-touch.js").read_text(encoding="utf-8")
+needle = "</body>"
+if needle not in index:
+    raise SystemExit("ttyd index has no </body> injection point")
+Path("/opt/orcan/ttyd-index.html").write_text(
+    index.replace(needle, f"<script>{touch}</script>{needle}", 1),
+    encoding="utf-8",
+)
+PY
+
 RUN chmod 0755 \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
