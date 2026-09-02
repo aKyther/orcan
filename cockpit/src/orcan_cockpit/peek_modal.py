@@ -1,8 +1,4 @@
-"""Peek modal — brief + first pending note without a tmux split (IDE peek).
-
-Dismiss result: ``None``/``\"close\"`` = just close; ``\"review\"`` = open
-full ``orcan-context-review`` (Enter / r).
-"""
+"""Session-brief preview without leaving the cockpit."""
 
 from __future__ import annotations
 
@@ -52,14 +48,12 @@ PeekModal {
 
 
 class PeekModal(ModalScreen[str | None]):
-    """Floating peek — Escape closes; Enter / r starts Review."""
+    """Floating session-brief preview."""
 
     CSS = _CSS
     BINDINGS = [
         ("escape", "dismiss_close", "Close"),
-        ("p", "dismiss_close", "Close"),
-        ("enter", "dismiss_review", "Review"),
-        ("r", "dismiss_review", "Review"),
+        ("enter", "dismiss_close", "Close"),
     ]
 
     def __init__(self, workspace_root: str | Path, **kwargs) -> None:
@@ -73,12 +67,9 @@ class PeekModal(ModalScreen[str | None]):
                 yield Static("PEEK", classes="peek-heading")
                 yield Static(text, classes="peek-body")
                 yield Static(
-                    "Enter / r → Review · Esc to close",
+                    "Enter / Esc to close",
                     classes="peek-footer",
                 )
 
     def action_dismiss_close(self) -> None:
         self.dismiss("close")
-
-    def action_dismiss_review(self) -> None:
-        self.dismiss("review")

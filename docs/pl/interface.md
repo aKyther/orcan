@@ -16,15 +16,6 @@ Obsługiwane interfejsy publiczne:
 
 Najważniejsze komendy:
 
-```bash
-orcan init | sync | context show
-orcan sync --context [--watch]   # tylko kompilacja inboxu; respektuje pauzę/wyłączenie automatyzacji
-orcan build [--claude|--cursor] [--force]
-orcan up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git] | down
-  (| = wybór jednego — notacja docs, nie jedna linia shell)
-orcan enter | logs | doctor | url
-```
-
 Rytuał: `orcan init` → `orcan build` → `orcan up` (lokalnie; `--with-ttyd` dla przeglądarki). Po edycji configu: `orcan sync`, potem `orcan up` — rebuild tylko gdy zmienił się obraz.
 
 ## Make dla maintainerów
@@ -35,14 +26,9 @@ Checkout gita ma też **Makefile** pod docs, testy i release — nie do codzienn
 
 | Polecenie | Rola |
 | --- | --- |
-| `agent-launcher` | Cockpit TUI na prawdziwym tty (górny pasek + workspaces/ASSERTIONS \| tmux); zwykłe menu gdy piped |
 | `agent` / `ag` | Cursor CLI (pełny obraz) |
 | `claude` / `cc` | Claude Code |
 | `orcan-workspaces` | Lista workspace'ów |
-| `orcan-context-status` | Status context pack |
-| `orcan-context-scan` | Odkrywa transkrypty Claude/Cursor → kaskadowy recap (domyślnie) albo legacy reflect (`ORCAN_CONTEXT_DRIVER`); worker supervisord |
-| `orcan-context-recap` | Kompakt partii sesji + rolling recap → inbox (woła `orcan-context-scan`) |
-| `orcan-context-model-check` | Probe Claude/Haiku pod recap; aktualizuje cache `model_check` w `automation.json` z `--refresh` |
 | `orcan-supervisord` / `orcan-supervisor-status` | Supervisor procesów w kontenerze + helper statusu |
 | `orcan-init-projects` | Opcjonalnie: seed szablonów projektów (zaawansowane) |
 | `orcan-session-brief` | Opcjonalny plik handoff sesji |

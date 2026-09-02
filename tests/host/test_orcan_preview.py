@@ -94,8 +94,8 @@ exit 0
         result = self.run_preview("checklist")
         self.assertEqual(result.returncode, 0, result.stderr)
         for expected in (
-            "workspace list", "F2", "F4", "F1", "Ctrl+Space", "Alt+1", "resizing",
-            "o turns automation", "browser refresh", "480x320", "make dev-a11y", "make dev-test",
+            "workspace list", "F4", "F1", "Ctrl+Space", "Alt+1", "resizing",
+            "browser refresh", "480x320", "make dev-a11y", "make dev-test",
         ):
             self.assertIn(expected, result.stdout)
 

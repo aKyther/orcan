@@ -88,10 +88,6 @@ require_file "tests/host/test_reconcile_host.py"
 require_file "tests/host/test_workspace_audit.py"
 require_file "scripts/repository/history.py"
 require_file "tests/host/test_git_worktrees.py"
-require_file "scripts/repository/claude_hook.py"
-require_file "scripts/repository/context_syncd.py"
-require_file "tests/host/test_claude_hook.py"
-require_file "tests/host/test_context_syncd.py"
 require_file "scripts/repository/python.sh"
 require_file "scripts/repository/release.sh"
 require_file "scripts/repository/check-product-name.sh"
@@ -174,20 +170,11 @@ require_file "docker/rootfs/usr/local/bin/orcan-runtime-status"
 require_file "docker/rootfs/usr/local/lib/orcan/reconcile.py"
 require_file "docker/rootfs/usr/local/lib/orcan/agent_inbox.py"
 require_file "docker/rootfs/usr/local/lib/orcan/agent_executor.py"
-require_file "docker/rootfs/usr/local/lib/orcan/context_inbox.py"
-require_file "docker/rootfs/usr/local/lib/orcan/session_scan.py"
-require_file "docker/rootfs/usr/local/lib/orcan/automation.py"
-require_file "docker/rootfs/usr/local/lib/orcan/context_model_check.py"
-require_file "docker/rootfs/usr/local/lib/orcan/recap.py"
-require_file "docker/rootfs/usr/local/bin/orcan-context-scan"
-require_file "docker/rootfs/usr/local/bin/orcan-context-recap"
-require_file "docker/rootfs/usr/local/bin/orcan-context-model-check"
 require_file "docker/rootfs/usr/local/bin/orcan-supervisord"
 require_file "docker/rootfs/usr/local/bin/orcan-supervisor-status"
 require_file "docker/rootfs/etc/orcan/supervisord.conf"
 require_file "docker/rootfs/etc/orcan/supervisor.d/keepalive.conf"
 require_file "docker/rootfs/etc/orcan/supervisor.d/ttyd.conf"
-require_file "docker/rootfs/etc/orcan/supervisor.d/context-scan.conf"
 require_file "cockpit/pyproject.toml"
 require_file "cockpit/uv.lock"
 require_file "cockpit/src/orcan_cockpit/__init__.py"
@@ -197,7 +184,6 @@ require_file "cockpit/src/orcan_cockpit/pty_terminal.py"
 require_file "cockpit/src/orcan_cockpit/pty_colors.py"
 require_file "cockpit/src/orcan_cockpit/pty_keys.py"
 require_file "cockpit/src/orcan_cockpit/pty_mouse.py"
-require_file "cockpit/src/orcan_cockpit/actions.py"
 require_file "cockpit/src/orcan_cockpit/app.py"
 require_file "cockpit/src/orcan_cockpit/rail.py"
 require_file "cockpit/src/orcan_cockpit/status.py"
@@ -208,7 +194,6 @@ require_file "cockpit/src/orcan_cockpit/shortcuts.py"
 require_file "cockpit/src/orcan_cockpit/shortcuts_modal.py"
 require_file "cockpit/src/orcan_cockpit/shortcuts_cli.py"
 require_file "cockpit/src/orcan_cockpit/commands.py"
-require_file "cockpit/src/orcan_cockpit/activity.py"
 require_file "docker/rootfs/usr/local/bin/orcan-inbox"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
@@ -320,16 +305,10 @@ for script in \
     docker/rootfs/usr/local/bin/orcan-runtime-reconcile \
     docker/rootfs/usr/local/bin/orcan-runtime-status \
     docker/rootfs/usr/local/bin/orcan-inbox \
-    docker/rootfs/usr/local/bin/orcan-context-scan \
     docker/rootfs/usr/local/lib/orcan/workspaces.py \
     docker/rootfs/usr/local/lib/orcan/reconcile.py \
     docker/rootfs/usr/local/lib/orcan/agent_inbox.py \
     docker/rootfs/usr/local/lib/orcan/agent_executor.py \
-    docker/rootfs/usr/local/lib/orcan/context_inbox.py \
-    docker/rootfs/usr/local/lib/orcan/session_scan.py \
-    docker/rootfs/usr/local/lib/orcan/automation.py \
-    docker/rootfs/usr/local/lib/orcan/context_model_check.py \
-    docker/rootfs/usr/local/lib/orcan/recap.py \
     cockpit/src/orcan_cockpit/__init__.py \
     cockpit/src/orcan_cockpit/cli.py \
     cockpit/src/orcan_cockpit/picker.py \
@@ -337,7 +316,6 @@ for script in \
     cockpit/src/orcan_cockpit/pty_colors.py \
     cockpit/src/orcan_cockpit/pty_keys.py \
     cockpit/src/orcan_cockpit/pty_mouse.py \
-    cockpit/src/orcan_cockpit/actions.py \
     cockpit/src/orcan_cockpit/app.py \
     cockpit/src/orcan_cockpit/rail.py \
     cockpit/src/orcan_cockpit/status.py \
@@ -348,7 +326,6 @@ for script in \
     cockpit/src/orcan_cockpit/shortcuts_modal.py \
     cockpit/src/orcan_cockpit/shortcuts_cli.py \
     cockpit/src/orcan_cockpit/commands.py \
-    cockpit/src/orcan_cockpit/activity.py \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
@@ -364,7 +341,7 @@ for script in \
     scripts/repository/history.py \
     scripts/repository/path_guards.py \
     scripts/repository/apply-config.py \
-    scripts/repository/context_syncd.py
+    scripts/repository/apply-config.py
 do
     if [[ -f "${script}" ]]; then
         PYTHONPATH="${ROOT_DIR}/docker/rootfs/usr/local/lib${PYTHONPATH:+:$PYTHONPATH}" \

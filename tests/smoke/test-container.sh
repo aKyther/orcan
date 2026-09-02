@@ -32,7 +32,6 @@ command -v orcan-context-status >/dev/null
 command -v cursor-ttyd >/dev/null
 command -v orcan-supervisord >/dev/null
 command -v orcan-supervisor-status >/dev/null
-command -v orcan-context-scan >/dev/null
 command -v supervisord >/dev/null
 command -v agent-launcher >/dev/null
 command -v cursor-launcher >/dev/null
@@ -75,7 +74,6 @@ test -x /usr/local/bin/orcan-session-brief
 test -x /usr/local/bin/orcan-workspaces
 test -x /usr/local/bin/orcan-context-status
 test -f /usr/local/lib/orcan/workspaces.py
-test -f /usr/local/lib/orcan/context_inbox.py
 test -x /opt/orcan-cockpit/venv/bin/python3
 test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
 /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles'

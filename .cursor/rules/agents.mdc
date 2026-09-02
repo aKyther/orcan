@@ -26,8 +26,8 @@ In workspace `orcan-dev`: honour the workspace context pack, then `cd orcan/` an
 | **Product** | Workspaces + path parity + context pack — **not** model routing |
 | **API** | `orcan` CLI — not Make; not deprecated user targets |
 | **Config** | JSON `orcan.config.json` in **`ORCAN_HOME`**; tool data in **`ORCAN_DATA`** (both default `~/.config/orcan`); `orcan sync` after edits (`up` does **not** sync) |
-| **Runtime** | enter → cockpit → tmux → zsh; CMD `orcan-supervisord` + `context-scan`/`recap` |
-| **Cockpit** | `🌀 orcan` (About) + 🔔 Problems/? \| workspaces + glance + ASSERTIONS \| tmux; **F2** · **F4** · **F1**/? · **F5** peek · **`i`** · **`r`**/`**p`**/`**o`** · **`lg`** (no F3) |
+| **Runtime** | enter → cockpit → tmux → zsh; CMD `orcan-supervisord` (`keepalive` or `ttyd`) |
+| **Cockpit** | `🌀 orcan` (About) + Help \| workspaces + glance \| tmux; **F4** · **F1**/? · **F5** brief · **`i`** · **`lg`** (no F3) |
 | **UX work** | `make dev-*` → `orcan:dev-ux` — not the user’s daily install |
 | **Image FS** | `docker/rootfs/` — repo `.cursor/rules/` ≠ image `cursor-defaults/` |
 | **Checks** | `make validate` · `test-host` · `docs-check`; UX: `dev-checklist` |

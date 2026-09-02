@@ -4,9 +4,7 @@ discussion/planning agent -> structured task manifest -> Orcan inbox ->
 execution agent: the discussion agent never hands the executor its full
 transcript, only this manifest (see AGENTS.md "Agent handoff").
 
-Lifecycle mirrors the existing Context Assertions propose -> review ->
-accept pattern (context_assertions.py) rather than inventing a new shape:
-propose (draft/approve/auto policy) -> [human approve, unless auto] ->
+Lifecycle: propose (draft/approve/auto policy) -> [human approve, unless auto] ->
 inbox -> claim (atomic) -> processing -> done|review|failed.
 
 JSON, not YAML — same reason as orcan.config.json (stdlib only, no PyYAML).
@@ -72,8 +70,7 @@ def approve(workspace_root: Path, task_id: str) -> Path:
     """Move a proposed task from proposals/ to inbox/ — the human approval gate.
 
     Refuses a task whose policy is "draft": that policy means "don't even
-    offer this for execution", the same hard boundary the Reflection Stop
-    hook has around accept/reject/retire in context_assertions.py.
+    offer this for execution".
     """
     src = _state_dir(workspace_root, "proposals") / f"{task_id}.json"
     if not src.is_file():

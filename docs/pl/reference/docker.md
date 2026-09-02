@@ -60,11 +60,8 @@ i robi `exec supervisord -n`:
 | `keepalive` (domyślny) | `sleep infinity` | `orcan enter` |
 | `ttyd` | `cursor-ttyd` | przeglądarka |
 
-Worker zawsze włączony (chyba że `ORCAN_CONTEXT_SCAN=0`):
-
 | Program | Komenda |
 | --- | --- |
-| `context-scan` | `orcan-context-scan --all-workspaces --watch` |
 
 **Logi** (trwałe na bindzie history — przeżywają recreate):
 
@@ -75,20 +72,7 @@ Worker zawsze włączony (chyba że `ORCAN_CONTEXT_SCAN=0`):
 | Plik | Co |
 | --- | --- |
 | `supervisord.log` | Supervisor + banner startu |
-| `childlog/context-scan.*.log` | Skaner Reflection |
 | `childlog/ttyd.*.log` | Terminal przeglądarkowy (tryb ttyd) |
-| `automation.json` | Wspólna kontrola automatyzacji — `enabled`, `paused`, cache `model_check`; cockpit **`[p]`** / **`[o]`** |
-
-```bash
-orcan-supervisor-status     # w kontenerze
-orcan logs supervisor       # z hosta
-orcan logs context-scan
-```
-
-Supervisord i jego dzieci działają jako użytkownik kontenera **`developer`**
-(`USER` w obrazie); `orcan-supervisord` odmawia startu jako root. Cockpit `[p]`
-pauzuje skan/reflect/host `--context` watch bez zabijania supervisord —
-akceptacja assertions nadal wymaga człowieka.
 
 ## Bindy `$ORCAN_DATA`
 

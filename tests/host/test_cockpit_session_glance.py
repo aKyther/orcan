@@ -137,39 +137,8 @@ class GlanceLinesTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
-        inbox = self.root / ".orcan" / "context-inbox"
-        inbox.mkdir(parents=True)
-        drop = inbox / "a.json"
-        drop.write_text(
-            json.dumps(
-                {
-                    "project_name": "orcan",
-                    "title": "T",
-                    "content": "C",
-                    "justification": "J",
-                }
-            ),
-            encoding="utf-8",
-        )
-        now = time.time()
-        os.utime(drop, (now - 7200, now - 7200))
-        self.now = now
+        self.now = time.time()
 
-    def test_pending_includes_age(self) -> None:
-        with mock.patch.object(glance, "pane_commands", return_value=[]), mock.patch.object(
-            glance, "session_activity_line", return_value=""
-        ), mock.patch.object(glance, "reflection_status", return_value="reflection: (no sessions yet)"):
-            lines = glance.glance_lines("ws", self.root, live=False, now=self.now)
-        self.assertTrue(any(line.startswith("1 pending · 2h") for line in lines))
-
-    def test_pending_and_panes(self) -> None:
-        with mock.patch.object(glance, "pane_commands", return_value=["zsh", "claude"]), mock.patch.object(
-            glance, "session_activity_line", return_value="active"
-        ):
-            lines = glance.glance_lines("ws", self.root, live=True, now=self.now)
-        self.assertTrue(any("pending" in line for line in lines))
-        self.assertTrue(any(line.startswith("panes:") for line in lines))
-        self.assertLessEqual(len(lines), 3)
 
     def test_worktrees_and_idle_on_visibility_line(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -179,7 +148,7 @@ class GlanceLinesTests(unittest.TestCase):
             projects = [{"name": "p", "path": str(wt)}]
             with mock.patch.object(glance, "pane_commands", return_value=[]), mock.patch.object(
                 glance, "session_activity_line", return_value="idle 40m"
-            ), mock.patch.object(glance, "pending_summary", return_value={"count": 0}):
+            ):
                 lines = glance.glance_lines(
                     "ws", self.root, live=True, projects=projects, now=self.now
                 )
@@ -187,6 +156,7 @@ class GlanceLinesTests(unittest.TestCase):
 
     def test_not_live_uses_brief_not_tmux_idle(self) -> None:
         brief = self.root / ".orcan" / "session-brief.md"
+        brief.parent.mkdir(parents=True, exist_ok=True)
         brief.write_text("x", encoding="utf-8")
         os.utime(brief, (self.now - 3600, self.now - 3600))
         with mock.patch.object(glance, "pane_commands") as panes, mock.patch.object(
@@ -197,13 +167,6 @@ class GlanceLinesTests(unittest.TestCase):
         activity.assert_not_called()
         self.assertTrue(any("brief 1h" in line for line in lines))
 
-    def test_not_live_skips_panes(self) -> None:
-        with mock.patch.object(glance, "pane_commands") as panes, mock.patch.object(
-            glance, "session_activity_line", return_value=""
-        ):
-            lines = glance.glance_lines("ws", self.root, live=False, now=self.now)
-        panes.assert_not_called()
-        self.assertTrue(any("pending" in line for line in lines))
 
     def test_empty_or_non_live_workspace_has_no_pane_line(self) -> None:
         with mock.patch.object(glance, "pane_commands") as panes:
@@ -211,14 +174,6 @@ class GlanceLinesTests(unittest.TestCase):
             self.assertEqual(glance.glance_lines("ws", None, live=False), [])
         panes.assert_not_called()
 
-    def test_glance_never_exceeds_three_lines(self) -> None:
-        with mock.patch.object(
-            glance, "pending_summary", return_value={"count": 2, "oldest_mtime": self.now - 60}
-        ), mock.patch.object(
-            glance, "_visibility_line", return_value="1 wt · active"
-        ), mock.patch.object(glance, "pane_commands", return_value=["one", "two", "three"]):
-            lines = glance.glance_lines("ws", self.root, live=True, now=self.now)
-        self.assertEqual(len(lines), 3)
 
     def test_format_glance_empty_hint(self) -> None:
         text = glance.format_glance([])

@@ -55,7 +55,7 @@ Presets in `cursor-ttyd`:
 | ttyd theme | `docker/rootfs/usr/local/bin/cursor-ttyd` | `orcan build` + recreate container |
 | tmux binary | `Dockerfile` (`ARG TMUX_VERSION=3.6a`) | build — static binary from `tmux/tmux-builds` |
 | tmux UI | `docker/rootfs/etc/tmux/` (`status.conf`, `options.conf`, `keybindings.conf`, `scripts/`) | build; or copy + `tmux source-file` for iteration |
-| Cockpit layout / chrome | `cockpit/src/orcan_cockpit/app.py`, `activity.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (isolated); or `orcan build` + recreate |
+| Cockpit layout / chrome | `cockpit/src/orcan_cockpit/app.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (isolated); or `orcan build` + recreate |
 | Cockpit keys / help | `cockpit/…/shortcuts.py` (+ `keybindings.conf` for tmux tokens) | same; host test keeps tokens aligned |
 | Cockpit PTY | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_tmux_nav.py` | same — see [Cockpit + browser](#cockpit-browser) / [nav mix](#cockpit-nav-mix) |
 | zsh | `docker/rootfs/etc/skel/.zshrc`, `.zshrc.d/` | build (skel → home on new image); or copy into `~` for live test |
@@ -68,12 +68,6 @@ Presets in `cursor-ttyd`:
 **Missing-only** means an existing file in the developer home is **not** overwritten on container start. After changing the image seed, either delete the home copy once, or tell the user to merge manually.
 
 ## tmux notes (3.6a)
-
-- One status row: centred window tabs only — workspace/metrics live in the cockpit top/bottom bars (raw `tmux attach` / `orcan enter --tmux` outside the cockpit will not show CPU/RAM/branch)
-- **Live pane labels** (`scripts/pane-label.sh`): pane border strip and window tab (`automatic-rename`) follow the process — e.g. `claude`, `review` (`orcan-context-review` in cmdline), not a pinned `select-pane -T`. Refresh cadence = `status-interval` (5s).
-- Features gated with `%if #{>=:#{version},…}` so an older server can still reload config
-- Prefer editing image files under `/etc/tmux` in the **repo**, not only a running container
-- Prefix is **C-Space** (not `C-b`). Config: `docker/rootfs/etc/tmux/keybindings.conf`
 
 ### Prefix bindings (after `C-Space`)
 
@@ -198,71 +192,22 @@ Browser ttyd (`cursor-ttyd`) sets **`macOptionIsMeta=true`** so macOS Option/Alt
 
 ### Cockpit chrome (app layer)
 
-```text
-top bar:    🌀 orcan  ·  rail (🔔 pulse when pending · ?)  ·  CPU / RAM / clock
-main row:   workspaces (+ glance + legend) + ASSERTIONS  |  terminal + hint strip
-            ‹› edge toggle (F4) between columns
-bottom:     status bar (workspace · branch · tmux · pending) — click 🔔 → ASSERTIONS
-```
-
-The top bar opens with a fixed **`🌀 orcan`** wordmark (`top_bar.py`), then the
-utility rail (🔔 / ? — icon-only at compact/minimal; **icon + word** at
-`full` tier), then metrics (`💻` load · `🧠` mem · clock). When Context
-Assertions are pending, the rail bell **pulses amber** (`pending-pulse`).
-Workspaces toggle is the **‹›** edge control (`#sidebar-toggle`) + **F4**.
-Under the workspace list, a **session glance** (`session_glance.py`) shows up
-to three lines for the highlighted row: pending count **with age**
-(`2 pending · 3h`), worktree count / session idle or brief age
-(`2 wt · idle 40m`, or `brief 2h` when not live), and live pane commands
-(`tmux list-panes`). The ASSERTIONS card also lists **agents** (pinned ★),
-a short **recent decisions** timeline, and the rail 🔔 badge is an aggregated
-**Problems** count (pending + reflection errors + dirty repos). **F5** peeks
-session brief + next pending note without a tmux split; **Ctrl+P** adds split /
-URL / pin-main / task templates. Status bar (full tier) appends a tmux
-breadcrumb (`wN › command`). The ASSERTIONS card also shows **last batch**
-feedback from recap/reflection. **F5** peeks then **Enter** opens Review;
-first launch shows a short onboarding tip. **Preview busy fixtures** (port 8000
-examples, etc.) are **fake scroll data for UI** — not reflection output from a
-live session. Without Claude Code on PATH, assertions **automation** stays off
-(recap/reflect idle); **Review** of pending inbox notes still works. Empty /
-attach chrome uses the
-brand wordmark (`🌀 orcan` / `🌀 attaching name`) instead of a bare spinner.
-ASSERTIONS sit at the bottom of the left column (`activity.py`) with a short
-subtitle, Review / Pause / Turn off buttons, and a docs link. Clicking the
-status-bar 🔔 (or the rail bell) reveals and focuses ASSERTIONS. Workspace
-list legend: `● live   ○ new   ▸ attached   ·   [i] expand` — **`i`** toggles
-a second line (root path + repo names). SoT for keys: `cockpit/…/shortcuts.py`.
-**F1** / **?** opens **shortcuts only** (embed disclaimer + `BROWSER_KEY_LIMIT` —
-see [Cockpit nav mix](#cockpit-nav-mix)). **About** (name, version, docs) is a
-separate screen (`about_modal.py`) — click the **`🌀 orcan`** wordmark. There is
-**no** cockpit Git / F3 shortcut — use the shell alias **`lg`** (lazygit)
-inside the terminal.
-
 **Width tiers** (terminal columns, not browser CSS breakpoints —
 `status.py` / `tier_for_width`):
 
 | Tier | Columns | Effect |
 | --- | --- | --- |
-| `full` | ≥ 120 | Full bottom bar; rail labels show icon + word (Assertions / Help) |
 | `compact` | 90–119 | Bottom bar shortens; rail stays icon-only |
 | `minimal` | < 90 | Hides the **top bar**; **F4** / ‹› switches between the full-width terminal and workspace picker |
 
-**F4** / **F2** still toggle workspaces / ASSERTIONS manually. At minimal
-width, the workspace picker opens as a full-width alternate view so projects
-remain selectable in ttyd on a phone.
-
 | Keys | Action |
 | --- | --- |
-| **F2** / rail 🔔 | Toggle left-column ASSERTIONS section |
 | **F4** / ‹› | Toggle workspaces column |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
 | **Click `🌀 orcan`** | About (name, version, docs) — `about_modal.py` |
 | **F5** | Peek session brief + next pending; **Enter** / **r** opens Review |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
 | **i** | Expand/collapse workspace details (list focused) |
-| **r** | Run `orcan-context-review` (ASSERTIONS focused) |
-| **p** | Pause/resume context automation (ASSERTIONS focused) |
-| **o** | Turn context automation off/on (ASSERTIONS focused) |
 | **prefix ?** | Standalone tmux shortcuts popup (works without cockpit) |
 | **`lg`** (in shell) | lazygit — not a cockpit F-key |
 

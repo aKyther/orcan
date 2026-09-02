@@ -155,6 +155,5 @@ def run_url_picker(session: str) -> bool:
 # One-click task templates for the command palette.
 TASK_TEMPLATES: dict[str, str] = {
     "claude": "claude",
-    "review": "orcan-context-review; echo; read -p 'Press Enter to close…' _",
     "lazygit": "lg || lazygit",
 }

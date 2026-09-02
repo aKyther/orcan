@@ -72,9 +72,6 @@ class HintsForTests(unittest.TestCase):
         hints = shortcuts.hints_for("terminal", limit=3)
         self.assertLessEqual(len(hints), 3)
 
-    def test_only_returns_matching_context(self) -> None:
-        hints = shortcuts.hints_for("panel")
-        self.assertTrue(any("context review" in h for h in hints))
 
     def test_unknown_context_yields_nothing(self) -> None:
         # contexts is a tuple of Context literals — nothing in SHORTCUTS

@@ -13,9 +13,7 @@ Destructive, by design: a workspace dropped from config is not archived on
 the next reconcile — its entire on-disk tree is ``shutil.rmtree``'d, not just
 the managed symlinks/manifest this module writes. That includes anything a
 human or agent left there directly: ``.orcan/session-brief.md``, agent-inbox
-tasks (``.orcan/tasks/``), unsynced Context Assertions drops
-(``.orcan/context-inbox/``, ``context-decisions/``), and CONTEXT-ASSERTIONS.md
-itself. There is no undo — see ``apply_workspaces()`` below and
+tasks (``.orcan/tasks/``). There is no undo — see ``apply_workspaces()`` below and
 docs/en/reference/security.md ("Mount layout tradeoffs").
 """
 
@@ -178,7 +176,6 @@ def _seed_agent_ignores(root: Path, templates_root: Path) -> None:
 def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, Any]]) -> None:
     name = ws.get("name") or "workspace"
     session = ws.get("tmux_session") or name
-    has_context_assertions = (root / "CONTEXT-ASSERTIONS.md").is_file()
     rows = []
     for item in projects:
         pname = (item.get("name") or "").strip() or "?"
@@ -200,10 +197,6 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
         "| `.cursor/rules/` | Lasting Cursor rules |",
         "| `.orcan/session-brief.md` | Optional handoff (only if created) |",
     ]
-    if has_context_assertions:
-        context_pack_rows.append(
-            "| `CONTEXT-ASSERTIONS.md` | Compiled, human-approved context (if any matched) |"
-        )
 
     read_first = [
         "1. **This file** — how to behave in this workspace.",
@@ -212,14 +205,6 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
         "   (shared handoff; create with `orcan-session-brief` / `brief`).",
     ]
     step = 4
-    if has_context_assertions:
-        read_first.append(
-            f"{step}. **`CONTEXT-ASSERTIONS.md`** — human-approved context selected for this"
-        )
-        read_first.append(
-            "   workspace's current repos/branches; each item states why it was selected."
-        )
-        step += 1
     read_first.append(
         f"{step}. After `cd <project>/` — that repo's `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/`"
     )
@@ -273,10 +258,6 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
             "- Run available checks before claiming success; label what you did not run.",
             "- Git commits you create: no `Co-Authored-By` (or similar AI-attribution)",
             "  trailer. The human is the sole author of record.",
-            "- Learned something durably true about a project? Draft it with",
-            "  `orcan-context-propose --project NAME --text \"...\" --justification \"...\"`",
-            "  (ask before running it). It only ever proposes — a human still decides",
-            "  with `orcan-context-review`; nothing is accepted automatically.",
             "",
             "## Secrets",
             "",
@@ -477,8 +458,7 @@ def apply_workspaces(
                 f"WARNING: {child} is being permanently deleted (rm -rf) because "
                 "its workspace is no longer in config. This removes everything "
                 "under it, not only the managed symlinks — including any "
-                ".orcan/session-brief.md, agent-inbox tasks, or Context "
-                "Assertions drops not yet synced. There is no undo.",
+                ".orcan/session-brief.md or agent-inbox tasks. There is no undo.",
                 file=sys.stderr,
             )
             shutil.rmtree(child)

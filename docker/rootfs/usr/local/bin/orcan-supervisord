@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Render supervisord program set from ORCAN_SUPERVISOR_MODE, then exec
 # supervisord in the foreground. Replaces sleep-infinity / cursor-ttyd as
-# the Compose command so background workers (context-scan, later inbox)
+# the Compose command so runtime services
 # share one container lifecycle.
 #
 # Logs live under ~/.local/share/orcan/history/supervisor/ (host:
@@ -9,7 +9,6 @@
 #
 #   ORCAN_SUPERVISOR_MODE=keepalive  (default) — sleep infinity for orcan enter
 #   ORCAN_SUPERVISOR_MODE=ttyd       — cursor-ttyd for browser
-#   ORCAN_CONTEXT_SCAN=0             — skip Reflection scanner
 #   ORCAN_SUPERVISOR_DRY_RUN=1       — render only (tests)
 
 set -Eeuo pipefail
@@ -66,10 +65,6 @@ case "${MODE}" in
         ;;
 esac
 
-if [[ "${ORCAN_CONTEXT_SCAN:-1}" != "0" && -f "${CONF_SRC}/context-scan.conf" ]]; then
-    install_program "${CONF_SRC}/context-scan.conf"
-fi
-
 # Render main conf: %(here)s must be STATE_D so sock/logs/programs resolve together.
 RUNTIME_CONF="${STATE_D}/supervisord.conf"
 # Strip the stock comment header's absolute advice; copy template as-is —
@@ -78,11 +73,10 @@ cp -- "${TEMPLATE}" "${RUNTIME_CONF}"
 
 # Startup banner into the durable log (also lands on container stdout via nodaemon).
 {
-    printf 'orcan-supervisord: start ts=%s user=%s mode=%s context-scan=%s state=%s programs=' \
+    printf 'orcan-supervisord: start ts=%s user=%s mode=%s state=%s programs=' \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         "$(id -un)" \
         "${MODE}" \
-        "${ORCAN_CONTEXT_SCAN:-1}" \
         "${STATE_D}"
     basename -a "${PROGRAMS_D}"/*.conf 2>/dev/null | tr '\n' ' '
     printf '\n'
@@ -105,7 +99,7 @@ Container: \`~/.local/share/orcan/history/supervisor/\`
 
 \`\`\`bash
 orcan-supervisor-status          # in container
-tail -f ~/.local/share/orcan/history/supervisor/childlog/context-scan.out.log
+tail -f ~/.local/share/orcan/history/supervisor/childlog/*.out.log
 \`\`\`
 EOF
 fi

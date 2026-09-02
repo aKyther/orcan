@@ -92,9 +92,6 @@ Możesz użyć zewnętrznego rootu, np. `/home/me/Projects/orcan`. Ustaw go prze
 | `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Ta sama tożsamość commitów co użytkownik hosta |
 | `SSH_AUTH_SOCK` | Agent hosta (tylko z `orcan up --with-git`) |
 | `ORCAN_SUPERVISOR_MODE` | Ustawiane przez overlaye Compose: `keepalive` (domyślne `orcan up`) albo `ttyd` (`--with-ttyd`) — zobacz [Docker](docker.md#process-layout-supervisord) |
-| `ORCAN_CONTEXT_SCAN` | `0` wyłącza worker `orcan-context-scan`; domyślnie włączony |
-| `ORCAN_CONTEXT_DRIVER` | `recap` (domyślnie) albo `reflect` (legacy one-shot `orcan-context-reflect`) — patrz [Context Assertions](../ideas/context-assertions.md) |
-| `ORCAN_CONTEXT_MODEL_PROBE` | `0` pomija probe `claude -p --model haiku` przy sprawdzaniu modelu recap (tylko PATH + `--version`); domyślnie włączony |
 
 ### Higiena cache narzędzi developerskich
 

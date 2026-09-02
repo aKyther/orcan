@@ -5,7 +5,6 @@ import asyncio
 
 from textual.widgets import Button, ListItem, ListView, Static
 
-from orcan_cockpit.activity import WorkspaceActivity
 from orcan_cockpit.app import CockpitApp
 from orcan_cockpit.picker import WorkspaceList
 from orcan_cockpit.pty_terminal import PtyTerminal
@@ -26,7 +25,7 @@ async def main() -> None:
         assert rows, "workspace picker is empty"
         assert any(row["name"] == "dev-ux" for row in rows), rows
         assert app.screen.query_one("#workspace-list", ListView).has_focus
-        for widget_id in ("#top-bar", "#workspace-activity", "#hint-strip", "#rail", "#status-bar"):
+        for widget_id in ("#top-bar", "#hint-strip", "#rail", "#status-bar"):
             assert app.screen.query_one(widget_id), f"missing cockpit widget: {widget_id}"
 
         await app.select_workspace(next(row for row in rows if row["name"] == "dev-ux"))
@@ -41,34 +40,11 @@ async def main() -> None:
         assert terminal._screen is not None
         assert terminal._screen.columns > 20 and terminal._screen.lines > 5
 
-        activity = app.screen.query_one("#workspace-activity", WorkspaceActivity)
         rail = app.screen.query_one("#rail", UtilityRail)
-        # Git/lazygit was intentionally removed from the rail; it remains
-        # available through the `lg` shell alias inside the terminal.
-        assert len(rail.query("Button")) == 2
-        rail.set_pending_count(3)
-        assert str(rail.query_one("#rail-assertions").label) == "🔔 3 Assertions"
-        rail_tooltip = str(rail.query_one("#rail-assertions").tooltip)
-        assert rail_tooltip and any(
-            token in rail_tooltip for token in ("pending", "dirty", "reflect")
-        ), rail_tooltip
+        assert len(rail.query("Button")) == 1
+        assert str(rail.query_one("#rail-shortcuts").label) == "? Help"
         assert app.screen.query_one("#top-bar-right").tooltip
         assert app.screen.query_one("#top-bar-identity").tooltip
-        assert app.screen.query_one("#activity-pause-btn").tooltip
-        assert activity.display
-        await pilot.press("f2")
-        await pilot.pause()
-        assert not activity.display
-        await pilot.press("f2")
-        await pilot.pause()
-        assert activity.display
-
-        # Exercise the real rail event path, not only the helper method.
-        await pilot.press("f2")
-        await pilot.pause()
-        await pilot.click("#rail-assertions")
-        await pilot.pause()
-        assert activity.display
 
         # The top-bar wordmark opens About (separate from F1/? shortcuts,
         # checked further down) — its own screen, not a shared modal.
@@ -102,8 +78,6 @@ async def main() -> None:
         app.screen._apply_tier("compact")
         await pilot.pause()
         assert app.screen.has_class("tier-compact")
-        # Compact tier hides the secondary assertions surface through CSS;
-        # the browser visual check owns the computed-visibility assertion.
         app.screen._apply_tier("minimal")
         await pilot.pause()
         assert app.screen.has_class("tier-minimal")

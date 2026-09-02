@@ -67,7 +67,7 @@ class ProcReadsTests(unittest.TestCase):
 
 class FormatStatusLineTests(unittest.TestCase):
     """CPU/RAM/clock live in the top bar (format_top_bar_right, below) and
-    the pending-assertions 🔔 lives in the rail exclusively (rail.py) — the
+    the utility controls live in the rail (rail.py) — the
     bottom bar is workspace/branch/session identity only, no duplicate bell."""
 
     def test_full_tier_includes_branch_and_session(self) -> None:

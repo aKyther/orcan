@@ -22,17 +22,10 @@ When you are inside an orcan workspace (e.g. `orcan-dev`), read the workspace co
 | --- | --- |
 | Workspace | Named set of projects = one daily job |
 | Path parity | Same absolute paths host ↔ container |
-| Context pack | Ignores, AGENTS/CLAUDE, Context Assertions |
 | Access | Local `orcan enter` by default; optional `orcan up --with-ttyd` |
-| Cockpit | Top bar + workspaces/ASSERTIONS + embedded tmux; see [Terminal UI](../guides/terminal-ui.md) |
+| Cockpit | Top bar + workspaces + embedded tmux; see [Terminal UI](../guides/terminal-ui.md) |
 
 ## Goals
-
-- Workspaces + path-parity mounts
-- Context pack (ignores, AGENTS/CLAUDE, Context Assertions)
-- Local enter by default; optional browser: ttyd → cockpit (`agent-launcher`) → tmux → zsh
-- Image variants: full and single-agent (`--claude` / `--cursor` / `--codex`)
-- Background Reflection via supervisord `context-scan` (default **recap**; legacy `ORCAN_CONTEXT_DRIVER=reflect`)
 
 ## Non-goals
 
@@ -61,14 +54,7 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 | --- | --- |
 | Host UX / targets | `Makefile`, `scripts/repository/` |
 | Isolated UX / tmux preview | `make dev-*` / `scripts/dev/` — [Testing](../development/testing.md) |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (shortcuts: `shortcuts.py`; About: `about_modal.py`; ASSERTIONS: `activity.py`; glance/problems/timeline/peek/feedback: `session_glance.py`, `problems.py`, `timeline.py`, `peek.py`, `reflection_feedback.py`; first-run: `first_run.py`, `onboarding.py`; chrome: `top_bar.py`, `tmux_chrome.py`; PTY: `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`) |
-| Session recap | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` |
-| Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
-| Context Assertions store / compile | `scripts/repository/context_assertions.py`, `compile_context.py` |
-| Host context sync daemon | `scripts/repository/context_syncd.py` (`orcan sync --context`) |
 | Host workspace reconcile / audit | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; `docker/rootfs/usr/local/lib/orcan/reconcile.py` |
-| Automation control | `docker/rootfs/usr/local/lib/orcan/automation.py` + `$ORCAN_DATA/history/supervisor/automation.json` (cockpit **`[p]`** / **`[o]`**) |
-| Supervisord / context-scan | `orcan-supervisord`, `orcan-context-scan` under `docker/rootfs/usr/local/bin/` |
 | Container runtime | `docker/rootfs/usr/local/bin/` |
 | Image packages | `Dockerfile` |
 | Terminal UI | [Terminal UI](../guides/terminal-ui.md); rule `.cursor/rules/terminal-ui.mdc` |
@@ -85,7 +71,6 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 | Why Orcan | [why-orcan.md](../why-orcan.md) |
 | Core Ideas | [ideas/core-ideas.md](../ideas/core-ideas.md) |
 | Mental Model | [ideas/mental-model.md](../ideas/mental-model.md) |
-| Context Assertions | [ideas/context-assertions.md](../ideas/context-assertions.md) |
 | Architecture | [architecture.md](../architecture.md) |
 | Terminal UI | [guides/terminal-ui.md](../guides/terminal-ui.md) |
 | Config schema | [reference/configuration.md](../reference/configuration.md) |

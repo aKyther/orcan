@@ -26,10 +26,6 @@ See [Architecture](../architecture.md).
 
 Optional AI usage in tmux status: `init-ai-statusline` + `orcan-ai-statusline` (hooks for Claude/Cursor). Thin by design.
 
-## Context Assertions: Reflection authors, every agent reads
-
-`orcan-context-scan` discovers Claude and Cursor transcripts on disk and runs **recap** by default (`orcan-context-recap`; legacy: `ORCAN_CONTEXT_DRIVER=reflect`) — same inbox / human review as before. The Claude `Stop` hook (`orcan context hook enable`) is still seeded during the transition — see ["Batched, automated Reflection"](../ideas/context-assertions.md#batched-automated-reflection). Cursor and Claude both consume the compiled `CONTEXT-ASSERTIONS.md` via identical `AGENTS.md` / `CLAUDE.md` from `init-workspace`.
-
 ## This repository
 
 When you develop **Orcan itself**, also read root `AGENTS.md` and `.cursor/rules/` — those are for the Orcan repo, not for every mounted customer project.

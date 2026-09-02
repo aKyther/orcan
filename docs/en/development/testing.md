@@ -54,7 +54,6 @@ make dev-reset                           # stop + delete default fixture state
 | — | `rebuild [--no-cache]` | Full image rebuild for Dockerfile, rootfs, or dependency changes |
 | `dev-status` | `status` / `url` | Health + URLs |
 | `dev-doctor` | `doctor` | Docker, isolation identity, health, HTTP, checkout bind, cockpit from checkout |
-| `dev-smoke` | `smoke` | Real Textual layout (`#top-bar`, workspaces, ASSERTIONS, `#status-bar`), tmux bootstrap, embedded PTY; F2 toggles ASSERTIONS |
 | `dev-visual` | — | Chromium screenshot regression (`dev-ux.spec.js`; needs healthy preview) |
 | `dev-visual-update` | — | Intentionally replace screenshot baselines after review |
 | `dev-a11y` | — | Tab/focus, no overflow, axe serious/critical, tiny `480x320` (`dev-a11y.spec.js`) |
@@ -79,18 +78,8 @@ Defaults (overridable):
 | Bind | `0.0.0.0` (LAN); set `ORCAN_PREVIEW_BIND=127.0.0.1` for loopback only |
 | Scenario | `busy` |
 
-The chosen port, bind, and scenario persist in `.orcan-dev-ux/settings.env`. Env overrides:
-`ORCAN_PREVIEW_ROOT`, `ORCAN_PREVIEW_IMAGE`, `ORCAN_PREVIEW_PORT`,
-`ORCAN_PREVIEW_BIND`, `ORCAN_PREVIEW_PROJECT`, `ORCAN_PREVIEW_INSTANCE`,
-`ORCAN_PREVIEW_SCENARIO`, `ORCAN_PREVIEW_INSTALL_CLAUDE` (default `1` —
-Claude in the preview image; set `0` for lean builds). Without Claude,
-assertions **automation** auto-disables; **Review** of seeded inbox still
-works. Busy fixtures are **UI scroll samples**, not live reflection output.
-
 | Scenario | Fixture intent |
 | --- | --- |
-| `empty` | No pending Context Assertions |
-| `busy` (default) | Several assertions (scrolling / review density) |
 | `errors` | Assertion aimed at a missing project name |
 | `long-names` | Very long title/body (wrapping / clipping) |
 
@@ -121,12 +110,6 @@ under `.orcan-dev-ux/playwright-node/`, and write failure artifacts under
 manual browser flow (F2/F4/F1, r/p/o, i, Alt+1…9, resize, compact `900x700`, tiny
 `480x320`, axe). The accessibility suite also asserts Tab reaches the terminal
 and that a `480x320` viewport keeps the xterm usable.
-
-The fixture mounts this checkout as project `orcan` in workspace `dev-ux`,
-builds with Codex only (`INSTALL_CURSOR=0`, `INSTALL_CLAUDE=0`), and seeds
-scenario-specific inbox data so the left-column **ASSERTIONS** section can be
-exercised (**F2** toggles that section; **`r`** runs review; the workspace list
-stays above it). Setup failures write `.orcan-dev-ux/setup.log`.
 
 !!! warning
     Default bind is `0.0.0.0` so LAN access works. Do not run on an untrusted network without ttyd authentication.

@@ -1,6 +1,6 @@
 # ttyd overlay for `orcan up --with-ttyd`.
 # Remote access: browser only (ttyd → workspace picker → tmux). No SSH server.
-# Supervisord runs ttyd + background workers (e.g. context-scan).
+# Supervisord runs ttyd as the browser-facing service.
 # Default: all interfaces (TTYD_BIND=0.0.0.0). For local-only publish:
 # TTYD_BIND=127.0.0.1. Do not expose this port to the public Internet
 # without auth (TTYD_CREDENTIAL / --with-ttyd-auth) and TLS.

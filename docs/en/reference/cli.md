@@ -41,7 +41,6 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan init` | No PATH: TUI to create/edit workspaces (default) + sync + show. `--cli`: old sequential prompt wizard instead |
 | `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
 | `orcan sync [--prune-orphans]` | Apply `orcan.config.json` → `.env` + `mounts/*`; live-reconciles a running container. `--prune-orphans` also kills orphaned tmux sessions from a removed/renamed workspace (default: report only) |
-| `orcan sync --context [--watch\|--once] [--force] [--interval N]` | Host-only: compile/import Context Assertion inbox drops without a full config sync (`scripts/repository/context_syncd.py`). `--once` skips when the inbox fingerprint is unchanged; `--watch` polls (default 15s). Respects cockpit **`[p]`** pause / **`[o]`** off via `$ORCAN_DATA/history/supervisor/automation.json`. See [Context Assertions](../ideas/context-assertions.md) |
 | `orcan migrate [--yes] [--no-symlink]` | Move configured projects under the managed root (`ORCAN_PROJECTS_ROOT`); dry-run unless `--yes` — fewer future container recreates |
 | `orcan settings` | Edit tool settings (tmux windows/prefix, ttyd port/font) — separate from workspaces/projects |
 | `orcan context show` | List workspaces + path-parity summary |
@@ -53,14 +52,8 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context worktree remove --path PATH` | Remove one managed worktree |
 | `orcan context worktree remove --workspace NAME` | Remove all managed worktrees for a workspace (and unpin from config) |
 | `orcan context worktree prune [--force] [--no-config]` | Reconcile `$ORCAN_PROJECTS_ROOT/.worktrees/registry.json` against disk (and `orcan.config.json`); dry-run by default, `--force` cleans up |
-| `orcan context assert propose …` | Reflection: draft a Context Assertion (content + justification + applicability); status `proposed` |
 | `orcan context assert accept\|reject\|retire ID` | Review Gate: `proposed` → `accepted`/`rejected`, or `accepted` → `retired` — never automatic |
 | `orcan context assert list\|show\|select\|root` | Inspect the store; `select` previews what `orcan sync` would compile |
-| `orcan context hook enable\|disable\|status [WORKSPACE ...] [--all]` | Toggle the Claude `Stop` hook (batched Reflection) in the workspace's generated root `.claude/settings.json` — **on by default**, seeded by the first `orcan sync` for a workspace; `disable` sticks across later syncs. With no `WORKSPACE`/`--all`, infers the workspace from cwd when it's inside a registered project |
-| *(in-container)* `orcan-context-propose` / `orcan-context-review` | Draft/review without a host terminal — drop into a mounted inbox, imported by the next `orcan sync`. `orcan-context-review [--no-check]` pre-checks candidates against `CONTEXT-ASSERTIONS.md` for duplicates/conflicts (nudge only, never a gate). See [Context Assertions](../ideas/context-assertions.md) |
-| *(in-container)* `orcan-context-scan` | Filesystem Reflection feeder (`--watch`, `--all-workspaces`); default driver **recap** via `orcan-context-recap`. See [Context Assertions](../ideas/context-assertions.md) |
-| *(in-container)* `orcan-context-recap` | Cascading session compact + inbox flush (invoked by scan; not usually run manually). See [Context Assertions](../ideas/context-assertions.md) |
-| *(in-container)* `orcan-context-model-check` | Probe Claude/Haiku for recap; `--quick` (PATH/version), `--refresh` (update `automation.json` cache). See [Context Assertions](../ideas/context-assertions.md) |
 | *(in-container)* `orcan-inbox` | Agent task handoff queue under `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). See [Agent inbox](../ideas/agent-inbox.md) |
 | `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start container (`orcan enter` locally; pick **one** browser mode: `--with-ttyd` or `--with-ttyd-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists; prints Claude `Stop` hook status when a workspace is configured |
 | `orcan down` | Stop containers |
@@ -68,12 +61,10 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan pull` | Pull both-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push both-agents `orcan:latest` (**manual**; not `-claude`/`-cursor`) |
 | `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
-| `orcan logs [docker\|supervisor\|context-scan]` | Follow container stdout (default) or show durable supervisord / Reflection scanner logs |
 | `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
 | `orcan update` | Dev channel: fast-forward this checkout to `origin/main` |
 | `orcan upgrade [--to VERSION]` | Release channel: newest release tag `vX.Y.Z` (default), or `--to` pins one (up or down) |
 | `orcan downgrade [--to VERSION]` | Previous SemVer release, or pin an older `--to` (refuses newer targets) |
-| `orcan doctor` | Host / config / container health (supervisord, context automation state, recap model probe when the image supports them) |
 | `orcan uninstall [--purge-data] [--purge-images]` | Stop/remove Orcan runtime and CLI. Data/images are opt-in; `ORCAN_PROJECTS_ROOT` and configured projects are preserved |
 | `orcan version` / `orcan help` | Version / help |
 

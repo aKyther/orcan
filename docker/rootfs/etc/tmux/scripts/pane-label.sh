@@ -4,7 +4,6 @@
 # instead of a one-shot `select-pane -T` pin.
 #
 # Usage: pane-label.sh [pane_id]
-# Tests:  PANE_LABEL_CMD=bash PANE_LABEL_CMDLINE='…orcan-context-review…' pane-label.sh
 set -Eeuo pipefail
 
 pane="${1:-}"
@@ -35,10 +34,6 @@ cmdline="${cmdline:-}"
 # Lowercase for matching (bash 4+). Keep original cmd for the fallback label.
 haystack="$(printf '%s' "${cmd} ${cmdline}" | tr '[:upper:]' '[:lower:]')"
 
-if [[ "${haystack}" == *orcan-context-review* ]]; then
-    printf '%s' 'review'
-    exit 0
-fi
 
 # Known agent / coding CLIs — first match wins (substring on cmdline).
 for name in claude codex aider gemini amp opencode cursor-agent; do

@@ -8,7 +8,7 @@ Public agent index: `docs/llms.txt` (`make docs-llms`).
 Longer maps: `docs/en/ai/project-context.md`, `docs/en/change-map.md` (+ PL).
 
 In a live **orcan workspace** (e.g. `orcan-dev`), honour that root’s context pack
-(`.manifest.json`, session brief, `CONTEXT-ASSERTIONS.md`) first. After `cd orcan/`,
+(`.manifest.json`, session brief) first. After `cd orcan/`,
 **this file** is the product SoT for how to change Orcan.
 
 ---
@@ -21,7 +21,7 @@ In a live **orcan workspace** (e.g. `orcan-dev`), honour that root’s context p
 | --- | --- |
 | **Workspace** | Named set of projects = one daily job / tmux session |
 | **Path parity** | Same absolute paths host ↔ container (Docker-from-Docker) |
-| **Context pack** | Ignores, AGENTS/CLAUDE seeds, human-approved Context Assertions |
+| **Context pack** | Paths, ignores, AGENTS/CLAUDE seeds, and optional session brief |
 | **Access** | Default **local** (`orcan enter`); optional browser (`orcan up --with-ttyd`) |
 | **Agents inside** | Cursor CLI (`agent`), Claude Code (`claude`), Codex (`codex`) — tools, not models Orcan picks |
 
@@ -38,8 +38,8 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 | **Public API** | `orcan` CLI (`bin/orcan`, `cli/`) — not Make |
 | **Config** | JSON only: `orcan.config.json` under **`ORCAN_HOME`** (default `~/.config/orcan/`). Tool data / history: **`ORCAN_DATA`** (same default root; see `orcan help`) |
 | **Ritual** | `orcan init` → `orcan sync` → `orcan build` (when needed) → `orcan up` (**up does not sync**) |
-| **Runtime** | `orcan enter` → cockpit (`agent-launcher`) → tmux 3.6a → zsh; CMD = `orcan-supervisord` (keepalive\|ttyd + `context-scan`/`recap`) |
-| **Cockpit** | Top: `🌀 orcan` (click = **About**) + 🔔 Problems/? + metrics · Left: workspaces + glance + ASSERTIONS (agents + decisions timeline) · Center: tmux · Bottom: status. Keys: **F2** · **F4**/‹› · **F1**/? shortcuts (**?** outside terminal) · **F5** peek brief/pending · **`i`** · **`r`** / **`p`** / **`o`** · **`lg`** (no F3) |
+| **Runtime** | `orcan enter` → cockpit (`agent-launcher`) → tmux 3.6a → zsh; CMD = `orcan-supervisord` (`keepalive` or `ttyd`) |
+| **Cockpit** | Top: `🌀 orcan` (About) + Help + metrics · Left: workspaces + glance · Center: tmux · Bottom: status. Keys: **F4**/‹› · **F1**/? · **F5** brief · **`i`** · **`lg`** |
 | **UX preview** | `make dev-*` / `scripts/dev/` → isolated `orcan:dev-ux` — **never** the user’s `orcan:latest` |
 | **Image ≠ repo rules** | Image defaults: `docker/rootfs/` (+ `opt/cursor-defaults/`). Repo rules: `.cursor/rules/` + this file |
 | **Done** | Surgical diff; EN+PL docs if behaviour changed; `make validate` · `test-host` · `docs-check`; UX → `dev-checklist` |
@@ -53,7 +53,6 @@ orcan init                  # or: context add / context tui / edit orcan.config.
 orcan sync                  # ALWAYS after config — apply → .env, mounts/*, workspaces/*
 orcan build                 # after Dockerfile | docker/rootfs | cockpit image inputs
 orcan up                    # daily; --with-ttyd for browser
-orcan sync --context        # inbox/compile only (host); respects [p]/[o]/model_check
 orcan migrate [--yes]       # optional managed-root move (dry-run without --yes)
 ```
 
@@ -65,26 +64,19 @@ container is up it also runs live reconcile in-container. Overlays that need rec
 
 ```text
 orcan enter → agent-launcher (cockpit) → tmux 3.6a → zsh
-container CMD → orcan-supervisord → keepalive|ttyd + context-scan (recap default)
+container CMD → orcan-supervisord → keepalive|ttyd
 ```
 
 - Shortcut SoT: `cockpit/src/orcan_cockpit/shortcuts.py` (+ tmux `keybindings.conf`)
-- ASSERTIONS UI: `activity.py`; Problems: `problems.py`; timeline: `timeline.py`; Peek: `peek.py` / `peek_modal.py`
-- Reflection loop feedback (ASSERTIONS / Peek): `reflection_feedback.py`
 - First-run tip: `first_run.py` / `onboarding.py` (flag under `~/.local/share/orcan/`)
 - Chrome: `top_bar.py`, `rail.py`, `status_bar.py`, `tmux_chrome.py`, `session_glance.py`
 - Terminal UI guide: `docs/en/guides/terminal-ui.md` (+ PL); rule `.cursor/rules/terminal-ui.mdc`
 - Version SoT: `cockpit/pyproject.toml` → `version`; root `VERSION` is a mirror
 - Docs: **EN + PL** together; B1–B2; story before commands; `docs/STYLE_GUIDE.md`
 
-### Agent inbox vs Context Assertions
+### Agent inbox
 
-| Mechanism | Path / tool | Role |
-| --- | --- | --- |
-| Agent inbox | `<workspace>/.orcan/tasks/` · `orcan-inbox` | Structured task handoff (not chat dumps) |
-| Context Assertions | `.orcan/context-inbox/` → `CONTEXT-ASSERTIONS.md` | Human-approved lasting context |
-
-Do not merge these systems. Docs: `docs/en/ideas/agent-inbox.md`, `ideas/context-assertions.md`.
+`<workspace>/.orcan/tasks/` and `orcan-inbox` provide structured task handoff without copying chat transcripts. See `docs/en/ideas/agent-inbox.md`.
 
 ### UX preview (checkout only)
 
@@ -128,13 +120,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Developer UX environment | `scripts/dev/`, `make dev-*` |
 | Image filesystem / binaries | `docker/rootfs/` |
 | Image packages / agents | `Dockerfile` |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `about_modal.py`, `activity.py`, `session_glance.py`, `problems.py`, `timeline.py`, `peek.py`, `peek_modal.py`, `reflection_feedback.py`, `first_run.py`, `onboarding.py`, `tmux_chrome.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`, `pty_mouse.py`) |
-| Session recap | `docker/rootfs/usr/local/lib/orcan/recap.py`, `orcan-context-recap` (`ORCAN_CONTEXT_DRIVER`) |
-| Recap model probe | `docker/rootfs/usr/local/lib/orcan/context_model_check.py`, `orcan-context-model-check` |
-| Automation control | `docker/rootfs/usr/local/lib/orcan/automation.py`, `$ORCAN_DATA/history/supervisor/automation.json` |
-| Supervisord / context-scan | `orcan-supervisord`, `orcan-context-scan`, `docker/rootfs/usr/local/lib/orcan/session_scan.py` |
-| Context Assertions compile | `scripts/repository/context_assertions.py`, `compile_context.py` |
-| Host context sync | `scripts/repository/context_syncd.py` (`orcan sync --context`) |
+| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `about_modal.py`, `session_glance.py`, `peek.py`, `peek_modal.py`, `first_run.py`, `onboarding.py`, `tmux_chrome.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`, `pty_mouse.py`) |
 | Terminal look | `docker/rootfs/etc/tmux/`, `cursor-ttyd`, `opt/orcan/*` |
 | Image agent defaults | `docker/rootfs/opt/cursor-defaults/` |
 | User docs / theme | `docs/`, `mkdocs.yml`, `overrides/` |

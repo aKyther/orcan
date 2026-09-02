@@ -62,7 +62,7 @@ move_file "${OLD_HOME}/.env" "${NEW_HOME}/.env"
 move_file "${OLD_HOME}/.env.example" "${NEW_HOME}/.env.example"
 
 # The critical one: per-workspace meta (.claude/settings.json, session-brief,
-# context-inbox/, CONTEXT-ASSERTIONS.md, ...). Everything else under the old
+# generated workspace state). Everything else under the old
 # .orcan/ (compose-*.yml, runtime-config.json, workspace.manifest.json,
 # context-tui-state.json, *.code-workspace) is purely derived/generated and
 # will be rewritten correctly by the next `orcan sync` — safe to leave behind.

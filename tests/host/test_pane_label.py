@@ -23,14 +23,6 @@ class PaneLabelScriptTests(unittest.TestCase):
     def test_script_is_present(self) -> None:
         self.assertTrue(SCRIPT.is_file())
 
-    def test_review_from_cmdline_even_when_cmd_is_shell(self) -> None:
-        self.assertEqual(
-            self._label("bash", "bash -c orcan-context-review; echo; read"),
-            "review",
-        )
-
-    def test_review_detection_is_case_insensitive(self) -> None:
-        self.assertEqual(self._label("bash", "ORCAN-CONTEXT-REVIEW --pending"), "review")
 
     def test_claude_from_command(self) -> None:
         self.assertEqual(self._label("claude"), "claude")

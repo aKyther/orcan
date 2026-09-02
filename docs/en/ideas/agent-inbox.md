@@ -18,10 +18,6 @@ decision, and it gives the execution agent no way to tell "we settled this" from
 
 ## How it works
 
-A task is a JSON file that moves through a fixed set of states, mirroring the
-propose → review → accept pattern already used by
-[Context Assertions](context-assertions.md):
-
 ```mermaid
 flowchart LR
   propose[propose] -->|policy=draft| proposals[proposals/]
@@ -58,24 +54,4 @@ task is silently dropped, not leaked into the prompt) and runs it — `claude -p
 
 ## Trade-offs
 
-- **Default is human-gated.** `approve` is the default policy — a task sits in
-  `proposals/` until a person runs `approve`. `auto` is opt-in per task.
-- **The shell executor is real command execution.** `execution.executor: shell`
-  runs `execution.command` directly. Combined with `policy: auto`, a task is
-  claimed and executed with no human step in between — the same trust
-  boundary trade-off as the rest of Orcan (see
-  [Security](../reference/security.md)), not a sandboxed evaluation.
-- **Not signed.** Like the Context Assertions inbox, task JSON is plain,
-  unsigned files. Anything that can write into `.orcan/tasks/inbox/` can
-  queue work for whichever executor is watching it.
-- **One workspace, one queue.** There is no cross-workspace routing — a task
-  proposed in workspace A is only ever claimable by a watcher pointed at
-  workspace A's `.orcan/tasks/`.
-
 ## Next
-
-- [Security](../reference/security.md) — trust model and the `auto` + `shell`
-  combination specifically
-- [Context Assertions](context-assertions.md) — the propose/review pattern this
-  reuses
-- [Mental Model](mental-model.md)

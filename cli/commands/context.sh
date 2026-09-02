@@ -66,12 +66,6 @@ orcan_cmd_context() {
         tui)
             orcan_context_tui "$@"
             ;;
-        assert)
-            orcan_context_assert "$@"
-            ;;
-        hook)
-            orcan_context_hook "$@"
-            ;;
         recent)
             local limit="10" ws_filter=""
             while [[ $# -gt 0 ]]; do
@@ -88,7 +82,7 @@ orcan_cmd_context() {
             orcan_host_python "${ORCAN_SCRIPTS}/history.py" "${args[@]}"
             ;;
         *)
-            orcan_usage_error "usage: orcan context <show|add|tui|worktrees|worktree|assert|hook|recent> (wizard moved to: orcan init)"
+            orcan_usage_error "usage: orcan context <show|add|tui|worktrees|worktree|recent> (wizard moved to: orcan init)"
             ;;
     esac
 }
@@ -138,102 +132,6 @@ EOF
         orcan_host_python "${ORCAN_SCRIPTS}/context_tui.py" "$@"
 }
 
-
-orcan_context_hook() {
-    local action="${1:-}"
-    shift || true
-
-    case "${action}" in
-        enable | disable | status) ;;
-        -h | --help | "")
-            printf 'usage: orcan context hook <enable|disable|status> [WORKSPACE ...] [--all] [--dry-run]\n'
-            printf '  Toggle the Claude Code Stop hook (orcan-context-reflect) in a\n'
-            printf "  workspace's generated root .claude/settings.json — where Claude Code\n"
-            printf '  sessions actually start (tmux windows always launch there, never inside\n'
-            printf '  a project checkout). On by default: orcan sync seeds it the first time a\n'
-            printf '  workspace is synced. Opting out sticks — once toggled, later syncs never\n'
-            printf '  touch it again; the toggle itself takes effect immediately.\n'
-            printf '  WORKSPACE: one or more workspace names\n'
-            printf '  --all: every workspace known to %s\n' "${ORCAN_HOME}/workspaces/index.json"
-            printf '  Default with no WORKSPACE/--all: infers the workspace from cwd (matched\n'
-            printf '  against registered project paths) if cwd is inside exactly one. Otherwise:\n'
-            printf '  status (read-only) shows every workspace, noting cwd matched nothing;\n'
-            printf '  enable/disable (mutating) error and ask for a name or --all.\n'
-            printf '\n'
-            printf '  Claude-only by design: Cursor CLI has no reliably wired stop-hook here\n'
-            printf '  to fire this. Cursor still benefits — it reads the same CONTEXT-\n'
-            printf '  ASSERTIONS.md (via AGENTS.md) that this hook helps populate, automatically,\n'
-            printf '  once orcan sync compiles it.\n'
-            return 0
-            ;;
-        *)
-            orcan_usage_error "usage: orcan context hook <enable|disable|status>"
-            ;;
-    esac
-
-    ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/claude_hook.py" \
-        "${action}" "$@" --home "${ORCAN_HOME}"
-}
-
-orcan_context_assert() {
-    local sub="${1:-}"
-    shift || true
-    case "${sub}" in
-        propose | list | show | accept | reject | retire | select | root)
-            ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
-                orcan_host_python "${ORCAN_SCRIPTS}/context_assertions.py" "${sub}" "$@"
-            ;;
-        overview)
-            ORCAN_HOME="${ORCAN_HOME}" ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \
-                orcan_host_python "${ORCAN_SCRIPTS}/compile_context.py" --overview "${ORCAN_HOME}"
-            ;;
-        -h | --help | "")
-            cat <<'EOF'
-usage: orcan context assert <command> [arguments]
-
-  propose --project PATH (--file PATH|-|--text STRING) --justification TEXT
-          [--title T] [--kind rule|fact|hint|policy] [applicability flags]
-                          Reflection: draft a candidate (status: proposed)
-  list --project PATH [--status proposed|accepted|rejected|retired]
-                          List assertions anchored to a project
-  show --project PATH ID
-                          Print one assertion (full record)
-  accept --project PATH ID [--edit-content PATH] [--edit-justification TEXT]
-         [--override-applicability [applicability flags]]
-                          Review Gate: proposed -> accepted (never automatic)
-  reject --project PATH ID
-                          Review Gate: proposed -> rejected
-  retire --project PATH ID
-                          accepted -> retired
-  select --workspace NAME --project PATH [--project PATH ...] [--limit N]
-                          Applicability Layer preview — what `orcan sync`
-                          would compile into CONTEXT-ASSERTIONS.md
-  overview                One line per configured workspace: composition
-                          (repo@branch) + how many accepted assertions
-                          currently match it. Live (not read from the last
-                          compiled CONTEXT-ASSERTIONS.md) — a glance across
-                          every workspace, e.g. to spot two workspaces that
-                          share a project but ended up with different context
-                          because they're on different branches.
-  root                    Print $ORCAN_DATA/context
-
-  Applicability flags (propose / accept --override-applicability):
-    --workspace NAME (repeatable)          --repo-all-of NAME (repeatable)
-    --repo-any-of NAME (repeatable)        --repo-none-of NAME (repeatable)
-    --branch GLOB (repeatable)             --valid-from / --valid-until YYYY-MM-DD
-
-Store: $ORCAN_DATA/context/<project-id>/ (git-versioned, one repo per anchor).
-Anchoring is organisational only — it never decides when an assertion
-applies; the applicability predicate does. Agents never read this store
-directly — only the compiled CONTEXT-ASSERTIONS.md in each workspace's
-context pack (RFC-0001: Context Assertions / Applicability Layer).
-EOF
-            ;;
-        *)
-            orcan_usage_error "usage: orcan context assert <propose|list|show|accept|reject|retire|select|root>"
-            ;;
-    esac
-}
 
 orcan_context_add() {
     local path=""

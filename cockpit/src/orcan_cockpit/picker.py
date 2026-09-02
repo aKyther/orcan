@@ -246,8 +246,7 @@ from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
 # (which a non-mouse/native-terminal session might never trigger).
 # \[ escapes the literal bracket — Static defaults to markup=True, and an
 # unescaped [i] parses as an (unclosed) Rich style tag that silently drops
-# the letter from the render (same class of bug found and fixed in
-# activity.py's hint line this session — confirmed with Text.from_markup()).
+# the letter from the render (confirmed with Text.from_markup()).
 # Two lines, not one: the full text is 44 cells, wider than this card's
 # ~30-col usable width — on one line "[i] expand" silently clipped off the
 # end entirely (found while verifying the feature it's advertising).

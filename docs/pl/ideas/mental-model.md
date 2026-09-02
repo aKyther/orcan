@@ -123,10 +123,6 @@ wprowadza tę zmianę do działającego kontenera — zobacz
 
 ## Widoczność cross-workspace (celowa)
 
-`$ORCAN_HOME/workspaces/` montuje się raz jako `/home/developer/workspaces/`.
-Każdy workspace to podkatalog (symlinki, `AGENTS.md`, `CONTEXT-ASSERTIONS.md`,
-`.orcan/context-inbox/`, …).
-
 **Kompromis:** agent odpalony w workspace A widzi też drzewo workspace B. To
 celowe — pozwala dodawać, usuwać i przełączać workspace’y bez rosnącej listy
 bindów per workspace i recreate kontenera. Orcan to single-user na jednym

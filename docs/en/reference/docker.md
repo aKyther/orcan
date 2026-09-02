@@ -61,11 +61,8 @@ and execs `supervisord -n`:
 | `keepalive` (default) | `sleep infinity` | `orcan enter` |
 | `ttyd` | `cursor-ttyd` | browser |
 
-Always-on worker (unless `ORCAN_CONTEXT_SCAN=0`):
-
 | Program | Command |
 | --- | --- |
-| `context-scan` | `orcan-context-scan --all-workspaces --watch` |
 
 **Logs** (durable on the history bind — survive recreate):
 
@@ -76,20 +73,7 @@ Always-on worker (unless `ORCAN_CONTEXT_SCAN=0`):
 | File | What |
 | --- | --- |
 | `supervisord.log` | Supervisor + startup banner |
-| `childlog/context-scan.*.log` | Reflection scanner |
 | `childlog/ttyd.*.log` | Browser terminal (ttyd mode) |
-| `automation.json` | Shared automation control — `enabled`, `paused`, cached `model_check`; cockpit **`[p]`** / **`[o]`** |
-
-```bash
-orcan-supervisor-status     # in container
-orcan logs supervisor       # from host
-orcan logs context-scan
-```
-
-Supervisord and its children run as container user **`developer`** (image
-`USER`); `orcan-supervisord` refuses to start as root. Cockpit `[p]` pauses
-background scan/reflect/host `--context` watch without stopping supervisord
-itself — human accept/reject of assertions stays required.
 
 ## `$ORCAN_DATA` binds
 

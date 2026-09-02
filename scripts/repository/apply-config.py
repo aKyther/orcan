@@ -15,7 +15,6 @@ from pathlib import Path
 # Host scripts live next to this file.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import discover_config, load_config as load_user_config  # noqa: E402
-import claude_hook  # noqa: E402
 from path_guards import is_sensitive_path  # noqa: E402
 
 
@@ -774,32 +773,6 @@ def main() -> None:
         write_code_workspace(
             root, ws, ws["projects"], suffix="host", use_container_paths=False
         )
-
-    # Stop hook (orcan-context-reflect) defaults to on for a brand-new
-    # workspace meta dir (no .claude/settings.json yet) — opting OUT is what's
-    # configurable: `orcan context hook disable <name>` afterwards sticks,
-    # since we only ever seed here, never re-enable on top of an existing file.
-    for ws in built["workspaces"]:
-        if ws.get("enabled") is False:
-            continue
-        meta_path = Path(ws["meta_path"])
-        settings_path = claude_hook.settings_path(meta_path)
-        if not settings_path.exists():
-            claude_hook.enable(meta_path, dry_run=False)
-            print(
-                f"context: Stop hook enabled by default for workspace {ws['name']!r} "
-                f"(disable: orcan context hook disable {ws['name']})"
-            )
-        elif not claude_hook.has_hook(claude_hook.load_settings(settings_path)):
-            # Either the user ran `orcan context hook disable`, or something
-            # else created settings.json before this seed step ever ran for
-            # this workspace (e.g. a pre-existing workspace from before this
-            # default existed) — either way, say so instead of staying quiet,
-            # since the two cases are indistinguishable from here.
-            print(
-                f"context: Stop hook not active for workspace {ws['name']!r} "
-                f"({settings_path} exists without it — enable: orcan context hook enable {ws['name']})"
-            )
 
     primary_ws = built["primary_workspace"]
     ensure_env_key(env_path, "PROJECT_DIR", built["project_dir"])

@@ -23,8 +23,8 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Literal
 
 Layer = Literal["tmux", "app"]
-Context = Literal["terminal", "workspaces", "panel", "rail"]
-VALID_CONTEXTS: tuple[Context, ...] = ("terminal", "workspaces", "panel", "rail")
+Context = Literal["terminal", "workspaces", "rail"]
+VALID_CONTEXTS: tuple[Context, ...] = ("terminal", "workspaces", "rail")
 
 # Shown at the bottom of F1/? overlay (shortcuts_modal) and prefix-? popup
 # (shortcuts_cli) — embedded tmux is not a native terminal attach.
@@ -81,14 +81,12 @@ SHORTCUTS: list[Shortcut] = [
     # pane/window/session entry below also matches "terminal" — with these
     # listed after them (as they used to be), they got crowded out of the
     # terminal hint strip entirely (verified: hints_for("terminal") was
-    # 6/6 tmux pane hints, no F1/F2/F4 in any form). Global nav should
+    # 6/6 tmux pane hints, no F1/F4 in any form). Global nav should
     # always win that race, even while attached to a live tmux session.
     # (No F3/Git entry — removed on request; lazygit stays reachable via the
     # `lg` shell alias inside the terminal itself.)
-    Shortcut("F2", "Toggle assertions panel", "app", "cockpit",
-              ("terminal", "workspaces", "panel", "rail")),
     Shortcut("F4 / ‹›", "Toggle workspaces panel", "app", "cockpit",
-              ("terminal", "workspaces", "panel", "rail")),
+              ("terminal", "workspaces", "rail")),
     # "?" is a bare letter, not a function key — PtyTerminal swallows it
     # (event.stop() in on_key) whenever the terminal has focus and sends it
     # into the shell/tmux pane as a literal "?" instead; only F1 reliably
@@ -98,7 +96,7 @@ SHORTCUTS: list[Shortcut] = [
     # place that actually needs the context-accurate distinction. Confirmed
     # via real pty test: typing "?" while attached lands in the pane.
     Shortcut("F1 / ?", "Open shortcuts", "app", "cockpit",
-              ("terminal", "workspaces", "panel", "rail")),
+              ("terminal", "workspaces", "rail")),
     # --- app: cockpit nav mix (see pty_tmux_nav — differs from raw --tmux) ---
     Shortcut("Ctrl/Alt+←/→/↑/↓", "Focus pane", "app", "panes", ("terminal",)),
     Shortcut("Ctrl+Shift+←/→/↑/↓", "Split pane", "app", "panes", ("terminal",)),
@@ -178,12 +176,9 @@ SHORTCUTS: list[Shortcut] = [
               ("bind -T copy-mode-vi Escape send-keys -X cancel",)),
     # --- app (cockpit) layer, remainder (the terminal-context subset lives
     # at the top of this list — see the comment there) ----------------------
-    Shortcut("Ctrl+P", "Command palette", "app", "cockpit", ("workspaces", "panel", "rail")),
-    Shortcut("F5", "Peek session brief / next pending", "app", "cockpit",
-             ("terminal", "workspaces", "panel", "rail")),
-    Shortcut("r", "Run context review", "app", "cockpit", ("panel",)),
-    Shortcut("p", "Pause/resume context automation", "app", "cockpit", ("panel",)),
-    Shortcut("o", "Turn context automation off/on", "app", "cockpit", ("panel",)),
+    Shortcut("Ctrl+P", "Command palette", "app", "cockpit", ("workspaces", "rail")),
+    Shortcut("F5", "Peek session brief", "app", "cockpit",
+             ("terminal", "workspaces", "rail")),
     Shortcut("↑ / ↓, Enter", "Navigate / attach workspace", "app", "cockpit", ("workspaces",)),
     Shortcut("i", "Expand workspace details (root, repo count)", "app", "cockpit", ("workspaces",)),
 ]
