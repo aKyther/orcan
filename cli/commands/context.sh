@@ -101,13 +101,14 @@ managed worktree per selected git repo (plain directories are always
 mounted as-is, no worktree).
 
 Scan screen keys:
-  Tab list↔stack · Esc stack→list · Space pick/remove · Enter apply ·
+  Tab review · Space pick · Enter apply (or open when empty) ·
   l/→ open · u/← up · h recent picks · a/A all/clear · / filter · e browse ·
   D depth 1↔2 · w name · t worktree · b branch · q quit
-  (will-add stack: right column if wide, else bottom strip)
+  (selection preview: right column if wide, compact bar if narrow)
 
 Manage screen keys (shown when a config already exists):
-  j/k move · Enter/r rename · p change path · a add project (jump to
+  j/k move · ←/→ collapse/expand · Enter toggle · r rename ·
+  p change path · a add project (jump to
   scan, pre-filled) · d delete project · W delete workspace ·
   n new workspace (scan folder) · s save · q quit
 

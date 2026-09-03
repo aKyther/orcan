@@ -4,9 +4,9 @@
 Flow:
   1. Point at a parent folder (children-only scan by default; D / --depth 2
      for grandchildren). l/→ opens a folder; u/← goes up.
-  2. Multi-select into a will-add stack (Tab focuses the stack; Space/x
-     removes). Picks survive parent changes (e/h/u/l). h = recent picks
-     (add without browsing). Enter always applies.
+  2. Multi-select into a will-add stack (Tab reviews it; Space removes).
+     Picks survive parent changes (e/h/u/l). h = recent picks. Enter opens
+     a folder while the selection is empty, or applies selected projects.
   3. Name the workspace
   4. Optional: one branch → managed worktree per selected repo
   5. Write orcan.config.json (then caller may sync)
@@ -251,6 +251,18 @@ def classify_pick(
 def format_pick_label(path: Path, bits: list[str], *, mark: str = "+") -> str:
     tag = f"  ({' · '.join(bits)})" if bits else ""
     return f"{mark} {path.name}{tag}"
+
+
+def review_outcome(bits: list[str]) -> str:
+    """Translate compact scan tags into an explicit apply outcome."""
+    labels = {
+        "mount": "plain directory (mount as-is)",
+        "elsewhere": "selected in another folder",
+        "in ws": "already connected — no change",
+        "name taken": "name conflict — will be renamed",
+        "other ws": "also used in another workspace",
+    }
+    return " · ".join(labels.get(bit, bit) for bit in bits) if bits else "new project"
 
 
 def format_will_add_lines(
@@ -878,6 +890,74 @@ def _validate_manage_path(path_str: str) -> tuple[str | None, Path | None]:
     return None, resolved
 
 
+def _review_selection_screen(
+    stdscr: Any,
+    selected: list[Path],
+    *,
+    workspace: str,
+    repos: list[tuple[Path, bool]],
+    names_in_ws: set[str],
+    paths_in_ws: set[str],
+    path_ws: dict[str, str],
+) -> bool:
+    """Review the pending change. Enter accepts; Esc returns to browsing."""
+    import curses
+
+    cursor = 0
+    scroll = 0
+    while True:
+        stdscr.erase()
+        h, w = stdscr.getmaxyx()
+        new_n, already_n = stack_apply_summary(selected, paths_in_ws=paths_in_ws)
+        stdscr.addnstr(0, 0, " review changes ".ljust(w), w, curses.A_REVERSE)
+        summary = f" Workspace {workspace!r} · {new_n} new"
+        if already_n:
+            summary += f" · {already_n} already connected"
+        stdscr.addnstr(1, 0, _ellipsize(summary, w - 1), w - 1, curses.A_BOLD)
+        stdscr.addnstr(
+            2, 0, " ↑↓ inspect · Space remove · Enter apply · Esc back"[: w - 1],
+            w - 1, curses.A_DIM,
+        )
+        list_top = 4
+        list_h = max(1, h - list_top - 1)
+        cursor = min(cursor, max(0, len(selected) - 1))
+        if cursor < scroll:
+            scroll = cursor
+        if cursor >= scroll + list_h:
+            scroll = cursor - list_h + 1
+        for i in range(list_h):
+            idx = scroll + i
+            if idx >= len(selected):
+                break
+            path = selected[idx]
+            bits = classify_pick(
+                path, repos=repos, names_in_ws=names_in_ws,
+                paths_in_ws=paths_in_ws, path_ws=path_ws, workspace=workspace,
+            )
+            outcome = review_outcome(bits)
+            line = f" {'›' if idx == cursor else ' '} {path.name} — {outcome}  {path}"
+            attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
+            stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
+        footer = f"Enter applies {len(selected)} selected path(s)" if selected else "Nothing selected — Esc to return"
+        stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
+        stdscr.refresh()
+
+        key = stdscr.getch()
+        if key == curses.KEY_RESIZE:
+            continue
+        if key in (27, ord("q")):
+            return False
+        if key in (curses.KEY_UP, ord("k")):
+            cursor = max(0, cursor - 1)
+        elif key in (curses.KEY_DOWN, ord("j")):
+            cursor = min(max(0, len(selected) - 1), cursor + 1)
+        elif key in (ord(" "), ord("x")) and selected:
+            selected.pop(cursor)
+            cursor = min(cursor, max(0, len(selected) - 1))
+        elif key in (curses.KEY_ENTER, 10, 13) and selected:
+            return True
+
+
 def _run_curses(args: argparse.Namespace) -> int:
     try:
         import curses
@@ -897,9 +977,6 @@ def _run_curses(args: argparse.Namespace) -> int:
     use_worktree = bool(args.branch) or bool(state.get("last_use_worktree"))
     branch = (args.branch or str(state.get("last_branch") or "feature/work")).strip()
     cursor = 0
-    stack_cursor = 0
-    stack_scroll = 0
-    focus = "list"  # "list" | "stack"
     selected: list[Path] = []
     message = ""
     scroll = 0
@@ -940,11 +1017,10 @@ def _run_curses(args: argparse.Namespace) -> int:
 
     def after_parent_change() -> None:
         """Rescan after navigate/browse; keep selections across parents."""
-        nonlocal repos, cursor, filter_text, message, workspace, focus
+        nonlocal repos, cursor, filter_text, message, workspace
         repos = refresh_repos()
         cursor = 0
         filter_text = ""
-        focus = "list"
         outside = selection_outside_scan(selected, repos)
         if outside:
             message = (
@@ -954,20 +1030,11 @@ def _run_curses(args: argparse.Namespace) -> int:
             workspace = default_workspace_name(parent)
 
     def toggle_selected(path: Path) -> None:
-        nonlocal stack_cursor
         if path in selected:
             selected.remove(path)
-            stack_cursor = min(stack_cursor, max(0, len(selected) - 1))
         else:
             selected.append(path)
-            stack_cursor = len(selected) - 1
             remember_picks(path)
-
-    def remove_stack_at(idx: int) -> None:
-        nonlocal stack_cursor
-        if 0 <= idx < len(selected):
-            selected.pop(idx)
-            stack_cursor = min(idx, max(0, len(selected) - 1))
 
     repos = refresh_repos()
     if args.select:
@@ -977,7 +1044,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                 selected.append(r)
 
     def draw(stdscr: Any) -> None:
-        nonlocal scroll, stack_scroll
+        nonlocal scroll
         stdscr.erase()
         h, w = stdscr.getmaxyx()
         names_in_ws, paths_in_ws, path_ws = membership()
@@ -987,18 +1054,17 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(0, 0, title.ljust(w), w, curses.A_REVERSE)
         stdscr.addnstr(1, 0, _ellipsize(f" Parent: {parent}", w - 1), w - 1)
         mode = f"worktrees @{branch}" if use_worktree else "mount paths as-is"
-        focus_tag = "LIST" if focus == "list" else "STACK"
         stdscr.addnstr(
             2,
             0,
-            f" Workspace: {workspace}  |  Mode: {mode}  |  Depth: {depth}  |  Focus: {focus_tag}"
+            f" Workspace: {workspace}  |  Mode: {mode}  |  Depth: {depth}"
             [: w - 1],
             w - 1,
         )
         stdscr.addnstr(
             3,
             0,
-            " Tab focus · Space pick · Enter apply · l/→ open · h recent picks · u/← up · D depth · ? help · q quit"
+            " ↑↓ choose · Space select · → open · Enter apply · Tab review · ? more"
             [: w - 1],
             w - 1,
             curses.A_DIM,
@@ -1012,15 +1078,14 @@ def _run_curses(args: argparse.Namespace) -> int:
         split = w >= 88
         if split:
             stack_w = max(26, min(36, w // 3))
-        bottom_stack_h = 0 if split else min(6, max(3, h // 4))
+        bottom_stack_h = 0 if split else 1
         list_h = max(1, h - list_top - 1 - bottom_stack_h)
         left_w = (w - stack_w - 1) if split else w
 
-        if focus == "list":
-            if cursor < scroll:
-                scroll = cursor
-            if cursor >= scroll + list_h:
-                scroll = cursor - list_h + 1
+        if cursor < scroll:
+            scroll = cursor
+        if cursor >= scroll + list_h:
+            scroll = cursor - list_h + 1
 
         if split:
             stack_body_h = max(1, list_h - 1)
@@ -1029,19 +1094,11 @@ def _run_curses(args: argparse.Namespace) -> int:
             stack_x = left_w + 1
             stack_body_w = max(1, stack_w - 1)
         else:
-            stack_body_h = max(1, bottom_stack_h - 1)
-            stack_body_top = h - 1 - bottom_stack_h + 1
+            stack_body_h = 0
+            stack_body_top = h - 1
             stack_title_y = h - 1 - bottom_stack_h
             stack_x = 0
             stack_body_w = max(1, w - 1)
-
-        if focus == "stack" and selected:
-            if stack_cursor < stack_scroll:
-                stack_scroll = stack_cursor
-            if stack_cursor >= stack_scroll + stack_body_h:
-                stack_scroll = stack_cursor - stack_body_h + 1
-        else:
-            stack_scroll = max(0, min(stack_scroll, max(0, len(selected) - stack_body_h)))
 
         if not view:
             hint = (
@@ -1049,8 +1106,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                 if filter_text
                 else "nothing found — l/→ needs a row; try e to browse, or u to go up"
             )
-            attr = curses.A_REVERSE if focus == "list" else curses.A_NORMAL
-            stdscr.addnstr(list_top, 0, _ellipsize(f"  ({hint})", left_w - 1), left_w - 1, attr)
+            stdscr.addnstr(list_top, 0, _ellipsize(f"  ({hint})", left_w - 1), left_w - 1)
         else:
             for i in range(list_h):
                 idx = scroll + i
@@ -1070,11 +1126,11 @@ def _run_curses(args: argparse.Namespace) -> int:
                 tag = f"  ({' · '.join(bits)})" if bits else ""
                 line = f" {mark} {repo.name}{tag}  {repo}"
                 attr = curses.A_NORMAL
-                if focus == "list" and idx == cursor:
+                if idx == cursor:
                     attr = curses.A_REVERSE
                 elif repo in selected:
                     attr |= curses.A_BOLD
-                if not is_git and not (focus == "list" and idx == cursor):
+                if not is_git and idx != cursor:
                     attr |= curses.color_pair(_COLOR_WARN)
                 stdscr.addnstr(list_top + i, 0, _ellipsize(line, left_w - 1), left_w - 1, attr)
 
@@ -1083,8 +1139,6 @@ def _run_curses(args: argparse.Namespace) -> int:
         else:
             stack_title = f" will add → {workspace} ({len(selected)}) "
         title_attr = curses.A_BOLD | curses.color_pair(_COLOR_INFO)
-        if focus == "stack":
-            title_attr = curses.A_REVERSE
 
         if split:
             for row in range(list_h):
@@ -1102,8 +1156,8 @@ def _run_curses(args: argparse.Namespace) -> int:
             title_attr,
         )
 
-        if not selected:
-            empty_attr = curses.A_REVERSE if focus == "stack" else curses.A_DIM
+        if split and not selected:
+            empty_attr = curses.A_DIM
             stdscr.addnstr(
                 stack_body_top,
                 stack_x,
@@ -1111,9 +1165,9 @@ def _run_curses(args: argparse.Namespace) -> int:
                 stack_body_w,
                 empty_attr,
             )
-        else:
+        elif split:
             for i in range(stack_body_h):
-                idx = stack_scroll + i
+                idx = i
                 if idx >= len(selected):
                     break
                 path = selected[idx]
@@ -1126,11 +1180,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                     workspace=workspace,
                 )
                 line = format_pick_label(path, bits)
-                attr = (
-                    curses.A_REVERSE
-                    if focus == "stack" and idx == stack_cursor
-                    else curses.color_pair(_COLOR_INFO)
-                )
+                attr = curses.color_pair(_COLOR_INFO)
                 stdscr.addnstr(
                     stack_body_top + i,
                     stack_x,
@@ -1142,19 +1192,13 @@ def _run_curses(args: argparse.Namespace) -> int:
         outside_n = len(selection_outside_scan(selected, repos))
         if message:
             footer = message
-        elif focus == "stack":
-            footer = (
-                f"STACK · Space/x remove · Enter applies {len(selected)} → {workspace!r} · Esc list"
-                if selected
-                else "STACK · empty — Esc/Tab back to list"
-            )
         elif selected:
             footer = (
-                f"LIST · Enter applies {len(selected)} · Space pick · l/→ open · u/← up"
+                f"Enter applies {len(selected)} · Tab reviews · Space toggles · → opens"
                 + (f" · {outside_n} elsewhere" if outside_n else "")
             )
         else:
-            footer = "LIST · Space pick · l/→ open folder · u/← up · Enter applies stack · Tab stack"
+            footer = "Space selects · Enter/→ opens folder · ← goes up · Tab reviews"
         stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
         stdscr.refresh()
 
@@ -1196,53 +1240,42 @@ def _run_curses(args: argparse.Namespace) -> int:
 
     def main_loop(stdscr: Any) -> int:
         nonlocal parent, workspace, use_worktree, branch, cursor, selected
-        nonlocal message, repos, filter_text, depth, focus, stack_cursor
+        nonlocal message, repos, filter_text, depth
         curses.curs_set(0)
         _init_curses_session()
 
         while True:
             draw(stdscr)
             view = visible_repos()
-            if selected:
-                stack_cursor = max(0, min(stack_cursor, len(selected) - 1))
-            else:
-                stack_cursor = 0
             key = stdscr.getch()
             if key == curses.KEY_RESIZE:
                 continue
+            message = ""
             if key == ord("q"):
                 return 1
-            if key == 27:  # Esc — back to list from stack; quit from list
-                if focus == "stack":
-                    focus = "list"
-                    message = ""
-                    continue
+            if key == 27:
                 return 1
-            if key == 9:  # Tab
-                focus = "stack" if focus == "list" else "list"
+            if key == 9:  # Tab: full review; Enter there applies.
                 message = ""
+                names_in_ws, paths_in_ws, path_ws = membership()
+                if _review_selection_screen(
+                    stdscr, selected, workspace=workspace, repos=repos,
+                    names_in_ws=names_in_ws, paths_in_ws=paths_in_ws,
+                    path_ws=path_ws,
+                ):
+                    rc_apply = try_apply(stdscr)
+                    if rc_apply is not None:
+                        return rc_apply
                 continue
             if key in (curses.KEY_UP, ord("k")):
-                if focus == "stack":
-                    stack_cursor = max(0, stack_cursor - 1)
-                else:
-                    cursor = max(0, cursor - 1)
+                cursor = max(0, cursor - 1)
             elif key in (curses.KEY_DOWN, ord("j")):
-                if focus == "stack":
-                    stack_cursor = min(max(0, len(selected) - 1), stack_cursor + 1)
-                else:
-                    cursor = min(max(0, len(view) - 1), cursor + 1)
+                cursor = min(max(0, len(view) - 1), cursor + 1)
             elif key == ord(" "):
-                if focus == "stack":
-                    if selected:
-                        remove_stack_at(stack_cursor)
-                elif view:
+                if view:
                     r, _is_git = view[min(cursor, len(view) - 1)]
                     toggle_selected(r)
-            elif key == ord("x") and focus == "stack":
-                if selected:
-                    remove_stack_at(stack_cursor)
-            elif key == ord("a") and focus == "list":
+            elif key == ord("a"):
                 added: list[Path] = []
                 for p, _ in view:
                     if p not in selected:
@@ -1252,10 +1285,8 @@ def _run_curses(args: argparse.Namespace) -> int:
                     remember_picks(*added)
             elif key == ord("A"):
                 selected = []
-                stack_cursor = 0
                 message = "will-add stack cleared"
             elif key == ord("/"):
-                focus = "list"
                 typed = _prompt_line(stdscr, "Filter (empty to clear)", filter_text)
                 filter_text = (typed or "").strip()
                 cursor = 0
@@ -1268,9 +1299,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                 after_parent_change()
                 message = f"up → {parent}"
             elif key in (ord("l"), curses.KEY_RIGHT):
-                if focus != "list":
-                    message = "l/→ opens a folder on the list — Tab back first"
-                elif not view:
+                if not view:
                     message = "nothing to open"
                 else:
                     path, _is_git = view[min(cursor, len(view) - 1)]
@@ -1282,11 +1311,9 @@ def _run_curses(args: argparse.Namespace) -> int:
                     stdscr,
                     "orcan context tui — scan screen",
                     [
-                        "Tab      switch focus: scan list ↔ will-add stack",
-                        "Esc      stack → list (does not quit); list → quit",
-                        "Space    list: toggle pick · stack: remove highlighted",
-                        "x        stack: remove highlighted",
-                        "Enter    apply will-add stack (confirm)",
+                        "Tab      review selected projects; Enter there applies",
+                        "Space    toggle highlighted project",
+                        "Enter    apply selection; with no picks, open folder",
                         "l / →    open highlighted folder (descend)",
                         "u / ← / Bksp  go up one directory (keeps will-add)",
                         "h        recent picks — Space-add without browsing",
@@ -1346,9 +1373,17 @@ def _run_curses(args: argparse.Namespace) -> int:
                 branch = _prompt_line(stdscr, "Branch for all worktrees", branch) or branch
                 use_worktree = True
             elif key in (curses.KEY_ENTER, 10, 13):
-                rc_apply = try_apply(stdscr)
-                if rc_apply is not None:
-                    return rc_apply
+                if selected:
+                    rc_apply = try_apply(stdscr)
+                    if rc_apply is not None:
+                        return rc_apply
+                elif view:
+                    path, _is_git = view[min(cursor, len(view) - 1)]
+                    parent = path
+                    after_parent_change()
+                    message = f"opened {path.name}"
+                else:
+                    message = "nothing to open — choose another folder"
         return 1
 
     rc = curses.wrapper(main_loop)
@@ -1410,14 +1445,19 @@ def _run_curses(args: argparse.Namespace) -> int:
     return 0
 
 
-def manage_rows(workspaces: list[Any]) -> list[tuple[str, int, int | None]]:
+def manage_rows(
+    workspaces: list[Any], collapsed: set[int] | None = None
+) -> list[tuple[str, int, int | None]]:
     """(kind, ws_idx, proj_idx) — kind 'ws' or 'proj'; proj_idx None for 'ws'.
     Pure/curses-free so it's directly unit-testable."""
     out: list[tuple[str, int, int | None]] = []
+    collapsed = collapsed or set()
     for wi, ws in enumerate(workspaces):
         if not isinstance(ws, dict):
             continue
         out.append(("ws", wi, None))
+        if wi in collapsed:
+            continue
         projects = ws.get("projects")
         if isinstance(projects, list):
             for pi, p in enumerate(projects):
@@ -1516,10 +1556,16 @@ def _run_manage(args: argparse.Namespace) -> int:
         workspaces = []
         cfg["workspaces"] = workspaces
 
-    state = {"dirty": False, "cursor": 0, "scroll": 0, "message": ""}
+    state = {
+        "dirty": False,
+        "cursor": 0,
+        "scroll": 0,
+        "message": "",
+        "collapsed": set(),
+    }
 
     def rows() -> list[tuple[str, int, int | None]]:
-        return manage_rows(workspaces)
+        return manage_rows(workspaces, state["collapsed"])
 
     def draw(stdscr: Any) -> None:
         stdscr.erase()
@@ -1530,8 +1576,7 @@ def _run_manage(args: argparse.Namespace) -> int:
             2,
             0,
             (
-                " j/k move · Enter/r rename · p path · a add project · d delete project · "
-                "W delete workspace · n new (scan folder) · P prune orphans · s save · ? help · q quit"
+                " ↑↓ choose · ←→ collapse/expand · Enter toggle · a add · n new · ? more"
             )[: w - 1],
             w - 1,
             curses.A_DIM,
@@ -1558,7 +1603,8 @@ def _run_manage(args: argparse.Namespace) -> int:
                 ws = workspaces[wi]
                 if kind == "ws":
                     n = len([p for p in (ws.get("projects") or []) if isinstance(p, dict)])
-                    line = f" ▸ {ws.get('name')}  ({n} project{'s' if n != 1 else ''})"
+                    marker = "▸" if wi in state["collapsed"] else "▾"
+                    line = f" {marker} {ws.get('name')}  ({n} project{'s' if n != 1 else ''})"
                     attr = curses.A_BOLD
                 else:
                     proj = (ws.get("projects") or [])[pi]
@@ -1615,6 +1661,15 @@ def _run_manage(args: argparse.Namespace) -> int:
             if key in (curses.KEY_DOWN, ord("j")):
                 state["cursor"] = min(max(0, len(current_rows) - 1), state["cursor"] + 1)
                 continue
+            if key in (curses.KEY_LEFT, curses.KEY_RIGHT):
+                if current_rows:
+                    kind, wi, _pi = current_rows[state["cursor"]]
+                    if kind == "ws":
+                        if key == curses.KEY_LEFT:
+                            state["collapsed"].add(wi)
+                        else:
+                            state["collapsed"].discard(wi)
+                continue
             if key == ord("n"):
                 return switch_to_scan(stdscr)
             if key == ord("s"):
@@ -1632,8 +1687,10 @@ def _run_manage(args: argparse.Namespace) -> int:
                     stdscr,
                     "orcan init — manage workspaces",
                     [
-                        "j/k       move",
-                        "Enter/r   rename workspace or project",
+                        "↑↓ / j/k  move",
+                        "← / →     collapse / expand workspace",
+                        "Enter     toggle workspace; rename project",
+                        "r         rename workspace or project",
                         "p         change a project's path",
                         "a         add a project to this workspace (jumps to scan)",
                         "d         delete project (position on a project row)",
@@ -1652,6 +1709,12 @@ def _run_manage(args: argparse.Namespace) -> int:
             kind, wi, pi = current_rows[state["cursor"]]
             ws = workspaces[wi]
 
+            if key in (curses.KEY_ENTER, 10, 13) and kind == "ws":
+                if wi in state["collapsed"]:
+                    state["collapsed"].discard(wi)
+                else:
+                    state["collapsed"].add(wi)
+                continue
             if key in (ord("r"), curses.KEY_ENTER, 10, 13):
                 if kind == "ws":
                     new_name = _prompt_line(stdscr, "Workspace name", str(ws.get("name") or ""))
@@ -1730,6 +1793,7 @@ def _run_manage(args: argparse.Namespace) -> int:
                         ):
                             remove_wt = False
                     deleted = manage_delete_workspace(workspaces, wi)
+                    state["collapsed"].clear()
                     state["dirty"] = True
                     if remove_wt:
                         failures = []
