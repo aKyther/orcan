@@ -203,6 +203,13 @@ mouse, trackpad, keyboard, native `orcan enter`, and Windows Terminal / WSL
 input keep their existing paths. A short tap stays a tap because scrolling
 starts only after a vertical movement threshold.
 
+Phone and tablet typography is responsive: 16 px up to 600 px wide, 14 px up
+to 1024 px, and the configured `TTYD_FONT_SIZE` (13 px by default) on desktop.
+An explicit `?fontSize=N` URL parameter overrides the automatic profile. While
+xterm's input is focused, the bridge also follows `visualViewport`; when the
+software keyboard reduces the visible height, ttyd refits its rows so the
+current prompt remains above the keyboard.
+
 ### Cockpit chrome (app layer)
 
 **Width tiers** (terminal columns, not browser CSS breakpoints —

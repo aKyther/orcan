@@ -56,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Phone terminal:** ttyd now uses responsive xterm font sizes (16 px phone,
+  14 px tablet, 13 px desktop) and follows `visualViewport` while the software
+  keyboard is open. The terminal refits above the keyboard so the active input
+  remains visible; an explicit `?fontSize=N` URL parameter overrides profiles.
+
 - **Workspace picker:** pressing **Enter** now always confirms and closes the
   picker, including when the highlighted workspace is already attached. The
   existing tmux PTY is kept alive and focus returns to the terminal.
