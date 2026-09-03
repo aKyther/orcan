@@ -2381,30 +2381,25 @@
 <p><strong>Push/pull po SSH:</strong> startuj z <code>orcan up --with-git</code> (montuje <code>~/.ssh</code> oraz agenta SSH, gdy jest dostępny). Razem z DinD: <code>orcan up --with-docker --with-git</code>. Zwykłe <code>orcan up</code> nie podpina kluczy. Zobacz <a href="../getting-started/quickstart/#git-w-kontenerze">Szybki start</a> i <a href="../reference/security/">Bezpieczeństwo</a>.</p>
 <p><strong>Worktree:</strong> opcjonalne. Domyślnie montujesz zwykłą ścieżkę klona; zaawansowana pomoc w wizardzie albo <code>orcan context worktree</code>, gdy chcesz osobny checkout pod <code>$ORCAN_PROJECTS_ROOT/.worktrees</code> (domyślnie <code>~/.config/orcan/sandbox/.worktrees</code> — objęty stałym mountem projektów, bez recreate kontenera). Zobacz <a href="../concepts/workspaces/#git-worktree">Workspace'y</a>.</p>
 <h2 id="ktorzy-agenci-sa-zainstalowani">Którzy agenci są zainstalowani?<a class="headerlink" href="#ktorzy-agenci-sa-zainstalowani" title="Permanent link">&para;</a></h2>
-<p>Domyślnie obraz ma <strong>obu</strong> agentów (<code>orcan:latest</code> / <code>orcan:&lt;VERSION&gt;</code>). Żeby pominąć agenta, którego nie użyjesz, zbuduj <strong>osobny lokalny tag</strong> (bez pull; nie nadpisuje <code>latest</code>):</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Oba (domyślnie)</label><label for="__tabbed_1_2">Tylko Claude Code</label><label for="__tabbed_1_3">Tylko Cursor CLI</label></div>
+<p>Przy budowaniu wybierasz klientów jawnie. Każdy lokalny build używa tagów
+<code>orcan:latest</code> / <code>orcan:&lt;VERSION&gt;</code>, a wybór zapisuje w <code>/etc/orcan/agents.json</code>.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Tylko Codex</label><label for="__tabbed_1_2">Claude Code + Codex</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>build
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-claude<span class="w"> </span>orcan<span class="w"> </span>up<span class="w">   </span><span class="c1"># VERSION z outputu builda</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--agent<span class="w"> </span>codex
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
-<p>Tag: <code>orcan:&lt;VERSION&gt;-claude</code>. Cursor CLI nie jest zainstalowany.</p>
-</div>
-<div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--cursor
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-cursor<span class="w"> </span>orcan<span class="w"> </span>up
-</span></code></pre></div>
-<p>Tag: <code>orcan:&lt;VERSION&gt;-cursor</code>. Claude Code nie jest zainstalowany.</p>
+<p>Cursor, Gemini i Copilot nie są zainstalowane w tym obrazie.</p>
 </div>
 </div>
 </div>
 <h2 id="czy-jest-opublikowany-obraz-docker">Czy jest opublikowany obraz Docker?<a class="headerlink" href="#czy-jest-opublikowany-obraz-docker" title="Permanent link">&para;</a></h2>
-<p><strong>Nie</strong> (nie z CI). W rejestrze obraz z <strong>oboma agentami</strong> jako <code>orcan:&lt;VERSION&gt;</code> / <code>:latest</code>. Tagi <code>-&lt;claude|cursor&gt;</code> tylko lokalnie. <code>orcan publish</code> pcha tylko obraz z oboma agentami.</p>
+<p><strong>Nie</strong> (nie z CI). Obraz registry jest przenośny tylko wtedy, gdy manifest włącza wszystkich obsługiwanych klientów. <code>orcan publish</code> odmawia publikacji częściowego obrazu.</p>
 <h2 id="gdzie-sa-dane-logowania-cache">Gdzie są dane logowania / cache?<a class="headerlink" href="#gdzie-sa-dane-logowania-cache" title="Permanent link">&para;</a></h2>
 <p>Pod <code>$ORCAN_DATA</code> (domyślnie <code>~/.config/orcan</code>):</p>
 <table>
@@ -2442,20 +2437,20 @@
 </tbody>
 </table>
 <p>Mapa sandboxa w kontenerze: <code>~/orcan-map/</code> (same symlinki).</p>
-<p>Po <code>orcan build --force</code> / restarcie <strong>nie</strong> powinieneś musieć ponownie robić <code>/login</code>, chyba że wyczyściłeś <code>$ORCAN_DATA</code> albo nigdy nie dokończyłeś logowania przy zamontowanym volume.</p>
+<p>Po <code>orcan build --agent codex --force</code> / restarcie <strong>nie</strong> powinieneś musieć ponownie robić <code>/login</code>, chyba że wyczyściłeś <code>$ORCAN_DATA</code> albo nigdy nie dokończyłeś logowania przy zamontowanym volume.</p>
 <h2 id="czy-moge-wyaczyc-tmux">Czy mogę wyłączyć tmux?<a class="headerlink" href="#czy-moge-wyaczyc-tmux" title="Permanent link">&para;</a></h2>
 <p>Nie jako obsługiwany przełącznik. Launcher startuje tmux. Zamiast tego używaj wielu okien/paneli tmux.</p>
 <h2 id="jak-zaktualizowac">Jak zaktualizować?<a class="headerlink" href="#jak-zaktualizowac" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>upgrade<span class="w">                        </span><span class="c1"># najnowszy tag release vX.Y.Z</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>upgrade<span class="w"> </span>--to<span class="w"> </span>v0.2.0<span class="w">            </span><span class="c1"># przypnij konkretny release</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>orcan<span class="w"> </span>downgrade<span class="w">                      </span><span class="c1"># jeden krok SemVer wstecz</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>orcan<span class="w"> </span>update<span class="w">                         </span><span class="c1"># kanał dev: fast-forward do origin/main</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>orcan<span class="w"> </span>sync<span class="w">                           </span><span class="c1"># gdy zmienił się schemat konfiguracji</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>orcan<span class="w"> </span>build<span class="w"> </span>--force<span class="w">                  </span><span class="c1"># gdy zmienił się Dockerfile/rootfs</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>upgrade<span class="w">                        </span><span class="c1"># najnowszy tag release vX.Y.Z</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>orcan<span class="w"> </span>upgrade<span class="w"> </span>--to<span class="w"> </span>v0.2.0<span class="w">            </span><span class="c1"># przypnij konkretny release</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>orcan<span class="w"> </span>downgrade<span class="w">                      </span><span class="c1"># jeden krok SemVer wstecz</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>orcan<span class="w"> </span>update<span class="w">                         </span><span class="c1"># kanał dev: fast-forward do origin/main</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>orcan<span class="w"> </span>sync<span class="w">                           </span><span class="c1"># gdy zmienił się schemat konfiguracji</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex<span class="w"> </span>--force<span class="w">    </span><span class="c1"># gdy zmienił się Dockerfile/rootfs</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="uninstall">Jak odinstalować?<a class="headerlink" href="#uninstall" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span>--purge-images
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span>--purge-images
 </span></code></pre></div>
 <p><code>--purge-data</code> usuwa config, loginy, historię i cache, ale zachowuje
 <code>ORCAN_PROJECTS_ROOT</code> (domyślnie <code>~/.config/orcan/sandbox</code>) oraz każdą
@@ -2500,7 +2495,7 @@ case'y opisuje <a href="../reference/environment/#bezpieczenstwo-i-edge-casey-or
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2 września 2026 12:50:12 UTC">2 września 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="3 września 2026 19:10:31 UTC">3 września 2026</span>
   </span>
 
     
