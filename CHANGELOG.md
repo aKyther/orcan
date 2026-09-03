@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed `orcan enter` loading a stale cockpit from another workspace checkout,
+  which could fail with `ModuleNotFoundError` after an image upgrade.
+
 ## 26.3 — 2026-09-02
 
 ## [3.1.1] - 2026-09-02

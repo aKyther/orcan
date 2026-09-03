@@ -34,6 +34,7 @@ command -v orcan-supervisord >/dev/null
 command -v orcan-supervisor-status >/dev/null
 command -v supervisord >/dev/null
 command -v agent-launcher >/dev/null
+! grep -q '/home/developer/workspaces/\*/orcan/cockpit/src' /usr/local/bin/agent-launcher
 command -v cursor-launcher >/dev/null
 command -v tmux >/dev/null
 tmux -V | grep -Eq '^tmux 3\.[6-9]'
