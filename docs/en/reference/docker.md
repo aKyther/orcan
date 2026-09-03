@@ -12,22 +12,22 @@ Use this page for image tags, Compose overlays, and `$ORCAN_DATA` binds. For **w
 
 | Tag | Role |
 | --- | --- |
-| `orcan:latest` | Both agents — what Compose runs by default |
-| `orcan:<VERSION>` | Same both-agents image (registry + local pin) |
-| `orcan:<VERSION>-claude` | Local only — Claude Code installed, Cursor not |
-| `orcan:<VERSION>-cursor` | Local only — Cursor CLI installed, Claude not |
+| `orcan:latest` | Standard Orcan image used by Compose |
+| `orcan:<VERSION>` | Versioned tag of that same image |
 
 Agent choice:
 
 | Flag | Effect |
 | --- | --- |
-| (none) | Pull `orcan:<VERSION>` if available, else build both → `latest` + `<VERSION>` |
-| `--claude` | No pull; build `orcan:<VERSION>-claude` (does not touch `latest`) |
-| `--cursor` | No pull; build `orcan:<VERSION>-cursor` |
+| `--agent NAME` | Add one explicit client (`cursor`, `claude`, `codex`, `gemini`, `copilot`) |
+| `--all-agents` | Install every supported client |
 
-Then run single-agent images with `IMAGE_LOCAL=orcan:<VERSION>-claude orcan up` (or set `IMAGE_LOCAL` in `.env`). `/etc/orcan/variant` records `full` / `claude` / `cursor`. `orcan publish` only pushes both-agents tags.
+`/etc/orcan/agents.json` records the installed clients. `orcan status` and
+`orcan doctor` display it. Gemini and Copilot data persist under
+`ORCAN_DATA/gemini` and `ORCAN_DATA/copilot`.
 
-Build-args: `INSTALL_CLAUDE` / `INSTALL_CURSOR` (default both `1`).
+Build-args: `INSTALL_CURSOR` / `INSTALL_CLAUDE` / `INSTALL_CODEX` /
+`INSTALL_GEMINI` / `INSTALL_COPILOT`.
 Version label: `ORCAN_VERSION` / `/etc/orcan/version`.
 
 ## Compose files

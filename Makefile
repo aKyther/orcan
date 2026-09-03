@@ -56,7 +56,7 @@ test: ## Run container smoke tests (builds image via orcan build)
 		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" PROJECT_DIR="$$PWD" \
 		./scripts/repository/update-env.sh >/dev/null; \
 	ORCAN_HOME="$$test_home" ORCAN_DATA="$$test_home/data" \
-		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" $(ORCAN) build; \
+		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" $(ORCAN) build --agent "$${ORCAN_TEST_AGENT:-codex}"; \
 	env -u ORCAN_CONFIG_HOST -u ORCAN_COMPOSE_PROJECTS -u CONTAINER_PROJECT_DIR \
 		-u WORKSPACE_ROOT -u WORKSPACE_NAME -u WORKSPACE_META_PATH \
 		ORCAN_HOME="$$test_home" ORCAN_DATA="$$test_home/data" \
@@ -64,7 +64,7 @@ test: ## Run container smoke tests (builds image via orcan build)
 		./tests/smoke/test-container.sh
 
 test-path-parity: ## Path parity integration test
-	@$(ORCAN) build
+	@$(ORCAN) build --agent "$${ORCAN_TEST_AGENT:-codex}"
 	@./tests/integration/test-path-parity.sh
 
 dev-test: ## Real-Docker lifecycle test for the isolated developer environment
@@ -241,23 +241,23 @@ config-init: deprecate-user ## (deprecated) copy example config into ORCAN_HOME
 		printf 'created %s/orcan.config.json — edit paths, then: orcan sync\n' "$$home"; \
 	fi
 
-build: deprecate-user ## (deprecated) → orcan build
-	@$(ORCAN) build
+build: deprecate-user ## (deprecated) → orcan build --agent codex
+	@$(ORCAN) build --agent codex
 
 rebuild: deprecate-user ## (deprecated) → orcan build --no-cache
 	@$(ORCAN) build --no-cache
 
-build-claude: deprecate-user ## (deprecated) → orcan build --claude
-	@$(ORCAN) build --claude
+build-claude: deprecate-user ## (deprecated) → orcan build --agent claude
+	@$(ORCAN) build --agent claude
 
-rebuild-claude: deprecate-user ## (deprecated) → orcan build --claude --no-cache
-	@$(ORCAN) build --claude --no-cache
+rebuild-claude: deprecate-user ## (deprecated) → orcan build --agent claude --no-cache
+	@$(ORCAN) build --agent claude --no-cache
 
-build-cursor: deprecate-user ## (deprecated) → orcan build --cursor
-	@$(ORCAN) build --cursor
+build-cursor: deprecate-user ## (deprecated) → orcan build --agent cursor
+	@$(ORCAN) build --agent cursor
 
-rebuild-cursor: deprecate-user ## (deprecated) → orcan build --cursor --no-cache
-	@$(ORCAN) build --cursor --no-cache
+rebuild-cursor: deprecate-user ## (deprecated) → orcan build --agent cursor --no-cache
+	@$(ORCAN) build --agent cursor --no-cache
 
 terminal: deprecate-user ## (deprecated) → orcan up --with-ttyd
 	@$(ORCAN) up --with-ttyd

@@ -76,7 +76,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 
 ```bash
 orcan init
-orcan build
+orcan build --agent codex
 orcan up              # lokalnie — orcan enter na tej samej maszynie
 # zdalnie w przeglądarce: orcan up --with-ttyd
 ```

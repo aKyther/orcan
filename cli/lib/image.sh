@@ -95,65 +95,34 @@ orcan_image_try_pull() {
 
 # agents: full | claude | cursor | codex
 orcan_image_build_local() {
-    local variant="${1:-full}"
+    local agents="$1"
     local no_cache="${2:-0}"
-    local ver build_args image versioned install_cursor install_claude install_codex
+    local ver build_args image install_cursor=0 install_claude=0 install_codex=0 install_gemini=0 install_copilot=0 agent
 
     ver="$(orcan_image_version)"
-    versioned="$(orcan_image_tag_for "${variant}")"
+    image="${IMAGE_LOCAL:-orcan:latest}"
     build_args=(build)
     if (( no_cache )); then
         build_args+=(--no-cache)
     fi
 
-    case "${variant}" in
-        full)
-            install_cursor=1
-            install_claude=1
-            install_codex=1
-            image="$(orcan_image_compose_name_for full)"
-            orcan_info "building ${image} + ${versioned} (Claude Code + Cursor CLI + Codex CLI)"
-            ;;
-        claude)
-            install_cursor=0
-            install_claude=1
-            install_codex=0
-            image="${versioned}"
-            orcan_info "building ${image} (Claude Code only — Cursor/Codex not installed; no pull)"
-            ;;
-        cursor)
-            install_cursor=1
-            install_claude=0
-            install_codex=0
-            image="${versioned}"
-            orcan_info "building ${image} (Cursor CLI only — Claude/Codex not installed; no pull)"
-            ;;
-        codex)
-            install_cursor=0
-            install_claude=0
-            install_codex=1
-            image="${versioned}"
-            orcan_info "building ${image} (Codex CLI only — Claude/Cursor not installed; no pull)"
-            ;;
-        *)
-            orcan_die "unknown agent selection: ${variant}"
-            ;;
-    esac
+    IFS='+' read -r -a selected_agents <<<"${agents}"
+    for agent in "${selected_agents[@]}"; do
+        case "${agent}" in
+            cursor) install_cursor=1 ;; claude) install_claude=1 ;; codex) install_codex=1 ;;
+            gemini) install_gemini=1 ;; copilot) install_copilot=1 ;;
+            *) orcan_die "unknown agent selection: ${agent}" ;;
+        esac
+    done
+    orcan_info "building ${image} (agents: ${agents})"
 
     ORCAN_VERSION="${ver}" IMAGE_LOCAL="${image}" \
         INSTALL_CURSOR="${install_cursor}" INSTALL_CLAUDE="${install_claude}" \
-        INSTALL_CODEX="${install_codex}" \
+        INSTALL_CODEX="${install_codex}" INSTALL_GEMINI="${install_gemini}" INSTALL_COPILOT="${install_copilot}" \
         orcan_compose_build "${build_args[@]}"
-
-    if [[ "${variant}" == "full" ]]; then
-        docker tag "${image}" "${versioned}" 2>/dev/null || true
-        docker tag "${image}" orcan:latest 2>/dev/null || true
-        orcan_ok "built ${image} / ${versioned} (all agents)"
-    else
-        orcan_ok "built ${image}"
-        orcan_info "run with: IMAGE_LOCAL=${image} orcan up"
-        orcan_info "or set IMAGE_LOCAL=${image} in ${ORCAN_ENV_FILE:-.env}"
-    fi
+    docker tag "${image}" "orcan:${ver}" 2>/dev/null || true
+    docker tag "${image}" orcan:latest 2>/dev/null || true
+    orcan_ok "built ${image} (manifest: /etc/orcan/agents.json)"
 }
 
 orcan_image_variant_of() {

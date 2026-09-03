@@ -36,9 +36,9 @@ Commands:
                            Start container (local: orcan enter; browser: pick ttyd or ttyd-auth)
                            | = pick one (ttyd vs ttyd-auth; docker vs network)
   down                     Stop containers
-  build [--claude|--cursor|--codex] [--force]
-                           All agents → orcan:latest + orcan:<VERSION>.
-                           --claude/--cursor/--codex → orcan:<VERSION>-claude|cursor|codex (no pull)
+  build --agent NAME [...] | --all-agents [--force]
+                           Explicit image contents; NAME is cursor, claude,
+                           codex, gemini, or copilot. Always tags standard Orcan.
   pull                     Pull all-agents orcan:<VERSION> → orcan:latest
   publish                  Manual push of all-agents orcan:latest (maintainers)
   url                      Print http://localhost:<port>
@@ -51,6 +51,7 @@ Commands:
   upgrade [--to VERSION]   Release channel: newest release tag (default), or pin VERSION
   downgrade [--to VERSION] Previous SemVer release, or pin an older VERSION
   doctor                   Host / config / container health
+  status                   Runtime summary and installed-agent manifest
   uninstall [--purge-data] [--purge-images]
                            Remove Orcan; data/images are opt-in, projects are always kept
   version                  Print version
