@@ -179,7 +179,9 @@ Textual rozbija wiele z powyższych na `Escape` + drugi klawisz — cockpit skle
 `A_5`, `@_5`. Wysyłaj zdarzenia myszy dopiero gdy tmux włączy `?1000h`.
 
 **Kopiowanie:** zaznaczenie to selekcja Textual (nie xterm). `Ctrl+C` z
-zaznaczeniem → schowek; bez zaznaczenia → SIGINT. Wklejanie: `on_paste` → PTY.
+zaznaczeniem → schowek; bez zaznaczenia → SIGINT. Potwierdzone duże wklejki
+są kolejkowane do nieblokującego PTY, więc cały tekst dociera mimo ograniczenia
+bufora PTY.
 
 **Scrollback:** pyte trzyma **bieżący** ekran; przewijanie historii robi tmux
 (copy-mode) i przerysowuje pane — mysz musi trafić do tmux jako SGR.

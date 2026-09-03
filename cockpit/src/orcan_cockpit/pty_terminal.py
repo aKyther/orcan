@@ -159,6 +159,11 @@ class PtyTerminal(Widget):
         self._mouse_sgr = True
         self._esc_coalesce_until: float | None = None
         self._esc_coalesce_timer: Timer | None = None
+        # The master PTY is non-blocking. A single os.write() is permitted to
+        # accept only a prefix, which used to truncate large bracketed pastes
+        # before their closing marker reached tmux.
+        self._write_buffer = bytearray()
+        self._write_watch_installed = False
         # Per-line render cache — only pyte's dirty rows are rebuilt each
         # paint (typing, spinners and status ticks touch a line or two; a
         # full rebuild every frame is what made scroll / heavy output lag).
@@ -324,12 +329,50 @@ class PtyTerminal(Widget):
         self._schedule_refresh()
 
     def _write_pty(self, data: bytes) -> None:
-        if self._master_fd is None:
+        if self._master_fd is None or not data:
+            return
+        self._write_buffer.extend(data)
+        self._flush_pty_write()
+
+    def _watch_pty_writable(self) -> None:
+        if self._master_fd is None or self._write_watch_installed:
             return
         try:
-            os.write(self._master_fd, data)
-        except OSError:
+            asyncio.get_running_loop().add_writer(self._master_fd, self._flush_pty_write)
+        except (RuntimeError, TypeError, ValueError, OSError):
+            return
+        self._write_watch_installed = True
+
+    def _unwatch_pty_writable(self) -> None:
+        if not self._write_watch_installed:
+            return
+        try:
+            asyncio.get_running_loop().remove_writer(self._master_fd)
+        except (RuntimeError, TypeError, ValueError, OSError):
             pass
+        self._write_watch_installed = False
+
+    def _flush_pty_write(self) -> None:
+        """Write all currently accepted input, retrying when the PTY is full."""
+        if self._master_fd is None:
+            self._write_buffer.clear()
+            self._unwatch_pty_writable()
+            return
+        while self._write_buffer:
+            try:
+                written = os.write(self._master_fd, self._write_buffer)
+            except BlockingIOError:
+                self._watch_pty_writable()
+                return
+            except OSError:
+                self._write_buffer.clear()
+                self._unwatch_pty_writable()
+                return
+            if written <= 0:
+                self._watch_pty_writable()
+                return
+            del self._write_buffer[:written]
+        self._unwatch_pty_writable()
 
     def _cancel_esc_coalesce(self) -> None:
         self._esc_coalesce_until = None
@@ -425,10 +468,7 @@ class PtyTerminal(Widget):
         if self._master_fd is None:
             return
         event.stop()
-        try:
-            os.write(self._master_fd, event.text.encode("utf-8", errors="replace"))
-        except OSError:
-            pass
+        self._write_pty(event.text.encode("utf-8", errors="replace"))
 
     def _copy_from_child(self, text: str) -> None:
         """A yank inside tmux (copy-mode ``y``, mouse drag, ``prefix u`` /
@@ -586,11 +626,13 @@ class PtyTerminal(Widget):
 
     def _close(self) -> None:
         self._cancel_esc_coalesce()
+        self._write_buffer.clear()
         if self._master_fd is not None:
             try:
                 asyncio.get_running_loop().remove_reader(self._master_fd)
-            except (RuntimeError, ValueError, OSError):
+            except (RuntimeError, TypeError, ValueError, OSError):
                 pass
+            self._unwatch_pty_writable()
             try:
                 os.close(self._master_fd)
             except OSError:

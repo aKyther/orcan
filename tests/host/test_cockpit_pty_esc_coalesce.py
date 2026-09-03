@@ -81,6 +81,39 @@ class EscCoalesceFlushTests(unittest.TestCase):
         self.assertIsNone(term._esc_coalesce_until)
         self.assertIsNone(term._esc_coalesce_timer)
 
+    def test_large_pty_write_is_not_truncated_after_partial_writes(self) -> None:
+        term = self._terminal()
+        term._write_pty = pty_terminal.PtyTerminal._write_pty.__get__(term)
+        payload = b"x" * 100_000
+        chunks: list[bytes] = []
+
+        def partial_write(_fd: int, data: bytes) -> int:
+            chunk = bytes(data[:4096])
+            chunks.append(chunk)
+            return len(chunk)
+
+        with patch.object(pty_terminal.os, "write", side_effect=partial_write):
+            term._write_pty(payload)
+
+        self.assertEqual(b"".join(chunks), payload)
+        self.assertEqual(term._write_buffer, b"")
+
+    def test_full_pty_defers_remaining_input_until_writable(self) -> None:
+        term = self._terminal()
+        term._write_pty = pty_terminal.PtyTerminal._write_pty.__get__(term)
+        loop = MagicMock()
+        with (
+            patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
+            patch.object(pty_terminal.os, "write", side_effect=[2, BlockingIOError(), 3]),
+        ):
+            term._write_pty(b"hello")
+            self.assertEqual(term._write_buffer, b"llo")
+            loop.add_writer.assert_called_once_with(1, term._flush_pty_write)
+            term._flush_pty_write()
+
+        self.assertEqual(term._write_buffer, b"")
+        loop.remove_writer.assert_called_once_with(1)
+
 
 if __name__ == "__main__":
     unittest.main()

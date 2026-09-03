@@ -180,7 +180,9 @@ recombines them (`pty_keys.esc_follow_up_bytes` + coalesce window in
 **last** state (not substring `in data`). Forward mouse only after tmux enables `?1000h`.
 
 **Copy:** selection is Textual (not xterm). `Ctrl+C` with selection → clipboard;
-without selection → SIGINT. Paste: `on_paste` → PTY.
+without selection → SIGINT. Paste is queued to the non-blocking PTY, so a
+confirmed large paste is delivered in full rather than being cut at the PTY
+buffer boundary.
 
 **Scrollback:** pyte holds the **current** screen; tmux scrolls history (copy-mode)
 and redraws the pane — the wheel must reach tmux as SGR.
