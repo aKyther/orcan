@@ -46,7 +46,7 @@ Adds `orcan` to `~/.local/bin` and appends that directory to your shell rc (`~/.
 orcan doctor
 orcan init /absolute/path/to/your/repo   # or just `orcan init` for the interactive wizard
 orcan sync                               # after later edits to orcan.config.json
-orcan build
+orcan build --agent codex
 orcan up                                 # local — use `orcan enter` on the same machine
 # remote browser: orcan up --with-ttyd && orcan url
 ```
@@ -60,7 +60,7 @@ After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). 
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
 | `orcan init` | Interactive config wizard (no PATH: create or edit) |
 | `orcan up` / `orcan up --with-ttyd` / `orcan up --with-docker \| --with-network NAME` / `orcan up --with-git` / `orcan down` | Start container (local by default; optional browser / DinD **or** network / SSH) / stop |
-| `orcan build [--claude\|--cursor\|--codex]` | All → `latest`+`<VERSION>`; flags → `<VERSION>-claude\|cursor\|codex` |
+| `orcan build --agent NAME [...]` / `--all-agents` | Explicit client selection in standard `latest` + `<VERSION>` tags; inspect it with `orcan status` |
 | `orcan publish` | Manual image push (maintainers) |
 | `orcan upgrade [--to VERSION]` / `orcan downgrade` | Newest release / pin / one step back |
 | `orcan update` | Dev channel: fast-forward to `origin/main` |

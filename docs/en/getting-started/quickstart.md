@@ -32,7 +32,7 @@ Config is JSON under `~/.config/orcan/`. Docker only sees what **`orcan sync`** 
 ```bash
 orcan init /absolute/path/to/your/repo   # scaffold + sync
 orcan sync                               # refresh after later edits (safe to re-run)
-orcan build
+orcan build --agent codex
 orcan up              # local-only — use `orcan enter` on the same machine
 # or: orcan up --with-ttyd   # browser terminal (remote / phone)
 ```

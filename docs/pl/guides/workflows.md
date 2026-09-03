@@ -139,14 +139,14 @@ orcan sync && orcan down && orcan up
 
 ## Scenariusz: zainstaluj tylko jednego agenta
 
-**Idea:** nie instaluj agenta, którego nie użyjesz (mniejszy obraz, te same tagi).
+**Idea:** zainstaluj tylko klientów potrzebnych w tym workspace. Obraz zachowuje
+standardowe tagi, a wybór zapisuje manifest.
 
 ```bash
-orcan build --claude   # → orcan:<VERSION>-claude
-IMAGE_LOCAL=orcan:0.1.1-claude orcan up
-# albo
-orcan build --cursor   # → orcan:<VERSION>-cursor
-IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
+orcan build --agent claude --agent codex
+orcan up
+# albo wszyscy obsługiwani klienci
+orcan build --all-agents
 ```
 
 ## Scenariusz: rebuild po zmianach Dockerfile lub rootfs
@@ -154,9 +154,7 @@ IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
 **Idea:** opis kontekstu ten sam; zmienił się **obraz narzędzi**.
 
 ```bash
-orcan build --force       # pełny obraz; pomiń pull, zbuduj lokalnie
-# albo
-orcan build --claude --force
+orcan build --agent codex --force
 orcan down
 orcan up
 ```
@@ -223,7 +221,7 @@ orcan upgrade                # najnowszy tag GitHub Release (vX.Y.Z)
 orcan downgrade              # jeden krok SemVer wstecz (escape hatch po złym release)
 # orcan downgrade --to v0.1.0
 orcan sync                   # gdy zmienił się schemat konfiguracji
-orcan build --force          # gdy zmienił się Dockerfile/rootfs
+orcan build --agent codex --force # gdy zmienił się Dockerfile/rootfs
 orcan down && orcan up
 ```
 

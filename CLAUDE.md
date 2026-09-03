@@ -23,7 +23,7 @@ In a live **orcan workspace** (e.g. `orcan-dev`), honour that root’s context p
 | **Path parity** | Same absolute paths host ↔ container (Docker-from-Docker) |
 | **Context pack** | Paths, ignores, AGENTS/CLAUDE seeds, and optional session brief |
 | **Access** | Default **local** (`orcan enter`); optional browser (`orcan up --with-ttyd`) |
-| **Agents inside** | Cursor CLI (`agent`), Claude Code (`claude`), Codex (`codex`) — tools, not models Orcan picks |
+| **Agents inside** | Cursor CLI (`agent`), Claude Code (`claude`), Codex, Gemini CLI and GitHub Copilot CLI — tools, not models Orcan picks |
 
 **Non-goals (do not invent):** model selection / provider routing; CI image publish /
 registry-as-product; YAML user config / host-deps; treating `make dev-*` as the public
@@ -37,7 +37,7 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 | --- | --- |
 | **Public API** | `orcan` CLI (`bin/orcan`, `cli/`) — not Make |
 | **Config** | JSON only: `orcan.config.json` under **`ORCAN_HOME`** (default `~/.config/orcan/`). Tool data / history: **`ORCAN_DATA`** (same default root; see `orcan help`) |
-| **Ritual** | `orcan init` → `orcan sync` → `orcan build` (when needed) → `orcan up` (**up does not sync**) |
+| **Ritual** | `orcan init` → `orcan sync` → `orcan build --agent codex` (when needed) → `orcan up` (**up does not sync**) |
 | **Runtime** | `orcan enter` → cockpit (`agent-launcher`) → tmux 3.6a → zsh; CMD = `orcan-supervisord` (`keepalive` or `ttyd`) |
 | **Cockpit** | Top: `🌀 orcan` (About) + workspace pill + metrics · Overlay: workspaces + glance · Center: tmux · Bottom: status. Keys: **F4** · **F1**/? · **F5** brief · **`i`** · **`lg`** |
 | **UX preview** | `make dev-*` / `scripts/dev/` → isolated `orcan:dev-ux` — **never** the user’s `orcan:latest` |
@@ -51,7 +51,7 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 ```bash
 orcan init                  # or: context add / context tui / edit orcan.config.json
 orcan sync                  # ALWAYS after config — apply → .env, mounts/*, workspaces/*
-orcan build                 # after Dockerfile | docker/rootfs | cockpit image inputs
+orcan build --agent codex   # after Dockerfile | docker/rootfs | cockpit image inputs
 orcan up                    # daily; --with-ttyd for browser
 orcan migrate [--yes]       # optional managed-root move (dry-run without --yes)
 ```

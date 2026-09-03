@@ -11,7 +11,7 @@ Orcan **nie** jest wdrażany jako obraz z GHCR.
 1. Sklonuj tag release lub `main`
 2. Skonfiguruj `orcan.config.json`
 3. `orcan sync`
-4. `orcan build` (lub `orcan build --claude`)
+4. `orcan build --agent codex` (lub jawny wybór innego zestawu klientów)
 5. `orcan up` (lokalnie — `orcan enter`) albo `orcan up --with-ttyd` (przeglądarka) albo `orcan up --with-docker | --with-network NAME` (wybierz jedno)
 
 ```bash
@@ -20,14 +20,14 @@ cd orcan
 git checkout v0.1.0
 orcan init /absolute/path/to/your/repo
 orcan sync
-orcan build
+orcan build --agent codex
 orcan up
 # zdalnie w przeglądarce: orcan up --with-ttyd && orcan url
 ```
 
 ### Wiele hostów
 
-Na każdym hoście: `orcan build` (pull pasującej `VERSION`, albo lokalny build przy braku — nigdy nie publikuje). CI nie publikuje obrazów.
+Na każdym hoście: `orcan build --agent codex` (albo `--all-agents`; build jest lokalny i nigdy nie publikuje). CI nie publikuje obrazów.
 
 ## Strona dokumentacji (wersje, mike)
 

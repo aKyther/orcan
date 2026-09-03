@@ -12,10 +12,10 @@ make validate
 make test-host
 ```
 
-Build and smoke (needs Docker; builds the full image):
+Build and smoke (needs Docker; uses Codex by default):
 
 ```bash
-orcan build
+orcan build --agent codex
 make test
 ```
 

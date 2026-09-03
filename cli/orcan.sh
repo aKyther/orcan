@@ -26,10 +26,9 @@ Commands:
   settings     Edit tool settings (tmux, ttyd) — separate from workspaces
   up           Start container (orcan enter; --with-ttyd | --with-ttyd-auth for browser)
   down         Stop containers
-  build        All agents → orcan:latest + orcan:<VERSION> (pull or build)
-               (--claude/--cursor/--codex → orcan:<VERSION>-claude|cursor|codex, no pull)
-  pull         Pull all-agents orcan:<VERSION> → orcan:latest
-  publish      Manual push of both-agents orcan:latest (not part of build)
+  build        Build an explicit --agent selection as orcan:latest + orcan:<VERSION>
+  pull         Pull portable all-agents orcan:<VERSION> → orcan:latest
+  publish      Manual push of all-agents orcan:latest (not part of build)
   url          Print browser terminal URL
   logs         Follow container logs
   enter        Local terminal into the container (alias: go-in)
@@ -48,7 +47,7 @@ Examples:
   orcan sync
   orcan up
   orcan enter
-  orcan build
+  orcan build --agent codex
 
 Docs: https://akyther.github.io/orcan/latest/
 Host:  bash + git + python3 (sync/wizard) + docker compose

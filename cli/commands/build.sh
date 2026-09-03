@@ -9,7 +9,9 @@ orcan_cmd_build() {
             --agent)
                 [[ -n "${2:-}" ]] || orcan_usage_error "--agent needs: cursor|claude|codex|gemini|copilot"
                 case "${2}" in cursor|claude|codex|gemini|copilot) ;; *) orcan_usage_error "unknown agent: ${2}";; esac
-                agents="${agents:+${agents}+}$2"
+                if [[ "+${agents}+" != *"+$2+"* ]]; then
+                    agents="${agents:+${agents}+}$2"
+                fi
                 shift 2
                 ;;
             --all-agents)

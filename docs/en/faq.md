@@ -55,36 +55,29 @@ After reconnect, the launcher **auto-reattaches** to the last workspace (2s coun
 
 ## Which agents are installed?
 
-By default the image includes **both** agents (`orcan:latest` / `orcan:<VERSION>`). To skip installing an agent you will not use, build a **separate local tag** (no registry pull; does not overwrite `latest`):
+Choose the clients explicitly when building. Every local build uses
+`orcan:latest` / `orcan:<VERSION>` and records its selection in
+`/etc/orcan/agents.json`.
 
-=== "Both (default)"
+=== "Codex only"
 
     ```bash
-    orcan build
+    orcan build --agent codex
     orcan up
     ```
 
-=== "Claude Code only"
+=== "Claude Code + Codex"
 
     ```bash
-    orcan build --claude
-    IMAGE_LOCAL=orcan:0.1.1-claude orcan up   # use your VERSION from the build output
+    orcan build --agent claude --agent codex
+    orcan up
     ```
 
-    Tag: `orcan:<VERSION>-claude`. Cursor CLI is not installed.
-
-=== "Cursor CLI only"
-
-    ```bash
-    orcan build --cursor
-    IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
-    ```
-
-    Tag: `orcan:<VERSION>-cursor`. Claude Code is not installed.
+    `cursor`, Gemini and Copilot are not installed in this image.
 
 ## Is there a published Docker image?
 
-**Not from CI.** Registry holds **both-agents** as `orcan:<VERSION>` / `:latest`. Single-agent `-<claude|cursor>` tags are local only. `orcan publish` pushes only both-agents images.
+**Not from CI.** A registry image is portable only when its manifest enables every supported client. `orcan publish` refuses partial images.
 
 ## Where is my login / cache data?
 
@@ -101,7 +94,7 @@ Under `$ORCAN_DATA` (default `~/.config/orcan`):
 
 Browse the sandbox map inside the container at `~/orcan-map/` (symlinks only).
 
-After `orcan build --force` / restart, you should **not** need to `/login` again unless you wiped `$ORCAN_DATA` or never completed login while the volume was mounted.
+After `orcan build --agent codex --force` / restart, you should **not** need to `/login` again unless you wiped `$ORCAN_DATA` or never completed login while the volume was mounted.
 
 ## Can I turn off tmux?
 
@@ -115,7 +108,7 @@ orcan upgrade --to v0.2.0            # pin a specific release
 orcan downgrade                      # one SemVer step back
 orcan update                         # dev channel: fast-forward to origin/main instead
 orcan sync                           # when config schema changed
-orcan build --force                  # when Dockerfile/rootfs changed
+orcan build --agent codex --force    # when Dockerfile/rootfs changed
 orcan down && orcan up
 ```
 

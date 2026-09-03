@@ -16,7 +16,7 @@ The supported public interfaces are:
 
 High-signal commands:
 
-User ritual: `orcan init` → `orcan build` → `orcan up` (local; add `--with-ttyd` for browser). After config edits: `orcan sync` then `orcan up` — rebuild only when the image changed.
+User ritual: `orcan init` → `orcan build --agent codex` → `orcan up` (local; add `--with-ttyd` for browser). After config edits: `orcan sync` then `orcan up` — rebuild only when the image changed.
 
 ## Maintainer Make
 
@@ -26,7 +26,7 @@ The git checkout also ships a **Makefile** for docs, tests, and release — not 
 
 | Command | Role |
 | --- | --- |
-| `agent` / `ag` | Cursor CLI (full image) |
+| `agent` / `ag` | Cursor CLI (when selected at build time) |
 | `claude` / `cc` | Claude Code |
 | `orcan-workspaces` | List workspaces |
 | `orcan-supervisord` / `orcan-supervisor-status` | Container process supervisor + status helper |

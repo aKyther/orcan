@@ -6,12 +6,9 @@ orcan_cmd_pull() {
         case "$1" in
             -h | --help)
                 printf 'usage: orcan pull\n'
-                printf '  Pull all-agents orcan:<VERSION> → orcan:latest.\n'
-                printf '  Single-agent local tags: orcan build --claude / --cursor / --codex\n'
+                printf '  Pull the portable all-agents orcan:<VERSION> → orcan:latest.\n'
+                printf '  Local partial images: orcan build --agent NAME.\n'
                 return 0
-                ;;
-            --claude | --cursor | --codex)
-                orcan_die "no registry tag for that — use: orcan build $1   → orcan:<VERSION>-${1#--}"
                 ;;
             *)
                 orcan_usage_error "unknown argument: $1"
@@ -22,6 +19,6 @@ orcan_cmd_pull() {
     orcan_require_docker
     orcan_load_env
     if ! orcan_image_try_pull; then
-        orcan_die "pull failed — run: orcan build   (builds the image locally; workspace edits only need orcan sync)"
+        orcan_die "pull failed — run: orcan build --all-agents   (workspace edits only need orcan sync)"
     fi
 }

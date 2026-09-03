@@ -4,8 +4,8 @@ End users use the **`orcan` CLI** — see [CLI reference](cli.md). Image lifecyc
 
 | User need | Command |
 | --- | --- |
-| Pull or build | `orcan build` (pull `VERSION`, local build on miss — **never publishes**) |
-| Force local rebuild | `orcan build --force` or `--no-cache` |
+| Build a local image | `orcan build --agent codex` (or `--all-agents`; **never publishes**) |
+| Force local rebuild | `orcan build --agent codex --force` or `--no-cache` |
 | Pull registry only | `orcan pull` |
 | Push to registry | `orcan publish` (**manual**, maintainers) |
 
@@ -57,7 +57,7 @@ Defaults: image `orcan:dev-ux`, host port `17681`, workspace `dev-ux`, scenario 
 CI does **not** publish container images. Maintainers may push manually:
 
 ```bash
-orcan build --force          # ensure local image exists
+orcan build --all-agents --force # ensure publishable local image exists
 orcan publish                # or: make registry-login && ./scripts/repository/registry.sh publish
 ```
 

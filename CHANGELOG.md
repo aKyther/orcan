@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   status` and `orcan doctor` show that manifest. Test and developer builds
   default to Codex via `ORCAN_TEST_AGENT`.
 
+- **Image manifest safety:** registry pull and publish now require the
+  all-agents `/etc/orcan/agents.json` manifest. This prevents a partial local
+  build from being published under the standard image tag; Compose now forwards
+  Gemini and Copilot build arguments correctly.
+
+- **Test visibility:** CI now publishes a branch-coverage report for Python
+  host and Cockpit code. Staged-paste expiry also runs when Cockpit starts.
+
+- **Embedded terminal cursor:** Cockpit now renders pyte's cursor as a focused,
+  blinking reverse-video block in shells and agent TUIs, while respecting
+  applications that deliberately hide it.
+
 - Fixed large confirmed pastes in the embedded terminal being truncated when
   the non-blocking PTY accepted only its first buffer-sized chunk.
 

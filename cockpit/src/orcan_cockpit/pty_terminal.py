@@ -126,6 +126,8 @@ _ESCAPE_KEYS = frozenset({"escape", "ctrl+left_square_brace"})
 _ESC_COALESCE_S = 0.025
 _STAGED_PASTE_BYTES = 32 * 1024
 _STAGED_PASTE_MAX_AGE_S = 24 * 60 * 60
+_CURSOR_BLINK_S = 0.5
+_CURSOR_STYLE = Style(reverse=True)
 
 
 class PtyTerminal(Widget):
@@ -178,6 +180,11 @@ class PtyTerminal(Widget):
         # display '_RenderCache' type".
         self._line_cache: list[Text] = []
         self._frame_cache: Text | None = None
+        # pyte tracks the cursor position but does not render it. Keep the
+        # terminal's familiar block cursor here, independent of whether its
+        # child is zsh, Codex, Claude Code, vim, or another TUI.
+        self._cursor_visible = True
+        self._cursor_timer: Timer | None = None
 
     @property
     def allow_vertical_scroll(self) -> bool:
@@ -189,7 +196,15 @@ class PtyTerminal(Widget):
         return False
 
     def on_mount(self) -> None:
+        # Expire files left by a prior browser session even when the user does
+        # not paste again in this session.
+        self._purge_staged_pastes()
         self._spawn()
+        self._cursor_timer = self.set_interval(
+            _CURSOR_BLINK_S,
+            self._toggle_cursor,
+            name="pty-cursor-blink",
+        )
         # Event-driven, not polled: a fixed-interval timer (however tight)
         # adds up to a full tick of latency between tmux writing output and
         # us reading it. add_reader wakes us the instant the fd is readable —
@@ -199,8 +214,47 @@ class PtyTerminal(Widget):
         asyncio.get_running_loop().add_reader(self._master_fd, self._on_readable)
         self.focus()
 
+    def on_focus(self, _event: events.Focus) -> None:
+        self._cursor_visible = True
+        self.refresh()
+
+    def on_blur(self, _event: events.Blur) -> None:
+        self._cursor_visible = False
+        self.refresh()
+
     def on_unmount(self) -> None:
         self._close()
+
+    def _toggle_cursor(self) -> None:
+        if not self.has_focus:
+            return
+        self._cursor_visible = not self._cursor_visible
+        self.refresh()
+
+    @staticmethod
+    def _cursor_offset(
+        screen: pyte.Screen, cols: int, *, focused: bool, visible: bool
+    ) -> int | None:
+        """Return the Rich-text offset for pyte's cursor, if it should show."""
+        cursor = screen.cursor
+        if not focused or not visible or cursor.hidden:
+            return None
+        if not (0 <= cursor.x < cols and 0 <= cursor.y < screen.lines):
+            return None
+        # Rich text contains one newline after every screen row except the
+        # final one, so each preceding row contributes cols + 1 characters.
+        return cursor.y * (cols + 1) + cursor.x
+
+    def _render_cursor(self, frame: Text, screen: pyte.Screen, cols: int) -> Text:
+        offset = self._cursor_offset(
+            screen,
+            cols,
+            focused=self.has_focus,
+            visible=self._cursor_visible,
+        )
+        if offset is not None:
+            frame.stylize(_CURSOR_STYLE, offset, offset + 1)
+        return frame
 
     def _term_size(self) -> tuple[int, int]:
         # At spawn time (on_mount) the widget's layout may not be computed
@@ -416,6 +470,7 @@ class PtyTerminal(Widget):
             self._flush_esc_coalesce()
 
     def on_key(self, event: events.Key) -> None:
+        self._cursor_visible = True
         if self._master_fd is None:
             if event.key not in _COCKPIT_FUNCTION_KEYS:
                 event.stop()
@@ -469,6 +524,7 @@ class PtyTerminal(Widget):
         self._write_pty(data)
 
     def on_paste(self, event: events.Paste) -> None:
+        self._cursor_visible = True
         if self._master_fd is None:
             return
         event.stop()
@@ -642,7 +698,7 @@ class PtyTerminal(Widget):
         else:
             dirty = screen.dirty
             if not dirty and self._frame_cache is not None:
-                return self._frame_cache
+                return self._render_cursor(self._frame_cache.copy(), screen, cols)
 
         for y in dirty:
             if 0 <= y < lines:
@@ -655,7 +711,7 @@ class PtyTerminal(Widget):
             if y != lines - 1:
                 out.append("\n")
         self._frame_cache = out
-        return out
+        return self._render_cursor(out.copy(), screen, cols)
 
     def get_selection(self, selection):
         """Textual drag-select copy. Every rendered row is space-padded to
@@ -669,6 +725,9 @@ class PtyTerminal(Widget):
 
     def _close(self) -> None:
         self._cancel_esc_coalesce()
+        if self._cursor_timer is not None:
+            self._cursor_timer.stop()
+            self._cursor_timer = None
         self._write_buffer.clear()
         if self._master_fd is not None:
             try:

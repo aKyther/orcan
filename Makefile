@@ -15,7 +15,7 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 .DEFAULT_GOAL := help
 
 .PHONY: help deprecate-user \
-	validate test test-host test-path-parity dev-test \
+	validate test test-host test-coverage test-path-parity dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
 	version bump-patch bump-minor bump-major tag release release-retract release-tag release-push \
@@ -45,6 +45,10 @@ validate: ## Validate repository layout and script syntax
 
 test-host: ## Host unit tests (config/apply/version; no Docker image)
 	@./tests/host/run.sh
+
+test-coverage: ## Python host/cockpit coverage report (requires coverage)
+	@PYTHONPATH="$(PWD)/scripts/repository:$(PWD)/cockpit/src" python3 -m coverage run --branch --source=scripts/repository,cockpit/src -m unittest discover -s tests/host -p 'test_*.py'
+	@python3 -m coverage report --show-missing --skip-empty
 
 # Fixtures live under the checkout so Docker-from-Docker sees the same
 # canonical host path; container-local /tmp is not visible to the daemon.

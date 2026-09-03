@@ -133,14 +133,14 @@ Managed paths live under `$ORCAN_PROJECTS_ROOT/.worktrees/`. Clean up: wizard �
 
 ## Scenario: install only one agent
 
-**Idea:** skip installing an agent you will not use (smaller image, same tags).
+**Idea:** install only the clients needed for this workspace. The image retains
+the standard tags; its manifest records the selection.
 
 ```bash
-orcan build --claude   # → orcan:<VERSION>-claude
-IMAGE_LOCAL=orcan:0.1.1-claude orcan up
-# or
-orcan build --cursor   # → orcan:<VERSION>-cursor
-IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
+orcan build --agent claude --agent codex
+orcan up
+# or install every supported client
+orcan build --all-agents
 ```
 
 ## Scenario: rebuild after Dockerfile or rootfs changes
@@ -148,9 +148,7 @@ IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
 **Idea:** context description stayed the same; the **tooling image** changed.
 
 ```bash
-orcan build --force       # full image; skip pull, rebuild locally
-# or
-orcan build --claude --force
+orcan build --agent codex --force
 orcan down
 orcan up
 ```
@@ -218,7 +216,7 @@ orcan upgrade                # newest GitHub Release tag (vX.Y.Z)
 orcan downgrade              # one SemVer step back (bad release escape hatch)
 # orcan downgrade --to v0.1.0
 orcan sync                   # if config schema changed
-orcan build --force          # if Dockerfile/rootfs changed
+orcan build --agent codex --force # if Dockerfile/rootfs changed
 orcan down && orcan up
 ```
 
