@@ -354,6 +354,18 @@ class UpdateParentHistoryTests(unittest.TestCase):
             self.assertEqual(result[0]["path"], str(newest))
 
 
+class UpdatePickHistoryTests(unittest.TestCase):
+    def test_last_path_becomes_newest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            a = root / "a"
+            b = root / "b"
+            a.mkdir()
+            b.mkdir()
+            hist = _mod.update_pick_history([], [a, b], now=100.0)
+            self.assertEqual([h["path"] for h in hist], [str(b), str(a)])
+
+
 class ExistingProjectNamesTests(unittest.TestCase):
     def test_missing_config_is_empty(self) -> None:
         self.assertEqual(_mod.existing_project_names(Path("/no/such/config.json"), "acme"), set())
