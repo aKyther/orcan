@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prior Space selections. **`h`** opens **recent picks** (paths you Space-
   selected or applied before) so you can toggle them onto will-add without
   browsing there; **`o`** in that screen jumps to the pick's parent folder.
-  A focusable **will add** stack (**Tab**; Space/`x` removes; **Enter** always
-  applies; **Esc** returns to the list without quitting) shows pick order and
-  tags (`in ws`, `other ws`, `name taken`, `elsewhere`, `mount`). Header
-  counts new vs already-in-workspace.
+  A compact **will add** preview shows the selection without taking focus;
+  **Tab** opens a full review where Space removes a pick and Enter applies.
+  On the scan list, Enter opens a folder while nothing is selected, then
+  applies once the stack has picks. The manage screen groups projects under
+  collapsible workspaces (**←/→**). Review outcomes distinguish new, already
+  connected, conflicting, cross-workspace, and plain-directory paths.
 - Fixed `orcan enter` loading a stale cockpit from another workspace checkout,
   which could fail with `ModuleNotFoundError` after an image upgrade.
 - Fixed responsive ttyd typography so phone and tablet overrides no longer

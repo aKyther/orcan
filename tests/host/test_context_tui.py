@@ -247,6 +247,27 @@ class StackApplySummaryTests(unittest.TestCase):
             self.assertEqual((new_n, already), (1, 1))
 
 
+class ReviewOutcomeTests(unittest.TestCase):
+    def test_explains_effect_in_plain_language(self) -> None:
+        self.assertEqual(_mod.review_outcome([]), "new project")
+        self.assertEqual(
+            _mod.review_outcome(["in ws", "other ws"]),
+            "already connected — no change · also used in another workspace",
+        )
+
+
+class CollapsedManageRowsTests(unittest.TestCase):
+    def test_hides_only_projects_of_collapsed_workspace(self) -> None:
+        workspaces = [
+            {"name": "one", "projects": [{"name": "api"}]},
+            {"name": "two", "projects": [{"name": "web"}]},
+        ]
+        self.assertEqual(
+            _mod.manage_rows(workspaces, {0}),
+            [("ws", 0, None), ("ws", 1, None), ("proj", 1, 0)],
+        )
+
+
 class ListSubdirsTests(unittest.TestCase):
     def test_lists_dirs_sorted_and_skips_hidden(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
