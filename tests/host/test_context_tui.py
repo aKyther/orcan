@@ -184,6 +184,68 @@ class FormatWillAddLinesTests(unittest.TestCase):
             self.assertTrue(lines[-1].startswith("… +"))
             self.assertIn("2 more", lines[-1])
 
+    def test_in_ws_and_other_ws_tags(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            web = root / "web"
+            api.mkdir()
+            web.mkdir()
+            lines = _mod.format_will_add_lines(
+                [api, web],
+                [(api, True), (web, True)],
+                width=60,
+                max_lines=5,
+                names_in_ws={"api"},
+                paths_in_ws={str(api.resolve())},
+                path_ws={str(web.resolve()): "other"},
+                workspace="acme",
+            )
+            self.assertEqual(lines[0], "+ api  (in ws)")
+            self.assertEqual(lines[1], "+ web  (other ws)")
+
+
+class WorkspaceMembershipTests(unittest.TestCase):
+    def test_reads_names_and_resolved_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            api.mkdir()
+            cfg = root / "orcan.config.json"
+            cfg.write_text(
+                json.dumps(
+                    {
+                        "workspaces": [
+                            {"name": "acme", "projects": [{"name": "api", "path": str(api)}]}
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            names, paths = _mod.workspace_membership(cfg, "acme")
+            self.assertEqual(names, {"api"})
+            self.assertEqual(paths, {str(api.resolve())})
+
+    def test_missing_is_empty(self) -> None:
+        self.assertEqual(
+            _mod.workspace_membership(Path("/no/such/config.json"), "acme"),
+            (set(), set()),
+        )
+
+
+class StackApplySummaryTests(unittest.TestCase):
+    def test_counts_new_vs_already(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            a = root / "a"
+            b = root / "b"
+            a.mkdir()
+            b.mkdir()
+            new_n, already = _mod.stack_apply_summary(
+                [a, b], paths_in_ws={str(a.resolve())}
+            )
+            self.assertEqual((new_n, already), (1, 1))
+
 
 class ListSubdirsTests(unittest.TestCase):
     def test_lists_dirs_sorted_and_skips_hidden(self) -> None:

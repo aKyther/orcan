@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`orcan init` / `orcan context tui` scan UX:** default scan depth is now
   **1** (direct children only) instead of flattening grandchildren into one
-  list. Press **`d`** (or `--depth 2`) for the old two-level scan. Changing
-  parent with **`e`** / **`h`** keeps prior Space selections so you can pick
-  from several folders in one apply. A live **will add** stack (right column
-  when wide, bottom strip when narrow) shows pick order and what Enter will
-  write into the workspace; `A` still clears the stack.
+  list. Press **`D`** (or `--depth 2`) for the old two-level scan. Changing
+  parent with **`e`** / **`h`** / **`u`** / **Enter** (plain folder) keeps
+  prior Space selections. A focusable **will add** stack (**Tab**; Space/`x`
+  removes; Enter applies; **Esc** returns to the list without quitting) shows
+  pick order and tags (`in ws`, `other ws`, `name taken`, `elsewhere`,
+  `mount`). Header counts new vs already-in-workspace.
 - Fixed `orcan enter` loading a stale cockpit from another workspace checkout,
   which could fail with `ModuleNotFoundError` after an image upgrade.
 - Fixed responsive ttyd typography so phone and tablet overrides no longer
