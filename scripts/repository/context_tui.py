@@ -213,6 +213,29 @@ def workspace_membership(
     return names, paths
 
 
+def workspace_project_entries(config_path: Path, workspace: str) -> list[tuple[str, Path]]:
+    """Configured projects in workspace order, for an add-project preview."""
+    if not config_path.is_file():
+        return []
+    cfg = load_config(config_path)
+    ws = find_workspace(cfg, workspace)
+    if not ws:
+        return []
+    out: list[tuple[str, Path]] = []
+    for project in ws.get("projects") or []:
+        if not isinstance(project, dict):
+            continue
+        raw = str(project.get("path") or "").strip()
+        if not raw:
+            continue
+        try:
+            path = Path(raw).expanduser().resolve()
+        except OSError:
+            path = Path(raw)
+        out.append((str(project.get("name") or path.name), path))
+    return out
+
+
 def classify_pick(
     path: Path,
     *,
@@ -327,6 +350,21 @@ def stack_apply_summary(
         if resolved in paths_in_ws:
             already += 1
     return len(selected) - already, already
+
+
+def selection_mode_summary(selected: list[Path], worktree_paths: set[Path]) -> tuple[int, int]:
+    """Return (mount_as_is, worktree) counts for the pending selection."""
+    worktrees = sum(path in worktree_paths for path in selected)
+    return len(selected) - worktrees, worktrees
+
+
+def partition_selection_by_mode(
+    selected: list[Path], worktree_paths: set[Path]
+) -> tuple[list[Path], list[Path]]:
+    """Return (worktree_paths, mount_as_is_paths), preserving pick order."""
+    worktrees = [path for path in selected if path in worktree_paths and is_git_repo(path)]
+    mounts = [path for path in selected if path not in worktrees]
+    return worktrees, mounts
 
 
 def list_subdirs(path: Path) -> list[Path]:
@@ -899,6 +937,8 @@ def _review_selection_screen(
     names_in_ws: set[str],
     paths_in_ws: set[str],
     path_ws: dict[str, str],
+    worktree_paths: set[Path],
+    branch: str,
 ) -> bool:
     """Review the pending change. Enter accepts; Esc returns to browsing."""
     import curses
@@ -915,7 +955,7 @@ def _review_selection_screen(
             summary += f" · {already_n} already connected"
         stdscr.addnstr(1, 0, _ellipsize(summary, w - 1), w - 1, curses.A_BOLD)
         stdscr.addnstr(
-            2, 0, " ↑↓ inspect · Space remove · Enter apply · Esc back"[: w - 1],
+            2, 0, " ↑↓ inspect · b mount/worktree · Space remove · Enter apply · Esc back"[: w - 1],
             w - 1, curses.A_DIM,
         )
         list_top = 4
@@ -934,7 +974,8 @@ def _review_selection_screen(
                 path, repos=repos, names_in_ws=names_in_ws,
                 paths_in_ws=paths_in_ws, path_ws=path_ws, workspace=workspace,
             )
-            outcome = review_outcome(bits)
+            mode = f"worktree @{branch}" if path in worktree_paths else "mount as-is"
+            outcome = f"{mode} · {review_outcome(bits)}"
             line = f" {'›' if idx == cursor else ' '} {path.name} — {outcome}  {path}"
             attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
             stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
@@ -952,8 +993,17 @@ def _review_selection_screen(
         elif key in (curses.KEY_DOWN, ord("j")):
             cursor = min(max(0, len(selected) - 1), cursor + 1)
         elif key in (ord(" "), ord("x")) and selected:
+            worktree_paths.discard(selected[cursor])
             selected.pop(cursor)
             cursor = min(cursor, max(0, len(selected) - 1))
+        elif key == ord("b") and selected:
+            path = selected[cursor]
+            if not is_git_repo(path):
+                continue
+            if path in worktree_paths:
+                worktree_paths.remove(path)
+            else:
+                worktree_paths.add(path)
         elif key in (curses.KEY_ENTER, 10, 13) and selected:
             return True
 
@@ -978,6 +1028,7 @@ def _run_curses(args: argparse.Namespace) -> int:
     branch = (args.branch or str(state.get("last_branch") or "feature/work")).strip()
     cursor = 0
     selected: list[Path] = []
+    worktree_paths: set[Path] = set()
     message = ""
     scroll = 0
     filter_text = ""
@@ -1032,8 +1083,11 @@ def _run_curses(args: argparse.Namespace) -> int:
     def toggle_selected(path: Path) -> None:
         if path in selected:
             selected.remove(path)
+            worktree_paths.discard(path)
         else:
             selected.append(path)
+            if use_worktree and is_git_repo(path):
+                worktree_paths.add(path)
             remember_picks(path)
 
     repos = refresh_repos()
@@ -1042,18 +1096,22 @@ def _run_curses(args: argparse.Namespace) -> int:
         for r, _is_git in repos:
             if (r.name in wanted or str(r) in wanted) and r not in selected:
                 selected.append(r)
+                if use_worktree and _is_git:
+                    worktree_paths.add(r)
 
     def draw(stdscr: Any) -> None:
         nonlocal scroll
         stdscr.erase()
         h, w = stdscr.getmaxyx()
         names_in_ws, paths_in_ws, path_ws = membership()
+        existing_entries = workspace_project_entries(config_path, workspace)
         new_n, already_n = stack_apply_summary(selected, paths_in_ws=paths_in_ws)
+        mount_n, worktree_n = selection_mode_summary(selected, worktree_paths)
 
         title = " orcan context tui "
         stdscr.addnstr(0, 0, title.ljust(w), w, curses.A_REVERSE)
         stdscr.addnstr(1, 0, _ellipsize(f" Parent: {parent}", w - 1), w - 1)
-        mode = f"worktrees @{branch}" if use_worktree else "mount paths as-is"
+        mode = f"default worktree @{branch}" if use_worktree else "default mount as-is"
         stdscr.addnstr(
             2,
             0,
@@ -1113,7 +1171,11 @@ def _run_curses(args: argparse.Namespace) -> int:
                 if idx >= len(view):
                     break
                 repo, is_git = view[idx]
-                mark = "[x]" if repo in selected else "[ ]"
+                try:
+                    is_existing = str(repo.resolve()) in paths_in_ws
+                except OSError:
+                    is_existing = False
+                mark = "[=]" if is_existing else "[x]" if repo in selected else "[ ]"
                 bits = classify_pick(
                     repo,
                     repos=repos,
@@ -1123,6 +1185,8 @@ def _run_curses(args: argparse.Namespace) -> int:
                     workspace=workspace,
                 )
                 bits = [b for b in bits if b != "elsewhere"]
+                if repo in selected:
+                    bits.append(f"worktree @{branch}" if repo in worktree_paths else "mount")
                 tag = f"  ({' · '.join(bits)})" if bits else ""
                 line = f" {mark} {repo.name}{tag}  {repo}"
                 attr = curses.A_NORMAL
@@ -1134,10 +1198,14 @@ def _run_curses(args: argparse.Namespace) -> int:
                     attr |= curses.color_pair(_COLOR_WARN)
                 stdscr.addnstr(list_top + i, 0, _ellipsize(line, left_w - 1), left_w - 1, attr)
 
-        if already_n:
+        if existing_entries:
+            stack_title = (
+                f" workspace → {workspace} ({len(existing_entries)} connected, {new_n} adding) "
+            )
+        elif already_n:
             stack_title = f" will add → {workspace} ({new_n} new, {already_n} in ws) "
         else:
-            stack_title = f" will add → {workspace} ({len(selected)}) "
+            stack_title = f" will add → {workspace} ({mount_n} mount, {worktree_n} worktree) "
         title_attr = curses.A_BOLD | curses.color_pair(_COLOR_INFO)
 
         if split:
@@ -1156,7 +1224,7 @@ def _run_curses(args: argparse.Namespace) -> int:
             title_attr,
         )
 
-        if split and not selected:
+        if split and not selected and not existing_entries:
             empty_attr = curses.A_DIM
             stdscr.addnstr(
                 stack_body_top,
@@ -1166,11 +1234,8 @@ def _run_curses(args: argparse.Namespace) -> int:
                 empty_attr,
             )
         elif split:
-            for i in range(stack_body_h):
-                idx = i
-                if idx >= len(selected):
-                    break
-                path = selected[idx]
+            panel_lines: list[tuple[str, int]] = []
+            for path in selected:
                 bits = classify_pick(
                     path,
                     repos=repos,
@@ -1179,8 +1244,13 @@ def _run_curses(args: argparse.Namespace) -> int:
                     path_ws=path_ws,
                     workspace=workspace,
                 )
-                line = format_pick_label(path, bits)
-                attr = curses.color_pair(_COLOR_INFO)
+                bits.append(f"worktree @{branch}" if path in worktree_paths else "mount")
+                panel_lines.append((format_pick_label(path, bits), curses.color_pair(_COLOR_INFO)))
+            if selected and existing_entries:
+                panel_lines.append((f" already in workspace ({len(existing_entries)})", curses.A_DIM))
+            for name, _path in existing_entries:
+                panel_lines.append((f" = {name}", curses.A_DIM))
+            for i, (line, attr) in enumerate(panel_lines[:stack_body_h]):
                 stdscr.addnstr(
                     stack_body_top + i,
                     stack_x,
@@ -1194,8 +1264,12 @@ def _run_curses(args: argparse.Namespace) -> int:
             footer = message
         elif selected:
             footer = (
-                f"Enter applies {len(selected)} · Tab reviews · Space toggles · → opens"
+                f"{mount_n} mount · {worktree_n} worktree · Enter applies · Tab reviews"
                 + (f" · {outside_n} elsewhere" if outside_n else "")
+            )
+        elif existing_entries:
+            footer = (
+                f"{len(existing_entries)} already connected · Space selects another project · Tab reviews"
             )
         else:
             footer = "Space selects · Enter/→ opens folder · ← goes up · Tab reviews"
@@ -1211,8 +1285,8 @@ def _run_curses(args: argparse.Namespace) -> int:
         if not NAME_RE.match(workspace):
             message = "invalid workspace name"
             return None
-        if use_worktree and not branch.strip():
-            message = "branch required when worktrees are on (press b)"
+        if worktree_paths and not branch.strip():
+            message = "branch required for selected worktrees (press b)"
             return None
         conflicts = existing_project_names(config_path, workspace) & {p.name for p in selected}
         if conflicts and not _confirm_line(
@@ -1239,7 +1313,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         return 0
 
     def main_loop(stdscr: Any) -> int:
-        nonlocal parent, workspace, use_worktree, branch, cursor, selected
+        nonlocal parent, workspace, use_worktree, branch, cursor, selected, worktree_paths
         nonlocal message, repos, filter_text, depth
         curses.curs_set(0)
         _init_curses_session()
@@ -1261,7 +1335,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                 if _review_selection_screen(
                     stdscr, selected, workspace=workspace, repos=repos,
                     names_in_ws=names_in_ws, paths_in_ws=paths_in_ws,
-                    path_ws=path_ws,
+                    path_ws=path_ws, worktree_paths=worktree_paths, branch=branch,
                 ):
                     rc_apply = try_apply(stdscr)
                     if rc_apply is not None:
@@ -1274,17 +1348,28 @@ def _run_curses(args: argparse.Namespace) -> int:
             elif key == ord(" "):
                 if view:
                     r, _is_git = view[min(cursor, len(view) - 1)]
-                    toggle_selected(r)
+                    _names, current_paths, _path_ws = membership()
+                    try:
+                        is_existing = str(r.resolve()) in current_paths
+                    except OSError:
+                        is_existing = False
+                    if is_existing:
+                        message = f"{r.name} is already in workspace {workspace!r}"
+                    else:
+                        toggle_selected(r)
             elif key == ord("a"):
                 added: list[Path] = []
                 for p, _ in view:
                     if p not in selected:
                         selected.append(p)
+                        if use_worktree and is_git_repo(p):
+                            worktree_paths.add(p)
                         added.append(p)
                 if added:
                     remember_picks(*added)
             elif key == ord("A"):
                 selected = []
+                worktree_paths = set()
                 message = "will-add stack cleared"
             elif key == ord("/"):
                 typed = _prompt_line(stdscr, "Filter (empty to clear)", filter_text)
@@ -1321,7 +1406,8 @@ def _run_curses(args: argparse.Namespace) -> int:
                         "/        filter the list by name",
                         "e        browse jump to another parent",
                         "D        toggle scan depth 1 ↔ 2",
-                        "w / t / b  workspace name / worktree mode / branch",
+                        "w / t / b  workspace / default for new picks / branch",
+                        "Tab + b  switch one selected git project: mount ↔ worktree",
                         "q        quit without applying",
                     ],
                 )
@@ -1368,10 +1454,15 @@ def _run_curses(args: argparse.Namespace) -> int:
                 workspace = _prompt_line(stdscr, "Workspace name", workspace) or workspace
             elif key == ord("t"):
                 use_worktree = not use_worktree
-                message = "worktrees ON" if use_worktree else "mount as-is"
+                for path in selected:
+                    if is_git_repo(path):
+                        if use_worktree:
+                            worktree_paths.add(path)
+                        else:
+                            worktree_paths.discard(path)
+                message = "all selected git projects → worktree" if use_worktree else "all selected projects → mount as-is"
             elif key == ord("b"):
-                branch = _prompt_line(stdscr, "Branch for all worktrees", branch) or branch
-                use_worktree = True
+                branch = _prompt_line(stdscr, "Branch for selected worktrees", branch) or branch
             elif key in (curses.KEY_ENTER, 10, 13):
                 if selected:
                     rc_apply = try_apply(stdscr)
@@ -1403,42 +1494,33 @@ def _run_curses(args: argparse.Namespace) -> int:
             "pick_history": pick_history,
         }
     )
-    if use_worktree:
-        git_chosen = [p for p in chosen if is_git_repo(p)]
-        plain_chosen = [p for p in chosen if not is_git_repo(p)]
-        if git_chosen:
-            apply_selection(
-                config_path=config_path,
-                workspace=workspace,
-                repos=git_chosen,
-                branch=branch,
-                force=bool(args.force),
-                start_point=args.start_point,
-            )
+    worktree_chosen, mount_chosen = partition_selection_by_mode(chosen, worktree_paths)
+    if worktree_chosen:
+        apply_selection(
+            config_path=config_path,
+            workspace=workspace,
+            repos=worktree_chosen,
+            branch=branch,
+            force=bool(args.force),
+            start_point=args.start_point,
+        )
+    if mount_chosen:
+        apply_selection(
+            config_path=config_path,
+            workspace=workspace,
+            repos=mount_chosen,
+            branch=None,
+            force=bool(args.force),
+            start_point=args.start_point,
+        )
+        plain_chosen = [p for p in mount_chosen if not is_git_repo(p)]
         if plain_chosen:
-            apply_selection(
-                config_path=config_path,
-                workspace=workspace,
-                repos=plain_chosen,
-                branch=None,
-                force=bool(args.force),
-                start_point=args.start_point,
-            )
             names = ", ".join(p.name for p in plain_chosen)
             info(
                 f"note: {len(plain_chosen)} selected path(s) are not git repos "
                 f"({names}) — mounted as-is, no worktree/branch isolation. "
                 "Edits there go straight to the shared directory; be careful."
             )
-    else:
-        apply_selection(
-            config_path=config_path,
-            workspace=workspace,
-            repos=chosen,
-            branch=None,
-            force=bool(args.force),
-            start_point=args.start_point,
-        )
     if args.sync:
         return _run_sync()
     info("Run: orcan sync && orcan down && orcan up")

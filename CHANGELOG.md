@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   applies once the stack has picks. The manage screen groups projects under
   collapsible workspaces (**←/→**). Review outcomes distinguish new, already
   connected, conflicting, cross-workspace, and plain-directory paths.
+  Each selected Git project can now independently be a mount or managed
+  worktree: `t` sets all selected Git projects, while `Tab` → `b` changes one.
 - Fixed `orcan enter` loading a stale cockpit from another workspace checkout,
   which could fail with `ModuleNotFoundError` after an image upgrade.
 - Fixed responsive ttyd typography so phone and tablet overrides no longer

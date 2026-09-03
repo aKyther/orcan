@@ -232,6 +232,28 @@ class WorkspaceMembershipTests(unittest.TestCase):
             (set(), set()),
         )
 
+    def test_project_entries_keep_configured_name_and_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            web = root / "web"
+            api.mkdir()
+            web.mkdir()
+            cfg = root / "orcan.config.json"
+            cfg.write_text(
+                json.dumps(
+                    {"workspaces": [{"name": "acme", "projects": [
+                        {"name": "backend", "path": str(api)},
+                        {"name": "frontend", "path": str(web)},
+                    ]}]}
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                _mod.workspace_project_entries(cfg, "acme"),
+                [("backend", api.resolve()), ("frontend", web.resolve())],
+            )
+
 
 class StackApplySummaryTests(unittest.TestCase):
     def test_counts_new_vs_already(self) -> None:
@@ -245,6 +267,24 @@ class StackApplySummaryTests(unittest.TestCase):
                 [a, b], paths_in_ws={str(a.resolve())}
             )
             self.assertEqual((new_n, already), (1, 1))
+
+
+class PerProjectModeTests(unittest.TestCase):
+    def test_partitions_git_worktrees_from_mounts_in_pick_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            docs = root / "docs"
+            web = root / "web"
+            _git_init(api)
+            docs.mkdir()
+            _git_init(web)
+            worktrees, mounts = _mod.partition_selection_by_mode(
+                [api, docs, web], {web, docs}
+            )
+            self.assertEqual(worktrees, [web])
+            self.assertEqual(mounts, [api, docs])
+            self.assertEqual(_mod.selection_mode_summary([api, docs, web], {web}), (2, 1))
 
 
 class ReviewOutcomeTests(unittest.TestCase):
