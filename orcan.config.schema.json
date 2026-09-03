@@ -78,7 +78,12 @@
           "default": "0.0.0.0",
           "description": "Host address for published ttyd port (TTYD_BIND). Default all interfaces; set 127.0.0.1 for loopback-only. Prefer Tailscale/VPN and TTYD_CREDENTIAL when reachable from a network."
         },
-        "font_size": { "type": "integer", "minimum": 8, "default": 19 },
+        "font_size": {
+          "type": "integer",
+          "minimum": 8,
+          "default": 14,
+          "description": "Desktop terminal font size. Phone and tablet widths use responsive 16 px and 14 px overrides."
+        },
         "font_family": { "type": "string" },
         "theme": {
           "type": "string",

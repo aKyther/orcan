@@ -2,11 +2,10 @@
 needed to use them) plus the interactive Textual screen and the non-tty
 fallback menu that both sit on top of them.
 
-Data source is the same `orcan.workspaces` module the old bash
-`agent-launcher` reached via the `orcan-workspaces` CLI, and that
-`orcan-context-status` already uses — no workspace-discovery logic is
-duplicated here. (orcan.workspaces is vendored/stdlib-only — see cli.py for
-where /usr/local/lib is added to sys.path.)
+Data source is the shared `orcan.workspaces` module also used by
+`orcan-workspaces` and `orcan-context-status`, so workspace discovery is not
+duplicated here. The module is vendored and stdlib-only; see `cli.py` for the
+image library path setup.
 """
 
 from __future__ import annotations
@@ -162,17 +161,6 @@ def list_workspace_rows(config_path: str | None = None) -> list[dict[str, Any]]:
             }
         )
     return rows
-
-
-def workspace_roots(config_path: str | None = None) -> list[Path]:
-    """Enabled workspace roots from config only — no tmux live probes.
-
-    Used when callers only need paths (e.g. cross-workspace pending counts),
-    so a watchfiles burst does not pay N× ``has_session`` via
-    ``list_workspace_rows``.
-    """
-    cfg = load_config(config_path)
-    return [Path(ws["root"]) for ws in iter_workspaces(cfg) if ws.get("root")]
 
 
 def format_fallback_menu(rows: list[dict[str, Any]]) -> str:

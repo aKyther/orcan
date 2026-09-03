@@ -61,7 +61,7 @@ orcan down && orcan up
   "ttyd": {
     "port": 7681,
     "host_port": 7681,
-    "font_size": 19,
+    "font_size": 14,
     "theme": "dark"
   },
   "resources": {

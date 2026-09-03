@@ -80,9 +80,10 @@ test('phone font and keyboard viewport keep input visible', async ({ page }) => 
   expect(state.terminalBottom).toBeLessThanOrEqual(state.viewportHeight);
 });
 
-test('desktop receives its responsive font instead of the server fallback', async ({ page }) => {
+test('desktop keeps the server-configured font', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(baseURL);
-  await page.waitForURL(/fontSize=13/);
-  expect(new URL(page.url()).searchParams.get('orcanResponsiveFont')).toBe('1');
+  await page.waitForSelector('.xterm');
+  expect(new URL(page.url()).searchParams.has('fontSize')).toBe(false);
+  expect(new URL(page.url()).searchParams.has('orcanResponsiveFont')).toBe(false);
 });

@@ -41,8 +41,8 @@ the container may return to the workspace picker; tmux sessions remain intact.
 
 | Keys | Action |
 | --- | --- |
-| **F4** / workspace pill | Toggle workspaces; pinned on wide screens, overlay drawer on compact screens |
-| **F5** | Peek brief / next pending |
+| **F4** / workspace pill | Open or close the workspace picker overlay |
+| **F5** | Peek the current workspace session brief |
 | **Click `🌀 orcan`** | About (name, version, docs) |
 | **Click current workspace** | Open/close the workspace browser |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, use **F1** — **?** goes to the shell |

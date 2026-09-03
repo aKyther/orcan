@@ -1,7 +1,7 @@
 """Single source of truth for every real keybinding this environment exposes.
 
 Deliberately stdlib-only (no Textual import) so it stays directly
-unit-testable on the host, same convention as actions.py.
+unit-testable on the host.
 
 Two independent renderers read SHORTCUTS so the "APP" vs "TMUX" help stays
 truthful and can't silently drift from each other: shortcuts_modal.py (the

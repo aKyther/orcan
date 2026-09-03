@@ -46,9 +46,22 @@ validate: ## Validate repository layout and script syntax
 test-host: ## Host unit tests (config/apply/version; no Docker image)
 	@./tests/host/run.sh
 
+# Fixtures live under the checkout so Docker-from-Docker sees the same
+# canonical host path; container-local /tmp is not visible to the daemon.
 test: ## Run container smoke tests (builds image via orcan build)
-	@$(ORCAN) build
-	@./tests/smoke/test-container.sh
+	@set -e; \
+	test_home="$$(mktemp -d "$$PWD/.orcan-test.XXXXXX")"; \
+	trap 'rm -rf -- "$$test_home"' EXIT; \
+	ORCAN_HOME="$$test_home" ORCAN_DATA="$$test_home/data" \
+		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" PROJECT_DIR="$$PWD" \
+		./scripts/repository/update-env.sh >/dev/null; \
+	ORCAN_HOME="$$test_home" ORCAN_DATA="$$test_home/data" \
+		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" $(ORCAN) build; \
+	env -u ORCAN_CONFIG_HOST -u ORCAN_COMPOSE_PROJECTS -u CONTAINER_PROJECT_DIR \
+		-u WORKSPACE_ROOT -u WORKSPACE_NAME -u WORKSPACE_META_PATH \
+		ORCAN_HOME="$$test_home" ORCAN_DATA="$$test_home/data" \
+		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" PROJECT_DIR="$$PWD" \
+		./tests/smoke/test-container.sh
 
 test-path-parity: ## Path parity integration test
 	@$(ORCAN) build

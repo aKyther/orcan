@@ -6,11 +6,8 @@ This is what cli.py launches on a real tty.
 tmux stays the real session/window/pane engine throughout: the center
 column only owns the outer pty (PtyTerminal spawns `tmux attach` as its
 child) and the rest of this app renders around it. Nothing here
-re-implements tmux's own session/window/pane logic — context review is
-launched as a real tool via `tmux display-popup` (actions.py), not
-reimplemented as a widget. (A matching Git/lazygit popup shortcut used to
-live in the rail/F3 — removed on request as redundant with the `lg` shell
-alias already available inside the terminal.)
+re-implements tmux's own session/window/pane logic. Git remains available
+through the `lg` shell alias inside the terminal.
 """
 
 from __future__ import annotations

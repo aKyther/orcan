@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed `orcan enter` loading a stale cockpit from another workspace checkout,
   which could fail with `ModuleNotFoundError` after an image upgrade.
+- Fixed responsive ttyd typography so phone and tablet overrides no longer
+  replace the configured desktop font size.
+- Made repository Compose validation use isolated temporary configuration
+  instead of reading or modifying the user's Orcan home.
+- Removed stale Context Assertions UI references and unused picker API left by
+  the workspace-overlay cleanup.
 
 ## 26.3 — 2026-09-02
 

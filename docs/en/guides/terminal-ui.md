@@ -204,7 +204,7 @@ input keep their existing paths. A short tap stays a tap because scrolling
 starts only after a vertical movement threshold.
 
 Phone and tablet typography is responsive: 16 px up to 600 px wide, 14 px up
-to 1024 px, and the configured `TTYD_FONT_SIZE` (13 px by default) on desktop.
+to 1024 px, and the configured `TTYD_FONT_SIZE` (14 px by default) on desktop.
 An explicit `?fontSize=N` URL parameter overrides the automatic profile. While
 xterm's input is focused, the bridge also follows `visualViewport`; when the
 software keyboard reduces the visible height, ttyd refits its rows so the
@@ -226,7 +226,7 @@ current prompt remains above the keyboard.
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
 | **Click `🌀 orcan`** | About (name, version, docs) — `about_modal.py` |
 | **Click current workspace** | Open/close the workspace browser without losing the active workspace identity |
-| **F5** | Peek session brief + next pending; **Enter** / **r** opens Review |
+| **F5** | Peek the current workspace session brief |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
 | **i** | Expand/collapse workspace details (list focused) |
 | **prefix ?** | Standalone tmux shortcuts popup (works without cockpit) |
