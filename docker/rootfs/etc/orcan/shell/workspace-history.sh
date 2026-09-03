@@ -61,7 +61,7 @@ orcan_apply_workspace_histfile() {
     ws_name="$(orcan_resolve_workspace_name)" || return 1
     histfile="$(orcan_workspace_histfile_path "${ws_name}")"
     hist_dir="$(dirname "${histfile}")"
-    mkdir -p "${hist_dir}" 2>/dev/null || return 1
     export HISTFILE="${histfile}"
+    mkdir -p "${hist_dir}" 2>/dev/null || return 1
     return 0
 }
