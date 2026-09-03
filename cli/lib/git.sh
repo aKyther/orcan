@@ -105,7 +105,10 @@ orcan_git_fetch_origin() {
         orcan_die "ORCAN_ROOT is not a git checkout: ${ORCAN_ROOT}"
     fi
     orcan_info "fetching origin (tags + branches)…"
-    git -C "${ORCAN_ROOT}" fetch --tags --prune origin
+    # Prune deleted public release tags too. Otherwise an install that once
+    # fetched a retracted tag can keep offering it to upgrade/downgrade even
+    # after it no longer exists on origin.
+    git -C "${ORCAN_ROOT}" fetch --tags --prune --prune-tags origin
 }
 
 orcan_git_clear_update_hint_cache() {
