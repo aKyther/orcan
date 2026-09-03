@@ -14,6 +14,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from config_io import die
+
 
 SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
@@ -60,11 +62,6 @@ class ManifestEntry:
             path=str(data.get("path") or ""),
             branch=str(data.get("branch") or ""),
         )
-
-
-def die(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
-    raise SystemExit(1)
 
 
 class WorktreeCreateError(Exception):

@@ -3,23 +3,15 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = ROOT / "scripts" / "repository"
-sys.path.insert(0, str(SCRIPTS))
+from _scripts_loader import load_script
 
-# Module file is "config-wizard.py" (hyphen) — not importable by name directly.
-_spec = importlib.util.spec_from_file_location("config_wizard", SCRIPTS / "config-wizard.py")
-cw = importlib.util.module_from_spec(_spec)
-assert _spec.loader is not None
-_spec.loader.exec_module(cw)
+cw = load_script("config-wizard.py")
 
 
 class SuggestCwdProjectTests(unittest.TestCase):

@@ -54,19 +54,22 @@ orcan_runtime_warn_if_config_stale() {
     esac
 }
 
-orcan_ttyd_bind() {
+# Read one TTYD_* value from .env, falling back to $2 when unset.
+_orcan_ttyd_env() {
     orcan_load_env 2>/dev/null || true
-    printf '%s\n' "${TTYD_BIND:-0.0.0.0}"
+    printf '%s\n' "${!1:-$2}"
+}
+
+orcan_ttyd_bind() {
+    _orcan_ttyd_env TTYD_BIND 0.0.0.0
 }
 
 orcan_ttyd_host_port() {
-    orcan_load_env 2>/dev/null || true
-    printf '%s\n' "${TTYD_HOST_PORT:-7681}"
+    _orcan_ttyd_env TTYD_HOST_PORT 7681
 }
 
 orcan_ttyd_container_port() {
-    orcan_load_env 2>/dev/null || true
-    printf '%s\n' "${TTYD_PORT:-7681}"
+    _orcan_ttyd_env TTYD_PORT 7681
 }
 
 # Same URL shape as `orcan url` and `orcan up --with-ttyd` success line.

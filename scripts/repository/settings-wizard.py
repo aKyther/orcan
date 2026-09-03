@@ -20,6 +20,7 @@ from config_io import (  # noqa: E402
     dump_config,
     load_config,
 )
+from defaults import TMUX_DEFAULTS as DEFAULT_TMUX, TTYD_DEFAULTS as DEFAULT_TTYD  # noqa: E402
 from wizard_ui import (  # noqa: E402
     ask,
     ask_yes_no,
@@ -29,17 +30,6 @@ from wizard_ui import (  # noqa: E402
     success,
     warn,
 )
-
-DEFAULT_TMUX = {"initial_windows": 3, "window_prefix": "tab"}
-DEFAULT_TTYD = {
-    "port": 7681,
-    "host_port": 7681,
-    "bind": "0.0.0.0",
-    "font_size": 14,
-    "font_family": "Menlo, Monaco, 'Courier New', monospace",
-    "theme": "dark",
-    "ping_interval": 20,
-}
 
 
 def summarize(cfg: dict[str, Any]) -> None:

@@ -14,33 +14,20 @@ ROOT = Path(
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import (  # noqa: E402
     default_write_path,
+    die,
     discover_config,
     dump_config,
+    find_workspace,
     load_config,
 )
-
-
-def die(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
-    raise SystemExit(1)
+from path_guards import PathGuardError, checked_project_dir  # noqa: E402
 
 
 def resolve_project(path: str) -> Path:
-    p = Path(path)
-    if "~" in str(p):
-        die("PROJECT_DIR must not contain ~")
-    if not p.is_absolute():
-        die(f"PROJECT_DIR must be an absolute path (got: {path})")
-    if not p.is_dir():
-        die(f"PROJECT_DIR does not exist or is not a directory: {path}")
-    return p.resolve()
-
-
-def find_workspace(cfg: dict, name: str) -> dict | None:
-    for ws in cfg.get("workspaces") or []:
-        if isinstance(ws, dict) and ws.get("name") == name:
-            return ws
-    return None
+    try:
+        return checked_project_dir(path, must_exist=True, require_readable=False)
+    except PathGuardError as exc:
+        die(f"PROJECT_DIR {exc}")
 
 
 def project_entry(name: str, path: str) -> dict:

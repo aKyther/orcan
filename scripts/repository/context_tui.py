@@ -2,8 +2,9 @@
 """Terminal UI to build a workspace from a parent directory of repos.
 
 Flow:
-  1. Point at a parent folder
-  2. Multi-select git repos inside it
+  1. Point at a parent folder (children-only scan by default; d / --depth 2
+     for grandchildren)
+  2. Multi-select git repos (and/or plain dirs); e/h keep picks across parents
   3. Name the workspace
   4. Optional: one branch → managed worktree per selected repo
   5. Write orcan.config.json (then caller may sync)
@@ -28,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from config_io import (  # noqa: E402
     default_write_path,
+    die,
     discover_config,
     dump_config,
     load_config,
@@ -76,11 +78,6 @@ def _init_curses_session() -> None:
     curses.init_pair(_COLOR_DANGER, curses.COLOR_RED, -1)
 
 
-def die(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
-    raise SystemExit(1)
-
-
 def info(msg: str = "") -> None:
     print(msg)
 
@@ -106,11 +103,12 @@ def save_state(data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def scan_dirs(parent: Path, *, max_depth: int = 2) -> list[tuple[Path, bool]]:
-    """Find git repos AND plain directories under parent (depth 1 = children,
-    2 = grandchildren of non-repo children). Each entry is (path, is_git) —
+def scan_dirs(parent: Path, *, max_depth: int = 1) -> list[tuple[Path, bool]]:
+    """Find git repos AND plain directories under parent (depth 1 = children only,
+    2 = also grandchildren of non-repo children). Each entry is (path, is_git) —
     plain dirs are still selectable (mount as-is only; no managed worktree,
-    since that needs a git repo to branch from)."""
+    since that needs a git repo to branch from). Default is first level so a
+    large tree stays scannable; use depth 2 or browse into a child when needed."""
     parent = parent.expanduser().resolve()
     if not parent.is_dir():
         die(f"not a directory: {parent}")
@@ -166,10 +164,63 @@ def scan_dirs(parent: Path, *, max_depth: int = 2) -> list[tuple[Path, bool]]:
     return found
 
 
-def scan_repos(parent: Path, *, max_depth: int = 2) -> list[Path]:
+def scan_repos(parent: Path, *, max_depth: int = 1) -> list[Path]:
     """Git repos only under parent — thin filter over scan_dirs(), kept for
     the --yes/--select non-interactive path."""
     return [p for p, is_git in scan_dirs(parent, max_depth=max_depth) if is_git]
+
+
+def selection_outside_scan(
+    selected: list[Path] | set[Path],
+    repos: list[tuple[Path, bool]],
+) -> list[Path]:
+    """Paths kept in the selection that are not in the current scan list
+    (e.g. picked under a previous parent). Preserves selection order."""
+    visible = {p for p, _ in repos}
+    return [p for p in selected if p not in visible]
+
+
+def format_will_add_lines(
+    selected: list[Path],
+    repos: list[tuple[Path, bool]],
+    *,
+    width: int,
+    max_lines: int,
+) -> list[str]:
+    """Body lines for the 'will add' stack (pick order). Pure/curses-free.
+
+    Each line is ellipsized to width. When there are more picks than max_lines,
+    the last line is a '+N more' summary. Empty selection yields one hint line.
+    """
+    if width <= 0 or max_lines <= 0:
+        return []
+    if not selected:
+        return [_ellipsize("(empty — Space to pick)", width)]
+
+    visible = {p for p, _ in repos}
+    git_by_path = {p: is_git for p, is_git in repos}
+    lines: list[str] = []
+    show = selected
+    omitted = 0
+    if len(selected) > max_lines:
+        show = selected[: max_lines - 1]
+        omitted = len(selected) - len(show)
+
+    for path in show:
+        bits: list[str] = []
+        is_git = git_by_path.get(path)
+        if is_git is None:
+            is_git = is_git_repo(path)
+        if not is_git:
+            bits.append("mount")
+        if path not in visible:
+            bits.append("elsewhere")
+        tag = f"  ({' · '.join(bits)})" if bits else ""
+        lines.append(_ellipsize(f"+ {path.name}{tag}", width))
+
+    if omitted:
+        lines.append(_ellipsize(f"… +{omitted} more", width))
+    return lines
 
 
 def list_subdirs(path: Path) -> list[Path]:
@@ -702,7 +753,7 @@ def _run_curses(args: argparse.Namespace) -> int:
     use_worktree = bool(args.branch) or bool(state.get("last_use_worktree"))
     branch = (args.branch or str(state.get("last_branch") or "feature/work")).strip()
     cursor = 0
-    selected: set[Path] = set()
+    selected: list[Path] = []
     message = ""
     scroll = 0
     filter_text = ""
@@ -714,7 +765,11 @@ def _run_curses(args: argparse.Namespace) -> int:
             entries = scan_dirs(parent, max_depth=depth)
             n_git = sum(1 for _, is_git in entries if is_git)
             n_plain = len(entries) - n_git
-            message = f"{n_git} repo(s), {n_plain} plain dir(s) under {parent}"
+            depth_note = "children only" if depth < 2 else "incl. grandchildren"
+            message = (
+                f"{n_git} repo(s), {n_plain} plain dir(s) under {parent}  "
+                f"(depth {depth}: {depth_note}; d to toggle)"
+            )
             return entries
         except SystemExit as exc:
             message = str(exc.args[0]) if exc.args else "scan failed"
@@ -726,12 +781,33 @@ def _run_curses(args: argparse.Namespace) -> int:
         ft = filter_text.lower()
         return [entry for entry in repos if ft in entry[0].name.lower()]
 
+    def after_parent_change() -> None:
+        """Rescan after e/h; keep selections from other folders so multi-parent
+        picks can be combined in one apply."""
+        nonlocal repos, cursor, filter_text, message, workspace
+        repos = refresh_repos()
+        cursor = 0
+        filter_text = ""
+        outside = selection_outside_scan(selected, repos)
+        if outside:
+            message = (
+                f"{message} · kept {len(outside)} selection(s) from other folders"
+            )
+        if not workspace or workspace == default_workspace_name(Path(".")):
+            workspace = default_workspace_name(parent)
+
+    def toggle_selected(path: Path) -> None:
+        if path in selected:
+            selected.remove(path)
+        else:
+            selected.append(path)
+
     repos = refresh_repos()
     if args.select:
         wanted = {s.strip() for s in args.select.split(",") if s.strip()}
         for r, _is_git in repos:
-            if r.name in wanted or str(r) in wanted:
-                selected.add(r)
+            if (r.name in wanted or str(r) in wanted) and r not in selected:
+                selected.append(r)
 
     def draw(stdscr: Any) -> None:
         nonlocal scroll
@@ -744,13 +820,13 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             2,
             0,
-            f" Workspace: {workspace}  |  Mode: {mode}"[: w - 1],
+            f" Workspace: {workspace}  |  Mode: {mode}  |  Depth: {depth}"[: w - 1],
             w - 1,
         )
         stdscr.addnstr(
             3,
             0,
-            " Space toggle · a/A all/none · / filter · e browse dir · h history · w name · t worktree · b branch · Enter apply · ? help · q quit"
+            " Space toggle · a/A all/none · / filter · e browse · h history · d depth · w name · t worktree · b branch · Enter apply · ? help · q quit"
             [: w - 1],
             w - 1,
             curses.A_DIM,
@@ -759,8 +835,17 @@ def _run_curses(args: argparse.Namespace) -> int:
             stdscr.addnstr(4, 0, f" filter: {filter_text}  (/ to edit, empty to clear)"[: w - 1], w - 1, curses.A_DIM)
 
         view = visible_repos()
-        list_top = 5
-        list_h = max(1, h - list_top - 2)
+        list_top = 5 if filter_text else 4
+        # Side stack when wide enough; otherwise a bottom strip above the footer.
+        stack_w = 0
+        split = False
+        if w >= 88:
+            stack_w = max(26, min(36, w // 3))
+            split = True
+        bottom_stack_h = 0 if split else min(5, max(2, h // 4))
+        # Footer always owns the last row.
+        list_h = max(1, h - list_top - 1 - bottom_stack_h)
+        left_w = (w - stack_w - 1) if split else w
         if cursor < scroll:
             scroll = cursor
         if cursor >= scroll + list_h:
@@ -768,7 +853,7 @@ def _run_curses(args: argparse.Namespace) -> int:
 
         if not view:
             hint = "no matches — / to change filter" if filter_text else "nothing found — press e to browse to another folder"
-            stdscr.addnstr(list_top, 0, f"  ({hint})"[: w - 1], w - 1)
+            stdscr.addnstr(list_top, 0, _ellipsize(f"  ({hint})", left_w - 1), left_w - 1)
         else:
             for i in range(list_h):
                 idx = scroll + i
@@ -783,14 +868,70 @@ def _run_curses(args: argparse.Namespace) -> int:
                     attr |= curses.A_BOLD
                 if not is_git and idx != cursor:
                     attr |= curses.color_pair(_COLOR_WARN)
-                stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
+                stdscr.addnstr(list_top + i, 0, _ellipsize(line, left_w - 1), left_w - 1, attr)
 
-        footer = message or f"{len(selected)} selected"
+        stack_title = f" will add → {workspace} ({len(selected)}) "
+        if split:
+            sep_col = left_w
+            body_w = max(1, stack_w - 1)
+            body = format_will_add_lines(
+                selected, repos, width=body_w, max_lines=max(1, list_h - 1)
+            )
+            for row in range(list_h):
+                y = list_top + row
+                try:
+                    stdscr.addch(y, sep_col, curses.ACS_VLINE)
+                except curses.error:
+                    stdscr.addnstr(y, sep_col, "│", 1)
+                if row == 0:
+                    stdscr.addnstr(
+                        y,
+                        sep_col + 1,
+                        _ellipsize(stack_title, body_w),
+                        body_w,
+                        curses.A_BOLD | curses.color_pair(_COLOR_INFO),
+                    )
+                elif row - 1 < len(body):
+                    attr = curses.A_NORMAL
+                    line = body[row - 1]
+                    if line.startswith("+"):
+                        attr = curses.color_pair(_COLOR_INFO)
+                    stdscr.addnstr(y, sep_col + 1, line, body_w, attr)
+        else:
+            # Bottom strip: title + body lines sharing bottom_stack_h rows
+            stack_top = h - 1 - bottom_stack_h
+            body_rows = max(1, bottom_stack_h - 1)
+            body = format_will_add_lines(
+                selected, repos, width=max(1, w - 1), max_lines=body_rows
+            )
+            stdscr.addnstr(
+                stack_top,
+                0,
+                _ellipsize(stack_title, w - 1),
+                w - 1,
+                curses.A_BOLD | curses.color_pair(_COLOR_INFO),
+            )
+            for i, line in enumerate(body):
+                if i >= body_rows:
+                    break
+                attr = curses.color_pair(_COLOR_INFO) if line.startswith("+") else curses.A_DIM
+                stdscr.addnstr(stack_top + 1 + i, 0, _ellipsize(line, w - 1), w - 1, attr)
+
+        outside_n = len(selection_outside_scan(selected, repos))
+        if message:
+            footer = message
+        elif selected:
+            footer = (
+                f"Enter applies {len(selected)} → workspace {workspace!r}"
+                + (f" ({outside_n} from other folders)" if outside_n else "")
+            )
+        else:
+            footer = "will add: empty — Space to pick, Enter applies"
         stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
         stdscr.refresh()
 
     def main_loop(stdscr: Any) -> int:
-        nonlocal parent, workspace, use_worktree, branch, cursor, selected, message, repos, filter_text
+        nonlocal parent, workspace, use_worktree, branch, cursor, selected, message, repos, filter_text, depth
         curses.curs_set(0)
         _init_curses_session()
 
@@ -809,32 +950,36 @@ def _run_curses(args: argparse.Namespace) -> int:
             elif key == ord(" "):
                 if view:
                     r, _is_git = view[min(cursor, len(view) - 1)]
-                    if r in selected:
-                        selected.discard(r)
-                    else:
-                        selected.add(r)
+                    toggle_selected(r)
             elif key == ord("a"):
-                selected |= {p for p, _ in view}
+                for p, _ in view:
+                    if p not in selected:
+                        selected.append(p)
             elif key == ord("A"):
-                selected = set()
+                selected = []
             elif key == ord("/"):
                 typed = _prompt_line(stdscr, "Filter (empty to clear)", filter_text)
                 filter_text = (typed or "").strip()
+                cursor = 0
+            elif key == ord("d"):
+                depth = 1 if depth >= 2 else 2
+                repos = refresh_repos()
                 cursor = 0
             elif key == ord("?"):
                 _show_help(
                     stdscr,
                     "orcan context tui — scan screen",
                     [
-                        "Space    toggle selection",
-                        "a / A    select all visible / clear selection",
+                        "Space    toggle selection (stack on the right / bottom)",
+                        "a / A    select all visible / clear the will-add stack",
                         "/        filter the list by name",
-                        "e        browse to a different parent directory",
-                        "h        jump to a recently used parent directory",
+                        "e        browse to a different parent (keeps prior picks)",
+                        "h        jump to a recently used parent (keeps prior picks)",
+                        "d        toggle scan depth 1 (children) ↔ 2 (grandchildren)",
                         "w        set workspace name",
                         "t        toggle worktree mode on/off",
                         "b        set branch (implies worktree mode)",
-                        "Enter    apply — create/append the workspace",
+                        "Enter    apply — write the will-add stack into the workspace",
                         "q / Esc  quit without applying",
                         "?        this help",
                     ],
@@ -843,12 +988,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                 chosen_dir = _browse_dir(stdscr, parent)
                 if chosen_dir is not None:
                     parent = chosen_dir
-                    repos = refresh_repos()
-                    selected &= {p for p, _ in repos}
-                    cursor = 0
-                    filter_text = ""
-                    if not workspace or workspace == default_workspace_name(Path(".")):
-                        workspace = default_workspace_name(parent)
+                    after_parent_change()
             elif key == ord("h"):
                 now = time.time()
                 hist: list[tuple[str, str]] = []
@@ -869,12 +1009,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                     picked = _pick_from_history(stdscr, hist)
                     if picked:
                         parent = Path(picked).resolve()
-                        repos = refresh_repos()
-                        selected &= {p for p, _ in repos}
-                        cursor = 0
-                        filter_text = ""
-                        if not workspace or workspace == default_workspace_name(Path(".")):
-                            workspace = default_workspace_name(parent)
+                        after_parent_change()
             elif key == ord("w"):
                 workspace = _prompt_line(stdscr, "Workspace name", workspace) or workspace
             elif key == ord("t"):
@@ -924,7 +1059,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         info("cancelled")
         return rc
 
-    chosen = sorted(selected, key=lambda p: p.name.lower())
+    chosen = list(selected)
     save_state(
         {
             "last_parent": str(parent.resolve()),
@@ -1396,8 +1531,8 @@ def main() -> None:
     parser.add_argument(
         "--depth",
         type=int,
-        default=2,
-        help="Scan depth under parent (1=children only, 2=also grandchildren)",
+        default=1,
+        help="Scan depth under parent (1=children only [default], 2=also grandchildren; TUI: d toggles)",
     )
     args = parser.parse_args()
 

@@ -6,12 +6,12 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 JSON_NAME = "orcan.config.json"
 
 
-def die(msg: str) -> None:
+def die(msg: str) -> NoReturn:
     print(f"Error: {msg}", file=sys.stderr)
     raise SystemExit(1)
 
@@ -61,3 +61,11 @@ def dump_config(path: Path, data: dict[str, Any]) -> None:
 
 def default_write_path(root: Path) -> Path:
     return root / JSON_NAME
+
+
+def find_workspace(cfg: dict[str, Any], name: str) -> dict[str, Any] | None:
+    """First workspaces[] entry whose name matches, or None."""
+    for ws in cfg.get("workspaces") or []:
+        if isinstance(ws, dict) and ws.get("name") == name:
+            return ws
+    return None

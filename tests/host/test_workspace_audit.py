@@ -3,21 +3,14 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = ROOT / "scripts" / "repository"
+from _scripts_loader import load_script
 
-_spec = importlib.util.spec_from_file_location("workspace_audit", SCRIPTS / "workspace-audit.py")
-assert _spec and _spec.loader
-workspace_audit = importlib.util.module_from_spec(_spec)
-sys.modules[_spec.name] = workspace_audit
-_spec.loader.exec_module(workspace_audit)
+workspace_audit = load_script("workspace-audit.py")
 
 
 class WorkspaceAuditTests(unittest.TestCase):

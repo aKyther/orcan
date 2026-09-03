@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -13,16 +12,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = ROOT / "scripts" / "repository"
-sys.path.insert(0, str(SCRIPTS))
+from _scripts_loader import load_script
 
-_spec = importlib.util.spec_from_file_location(
-    "apply_config", SCRIPTS / "apply-config.py"
-)
-assert _spec and _spec.loader
-apply_config = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(apply_config)
+apply_config = load_script("apply-config.py")
 
 
 class FormatEnvTests(unittest.TestCase):

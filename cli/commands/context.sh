@@ -102,8 +102,9 @@ mounted as-is, no worktree).
 
 Scan screen keys:
   Space toggle · a/A select-visible/none · / filter · e browse dir ·
-  h recent dirs · w workspace name · t worktree mode · b branch ·
-  Enter apply · q quit
+  h recent dirs · d depth 1↔2 · w workspace name · t worktree mode ·
+  b branch · Enter apply · q quit
+  (will-add stack: right column if wide, else bottom strip)
 
 Manage screen keys (shown when a config already exists):
   j/k move · Enter/r rename · p change path · a add project (jump to
@@ -118,7 +119,7 @@ Options:
   --yes                Non-interactive (needs --dir and --select)
   --force              Replace existing workspace / projects
   --sync               Run orcan sync after writing config
-  --depth N            Scan depth (default 2)
+  --depth N            Scan depth (default 1 = children only; 2 = grandchildren)
 
 Examples:
   orcan context tui

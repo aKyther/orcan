@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import subprocess
@@ -12,11 +11,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[2] / "scripts" / "repository"
-_spec = importlib.util.spec_from_file_location("context_tui", SCRIPTS / "context_tui.py")
-assert _spec and _spec.loader
-_mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)
+from _scripts_loader import load_script
+
+_mod = load_script("context_tui.py")
 
 
 def _git_init(path: Path) -> None:
@@ -120,6 +117,72 @@ class ScanDirsTests(unittest.TestCase):
             self.assertEqual(found.get("group"), False)
             self.assertEqual(found.get("svc"), True)
             self.assertEqual(found.get("docs"), False)
+
+    def test_default_depth_is_children_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            group = root / "group"
+            _git_init(group / "svc")
+            found = {p.name for p, _ in _mod.scan_dirs(root)}
+            self.assertEqual(found, {"group"})
+            self.assertNotIn("svc", found)
+
+
+class SelectionOutsideScanTests(unittest.TestCase):
+    def test_lists_picks_not_in_current_scan_preserving_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            a = root / "a"
+            b = root / "b"
+            c = root / "c"
+            a.mkdir()
+            b.mkdir()
+            c.mkdir()
+            selected = [b, a]
+            repos = [(c, False)]
+            outside = _mod.selection_outside_scan(selected, repos)
+            self.assertEqual([p.name for p in outside], ["b", "a"])
+
+    def test_empty_when_all_visible(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            a = root / "a"
+            a.mkdir()
+            self.assertEqual(_mod.selection_outside_scan([a], [(a, True)]), [])
+
+
+class FormatWillAddLinesTests(unittest.TestCase):
+    def test_empty_shows_hint(self) -> None:
+        lines = _mod.format_will_add_lines([], [], width=40, max_lines=5)
+        self.assertEqual(lines, ["(empty — Space to pick)"])
+
+    def test_pick_order_and_elsewhere_tag(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            web = root / "web"
+            api.mkdir()
+            web.mkdir()
+            selected = [web, api]
+            repos = [(api, True)]
+            lines = _mod.format_will_add_lines(selected, repos, width=40, max_lines=5)
+            self.assertEqual(lines[0], "+ web  (mount · elsewhere)")
+            self.assertEqual(lines[1], "+ api")
+
+    def test_omits_overflow_with_more_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = []
+            for name in ("a", "b", "c", "d"):
+                p = root / name
+                p.mkdir()
+                paths.append(p)
+            lines = _mod.format_will_add_lines(
+                paths, [(paths[0], False)], width=40, max_lines=3
+            )
+            self.assertEqual(len(lines), 3)
+            self.assertTrue(lines[-1].startswith("… +"))
+            self.assertIn("2 more", lines[-1])
 
 
 class ListSubdirsTests(unittest.TestCase):

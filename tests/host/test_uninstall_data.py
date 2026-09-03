@@ -3,21 +3,14 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "scripts" / "repository"))
-SPEC = importlib.util.spec_from_file_location(
-    "uninstall_data", ROOT / "scripts" / "repository" / "uninstall_data.py"
-)
-assert SPEC is not None and SPEC.loader is not None
-uninstall_data = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(uninstall_data)
+from _scripts_loader import load_script
+
+uninstall_data = load_script("uninstall_data.py")
 
 
 class PurgeTargetsTests(unittest.TestCase):

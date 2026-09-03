@@ -3,23 +3,15 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = ROOT / "scripts" / "repository"
-sys.path.insert(0, str(SCRIPTS))
+from _scripts_loader import load_script
 
-_spec = importlib.util.spec_from_file_location(
-    "migrate_projects", SCRIPTS / "migrate_projects.py"
-)
-assert _spec and _spec.loader
-migrate_projects = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(migrate_projects)
+migrate_projects = load_script("migrate_projects.py")
 
 
 def _init_repo(path: Path) -> None:
