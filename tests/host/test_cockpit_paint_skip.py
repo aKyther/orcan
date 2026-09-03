@@ -2,8 +2,7 @@
 """Host tests for workspace-list paint signatures (idle flicker skip).
 
 picker.py pulls Textual/libtmux at import time, so this loads only the
-stdlib helpers by exec'ing the module source up to the Textual block —
-same idea as keeping actions.py / status.py framework-free for host CI.
+stdlib helpers by exec'ing the module source up to the Textual block.
 
 Stubs are installed only for the duration of the load, then removed so
 later host tests still see the real ``orcan.*`` modules.
@@ -182,19 +181,6 @@ class WorkspaceListPaintSignatureTests(unittest.TestCase):
             )
         self.assertIn("repo", text)
         self.assertIn("\n", text)
-
-    def test_workspace_roots_skips_live_probes(self) -> None:
-        roots = [
-            {"name": "a", "root": "/tmp/a", "tmux_session": "a", "projects": []},
-            {"name": "b", "root": "/tmp/b", "tmux_session": "b", "projects": []},
-        ]
-        with mock.patch.object(picker, "load_config", return_value={}), mock.patch.object(
-            picker, "iter_workspaces", return_value=roots
-        ), mock.patch.object(picker, "live_session_names") as live:
-            got = picker.workspace_roots()
-        live.assert_not_called()
-        self.assertEqual(got, [Path("/tmp/a"), Path("/tmp/b")])
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -111,7 +111,7 @@ pod `.orcan-dev-ux/playwright-node/` i zapisują artefakty błędów w
 
 `make dev-checklist` drukuje listę **Before merge (automated)**
 (`dev-doctor`, `dev-smoke`, `dev-a11y`, `dev-visual`, `dev-test`) oraz ręczny
-flow w przeglądarce (F2/F4/F1, r/p/o, szczegóły workspace'a, Alt+1…9, resize, compact `900x700`, tiny
+flow w przeglądarce (F4/F1, szczegóły workspace'a, wybór Enterem, Alt+1…9, resize, compact `900x700`, tiny
 `480x320`, axe). Pakiet dostępności sprawdza też, że Tab dochodzi do terminala
 i że viewport `480x320` zostawia użyteczny xterm.
 

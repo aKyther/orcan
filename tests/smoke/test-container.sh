@@ -6,6 +6,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
+ORCAN_HOME="${ORCAN_HOME:-${ROOT_DIR}}"
 
 # shellcheck source=../../scripts/repository/validate-project-dir.sh
 source "${ROOT_DIR}/scripts/repository/validate-project-dir.sh"
@@ -13,7 +14,8 @@ source "${ROOT_DIR}/scripts/repository/validate-project-dir.sh"
 validate_project_dir
 SMOKE_PROJECT="${PROJECT_DIR}"
 
-COMPOSE=(docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml)
+COMPOSE_PROJECTS_FILE="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}"
+COMPOSE=(docker compose --env-file "${ORCAN_HOME}/.env" -f docker-compose.yml -f "${COMPOSE_PROJECTS_FILE}")
 
 printf 'Running container smoke checks (PROJECT_DIR=%s)...\n' "${SMOKE_PROJECT}"
 
@@ -78,6 +80,7 @@ test -f /usr/local/lib/orcan/workspaces.py
 test -x /opt/orcan-cockpit/venv/bin/python3
 test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
 /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles'
+PYTHONPATH=/usr/local/lib /opt/orcan-cockpit/venv/bin/python3 -c 'from orcan import agent_executor, agent_inbox, workspaces; from orcan_cockpit import app, cli, picker, session_glance'
 test -f /opt/cursor-defaults/templates/workspace/session-brief.md
 test -x /usr/local/bin/orcan-ai-statusline
 test -x /usr/local/bin/init-ai-statusline
@@ -90,14 +93,19 @@ mkdir -p \"\${AI_CACHE}\"
 printf '%s' '{\"model\":{\"display_name\":\"Sonnet\"},\"context_window\":{\"used_percentage\":12},\"rate_limits\":{\"five_hour\":{\"used_percentage\":3}}}' \
   | ORCAN_AI_PROVIDER=claude ORCAN_AI_USAGE_DIR=\"\${AI_CACHE}\" orcan-ai-statusline | grep -q 'ctx 12%'
 test -f \"\${AI_CACHE}/ai-usage-claude.json\"
-ORCAN_AI_USAGE_DIR=\"\${AI_CACHE}\" /etc/tmux/scripts/ai-usage.sh | grep -q 'ctx 12%'
+ORCAN_AI_USAGE_DIR=\"\${AI_CACHE}\" /etc/tmux/scripts/ai-usage.sh | grep -Eq 'claude.*12%.*3%'
 rm -rf \"\${AI_CACHE}\"
 # statusLine seed (missing-only)
 init-ai-statusline >/tmp/ai-statusline-init.txt
 grep -q 'statusLine' \"\${HOME}/.claude/settings.json\"
-# Launcher exits cleanly on q
-printf 'q\n' | agent-launcher >/tmp/launcher-out.txt
+# A stale checkout beside the active workspace must not shadow the image's
+# cockpit package (regression for workspace-glob PYTHONPATH discovery).
+mkdir -p /home/developer/workspaces/orcan-smoke-stale/orcan/cockpit/src/orcan_cockpit
+printf '%s\n' invalid >/home/developer/workspaces/orcan-smoke-stale/orcan/cockpit/src/orcan_cockpit/__init__.py
+# Launcher exits cleanly on q with its default, image-owned import path.
+printf 'q\n' | env -u PYTHONPATH agent-launcher >/tmp/launcher-out.txt
 grep -q 'orcan workspaces' /tmp/launcher-out.txt
+rm -rf /home/developer/workspaces/orcan-smoke-stale
 test -d /opt/cursor-defaults
 test -d \"\${HOME}/.cursor\"
 test -f \"\${HOME}/.cursor/cli-config.json\"

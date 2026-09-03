@@ -23,9 +23,17 @@
     if (url.searchParams.has("fontSize") && !managed) return false;
 
     const width = window.visualViewport?.width || window.innerWidth;
-    const desired = width <= PHONE_MAX_WIDTH_PX ? "16"
-      : width <= TABLET_MAX_WIDTH_PX ? "14"
-        : "13";
+    // Desktop uses ttyd's server-side TTYD_FONT_SIZE. Only smaller touch
+    // layouts need a browser override. Returning to desktop removes our
+    // managed override so the configured value wins again.
+    if (width > TABLET_MAX_WIDTH_PX) {
+      if (!managed) return false;
+      url.searchParams.delete("fontSize");
+      url.searchParams.delete("orcanResponsiveFont");
+      window.location.replace(url);
+      return true;
+    }
+    const desired = width <= PHONE_MAX_WIDTH_PX ? "16" : "14";
     const current = url.searchParams.get("fontSize");
     if (desired === current && managed) return false;
 

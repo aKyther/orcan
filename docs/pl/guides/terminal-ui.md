@@ -207,7 +207,7 @@ pozostaje tapnięciem, ponieważ przewijanie zaczyna się dopiero po przekroczen
 progu ruchu w pionie.
 
 Typografia telefonu i tabletu jest responsywna: 16 px do szerokości 600 px,
-14 px do 1024 px oraz skonfigurowane `TTYD_FONT_SIZE` (domyślnie 13 px) na
+14 px do 1024 px oraz skonfigurowane `TTYD_FONT_SIZE` (domyślnie 14 px) na
 desktopie. Jawny parametr URL `?fontSize=N` ma pierwszeństwo przed profilem
 automatycznym. Gdy input xterm ma fokus, most śledzi też `visualViewport`;
 kiedy klawiatura ekranowa zmniejsza widoczną wysokość, ttyd dopasowuje liczbę
@@ -229,7 +229,7 @@ wierszy tak, aby bieżący prompt pozostał nad klawiaturą.
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — `about_modal.py` |
 | **Klik bieżącego workspace’a** | Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie |
-| **F5** | Peek briefu / następnej pending; **Enter** / **r** → Review |
+| **F5** | Podejrzyj session brief bieżącego workspace’a |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |
 | **i** | Rozwiń/zwiń szczegóły workspace (fokus na liście) |
 | **prefix ?** | Samodzielny popup skrótów tmux (bez cockpitu) |

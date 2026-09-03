@@ -39,7 +39,7 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 | **Config** | JSON only: `orcan.config.json` under **`ORCAN_HOME`** (default `~/.config/orcan/`). Tool data / history: **`ORCAN_DATA`** (same default root; see `orcan help`) |
 | **Ritual** | `orcan init` → `orcan sync` → `orcan build` (when needed) → `orcan up` (**up does not sync**) |
 | **Runtime** | `orcan enter` → cockpit (`agent-launcher`) → tmux 3.6a → zsh; CMD = `orcan-supervisord` (`keepalive` or `ttyd`) |
-| **Cockpit** | Top: `🌀 orcan` (About) + Help + metrics · Left: workspaces + glance · Center: tmux · Bottom: status. Keys: **F4**/‹› · **F1**/? · **F5** brief · **`i`** · **`lg`** |
+| **Cockpit** | Top: `🌀 orcan` (About) + workspace pill + metrics · Overlay: workspaces + glance · Center: tmux · Bottom: status. Keys: **F4** · **F1**/? · **F5** brief · **`i`** · **`lg`** |
 | **UX preview** | `make dev-*` / `scripts/dev/` → isolated `orcan:dev-ux` — **never** the user’s `orcan:latest` |
 | **Image ≠ repo rules** | Image defaults: `docker/rootfs/` (+ `opt/cursor-defaults/`). Repo rules: `.cursor/rules/` + this file |
 | **Done** | Surgical diff; EN+PL docs if behaviour changed; `make validate` · `test-host` · `docs-check`; UX → `dev-checklist` |

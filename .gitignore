@@ -61,6 +61,7 @@ coverage/
 site/
 .orcan-dev-ux/
 .orcan-preview/
+.orcan-test.*/
 
 # OS junk
 Thumbs.db

@@ -1,7 +1,8 @@
 """Command palette (Ctrl+P, Textual's built-in) — fuzzy workspace switch.
-Fixed actions (toggle panel, shortcuts, context review) are registered
-via App.get_system_commands in app.py instead, since they don't need fuzzy
-search and some are conditional on there being an attached session."""
+
+Fixed cockpit and tmux actions are registered through
+``App.get_system_commands`` in ``app.py``.
+"""
 
 from __future__ import annotations
 

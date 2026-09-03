@@ -1,6 +1,5 @@
-"""The bottom status bar widget — thin Textual shim over status.py's pure
-formatting, matching the panel.py-imports-actions.py split (framework code
-here, host-testable logic there). Workspace identity only — CPU/RAM/clock
+"""The bottom status bar widget — thin Textual shim over status.py's pure,
+host-testable formatting. Workspace identity only — CPU/RAM/clock
 live in the top bar (top_bar.py) instead."""
 
 from __future__ import annotations

@@ -1,8 +1,8 @@
 """Session glance — 2–3 short lines about what is alive in a workspace.
 
-Stdlib-only so host tests can
-lock formatting without Textual. Used by the workspace picker when a row is
-highlighted: pending (+age), worktrees / idle-or-brief, live pane commands.
+Stdlib-only so host tests can lock formatting without Textual. Used by the
+workspace picker when a row is highlighted: worktrees, activity/session brief,
+and live pane commands.
 """
 
 from __future__ import annotations

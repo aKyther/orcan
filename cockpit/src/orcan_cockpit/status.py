@@ -1,6 +1,6 @@
 """Pure status-line data + formatting: git branch, CPU/RAM/clock, and the
 bottom/top bar assembly. Deliberately stdlib-only (no Textual/orcan.*
-import), same convention as actions.py, so it's directly unit-testable on
+import), so it is directly unit-testable on
 the host.
 
 CPU/RAM read the same /proc sources tmux's own pane-border-right.sh used to
