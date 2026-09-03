@@ -3,9 +3,10 @@
 
 Flow:
   1. Point at a parent folder (children-only scan by default; D / --depth 2
-     for grandchildren). Enter opens plain folders; u goes up.
+     for grandchildren). l/→ opens a folder; u/← goes up.
   2. Multi-select into a will-add stack (Tab focuses the stack; Space/x
-     removes). Picks survive parent changes (e/h/u/Enter-into).
+     removes). Picks survive parent changes (e/h/u/l). h = recent picks
+     (add without browsing). Enter always applies.
   3. Name the workspace
   4. Optional: one branch → managed worktree per selected repo
   5. Write orcan.config.json (then caller may sync)
@@ -49,6 +50,8 @@ NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$")
 STATE_NAME = "context-tui-state.json"
 HISTORY_LIMIT = 8
 HISTORY_TTL_DAYS = 3.0
+PICK_HISTORY_LIMIT = 16
+PICK_HISTORY_TTL_DAYS = 14.0
 
 # curses color pair numbers, shared across screens once initialized by
 # _init_curses_session() — semantic, not decorative: warn=caution, info=fyi
@@ -409,6 +412,25 @@ def update_parent_history(
     return [{"path": p, "ts": now}] + kept[: max(0, limit - 1)]
 
 
+def update_pick_history(
+    existing: list[Any],
+    paths: list[Path],
+    *,
+    limit: int = PICK_HISTORY_LIMIT,
+    ttl_days: float = PICK_HISTORY_TTL_DAYS,
+    now: float | None = None,
+) -> list[dict[str, Any]]:
+    """Remember recently picked project/dir paths (newest first).
+    Last path in `paths` becomes the newest entry. Pure/curses-free."""
+    now = time.time() if now is None else now
+    hist = existing
+    for path in paths:
+        hist = update_parent_history(
+            hist, path, limit=limit, ttl_days=ttl_days, now=now
+        )
+    return hist
+
+
 def default_workspace_name(parent: Path) -> str:
     name = parent.name.strip() or "workspace"
     if NAME_RE.match(name):
@@ -766,19 +788,33 @@ def _show_help(stdscr: Any, title: str, lines: list[str]) -> None:
     stdscr.getch()
 
 
-def _pick_from_history(stdscr: Any, items: list[tuple[str, str]]) -> str | None:
-    """Small list picker for jumping straight to a recently used parent dir.
-    items are (path, age/ttl label) pairs, newest first."""
+def _recent_picks_screen(
+    stdscr: Any,
+    items: list[tuple[Path, str]],
+    selected: list[Path],
+) -> Path | None:
+    """Add previously picked paths to the will-add stack without changing the
+    current parent. Mutates `selected` in place. Returns a path to jump to
+    (become the new scan parent) when the user presses o, else None."""
     import curses
+
+    if not items:
+        return None
 
     cursor = 0
     scroll = 0
+    note = ""
     while True:
         stdscr.erase()
         h, w = stdscr.getmaxyx()
-        stdscr.addnstr(0, 0, " recent parent directories ".ljust(w), w, curses.A_REVERSE)
+        stdscr.addnstr(0, 0, " recent picks — add without browsing ".ljust(w), w, curses.A_REVERSE)
         stdscr.addnstr(
-            1, 0, " Up/Down move · Enter select · q cancel"[: w - 1], w - 1, curses.A_DIM
+            1,
+            0,
+            " Up/Down · Space toggle onto will-add · Enter/Esc done · o jump to its folder"
+            [: w - 1],
+            w - 1,
+            curses.A_DIM,
         )
         list_top = 3
         list_h = max(1, h - list_top - 1)
@@ -791,22 +827,39 @@ def _pick_from_history(stdscr: Any, items: list[tuple[str, str]]) -> str | None:
             if idx >= len(items):
                 break
             path, label = items[idx]
-            line = f" {path}  ({label})"
+            mark = "[x]" if path in selected else "[ ]"
+            line = f" {mark} {path.name}  {path}  ({label})"
             attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
+            if path in selected and idx != cursor:
+                attr |= curses.A_BOLD
             stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
+        footer = note or f"{sum(1 for p, _ in items if p in selected)} of {len(items)} in will-add"
+        stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
         stdscr.refresh()
+        note = ""
 
         key = stdscr.getch()
         if key == curses.KEY_RESIZE:
             continue
-        if key in (ord("q"), 27):
+        if key in (ord("q"), 27, curses.KEY_ENTER, 10, 13):
             return None
         if key in (curses.KEY_UP, ord("k")):
             cursor = max(0, cursor - 1)
         elif key in (curses.KEY_DOWN, ord("j")):
             cursor = min(len(items) - 1, cursor + 1)
-        elif key in (curses.KEY_ENTER, 10, 13):
-            return items[cursor][0]
+        elif key == ord(" "):
+            path, _label = items[cursor]
+            if path in selected:
+                selected.remove(path)
+                note = f"removed {path.name}"
+            else:
+                selected.append(path)
+                note = f"added {path.name}"
+        elif key == ord("o"):
+            path, _label = items[cursor]
+            # Scan the parent folder so this pick appears among siblings.
+            target = path.parent if path.parent != path else path
+            return target
 
 
 def _validate_manage_path(path_str: str) -> tuple[str | None, Path | None]:
@@ -852,6 +905,11 @@ def _run_curses(args: argparse.Namespace) -> int:
     scroll = 0
     filter_text = ""
     config_path = resolve_config(args.config)
+    pick_history: list[Any] = list(state.get("pick_history") or [])
+
+    def remember_picks(*paths: Path) -> None:
+        nonlocal pick_history
+        pick_history = update_pick_history(pick_history, list(paths))
 
     def refresh_repos() -> list[tuple[Path, bool]]:
         nonlocal message
@@ -903,6 +961,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         else:
             selected.append(path)
             stack_cursor = len(selected) - 1
+            remember_picks(path)
 
     def remove_stack_at(idx: int) -> None:
         nonlocal stack_cursor
@@ -939,7 +998,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             3,
             0,
-            " Tab focus · Space toggle/remove · Enter open folder or apply · u up · e browse · h history · D depth · ? help · q quit"
+            " Tab focus · Space pick · Enter apply · l/→ open · h recent picks · u/← up · D depth · ? help · q quit"
             [: w - 1],
             w - 1,
             curses.A_DIM,
@@ -988,7 +1047,7 @@ def _run_curses(args: argparse.Namespace) -> int:
             hint = (
                 "no matches — / to change filter"
                 if filter_text
-                else "nothing found — Enter a parent via e, or u to go up"
+                else "nothing found — l/→ needs a row; try e to browse, or u to go up"
             )
             attr = curses.A_REVERSE if focus == "list" else curses.A_NORMAL
             stdscr.addnstr(list_top, 0, _ellipsize(f"  ({hint})", left_w - 1), left_w - 1, attr)
@@ -1008,8 +1067,6 @@ def _run_curses(args: argparse.Namespace) -> int:
                     workspace=workspace,
                 )
                 bits = [b for b in bits if b != "elsewhere"]
-                if not is_git:
-                    bits = ["open↵"] + [b for b in bits if b != "mount"]
                 tag = f"  ({' · '.join(bits)})" if bits else ""
                 line = f" {mark} {repo.name}{tag}  {repo}"
                 attr = curses.A_NORMAL
@@ -1093,11 +1150,11 @@ def _run_curses(args: argparse.Namespace) -> int:
             )
         elif selected:
             footer = (
-                f"LIST · Enter opens folder · Tab to stack to apply {len(selected)}"
-                + (f" ({outside_n} elsewhere)" if outside_n else "")
+                f"LIST · Enter applies {len(selected)} · Space pick · l/→ open · u/← up"
+                + (f" · {outside_n} elsewhere" if outside_n else "")
             )
         else:
-            footer = "LIST · Space pick · Enter opens folder · u up · Tab stack"
+            footer = "LIST · Space pick · l/→ open folder · u/← up · Enter applies stack · Tab stack"
         stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
         stdscr.refresh()
 
@@ -1186,9 +1243,13 @@ def _run_curses(args: argparse.Namespace) -> int:
                 if selected:
                     remove_stack_at(stack_cursor)
             elif key == ord("a") and focus == "list":
+                added: list[Path] = []
                 for p, _ in view:
                     if p not in selected:
                         selected.append(p)
+                        added.append(p)
+                if added:
+                    remember_picks(*added)
             elif key == ord("A"):
                 selected = []
                 stack_cursor = 0
@@ -1202,10 +1263,20 @@ def _run_curses(args: argparse.Namespace) -> int:
                 depth = 1 if depth >= 2 else 2
                 repos = refresh_repos()
                 cursor = 0
-            elif key in (ord("u"), curses.KEY_BACKSPACE, 127, 8):
+            elif key in (ord("u"), curses.KEY_BACKSPACE, curses.KEY_LEFT, 127, 8):
                 parent = parent.parent
                 after_parent_change()
                 message = f"up → {parent}"
+            elif key in (ord("l"), curses.KEY_RIGHT):
+                if focus != "list":
+                    message = "l/→ opens a folder on the list — Tab back first"
+                elif not view:
+                    message = "nothing to open"
+                else:
+                    path, _is_git = view[min(cursor, len(view) - 1)]
+                    parent = path
+                    after_parent_change()
+                    message = f"opened {path.name}"
             elif key == ord("?"):
                 _show_help(
                     stdscr,
@@ -1215,13 +1286,13 @@ def _run_curses(args: argparse.Namespace) -> int:
                         "Esc      stack → list (does not quit); list → quit",
                         "Space    list: toggle pick · stack: remove highlighted",
                         "x        stack: remove highlighted",
-                        "Enter    list: open plain folder · stack: apply will-add",
-                        "         list+git with picks: apply (shortcut)",
-                        "u / Bksp  go up one directory (keeps will-add)",
+                        "Enter    apply will-add stack (confirm)",
+                        "l / →    open highlighted folder (descend)",
+                        "u / ← / Bksp  go up one directory (keeps will-add)",
+                        "h        recent picks — Space-add without browsing",
                         "a / A    select all visible / clear will-add stack",
                         "/        filter the list by name",
                         "e        browse jump to another parent",
-                        "h        recent parent directories",
                         "D        toggle scan depth 1 ↔ 2",
                         "w / t / b  workspace name / worktree mode / branch",
                         "q        quit without applying",
@@ -1234,25 +1305,38 @@ def _run_curses(args: argparse.Namespace) -> int:
                     after_parent_change()
             elif key == ord("h"):
                 now = time.time()
-                hist: list[tuple[str, str]] = []
-                for hitem in state.get("parent_history") or []:
+                items: list[tuple[Path, str]] = []
+                for hitem in pick_history:
                     if not isinstance(hitem, dict):
                         continue
-                    path, ts = hitem.get("path"), hitem.get("ts")
-                    if not isinstance(path, str) or not isinstance(ts, (int, float)):
+                    path_s, ts = hitem.get("path"), hitem.get("ts")
+                    if not isinstance(path_s, str) or not isinstance(ts, (int, float)):
                         continue
                     age = now - ts
-                    if path == str(parent) or age > HISTORY_TTL_DAYS * 86400 or not Path(path).is_dir():
+                    if age > PICK_HISTORY_TTL_DAYS * 86400:
                         continue
-                    remaining = HISTORY_TTL_DAYS * 86400 - age
-                    hist.append((path, f"{_humanize(age)} ago · expires in {_humanize(remaining)}"))
-                if not hist:
-                    message = "no history yet"
+                    p = Path(path_s)
+                    if not p.is_dir():
+                        continue
+                    try:
+                        p = p.resolve()
+                    except OSError:
+                        continue
+                    remaining = PICK_HISTORY_TTL_DAYS * 86400 - age
+                    items.append(
+                        (p, f"{_humanize(age)} ago · expires in {_humanize(remaining)}")
+                    )
+                if not items:
+                    message = "no recent picks yet — Space-select something first"
                 else:
-                    picked = _pick_from_history(stdscr, hist)
-                    if picked:
-                        parent = Path(picked).resolve()
+                    jump = _recent_picks_screen(stdscr, items, selected)
+                    remember_picks(*[p for p in selected if any(p == it[0] for it in items)])
+                    if jump is not None:
+                        parent = jump
                         after_parent_change()
+                        message = f"jumped to {parent}"
+                    else:
+                        message = f"will-add has {len(selected)} path(s)"
             elif key == ord("w"):
                 workspace = _prompt_line(stdscr, "Workspace name", workspace) or workspace
             elif key == ord("t"):
@@ -1262,18 +1346,6 @@ def _run_curses(args: argparse.Namespace) -> int:
                 branch = _prompt_line(stdscr, "Branch for all worktrees", branch) or branch
                 use_worktree = True
             elif key in (curses.KEY_ENTER, 10, 13):
-                if focus == "stack":
-                    rc_apply = try_apply(stdscr)
-                    if rc_apply is not None:
-                        return rc_apply
-                    continue
-                if view:
-                    path, is_git = view[min(cursor, len(view) - 1)]
-                    if not is_git:
-                        parent = path
-                        after_parent_change()
-                        message = f"opened {path.name}"
-                        continue
                 rc_apply = try_apply(stdscr)
                 if rc_apply is not None:
                     return rc_apply
@@ -1285,6 +1357,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         return rc
 
     chosen = list(selected)
+    remember_picks(*chosen)
     save_state(
         {
             "last_parent": str(parent.resolve()),
@@ -1292,6 +1365,7 @@ def _run_curses(args: argparse.Namespace) -> int:
             "last_branch": branch,
             "last_use_worktree": use_worktree,
             "parent_history": update_parent_history(state.get("parent_history") or [], parent),
+            "pick_history": pick_history,
         }
     )
     if use_worktree:

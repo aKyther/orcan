@@ -101,8 +101,8 @@ managed worktree per selected git repo (plain directories are always
 mounted as-is, no worktree).
 
 Scan screen keys:
-  Tab list↔stack · Esc stack→list · Space toggle/remove · Enter open/apply ·
-  u/Bksp up · a/A all/clear · / filter · e browse · h history ·
+  Tab list↔stack · Esc stack→list · Space pick/remove · Enter apply ·
+  l/→ open · u/← up · h recent picks · a/A all/clear · / filter · e browse ·
   D depth 1↔2 · w name · t worktree · b branch · q quit
   (will-add stack: right column if wide, else bottom strip)
 
