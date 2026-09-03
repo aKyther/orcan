@@ -103,7 +103,8 @@ mounted as-is, no worktree).
 Scan screen keys:
   Tab review · Space pick · Enter apply (or open when empty) ·
   l/→ open · u/← up · h recent picks · a/A all/clear · / filter · e browse ·
-  D depth 1↔2 · w name · t worktree · b branch · q quit
+  D depth 1↔2 · w name · t all mount/worktree · b branch · q quit
+  In Tab review: b toggles the highlighted git project mount↔worktree
   (selection preview: right column if wide, compact bar if narrow)
 
 Manage screen keys (shown when a config already exists):
