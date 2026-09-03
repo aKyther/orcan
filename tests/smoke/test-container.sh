@@ -42,8 +42,7 @@ command -v tmux >/dev/null
 tmux -V | grep -Eq '^tmux 3\.[6-9]'
 command -v cursor-tmux-workspace-attach >/dev/null
 command -v cursor-tmux-bootstrap-workspaces >/dev/null
-command -v agent >/dev/null
-command -v claude >/dev/null
+command -v codex >/dev/null
 command -v python3 >/dev/null
 command -v python >/dev/null
 command -v pip3 >/dev/null
@@ -51,8 +50,7 @@ command -v uv >/dev/null
 python3 -c 'import json, math, os, pathlib, sys, time'
 python -c 'import json, sys; assert sys.version_info >= (3, 11)'
 uv --version >/dev/null
-agent --version >/dev/null
-claude --version >/dev/null
+codex --version >/dev/null
 command -v ttyd >/dev/null
 command -v tree >/dev/null
 command -v yq >/dev/null

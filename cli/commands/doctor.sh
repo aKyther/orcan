@@ -146,6 +146,13 @@ orcan_cmd_doctor() {
         image_local="${IMAGE_LOCAL:-orcan:latest}"
         if docker image inspect "${image_local}" >/dev/null 2>&1; then
             check "image ${image_local}" "1"
+            local agents_manifest
+            agents_manifest="$(docker run --rm --entrypoint cat "${image_local}" /etc/orcan/agents.json 2>/dev/null || true)"
+            if [[ -n "${agents_manifest}" ]]; then
+                check "image agents" "1" "${agents_manifest}"
+            else
+                check "image agents" "0" "old image — rebuild with: orcan build --agent codex"
+            fi
         else
             check "image ${image_local}" "0" "run: orcan build"
         fi

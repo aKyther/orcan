@@ -635,7 +635,7 @@ USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
 # ------------------------------------------------------------------------------
-# AI CLIs — INSTALL_CLAUDE / INSTALL_CURSOR / INSTALL_CODEX (default: all → variant full)
+# AI CLIs — selected explicitly by `orcan build --agent …`.
 # ------------------------------------------------------------------------------
 # Image tags: orcan:latest + orcan:<VERSION> (all agents);
 #             orcan:<VERSION>-claude / -cursor / -codex (local single-agent builds).
@@ -644,6 +644,8 @@ WORKDIR /home/${USERNAME}
 ARG INSTALL_CURSOR=1
 ARG INSTALL_CLAUDE=1
 ARG INSTALL_CODEX=1
+ARG INSTALL_GEMINI=0
+ARG INSTALL_COPILOT=0
 ARG ORCAN_VERSION=dev
 
 RUN set -eux; \
@@ -692,31 +694,33 @@ RUN set -eux; \
 # Codex config lives under ~/.codex (bind: $ORCAN_DATA/codex).
 
 RUN set -eux; \
-    cursor_on=0; claude_on=0; codex_on=0; \
+    if [ "${INSTALL_GEMINI}" = "1" ] || [ "${INSTALL_GEMINI}" = "true" ]; then \
+        npm install -g --prefix "${HOME}/.local" @google/gemini-cli; gemini --version; \
+    fi; \
+    if [ "${INSTALL_COPILOT}" = "1" ] || [ "${INSTALL_COPILOT}" = "true" ]; then \
+        npm_config_ignore_scripts=false npm install -g --prefix "${HOME}/.local" @github/copilot; copilot --version; \
+    fi
+
+RUN set -eux; \
+    cursor_on=0; claude_on=0; codex_on=0; gemini_on=0; copilot_on=0; \
     if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then cursor_on=1; fi; \
     if [ "${INSTALL_CLAUDE}" = "1" ] || [ "${INSTALL_CLAUDE}" = "true" ]; then claude_on=1; fi; \
     if [ "${INSTALL_CODEX}" = "1" ] || [ "${INSTALL_CODEX}" = "true" ]; then codex_on=1; fi; \
-    if [ "${cursor_on}" = "0" ] && [ "${claude_on}" = "0" ] && [ "${codex_on}" = "0" ]; then \
-        echo "Error: at least one of INSTALL_CLAUDE / INSTALL_CURSOR / INSTALL_CODEX must be enabled" >&2; \
+    if [ "${INSTALL_GEMINI}" = "1" ] || [ "${INSTALL_GEMINI}" = "true" ]; then gemini_on=1; fi; \
+    if [ "${INSTALL_COPILOT}" = "1" ] || [ "${INSTALL_COPILOT}" = "true" ]; then copilot_on=1; fi; \
+    if [ "${cursor_on}${claude_on}${codex_on}${gemini_on}${copilot_on}" = "00000" ]; then \
+        echo "Error: at least one agent must be enabled" >&2; \
         exit 1; \
     fi; \
-    if [ "${cursor_on}" = "1" ] && [ "${claude_on}" = "1" ] && [ "${codex_on}" = "1" ]; then \
-        printf 'full' > /tmp/orcan-variant; \
-    else \
-        variant=""; \
-        [ "${claude_on}" = "1" ] && variant="${variant}claude+"; \
-        [ "${cursor_on}" = "1" ] && variant="${variant}cursor+"; \
-        [ "${codex_on}" = "1" ] && variant="${variant}codex+"; \
-        printf '%s' "${variant%+}" > /tmp/orcan-variant; \
-    fi
+    printf '{"agents":{"cursor":%s,"claude":%s,"codex":%s,"gemini":%s,"copilot":%s}}\n' "${cursor_on}" "${claude_on}" "${codex_on}" "${gemini_on}" "${copilot_on}" > /tmp/orcan-agents.json
 
 USER root
 ARG ORCAN_VERSION=dev
 RUN install -d -m 0755 /etc/orcan \
-    && mv /tmp/orcan-variant /etc/orcan/variant \
+    && mv /tmp/orcan-agents.json /etc/orcan/agents.json \
     && printf '%s\n' "${ORCAN_VERSION}" > /etc/orcan/version \
-    && chmod 0644 /etc/orcan/variant /etc/orcan/version \
-    && chown root:root /etc/orcan/variant /etc/orcan/version
+    && chmod 0644 /etc/orcan/agents.json /etc/orcan/version \
+    && chown root:root /etc/orcan/agents.json /etc/orcan/version
 
 LABEL org.opencontainers.image.title="Orcan" \
       org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \

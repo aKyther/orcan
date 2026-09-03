@@ -93,6 +93,8 @@ services:
       - ${ORCAN_DATA}/cursor-app:/home/developer/.config/cursor
       - ${ORCAN_DATA}/claude:/home/developer/.claude
       - ${ORCAN_DATA}/codex:/home/developer/.codex
+      - ${ORCAN_DATA}/gemini:/home/developer/.gemini
+      - ${ORCAN_DATA}/copilot:/home/developer/.copilot
       # Single cache bind — npm/pnpm/cargo/go live under ~/.cache via env (see above).
       - ${ORCAN_DATA}/cache:/home/developer/.cache
       - ${ORCAN_DATA}/history:/home/developer/.local/share/orcan/history

@@ -55,7 +55,8 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | *(in-container)* `orcan-inbox` | Agent task handoff queue under `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). See [Agent inbox](../ideas/agent-inbox.md) |
 | `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start container (`orcan enter` locally; pick **one** browser mode: `--with-ttyd` or `--with-ttyd-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
 | `orcan down` | Stop containers |
-| `orcan build [--claude|--cursor] [--force] [--no-cache]` | Both agents → `orcan:latest` + `orcan:<VERSION>` (pull or build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (no pull; does not overwrite `latest`). Never publishes |
+| `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache]` | Build the standard `orcan:latest` + `orcan:<VERSION>` image with explicit clients (`cursor`, `claude`, `codex`, `gemini`, `copilot`). `/etc/orcan/agents.json` records the choice; never publishes |
+| `orcan status` | Runtime summary and the image agent manifest |
 | `orcan pull` | Pull both-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push both-agents `orcan:latest` (**manual**; not `-claude`/`-cursor`) |
 | `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
@@ -76,7 +77,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 
 ```bash
 orcan init
-orcan build
+orcan build --agent codex
 orcan up              # local — orcan enter on the same machine
 # remote browser: orcan up --with-ttyd
 ```

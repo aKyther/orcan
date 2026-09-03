@@ -86,7 +86,7 @@ before `orcan sync`; it must be an absolute host path. Important edge cases:
 
 | Variable | Role |
 | --- | --- |
-| `ORCAN_VARIANT` | `full` or `claude` (from `/etc/orcan/variant`) |
+| `ORCAN_VARIANT` | Legacy image marker; installed clients are in `/etc/orcan/agents.json` |
 | `ORCAN_VERSION` | From `/etc/orcan/version` |
 | `HISTFILE` | Default `~/.local/share/orcan/history/.zsh_history`; in tmux, per workspace: `…/history/workspaces/<name>/.zsh_history` (bind: `$ORCAN_DATA/history`) |
 | `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Under `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |

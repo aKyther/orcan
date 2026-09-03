@@ -2,42 +2,25 @@
 # shellcheck shell=bash
 
 orcan_cmd_build() {
-    local variant="full"
+    local agents=""
     local no_cache=0
-    local force_local=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --claude)
-                if [[ "${variant}" != "full" ]]; then
-                    orcan_usage_error "use only one of --claude / --cursor / --codex"
-                fi
-                variant="claude"
-                force_local=1
-                shift
+            --agent)
+                [[ -n "${2:-}" ]] || orcan_usage_error "--agent needs: cursor|claude|codex|gemini|copilot"
+                case "${2}" in cursor|claude|codex|gemini|copilot) ;; *) orcan_usage_error "unknown agent: ${2}";; esac
+                agents="${agents:+${agents}+}$2"
+                shift 2
                 ;;
-            --cursor)
-                if [[ "${variant}" != "full" ]]; then
-                    orcan_usage_error "use only one of --claude / --cursor / --codex"
-                fi
-                variant="cursor"
-                force_local=1
-                shift
-                ;;
-            --codex)
-                if [[ "${variant}" != "full" ]]; then
-                    orcan_usage_error "use only one of --claude / --cursor / --codex"
-                fi
-                variant="codex"
-                force_local=1
+            --all-agents)
+                agents="cursor+claude+codex+gemini+copilot"
                 shift
                 ;;
             --no-cache)
                 no_cache=1
-                force_local=1
                 shift
                 ;;
             --force | --no-pull)
-                force_local=1
                 shift
                 ;;
             --no-publish)
@@ -46,20 +29,11 @@ orcan_cmd_build() {
                 ;;
             -h | --help)
                 cat <<'EOF'
-usage: orcan build [--claude|--cursor|--codex] [--no-cache|--force]
+usage: orcan build --agent NAME [--agent NAME ...] | --all-agents [--no-cache|--force]
 
-  Default (all agents):
-    Tags: orcan:latest + orcan:<VERSION>
-    1) Try pull registry orcan:<VERSION>
-    2) On success → retag locally
-    3) On miss → build all agents locally
-
-  --claude / --cursor / --codex — install only that agent (no pull):
-    Tags: orcan:<VERSION>-claude / -cursor / -codex
-    Does not overwrite orcan:latest / orcan:<VERSION>.
-    Then: IMAGE_LOCAL=orcan:<VERSION>-claude orcan up
-
-  Never publishes. Maintainers push the all-agents image: orcan publish
+  NAME: cursor | claude | codex | gemini | copilot
+  Builds the standard orcan:latest image. Its /etc/orcan/agents.json records
+  the selected CLIs. Build selection is explicit; use --all-agents for all.
 EOF
                 return 0
                 ;;
@@ -69,17 +43,12 @@ EOF
         esac
     done
 
+    [[ -n "${agents}" ]] || orcan_usage_error "choose at least one agent: orcan build --agent codex (or --all-agents)"
+
     orcan_require_docker
     orcan_require_env_for_build
     orcan_load_env
     orcan_runtime_warn_if_config_stale build
 
-    if [[ "${variant}" == "full" ]] && (( ! force_local )); then
-        if orcan_image_try_pull; then
-            return 0
-        fi
-        orcan_info "no usable registry image — building all agents locally"
-    fi
-
-    orcan_image_build_local "${variant}" "${no_cache}"
+    orcan_image_build_local "${agents}" "${no_cache}"
 }

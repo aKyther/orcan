@@ -186,6 +186,8 @@ ORCAN_DATA_SUBDIRS=(
     cursor-app
     claude
     codex
+    gemini
+    copilot
     cache
     history
     dotfiles

@@ -31,6 +31,8 @@ fix_named_volume_permissions() {
         "${HOME}/.cursor" \
         "${HOME}/.claude" \
         "${HOME}/.codex" \
+        "${HOME}/.gemini" \
+        "${HOME}/.copilot" \
         "${HOME}/.cache" \
         "${HOME}/.local/share/orcan/history"
     do
@@ -137,6 +139,8 @@ ensure_orcan_home_map() {
     ln -sfn "${HOME}/.config/cursor" "${root}/agents/cursor-app"
     ln -sfn "${HOME}/.claude" "${root}/agents/claude"
     ln -sfn "${HOME}/.codex" "${root}/agents/codex"
+    ln -sfn "${HOME}/.gemini" "${root}/agents/gemini"
+    ln -sfn "${HOME}/.copilot" "${root}/agents/copilot"
     ln -sfn "${HOME}/.cache" "${root}/cache"
     ln -sfn "${history_dir}" "${root}/history"
     ln -sfn "${dotfiles}" "${root}/dotfiles"

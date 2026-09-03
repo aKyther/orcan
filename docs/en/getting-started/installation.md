@@ -76,31 +76,18 @@ orcan sync
 
 ## Build the image
 
-=== "Both agents (default)"
+Choose the CLI clients baked into the standard Orcan image. Selection is
+explicit; there are no agent-specific image tags.
 
-    ```bash
-    orcan build
-    ```
+```bash
+orcan build --agent codex
+orcan build --agent gemini --agent copilot
+orcan build --all-agents
+```
 
-    Tags: `orcan:latest` and `orcan:<VERSION>`.
-
-=== "Claude Code only (no pull)"
-
-    ```bash
-    orcan build --claude
-    IMAGE_LOCAL=orcan:0.1.1-claude orcan up
-    ```
-
-    Tag: `orcan:<VERSION>-claude` (does not overwrite `latest`).
-
-=== "Cursor CLI only (no pull)"
-
-    ```bash
-    orcan build --cursor
-    IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
-    ```
-
-    Tag: `orcan:<VERSION>-cursor`.
+Each command updates `orcan:latest` and `orcan:<VERSION>`. `orcan status` and
+`orcan doctor` show the image manifest. Gemini and Copilot keep their durable
+login/session data under `ORCAN_DATA/gemini` and `ORCAN_DATA/copilot`.
 
 ## Expected result
 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Agent image selection:** `orcan build` now requires one or more explicit
+  `--agent` choices (or `--all-agents`), adds Gemini CLI and GitHub Copilot
+  CLI, and records installed clients in `/etc/orcan/agents.json`. `orcan
+  status` and `orcan doctor` show that manifest. Test and developer builds
+  default to Codex via `ORCAN_TEST_AGENT`.
+
 - Fixed large confirmed pastes in the embedded terminal being truncated when
   the non-blocking PTY accepted only its first buffer-sized chunk.
 
