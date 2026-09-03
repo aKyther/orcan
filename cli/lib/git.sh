@@ -15,20 +15,16 @@ orcan_git_latest_release_tag() {
         | head -1
 }
 
-# What this install currently is (tag, or v$VERSION from file).
+# What this install currently is: only an exact public release tag counts.
+# `VERSION` on main is the next development version, not proof of a release.
 orcan_git_local_release_tag() {
-    local tag ver
+    local tag
     if [[ -d "${ORCAN_ROOT}/.git" ]]; then
         tag="$(git -C "${ORCAN_ROOT}" describe --tags --exact-match 2>/dev/null || true)"
         if [[ "${tag}" =~ $_ORCAN_RELEASE_TAG_RE ]]; then
             printf '%s\n' "${tag}"
             return 0
         fi
-    fi
-    ver="$(tr -d '[:space:]' < "${ORCAN_ROOT}/VERSION" 2>/dev/null || true)"
-    if [[ "${ver}" =~ $_ORCAN_SEMVER_RE ]]; then
-        printf 'v%s\n' "${ver}"
-        return 0
     fi
     return 1
 }
