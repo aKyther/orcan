@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed large confirmed pastes in the embedded terminal being truncated when
+  the non-blocking PTY accepted only its first buffer-sized chunk.
+
 - **`orcan init` / `orcan context tui` scan UX:** default scan depth is now
   **1** (direct children only) instead of flattening grandchildren into one
   list. Press **`D`** (or `--depth 2`) for the old two-level scan. Changing
