@@ -4,23 +4,15 @@ config-wizard.py so it never touches "workspaces"."""
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = ROOT / "scripts" / "repository"
-sys.path.insert(0, str(SCRIPTS))
+from _scripts_loader import load_script
 
-# Module file is "settings-wizard.py" (hyphen) — not importable by name directly.
-_spec = importlib.util.spec_from_file_location("settings_wizard", SCRIPTS / "settings-wizard.py")
-sw = importlib.util.module_from_spec(_spec)
-assert _spec.loader is not None
-_spec.loader.exec_module(sw)
+sw = load_script("settings-wizard.py")
 
 
 class EditTmuxTests(unittest.TestCase):

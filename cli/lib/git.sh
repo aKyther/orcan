@@ -3,10 +3,15 @@
 # channel) + soft upgrade hints.
 # shellcheck shell=bash
 
+# Release tags are vX.Y.Z only — never -rc / -beta or checkpoint/ tags.
+# Used unquoted in [[ =~ ]] (shellcheck SC2076) and quoted for grep -E.
+_ORCAN_RELEASE_TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+$'
+_ORCAN_SEMVER_RE='^[0-9]+\.[0-9]+\.[0-9]+$'
+
 # Latest SemVer release tag locally (vX.Y.Z only — no -rc / -beta).
 orcan_git_latest_release_tag() {
     git -C "${ORCAN_ROOT}" tag -l 'v*' --sort=-v:refname \
-        | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+        | grep -E "${_ORCAN_RELEASE_TAG_RE}" \
         | head -1
 }
 
@@ -15,13 +20,13 @@ orcan_git_local_release_tag() {
     local tag ver
     if [[ -d "${ORCAN_ROOT}/.git" ]]; then
         tag="$(git -C "${ORCAN_ROOT}" describe --tags --exact-match 2>/dev/null || true)"
-        if [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ "${tag}" =~ $_ORCAN_RELEASE_TAG_RE ]]; then
             printf '%s\n' "${tag}"
             return 0
         fi
     fi
     ver="$(tr -d '[:space:]' < "${ORCAN_ROOT}/VERSION" 2>/dev/null || true)"
-    if [[ "${ver}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [[ "${ver}" =~ $_ORCAN_SEMVER_RE ]]; then
         printf 'v%s\n' "${ver}"
         return 0
     fi
@@ -46,7 +51,7 @@ orcan_git_remote_latest_release_tag() {
     printf '%s\n' "${out}" \
         | awk '{print $2}' \
         | sed 's#refs/tags/##' \
-        | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+        | grep -E "${_ORCAN_RELEASE_TAG_RE}" \
         | sort -V \
         | tail -1
 }
@@ -63,11 +68,11 @@ orcan_git_tag_newer() {
 # Accept vX.Y.Z or X.Y.Z → normalized vX.Y.Z.
 orcan_git_normalize_release_tag() {
     local raw="${1:-}"
-    if [[ "${raw}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [[ "${raw}" =~ $_ORCAN_RELEASE_TAG_RE ]]; then
         printf '%s\n' "${raw}"
         return 0
     fi
-    if [[ "${raw}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [[ "${raw}" =~ $_ORCAN_SEMVER_RE ]]; then
         printf 'v%s\n' "${raw}"
         return 0
     fi
@@ -77,7 +82,7 @@ orcan_git_normalize_release_tag() {
 # Local SemVer tags newest-first (vX.Y.Z only).
 orcan_git_list_release_tags() {
     git -C "${ORCAN_ROOT}" tag -l 'v*' --sort=-v:refname \
-        | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true
+        | grep -E "${_ORCAN_RELEASE_TAG_RE}" || true
 }
 
 # Newest local tag strictly older than $1 (vX.Y.Z). Empty if none.

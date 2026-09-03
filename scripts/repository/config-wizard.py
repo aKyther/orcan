@@ -24,8 +24,10 @@ from config_io import (  # noqa: E402
     default_write_path,
     discover_config,
     dump_config,
+    find_workspace,
     load_config,
 )
+from defaults import TMUX_DEFAULTS, TTYD_DEFAULTS  # noqa: E402
 from wizard_ui import (  # noqa: E402
     _yellow,
     ask,
@@ -37,7 +39,7 @@ from wizard_ui import (  # noqa: E402
     success,
     warn,
 )
-from path_guards import is_sensitive_path  # noqa: E402
+from path_guards import PathGuardError, checked_project_dir  # noqa: E402
 
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$")
 
@@ -55,30 +57,12 @@ def validate_name(name: str, *, label: str) -> str | None:
 
 
 def validate_project_path(path_str: str) -> tuple[str | None, Path | None]:
-    path_str = path_str.strip()
-    if not path_str:
+    if not path_str.strip():
         return "path cannot be empty", None
-    if "~" in path_str:
-        return "use an absolute path (no ~)", None
-    p = Path(path_str)
-    if not p.is_absolute():
-        return f"path must be absolute (got: {path_str})", None
-    if not p.exists():
-        return f"does not exist: {path_str}", None
-    if not p.is_dir():
-        return f"not a directory: {path_str}", None
     try:
-        resolved = p.resolve()
-    except OSError as exc:
-        return f"cannot resolve path: {exc}", None
-    if is_sensitive_path(resolved):
-        return f"refusing sensitive path: {resolved}", None
-    home = Path.home().resolve()
-    if resolved == home:
-        return f"refusing to mount entire home: {resolved}", None
-    if not os.access(resolved, os.R_OK):
-        return f"not readable: {resolved}", None
-    return None, resolved
+        return None, checked_project_dir(path_str.strip(), must_exist=True)
+    except PathGuardError as exc:
+        return str(exc), None
 
 
 def find_cwd_match(cfg: dict[str, Any]) -> tuple[str, str, str] | None:
@@ -664,25 +648,11 @@ def create_fresh() -> dict[str, Any]:
         cfg["workspaces"].append(ask_new_workspace(another=True, cfg=cfg))
     # tmux/ttyd are tool settings, not workspace data — seed defaults here;
     # customize later with `orcan settings`.
-    cfg["tmux"] = {"initial_windows": 3, "window_prefix": "tab"}
-    cfg["ttyd"] = {
-        "port": 7681,
-        "host_port": 7681,
-        "font_size": 14,
-        "font_family": "Menlo, Monaco, 'Courier New', monospace",
-        "theme": "dark",
-        "ping_interval": 20,
-    }
+    cfg["tmux"] = dict(TMUX_DEFAULTS)
+    cfg["ttyd"] = dict(TTYD_DEFAULTS)
     info()
     info("  ✓ tmux/ttyd: using defaults (customize later: orcan settings)")
     return cfg
-
-
-def find_workspace_name(cfg: dict[str, Any], name: str) -> bool:
-    for ws in cfg.get("workspaces") or []:
-        if isinstance(ws, dict) and ws.get("name") == name:
-            return True
-    return False
 
 
 def wizard_remove_managed_worktrees(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
@@ -758,7 +728,7 @@ def top_menu(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
             for ws in (cfg.get("workspaces") or [])
             if not (isinstance(ws, dict) and ws.get("name") == ws_name)
         ]
-        if find_workspace_name(cfg, ws_name):
+        if find_workspace(cfg, ws_name) is not None:
             if not ask_yes_no(f"Workspace {ws_name!r} already exists — replace it?", default=False):
                 info("Cancelled.")
                 return cfg

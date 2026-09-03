@@ -79,6 +79,7 @@ require_file "tests/host/test_config_wizard.py"
 require_file "tests/host/test_wizard_ui.py"
 require_file "tests/host/test_settings_wizard.py"
 require_file "scripts/repository/config_io.py"
+require_file "scripts/repository/defaults.py"
 require_file "scripts/repository/git_worktrees.py"
 require_file "scripts/repository/path_guards.py"
 require_file "scripts/repository/managed_workspace.py"
@@ -333,6 +334,7 @@ for script in \
     scripts/repository/wizard_ui.py \
     scripts/repository/settings-wizard.py \
     scripts/repository/config_io.py \
+    scripts/repository/defaults.py \
     scripts/repository/git_worktrees.py \
     scripts/repository/managed_workspace.py \
     scripts/repository/migrate_projects.py \

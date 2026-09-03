@@ -18,8 +18,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from config_io import (  # noqa: E402
     default_write_path,
+    die,
     discover_config,
     dump_config,
+    find_workspace,
     load_config,
 )
 from git_worktrees import (  # noqa: E402
@@ -37,11 +39,6 @@ from git_worktrees import (  # noqa: E402
 )
 
 
-def die(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
-    raise SystemExit(1)
-
-
 def info(msg: str = "") -> None:
     print(msg)
 
@@ -53,13 +50,6 @@ def resolve_config(path: str) -> Path:
             p = (ROOT / p).resolve()
         return p
     return discover_config(ROOT) or default_write_path(ROOT)
-
-
-def find_workspace(cfg: dict[str, Any], name: str) -> dict[str, Any] | None:
-    for ws in cfg.get("workspaces") or []:
-        if isinstance(ws, dict) and ws.get("name") == name:
-            return ws
-    return None
 
 
 def parse_project_specs(specs: list[str]) -> list[tuple[str, Path]]:

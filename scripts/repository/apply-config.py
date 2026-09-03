@@ -14,16 +14,16 @@ from pathlib import Path
 
 # Host scripts live next to this file.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config_io import discover_config, load_config as load_user_config  # noqa: E402
-from path_guards import is_sensitive_path  # noqa: E402
+from config_io import die, discover_config, load_config as load_user_config  # noqa: E402
+from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS  # noqa: E402
+from path_guards import (  # noqa: E402
+    PathGuardError,
+    checked_project_dir,
+    is_sensitive_path,
+)
 
 
 DEFAULT_DEVELOPER_WORKSPACES = "/home/developer/workspaces"
-
-
-def die(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
-    raise SystemExit(1)
 
 
 def write_text_replace(path: Path, text: str) -> None:
@@ -46,37 +46,17 @@ def write_text_replace(path: Path, text: str) -> None:
 
 
 def resolve_abs(path: str, label: str) -> Path:
-    if "~" in path:
-        die(f"{label} must not contain ~ (got: {path})")
-    p = Path(path)
-    if not p.is_absolute():
-        die(f"{label} must be an absolute path (got: {path})")
-    if not p.exists():
-        die(f"{label} does not exist: {path}")
-    if not p.is_dir():
-        die(f"{label} is not a directory: {path}")
-    resolved = p.resolve()
-    if is_sensitive_path(resolved):
-        die(f"refusing sensitive path for {label}: {resolved}")
-    home = Path.home().resolve()
-    if resolved == home:
-        die(f"refusing to mount entire home for {label}: {resolved}")
-    if not os.access(resolved, os.R_OK):
-        die(f"{label} is not readable: {resolved}")
-    return resolved
+    try:
+        return checked_project_dir(path, must_exist=True, require_readable=True)
+    except PathGuardError as exc:
+        die(f"{label} {exc}")
 
 
 def ensure_dir(path: Path, label: str) -> Path:
-    if "~" in str(path):
-        die(f"{label} must not contain ~")
-    if not path.is_absolute():
-        die(f"{label} must be an absolute path (got: {path})")
-    resolved = path.resolve()
-    if is_sensitive_path(resolved):
-        die(f"refusing sensitive path for {label}: {resolved}")
-    home = Path.home().resolve()
-    if resolved == home:
-        die(f"refusing to use entire home for {label}: {resolved}")
+    try:
+        resolved = checked_project_dir(path, must_exist=False)
+    except PathGuardError as exc:
+        die(f"{label} {exc}")
     resolved.mkdir(parents=True, exist_ok=True)
     return resolved
 
@@ -568,6 +548,55 @@ def write_code_workspace(
     return out_path
 
 
+def _resolved_runtime_settings(cfg: dict) -> dict:
+    """The tmux / ttyd / resources sections with defaults filled and types coerced.
+
+    Shared by build_from_config() and synthesize_from_env() so the default
+    literals live only in defaults.py. Pass an empty cfg for pure defaults.
+    """
+    ttyd = cfg.get("ttyd") or {}
+    resources = cfg.get("resources") or {}
+    if not isinstance(ttyd, dict) or not isinstance(resources, dict):
+        die("ttyd and resources must be objects")
+
+    tmux_cfg = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else {}
+    initial_windows = int(tmux_cfg.get("initial_windows", TMUX_DEFAULTS["initial_windows"]))
+    initial_windows = max(1, min(9, initial_windows))
+    window_prefix = (
+        str(tmux_cfg.get("window_prefix") or TMUX_DEFAULTS["window_prefix"]).strip()
+        or str(TMUX_DEFAULTS["window_prefix"])
+    )
+
+    return {
+        "tmux": {
+            "initial_windows": initial_windows,
+            "window_prefix": window_prefix,
+        },
+        "ttyd": {
+            "port": int(ttyd.get("port", TTYD_DEFAULTS["port"])),
+            "host_port": int(
+                ttyd.get("host_port", ttyd.get("port", TTYD_DEFAULTS["host_port"]))
+            ),
+            "bind": str(ttyd.get("bind") or TTYD_DEFAULTS["bind"]).strip()
+            or str(TTYD_DEFAULTS["bind"]),
+            "font_size": int(ttyd.get("font_size", TTYD_DEFAULTS["font_size"])),
+            "font_family": str(ttyd.get("font_family") or TTYD_DEFAULTS["font_family"]),
+            "theme": str(ttyd.get("theme") or TTYD_DEFAULTS["theme"]),
+            "ping_interval": max(
+                1, int(ttyd.get("ping_interval", TTYD_DEFAULTS["ping_interval"]))
+            ),
+        },
+        "resources": {
+            "cpus": resources.get("cpus", RESOURCE_DEFAULTS["cpus"]),
+            "memory": str(resources.get("memory", RESOURCE_DEFAULTS["memory"])),
+            "shm_size": str(resources.get("shm_size", RESOURCE_DEFAULTS["shm_size"])),
+            "tmpfs_size": str(
+                resources.get("tmpfs_size", RESOURCE_DEFAULTS["tmpfs_size"])
+            ),
+        },
+    }
+
+
 def build_from_config(cfg: dict, repo_root: Path) -> dict:
     if cfg.get("default_project"):
         die(
@@ -593,44 +622,9 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
     primary_ws = primary_workspace(workspaces)
     container_project_dir = primary_ws["root"]
 
-    ttyd = cfg.get("ttyd") or {}
-    resources = cfg.get("resources") or {}
-    if not isinstance(ttyd, dict) or not isinstance(resources, dict):
-        die("ttyd and resources must be objects")
-
-    tmux_cfg = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else {}
-    initial_windows = int(tmux_cfg.get("initial_windows", 3))
-    if initial_windows < 1:
-        initial_windows = 1
-    if initial_windows > 9:
-        initial_windows = 9
-    window_prefix = str(tmux_cfg.get("window_prefix") or "tab").strip() or "tab"
-
     runtime: dict = {
         "workspaces": workspaces,
-        "tmux": {
-            "initial_windows": initial_windows,
-            "window_prefix": window_prefix,
-        },
-        "ttyd": {
-            "port": int(ttyd.get("port", 7681)),
-            "host_port": int(ttyd.get("host_port", ttyd.get("port", 7681))),
-            # Host publish address — default all interfaces (LAN / VM).
-            "bind": str(ttyd.get("bind") or "0.0.0.0").strip() or "0.0.0.0",
-            "font_size": int(ttyd.get("font_size", 14)),
-            "font_family": str(
-                ttyd.get("font_family")
-                or "Menlo, Monaco, 'Courier New', monospace"
-            ),
-            "theme": str(ttyd.get("theme") or "dark"),
-            "ping_interval": max(1, int(ttyd.get("ping_interval", 20))),
-        },
-        "resources": {
-            "cpus": resources.get("cpus", 2),
-            "memory": str(resources.get("memory", "4g")),
-            "shm_size": str(resources.get("shm_size", "512m")),
-            "tmpfs_size": str(resources.get("tmpfs_size", "512m")),
-        },
+        **_resolved_runtime_settings(cfg),
     }
 
     project_paths = [p["path"] for ws in workspaces for p in ws["projects"]]
@@ -669,22 +663,7 @@ def synthesize_from_env(project_dir: str, repo_root: Path) -> dict:
     }
     runtime = {
         "workspaces": [workspace],
-        "tmux": {"initial_windows": 3, "window_prefix": "tab"},
-        "ttyd": {
-            "port": 7681,
-            "host_port": 7681,
-            "bind": "0.0.0.0",
-            "font_size": 14,
-            "font_family": "Menlo, Monaco, 'Courier New', monospace",
-            "theme": "dark",
-            "ping_interval": 20,
-        },
-        "resources": {
-            "cpus": 2,
-            "memory": "4g",
-            "shm_size": "512m",
-            "tmpfs_size": "512m",
-        },
+        **_resolved_runtime_settings({}),
     }
     return {
         "runtime": runtime,
@@ -740,16 +719,12 @@ def main() -> None:
     active_names = {ws["name"] for ws in built["workspaces"] if ws.get("enabled") is not False}
     prune_stale_workspace_metas(root, active_names)
     # Drop stale *.code-workspace files for removed workspaces
-    for path in runtime_dir.glob("*.container.code-workspace"):
-        stem = path.name[: -len(".container.code-workspace")]
-        if stem not in active_names and stem != "workspace":
-            path.unlink(missing_ok=True)
-            print(f"removed stale {path.name}")
-    for path in runtime_dir.glob("*.host.code-workspace"):
-        stem = path.name[: -len(".host.code-workspace")]
-        if stem not in active_names and stem != "workspace":
-            path.unlink(missing_ok=True)
-            print(f"removed stale {path.name}")
+    for suffix in (".container.code-workspace", ".host.code-workspace"):
+        for path in runtime_dir.glob(f"*{suffix}"):
+            stem = path.name[: -len(suffix)]
+            if stem not in active_names and stem != "workspace":
+                path.unlink(missing_ok=True)
+                print(f"removed stale {path.name}")
 
     runtime_path.write_text(
         json.dumps(built["runtime"], indent=2) + "\n", encoding="utf-8"

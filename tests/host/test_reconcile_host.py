@@ -10,15 +10,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from _scripts_loader import load_script
+
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = ROOT / "scripts" / "repository"
 LIB = ROOT / "docker" / "rootfs" / "usr" / "local" / "lib"
 
-_spec = importlib.util.spec_from_file_location("reconcile_host", SCRIPTS / "reconcile-host.py")
-assert _spec and _spec.loader
-reconcile_host = importlib.util.module_from_spec(_spec)
-sys.modules[_spec.name] = reconcile_host
-_spec.loader.exec_module(reconcile_host)
+reconcile_host = load_script("reconcile-host.py")
 
 _reconcile_spec = importlib.util.spec_from_file_location(
     "orcan_reconcile_module", LIB / "orcan" / "reconcile.py"

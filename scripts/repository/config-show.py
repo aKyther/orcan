@@ -13,12 +13,7 @@ ROOT = Path(
     or Path(__file__).resolve().parents[2]
 )
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config_io import discover_config, load_config  # noqa: E402
-
-
-def die(msg: str) -> None:
-    print(f"Error: {msg}", file=sys.stderr)
-    raise SystemExit(1)
+from config_io import die, discover_config, load_config  # noqa: E402
 
 
 def load_json(path: Path) -> dict:
