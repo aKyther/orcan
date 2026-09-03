@@ -25,17 +25,12 @@
     const width = window.visualViewport?.width || window.innerWidth;
     const desired = width <= PHONE_MAX_WIDTH_PX ? "16"
       : width <= TABLET_MAX_WIDTH_PX ? "14"
-        : null;
+        : "13";
     const current = url.searchParams.get("fontSize");
-    if (desired === current && (desired === null || managed)) return false;
+    if (desired === current && managed) return false;
 
-    if (desired === null) {
-      url.searchParams.delete("fontSize");
-      url.searchParams.delete("orcanResponsiveFont");
-    } else {
-      url.searchParams.set("fontSize", desired);
-      url.searchParams.set("orcanResponsiveFont", "1");
-    }
+    url.searchParams.set("fontSize", desired);
+    url.searchParams.set("orcanResponsiveFont", "1");
     window.location.replace(url);
     return true;
   }
@@ -58,6 +53,8 @@
 
     document.documentElement.style.height = height ? `${height}px` : "";
     document.body.style.height = height ? `${height}px` : "";
+    const container = document.querySelector("#terminal-container");
+    if (container) container.style.height = height ? `${height}px` : "";
     document.body.dataset.orcanKeyboardViewport = height ? "open" : "closed";
     // ttyd's fit addon listens to window resize, not VisualViewport resize.
     window.dispatchEvent(new Event("resize"));
