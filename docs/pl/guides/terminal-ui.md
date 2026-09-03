@@ -183,6 +183,11 @@ zaznaczeniem → schowek; bez zaznaczenia → SIGINT. Potwierdzone duże wklejki
 są kolejkowane do nieblokującego PTY, więc cały tekst dociera mimo ograniczenia
 bufora PTY.
 
+Wklejki od **32 KiB** nie są wpisywane bezpośrednio do aktywnego agenta.
+Orcan zapisuje prywatny plik `0600` pod `/tmp/orcan-paste-*.md` i wpisuje krótką
+instrukcję z jego ścieżką. Agent może przeczytać pełną prośbę bez zalewania TTY;
+pliki wygasają po 24 godzinach.
+
 **Scrollback:** pyte trzyma **bieżący** ekran; przewijanie historii robi tmux
 (copy-mode) i przerysowuje pane — mysz musi trafić do tmux jako SGR.
 
