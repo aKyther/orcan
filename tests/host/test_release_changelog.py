@@ -71,6 +71,17 @@ class ReleaseFixture:
     def sh(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
         return run(["bash", "./scripts/repository/release.sh", *args], cwd=self.root, check=check)
 
+    def retract(self, version: str, calver: str, *, check: bool = True) -> subprocess.CompletedProcess:
+        return run(
+            [
+                "bash", "-c",
+                "RELEASE_RETRACT_SKIP_DOCS=1 RELEASE_RETRACT_SKIP_GITHUB=1 "
+                f"bash ./scripts/repository/release.sh retract {version} {calver} RETRACT-v{version}",
+            ],
+            cwd=self.root,
+            check=check,
+        )
+
     def add_unreleased(self, heading: str, bullet: str) -> None:
         p = self.root / "CHANGELOG.md"
         p.write_text(p.read_text().replace(
@@ -221,6 +232,32 @@ class ReleaseTests(unittest.TestCase):
         # leaving a half-finished release (extra local commit/tag) behind.
         self.assertEqual(self.fx.local_head(), head_before, "release left an extra commit behind")
         self.assertTrue(self.fx.is_clean(), "release left the tree dirty after failing")
+
+    def test_retract_reverts_divider_and_removes_public_tags(self) -> None:
+        self.fx.add_unreleased("Fixed", "bad release")
+        self.fx.sh("release", "26.9")
+
+        proc = self.fx.retract("3.0.6", "26.9")
+
+        self.assertIn("Retracted v3.0.6", proc.stdout)
+        self.assertNotIn("v3.0.6", self.fx.tags())
+        self.assertNotIn("26.9", self.fx.tags())
+        self.assertNotIn("v3.0.6", self.fx.remote_tags())
+        self.assertNotIn("26.9", self.fx.remote_tags())
+        self.assertIn("checkpoint/v3.0.6", self.fx.remote_tags())
+        self.assertNotIn("## 26.9 —", self.fx.changelog())
+        self.assertEqual(self.fx.remote_head(), self.fx.local_head())
+
+    def test_retract_requires_exact_confirmation_before_mutating(self) -> None:
+        self.fx.add_unreleased("Fixed", "bad release")
+        self.fx.sh("release", "26.9")
+        head_before = self.fx.local_head()
+        proc = self.fx.sh("retract", "3.0.6", "26.9", "nope", check=False)
+
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("set CONFIRM=RETRACT-v3.0.6", proc.stderr)
+        self.assertEqual(self.fx.local_head(), head_before)
+        self.assertIn("v3.0.6", self.fx.remote_tags())
 
 
 class UpdateHintSafetyTests(unittest.TestCase):

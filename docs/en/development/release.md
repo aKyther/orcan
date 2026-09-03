@@ -70,6 +70,22 @@ CI then validates, deploys docs `X.Y.Z` (+ alias `YY.Q`, read back from
 the `CHANGELOG.md` divider — never touches `latest`), and creates the
 GitHub Release, titled `Orcan YY.Q (vX.Y.Z)`.
 
+## Retract a mistaken release
+
+Use this only when a published release must be withdrawn and re-cut from newer
+commits. It never force-pushes or rewrites `main`: it reverts the release
+divider commit, removes the GitHub Release, pinned docs (including its CalVer
+alias), and both public tags. Checkpoint tags remain intact.
+
+```bash
+make release-retract VERSION=3.1.2 Q=26.3 CONFIRM=RETRACT-v3.1.2
+```
+
+First cancel any running Release workflow. If the workflow did not yet create
+docs or a GitHub Release, explicitly use `SKIP_DOCS=1` or `SKIP_GITHUB=1`.
+After the fix commits are pushed, create the release again with
+`make release Q=26.3`.
+
 ## Local tags after build
 
 `orcan build` also tags `orcan:VERSION` locally. That is for your machine only.
