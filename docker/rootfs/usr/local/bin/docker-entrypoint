@@ -8,13 +8,6 @@ INIT_CLAUDE_HOME_SCRIPT="${INIT_CLAUDE_HOME_SCRIPT:-/usr/local/bin/init-claude-h
 AI_STATUSLINE_SCRIPT="${INIT_AI_STATUSLINE_SCRIPT:-/usr/local/bin/init-ai-statusline}"
 WORKSPACE_SCRIPT="${INIT_WORKSPACE_SCRIPT:-/usr/local/bin/init-workspace}"
 
-# Bake-time variant: full (all agents), or a "+"-joined subset (e.g. "claude",
-# "cursor+codex") — see Dockerfile's AI CLIs section / /etc/orcan/variant.
-if [[ -z "${ORCAN_VARIANT:-}" && -r /etc/orcan/variant ]]; then
-    ORCAN_VARIANT="$(tr -d '[:space:]' < /etc/orcan/variant)"
-fi
-export ORCAN_VARIANT="${ORCAN_VARIANT:-full}"
-
 if [[ -z "${ORCAN_VERSION:-}" && -r /etc/orcan/version ]]; then
     ORCAN_VERSION="$(tr -d '[:space:]' < /etc/orcan/version)"
 fi

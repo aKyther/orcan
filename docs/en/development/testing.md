@@ -14,13 +14,13 @@ make docs-check
 | `make test-host` | Unit tests for config I/O, `apply-config`, version / release check, preview script checks |
 | `make docs-check` | Strict MkDocs (EN+PL) + product-name check |
 
-## Smoke tests (full image — local)
+## Smoke tests (Codex selection — local)
 
 ```bash
 make test
 ```
 
-Runs `tests/smoke/test-container.sh` after `orcan build`. Expects the **full** image (`agent` present). Not run in CI (image build is too heavy).
+Runs `tests/smoke/test-container.sh` after `orcan build --agent codex`. It asserts the selected manifest and Codex CLI. Not run in CI (image build is too heavy).
 
 ## Maintainer previews (`scripts/dev/`)
 

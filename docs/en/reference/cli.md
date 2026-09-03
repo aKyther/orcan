@@ -57,8 +57,8 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan down` | Stop containers |
 | `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache]` | Build the standard `orcan:latest` + `orcan:<VERSION>` image with explicit clients (`cursor`, `claude`, `codex`, `gemini`, `copilot`). `/etc/orcan/agents.json` records the choice; never publishes |
 | `orcan status` | Runtime summary and the image agent manifest |
-| `orcan pull` | Pull both-agents `orcan:<VERSION>` → `orcan:latest` |
-| `orcan publish` | Push both-agents `orcan:latest` (**manual**; not `-claude`/`-cursor`) |
+| `orcan pull` | Pull portable all-agents `orcan:<VERSION>` → `orcan:latest` |
+| `orcan publish` | Push an all-agents `orcan:latest` (**manual**; partial images are refused) |
 | `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
 | `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
 | `orcan update` | Dev channel: fast-forward this checkout to `origin/main` |

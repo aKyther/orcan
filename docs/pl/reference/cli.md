@@ -55,9 +55,9 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | *(wewnątrz kontenera)* `orcan-inbox` | Kolejka przekazywania zadań agentów w `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). Patrz [Skrzynka agentów](../ideas/agent-inbox.md) |
 | `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start kontenera (`orcan enter` lokalnie; **jedna** ścieżka przeglądarki: `--with-ttyd` albo `--with-ttyd-auth`); opcjonalnie socket **albo** join sieci (wybierz jedno) + SSH; podpowiada nowszy release |
 | `orcan down` | Stop kontenerów |
-| `orcan build [--claude|--cursor] [--force] [--no-cache]` | Obaj agenci → `orcan:latest` + `orcan:<VERSION>` (pull lub build). `--claude` / `--cursor` → `orcan:<VERSION>-claude\|cursor` (bez pull; nie nadpisuje `latest`). Nigdy nie publikuje |
-| `orcan pull` | Pull obu agentów `orcan:<VERSION>` → `orcan:latest` |
-| `orcan publish` | Push obu agentów `orcan:latest` (**ręcznie**; nie `-claude`/`-cursor`) |
+| `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache]` | Buduje standardowy obraz `orcan:latest` + `orcan:<VERSION>` z jawnym wyborem klientów (`cursor`, `claude`, `codex`, `gemini`, `copilot`). Wybór zapisuje `/etc/orcan/agents.json`; nigdy nie publikuje |
+| `orcan pull` | Pull przenośnego obrazu ze wszystkimi agentami `orcan:<VERSION>` → `orcan:latest` |
+| `orcan publish` | Push obrazu ze wszystkimi agentami `orcan:latest` (**ręcznie**; częściowe obrazy są odrzucane) |
 | `orcan url` | URL terminala w przeglądarce (wymaga `orcan up --with-ttyd`) |
 | `orcan enter` / `orcan go-in` | Lokalny terminal do działającego kontenera (`--launcher` domyślnie, `--shell`, `--tmux [SESSION]`) |
 | `orcan update` | Kanał dev: fast-forward tego checkoutu do `origin/main` |

@@ -85,7 +85,6 @@ Możesz użyć zewnętrznego rootu, np. `/home/me/Projects/orcan`. Ustaw go prze
 
 | Zmienna | Rola |
 | --- | --- |
-| `ORCAN_VARIANT` | Historyczny znacznik obrazu; klienci są w `/etc/orcan/agents.json` |
 | `ORCAN_VERSION` | Z `/etc/orcan/version` |
 | `HISTFILE` | Domyślnie `~/.local/share/orcan/history/.zsh_history`; w tmux per workspace: `…/history/workspaces/<name>/.zsh_history` (bind: `$ORCAN_DATA/history`) |
 | `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Pod `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |

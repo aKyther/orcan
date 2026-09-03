@@ -71,8 +71,8 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 
 ## Agent or Claude missing
 
-- Full image: `orcan build` then recreate container
-- Claude-only: `orcan build --claude` then `IMAGE_LOCAL=orcan:<VERSION>-claude orcan up` — `agent` is not installed (expected)
+- Rebuild the needed selection, e.g. `orcan build --agent codex`, then recreate the container
+- For Claude, use `orcan build --agent claude`; installed clients are shown by `orcan status`
 - Auth lives under `$ORCAN_DATA` (`~/.config/orcan`)
 
 ## Docker socket errors inside the container
@@ -97,7 +97,7 @@ See [Path parity](../concepts/path-parity.md). Confirm mounts with `orcan contex
 
 ## Embedded tmux does not resize with the browser
 
-The cockpit PTY must own a controlling tty so resize delivers SIGWINCH to tmux. Fixed in current cockpit (`TIOCSCTTY` + `on_resize`). If the pane stays at attach size after a browser resize: update the image (`orcan build` / `make dev-restart`) and hard-refresh the tab. Details: [Terminal UI — cockpit](terminal-ui.md#cockpit-browser).
+The cockpit PTY must own a controlling tty so resize delivers SIGWINCH to tmux. Fixed in current cockpit (`TIOCSCTTY` + `on_resize`). If the pane stays at attach size after a browser resize: update the image (`orcan build --agent codex` / `make dev-restart`) and hard-refresh the tab. Details: [Terminal UI — cockpit](terminal-ui.md#cockpit-browser).
 
 ## Long URL wraps and is hard to click
 

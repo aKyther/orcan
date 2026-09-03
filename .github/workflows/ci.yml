@@ -32,6 +32,11 @@ jobs:
       - name: Host tests
         run: make test-host
 
+      - name: Python coverage
+        run: |
+          python -m pip install -r requirements-test.txt
+          make test-coverage
+
       - name: Check documentation
         run: make docs-check
 

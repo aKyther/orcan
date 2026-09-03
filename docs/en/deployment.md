@@ -11,7 +11,7 @@ Orcan is **not** deployed as a pulled image from GHCR.
 1. Clone a release tag or `main`
 2. Configure `orcan.config.json`
 3. `orcan sync`
-4. `orcan build` (or `orcan build --claude`)
+4. `orcan build --agent codex` (or choose another explicit client set)
 5. `orcan up` (local — `orcan enter`) or `orcan up --with-ttyd` (browser) or `orcan up --with-docker | --with-network NAME` (pick one)
 
 ```bash
@@ -20,14 +20,14 @@ cd orcan
 git checkout v0.1.0
 orcan init /absolute/path/to/your/repo
 orcan sync
-orcan build
+orcan build --agent codex
 orcan up
 # remote browser: orcan up --with-ttyd && orcan url
 ```
 
 ### Multi-host
 
-On each host: `orcan build` (pull matching `VERSION`, or local build on miss — never publishes). CI does not publish images.
+On each host: `orcan build --agent codex` (or `--all-agents`; build is local and never publishes). CI does not publish images.
 
 ## Documentation site (versioned, mike)
 

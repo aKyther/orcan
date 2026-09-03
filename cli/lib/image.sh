@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # Image pull / build / publish helpers (manual registry; CI does not publish).
 #
-# Tags:
-#   all agents  → orcan:latest + orcan:<VERSION>   (registry)
-#   --claude    → orcan:<VERSION>-claude           (local only)
-#   --cursor    → orcan:<VERSION>-cursor           (local only)
-#   --codex     → orcan:<VERSION>-codex            (local only)
+# Every build uses the standard local tags. Its installed clients are recorded
+# in /etc/orcan/agents.json; that manifest, not a tag suffix, is the contract.
 #
 # shellcheck shell=bash
 
@@ -34,30 +31,28 @@ orcan_image_registry_configured() {
     [[ -n "${IMAGE_REPOSITORY:-}" && -n "${IMAGE_REGISTRY:-}" ]]
 }
 
-# Local docker tag for an agent selection.
-orcan_image_tag_for() {
-    local variant="${1:-full}"
-    local ver
-    ver="$(orcan_image_version)"
-    case "${variant}" in
-        full) printf 'orcan:%s\n' "${ver}" ;;
-        claude) printf 'orcan:%s-claude\n' "${ver}" ;;
-        cursor) printf 'orcan:%s-cursor\n' "${ver}" ;;
-        codex) printf 'orcan:%s-codex\n' "${ver}" ;;
-        *) orcan_die "unknown agent selection: ${variant}" ;;
-    esac
+# Read the baked agent selection without starting the image's entrypoint.
+orcan_image_agents_manifest() {
+    local image="$1"
+    docker run --rm --entrypoint cat "${image}" /etc/orcan/agents.json 2>/dev/null || true
 }
 
-orcan_image_compose_name_for() {
-    local variant="${1:-full}"
-    case "${variant}" in
-        full) printf '%s\n' "${IMAGE_LOCAL:-orcan:latest}" ;;
-        claude | cursor | codex) orcan_image_tag_for "${variant}" ;;
-        *) orcan_die "unknown agent selection: ${variant}" ;;
-    esac
+# A registry image is a portable baseline only when it contains every client.
+orcan_image_has_all_agents() {
+    local image="$1" manifest
+    manifest="$(orcan_image_agents_manifest "${image}")"
+    [[ -n "${manifest}" ]] || return 1
+    python3 -c '
+import json, sys
+try:
+    agents = json.load(sys.stdin)["agents"]
+except (json.JSONDecodeError, KeyError, TypeError):
+    raise SystemExit(1)
+raise SystemExit(not all(agents.get(name) is True for name in ("cursor", "claude", "codex", "gemini", "copilot")))
+' <<<"${manifest}"
 }
 
-# Pull all-agents orcan:<VERSION> → orcan:latest + orcan:<VERSION>.
+# Pull the portable all-agents registry image → orcan:latest + orcan:<VERSION>.
 orcan_image_try_pull() {
     local local_image remote tag ver
 
@@ -74,10 +69,6 @@ orcan_image_try_pull() {
     fi
 
     tag="${IMAGE_TAG}"
-    # Strip accidental agent suffixes from IMAGE_TAG for registry pull.
-    tag="${tag%-claude}"
-    tag="${tag%-cursor}"
-    tag="${tag%-codex}"
     local_image="${IMAGE_LOCAL:-orcan:latest}"
     remote="$(orcan_image_remote "${tag}")"
 
@@ -87,13 +78,18 @@ orcan_image_try_pull() {
         return 1
     fi
 
+    if ! orcan_image_has_all_agents "${remote}"; then
+        orcan_warn "registry image is missing the all-agents manifest: ${remote}"
+        return 1
+    fi
+
     docker tag "${remote}" "${local_image}"
     docker tag "${local_image}" "orcan:${ver}" 2>/dev/null || true
     orcan_ok "using registry image as ${local_image} (also orcan:${ver})"
     return 0
 }
 
-# agents: full | claude | cursor | codex
+# agents: '+'-joined cursor | claude | codex | gemini | copilot
 orcan_image_build_local() {
     local agents="$1"
     local no_cache="${2:-0}"
@@ -125,14 +121,9 @@ orcan_image_build_local() {
     orcan_ok "built ${image} (manifest: /etc/orcan/agents.json)"
 }
 
-orcan_image_variant_of() {
-    local image="$1"
-    docker run --rm --entrypoint cat "${image}" /etc/orcan/variant 2>/dev/null | tr -d '[:space:]' || true
-}
-
-# Push all-agents orcan:latest (or orcan:VERSION) to registry.
+# Push the all-agents local image (orcan:latest / orcan:VERSION) to registry.
 orcan_image_publish() {
-    local local_image remote tag ver variant versioned
+    local local_image remote tag ver versioned
 
     if ! orcan_image_registry_configured; then
         orcan_die "set IMAGE_REPOSITORY (and optional IMAGE_REGISTRY) in ${ORCAN_ENV_FILE:-.env}"
@@ -140,21 +131,17 @@ orcan_image_publish() {
 
     orcan_image_load_registry_env
     ver="$(orcan_image_version)"
-    tag="${IMAGE_TAG%-claude}"
-    tag="${tag%-cursor}"
-    tag="${tag%-codex}"
     versioned="orcan:${ver}"
     local_image="orcan:latest"
     if ! docker image inspect "${local_image}" >/dev/null 2>&1; then
         local_image="${versioned}"
     fi
     if ! docker image inspect "${local_image}" >/dev/null 2>&1; then
-        orcan_die "local all-agents image missing — run: orcan build --force"
+        orcan_die "local all-agents image missing — run: orcan build --all-agents --force"
     fi
 
-    variant="$(orcan_image_variant_of "${local_image}")"
-    if [[ -n "${variant}" && "${variant}" != "full" ]]; then
-        orcan_die "refusing to publish agents=${variant} — publish only orcan:latest / orcan:<VERSION> (all agents)"
+    if ! orcan_image_has_all_agents "${local_image}"; then
+        orcan_die "refusing to publish a partial or legacy image — rebuild with: orcan build --all-agents"
     fi
 
     remote="$(orcan_image_remote "${tag}")"

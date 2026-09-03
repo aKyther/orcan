@@ -126,6 +126,22 @@ class EscCoalesceFlushTests(unittest.TestCase):
             self.assertEqual(Path(path).read_bytes(), payload)
             self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
 
+    def test_staged_paste_cleanup_removes_only_expired_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, patch.object(pty_terminal.tempfile, "tempdir", tmp):
+            expired = Path(tmp) / "orcan-paste-expired.md"
+            fresh = Path(tmp) / "orcan-paste-fresh.md"
+            unrelated = Path(tmp) / "keep.md"
+            for path in (expired, fresh, unrelated):
+                path.write_text("x", encoding="utf-8")
+            old = time.time() - pty_terminal._STAGED_PASTE_MAX_AGE_S - 1
+            os.utime(expired, (old, old))
+
+            pty_terminal.PtyTerminal._purge_staged_pastes()
+
+            self.assertFalse(expired.exists())
+            self.assertTrue(fresh.exists())
+            self.assertTrue(unrelated.exists())
+
     def test_large_paste_sends_file_instruction_not_the_payload(self) -> None:
         term = self._terminal()
         event = MagicMock(text="x" * pty_terminal._STAGED_PASTE_BYTES)
@@ -135,6 +151,26 @@ class EscCoalesceFlushTests(unittest.TestCase):
         prompt = term._write_pty.call_args.args[0].decode()
         self.assertIn("/tmp/orcan-paste-test.md", prompt)
         self.assertNotIn("x" * 100, prompt)
+
+    def test_cursor_offset_tracks_pyte_cursor_and_respects_visibility(self) -> None:
+        screen = pty_terminal.pyte.Screen(8, 3)
+        screen.cursor.x = 3
+        screen.cursor.y = 1
+
+        self.assertEqual(
+            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=True, visible=True),
+            12,
+        )
+        self.assertIsNone(
+            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=False, visible=True)
+        )
+        self.assertIsNone(
+            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=True, visible=False)
+        )
+        screen.cursor.hidden = True
+        self.assertIsNone(
+            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=True, visible=True)
+        )
 
 
 if __name__ == "__main__":

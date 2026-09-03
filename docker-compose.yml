@@ -35,6 +35,8 @@ services:
         INSTALL_CURSOR: ${INSTALL_CURSOR:-1}
         INSTALL_CLAUDE: ${INSTALL_CLAUDE:-1}
         INSTALL_CODEX: ${INSTALL_CODEX:-1}
+        INSTALL_GEMINI: ${INSTALL_GEMINI:-1}
+        INSTALL_COPILOT: ${INSTALL_COPILOT:-1}
         ORCAN_VERSION: ${ORCAN_VERSION:-dev}
     environment:
       TERM: xterm-256color

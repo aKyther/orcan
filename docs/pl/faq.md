@@ -55,36 +55,28 @@ Po reconnect launcher **auto-reattachuje** ostatni workspace (odliczanie 2s; Ent
 
 ## Którzy agenci są zainstalowani?
 
-Domyślnie obraz ma **obu** agentów (`orcan:latest` / `orcan:<VERSION>`). Żeby pominąć agenta, którego nie użyjesz, zbuduj **osobny lokalny tag** (bez pull; nie nadpisuje `latest`):
+Przy budowaniu wybierasz klientów jawnie. Każdy lokalny build używa tagów
+`orcan:latest` / `orcan:<VERSION>`, a wybór zapisuje w `/etc/orcan/agents.json`.
 
-=== "Oba (domyślnie)"
+=== "Tylko Codex"
 
     ```bash
-    orcan build
+    orcan build --agent codex
     orcan up
     ```
 
-=== "Tylko Claude Code"
+=== "Claude Code + Codex"
 
     ```bash
-    orcan build --claude
-    IMAGE_LOCAL=orcan:0.1.1-claude orcan up   # VERSION z outputu builda
+    orcan build --agent claude --agent codex
+    orcan up
     ```
 
-    Tag: `orcan:<VERSION>-claude`. Cursor CLI nie jest zainstalowany.
-
-=== "Tylko Cursor CLI"
-
-    ```bash
-    orcan build --cursor
-    IMAGE_LOCAL=orcan:0.1.1-cursor orcan up
-    ```
-
-    Tag: `orcan:<VERSION>-cursor`. Claude Code nie jest zainstalowany.
+    Cursor, Gemini i Copilot nie są zainstalowane w tym obrazie.
 
 ## Czy jest opublikowany obraz Docker?
 
-**Nie** (nie z CI). W rejestrze obraz z **oboma agentami** jako `orcan:<VERSION>` / `:latest`. Tagi `-<claude|cursor>` tylko lokalnie. `orcan publish` pcha tylko obraz z oboma agentami.
+**Nie** (nie z CI). Obraz registry jest przenośny tylko wtedy, gdy manifest włącza wszystkich obsługiwanych klientów. `orcan publish` odmawia publikacji częściowego obrazu.
 
 ## Gdzie są dane logowania / cache?
 
@@ -101,7 +93,7 @@ Pod `$ORCAN_DATA` (domyślnie `~/.config/orcan`):
 
 Mapa sandboxa w kontenerze: `~/orcan-map/` (same symlinki).
 
-Po `orcan build --force` / restarcie **nie** powinieneś musieć ponownie robić `/login`, chyba że wyczyściłeś `$ORCAN_DATA` albo nigdy nie dokończyłeś logowania przy zamontowanym volume.
+Po `orcan build --agent codex --force` / restarcie **nie** powinieneś musieć ponownie robić `/login`, chyba że wyczyściłeś `$ORCAN_DATA` albo nigdy nie dokończyłeś logowania przy zamontowanym volume.
 
 ## Czy mogę wyłączyć tmux?
 
@@ -115,7 +107,7 @@ orcan upgrade --to v0.2.0            # przypnij konkretny release
 orcan downgrade                      # jeden krok SemVer wstecz
 orcan update                         # kanał dev: fast-forward do origin/main
 orcan sync                           # gdy zmienił się schemat konfiguracji
-orcan build --force                  # gdy zmienił się Dockerfile/rootfs
+orcan build --agent codex --force    # gdy zmienił się Dockerfile/rootfs
 orcan down && orcan up
 ```
 

@@ -72,8 +72,8 @@ Jeśli projekt leżał bezpośrednio pod folderem workspace'u (katalog zamiast s
 
 ## Brak agenta lub Claude
 
-- Pełny obraz: `orcan build`, potem odtwórz kontener
-- Tylko Claude: `orcan build --claude`, potem `IMAGE_LOCAL=orcan:<VERSION>-claude orcan up` — `agent` nie jest zainstalowany (oczekiwane)
+- Zbuduj potrzebny zestaw, np. `orcan build --agent codex`, potem odtwórz kontener
+- Dla Claude użyj `orcan build --agent claude`; zainstalowanych klientów pokazuje `orcan status`
 - Auth leży pod `$ORCAN_DATA` (`~/.config/orcan`)
 
 ## Błędy socketa Dockera wewnątrz kontenera

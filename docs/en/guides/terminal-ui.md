@@ -29,6 +29,11 @@ Constraints (do not break these):
 - Plain Unicode icons in tmux status (not Powerline glyphs)
 - Image defaults under `docker/rootfs/`; personal overlays in `$ORCAN_DATA/dotfiles`
 
+Cockpit's embedded PTY renders a blinking reverse-video block cursor while it
+has keyboard focus. It follows the cursor from zsh, Codex, Claude Code and
+other terminal applications, but respects applications that intentionally hide
+their cursor.
+
 ## Palette
 
 | Role | Hex | Used for |

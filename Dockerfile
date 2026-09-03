@@ -637,15 +637,14 @@ WORKDIR /home/${USERNAME}
 # ------------------------------------------------------------------------------
 # AI CLIs — selected explicitly by `orcan build --agent …`.
 # ------------------------------------------------------------------------------
-# Image tags: orcan:latest + orcan:<VERSION> (all agents);
-#             orcan:<VERSION>-claude / -cursor / -codex (local single-agent builds).
-# Slim builds: orcan build --claude|--cursor|--codex (skip pull; do not publish).
+# Every image is tagged orcan:latest + orcan:<VERSION>. The explicit agent
+# selection is recorded in /etc/orcan/agents.json rather than the tag.
 
 ARG INSTALL_CURSOR=1
 ARG INSTALL_CLAUDE=1
 ARG INSTALL_CODEX=1
-ARG INSTALL_GEMINI=0
-ARG INSTALL_COPILOT=0
+ARG INSTALL_GEMINI=1
+ARG INSTALL_COPILOT=1
 ARG ORCAN_VERSION=dev
 
 RUN set -eux; \

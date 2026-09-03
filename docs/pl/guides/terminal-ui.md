@@ -29,6 +29,10 @@ Ograniczenia (nie łamać):
 - Zwykłe Unicode w statusie tmux (bez glifów Powerline)
 - Defaulty obrazu w `docker/rootfs/`; nadpisania w `$ORCAN_DATA/dotfiles`
 
+Osadzony PTY Cockpitu rysuje migający kursor typu reverse-video, gdy ma fokus
+klawiatury. Śledzi kursor z zsh, Codexa, Claude Code i innych aplikacji
+terminalowych, ale respektuje programy, które celowo go ukrywają.
+
 ## Paleta
 
 | Rola | Hex | Użycie |

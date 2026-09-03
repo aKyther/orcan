@@ -4,8 +4,8 @@ Użytkownicy końcowi używają **CLI `orcan`** — zobacz [Referencja CLI](cli.
 
 | Potrzeba | Komenda |
 | --- | --- |
-| Pull albo build | `orcan build` (pull `VERSION`, lokalny build przy braku — **nigdy nie publikuje**) |
-| Wymuś lokalny rebuild | `orcan build --force` lub `--no-cache` |
+| Zbuduj lokalny obraz | `orcan build --agent codex` (albo `--all-agents`; **nigdy nie publikuje**) |
+| Wymuś lokalny rebuild | `orcan build --agent codex --force` lub `--no-cache` |
 | Tylko pull z rejestru | `orcan pull` |
 | Push do rejestru | `orcan publish` (**ręcznie**, maintainerzy) |
 
@@ -57,7 +57,7 @@ Domyślnie: obraz `orcan:dev-ux`, port hosta `17681`, workspace `dev-ux`, scenar
 CI **nie** publikuje obrazów kontenerów. Maintainerzy mogą pchać ręcznie:
 
 ```bash
-orcan build --force          # upewnij się, że lokalny obraz istnieje
+orcan build --all-agents --force # upewnij się, że istnieje obraz do publikacji
 orcan publish                # albo: make registry-login && ./scripts/repository/registry.sh publish
 ```
 
