@@ -54,3 +54,26 @@ test('one-finger vertical drag becomes wheel input', async ({ page }) => {
   expect(result.installed).toBe('on');
   expect(result.wheelDeltas).toEqual([30]);
 });
+
+test('phone font and keyboard viewport keep input visible', async ({ page }) => {
+  await page.setViewportSize({ width: 480, height: 700 });
+  await page.goto(baseURL);
+  await page.waitForURL(/fontSize=16/);
+  const input = page.locator('.xterm-helper-textarea');
+  await input.waitFor();
+  await input.focus();
+  await page.setViewportSize({ width: 480, height: 420 });
+  await page.waitForTimeout(100);
+
+  const state = await page.evaluate(() => ({
+    bridge: document.body.dataset.orcanKeyboardBridge,
+    keyboard: document.body.dataset.orcanKeyboardViewport,
+    bodyHeight: document.body.style.height,
+    viewportHeight: Math.round(window.visualViewport?.height || 0),
+    terminalBottom: Math.round(document.querySelector('.xterm')?.getBoundingClientRect().bottom || 0),
+  }));
+  expect(state.bridge).toBe('on');
+  expect(state.keyboard).toBe('open');
+  expect(parseInt(state.bodyHeight, 10)).toBe(state.viewportHeight);
+  expect(state.terminalBottom).toBeLessThanOrEqual(state.viewportHeight);
+});

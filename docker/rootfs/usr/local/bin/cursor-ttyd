@@ -10,9 +10,10 @@ TTYD_PORT="${TTYD_PORT:-7681}"
 # xterm.js default is ~15px; 19 (the old default here) read noticeably
 # larger/bulkier than a typical code editor terminal once other panels
 # (cockpit rail/hints/status) were added around it — 14 matches VS Code's
-# integrated-terminal default and reads closer to a "standard" density.
-# Still fully overridable via the env var for anyone who wants it bigger.
-TTYD_FONT_SIZE="${TTYD_FONT_SIZE:-14}"
+# integrated-terminal density. Desktop defaults to 13; the injected browser
+# bridge selects 14 on tablets and 16 on phones. TTYD_FONT_SIZE still controls
+# desktop, while an explicit ?fontSize=N URL value overrides responsive sizes.
+TTYD_FONT_SIZE="${TTYD_FONT_SIZE:-13}"
 if [[ -z "${TTYD_FONT_FAMILY:-}" ]]; then
     TTYD_FONT_FAMILY="Menlo, Monaco, 'Courier New', monospace"
 fi
