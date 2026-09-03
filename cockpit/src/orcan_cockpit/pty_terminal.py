@@ -36,7 +36,9 @@ import pty
 import struct
 import subprocess
 import termios
+import tempfile
 import time
+from pathlib import Path
 from typing import Sequence
 
 import pyte
@@ -122,6 +124,8 @@ _ESCAPE_KEYS = frozenset({"escape", "ctrl+left_square_brace"})
 # Textual's Escape+key pairs for Meta/Alt, short enough that bare Esc in
 # vim/shell feels immediate.
 _ESC_COALESCE_S = 0.025
+_STAGED_PASTE_BYTES = 32 * 1024
+_STAGED_PASTE_MAX_AGE_S = 24 * 60 * 60
 
 
 class PtyTerminal(Widget):
@@ -468,7 +472,46 @@ class PtyTerminal(Widget):
         if self._master_fd is None:
             return
         event.stop()
-        self._write_pty(event.text.encode("utf-8", errors="replace"))
+        data = event.text.encode("utf-8", errors="replace")
+        if len(data) < _STAGED_PASTE_BYTES:
+            self._write_pty(data)
+            return
+        path = self._stage_large_paste(data)
+        if path is None:
+            # A failed staging attempt must not silently lose the user's input.
+            self._write_pty(data)
+            return
+        prompt = (
+            f"Large input ({len(data):,} bytes) saved to {path}. "
+            "Read that file first, then continue with the request it contains."
+        )
+        self._write_pty(prompt.encode("utf-8"))
+
+    @staticmethod
+    def _purge_staged_pastes() -> None:
+        """Best-effort expiry for files created by this widget only."""
+        deadline = time.time() - _STAGED_PASTE_MAX_AGE_S
+        try:
+            for path in Path(tempfile.gettempdir()).glob("orcan-paste-*.md"):
+                if path.is_file() and path.stat().st_mtime < deadline:
+                    path.unlink()
+        except OSError:
+            pass
+
+    def _stage_large_paste(self, data: bytes) -> str | None:
+        self._purge_staged_pastes()
+        fd = -1
+        try:
+            fd, path = tempfile.mkstemp(prefix="orcan-paste-", suffix=".md")
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "wb") as staged:
+                fd = -1
+                staged.write(data)
+            return path
+        except OSError:
+            if fd >= 0:
+                os.close(fd)
+            return None
 
     def _copy_from_child(self, text: str) -> None:
         """A yank inside tmux (copy-mode ``y``, mouse drag, ``prefix u`` /

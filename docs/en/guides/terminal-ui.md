@@ -184,6 +184,11 @@ without selection → SIGINT. Paste is queued to the non-blocking PTY, so a
 confirmed large paste is delivered in full rather than being cut at the PTY
 buffer boundary.
 
+Pastes of **32 KiB or more** are staged instead of being injected into the
+active agent. Orcan writes a private `0600` file under `/tmp/orcan-paste-*.md`
+and types a short instruction with its path. The agent can read the complete
+request without losing its terminal context. Staged files expire after 24 hours.
+
 **Scrollback:** pyte holds the **current** screen; tmux scrolls history (copy-mode)
 and redraws the pane — the wheel must reach tmux as SGR.
 

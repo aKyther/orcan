@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Large terminal paste:** embedded Cockpit/ttyd input of 32 KiB or more is
+  stored in a private temporary file and replaced with a concise instruction
+  for the active agent to read it. Files expire after 24 hours.
+
 - **Agent image selection:** `orcan build` now requires one or more explicit
   `--agent` choices (or `--all-agents`), adds Gemini CLI and GitHub Copilot
   CLI, and records installed clients in `/etc/orcan/agents.json`. `orcan

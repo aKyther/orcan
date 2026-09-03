@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -113,6 +115,26 @@ class EscCoalesceFlushTests(unittest.TestCase):
 
         self.assertEqual(term._write_buffer, b"")
         loop.remove_writer.assert_called_once_with(1)
+
+    def test_large_paste_is_staged_in_a_private_file(self) -> None:
+        term = self._terminal()
+        payload = b"x" * pty_terminal._STAGED_PASTE_BYTES
+        with tempfile.TemporaryDirectory() as tmp, patch.object(pty_terminal.tempfile, "tempdir", tmp):
+            path = term._stage_large_paste(payload)
+            self.assertIsNotNone(path)
+            assert path is not None
+            self.assertEqual(Path(path).read_bytes(), payload)
+            self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
+
+    def test_large_paste_sends_file_instruction_not_the_payload(self) -> None:
+        term = self._terminal()
+        event = MagicMock(text="x" * pty_terminal._STAGED_PASTE_BYTES)
+        with patch.object(term, "_stage_large_paste", return_value="/tmp/orcan-paste-test.md"):
+            term.on_paste(event)
+        event.stop.assert_called_once()
+        prompt = term._write_pty.call_args.args[0].decode()
+        self.assertIn("/tmp/orcan-paste-test.md", prompt)
+        self.assertNotIn("x" * 100, prompt)
 
 
 if __name__ == "__main__":
