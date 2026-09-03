@@ -152,12 +152,23 @@ cmd_release() {
     [[ -n "${calver}" ]] && printf '     https://akyther.github.io/orcan/%s/\n' "${calver}"
 }
 
+cmd_delete() {
+    local ver="${1:-}"
+    [[ "${ver}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+        || die "usage: docs-mike.sh delete X.Y.Z"
+    ensure_mike
+    ensure_git_identity
+    printf 'Removing docs version %s and all of its aliases (latest is untouched)\n' "${ver}"
+    mike_run delete "${push_flags[@]}" "${ver}"
+}
+
 usage() {
     cat <<'EOF'
-Usage: docs-mike.sh <latest|release|list> [version] [calver]
+Usage: docs-mike.sh <latest|release|delete|list> [version] [calver]
 
   latest           Deploy/update rolling alias "latest" from the current tree + set default
   release X.Y.Z [YY.Q]  Deploy a pinned SemVer snapshot (+ optional CalVer alias)
+  delete X.Y.Z          Remove a pinned snapshot and all its aliases
   list             Show mike versions on gh-pages
 
 Set DOCS_MIKE_PUSH=0 to commit locally without pushing.
@@ -166,6 +177,7 @@ EOF
 
 case "${1:-}" in
     release) cmd_release "${2:-}" "${3:-}" ;;
+    delete) cmd_delete "${2:-}" ;;
     latest) cmd_latest ;;
     list) cmd_list ;;
     -h|--help|help|"") usage; [[ -n "${1:-}" ]] || exit 1 ;;

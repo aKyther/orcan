@@ -17,8 +17,8 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 .PHONY: help deprecate-user \
 	validate test test-host test-path-parity dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
-	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release \
-	version bump-patch bump-minor bump-major tag release release-tag release-push \
+	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
+	version bump-patch bump-minor bump-major tag release release-retract release-tag release-push \
 	registry-show registry-login publish pull \
 	setup env build rebuild build-claude rebuild-claude build-cursor rebuild-cursor \
 	terminal terminal-docker terminal-url \
@@ -158,6 +158,9 @@ docs-mike-latest: docs-venv ## Deploy mike alias "latest" (rolling tip of main)
 docs-mike-release: docs-venv ## Deploy mike version from pyproject (called by `make release`)
 	@./scripts/repository/docs-mike.sh release "$$(./scripts/repository/release.sh print | tr -d '[:space:]')"
 
+docs-mike-delete: docs-venv ## Delete pinned docs (VERSION=X.Y.Z; removes aliases too)
+	@./scripts/repository/docs-mike.sh delete "$(VERSION)"
+
 docs-publish: ## Trigger CI docs deploy
 	@if ! command -v gh >/dev/null 2>&1; then \
 		printf 'gh CLI required, or run: make docs-mike-latest / docs-mike-release\n' >&2; \
@@ -185,6 +188,10 @@ tag: ## Checkpoint: bump + CHANGELOG cut + commit + LOCAL tag vX.Y.Z (not pushed
 
 release: ## The real, deliberate release: CalVer divider + tag + push vX.Y.Z (Q=YY.Q, default: current quarter)
 	@./scripts/repository/release.sh release $(Q)
+
+release-retract: ## Retract release (VERSION=X.Y.Z Q=YY.Q CONFIRM=RETRACT-vX.Y.Z; no history rewrite)
+	@RELEASE_RETRACT_SKIP_DOCS="$(SKIP_DOCS)" RELEASE_RETRACT_SKIP_GITHUB="$(SKIP_GITHUB)" \
+		./scripts/repository/release.sh retract "$(VERSION)" "$(Q)" "$(CONFIRM)"
 
 release-tag: ## Low-level: create annotated git tag from pyproject version
 	@./scripts/repository/release.sh tag

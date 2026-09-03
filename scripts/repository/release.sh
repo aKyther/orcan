@@ -337,6 +337,78 @@ cmd_check() {
     fi
 }
 
+# Retract a mistakenly published release without rewriting main history.
+# The CalVer tag points at the small release-divider commit, so reverting it
+# returns CHANGELOG to a state where the same VERSION / CalVer can be released
+# again from a later commit. This intentionally leaves checkpoint tags alone.
+cmd_retract() {
+    local v="${1:-}" calver="${2:-}" confirm="${3:-}"
+    [[ "${v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+        || die "usage: release.sh retract X.Y.Z YY.Q RETRACT-vX.Y.Z"
+    [[ "${calver}" =~ ^[0-9]{2}\.[0-9]+$ ]] \
+        || die "CalVer label must look like YY.Q (got: ${calver:-empty})"
+    [[ "${confirm}" == "RETRACT-v${v}" ]] \
+        || die "refusing retraction: set CONFIRM=RETRACT-v${v}"
+    require_clean_tree
+
+    local semver_tag="v${v}" release_commit subject semver_commit run_id
+    git ls-remote --exit-code --tags origin "refs/tags/${semver_tag}" >/dev/null \
+        || die "origin has no ${semver_tag} tag"
+    git ls-remote --exit-code --tags origin "refs/tags/${calver}" >/dev/null \
+        || die "origin has no ${calver} CalVer tag"
+    git fetch origin "refs/tags/${semver_tag}:refs/tags/${semver_tag}" \
+        "refs/tags/${calver}:refs/tags/${calver}" >/dev/null
+    release_commit="$(git rev-list -n 1 "${calver}")"
+    subject="$(git log -1 --format=%s "${release_commit}")"
+    [[ "${subject}" == "release: ${calver} (v${v})" ]] \
+        || die "${calver} does not point at release: ${calver} (v${v}); refusing to revert ${subject@Q}"
+    git merge-base --is-ancestor "${release_commit}" HEAD \
+        || die "release commit ${release_commit:0:12} is not an ancestor of HEAD"
+    semver_commit="$(git rev-list -n 1 "${semver_tag}")"
+
+    printf 'Retracting release %s / %s:\n' "${semver_tag}" "${calver}"
+    printf '  - revert release-divider commit %s (%s)\n' "${release_commit:0:12}" "${subject}"
+    printf '  - remove pinned docs %s (and alias %s)\n' "${v}" "${calver}"
+    printf '  - remove GitHub Release %s\n' "${semver_tag}"
+    printf '  - delete origin tags %s and %s\n' "${semver_tag}" "${calver}"
+    printf '  - preserve checkpoint/%s and all ordinary commits\n' "${semver_tag}"
+
+    # Revert first: a docs/GitHub failure leaves the old release public, but
+    # main explicitly records the retraction instead of silently moving tags.
+    git revert --no-edit "${release_commit}"
+    git push origin "$(current_branch)"
+
+    if [[ "${RELEASE_RETRACT_SKIP_DOCS:-0}" != "1" ]]; then
+        "${ROOT_DIR}/scripts/repository/docs-mike.sh" delete "${v}"
+    else
+        printf 'Skip: docs deletion (RELEASE_RETRACT_SKIP_DOCS=1)\n'
+    fi
+
+    if [[ "${RELEASE_RETRACT_SKIP_GITHUB:-0}" != "1" ]]; then
+        command -v gh >/dev/null 2>&1 || die "gh CLI is required (or set SKIP_GITHUB=1 only when no GitHub Release exists)"
+        while IFS= read -r run_id; do
+            [[ -n "${run_id}" ]] || continue
+            gh run cancel "${run_id}" >/dev/null || true
+            printf 'Cancelled active release workflow run %s\n' "${run_id}"
+        done < <(gh run list --workflow release.yml --limit 100 \
+            --json databaseId,status,headSha --jq \
+            ".[] | select(.headSha == \"${semver_commit}\" and (.status == \"queued\" or .status == \"in_progress\" or .status == \"waiting\")) | .databaseId")
+        if gh release view "${semver_tag}" >/dev/null 2>&1; then
+            gh release delete "${semver_tag}" --yes
+            printf 'Deleted GitHub Release %s\n' "${semver_tag}"
+        else
+            printf 'Note: GitHub Release %s was not present\n' "${semver_tag}"
+        fi
+    else
+        printf 'Skip: GitHub Release deletion (RELEASE_RETRACT_SKIP_GITHUB=1)\n'
+    fi
+
+    git push origin --delete "${semver_tag}" "${calver}"
+    git tag -d "${semver_tag}" "${calver}" >/dev/null
+    printf 'Retracted %s. Fix forward on main, then run: make release Q=%s\n' \
+        "${semver_tag}" "${calver}"
+}
+
 cmd_tag() {
     local v
     require_clean_tree
@@ -364,7 +436,7 @@ cmd_push_tag() {
 
 usage() {
     cat <<'EOF'
-Usage: release.sh <show|print|bump|check|checkpoint|release|tag|push-tag>
+Usage: release.sh <show|print|bump|check|checkpoint|release|retract|tag|push-tag>
 
   show               Print version (from cockpit/pyproject.toml) and local image tags
   print              Print SemVer only (scripting)
@@ -372,6 +444,8 @@ Usage: release.sh <show|print|bump|check|checkpoint|release|tag|push-tag>
   check              Validate pyproject SemVer and VERSION mirror
   checkpoint [PART]  make tag: bump + CHANGELOG cut + commit + LOCAL tag vX.Y.Z (not pushed)
   release [YY.Q]     make release: CalVer divider in CHANGELOG + tag + push vX.Y.Z
+  retract X.Y.Z YY.Q RETRACT-vX.Y.Z
+                     Retract a published release without rewriting main
   tag                Low-level: create annotated git tag vX.Y.Z from current HEAD (clean tree)
   push-tag           Low-level: push tag to origin
 EOF
@@ -384,6 +458,7 @@ case "${1:-}" in
     check) cmd_check ;;
     checkpoint) cmd_checkpoint "${2:-patch}" ;;
     release) cmd_release "${2:-}" ;;
+    retract) cmd_retract "${2:-}" "${3:-}" "${4:-}" ;;
     tag) cmd_tag ;;
     push-tag) cmd_push_tag ;;
     -h|--help|help|"") usage; [[ -n "${1:-}" ]] || exit 1 ;;

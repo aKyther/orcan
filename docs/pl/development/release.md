@@ -66,6 +66,21 @@ CI następnie waliduje, publikuje docs `X.Y.Z` (+ alias `YY.Q`, odczytany
 z separatora w `CHANGELOG.md` — nigdy nie rusza `latest`) i tworzy
 GitHub Release z tytułem `Orcan YY.Q (vX.Y.Z)`.
 
+## Wycofanie błędnego release'u
+
+Użyj tylko wtedy, gdy opublikowany release trzeba wycofać i ponownie wydać z
+nowszych commitów. Helper nie robi force-pusha ani nie przepisuje `main`:
+tworzy revert commita z separatorem release'u, usuwa GitHub Release, przypięte
+docs (wraz z aliasem CalVer) i oba publiczne tagi. Tagi checkpointów zostają.
+
+```bash
+make release-retract VERSION=3.1.2 Q=26.3 CONFIRM=RETRACT-v3.1.2
+```
+
+Najpierw anuluj aktywny workflow Release. Gdy workflow nie zdążył utworzyć docs
+lub GitHub Release, jawnie użyj `SKIP_DOCS=1` albo `SKIP_GITHUB=1`. Po pushu
+commitów z poprawką uruchom ponownie `make release Q=26.3`.
+
 ## Lokalne tagi po buildzie
 
 `orcan build` taguje też lokalnie `orcan:VERSION`. To tylko na Twojej maszynie.
