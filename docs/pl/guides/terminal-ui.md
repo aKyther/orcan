@@ -37,12 +37,12 @@ terminalowych, ale respektuje programy, które celowo go ukrywają.
 
 | Rola | Hex | Użycie |
 | --- | --- | --- |
-| Tło | `#0e0c13` | cockpit i puste stany |
-| Podniesione | `#141119`, `#17131d` | paski, picker, dialogi |
-| Zaznaczenie | `#211b29`, `#2a2235` | aktywne i wskazane powierzchnie |
-| Tekst | `#d8d2e2` | główny tekst |
-| Wyciszony | `#756f82`, `#918a9d` | metadane i tekst drugorzędny |
-| Akcent | `#9b87b8`, `#b9a7d6` | fokus i interaktywna tożsamość |
+| Tło | `#12101a` | cockpit i puste stany |
+| Podniesione | `#1b1724`, `#211c2b` | paski, picker, dialogi |
+| Zaznaczenie | `#2a2237`, `#342a44` | aktywne i wskazane powierzchnie |
+| Tekst | `#e2ddea` | główny tekst |
+| Wyciszony | `#948ba3`, `#b0a6ba` | metadane i tekst drugorzędny |
+| Akcent | `#ad91d0`, `#c7b1e2` | fokus i interaktywna tożsamość |
 | Ostrzeżenie / błąd | `#fbbf24`, `#f87171` | activity, błędy, niska bateria |
 
 **Site MkDocs** używa tych samych tokenów (`docs/assets/stylesheets/orcan.css`, favicon). W jasnym trybie docs — ciemniejszy teal dla czytelnych linków na białym.

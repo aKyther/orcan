@@ -2,10 +2,12 @@
 # shellcheck shell=bash
 
 orcan_cmd_status() {
-    local image="${IMAGE_LOCAL:-orcan:latest}" cname
+    local image="${IMAGE_LOCAL:-orcan:latest}" cname ver
     orcan_load_env 2>/dev/null || true
     cname="$(orcan_container_name)"
+    ver="$(orcan_image_version)"
     printf 'orcan status\n\n'
+    printf 'version: %s\n' "${ver}"
     if orcan_have docker && docker image inspect "${image}" >/dev/null 2>&1; then
         printf 'image: %s\n' "${image}"
         printf 'agents: '

@@ -51,7 +51,7 @@ Commands:
   upgrade [--to VERSION]   Release channel: newest release tag (default), or pin VERSION
   downgrade [--to VERSION] Previous SemVer release, or pin an older VERSION
   doctor                   Host / config / container health
-  status                   Runtime summary and installed-agent manifest
+  status                   Product version, runtime summary, and installed-agent manifest
   uninstall [--purge-data] [--purge-images]
                            Remove Orcan; data/images are opt-in, projects are always kept
   version                  Print version
@@ -63,7 +63,7 @@ Optional:
 
 Ritual:
   orcan init                 # interactive wizard (or: orcan init /path/to/repo)
-  orcan build && orcan up
+  orcan build --agent codex && orcan up
   # after config edits: orcan init && orcan down && orcan up
 
 Install home:  ORCAN_ROOT (clone)

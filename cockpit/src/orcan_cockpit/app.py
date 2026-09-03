@@ -43,9 +43,9 @@ from orcan_cockpit.tmux_chrome import (
 from orcan_cockpit.top_bar import TopBar
 
 PLACEHOLDER_TEXT = (
-    "[#b9a7d6 bold]🌀 orcan[/]\n"
+    "[#c7b1e2 bold]🌀 orcan[/]\n"
     "Choose a workspace\n"
-    "[#756f82]Your sessions and projects will appear here.[/]"
+    "[#948ba3]Your sessions and projects will appear here.[/]"
 )
 
 # Maps a focused widget to the context that drives its focus-highlight border.
@@ -82,13 +82,11 @@ _FOCUS_BORDER_IDS: dict[Context, str] = {
 }
 
 
-# Same navy/cyan palette as the rest of orcan's terminal UI (tmux status
-# bar, ttyd theme — see docker/rootfs/etc/tmux/status.conf and
-# docker/rootfs/usr/local/bin/cursor-ttyd) so the cockpit reads as the same
-# product, not a bolted-on framework default.
+# Warm, twilight-plum colours shared by Cockpit and terminal chrome, so the
+# interface remains one product while feeling less austere than near-black.
 _CSS = """
 Screen {
-    background: #0e0c13;
+    background: #12101a;
 }
 
 #top-bar {
@@ -108,7 +106,7 @@ Screen {
        fixed once for the side panels this session. */
     layout: horizontal;
     height: 2;
-    background: #141119;
+    background: #1b1724;
     padding: 0 1;
 }
 
@@ -130,11 +128,11 @@ Screen {
        Violet already exists in the product's own ANSI palette
        (cursor-ttyd's theme JSON, magenta), reused rather than inventing
        a new hex. */
-    color: #b9a7d6;
+    color: #c7b1e2;
 }
 
 #top-bar-identity:hover {
-    color: #d8d2e2;
+    color: #e2ddea;
 }
 
 #workspace-trigger {
@@ -142,19 +140,19 @@ Screen {
     height: 1;
     margin-right: 2;
     padding: 0 1;
-    color: #b9b3c2;
-    background: #211b29;
+    color: #cbc4d3;
+    background: #2a2237;
 }
 
 #workspace-trigger:hover, #workspace-trigger.picker-open {
-    color: #d2c3e8;
-    background: #2a2235;
+    color: #d7c7eb;
+    background: #342a44;
 }
 
 #rail {
     layout: horizontal;
     width: auto;
-    background: #141119;
+    background: #1b1724;
 }
 
 #rail Button {
@@ -167,14 +165,14 @@ Screen {
     height: 1;
     margin-right: 1;
     padding: 0 1;
-    background: #141119;
-    color: #756f82;
+    background: #1b1724;
+    color: #948ba3;
     border: none;
 }
 
 #rail Button:hover, #rail Button:focus {
-    color: #c6b5df;
-    background: #211b29;
+    color: #d7c7eb;
+    background: #2a2237;
 }
 
 
@@ -196,7 +194,7 @@ Screen {
        static oversized guess left. #top-bar-spacer above does the "push to
        the right edge" job via layout, not text alignment. */
     height: 1;
-    color: #756f82;
+    color: #948ba3;
 }
 
 #main-row {
@@ -210,7 +208,7 @@ Screen {
     width: 52;
     height: 80%;
     margin-left: 1;
-    background: #17131d;
+    background: #211c2b;
 }
 
 #workspace-list-widget {
@@ -221,13 +219,13 @@ Screen {
        workspace list — instead of sitting empty as a gap. */
     layout: vertical;
     height: 1fr;
-    background: #17131d;
-    border-left: solid #4a3d59;
+    background: #211c2b;
+    border-left: solid #604e72;
     padding: 0 1;
 }
 
 #workspace-list-widget.focused {
-    border-left: solid #9b87b8;
+    border-left: solid #ad91d0;
 }
 
 #workspaces ListView {
@@ -240,14 +238,14 @@ Screen {
        brief / pane commands (session_glance.py). */
     height: auto;
     max-height: 4;
-    color: #918a9d;
+    color: #b0a6ba;
     padding-top: 1;
 }
 
 #workspace-details {
     height: auto;
     max-height: 8;
-    color: #918a9d;
+    color: #b0a6ba;
     padding-top: 1;
 }
 
@@ -257,39 +255,39 @@ Screen {
        off the end entirely — found while verifying the `i` expand feature
        actually renders. Two lines fit both without truncation. */
     height: 2;
-    color: #756f82;
+    color: #948ba3;
 }
 
 /* The currently-ATTACHED workspace (not just the keyboard cursor's current
    row) — a light, permanent highlight distinct from ListView's own
    built-in cursor-row style, which only shows while this list has focus. */
 #workspace-list ListItem.active-workspace {
-    background: #241e2c;
+    background: #302640;
 }
 
 #workspace-activity {
     height: auto;
     max-height: 60%;
-    background: #17131d;
-    border-left: solid #4a3d59;
+    background: #211c2b;
+    border-left: solid #604e72;
     padding: 0 1;
-    color: #756f82;
+    color: #948ba3;
     overflow-y: auto;
 }
 
 #workspace-activity.focused {
-    border-left: solid #9b87b8;
+    border-left: solid #ad91d0;
 }
 
 .activity-heading {
     /* Violet — same "static landmark, not focus state" role as
        #top-bar-identity above. */
-    color: #b9a7d6;
+    color: #c7b1e2;
     text-style: bold;
 }
 
 #activity-subtitle {
-    color: #756f82;
+    color: #948ba3;
     margin-bottom: 1;
 }
 
@@ -311,19 +309,19 @@ Screen {
     min-width: 0;
     height: 1;
     border: none;
-    background: #211b29;
+    background: #2a2237;
     /* Violet — same "static landmark" role as .activity-heading; cyan
        stays reserved for the card's own .focused border. */
-    color: #b9a7d6;
+    color: #c7b1e2;
     content-align: center middle;
 }
 
 #activity-actions Button:hover {
-    background: #2a2235;
+    background: #342a44;
 }
 
 #activity-actions Button:disabled {
-    color: #554e61;
+    color: #746a82;
 }
 
 #activity-pause-btn,
@@ -361,11 +359,11 @@ Screen {
        content does not look pasted to the viewport while retaining almost
        the full tmux width. */
     margin-left: 1;
-    background: #0e0c13;
+    background: #12101a;
 }
 
 #center-stack.focused {
-    background: #100d16;
+    background: #17131f;
 }
 
 #terminal {
@@ -379,7 +377,7 @@ Screen {
     width: 1fr;
     height: 1fr;
     content-align: center middle;
-    color: #756f82;
+    color: #948ba3;
 }
 
 #error {
@@ -392,16 +390,16 @@ Screen {
     width: 1fr;
     height: 1fr;
     content-align: center middle;
-    color: #d8d2e2;
-    background: #0e0c13;
+    color: #e2ddea;
+    background: #12101a;
 }
 
 #status-bar {
     /* Bordered card, matching #top-bar (the other full-width bookend) —
        same height:3 reasoning as #top-bar's comment. */
     height: 2;
-    background: #141119;
-    color: #756f82;
+    background: #1b1724;
+    color: #948ba3;
     padding: 0 1;
 }
 
@@ -586,8 +584,8 @@ class MainScreen(Screen):
         await center.remove_children()
         center.mount(
             Static(
-                f"Opening [#b9a7d6]{row['name']}[/]\n"
-                "[#756f82]Restoring your session…[/]",
+                f"Opening [#c7b1e2]{row['name']}[/]\n"
+                "[#948ba3]Restoring your session…[/]",
                 id="loading",
             )
         )

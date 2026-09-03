@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent image selection:** `orcan build` now requires one or more explicit
   `--agent` choices (or `--all-agents`), adds Gemini CLI and GitHub Copilot
   CLI, and records installed clients in `/etc/orcan/agents.json`. `orcan
-  status` and `orcan doctor` show that manifest. Test and developer builds
-  default to Codex via `ORCAN_TEST_AGENT`.
+  status` reports the product version and, together with `orcan doctor`, shows
+  that manifest. Cockpit also shows its running version in the top bar. Test
+  and developer builds default to Codex via `ORCAN_TEST_AGENT`.
 
 - **Image manifest safety:** registry pull and publish now require the
   all-agents `/etc/orcan/agents.json` manifest. This prevents a partial local
