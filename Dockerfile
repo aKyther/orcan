@@ -442,7 +442,8 @@ if 'name="viewport"' not in index:
         raise SystemExit("ttyd index has no </head> viewport injection point")
     index = index.replace(
         head,
-        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, '
+        'viewport-fit=cover, interactive-widget=resizes-content">'
         + head,
         1,
     )

@@ -69,11 +69,20 @@ test('phone font and keyboard viewport keep input visible', async ({ page }) => 
     bridge: document.body.dataset.orcanKeyboardBridge,
     keyboard: document.body.dataset.orcanKeyboardViewport,
     bodyHeight: document.body.style.height,
+    containerHeight: document.querySelector('#terminal-container')?.style.height,
     viewportHeight: Math.round(window.visualViewport?.height || 0),
     terminalBottom: Math.round(document.querySelector('.xterm')?.getBoundingClientRect().bottom || 0),
   }));
   expect(state.bridge).toBe('on');
   expect(state.keyboard).toBe('open');
   expect(parseInt(state.bodyHeight, 10)).toBe(state.viewportHeight);
+  expect(parseInt(state.containerHeight, 10)).toBe(state.viewportHeight);
   expect(state.terminalBottom).toBeLessThanOrEqual(state.viewportHeight);
+});
+
+test('desktop receives its responsive font instead of the server fallback', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(baseURL);
+  await page.waitForURL(/fontSize=13/);
+  expect(new URL(page.url()).searchParams.get('orcanResponsiveFont')).toBe('1');
 });
