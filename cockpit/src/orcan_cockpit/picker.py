@@ -95,7 +95,7 @@ def format_workspace_row_text(
     refresh can skip tear-down when the visible text would be identical."""
     is_active = row["session"] == active_session
     state = "active" if is_active else ("live" if row["live"] else "new")
-    text = f"{row['name']}  [#756f82]{state}[/]"
+    text = f"{row['name']}  [#948ba3]{state}[/]"
     if not expanded:
         return text
     repos = f"{row['repo_count']} repo" + ("" if row["repo_count"] == 1 else "s")
@@ -110,8 +110,8 @@ def format_workspace_row_text(
         root = "~" + root[len(home) :]
     # #94a3b8 (lighter muted), not #64748b — whole path/line in the darker
     # tone read as washed-out against this card's background.
-    text += f"\n   [#918a9d]{root}[/]"
-    text += f"\n   [#918a9d]{repos}[/]"
+    text += f"\n   [#b0a6ba]{root}[/]"
+    text += f"\n   [#b0a6ba]{repos}[/]"
     return text
 
 
@@ -377,7 +377,7 @@ class WorkspaceList(Widget):
         ).splitlines()[1:]
         session_state = "running" if row["live"] else "stopped"
         details.update(
-            "\n".join(expanded + [f"   [#756f82]tmux {row['session']} · {session_state}[/]"])
+            "\n".join(expanded + [f"   [#948ba3]tmux {row['session']} · {session_state}[/]"])
         )
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:

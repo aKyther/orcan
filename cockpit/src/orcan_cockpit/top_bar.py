@@ -12,6 +12,7 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from orcan_cockpit.rail import UtilityRail
+from orcan_cockpit.shortcuts import product_version
 from orcan_cockpit.status import format_top_bar_right, now_hhmm, read_loadavg, read_mem_percent
 
 _REFRESH_INTERVAL_S = 3.0
@@ -30,7 +31,7 @@ class TopBar(Widget):
         # compose, so width:auto here doesn't hit the "duplicate last char"
         # Rich/Textual bug that content changing via .update() triggers
         # elsewhere (see #top-bar-right's own comment for that one).
-        yield Static("🌀 orcan", id="top-bar-identity")
+        yield Static(f"🌀 orcan · v{product_version()}", id="top-bar-identity")
         yield Static("Select workspace  ⌄", id="workspace-trigger")
         yield UtilityRail(id="rail")
         # An empty width:1fr spacer pushes #top-bar-right to the edge via
@@ -48,7 +49,9 @@ class TopBar(Widget):
         self.query_one("#top-bar-right", Static).tooltip = (
             "system load · memory used · clock"
         )
-        self.query_one("#top-bar-identity", Static).tooltip = "About orcan cockpit"
+        self.query_one("#top-bar-identity", Static).tooltip = (
+            f"About orcan cockpit · v{product_version()}"
+        )
         self.query_one("#workspace-trigger", Static).tooltip = (
             "Choose a workspace and inspect its projects (F4)"
         )

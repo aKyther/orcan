@@ -56,6 +56,7 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start kontenera (`orcan enter` lokalnie; **jedna** ścieżka przeglądarki: `--with-ttyd` albo `--with-ttyd-auth`); opcjonalnie socket **albo** join sieci (wybierz jedno) + SSH; podpowiada nowszy release |
 | `orcan down` | Stop kontenerów |
 | `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache]` | Buduje standardowy obraz `orcan:latest` + `orcan:<VERSION>` z jawnym wyborem klientów (`cursor`, `claude`, `codex`, `gemini`, `copilot`). Wybór zapisuje `/etc/orcan/agents.json`; nigdy nie publikuje |
+| `orcan status` | Wersja produktu, podsumowanie runtime i manifest agentów obrazu |
 | `orcan pull` | Pull przenośnego obrazu ze wszystkimi agentami `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push obrazu ze wszystkimi agentami `orcan:latest` (**ręcznie**; częściowe obrazy są odrzucane) |
 | `orcan url` | URL terminala w przeglądarce (wymaga `orcan up --with-ttyd`) |

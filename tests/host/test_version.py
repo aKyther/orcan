@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -43,6 +44,19 @@ class VersionTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("VERSION OK", proc.stdout)
+
+    def test_status_reports_product_version(self) -> None:
+        with tempfile.TemporaryDirectory() as home:
+            proc = subprocess.run(
+                [str(ROOT / "bin" / "orcan"), "status"],
+                cwd=ROOT,
+                env={"HOME": home, "ORCAN_HOME": home, "ORCAN_DATA": home, "PATH": "/usr/bin:/bin"},
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn(f"version: {read_pyproject_version()}", proc.stdout)
 
     def test_mkdocs_extra_version_matches(self) -> None:
         ver = read_pyproject_version()

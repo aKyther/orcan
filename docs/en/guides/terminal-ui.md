@@ -38,12 +38,12 @@ their cursor.
 
 | Role | Hex | Used for |
 | --- | --- | --- |
-| Background | `#0e0c13` | cockpit and empty states |
-| Elevated | `#141119`, `#17131d` | bars, picker, dialogs |
-| Selection | `#211b29`, `#2a2235` | active and hover surfaces |
-| Foreground | `#d8d2e2` | primary text |
-| Muted | `#756f82`, `#918a9d` | metadata and secondary text |
-| Accent | `#9b87b8`, `#b9a7d6` | focus and interactive identity |
+| Background | `#12101a` | cockpit and empty states |
+| Elevated | `#1b1724`, `#211c2b` | bars, picker, dialogs |
+| Selection | `#2a2237`, `#342a44` | active and hover surfaces |
+| Foreground | `#e2ddea` | primary text |
+| Muted | `#948ba3`, `#b0a6ba` | metadata and secondary text |
+| Accent | `#ad91d0`, `#c7b1e2` | focus and interactive identity |
 | Warn / alert | `#fbbf24`, `#f87171` | activity, errors, low battery |
 
 The **MkDocs site** reuses these tokens (`docs/assets/stylesheets/orcan.css`, favicon). Light docs mode uses a darker teal accent for readable links on white.

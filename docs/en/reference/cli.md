@@ -56,7 +56,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start container (`orcan enter` locally; pick **one** browser mode: `--with-ttyd` or `--with-ttyd-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
 | `orcan down` | Stop containers |
 | `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache]` | Build the standard `orcan:latest` + `orcan:<VERSION>` image with explicit clients (`cursor`, `claude`, `codex`, `gemini`, `copilot`). `/etc/orcan/agents.json` records the choice; never publishes |
-| `orcan status` | Runtime summary and the image agent manifest |
+| `orcan status` | Product version, runtime summary, and the image agent manifest |
 | `orcan pull` | Pull portable all-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push an all-agents `orcan:latest` (**manual**; partial images are refused) |
 | `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |

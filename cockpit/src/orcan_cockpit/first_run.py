@@ -18,23 +18,23 @@ FirstRunModal {
 #first-run-dialog {
     width: 64;
     height: auto;
-    background: #17131d;
-    border-left: solid #9b87b8;
+    background: #211c2b;
+    border-left: solid #ad91d0;
     padding: 1;
 }
 
 .first-run-title {
-    color: #b9a7d6;
+    color: #c7b1e2;
     text-style: bold;
 }
 
 .first-run-body {
-    color: #d8d2e2;
+    color: #e2ddea;
     margin-top: 1;
 }
 
 .first-run-footer {
-    color: #756f82;
+    color: #948ba3;
     margin-top: 1;
 }
 """
