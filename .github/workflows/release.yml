@@ -114,7 +114,7 @@ jobs:
             curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/v${{ steps.ver.outputs.version }}/install.sh | bash
             orcan doctor
             orcan init /absolute/path/to/your/repo
-            orcan build
+            orcan build --all-agents
             orcan up
             ```
 

@@ -125,6 +125,28 @@ class GitReleaseHelperTests(unittest.TestCase):
             self.assertNotEqual(r.returncode, 0)
             self.assertIn("not on a release tag", r.stderr)
 
+    def test_version_file_without_a_public_tag_is_not_a_release(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _init_tagged_repo(root, ["v0.1.0"])
+            (root / "VERSION").write_text("9.9.9\n", encoding="utf-8")
+            _git(root, "add", "VERSION")
+            _git(root, "commit", "-m", "development version")
+            env = {"ORCAN_ROOT": str(root), "ORCAN_DATA": str(root / "data")}
+            r = _bash("orcan_git_local_release_tag", env=env)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertEqual(r.stdout, "")
+
+    def test_checkpoint_tag_is_not_a_release(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _init_tagged_repo(root, ["v0.1.0"])
+            _git(root, "tag", "checkpoint/v0.2.0")
+            env = {"ORCAN_ROOT": str(root), "ORCAN_DATA": str(root / "data")}
+            r = _bash("orcan_git_latest_release_tag", env=env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(r.stdout.strip(), "v0.1.0")
+
 
 class UpdateDowngradeCliTests(unittest.TestCase):
     def _cli(self, *args: str) -> subprocess.CompletedProcess[str]:

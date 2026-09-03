@@ -431,7 +431,7 @@ cmd_push_tag() {
     git push origin "v${v}"
     printf 'Pushed v%s → origin\n' "${v}"
     printf 'GitHub Actions: Release workflow validates + creates GitHub Release\n'
-    printf 'Users: git checkout v%s && orcan build && orcan up\n' "${v}"
+    printf 'Users: git checkout v%s && orcan build --all-agents && orcan up\n' "${v}"
 }
 
 usage() {
@@ -442,8 +442,8 @@ Usage: release.sh <show|print|bump|check|checkpoint|release|retract|tag|push-tag
   print              Print SemVer only (scripting)
   bump PART          Low-level: bump SemVer in pyproject (patch|minor|major) + sync copies
   check              Validate pyproject SemVer and VERSION mirror
-  checkpoint [PART]  make tag: bump + CHANGELOG cut + commit + LOCAL tag vX.Y.Z (not pushed)
-  release [YY.Q]     make release: CalVer divider in CHANGELOG + tag + push vX.Y.Z
+  checkpoint [PART]  make tag: bump + CHANGELOG cut + commit + push checkpoint/vX.Y.Z
+  release [YY.Q]     make release: CalVer divider + push vX.Y.Z + GitHub Release
   retract X.Y.Z YY.Q RETRACT-vX.Y.Z
                      Retract a published release without rewriting main
   tag                Low-level: create annotated git tag vX.Y.Z from current HEAD (clean tree)
