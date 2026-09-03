@@ -2258,27 +2258,15 @@
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>sync
 </span></code></pre></div>
 <h2 id="budowa-obrazu">Budowa obrazu<a class="headerlink" href="#budowa-obrazu" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Obaj agenci (domyślnie)</label><label for="__tabbed_1_2">Tylko Claude Code (bez pull)</label><label for="__tabbed_1_3">Tylko Cursor CLI (bez pull)</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>build
+<p>Wybierz klientów CLI pieczonych w zwykłym obrazie Orcan. Wybór jest jawny;
+nie ma tagów obrazów per agent.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>gemini<span class="w"> </span>--agent<span class="w"> </span>copilot
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>orcan<span class="w"> </span>build<span class="w"> </span>--all-agents
 </span></code></pre></div>
-<p>Tagi: <code>orcan:latest</code> oraz <code>orcan:&lt;VERSION&gt;</code>.</p>
-</div>
-<div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-claude<span class="w"> </span>orcan<span class="w"> </span>up
-</span></code></pre></div>
-<p>Tag: <code>orcan:&lt;VERSION&gt;-claude</code> (nie nadpisuje <code>latest</code>).</p>
-</div>
-<div class="tabbed-block">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--cursor
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-cursor<span class="w"> </span>orcan<span class="w"> </span>up
-</span></code></pre></div>
-<p>Tag: <code>orcan:&lt;VERSION&gt;-cursor</code>.</p>
-</div>
-</div>
-</div>
+<p>Każde polecenie aktualizuje <code>orcan:latest</code> i <code>orcan:&lt;VERSION&gt;</code>. <code>orcan status</code>
+oraz <code>orcan doctor</code> pokazują manifest obrazu. Gemini i Copilot trzymają trwałe
+loginy/sesje w <code>ORCAN_DATA/gemini</code> oraz <code>ORCAN_DATA/copilot</code>.</p>
 <h2 id="oczekiwany-wynik">Oczekiwany wynik<a class="headerlink" href="#oczekiwany-wynik" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Config i <code>.env</code> istnieją pod <code>~/.config/orcan/</code></li>
@@ -2287,9 +2275,9 @@
 </ul>
 <p>Tożsamość autora Gita wypełnia <code>orcan sync</code>. Żeby podpiąć hostowe klucze SSH do push/pull, użyj <code>orcan up --with-git</code> (zobacz <a href="../quickstart/#git-w-kontenerze">Szybki start</a>).</p>
 <h2 id="odinstalowanie">Odinstalowanie<a class="headerlink" href="#odinstalowanie" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan<span class="w"> </span>uninstall<span class="w">              </span><span class="c1"># usuń launcher + klon instalacji</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span><span class="c1"># usuń też config/loginy/cache; projekty zostają</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-images<span class="w"> </span><span class="c1"># usuń też lokalne tagi obrazów orcan:*</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>uninstall<span class="w">              </span><span class="c1"># usuń launcher + klon instalacji</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span><span class="c1"># usuń też config/loginy/cache; projekty zostają</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-images<span class="w"> </span><span class="c1"># usuń też lokalne tagi obrazów orcan:*</span>
 </span></code></pre></div>
 <p>Zobacz <a href="../../guides/workflows/#uninstall">Workflowy — uninstall</a> lub <a href="../../faq/#uninstall">FAQ</a>.</p>
 <h2 id="typowe-problemy">Typowe problemy<a class="headerlink" href="#typowe-problemy" title="Permanent link">&para;</a></h2>
@@ -2342,7 +2330,7 @@
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2 września 2026 11:17:48 UTC">2 września 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="3 września 2026 18:12:21 UTC">3 września 2026</span>
   </span>
 
     

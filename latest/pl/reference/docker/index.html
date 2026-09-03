@@ -2132,19 +2132,11 @@
 <tbody>
 <tr>
 <td><code>orcan:latest</code></td>
-<td>Obaj agenci — to, co Compose uruchamia domyślnie</td>
+<td>Zwykły obraz Orcan uruchamiany przez Compose</td>
 </tr>
 <tr>
 <td><code>orcan:&lt;VERSION&gt;</code></td>
-<td>Ten sam obraz (rejestr + lokalny pin)</td>
-</tr>
-<tr>
-<td><code>orcan:&lt;VERSION&gt;-claude</code></td>
-<td>Tylko lokalnie — Claude Code, bez Cursor</td>
-</tr>
-<tr>
-<td><code>orcan:&lt;VERSION&gt;-cursor</code></td>
-<td>Tylko lokalnie — Cursor CLI, bez Claude</td>
+<td>Wersjonowany tag tego samego obrazu</td>
 </tr>
 </tbody>
 </table>
@@ -2158,21 +2150,17 @@
 </thead>
 <tbody>
 <tr>
-<td>(brak)</td>
-<td>Pull <code>orcan:&lt;VERSION&gt;</code> jeśli jest, inaczej build obu → <code>latest</code> + <code>&lt;VERSION&gt;</code></td>
+<td><code>--agent NAZWA</code></td>
+<td>Dodaje klienta (<code>cursor</code>, <code>claude</code>, <code>codex</code>, <code>gemini</code>, <code>copilot</code>)</td>
 </tr>
 <tr>
-<td><code>--claude</code></td>
-<td>Bez pull; build <code>orcan:&lt;VERSION&gt;-claude</code> (nie rusza <code>latest</code>)</td>
-</tr>
-<tr>
-<td><code>--cursor</code></td>
-<td>Bez pull; build <code>orcan:&lt;VERSION&gt;-cursor</code></td>
+<td><code>--all-agents</code></td>
+<td>Instaluje wszystkich obsługiwanych klientów</td>
 </tr>
 </tbody>
 </table>
-<p>Potem: <code>IMAGE_LOCAL=orcan:&lt;VERSION&gt;-claude orcan up</code> (albo <code>IMAGE_LOCAL</code> w <code>.env</code>). <code>/etc/orcan/variant</code>: <code>full</code> / <code>claude</code> / <code>cursor</code>. <code>orcan publish</code> pcha tylko tagi z oboma agentami.</p>
-<p>Build-argi: <code>INSTALL_CLAUDE</code> / <code>INSTALL_CURSOR</code> (domyślnie oba <code>1</code>).
+<p><code>/etc/orcan/agents.json</code> zapisuje listę klientów; <code>orcan status</code> i <code>orcan doctor</code> ją pokazują. Dane Gemini i Copilota trwale leżą w <code>ORCAN_DATA/gemini</code> oraz <code>ORCAN_DATA/copilot</code>.</p>
+<p>Build-argi: <code>INSTALL_CURSOR</code> / <code>INSTALL_CLAUDE</code> / <code>INSTALL_CODEX</code> / <code>INSTALL_GEMINI</code> / <code>INSTALL_COPILOT</code>.
 Etykieta wersji: <code>ORCAN_VERSION</code> / <code>/etc/orcan/version</code>.</p>
 <h2 id="pliki-compose">Pliki Compose<a class="headerlink" href="#pliki-compose" title="Permanent link">&para;</a></h2>
 <table>
@@ -2363,7 +2351,7 @@ albo zagnieżdżone <code>cache/cache/</code>): na hoście uruchom
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2 września 2026 12:50:12 UTC">2 września 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="3 września 2026 18:12:21 UTC">3 września 2026</span>
   </span>
 
     
