@@ -2458,20 +2458,18 @@ Niższe ryzyko niż <code>--with-docker</code> — bez montowania socketa.</p>
 </span></code></pre></div>
 <p>Ścieżki managed: <code>$ORCAN_PROJECTS_ROOT/.worktrees/</code>. Sprzątanie: wizard → <strong>clean</strong>, albo <code>orcan context worktree remove --workspace my-ws</code>.</p>
 <h2 id="scenariusz-zainstaluj-tylko-jednego-agenta">Scenariusz: zainstaluj tylko jednego agenta<a class="headerlink" href="#scenariusz-zainstaluj-tylko-jednego-agenta" title="Permanent link">&para;</a></h2>
-<p><strong>Idea:</strong> nie instaluj agenta, którego nie użyjesz (mniejszy obraz, te same tagi).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude<span class="w">   </span><span class="c1"># → orcan:&lt;VERSION&gt;-claude</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-claude<span class="w"> </span>orcan<span class="w"> </span>up
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># albo</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>orcan<span class="w"> </span>build<span class="w"> </span>--cursor<span class="w">   </span><span class="c1"># → orcan:&lt;VERSION&gt;-cursor</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="nv">IMAGE_LOCAL</span><span class="o">=</span>orcan:0.1.1-cursor<span class="w"> </span>orcan<span class="w"> </span>up
+<p><strong>Idea:</strong> zainstaluj tylko klientów potrzebnych w tym workspace. Obraz zachowuje
+standardowe tagi, a wybór zapisuje manifest.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--agent<span class="w"> </span>codex
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan<span class="w"> </span>up
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># albo wszyscy obsługiwani klienci</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>orcan<span class="w"> </span>build<span class="w"> </span>--all-agents
 </span></code></pre></div>
 <h2 id="scenariusz-rebuild-po-zmianach-dockerfile-lub-rootfs">Scenariusz: rebuild po zmianach Dockerfile lub rootfs<a class="headerlink" href="#scenariusz-rebuild-po-zmianach-dockerfile-lub-rootfs" title="Permanent link">&para;</a></h2>
 <p><strong>Idea:</strong> opis kontekstu ten sam; zmienił się <strong>obraz narzędzi</strong>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--force<span class="w">       </span><span class="c1"># pełny obraz; pomiń pull, zbuduj lokalnie</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># albo</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>orcan<span class="w"> </span>build<span class="w"> </span>--claude<span class="w"> </span>--force
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>orcan<span class="w"> </span>down
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex<span class="w"> </span>--force
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>orcan<span class="w"> </span>down
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="scenariusz-weryfikacja-path-parity">Scenariusz: weryfikacja path parity<a class="headerlink" href="#scenariusz-weryfikacja-path-parity" title="Permanent link">&para;</a></h2>
 <p><strong>Dlaczego:</strong> zagnieżdżony Docker działa tylko przy zgodnych ścieżkach bezwzględnych.</p>
@@ -2544,7 +2542,7 @@ danych zatrzymuje purge zamiast zgadywać.</p>
 </span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>orcan<span class="w"> </span>downgrade<span class="w">              </span><span class="c1"># jeden krok SemVer wstecz (escape hatch po złym release)</span>
 </span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># orcan downgrade --to v0.1.0</span>
 </span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>orcan<span class="w"> </span>sync<span class="w">                   </span><span class="c1"># gdy zmienił się schemat konfiguracji</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>orcan<span class="w"> </span>build<span class="w"> </span>--force<span class="w">          </span><span class="c1"># gdy zmienił się Dockerfile/rootfs</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex<span class="w"> </span>--force<span class="w"> </span><span class="c1"># gdy zmienił się Dockerfile/rootfs</span>
 </span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
@@ -2576,7 +2574,7 @@ danych zatrzymuje purge zamiast zgadywać.</p>
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="3 września 2026 07:09:06 UTC">3 września 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="3 września 2026 19:10:31 UTC">3 września 2026</span>
   </span>
 
     
