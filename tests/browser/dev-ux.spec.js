@@ -87,3 +87,12 @@ test('desktop keeps the server-configured font', async ({ page }) => {
   expect(new URL(page.url()).searchParams.has('fontSize')).toBe(false);
   expect(new URL(page.url()).searchParams.has('orcanResponsiveFont')).toBe(false);
 });
+
+test('explicit URL font overrides an earlier responsive marker', async ({ page }) => {
+  await page.setViewportSize({ width: 480, height: 700 });
+  await page.goto(`${baseURL}/?fontSize=22&orcanResponsiveFont=1`);
+  await expect(page.locator('.xterm')).toBeVisible({ timeout: 15_000 });
+  const params = new URL(page.url()).searchParams;
+  expect(params.get('fontSize')).toBe('22');
+  expect(params.has('orcanResponsiveFont')).toBe(false);
+});

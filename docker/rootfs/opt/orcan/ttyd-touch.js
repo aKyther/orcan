@@ -18,11 +18,26 @@
 
   function ensureResponsiveFont() {
     const url = new URL(window.location.href);
-    const managed = url.searchParams.get("orcanResponsiveFont") === "1";
-    // A fontSize explicitly supplied by the user always wins.
-    if (url.searchParams.has("fontSize") && !managed) return false;
-
     const width = window.visualViewport?.width || window.innerWidth;
+    const desired = width <= PHONE_MAX_WIDTH_PX ? "16" : "14";
+    const current = url.searchParams.get("fontSize");
+    const marker = url.searchParams.get("orcanResponsiveFont");
+    const managed = marker !== null;
+
+    // An explicit fontSize always wins. Older URLs used marker=1; a changed
+    // font value there is also explicit (otherwise editing ?fontSize=16 to
+    // ?fontSize=22 would be immediately changed back by the phone profile).
+    const explicit = current !== null && (
+      !managed || (marker === "1" ? current !== desired : current !== marker)
+    );
+    if (explicit) {
+      if (managed) {
+        url.searchParams.delete("orcanResponsiveFont");
+        window.history.replaceState(null, "", url);
+      }
+      return false;
+    }
+
     // Desktop uses ttyd's server-side TTYD_FONT_SIZE. Only smaller touch
     // layouts need a browser override. Returning to desktop removes our
     // managed override so the configured value wins again.
@@ -33,12 +48,12 @@
       window.location.replace(url);
       return true;
     }
-    const desired = width <= PHONE_MAX_WIDTH_PX ? "16" : "14";
-    const current = url.searchParams.get("fontSize");
     if (desired === current && managed) return false;
 
     url.searchParams.set("fontSize", desired);
-    url.searchParams.set("orcanResponsiveFont", "1");
+    // Store the value we set, rather than a boolean. It lets a user override
+    // fontSize in a shared/adaptive URL without the stale marker winning.
+    url.searchParams.set("orcanResponsiveFont", desired);
     window.location.replace(url);
     return true;
   }

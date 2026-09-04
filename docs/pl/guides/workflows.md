@@ -49,7 +49,8 @@ restarcie kontenera może wrócić lista workspace'ów; sesje tmux pozostają ca
 | --- | --- |
 | **F4** / pill workspace’a | Otwórz lub zamknij nakładkę wyboru workspace’a |
 | **F5** | Podejrzyj session brief bieżącego workspace’a |
-| **Klik `🌀 orcan`** | About (nazwa, wersja, docs) |
+| **Klik `🌀 orcan`** | About (nazwa, wersja, docs; zamknij **Enterem** albo widocznym przyciskiem **Close**) |
+| **Exit** (górny pasek) | Zamknij Cockpit i wróć do terminala hosta; kontener oraz sesje tmux dalej działają |
 | **Klik bieżącego workspace’a** | Otwórz/zamknij listę workspace’ów |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu użyj **F1** — **?** idzie do shella |
 | **Ctrl+P** | Paleta komend (gdy fokus nie jest w terminalu) |

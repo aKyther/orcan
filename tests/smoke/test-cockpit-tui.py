@@ -44,8 +44,9 @@ async def main() -> None:
         assert not app.screen.query_one("#workspaces").display
 
         rail = app.screen.query_one("#rail", UtilityRail)
-        assert len(rail.query("Button")) == 1
+        assert len(rail.query("Button")) == 2
         assert str(rail.query_one("#rail-shortcuts").label) == "? Help"
+        assert str(rail.query_one("#rail-exit").label) == "Exit"
         assert app.screen.query_one("#top-bar-right").tooltip
         assert app.screen.query_one("#top-bar-identity").tooltip
 
@@ -54,8 +55,11 @@ async def main() -> None:
         await pilot.click("#top-bar-identity")
         await pilot.pause()
         assert app.screen.__class__.__name__ == "AboutModal"
-        await pilot.press("escape")
+        # Browser/ttyd may reserve Escape, so About must also expose a
+        # pointer-safe way back to the cockpit.
+        await pilot.click("#about-close")
         await pilot.pause()
+        assert app.screen.__class__.__name__ == "MainScreen"
 
         # The current-workspace pill opens one overlay picker at every tier;
         # F4 shares the state and no longer changes the terminal's geometry.

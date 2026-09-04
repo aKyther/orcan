@@ -43,7 +43,8 @@ the container may return to the workspace picker; tmux sessions remain intact.
 | --- | --- |
 | **F4** / workspace pill | Open or close the workspace picker overlay |
 | **F5** | Peek the current workspace session brief |
-| **Click `🌀 orcan`** | About (name, version, docs) |
+| **Click `🌀 orcan`** | About (name, version, docs; close with **Enter** or the visible **Close** button) |
+| **Exit** (top bar) | Close Cockpit and return to the host terminal; container and tmux sessions keep running |
 | **Click current workspace** | Open/close the workspace browser |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, use **F1** — **?** goes to the shell |
 | **Ctrl+P** | Command palette (when focus is not in the terminal) |

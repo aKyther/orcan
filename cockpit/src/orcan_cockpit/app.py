@@ -639,6 +639,10 @@ class MainScreen(Screen):
     def on_utility_rail_tool_selected(self, message: UtilityRail.ToolSelected) -> None:
         if message.tool == "shortcuts":
             self.action_open_shortcuts()
+        elif message.tool == "exit":
+            # End only this Cockpit/`orcan enter` process. The container and
+            # its tmux sessions remain running for a later enter or ttyd use.
+            self.app.exit()
 
 
 class CockpitApp(App):
