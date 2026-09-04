@@ -2758,7 +2758,8 @@ input keep their existing paths. A short tap stays a tap because scrolling
 starts only after a vertical movement threshold.</p>
 <p>Phone and tablet typography is responsive: 16 px up to 600 px wide, 14 px up
 to 1024 px, and the configured <code>TTYD_FONT_SIZE</code> (14 px by default) on desktop.
-An explicit <code>?fontSize=N</code> URL parameter overrides the automatic profile. While
+An explicit <code>?fontSize=N</code> URL parameter overrides the automatic profile, even
+when it was added to a previously adaptive URL. While
 xterm's input is focused, the bridge also follows <code>visualViewport</code>; when the
 software keyboard reduces the visible height, ttyd refits its rows so the
 current prompt remains above the keyboard.</p>
@@ -2804,7 +2805,11 @@ current prompt remains above the keyboard.</p>
 </tr>
 <tr>
 <td><strong>Click <code>🌀 orcan</code></strong></td>
-<td>About (name, version, docs) — <code>about_modal.py</code></td>
+<td>About (name, version, docs) — close with <strong>Enter</strong> or its visible <strong>Close</strong> button; <code>about_modal.py</code></td>
+</tr>
+<tr>
+<td><strong>Exit</strong> (top bar)</td>
+<td>Close Cockpit and return to the host terminal; tmux sessions remain running</td>
 </tr>
 <tr>
 <td><strong>Click current workspace</strong></td>
@@ -2919,7 +2924,7 @@ current prompt remains above the keyboard.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 3, 2026 20:31:48 UTC">September 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 4, 2026 12:23:56 UTC">September 4, 2026</span>
   </span>
 
     
