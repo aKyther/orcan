@@ -30,6 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   blinking reverse-video block in shells and agent TUIs, while respecting
   applications that deliberately hide it.
 
+- **Browser-safe About:** Cockpit's About modal now has a visible **Close**
+  button and accepts **Enter**, so browser or ttyd handling of `Esc` cannot
+  trap a user in the modal.
+
+- **Return to host:** Cockpit has a visible **Exit** control that ends only
+  `orcan enter` and returns to the host terminal; the container and tmux
+  sessions remain running.
+
+- **Responsive ttyd font:** an explicit `?fontSize=N` now wins even if the
+  URL previously carried Orcan's responsive-font marker.
+
 - Fixed large confirmed pastes in the embedded terminal being truncated when
   the non-blocking PTY accepted only its first buffer-sized chunk.
 

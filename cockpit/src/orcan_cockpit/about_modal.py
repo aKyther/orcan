@@ -12,7 +12,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import ModalScreen
-from textual.widgets import Static
+from textual.widgets import Button, Static
 
 from orcan_cockpit.shortcuts import DOCS_URL, PRODUCT_NAME, product_version
 
@@ -39,14 +39,30 @@ AboutModal {
     color: #948ba3;
     margin-top: 1;
 }
+
+#about-close {
+    width: auto;
+    min-width: 0;
+    height: 1;
+    margin-top: 1;
+    padding: 0 1;
+    border: none;
+    background: #2a2237;
+    color: #c7b1e2;
+}
+
+#about-close:hover, #about-close:focus {
+    background: #342a44;
+    color: #e2ddea;
+}
 """
 
 
 class AboutModal(ModalScreen[None]):
-    """Product identity only — Escape dismisses."""
+    """Product identity with keyboard and pointer-safe dismissal."""
 
     CSS = _CSS
-    BINDINGS = [("escape", "dismiss", "Close")]
+    BINDINGS = [("escape", "dismiss", "Close"), ("enter", "dismiss", "Close")]
 
     def compose(self) -> ComposeResult:
         with Container(id="about-dialog"):
@@ -57,7 +73,12 @@ class AboutModal(ModalScreen[None]):
             # confirmed via a real pty run that crashed on this exact line
             # before the quotes were added.
             yield Static(f'[link="{DOCS_URL}"]Full docs →[/link]')
-            yield Static("Esc to close", id="about-footer")
+            yield Button("Close", id="about-close")
+            yield Static("Enter / Esc, or click Close", id="about-footer")
 
     def action_dismiss(self, result: None = None) -> None:
         self.dismiss(result)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "about-close":
+            self.dismiss(None)

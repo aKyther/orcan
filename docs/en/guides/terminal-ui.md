@@ -217,7 +217,8 @@ starts only after a vertical movement threshold.
 
 Phone and tablet typography is responsive: 16 px up to 600 px wide, 14 px up
 to 1024 px, and the configured `TTYD_FONT_SIZE` (14 px by default) on desktop.
-An explicit `?fontSize=N` URL parameter overrides the automatic profile. While
+An explicit `?fontSize=N` URL parameter overrides the automatic profile, even
+when it was added to a previously adaptive URL. While
 xterm's input is focused, the bridge also follows `visualViewport`; when the
 software keyboard reduces the visible height, ttyd refits its rows so the
 current prompt remains above the keyboard.
@@ -236,7 +237,8 @@ current prompt remains above the keyboard.
 | --- | --- |
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
-| **Click `🌀 orcan`** | About (name, version, docs) — `about_modal.py` |
+| **Click `🌀 orcan`** | About (name, version, docs) — close with **Enter** or its visible **Close** button; `about_modal.py` |
+| **Exit** (top bar) | Close Cockpit and return to the host terminal; tmux sessions remain running |
 | **Click current workspace** | Open/close the workspace browser without losing the active workspace identity |
 | **F5** | Peek the current workspace session brief |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
