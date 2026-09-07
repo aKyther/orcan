@@ -261,6 +261,10 @@ return to the picker; stale workspace identity is cleared.
 About, shortcuts, and the session brief use the same temporary sheet: a visible
 **Close** control always works alongside their keyboard shortcuts. On a phone,
 the sheet fills the screen instead of becoming a clipped desktop dialog.
+
+Short Cockpit feedback appears as a dismissible, low-right toast above tmux;
+it fades automatically and never changes the terminal's size. Its muted
+violet, amber, or rose edge distinguishes information, warnings, and errors.
 | **Click current workspace** | Open/close the workspace browser without losing the active workspace identity |
 | **F5** | Peek the current workspace session brief |
 | **Ctrl+P** | Command palette (outside the terminal focus) |
