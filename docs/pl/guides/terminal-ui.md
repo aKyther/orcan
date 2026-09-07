@@ -264,6 +264,11 @@ tmuxa. Gdy otwarcie się nie uda, kliknij zwięzły komunikat błędu (albo uży
 About, skróty i brief sesji używają tego samego tymczasowego sheetu: widoczny
 przycisk **Close** działa obok ich skrótów klawiaturowych. Na telefonie sheet
 wypełnia ekran zamiast zamieniać się w przycięty dialog desktopowy.
+
+Krótkie komunikaty Cockpitu pojawiają się jako możliwy do kliknięcia toast w
+prawym dolnym rogu, nad tmuxem; znikają automatycznie i nigdy nie zmieniają
+rozmiaru terminala. Stonowana fioletowa, bursztynowa lub różana krawędź
+rozróżnia informację, ostrzeżenie i błąd.
 | **Klik bieżącego workspace’a** | Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie |
 | **F5** | Podejrzyj session brief bieżącego workspace’a |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |

@@ -102,6 +102,51 @@ Screen {
     background: #12101a;
 }
 
+/* System notifications are deliberately small and sit above the terminal
+   rather than taking space from it.  Textual's stock toast is a large,
+   bordered panel; this version keeps feedback present but peripheral. */
+ToastRack {
+    margin-right: 1;
+    margin-bottom: 1;
+}
+
+Toast {
+    width: auto;
+    max-width: 42;
+    margin-top: 1;
+    padding: 0 1;
+    background: #241e30;
+    color: #d7c7eb;
+    border-left: solid #7c6694;
+}
+
+Toast .toast--title {
+    color: #e2ddea;
+    text-style: bold;
+}
+
+Toast.-information {
+    border-left: solid #9d82bd;
+}
+
+Toast.-warning {
+    background: #2b2420;
+    border-left: solid #d3a66f;
+}
+
+Toast.-warning .toast--title {
+    color: #e0bb8b;
+}
+
+Toast.-error {
+    background: #2d2027;
+    border-left: solid #c47b91;
+}
+
+Toast.-error .toast--title {
+    color: #dfa1b2;
+}
+
 #top-bar {
     /* A real bordered card, matching the side panels/terminal — height:3
        is deliberate, not a guess: border-top(1) + content(1) + border-
@@ -762,6 +807,7 @@ class CockpitApp(App):
     TITLE = "orcan"
     CSS = _CSS
     COMMANDS = App.COMMANDS | {WorkspaceCommands}
+    NOTIFICATION_TIMEOUT = 4
 
     def on_mount(self) -> None:
         self.push_screen(MainScreen())

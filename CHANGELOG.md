@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Cockpit feedback:** notifications are now compact, dismissible low-right
+  toasts over the terminal. Muted severity edges replace stock warning-panel
+  styling, and they fade after four seconds without changing tmux geometry.
+
 - **Mobile cockpit:** after a workspace is attached, the narrow layout is now
   terminal-first. A small workspace pill remains available, while identity and
   status chrome no longer consume terminal rows; opening F4 still leaves tmux
