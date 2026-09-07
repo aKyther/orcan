@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import time
 import unittest
 from pathlib import Path
 
@@ -69,6 +70,13 @@ class PaneLabelScriptTests(unittest.TestCase):
     def test_argv_pid_resolves_agent_from_proc_cmdline(self) -> None:
         proc = subprocess.Popen(["bash", "-c", "exec -a 'node /opt/claude/cli.js' sleep 30"])
         try:
+            cmdline_path = Path(f"/proc/{proc.pid}/cmdline")
+            deadline = time.monotonic() + 1
+            while b"cli.js" not in cmdline_path.read_bytes():
+                self.assertIsNone(proc.poll(), "test process exited before exec")
+                if time.monotonic() >= deadline:
+                    self.fail("test process did not publish its exec argv in /proc")
+                time.sleep(0.01)
             self.assertEqual(self._label_argv("node", str(proc.pid)), "claude")
         finally:
             proc.kill()
