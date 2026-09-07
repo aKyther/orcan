@@ -68,6 +68,32 @@ sync z `keybindings.conf`).
 !!! tip
     Przeglądarka + lokalny terminal mogą dzielić jedną sesję: edytuj w iTerm / Windows Terminal, trzymaj ttyd na telefonie lub drugim ekranie.
 
+## Scenariusz: zbuduj frontend React, Vite lub TypeScript
+
+**Idea:** obraz zawiera Node.js 22, npm 10, pnpm i Corepack. TypeScript należy do
+grafu zależności konkretnego frontendu, więc jego `tsc` pojawia się po
+instalacji zależności projektu, a nie z globalnego pakietu o potencjalnie
+niezgodnej wersji.
+
+```bash
+# kontener
+uv sync --locked
+cd frontend
+npm ci                 # użyj npm install, gdy projekt nie ma lockfile
+npm run lint
+npm run build
+cd ..
+uv run pytest
+```
+
+W repozytorium pnpm lub Yarn użyj menedżera z lockfile (`pnpm install
+--frozen-lockfile` albo `corepack yarn install --immutable`) przed `npm run
+lint` i komendą budowania. Cache npm, pnpm i Yarn pozostaje w
+`$ORCAN_DATA/cache`.
+
+W projektach Python wymagających konkretnego runtime użyj `python3.11` lub
+`python3.13`.
+
 ## Scenariusz: przełączenie klienta lub linii produktu
 
 **Problem:** inny zestaw repo to dzisiejszy kontekst.  

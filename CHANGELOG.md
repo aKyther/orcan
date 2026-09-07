@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Frontend toolchain:** the image now verifies Node.js 22 with npm 10 and
+  includes Corepack alongside pnpm, so projects that declare Yarn can install
+  and build with their pinned package manager. Frontend workflow docs clarify
+  that TypeScript comes from the project's dependencies (`npm ci` then
+  `npm run build`).
+- **Python runtimes:** the image provides Python 3.11 and Python 3.13 as
+  `python3.11` and `python3.13`.
+
 - **Large terminal paste:** embedded Cockpit/ttyd input of 32 KiB or more is
   stored in a private temporary file and replaced with a concise instruction
   for the active agent to read it. Files expire after 24 hours.
