@@ -147,6 +147,60 @@ Toast.-error .toast--title {
     color: #dfa1b2;
 }
 
+/* The command palette is an action picker, not a second application window.
+   Keep its native search / arrow / Enter behaviour, but give it the same
+   quiet, lightweight surface as the information sheets. */
+CommandPalette {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+CommandPalette > Vertical {
+    width: 64;
+    max-width: 88%;
+    height: auto;
+    max-height: 70%;
+    margin-top: 2;
+    background: #211c2b;
+    border-left: solid #ad91d0;
+}
+
+CommandPalette #--input {
+    background: #2a2237;
+    border: none;
+    padding: 0 1;
+}
+
+CommandPalette #--input CommandInput {
+    color: #e2ddea;
+}
+
+CommandPalette #--results {
+    background: #211c2b;
+}
+
+CommandPalette CommandList {
+    max-height: 16;
+    background: #211c2b;
+    border: none;
+}
+
+CommandPalette CommandList > .option-list--option {
+    padding: 0 1;
+    color: #cbc4d3;
+    text-style: none;
+}
+
+CommandPalette CommandList > .option-list--option-highlighted {
+    color: #e2ddea;
+    background: #342a44;
+    text-style: none;
+}
+
+CommandPalette > .command-palette--highlight {
+    color: #c7b1e2;
+    text-style: bold;
+}
+
 #top-bar {
     /* A real bordered card, matching the side panels/terminal — height:3
        is deliberate, not a guess: border-top(1) + content(1) + border-

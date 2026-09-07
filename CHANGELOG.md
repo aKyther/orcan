@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toasts over the terminal. Muted severity edges replace stock warning-panel
   styling, and they fade after four seconds without changing tmux geometry.
 
+- **Command palette:** Ctrl+P now shares Cockpit's compact plum sheet surface
+  and a quieter selection state while preserving its native search, arrows,
+  Enter, and click-outside behaviour.
+
 - **Mobile cockpit:** after a workspace is attached, the narrow layout is now
   terminal-first. A small workspace pill remains available, while identity and
   status chrome no longer consume terminal rows; opening F4 still leaves tmux

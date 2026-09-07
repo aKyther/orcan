@@ -265,6 +265,9 @@ the sheet fills the screen instead of becoming a clipped desktop dialog.
 Short Cockpit feedback appears as a dismissible, low-right toast above tmux;
 it fades automatically and never changes the terminal's size. Its muted
 violet, amber, or rose edge distinguishes information, warnings, and errors.
+
+The **Ctrl+P** command palette uses the same quiet sheet surface; type to
+filter, use arrow keys and **Enter** to apply, or click outside it to dismiss.
 | **Click current workspace** | Open/close the workspace browser without losing the active workspace identity |
 | **F5** | Peek the current workspace session brief |
 | **Ctrl+P** | Command palette (outside the terminal focus) |

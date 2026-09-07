@@ -269,6 +269,10 @@ Krótkie komunikaty Cockpitu pojawiają się jako możliwy do kliknięcia toast 
 prawym dolnym rogu, nad tmuxem; znikają automatycznie i nigdy nie zmieniają
 rozmiaru terminala. Stonowana fioletowa, bursztynowa lub różana krawędź
 rozróżnia informację, ostrzeżenie i błąd.
+
+Paleta komend **Ctrl+P** używa tej samej spokojnej powierzchni sheeta: wpisz
+filtr, użyj strzałek i **Entera**, aby wykonać akcję, albo kliknij poza nią,
+aby ją zamknąć.
 | **Klik bieżącego workspace’a** | Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie |
 | **F5** | Podejrzyj session brief bieżącego workspace’a |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |
