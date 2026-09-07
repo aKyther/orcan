@@ -115,6 +115,9 @@ orcan_cmd_doctor() {
             check "last up flags" "1" "$(orcan_up_state_summary)"
             if orcan_ttyd_is_active; then
                 check "browser terminal (ttyd)" "1" "$(orcan_terminal_url | tr -d '\n')"
+                local renderer="${TTYD_RENDERER:-webgl}"
+                check "browser renderer" "1" \
+                    "${renderer}; diagnostics: $(orcan_terminal_url | tr -d '\n')?orcanDiagnostics=1"
             else
                 check "browser terminal (ttyd)" "1" "off — orcan up --with-ttyd (local: orcan enter)"
             fi

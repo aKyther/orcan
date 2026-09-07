@@ -256,6 +256,7 @@ class ApplyConfigE2ETests(unittest.TestCase):
                     "host_port": 7681,
                     "font_size": 19,
                     "font_family": "monospace",
+                    "renderer": "canvas",
                     "theme": "dark",
                 },
                 "resources": {
@@ -295,6 +296,7 @@ class ApplyConfigE2ETests(unittest.TestCase):
 
             runtime_data = json.loads(runtime.read_text(encoding="utf-8"))
             self.assertEqual(runtime_data["workspaces"][0]["name"], "demo")
+            self.assertEqual(runtime_data["ttyd"]["renderer"], "canvas")
 
             compose_text = compose.read_text(encoding="utf-8")
             self.assertIn(str(proj.resolve()), compose_text)
@@ -302,6 +304,19 @@ class ApplyConfigE2ETests(unittest.TestCase):
             env_text = env.read_text(encoding="utf-8")
             self.assertIn("WORKSPACE_NAME=demo", env_text)
             self.assertIn("ORCAN_COMPOSE_PROJECTS=", env_text)
+            self.assertIn("TTYD_RENDERER=canvas", env_text)
+
+    def test_rejects_unknown_ttyd_renderer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            project = root / "project"
+            project.mkdir()
+            cfg = {
+                "workspaces": [{"name": "demo", "projects": [{"name": "app", "path": str(project)}]}],
+                "ttyd": {"renderer": "dom"},
+            }
+            with self.assertRaises(SystemExit):
+                apply_config.build_from_config(cfg, root)
 
 
     def test_worktree_project_also_mounts_main_repos_git_dir_only(self) -> None:

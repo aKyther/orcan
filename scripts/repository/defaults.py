@@ -20,6 +20,7 @@ TTYD_DEFAULTS: dict[str, object] = {
     "bind": "0.0.0.0",
     "font_size": 14,
     "font_family": "Menlo, Monaco, 'Courier New', monospace",
+    "renderer": "webgl",
     "theme": "dark",
     "ping_interval": 20,
 }

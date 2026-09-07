@@ -76,6 +76,13 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
     if bind in ("0.0.0.0", "::"):
         warn("binding all interfaces — set TTYD_CREDENTIAL=user:pass in .env for basic auth")
     font = ask("ttyd font size", str(current.get("font_size", 14)))
+    renderer = ask(
+        "ttyd renderer (webgl=fast; canvas=fallback)",
+        str(current.get("renderer", DEFAULT_TTYD["renderer"])),
+    ).strip().lower()
+    if renderer not in ("webgl", "canvas"):
+        warn("renderer must be webgl or canvas — settings unchanged")
+        return
     try:
         cfg["ttyd"] = {
             "port": int(port),
@@ -83,6 +90,7 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
             "bind": bind,
             "font_size": int(font),
             "font_family": current.get("font_family", DEFAULT_TTYD["font_family"]),
+            "renderer": renderer,
             "theme": current.get("theme", DEFAULT_TTYD["theme"]),
             "ping_interval": current.get("ping_interval", DEFAULT_TTYD["ping_interval"]),
         }

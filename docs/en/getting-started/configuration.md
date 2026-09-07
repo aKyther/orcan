@@ -62,6 +62,7 @@ orcan down && orcan up
     "port": 7681,
     "host_port": 7681,
     "font_size": 14,
+    "renderer": "webgl",
     "theme": "dark"
   },
   "resources": {
@@ -83,7 +84,7 @@ Defaults stay light on purpose (typical laptop). Raise them when the machine can
 | `projects[].name` | Symlink name inside the workspace |
 | `projects[].path` | Absolute host path (same path inside the container — path parity) |
 | `tmux.*` | Windows created when a session starts |
-| `ttyd.*` | Browser terminal port, look (`theme`: `dark`/`navy`, `mocha`, or raw JSON), and `ping_interval` (WebSocket keepalive) |
+| `ttyd.*` | Browser terminal port, look (`theme`: `dark`/`navy`, `mocha`, or raw JSON), renderer (`webgl` by default; `canvas` fallback), and `ping_interval` (WebSocket keepalive) |
 | `resources.*` | Container CPU / memory / shm / tmpfs limits |
 
 ### Raising resources

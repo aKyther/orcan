@@ -96,3 +96,14 @@ test('explicit URL font overrides an earlier responsive marker', async ({ page }
   expect(params.get('fontSize')).toBe('22');
   expect(params.has('orcanResponsiveFont')).toBe(false);
 });
+
+test('renderer diagnostics expose pixel-density and font evidence', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${baseURL}/?orcanDiagnostics=1`);
+  const diagnostics = page.locator('#orcan-render-diagnostics');
+  await expect(diagnostics).toBeVisible({ timeout: 15_000 });
+  await expect(diagnostics).toContainText('renderer:');
+  await expect(diagnostics).toContainText('DPR:');
+  await expect(diagnostics).toContainText('font:');
+  await expect(diagnostics).toContainText('canvas:');
+});

@@ -16,6 +16,17 @@
   let appliedViewportHeight = 0;
   let resizeFrame = 0;
 
+  function ensureWebglFallback() {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("rendererType")) return false;
+    const canvas = document.createElement("canvas");
+    if (canvas.getContext("webgl2") || canvas.getContext("webgl")) return false;
+    url.searchParams.set("rendererType", "canvas");
+    url.searchParams.set("orcanRendererFallback", "no-webgl");
+    window.location.replace(url);
+    return true;
+  }
+
   function ensureResponsiveFont() {
     const url = new URL(window.location.href);
     const width = window.visualViewport?.width || window.innerWidth;
@@ -142,15 +153,59 @@
 
     terminal.addEventListener("touchend", () => { dragging = false; }, { passive: true });
     terminal.addEventListener("touchcancel", () => { dragging = false; }, { passive: true });
+
+    // ttyd 1.7.7 can fit before its asynchronous renderer settles. Its fit
+    // addon listens for resize, so refit after first paint and slow font/GPU init.
+    for (const delay of [0, 100, 350]) {
+      window.setTimeout(() => window.dispatchEvent(new Event("resize")), delay);
+    }
+    terminal.addEventListener("webglcontextlost", () => {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("rendererType") === "canvas") return;
+      url.searchParams.set("rendererType", "canvas");
+      url.searchParams.set("orcanRendererFallback", "context-lost");
+      window.location.replace(url);
+    }, true);
+  }
+
+  function installDiagnostics(terminal) {
+    if (new URL(window.location.href).searchParams.get("orcanDiagnostics") !== "1"
+        || document.querySelector("#orcan-render-diagnostics")) return;
+    const viewport = window.visualViewport;
+    const canvas = terminal.querySelector("canvas");
+    const panel = document.createElement("output");
+    panel.id = "orcan-render-diagnostics";
+    panel.setAttribute("aria-live", "polite");
+    panel.style.cssText = "position:fixed;right:8px;top:8px;z-index:10000;padding:6px 8px;"
+      + "border:1px solid #554e61;border-radius:4px;background:#141119e8;color:#d8d2e2;"
+      + "font:12px ui-monospace,monospace;pointer-events:none;white-space:pre-line";
+    const update = () => {
+      const url = new URL(window.location.href);
+      const style = window.getComputedStyle(terminal);
+      const fallback = url.searchParams.get("orcanRendererFallback");
+      panel.textContent = [
+        `renderer: ${url.searchParams.get("rendererType") || "server default"}`,
+        `DPR: ${window.devicePixelRatio}; zoom: ${viewport?.scale || 1}`,
+        `font: ${style.fontFamily}; ${style.fontSize}`,
+        `canvas: ${canvas ? `${canvas.width}×${canvas.height}` : "not ready"}`,
+        fallback ? `fallback: ${fallback}` : "",
+      ].filter(Boolean).join("\n");
+    };
+    document.body.append(panel);
+    update();
+    window.addEventListener("resize", update);
+    viewport?.addEventListener("resize", update);
   }
 
   function findTerminal() {
     const terminal = document.querySelector(".xterm");
     if (!terminal) return false;
     install(terminal);
+    installDiagnostics(terminal);
     return true;
   }
 
+  if (ensureWebglFallback()) return;
   if (ensureResponsiveFont()) return;
 
   if (!findTerminal()) {
