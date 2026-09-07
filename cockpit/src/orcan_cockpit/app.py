@@ -42,11 +42,24 @@ from orcan_cockpit.tmux_chrome import (
 )
 from orcan_cockpit.top_bar import TopBar
 
-PLACEHOLDER_TEXT = (
-    "[#c7b1e2 bold]🌀 orcan[/]\n"
-    "Choose a workspace\n"
-    "[#948ba3]Your sessions and projects will appear here.[/]"
-)
+def format_placeholder_text(workspace_count: int) -> str:
+    """The calm zero-state behind the workspace overlay.
+
+    This is intentionally one instruction, not a dashboard: choosing a
+    workspace is the only meaningful next step before a tmux session exists.
+    """
+    if workspace_count == 0:
+        return (
+            "[#c7b1e2 bold]🌀 orcan[/]\n"
+            "No workspaces yet\n"
+            "[#948ba3]Run [#c7b1e2]orcan init[/] to create your first workspace.[/]"
+        )
+    noun = "workspace" if workspace_count == 1 else "workspaces"
+    return (
+        "[#c7b1e2 bold]🌀 orcan[/]\n"
+        "Choose a workspace\n"
+        f"[#948ba3]{workspace_count} {noun} available · use F4 or the workspace pill.[/]"
+    )
 
 # Maps a focused widget to the context that drives its focus-highlight border.
 _CONTEXT_ROOT_IDS: dict[str, Context] = {
@@ -354,16 +367,17 @@ Screen {
     layers: base overlay;
     width: 1fr;
     height: 1fr;
-    /* The embedded terminal already has a one-cell visual gutter on its
-       right edge (scrollbar/cursor boundary). Match it on the left so the
-       content does not look pasted to the viewport while retaining almost
-       the full tmux width. */
-    margin-left: 1;
+    /* This one-cell left edge replaces the old empty gutter: it has the same
+       footprint, but now quietly tells the user where the keyboard goes.
+       A violet edge appears only while the terminal owns focus, rather than
+       adding another permanent frame around every panel. */
+    border-left: solid #211c2b;
     background: #12101a;
 }
 
 #center-stack.focused {
     background: #17131f;
+    border-left: solid #ad91d0;
 }
 
 #terminal {
@@ -385,7 +399,7 @@ Screen {
 }
 
 #loading {
-    /* Overlay until PtyTerminal.Ready — branded attach card, not a spinner. */
+    /* Overlay until PtyTerminal.Ready — a quiet transition, not a spinner. */
     layer: overlay;
     width: 1fr;
     height: 1fr;
@@ -421,6 +435,58 @@ MainScreen.tier-minimal #top-bar-right {
 
 MainScreen.tier-minimal #workspaces {
     width: 1fr;
+    height: 1fr;
+    margin-left: 0;
+    background: #17131f;
+}
+
+/* A workspace picker on a phone is a temporary destination, not a narrow
+   desktop sidebar. Let it occupy the viewport and make every list row easy
+   to hit with a thumb. The richer context is still one `i` away. */
+MainScreen.tier-minimal #workspace-list-widget {
+    border-left: none;
+    padding: 1 2;
+    background: #17131f;
+}
+
+MainScreen.tier-minimal #workspace-list ListItem {
+    height: 3;
+    padding: 1 1;
+    margin-bottom: 1;
+    background: #211c2b;
+}
+
+MainScreen.tier-minimal #workspace-list ListItem.active-workspace {
+    background: #302640;
+}
+
+MainScreen.tier-minimal #workspace-legend {
+    height: 1;
+    padding-top: 1;
+}
+
+/* Once a workspace is attached, a phone is a terminal first and a cockpit
+   second. Keep one quiet, right-aligned workspace pill as the way back to
+   the picker, but give the PTY the rows otherwise used by the identity and
+   status chrome. This class deliberately does not depend on whether the
+   picker overlay is open: changing it for F4 would resize tmux underneath
+   the overlay, making a mobile terminal jump while the user browses. */
+MainScreen.tier-minimal.terminal-first #top-bar {
+    height: 1;
+    background: #12101a;
+    padding: 0 1;
+    align: right middle;
+}
+
+MainScreen.tier-minimal.terminal-first #top-bar-identity,
+MainScreen.tier-minimal.terminal-first #status-bar {
+    display: none;
+}
+
+MainScreen.tier-minimal.terminal-first #workspace-trigger {
+    margin-right: 0;
+    color: #c7b1e2;
+    background: #241e30;
 }
 """
 
@@ -457,7 +523,7 @@ class MainScreen(Screen):
                 yield WorkspaceList(id="workspace-list-widget")
             with Container(id="center"):
                 with Container(id="center-stack"):
-                    yield Static(PLACEHOLDER_TEXT, id="placeholder")
+                    yield Static(id="placeholder")
         yield StatusBar(id="status-bar")
 
     def on_click(self, event: events.Click) -> None:
@@ -467,6 +533,13 @@ class MainScreen(Screen):
         elif event.widget is not None and event.widget.id == "top-bar-identity":
             event.stop()
             self.app.push_screen(AboutModal())
+        elif event.widget is not None and event.widget.id == "error":
+            # A failed attach leaves the error visible rather than silently
+            # reopening the picker. The whole concise error state is the
+            # pointer-safe "Back to workspaces" affordance; F4 remains its
+            # keyboard equivalent.
+            event.stop()
+            self._set_workspaces_visible(True)
         elif self._workspaces_visible and not self._event_is_within(event, "workspaces"):
             self._set_workspaces_visible(False, focus_terminal=True)
             event.stop()
@@ -491,6 +564,7 @@ class MainScreen(Screen):
         self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
         self._update_focus_highlight("workspaces")
         self._apply_tier(tier_for_width(self.size.width))
+        self._refresh_placeholder()
         # A ttyd WebSocket reconnect starts a fresh cockpit process. Restore
         # its last workspace after child widgets have mounted and populated
         # the list; tmux itself retains that session's active window/pane.
@@ -534,10 +608,29 @@ class MainScreen(Screen):
         self.query_one("#workspace-trigger", Static).set_class(
             self._workspaces_visible, "picker-open"
         )
+        # On a narrow terminal, retain only the workspace affordance after a
+        # session is attached. Keep this independent of the overlay state:
+        # opening F4 must not change the underlying tmux geometry.
+        self.set_class(
+            self._tier == "minimal" and self._current_session is not None,
+            "terminal-first",
+        )
+
+    def _refresh_placeholder(self) -> None:
+        """Keep the pre-attachment state meaningful without duplicating UI."""
+        if self._current_session is not None:
+            return
+        rows = self.query_one("#workspace-list-widget", WorkspaceList).rows
+        # The placeholder has been removed once an attach has reached its
+        # error state. Query without a type filter here — Textual's DOMQuery
+        # accepts one selector argument — and update only when it remains.
+        for placeholder in self.query("#placeholder"):
+            placeholder.update(format_placeholder_text(len(rows)))
 
     def _set_workspaces_visible(self, visible: bool, *, focus_terminal: bool = False) -> None:
         self._workspaces_visible = visible
         self._update_workspaces_visibility()
+        self._refresh_placeholder()
         if visible:
             self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
         elif focus_terminal:
@@ -558,6 +651,13 @@ class MainScreen(Screen):
         target_selector = _FOCUS_BORDER_IDS.get(context)
         for selector in set(_FOCUS_BORDER_IDS.values()):
             self.query_one(selector).set_class(selector == target_selector, "focused")
+        self.query_one(StatusBar).set_focus(
+            {
+                "terminal": "Terminal",
+                "workspaces": "Workspaces",
+                "rail": "Controls",
+            }.get(context)
+        )
 
     async def select_workspace(self, row: dict) -> None:
         workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
@@ -584,7 +684,8 @@ class MainScreen(Screen):
         await center.remove_children()
         center.mount(
             Static(
-                f"Opening [#c7b1e2]{row['name']}[/]\n"
+                "[#948ba3]Opening workspace[/]\n"
+                f"[#c7b1e2 bold]{row['name']}[/]\n"
                 "[#948ba3]Restoring your session…[/]",
                 id="loading",
             )
@@ -593,8 +694,18 @@ class MainScreen(Screen):
         bootstrap = bootstrap_workspace(row)
         if bootstrap.returncode != 0:
             self._current_session = None
+            self._current_root = None
+            workspace_list.set_active_session(None)
+            self.query_one(TopBar).set_workspace(None)
+            self.query_one(StatusBar).clear_workspace()
             await center.remove_children()
-            center.mount(Static(f"Could not bootstrap session {row['session']!r}", id="error"))
+            center.mount(
+                Static(
+                    "[#f87171]Could not open this workspace.[/]\n"
+                    "[#948ba3]Click here to return to workspaces · F4[/]",
+                    id="error",
+                )
+            )
             return
 
         self._current_session = row["session"]

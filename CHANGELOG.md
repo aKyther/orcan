@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Mobile cockpit:** after a workspace is attached, the narrow layout is now
+  terminal-first. A small workspace pill remains available, while identity and
+  status chrome no longer consume terminal rows; opening F4 still leaves tmux
+  at a stable size.
+
+- **Workspace picker:** starts as a quiet decision list; press **`i`** for
+  root, project/Git/worktree details and the session glance. On a narrow
+  viewport it uses a full-height picker sheet with thumb-sized rows.
+
+- **Cockpit focus:** a single violet terminal edge and a bottom-bar surface
+  label now make keyboard ownership explicit when moving between the terminal,
+  workspace picker, and controls.
+
+- **Cockpit zero state:** before attachment, the terminal area now reports
+  the available workspace count and one next step (the workspace pill/F4), or
+  directs a new installation to `orcan init`.
+
+- **Workspace transition:** opening a workspace now has a quiet restore state.
+  A failed attach clears stale identity and offers a pointer-safe return to the
+  picker as well as F4.
+
+- **Cockpit sheets:** About, shortcuts, and session brief now share one quiet
+  sheet design with visible Close controls; they use the full screen on a
+  narrow terminal instead of a clipped desktop dialog.
+
 - **Frontend toolchain:** the image now verifies Node.js 22 with npm 10 and
   includes Corepack alongside pnpm, so projects that declare Yarn can install
   and build with their pinned package manager. Frontend workflow docs clarify

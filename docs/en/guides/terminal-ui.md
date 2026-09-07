@@ -239,14 +239,28 @@ sharpness; fractional browser or OS scaling can soften canvas text.
 | Tier | Columns | Effect |
 | --- | --- | --- |
 | `compact` | 90–119 | Bottom bar shortens; the workspace picker overlays the terminal |
-| `minimal` | < 90 | Hides rail and metrics; the workspace pill remains available above the full-width terminal |
+| `minimal` | < 90 | Before attachment, keeps the picker chrome. After attachment, becomes terminal-first: only a quiet workspace pill remains, so tmux gets the identity and status rows too. F4 still opens the picker as an overlay without resizing tmux. |
 
 | Keys | Action |
 | --- | --- |
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |
+| **`i`** (picker) | Show or hide the highlighted workspace's root, Git/worktree/projects and live-session glance; the picker opens as a compact decision list by default |
+| **Focus cue** | The violet edge and the bottom-bar surface label show whether keys go to Terminal, Workspaces, or Controls |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
 | **Click `🌀 orcan`** | About (name, version, docs) — close with **Enter** or its visible **Close** button; `about_modal.py` |
 | **Exit** (top bar) | Close Cockpit and return to the host terminal; tmux sessions remain running |
+
+Before a terminal is attached, the center keeps one calm next step: choose a
+workspace with the pill or **F4**. It reports how many workspaces are ready;
+with none configured it points directly to `orcan init`.
+
+Changing workspace keeps a short transition in the center while tmux is
+restored. If it cannot open, click the concise error state (or press **F4**) to
+return to the picker; stale workspace identity is cleared.
+
+About, shortcuts, and the session brief use the same temporary sheet: a visible
+**Close** control always works alongside their keyboard shortcuts. On a phone,
+the sheet fills the screen instead of becoming a clipped desktop dialog.
 | **Click current workspace** | Open/close the workspace browser without losing the active workspace identity |
 | **F5** | Peek the current workspace session brief |
 | **Ctrl+P** | Command palette (outside the terminal focus) |

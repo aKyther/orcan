@@ -227,16 +227,10 @@ from textual.app import ComposeResult  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
 
-# Runtime labels have a permanent caption under the list rather than a
-# hover-only tooltip (which a non-mouse/native-terminal session might never
-# trigger).
-# \[ escapes the literal bracket — Static defaults to markup=True, and an
-# unescaped [i] parses as an (unclosed) Rich style tag that silently drops
-# the letter from the render (confirmed with Text.from_markup()).
-# Two lines, not one: the full text is 44 cells, wider than this card's
-# ~30-col usable width — on one line "[i] expand" silently clipped off the
-# end entirely (found while verifying the feature it's advertising).
-LEGEND = "active current · live running · new stopped\n" r"Enter attach   \[i] hide/show details"
+# Keep keyboard instructions visible rather than hiding the primary mechanic
+# behind a mouse-only tooltip. `\[` escapes the literal bracket: Static uses
+# Rich markup, so an unescaped `[i]` would be parsed as a tag.
+LEGEND = r"↑↓ browse · Enter attach · \[i] details"
 
 # Kept fresh enough to notice a session someone killed elsewhere without
 # feeling like a busy-poll — this is cosmetic session status, not
@@ -250,9 +244,10 @@ class WorkspaceList(Widget):
     always visible, not a one-shot picker screen you navigate away from.
     Selecting a row tells the app to (re)attach the center terminal to it.
 
-    Rows stay one line tall even with many configured workspaces. Details for
-    only the highlighted row appear below the list: root path plus project
-    Git/worktree/branch identity. `i` hides or restores that detail area."""
+    The default is deliberately a calm, decision-first list. Details for only
+    the highlighted row (root, projects, Git/worktree/branch identity, and
+    session glance) appear on demand with `i`, so context remains available
+    without competing with workspace switching."""
 
     can_focus = True
 
@@ -260,8 +255,10 @@ class WorkspaceList(Widget):
         super().__init__(**kwargs)
         self.rows: list[dict[str, Any]] = []
         self.active_session: str | None = None
-        # Details belong to the highlighted workspace, never every row.
-        self._expanded = True
+        # Details belong to the highlighted workspace, never every row. Keep
+        # them opt-in: switching projects is far more common than inspecting
+        # all of their metadata.
+        self._expanded = False
         # Last painted ListView / glance — poll stays on the timer; paint
         # skips when signatures match so idle refresh does not flicker.
         self._list_paint_sig: tuple[tuple[str, bool], ...] | None = None
@@ -284,6 +281,7 @@ class WorkspaceList(Widget):
         if event.key == "i":
             self._expanded = not self._expanded
             self._update_details()
+            self._update_glance()
             event.stop()
 
     def set_active_session(self, session: str | None) -> None:
@@ -347,7 +345,14 @@ class WorkspaceList(Widget):
         return self.rows[index]
 
     def _update_glance(self) -> None:
+        glance = self.query_one("#workspace-glance", Static)
+        glance.display = self._expanded
         row = self._highlighted_row()
+        if not self._expanded or row is None:
+            if self._glance_text != "":
+                self._glance_text = ""
+                glance.update("")
+            return
         if row is None:
             text = format_glance([], empty_hint=_GLANCE_EMPTY)
         else:
@@ -361,7 +366,7 @@ class WorkspaceList(Widget):
         if text == self._glance_text:
             return
         self._glance_text = text
-        self.query_one("#workspace-glance", Static).update(text)
+        glance.update(text)
 
     def _update_details(self) -> None:
         details = self.query_one("#workspace-details", Static)

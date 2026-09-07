@@ -89,13 +89,16 @@ def format_status_line(
     branch: str,
     session: str | None,
     breadcrumb: str = "",
+    focus: str | None = None,
 ) -> str:
-    """The bottom bar: workspace identity + optional tmux breadcrumb.
+    """The bottom bar: workspace identity, active surface, and tmux context.
 
     CPU/RAM/clock live in the top bar (format_top_bar_right) and the problems
     🔔 lives in the rail (rail.py) exclusively.
     """
     parts = [workspace or "(no workspace)"]
+    if tier != "minimal" and focus:
+        parts.append(focus)
     if tier == "full" and branch:
         parts.append(f"⎇ {branch}")
     if tier == "full" and session:

@@ -242,14 +242,28 @@ systemu może zmiękczać tekst canvasa.
 | Tier | Kolumny | Efekt |
 | --- | --- | --- |
 | `compact` | 90–119 | Krótszy dolny pasek; picker workspace’a nakłada się na terminal |
-| `minimal` | < 90 | Ukrywa rail i metryki; pill workspace’a zostaje nad terminalem pełnej szerokości |
+| `minimal` | < 90 | Przed podłączeniem zachowuje chrome pickera. Po podłączeniu przechodzi w tryb terminal-first: zostaje tylko dyskretny pill workspace’a, a tmux odzyskuje wiersze identity i statusu. F4 nadal otwiera picker jako overlay bez zmiany rozmiaru tmuxa. |
 
 | Klawisze | Akcja |
 | --- | --- |
 | **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |
+| **`i`** (picker) | Pokaż lub ukryj root, Git/worktree/projekty i glance żywej sesji zaznaczonego workspace’a; domyślnie picker jest krótką listą decyzji |
+| **Wskaźnik fokusu** | Fioletowa krawędź i etykieta obszaru na dolnym pasku mówią, czy klawisze trafiają do Terminala, Workspace’ów czy Controls |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — zamknij **Enterem** albo widocznym przyciskiem **Close**; `about_modal.py` |
 | **Exit** (górny pasek) | Zamknij Cockpit i wróć do terminala hosta; sesje tmux dalej działają |
+
+Przed podłączeniem terminala środek pokazuje jeden spokojny kolejny krok:
+wybierz workspace pill-em albo **F4**. Podaje liczbę gotowych workspace’ów, a
+gdy nie ma żadnego, kieruje wprost do `orcan init`.
+
+Zmiana workspace’a zostawia krótki stan przejścia pośrodku podczas odtwarzania
+tmuxa. Gdy otwarcie się nie uda, kliknij zwięzły komunikat błędu (albo użyj
+**F4**), aby wrócić do pickera; poprzednia tożsamość workspace’a jest czyszczona.
+
+About, skróty i brief sesji używają tego samego tymczasowego sheetu: widoczny
+przycisk **Close** działa obok ich skrótów klawiaturowych. Na telefonie sheet
+wypełnia ekran zamiast zamieniać się w przycięty dialog desktopowy.
 | **Klik bieżącego workspace’a** | Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie |
 | **F5** | Podejrzyj session brief bieżącego workspace’a |
 | **Ctrl+P** | Paleta komend (poza fokusem terminala) |

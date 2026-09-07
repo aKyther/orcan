@@ -12,25 +12,15 @@ the "🌀 orcan" wordmark, not by pressing F1/?.
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Container, VerticalScroll
-from textual.screen import ModalScreen
-from textual.widgets import Static
+from textual.containers import Container, Horizontal, VerticalScroll
+from textual.widgets import Button, Static
 
+from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
 from orcan_cockpit.shortcuts import BROWSER_KEY_LIMIT, EMBED_DISCLAIMER, format_row, grouped_by_layer
 
-_CSS = """
-ShortcutsModal {
-    align: center middle;
-    background: rgba(0, 0, 0, 0.4);
-}
-
+_CSS = SHEET_CSS + """
 #shortcuts-dialog {
     width: 74;
-    height: auto;
-    max-height: 80%;
-    background: #211c2b;
-    border-left: solid #ad91d0;
-    padding: 1;
 }
 
 .shortcuts-heading {
@@ -50,19 +40,23 @@ ShortcutsModal {
 """
 
 
-class ShortcutsModal(ModalScreen[None]):
+class ShortcutsModal(SheetModal):
     """Floating shortcut reference — Escape or `?` dismisses."""
 
     CSS = _CSS
     BINDINGS = [
         ("escape", "dismiss", "Close"),
+        ("enter", "dismiss", "Close"),
         ("f1", "dismiss", "Close"),
         ("question_mark", "dismiss", "Close"),
     ]
 
     def compose(self) -> ComposeResult:
         groups = grouped_by_layer()
-        with Container(id="shortcuts-dialog"):
+        with Container(classes="sheet", id="shortcuts-dialog"):
+            with Horizontal(classes="sheet-header"):
+                yield Static("SHORTCUTS", classes="sheet-title")
+                yield Button("Close", id="shortcuts-close", classes="sheet-close")
             with VerticalScroll():
                 yield Static("APP", classes="shortcuts-heading")
                 for shortcut in groups["app"]:
@@ -76,3 +70,7 @@ class ShortcutsModal(ModalScreen[None]):
 
     def action_dismiss(self, result: None = None) -> None:
         self.dismiss(result)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "shortcuts-close":
+            self.dismiss(None)

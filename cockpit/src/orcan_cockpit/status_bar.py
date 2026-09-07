@@ -23,6 +23,7 @@ class StatusBar(Widget):
         self.workspace_root: Path | None = None
         self.session: str | None = None
         self.tier: Tier = "full"
+        self.focus: str | None = None
         self._painted_line: str | None = None
 
     def compose(self) -> ComposeResult:
@@ -38,9 +39,21 @@ class StatusBar(Widget):
         self.session = session
         self.refresh_status()
 
+    def clear_workspace(self) -> None:
+        """Remove stale identity when a requested tmux session cannot open."""
+        self.workspace_name = None
+        self.workspace_root = None
+        self.session = None
+        self.refresh_status()
+
     def set_tier(self, tier: Tier) -> None:
         if tier != self.tier:
             self.tier = tier
+            self.refresh_status()
+
+    def set_focus(self, focus: str | None) -> None:
+        if focus != self.focus:
+            self.focus = focus
             self.refresh_status()
 
     def refresh_status(self) -> None:
@@ -52,6 +65,7 @@ class StatusBar(Widget):
             branch=branch,
             session=self.session,
             breadcrumb=crumb,
+            focus=self.focus,
         )
         if line == self._painted_line:
             return
