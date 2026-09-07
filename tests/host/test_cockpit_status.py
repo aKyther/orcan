@@ -85,9 +85,17 @@ class FormatStatusLineTests(unittest.TestCase):
         self.assertNotIn("main", line)
         self.assertNotIn("orcan-dev", line)
 
+    def test_non_minimal_tier_shows_active_surface(self) -> None:
+        line = status.format_status_line(
+            tier="compact", workspace="orcan", branch="main", session="orcan-dev",
+            focus="Terminal",
+        )
+        self.assertIn("Terminal", line)
+
     def test_minimal_tier_is_workspace_only(self) -> None:
         line = status.format_status_line(
             tier="minimal", workspace="orcan", branch="main", session="orcan-dev",
+            focus="Terminal",
         )
         self.assertEqual(line, "orcan")
 

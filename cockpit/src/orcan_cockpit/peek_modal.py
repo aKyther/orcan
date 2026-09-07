@@ -5,25 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Container, VerticalScroll
-from textual.screen import ModalScreen
-from textual.widgets import Static
+from textual.containers import Container, Horizontal, VerticalScroll
+from textual.widgets import Button, Static
 
 from orcan_cockpit.peek import build_peek_text
+from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
 
-_CSS = """
-PeekModal {
-    align: center middle;
-    background: rgba(0, 0, 0, 0.4);
-}
-
+_CSS = SHEET_CSS + """
 #peek-dialog {
     width: 72;
-    height: auto;
-    max-height: 80%;
-    background: #211c2b;
-    border-left: solid #ad91d0;
-    padding: 1;
 }
 
 .peek-heading {
@@ -47,7 +37,7 @@ PeekModal {
 """
 
 
-class PeekModal(ModalScreen[str | None]):
+class PeekModal(SheetModal):
     """Floating session-brief preview."""
 
     CSS = _CSS
@@ -62,9 +52,11 @@ class PeekModal(ModalScreen[str | None]):
 
     def compose(self) -> ComposeResult:
         text = build_peek_text(self.workspace_root)
-        with Container(id="peek-dialog"):
+        with Container(classes="sheet", id="peek-dialog"):
+            with Horizontal(classes="sheet-header"):
+                yield Static("SESSION BRIEF", classes="sheet-title")
+                yield Button("Close", id="peek-close", classes="sheet-close")
             with VerticalScroll():
-                yield Static("PEEK", classes="peek-heading")
                 yield Static(text, classes="peek-body")
                 yield Static(
                     "Enter / Esc to close",
@@ -73,3 +65,7 @@ class PeekModal(ModalScreen[str | None]):
 
     def action_dismiss_close(self) -> None:
         self.dismiss("close")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "peek-close":
+            self.dismiss("close")

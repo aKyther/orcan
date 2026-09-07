@@ -2,16 +2,22 @@
 """Exercise the real Textual cockpit and its embedded tmux PTY."""
 
 import asyncio
+import subprocess
+from unittest.mock import patch
 
 from textual.widgets import Button, ListItem, ListView, Static
 
-from orcan_cockpit.app import CockpitApp
+from orcan_cockpit.app import CockpitApp, format_placeholder_text
 from orcan_cockpit.picker import WorkspaceList
 from orcan_cockpit.pty_terminal import PtyTerminal
 from orcan_cockpit.rail import UtilityRail
 
 
 async def main() -> None:
+    assert "No workspaces yet" in format_placeholder_text(0)
+    assert "orcan init" in format_placeholder_text(0)
+    assert "1 workspace available" in format_placeholder_text(1)
+    assert "2 workspaces available" in format_placeholder_text(2)
     app = CockpitApp()
     async with app.run_test(size=(140, 42)) as pilot:
         await pilot.pause(0.4)
@@ -39,6 +45,7 @@ async def main() -> None:
         assert terminal._session == "dev-ux"
         assert terminal._screen is not None
         assert terminal._screen.columns > 20 and terminal._screen.lines > 5
+        assert app.screen.query_one("#center-stack").has_class("focused")
         # Selecting closes the combobox-like overlay at every viewport size.
         # The terminal keeps the same dimensions whether it is open or not.
         assert not app.screen.query_one("#workspaces").display
@@ -70,7 +77,18 @@ async def main() -> None:
         await pilot.pause()
         assert app.screen.query_one("#workspaces").display
         assert terminal.size == terminal_size
+        assert app.screen.query_one("#workspace-list-widget").has_class("focused")
+        assert not app.screen.query_one("#center-stack").has_class("focused")
+        # The modern picker is decision-first: metadata stays out of the way
+        # until explicitly requested for the highlighted workspace.
+        assert not workspaces._expanded
+        assert not app.screen.query_one("#workspace-details").display
+        assert not app.screen.query_one("#workspace-glance").display
+        await pilot.press("i")
+        await pilot.pause()
         assert workspaces._expanded
+        assert app.screen.query_one("#workspace-details").display
+        assert app.screen.query_one("#workspace-glance").display
         # Confirming the already-attached row closes the picker too; it must
         # not restart the PTY merely because Enter was used as confirmation.
         process = terminal._process
@@ -80,11 +98,21 @@ async def main() -> None:
         assert terminal.size == terminal_size
         assert terminal._process is process
         assert terminal.has_focus
+        assert app.screen.query_one("#center-stack").has_class("focused")
 
         await pilot.press("f1")
         await pilot.pause()
         assert app.screen.__class__.__name__ == "ShortcutsModal"
-        await pilot.press("escape")
+        assert app.screen.query_one("#shortcuts-close")
+        await pilot.click("#shortcuts-close")
+        await pilot.pause()
+        assert app.screen.__class__.__name__ == "MainScreen"
+
+        await pilot.press("f5")
+        await pilot.pause()
+        assert app.screen.__class__.__name__ == "PeekModal"
+        assert app.screen.query_one("#peek-close")
+        await pilot.click("#peek-close")
         await pilot.pause()
         assert app.screen.__class__.__name__ == "MainScreen"
 
@@ -95,12 +123,23 @@ async def main() -> None:
         app.screen._apply_tier("minimal")
         await pilot.pause()
         assert app.screen.has_class("tier-minimal")
+        # After attaching a workspace, the narrow layout is terminal-first:
+        # only the workspace pill remains, while the status chrome returns
+        # its rows to tmux. It must remain that way while F4 is open so the
+        # terminal never jumps underneath the overlay.
+        assert app.screen.has_class("terminal-first")
+        assert not app.screen.query_one("#top-bar-identity").display
+        assert not app.screen.query_one("#status-bar").display
+        assert app.screen.query_one("#workspace-trigger").display
+        terminal_size = terminal.size
         assert not app.screen.query_one("#workspaces").display
         assert app.screen.query_one("#center").display
         app.screen.action_toggle_workspaces()
         await pilot.pause()
         assert app.screen.query_one("#workspaces").display
         assert app.screen.query_one("#center").display
+        assert app.screen.has_class("terminal-first")
+        assert terminal.size == terminal_size
         app.screen.action_toggle_workspaces()
         await pilot.pause()
         assert not app.screen.query_one("#workspaces").display
@@ -147,6 +186,29 @@ async def main() -> None:
         # Return to a configured workspace before testing reconnect. The
         # synthetic regression sessions above deliberately are not picker
         # rows, and stale/non-configured state must be ignored.
+        await app.select_workspace(base)
+        await pilot.pause(1.0)
+        assert app.screen.query_one("#terminal", PtyTerminal)._session == "dev-ux"
+
+        # An unsuccessful bootstrap must not leave the old workspace identity
+        # in the chrome or trap the user on an error screen. The concise error
+        # itself is pointer-safe recovery; F4 remains an equivalent shortcut.
+        failed = {**base, "session": "dev-ux-bootstrap-failure"}
+        with patch(
+            "orcan_cockpit.app.bootstrap_workspace",
+            return_value=subprocess.CompletedProcess([], 1),
+        ):
+            await app.select_workspace(failed)
+        await pilot.pause()
+        error = app.screen.query_one("#error", Static)
+        assert "Could not open" in str(error._Static__content)
+        assert "(no workspace)" in str(
+            app.screen.query_one("#status-body", Static)._Static__content
+        )
+        await pilot.click("#error")
+        await pilot.pause()
+        assert app.screen.query_one("#workspaces").display
+        assert app.screen.query_one("#workspace-list", ListView).has_focus
         await app.select_workspace(base)
         await pilot.pause(1.0)
         assert app.screen.query_one("#terminal", PtyTerminal)._session == "dev-ux"
