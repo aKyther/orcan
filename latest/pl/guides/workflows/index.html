@@ -1274,6 +1274,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#scenariusz-zbuduj-frontend-react-vite-lub-typescript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenariusz: zbuduj frontend React, Vite lub TypeScript
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#scenariusz-przeaczenie-klienta-lub-linii-produktu" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2146,6 +2157,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#scenariusz-zbuduj-frontend-react-vite-lub-typescript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenariusz: zbuduj frontend React, Vite lub TypeScript
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#scenariusz-przeaczenie-klienta-lub-linii-produktu" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2419,21 +2441,41 @@ sync z <code>keybindings.conf</code>).</p>
 <p class="admonition-title">Tip</p>
 <p>Przeglądarka + lokalny terminal mogą dzielić jedną sesję: edytuj w iTerm / Windows Terminal, trzymaj ttyd na telefonie lub drugim ekranie.</p>
 </div>
+<h2 id="scenariusz-zbuduj-frontend-react-vite-lub-typescript">Scenariusz: zbuduj frontend React, Vite lub TypeScript<a class="headerlink" href="#scenariusz-zbuduj-frontend-react-vite-lub-typescript" title="Permanent link">&para;</a></h2>
+<p><strong>Idea:</strong> obraz zawiera Node.js 22, npm 10, pnpm i Corepack. TypeScript należy do
+grafu zależności konkretnego frontendu, więc jego <code>tsc</code> pojawia się po
+instalacji zależności projektu, a nie z globalnego pakietu o potencjalnie
+niezgodnej wersji.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># kontener</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>sync<span class="w"> </span>--locked
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nb">cd</span><span class="w"> </span>frontend
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>npm<span class="w"> </span>ci<span class="w">                 </span><span class="c1"># użyj npm install, gdy projekt nie ma lockfile</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>npm<span class="w"> </span>run<span class="w"> </span>lint
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>npm<span class="w"> </span>run<span class="w"> </span>build
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nb">cd</span><span class="w"> </span>..
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+</span></code></pre></div>
+<p>W repozytorium pnpm lub Yarn użyj menedżera z lockfile (<code>pnpm install
+--frozen-lockfile</code> albo <code>corepack yarn install --immutable</code>) przed <code>npm run
+lint</code> i komendą budowania. Cache npm, pnpm i Yarn pozostaje w
+<code>$ORCAN_DATA/cache</code>.</p>
+<p>W projektach Python wymagających konkretnego runtime użyj <code>python3.11</code> lub
+<code>python3.13</code>.</p>
 <h2 id="scenariusz-przeaczenie-klienta-lub-linii-produktu">Scenariusz: przełączenie klienta lub linii produktu<a class="headerlink" href="#scenariusz-przeaczenie-klienta-lub-linii-produktu" title="Permanent link">&para;</a></h2>
 <p><strong>Problem:</strong> inny zestaw repo to dzisiejszy kontekst.<br />
 <strong>Podejście:</strong> edytuj listę workspace'ów (lub włącz inny), zastosuj konfigurację, odtwórz kontener.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>init<span class="w">    </span><span class="c1"># albo edytuj orcan.config.json</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>orcan<span class="w"> </span>sync
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>down
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>init<span class="w">    </span><span class="c1"># albo edytuj orcan.config.json</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>orcan<span class="w"> </span>sync
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>orcan<span class="w"> </span>down
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="scenariusz-bezpieczniejszy-terminal-bez-socketa-dockera-hosta">Scenariusz: bezpieczniejszy terminal bez socketa Dockera hosta<a class="headerlink" href="#scenariusz-bezpieczniejszy-terminal-bez-socketa-dockera-hosta" title="Permanent link">&para;</a></h2>
 <p><strong>Kompromis:</strong> brak Docker-from-Docker; mniejszy blast radius. To jest <strong>domyślne</strong>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="scenariusz-terminal-z-socketem-dockera-hosta-dind">Scenariusz: terminal z socketem Dockera hosta (DinD)<a class="headerlink" href="#scenariusz-terminal-z-socketem-dockera-hosta-dind" title="Permanent link">&para;</a></h2>
 <p><strong>Kiedy:</strong> zagnieżdżony Compose / Docker z wnętrza kontenera.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
 </span></code></pre></div>
 <p><strong>Kompromis:</strong> socket ≈ kontrola hostowego Docker Engine. Flaga jest świadomym
 opt-inem (ostrzeżenie przy starcie). Nie ma trybu „pełny Docker hosta, ale
@@ -2443,41 +2485,41 @@ bezpieczny”. Jeśli wystarczy dojść do innych kontenerów — użyj
 <p><strong>Kiedy:</strong> kontener ma sięgać innego kontenera po nazwie/IP (np. własny stack
 <code>docker compose</code> projektu), ale nie musi sterować hostowym Dockerem.
 Niższe ryzyko niż <code>--with-docker</code> — bez montowania socketa.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>network<span class="w"> </span>create<span class="w"> </span>my-net<span class="w">   </span><span class="c1"># jeśli jeszcze nie istnieje</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-network<span class="w"> </span>my-net
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>network<span class="w"> </span>create<span class="w"> </span>my-net<span class="w">   </span><span class="c1"># jeśli jeszcze nie istnieje</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-network<span class="w"> </span>my-net
 </span></code></pre></div>
 <h2 id="scenariusz-git-pushpull-z-kontenera">Scenariusz: git push/pull z kontenera<a class="headerlink" href="#scenariusz-git-pushpull-z-kontenera" title="Permanent link">&para;</a></h2>
 <p><strong>Kiedy:</strong> commity już mają tożsamość hosta (<code>orcan sync</code>); potrzebujesz też kluczy SSH lub agenta do remote'ów.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># z DinD:</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># z DinD:</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
 </span></code></pre></div>
 <h2 id="scenariusz-opcjonalny-git-worktree">Scenariusz: opcjonalny git worktree<a class="headerlink" href="#scenariusz-opcjonalny-git-worktree" title="Permanent link">&para;</a></h2>
 <p><strong>Kiedy:</strong> chcesz drugi checkout bez ruszania klona od <code>main</code> / <code>pull</code>.</p>
 <p>W wizardzie po podaniu ścieżki projektu odpowiedz <strong>tak</strong> na pytanie o worktree (domyślnie <strong>nie</strong> — samo montowanie).</p>
 <p>Albo bez interakcji:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>worktree<span class="w"> </span>create<span class="w"> </span>--repo<span class="w"> </span>/absolute/path/to/repo<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>--branch<span class="w"> </span>topic<span class="w"> </span>--workspace<span class="w"> </span>my-ws<span class="w"> </span>--project<span class="w"> </span>backend
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>worktree<span class="w"> </span>create<span class="w"> </span>--repo<span class="w"> </span>/absolute/path/to/repo<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>--branch<span class="w"> </span>topic<span class="w"> </span>--workspace<span class="w"> </span>my-ws<span class="w"> </span>--project<span class="w"> </span>backend
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <p>Ścieżki managed: <code>$ORCAN_PROJECTS_ROOT/.worktrees/</code>. Sprzątanie: wizard → <strong>clean</strong>, albo <code>orcan context worktree remove --workspace my-ws</code>.</p>
 <h2 id="scenariusz-zainstaluj-tylko-jednego-agenta">Scenariusz: zainstaluj tylko jednego agenta<a class="headerlink" href="#scenariusz-zainstaluj-tylko-jednego-agenta" title="Permanent link">&para;</a></h2>
 <p><strong>Idea:</strong> zainstaluj tylko klientów potrzebnych w tym workspace. Obraz zachowuje
 standardowe tagi, a wybór zapisuje manifest.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--agent<span class="w"> </span>codex
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan<span class="w"> </span>up
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># albo wszyscy obsługiwani klienci</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>orcan<span class="w"> </span>build<span class="w"> </span>--all-agents
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--agent<span class="w"> </span>codex
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>orcan<span class="w"> </span>up
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1"># albo wszyscy obsługiwani klienci</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>orcan<span class="w"> </span>build<span class="w"> </span>--all-agents
 </span></code></pre></div>
 <h2 id="scenariusz-rebuild-po-zmianach-dockerfile-lub-rootfs">Scenariusz: rebuild po zmianach Dockerfile lub rootfs<a class="headerlink" href="#scenariusz-rebuild-po-zmianach-dockerfile-lub-rootfs" title="Permanent link">&para;</a></h2>
 <p><strong>Idea:</strong> opis kontekstu ten sam; zmienił się <strong>obraz narzędzi</strong>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex<span class="w"> </span>--force
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>orcan<span class="w"> </span>down
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex<span class="w"> </span>--force
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>orcan<span class="w"> </span>down
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="scenariusz-weryfikacja-path-parity">Scenariusz: weryfikacja path parity<a class="headerlink" href="#scenariusz-weryfikacja-path-parity" title="Permanent link">&para;</a></h2>
 <p><strong>Dlaczego:</strong> zagnieżdżony Docker działa tylko przy zgodnych ścieżkach bezwzględnych.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>orcan<span class="w"> </span>context<span class="w"> </span>show
 </span></code></pre></div>
 <h2 id="wewnatrz-kontenera">Wewnątrz kontenera<a class="headerlink" href="#wewnatrz-kontenera" title="Permanent link">&para;</a></h2>
 <table>
@@ -2516,14 +2558,14 @@ standardowe tagi, a wybór zapisuje manifest.</p>
 </table>
 <p>Klawisze launchera: numer workspace'a, <code>s</code> = status, <code>i</code> = wskazówka init, <code>q</code> = wyjście.</p>
 <h2 id="stop-czyszczenie-odinstalowanie">Stop, czyszczenie, odinstalowanie<a class="headerlink" href="#stop-czyszczenie-odinstalowanie" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>orcan<span class="w"> </span>down<span class="w">                 </span><span class="c1"># zatrzymaj; zachowaj ~/.config/orcan</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>orcan<span class="w"> </span>uninstall<span class="w">                         </span><span class="c1"># usuń runtime + CLI; zachowaj dane/projekty/obrazy</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w">            </span><span class="c1"># usuń też config/loginy/cache; zachowaj projekty</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-images<span class="w">          </span><span class="c1"># usuń też lokalne tagi obrazów orcan:*</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>orcan<span class="w"> </span>down<span class="w">                 </span><span class="c1"># zatrzymaj; zachowaj ~/.config/orcan</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>orcan<span class="w"> </span>uninstall<span class="w">                         </span><span class="c1"># usuń runtime + CLI; zachowaj dane/projekty/obrazy</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w">            </span><span class="c1"># usuń też config/loginy/cache; zachowaj projekty</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-images<span class="w">          </span><span class="c1"># usuń też lokalne tagi obrazów orcan:*</span>
 </span></code></pre></div>
 <p>Pełne usunięcie: <a href="#uninstall">Odinstalowanie</a>.</p>
 <h2 id="uninstall">Odinstalowanie<a class="headerlink" href="#uninstall" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span>--purge-images
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>orcan<span class="w"> </span>uninstall<span class="w"> </span>--purge-data<span class="w"> </span>--purge-images
 </span></code></pre></div>
 <p>Komenda prosi o wpisanie <code>yes</code>, zatrzymuje warianty Compose Orcana oraz usuwa
 launcher i standardowy klon instalatora. Checkout developerski jest raportowany
@@ -2539,15 +2581,15 @@ pod <code>ORCAN_DATA</code>. Uszkodzony config albo niebezpieczny/symlinkowany r
 danych zatrzymuje purge zamiast zgadywać.</p>
 </div>
 <h2 id="aktualizacja-downgrade-orcana">Aktualizacja / downgrade Orcana<a class="headerlink" href="#aktualizacja-downgrade-orcana" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>orcan<span class="w"> </span>upgrade<span class="w">                </span><span class="c1"># najnowszy tag GitHub Release (vX.Y.Z)</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="c1"># orcan upgrade --to v0.2.0  # przypnij konkretny release (w górę lub w dół)</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># orcan update                # kanał dev: zamiast tego śledź main</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>orcan<span class="w"> </span>downgrade<span class="w">              </span><span class="c1"># jeden krok SemVer wstecz (escape hatch po złym release)</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># orcan downgrade --to v0.1.0</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>orcan<span class="w"> </span>sync<span class="w">                   </span><span class="c1"># gdy zmienił się schemat konfiguracji</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex<span class="w"> </span>--force<span class="w"> </span><span class="c1"># gdy zmienił się Dockerfile/rootfs</span>
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>orcan<span class="w"> </span>upgrade<span class="w">                </span><span class="c1"># najnowszy tag GitHub Release (vX.Y.Z)</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1"># orcan upgrade --to v0.2.0  # przypnij konkretny release (w górę lub w dół)</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># orcan update                # kanał dev: zamiast tego śledź main</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>orcan<span class="w"> </span>downgrade<span class="w">              </span><span class="c1"># jeden krok SemVer wstecz (escape hatch po złym release)</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1"># orcan downgrade --to v0.1.0</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>orcan<span class="w"> </span>sync<span class="w">                   </span><span class="c1"># gdy zmienił się schemat konfiguracji</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex<span class="w"> </span>--force<span class="w"> </span><span class="c1"># gdy zmienił się Dockerfile/rootfs</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up
 </span></code></pre></div>
 <h2 id="zobacz-tez">Zobacz też<a class="headerlink" href="#zobacz-tez" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2578,7 +2620,7 @@ danych zatrzymuje purge zamiast zgadywać.</p>
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="4 września 2026 12:23:56 UTC">4 września 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="7 września 2026 08:24:35 UTC">7 września 2026</span>
   </span>
 
     
