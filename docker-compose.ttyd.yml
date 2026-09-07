@@ -15,6 +15,7 @@ services:
       TTYD_PORT: ${TTYD_PORT:-7681}
       TTYD_FONT_SIZE: ${TTYD_FONT_SIZE:-14}
       TTYD_FONT_FAMILY: ${TTYD_FONT_FAMILY:-}
+      TTYD_RENDERER: ${TTYD_RENDERER:-webgl}
       TTYD_THEME: ${TTYD_THEME:-dark}
       TTYD_PING_INTERVAL: ${TTYD_PING_INTERVAL:-20}
       # Optional HTTP basic auth (user:password). Empty = no auth.

@@ -225,6 +225,15 @@ xterm ma fokus, most śledzi też `visualViewport`;
 kiedy klawiatura ekranowa zmniejsza widoczną wysokość, ttyd dopasowuje liczbę
 wierszy tak, aby bieżący prompt pozostał nad klawiaturą.
 
+`ttyd.renderer` wybiera renderer xterm: domyślny **`webgl`** jest szybki przy
+scrollowaniu i dużym wyjściu, a **`canvas`** jest fallbackiem dla przeglądarki
+lub GPU, które źle rysują glify WebGL. Przeglądarka bez WebGL automatycznie
+przechodzi na canvas. Otwórz URL terminala z `?orcanDiagnostics=1` (adres jest
+też w `orcan doctor`), aby zobaczyć preferencję renderera, device-pixel ratio,
+zoom, rozpoznany font, rozmiar canvasa i powód fallbacku. Przy ocenie ostrości
+tekstu ustaw zoom przeglądarki na 100%; ułamkowe skalowanie przeglądarki lub
+systemu może zmiękczać tekst canvasa.
+
 ### Chrome cockpitu (warstwa app)
 
 **Progi szerokości** (kolumny terminala, nie breakpointy CSS — `status.py` /

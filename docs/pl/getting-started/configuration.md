@@ -62,6 +62,7 @@ orcan down && orcan up
     "port": 7681,
     "host_port": 7681,
     "font_size": 14,
+    "renderer": "webgl",
     "theme": "dark"
   },
   "resources": {
@@ -83,7 +84,7 @@ Domyślne limity są celowo lekkie (typowy laptop). Podnieś je, gdy maszyna ma 
 | `projects[].name` | Nazwa symlinku wewnątrz workspace'a |
 | `projects[].path` | Bezwzględna ścieżka hosta (ta sama w kontenerze — path parity) |
 | `tmux.*` | Okna tworzone przy starcie sesji |
-| `ttyd.*` | Port, wygląd (`theme`: `dark`/`navy`, `mocha` albo surowy JSON) i `ping_interval` (keepalive WebSocket) terminala w przeglądarce |
+| `ttyd.*` | Port, wygląd (`theme`: `dark`/`navy`, `mocha` albo surowy JSON), renderer (`webgl` domyślnie; `canvas` jako fallback) i `ping_interval` (keepalive WebSocket) terminala w przeglądarce |
 | `resources.*` | Limity CPU / pamięci / shm / tmpfs kontenera |
 
 ### Podnoszenie zasobów

@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of reading or modifying the user's Orcan home.
 - Removed stale Context Assertions UI references and unused picker API left by
   the workspace-overlay cleanup.
+- Added ttyd renderer selection: WebGL remains the fast default, while canvas
+  is available for browser/GPU compatibility. Browser diagnostics now expose
+  renderer preference, pixel density, zoom, font, canvas dimensions, and an
+  automatic no-WebGL fallback; ttyd also refits after its renderer initializes.
 
 ## 26.3 — 2026-09-02
 

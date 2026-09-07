@@ -85,6 +85,12 @@
           "description": "Desktop terminal font size. Phone and tablet widths use responsive 16 px and 14 px overrides."
         },
         "font_family": { "type": "string" },
+        "renderer": {
+          "type": "string",
+          "enum": ["webgl", "canvas"],
+          "default": "webgl",
+          "description": "xterm.js renderer. WebGL is fastest; canvas is a compatibility fallback for browser/GPU rendering issues."
+        },
         "theme": {
           "type": "string",
           "default": "dark",

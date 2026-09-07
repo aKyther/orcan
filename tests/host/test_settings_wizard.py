@@ -40,16 +40,17 @@ class EditTmuxTests(unittest.TestCase):
 class EditTtydTests(unittest.TestCase):
     def test_updates_port_and_font(self) -> None:
         cfg: dict = {"workspaces": []}
-        with patch("builtins.input", side_effect=["8080", "8080", "127.0.0.1", "22"]):
+        with patch("builtins.input", side_effect=["8080", "8080", "127.0.0.1", "22", "canvas"]):
             sw.edit_ttyd(cfg)
         self.assertEqual(cfg["ttyd"]["port"], 8080)
         self.assertEqual(cfg["ttyd"]["host_port"], 8080)
         self.assertEqual(cfg["ttyd"]["bind"], "127.0.0.1")
         self.assertEqual(cfg["ttyd"]["font_size"], 22)
+        self.assertEqual(cfg["ttyd"]["renderer"], "canvas")
 
     def test_invalid_numbers_leave_settings_unchanged(self) -> None:
         cfg: dict = {"workspaces": [], "ttyd": dict(sw.DEFAULT_TTYD)}
-        with patch("builtins.input", side_effect=["nope", "nope", "nope", "nope"]):
+        with patch("builtins.input", side_effect=["nope", "nope", "nope", "nope", "webgl"]):
             sw.edit_ttyd(cfg)
         self.assertEqual(cfg["ttyd"], sw.DEFAULT_TTYD)
 

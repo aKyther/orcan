@@ -223,6 +223,14 @@ xterm's input is focused, the bridge also follows `visualViewport`; when the
 software keyboard reduces the visible height, ttyd refits its rows so the
 current prompt remains above the keyboard.
 
+`ttyd.renderer` selects xterm's renderer: **`webgl`** is the default for fast
+scrolling and output; set **`canvas`** when a browser or GPU renders WebGL
+glyphs incorrectly. A browser without WebGL falls back to canvas automatically.
+Open the terminal URL with `?orcanDiagnostics=1` (also printed by `orcan doctor`)
+to see the renderer preference, device-pixel ratio, zoom, resolved font, canvas
+size, and any fallback reason. Keep browser zoom at 100% when assessing text
+sharpness; fractional browser or OS scaling can soften canvas text.
+
 ### Cockpit chrome (app layer)
 
 **Width tiers** (terminal columns, not browser CSS breakpoints —

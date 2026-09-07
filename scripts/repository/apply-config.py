@@ -566,6 +566,9 @@ def _resolved_runtime_settings(cfg: dict) -> dict:
         str(tmux_cfg.get("window_prefix") or TMUX_DEFAULTS["window_prefix"]).strip()
         or str(TMUX_DEFAULTS["window_prefix"])
     )
+    renderer = str(ttyd.get("renderer") or TTYD_DEFAULTS["renderer"]).strip().lower()
+    if renderer not in {"webgl", "canvas"}:
+        die("ttyd.renderer must be 'webgl' or 'canvas'")
 
     return {
         "tmux": {
@@ -581,6 +584,7 @@ def _resolved_runtime_settings(cfg: dict) -> dict:
             or str(TTYD_DEFAULTS["bind"]),
             "font_size": int(ttyd.get("font_size", TTYD_DEFAULTS["font_size"])),
             "font_family": str(ttyd.get("font_family") or TTYD_DEFAULTS["font_family"]),
+            "renderer": renderer,
             "theme": str(ttyd.get("theme") or TTYD_DEFAULTS["theme"]),
             "ping_interval": max(
                 1, int(ttyd.get("ping_interval", TTYD_DEFAULTS["ping_interval"]))
@@ -770,6 +774,7 @@ def main() -> None:
     ensure_env_key_unless_set(env_path, "TTYD_BIND", str(ttyd.get("bind", "0.0.0.0")))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_FAMILY", str(ttyd["font_family"]))
+    ensure_env_key_unless_set(env_path, "TTYD_RENDERER", str(ttyd["renderer"]))
     ensure_env_key_unless_set(env_path, "TTYD_THEME", str(ttyd["theme"]))
     ensure_env_key_unless_set(
         env_path, "TTYD_PING_INTERVAL", str(ttyd.get("ping_interval", 20))

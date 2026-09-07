@@ -21,6 +21,17 @@ fi
 if [[ -z "${TTYD_THEME:-}" ]]; then
     TTYD_THEME="dark"
 fi
+# WebGL is ttyd's fast default. Canvas is retained as an escape hatch for
+# browsers or remote GPUs that render WebGL glyphs incorrectly.
+TTYD_RENDERER="${TTYD_RENDERER:-webgl}"
+case "${TTYD_RENDERER}" in
+    webgl|canvas) ;;
+    *)
+        printf 'WARNING: invalid TTYD_RENDERER=%s; using webgl (use webgl|canvas)\n' \
+            "${TTYD_RENDERER}" >&2
+        TTYD_RENDERER="webgl"
+        ;;
+esac
 
 # Default: graphite / near-black / muted plum (matches /etc/tmux status).
 # ANSI hues remain distinct for logs, diffs, tests, and application state.
@@ -62,6 +73,7 @@ TTYD_ARGS=(
     --ping-interval "${TTYD_PING_INTERVAL}"
     --client-option "fontSize=${TTYD_FONT_SIZE}"
     --client-option "fontFamily=${TTYD_FONT_FAMILY}"
+    --client-option "rendererType=${TTYD_RENDERER}"
     --client-option "theme=${THEME_JSON}"
     # macOS: Option/Alt composes accented/special characters (Option+1 → "¡",
     # Option+2 → "™", …) by default in xterm.js, instead of sending it as
@@ -89,8 +101,8 @@ else
     auth_note="no auth (rely on TTYD_BIND / Tailscale)"
 fi
 
-printf 'ttyd ready: container :%s (%s, fontSize=%s, ping=%ss)\n' \
-    "${TTYD_PORT}" "${auth_note}" "${TTYD_FONT_SIZE}" "${TTYD_PING_INTERVAL}" >&2
+printf 'ttyd ready: container :%s (%s, renderer=%s, fontSize=%s, ping=%ss)\n' \
+    "${TTYD_PORT}" "${auth_note}" "${TTYD_RENDERER}" "${TTYD_FONT_SIZE}" "${TTYD_PING_INTERVAL}" >&2
 printf 'WARNING: Do not expose this port to the public Internet without authentication and TLS.\n' >&2
 
 exec ttyd "${TTYD_ARGS[@]}" agent-launcher
