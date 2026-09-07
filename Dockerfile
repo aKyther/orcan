@@ -90,10 +90,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------------------------
-# Node.js + npm + pnpm
+# Node.js + npm + pnpm + Corepack
 # ------------------------------------------------------------------------------
 
 ARG PNPM_VERSION=10.12.1
+ARG NPM_MAJOR=10
 
 COPY --from=node-tools /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-tools /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -108,6 +109,8 @@ RUN set -eux; \
     ln -sf node /usr/local/bin/nodejs; \
     ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm; \
     ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx; \
+    ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack; \
+    corepack enable yarn; \
     for attempt in 1 2 3; do \
         if curl -fsSL \
             "https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linuxstatic-${pnpm_arch}" \
@@ -120,7 +123,8 @@ RUN set -eux; \
     test -s /usr/local/bin/pnpm; \
     chmod 0755 /usr/local/bin/pnpm; \
     node --version; \
-    npm --version; \
+    npm --version | grep -E "^${NPM_MAJOR}\\."; \
+    corepack --version; \
     pnpm --version
 
 # ------------------------------------------------------------------------------
@@ -136,6 +140,20 @@ COPY --from=uv-tools /uvx /usr/local/bin/uvx
 RUN set -eux; \
     uv --version; \
     uvx --version
+
+# ------------------------------------------------------------------------------
+# Additional Python runtime
+# ------------------------------------------------------------------------------
+
+ARG PYTHON_313_VERSION=3.13
+
+RUN set -eux; \
+    python3.11 --version | grep -E '^Python 3\.11\.'; \
+    uv python install --install-dir /opt/python "${PYTHON_313_VERSION}"; \
+    python313="$(echo /opt/python/cpython-${PYTHON_313_VERSION}-linux-*/bin/python3.13)"; \
+    test -x "${python313}"; \
+    ln -sf "${python313}" /usr/local/bin/python3.13; \
+    python3.13 --version | grep -E '^Python 3\.13\.'
 
 # ------------------------------------------------------------------------------
 # JVM: Java (Temurin) + Gradle + Maven + Kotlin + Scala + sbt

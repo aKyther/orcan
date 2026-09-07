@@ -62,6 +62,32 @@ by host tests).
 !!! tip
     Browser + local terminal can share one session: edit in iTerm/Windows Terminal, keep ttyd open on a phone or second screen.
 
+## Scenario: build a React, Vite, or TypeScript frontend
+
+**Idea:** the image provides Node.js 22, npm 10, pnpm, and Corepack. TypeScript
+belongs to the frontend's own dependency graph, so its `tsc` is available after
+installing that project's dependencies rather than from a global, potentially
+incompatible package.
+
+```bash
+# container
+uv sync --locked
+cd frontend
+npm ci                 # use npm install when the project has no lockfile
+npm run lint
+npm run build
+cd ..
+uv run pytest
+```
+
+For a pnpm or Yarn repository, use its lockfile's package manager (`pnpm
+install --frozen-lockfile` or `corepack yarn install --immutable`) before
+`npm run lint` and its build command. npm, pnpm, and Yarn caches persist under
+`$ORCAN_DATA/cache`.
+
+For Python projects that need a specific runtime, use `python3.11` or
+`python3.13`.
+
 ## Scenario: switch customer or product line
 
 **Problem:** another set of repos is today’s context.  
