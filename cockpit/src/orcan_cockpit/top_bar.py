@@ -17,6 +17,7 @@ from orcan_cockpit.status import now_hhmm, read_loadavg, read_mem_percent
 from orcan_cockpit.tmux_chrome import session_agent_label
 
 _REFRESH_INTERVAL_S = 3.0
+_AGENT_REFRESH_INTERVAL_S = 8.0
 
 
 class TopBar(Widget):
@@ -62,7 +63,10 @@ class TopBar(Widget):
         self.set_workspace(None)
         self.refresh_clock()
         self.set_interval(_REFRESH_INTERVAL_S, self.refresh_clock)
-        self.set_interval(_REFRESH_INTERVAL_S, self.refresh_workspace_indicator)
+        # This asks tmux for its foreground pane (and may inspect /proc). The
+        # clock remains responsive at 3s; an agent badge does not need that
+        # cadence, especially while the embedded terminal is handling output.
+        self.set_interval(_AGENT_REFRESH_INTERVAL_S, self.refresh_workspace_indicator)
 
     def refresh_clock(self) -> None:
         line = now_hhmm()

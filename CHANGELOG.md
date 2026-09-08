@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Cockpit responsiveness:** quiet status probes now avoid `git`/`tmux` on
+  compact layouts and run less often elsewhere; touch scrolling in ttyd is
+  batched to animation frames for smoother phone/tablet dragging.
+
 - **Cockpit feedback:** notifications are now compact, dismissible low-right
   toasts over the terminal. Muted severity edges replace stock warning-panel
   styling, and they fade after four seconds without changing tmux geometry.

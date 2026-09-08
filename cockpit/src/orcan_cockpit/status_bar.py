@@ -13,7 +13,9 @@ from textual.widgets import Static
 from orcan_cockpit.status import Tier, format_status_line, git_branch
 from orcan_cockpit.tmux_chrome import session_breadcrumb
 
-_REFRESH_INTERVAL_S = 3.0
+# A status refresh can call both git and tmux. Keep these external probes out
+# of the terminal's frequent paint cycle; state setters still refresh at once.
+_REFRESH_INTERVAL_S = 8.0
 
 
 class StatusBar(Widget):
@@ -57,8 +59,12 @@ class StatusBar(Widget):
             self.refresh_status()
 
     def refresh_status(self) -> None:
-        branch = git_branch(str(self.workspace_root)) if self.workspace_root else ""
-        crumb = session_breadcrumb(self.session) if self.session else ""
+        # Compact/mobile tiers do not render branch or tmux breadcrumb. Avoid
+        # spawning their probes entirely there — work that cannot be seen is
+        # pure latency on a small terminal.
+        detailed = self.tier == "full"
+        branch = git_branch(str(self.workspace_root)) if detailed and self.workspace_root else ""
+        crumb = session_breadcrumb(self.session) if detailed and self.session else ""
         line = format_status_line(
             tier=self.tier,
             workspace=self.workspace_name,
