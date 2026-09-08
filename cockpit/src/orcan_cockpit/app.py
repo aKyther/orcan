@@ -32,7 +32,7 @@ from orcan_cockpit.shortcuts import Context
 from orcan_cockpit.shortcuts_modal import ShortcutsModal
 from orcan_cockpit.status import Tier, tier_for_width
 from orcan_cockpit.status_bar import StatusBar
-from orcan_cockpit.state import read_last_session, remember_session
+from orcan_cockpit.state import previous_recent_session, read_last_session, remember_session
 from orcan_cockpit.tmux_chrome import (
     TASK_TEMPLATES,
     focus_pinned_pane,
@@ -626,6 +626,7 @@ class MainScreen(Screen):
         ("question_mark", "open_shortcuts", "Shortcuts"),
         ("f4", "toggle_workspaces", "Toggle workspaces"),
         ("f5", "open_peek", "Peek session brief"),
+        ("f6", "switch_recent_workspace", "Previous workspace"),
     ]
 
     def __init__(self) -> None:
@@ -866,6 +867,24 @@ class MainScreen(Screen):
 
         self.app.push_screen(PeekModal(self._current_root))
 
+    def action_switch_recent_workspace(self) -> None:
+        """Toggle to the most recently used different workspace (F6)."""
+        session = previous_recent_session(self._current_session)
+        if session is None:
+            self.notify("No other recent workspace", severity="information")
+            return
+        workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
+        row = workspace_list.row_for_session(session)
+        if row is None:
+            self.notify("Recent workspace is no longer configured", severity="warning")
+            return
+        self.run_worker(
+            self.select_workspace(row),
+            group="workspace-switch",
+            exclusive=True,
+            exit_on_error=False,
+        )
+
     def on_utility_rail_tool_selected(self, message: UtilityRail.ToolSelected) -> None:
         if message.tool == "shortcuts":
             self.action_open_shortcuts()
@@ -904,6 +923,9 @@ class CockpitApp(App):
         yield SystemCommand("Open workspace picker", "F4", screen.action_toggle_workspaces)
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
         yield SystemCommand("Peek session brief", "F5", screen.action_open_peek)
+        yield SystemCommand(
+            "Switch to previous workspace", "F6", screen.action_switch_recent_workspace
+        )
         if screen._current_session:
             session = screen._current_session
             root = screen._current_root or ""

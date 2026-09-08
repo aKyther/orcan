@@ -37,6 +37,9 @@ class CockpitStateTests(unittest.TestCase):
                 state.remember_session("two")
                 state.remember_session("one")
                 self.assertEqual(state.read_recent_sessions(), ["one", "two"])
+                self.assertEqual(state.previous_recent_session("one"), "two")
+                self.assertEqual(state.previous_recent_session("two"), "one")
+                self.assertEqual(state.previous_recent_session("missing"), "one")
 
     def test_invalid_state_is_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

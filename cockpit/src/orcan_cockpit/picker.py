@@ -352,6 +352,12 @@ class WorkspaceList(Widget):
         self._update_details()
         self._update_glance()
 
+    def row_for_session(self, session: str) -> dict[str, Any] | None:
+        """Find a configured workspace even while the visible list is filtered."""
+        return next(
+            (row for row in self._all_rows if row["session"] == session), None
+        )
+
     def refresh_rows(self) -> None:
         try:
             self._all_rows = order_workspace_rows(
