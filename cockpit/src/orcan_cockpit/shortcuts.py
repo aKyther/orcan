@@ -176,6 +176,7 @@ SHORTCUTS: list[Shortcut] = [
     Shortcut("F5", "Peek session brief", "app", "cockpit",
              ("terminal", "workspaces", "rail")),
     Shortcut("↑ / ↓, Enter", "Navigate / attach workspace", "app", "cockpit", ("workspaces",)),
+    Shortcut("Ctrl+C", "Copy highlighted workspace root", "app", "cockpit", ("workspaces",)),
     Shortcut("i", "Expand workspace details (root, repo count)", "app", "cockpit", ("workspaces",)),
 ]
 

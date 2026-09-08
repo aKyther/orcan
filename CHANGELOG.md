@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workspace navigation:** F6 now switches to the most recently used
   different workspace, making repeated use a quick toggle between two jobs.
 
+- **Workspace picker:** Ctrl+C copies the highlighted workspace root through
+  Cockpit's normal local/browser clipboard path.
+
 - **Mobile cockpit:** after a workspace is attached, the narrow layout is now
   terminal-first. A small workspace pill remains available, while identity and
   status chrome no longer consume terminal rows; opening F4 still leaves tmux
