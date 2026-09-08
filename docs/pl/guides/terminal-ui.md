@@ -257,6 +257,9 @@ od **`/`**.
 Naciśnij **Ctrl+C** w pickerze, aby skopiować root zaznaczonego workspace’a.
 W terminalu Ctrl+C zachowuje zwykłe działanie kopiowania zaznaczenia / przerwania.
 
+Po rozwinięciu szczegółów (`i`) kliknij projekt w żywym workspace’ie, aby
+otworzyć tam nowy pane tmuxa. Bieżący pane agenta i jego katalog nie zmieniają się.
+
 | Klawisze | Akcja |
 | --- | --- |
 | **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |
