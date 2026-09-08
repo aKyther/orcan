@@ -246,6 +246,11 @@ memory are available by hovering the clock, rather than competing with the
 terminal all the time. The picker puts recently attached workspaces first;
 its remaining order stays as configured.
 
+With the picker focused, begin typing to filter by workspace name, session, or
+root; use **Backspace** to broaden the list again. **`i`** still opens details
+and **`?`** still opens shortcuts, so start with **`/`** when filtering for a
+term beginning with either character.
+
 | Keys | Action |
 | --- | --- |
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |

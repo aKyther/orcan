@@ -132,6 +132,22 @@ def order_workspace_rows(
     )
 
 
+def filter_workspace_rows(
+    rows: list[dict[str, Any]], query: str
+) -> list[dict[str, Any]]:
+    """Case-insensitive quick filter over workspace name, session, and root."""
+    needle = query.strip().casefold()
+    if not needle:
+        return rows
+    return [
+        row
+        for row in rows
+        if needle in " ".join(
+            str(row.get(field) or "") for field in ("name", "session", "root")
+        ).casefold()
+    ]
+
+
 def workspace_list_paint_signature(
     rows: list[dict[str, Any]],
     *,
@@ -267,7 +283,10 @@ class WorkspaceList(Widget):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.rows: list[dict[str, Any]] = []
+        self._all_rows: list[dict[str, Any]] = []
         self.active_session: str | None = None
+        self._filter_query = ""
+        self._filter_armed = False
         # Details belong to the highlighted workspace, never every row. Keep
         # them opt-in: switching projects is far more common than inspecting
         # all of their metadata.
@@ -279,6 +298,7 @@ class WorkspaceList(Widget):
         self._glance_text: str | None = None
 
     def compose(self) -> ComposeResult:
+        yield Static(id="workspace-filter")
         yield ListView(id="workspace-list")
         yield Static(id="workspace-details")
         yield Static(format_glance([], empty_hint=_GLANCE_EMPTY), id="workspace-glance")
@@ -291,10 +311,36 @@ class WorkspaceList(Widget):
     def on_key(self, event: events.Key) -> None:
         # ListView (the actual focus target — see app.py's on_mount) doesn't
         # bind "i", so this bubbles up to us unstopped.
-        if event.key == "i":
+        if event.key == "i" and not self._filter_query and not self._filter_armed:
             self._expanded = not self._expanded
             self._update_details()
             self._update_glance()
+            event.stop()
+            return
+        if event.key == "backspace" and (self._filter_query or self._filter_armed):
+            if self._filter_query:
+                self._set_filter(self._filter_query[:-1])
+            else:
+                self._filter_armed = False
+                self._update_filter()
+            event.stop()
+            return
+        # Keep the established ? help binding and i details toggle intact.
+        # Any other printable key starts filtering immediately; `/` is the
+        # escape hatch for filters beginning with i or ?.
+        # Pilot/terminal key events may omit ``character`` even for ordinary
+        # printable keys; the normalized one-cell key name is an equivalent
+        # fallback and keeps physical terminals and tests on the same path.
+        character = event.character or (event.key if len(event.key) == 1 else "")
+        if character == "/" and not self._filter_query and not self._filter_armed:
+            self._filter_armed = True
+            self._update_filter()
+            event.stop()
+        elif character and character.isprintable() and (
+            character not in {"?", "i"} or self._filter_query or self._filter_armed
+        ):
+            self._filter_armed = False
+            self._set_filter(self._filter_query + character)
             event.stop()
 
     def set_active_session(self, session: str | None) -> None:
@@ -308,15 +354,41 @@ class WorkspaceList(Widget):
 
     def refresh_rows(self) -> None:
         try:
-            self.rows = order_workspace_rows(
+            self._all_rows = order_workspace_rows(
                 list_workspace_rows(), read_recent_sessions()
             )
         except (OSError, ValueError) as exc:
             self.notify(f"Error reading config: {exc}", severity="error")
-            self.rows = []
+            self._all_rows = []
+        self.rows = filter_workspace_rows(self._all_rows, self._filter_query)
         self._render_rows()
         self._update_details()
         self._update_glance()
+
+    def _set_filter(self, query: str) -> None:
+        self._filter_query = query
+        self.rows = filter_workspace_rows(self._all_rows, query)
+        self._list_paint_sig = None
+        self._render_rows()
+        list_view = self.query_one("#workspace-list", ListView)
+        list_view.index = 0 if self.rows else None
+        self._update_filter()
+        self._update_details()
+        self._update_glance()
+
+    def _update_filter(self) -> None:
+        filter_line = self.query_one("#workspace-filter", Static)
+        if not self._filter_query and not self._filter_armed:
+            filter_line.display = False
+            return
+        if self._filter_armed:
+            filter_line.update("[#c7b1e2]Filter[/] type to narrow workspaces")
+            filter_line.display = True
+            return
+        matches = len(self.rows)
+        suffix = "match" if matches == 1 else "matches"
+        filter_line.update(f"[#c7b1e2]Filter[/] {self._filter_query} · {matches} {suffix}")
+        filter_line.display = True
 
     def _render_rows(self) -> None:
         paint_sig = workspace_list_paint_signature(
