@@ -2790,10 +2790,22 @@ sharpness; fractional browser or OS scaling can soften canvas text.</p>
 <tr>
 <td><code>minimal</code></td>
 <td>&lt; 90</td>
-<td>Hides rail and metrics; the workspace pill remains available above the full-width terminal</td>
+<td>Before attachment, keeps the picker chrome. After attachment, becomes terminal-first: only a quiet workspace pill remains, so tmux gets the identity and status rows too. F4 still opens the picker as an overlay without resizing tmux.</td>
 </tr>
 </tbody>
 </table>
+<p>The top bar keeps only the workspace context and a quiet clock. CPU load and
+memory are available by hovering the clock, rather than competing with the
+terminal all the time. The picker puts recently attached workspaces first;
+its remaining order stays as configured.</p>
+<p>With the picker focused, begin typing to filter by workspace name, session, or
+root; use <strong>Backspace</strong> to broaden the list again. <strong><code>i</code></strong> still opens details
+and <strong><code>?</code></strong> still opens shortcuts, so start with <strong><code>/</code></strong> when filtering for a
+term beginning with either character.</p>
+<p>Press <strong>Ctrl+C</strong> in the picker to copy the highlighted workspace root. In the
+terminal, Ctrl+C keeps its normal copy-selection / interrupt behaviour.</p>
+<p>With details expanded (<code>i</code>), click a project in a live workspace to open a new
+tmux pane rooted there. The current agent pane and its directory are unchanged.</p>
 <table>
 <thead>
 <tr>
@@ -2807,6 +2819,18 @@ sharpness; fractional browser or OS scaling can soften canvas text.</p>
 <td>Open the workspace picker without resizing the terminal</td>
 </tr>
 <tr>
+<td><strong>F6</strong></td>
+<td>Switch to the most recently used different workspace; repeated use toggles between the last two</td>
+</tr>
+<tr>
+<td><strong><code>i</code></strong> (picker)</td>
+<td>Show or hide the highlighted workspace's root, Git/worktree/projects and live-session glance; the picker opens as a compact decision list by default</td>
+</tr>
+<tr>
+<td><strong>Focus cue</strong></td>
+<td>The violet edge and the bottom-bar surface label show whether keys go to Terminal, Workspaces, or Controls</td>
+</tr>
+<tr>
 <td><strong>F1</strong> (always) · <strong>?</strong> (outside terminal) / rail ?</td>
 <td>Shortcuts overlay (not About). With terminal focused, <strong>?</strong> is typed into the shell — use <strong>F1</strong></td>
 </tr>
@@ -2818,32 +2842,32 @@ sharpness; fractional browser or OS scaling can soften canvas text.</p>
 <td><strong>Exit</strong> (top bar)</td>
 <td>Close Cockpit and return to the host terminal; tmux sessions remain running</td>
 </tr>
-<tr>
-<td><strong>Click current workspace</strong></td>
-<td>Open/close the workspace browser without losing the active workspace identity</td>
-</tr>
-<tr>
-<td><strong>F5</strong></td>
-<td>Peek the current workspace session brief</td>
-</tr>
-<tr>
-<td><strong>Ctrl+P</strong></td>
-<td>Command palette (outside the terminal focus)</td>
-</tr>
-<tr>
-<td><strong>i</strong></td>
-<td>Expand/collapse workspace details (list focused)</td>
-</tr>
-<tr>
-<td><strong>prefix ?</strong></td>
-<td>Standalone tmux shortcuts popup (works without cockpit)</td>
-</tr>
-<tr>
-<td><strong><code>lg</code></strong> (in shell)</td>
-<td>lazygit — not a cockpit F-key</td>
-</tr>
 </tbody>
 </table>
+<p>Before a terminal is attached, the center keeps one calm next step: choose a
+workspace with the pill or <strong>F4</strong>. It reports how many workspaces are ready;
+with none configured it points directly to <code>orcan init</code>.</p>
+<p>Changing workspace keeps a short transition in the center while tmux is
+restored. If it cannot open, click the concise error state (or press <strong>F4</strong>) to
+return to the picker; stale workspace identity is cleared.</p>
+<p>About, shortcuts, and the session brief use the same temporary sheet: a visible
+<strong>Close</strong> control always works alongside their keyboard shortcuts. On a phone,
+the sheet fills the screen instead of becoming a clipped desktop dialog.</p>
+<p>Short Cockpit feedback appears as a dismissible, low-right toast above tmux;
+it fades automatically and never changes the terminal's size. Its muted
+violet, amber, or rose edge distinguishes information, warnings, and errors.</p>
+<p>When the active tmux pane runs a recognised coding CLI, the workspace pill
+gets a small dot and its name (for example, <code>• Codex</code>). This is a process cue,
+not a claim that the agent is currently generating work; a waiting CLI remains
+a CLI process.</p>
+<p>The <strong>Ctrl+P</strong> command palette uses the same quiet sheet surface; type to
+filter, use arrow keys and <strong>Enter</strong> to apply, or click outside it to dismiss.
+| <strong>Click current workspace</strong> | Open/close the workspace browser without losing the active workspace identity |
+| <strong>F5</strong> | Peek the current workspace session brief |
+| <strong>Ctrl+P</strong> | Command palette (outside the terminal focus) |
+| <strong>i</strong> | Expand/collapse workspace details (list focused) |
+| <strong>prefix ?</strong> | Standalone tmux shortcuts popup (works without cockpit) |
+| <strong><code>lg</code></strong> (in shell) | lazygit — not a cockpit F-key |</p>
 <p>Daily enter flow: <a href="../workflows/#local-terminal">Workflows — local terminal</a>.</p>
 <p>Verify after UX edits: <code>make dev-restart</code>, then <code>make dev-smoke</code> (and <code>make dev-visual</code> when chrome/layout screenshots matter); try <code>Alt+1</code> / resize the browser; or <code>./scripts/dev/terminal-ui-preview</code> for chrome-only.</p>
 <h2 id="preview-without-disturbing-daily-orcan">Preview without disturbing daily Orcan<a class="headerlink" href="#preview-without-disturbing-daily-orcan" title="Permanent link">&para;</a></h2>
@@ -2931,7 +2955,7 @@ sharpness; fractional browser or OS scaling can soften canvas text.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 7, 2026 07:51:54 UTC">September 7, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 8, 2026 05:11:22 UTC">September 8, 2026</span>
   </span>
 
     

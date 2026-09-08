@@ -2792,10 +2792,22 @@ systemu może zmiękczać tekst canvasa.</p>
 <tr>
 <td><code>minimal</code></td>
 <td>&lt; 90</td>
-<td>Ukrywa rail i metryki; pill workspace’a zostaje nad terminalem pełnej szerokości</td>
+<td>Przed podłączeniem zachowuje chrome pickera. Po podłączeniu przechodzi w tryb terminal-first: zostaje tylko dyskretny pill workspace’a, a tmux odzyskuje wiersze identity i statusu. F4 nadal otwiera picker jako overlay bez zmiany rozmiaru tmuxa.</td>
 </tr>
 </tbody>
 </table>
+<p>Górny pasek zostawia tylko kontekst workspace’a i spokojny zegar. Obciążenie
+CPU oraz pamięć są dostępne po najechaniu na zegar, zamiast stale konkurować
+z terminalem. Picker pokazuje najpierw ostatnio podłączane workspace’y, a
+pozostałe zachowują kolejność z konfiguracji.</p>
+<p>Przy fokusie pickera zacznij pisać, aby filtrować po nazwie workspace’a,
+sesji lub root; <strong>Backspace</strong> poszerza listę ponownie. <strong><code>i</code></strong> nadal otwiera
+szczegóły, a <strong><code>?</code></strong> skróty, więc filtr zaczynający się od tych znaków rozpocznij
+od <strong><code>/</code></strong>.</p>
+<p>Naciśnij <strong>Ctrl+C</strong> w pickerze, aby skopiować root zaznaczonego workspace’a.
+W terminalu Ctrl+C zachowuje zwykłe działanie kopiowania zaznaczenia / przerwania.</p>
+<p>Po rozwinięciu szczegółów (<code>i</code>) kliknij projekt w żywym workspace’ie, aby
+otworzyć tam nowy pane tmuxa. Bieżący pane agenta i jego katalog nie zmieniają się.</p>
 <table>
 <thead>
 <tr>
@@ -2809,6 +2821,18 @@ systemu może zmiękczać tekst canvasa.</p>
 <td>Otwórz picker workspace’a bez zmiany rozmiaru terminala</td>
 </tr>
 <tr>
+<td><strong>F6</strong></td>
+<td>Przełącz na ostatnio używany inny workspace; kolejne użycie przełącza między dwoma ostatnimi</td>
+</tr>
+<tr>
+<td><strong><code>i</code></strong> (picker)</td>
+<td>Pokaż lub ukryj root, Git/worktree/projekty i glance żywej sesji zaznaczonego workspace’a; domyślnie picker jest krótką listą decyzji</td>
+</tr>
+<tr>
+<td><strong>Wskaźnik fokusu</strong></td>
+<td>Fioletowa krawędź i etykieta obszaru na dolnym pasku mówią, czy klawisze trafiają do Terminala, Workspace’ów czy Controls</td>
+</tr>
+<tr>
 <td><strong>F1</strong> (zawsze) · <strong>?</strong> (poza terminalem) / rail ?</td>
 <td>Overlay skrótów (nie About). Przy fokusie w terminalu <strong>?</strong> idzie do shella — użyj <strong>F1</strong></td>
 </tr>
@@ -2820,32 +2844,34 @@ systemu może zmiękczać tekst canvasa.</p>
 <td><strong>Exit</strong> (górny pasek)</td>
 <td>Zamknij Cockpit i wróć do terminala hosta; sesje tmux dalej działają</td>
 </tr>
-<tr>
-<td><strong>Klik bieżącego workspace’a</strong></td>
-<td>Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie</td>
-</tr>
-<tr>
-<td><strong>F5</strong></td>
-<td>Podejrzyj session brief bieżącego workspace’a</td>
-</tr>
-<tr>
-<td><strong>Ctrl+P</strong></td>
-<td>Paleta komend (poza fokusem terminala)</td>
-</tr>
-<tr>
-<td><strong>i</strong></td>
-<td>Rozwiń/zwiń szczegóły workspace (fokus na liście)</td>
-</tr>
-<tr>
-<td><strong>prefix ?</strong></td>
-<td>Samodzielny popup skrótów tmux (bez cockpitu)</td>
-</tr>
-<tr>
-<td><strong><code>lg</code></strong> (w shellu)</td>
-<td>lazygit — nie F-key w cockpicie</td>
-</tr>
 </tbody>
 </table>
+<p>Przed podłączeniem terminala środek pokazuje jeden spokojny kolejny krok:
+wybierz workspace pill-em albo <strong>F4</strong>. Podaje liczbę gotowych workspace’ów, a
+gdy nie ma żadnego, kieruje wprost do <code>orcan init</code>.</p>
+<p>Zmiana workspace’a zostawia krótki stan przejścia pośrodku podczas odtwarzania
+tmuxa. Gdy otwarcie się nie uda, kliknij zwięzły komunikat błędu (albo użyj
+<strong>F4</strong>), aby wrócić do pickera; poprzednia tożsamość workspace’a jest czyszczona.</p>
+<p>About, skróty i brief sesji używają tego samego tymczasowego sheetu: widoczny
+przycisk <strong>Close</strong> działa obok ich skrótów klawiaturowych. Na telefonie sheet
+wypełnia ekran zamiast zamieniać się w przycięty dialog desktopowy.</p>
+<p>Krótkie komunikaty Cockpitu pojawiają się jako możliwy do kliknięcia toast w
+prawym dolnym rogu, nad tmuxem; znikają automatycznie i nigdy nie zmieniają
+rozmiaru terminala. Stonowana fioletowa, bursztynowa lub różana krawędź
+rozróżnia informację, ostrzeżenie i błąd.</p>
+<p>Gdy aktywny pane tmuxa uruchamia rozpoznane CLI programistyczne, pill
+workspace’a dostaje małą kropkę i nazwę (na przykład <code>• Codex</code>). To wskaźnik
+procesu, nie deklaracja, że agent właśnie generuje odpowiedź: CLI czekające na
+input nadal jest procesem CLI.</p>
+<p>Paleta komend <strong>Ctrl+P</strong> używa tej samej spokojnej powierzchni sheeta: wpisz
+filtr, użyj strzałek i <strong>Entera</strong>, aby wykonać akcję, albo kliknij poza nią,
+aby ją zamknąć.
+| <strong>Klik bieżącego workspace’a</strong> | Otwórz/zamknij listę bez utraty informacji o aktywnym workspace’ie |
+| <strong>F5</strong> | Podejrzyj session brief bieżącego workspace’a |
+| <strong>Ctrl+P</strong> | Paleta komend (poza fokusem terminala) |
+| <strong>i</strong> | Rozwiń/zwiń szczegóły workspace (fokus na liście) |
+| <strong>prefix ?</strong> | Samodzielny popup skrótów tmux (bez cockpitu) |
+| <strong><code>lg</code></strong> (w shellu) | lazygit — nie F-key w cockpicie |</p>
 <p>Codzienne wejście: <a href="../workflows/#local-terminal">Workflowy — lokalny terminal</a>.</p>
 <p>Po edycji UX: <code>make dev-restart</code>, potem <code>make dev-smoke</code> (oraz <code>make dev-visual</code>, gdy ważne są screenshoty layoutu/chrome); spróbuj <code>Alt+1</code> / resize okna przeglądarki; albo <code>./scripts/dev/terminal-ui-preview</code> tylko na chrome.</p>
 <h2 id="preview-bez-ruszania-codziennego-orcana">Preview bez ruszania codziennego Orcana<a class="headerlink" href="#preview-bez-ruszania-codziennego-orcana" title="Permanent link">&para;</a></h2>
@@ -2933,7 +2959,7 @@ systemu może zmiękczać tekst canvasa.</p>
     <span class="md-icon" title="Ostatnia aktualizacja">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="7 września 2026 07:51:54 UTC">7 września 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="8 września 2026 05:11:22 UTC">8 września 2026</span>
   </span>
 
     
