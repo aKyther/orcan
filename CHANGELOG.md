@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and a quieter selection state while preserving its native search, arrows,
   Enter, and click-outside behaviour.
 
+- **Workspace presence:** the active workspace pill now adds a muted dot and
+  friendly label when the foreground tmux pane is a recognised coding CLI
+  (Codex, Claude, Gemini, Copilot, and more). It intentionally describes the
+  process, not inferred model activity.
+
+- **Cockpit density:** the top bar now shows a quiet clock, with CPU/RAM in
+  its hover detail; the workspace picker promotes recently attached sessions
+  while keeping the configured order for everything else.
+
 - **Mobile cockpit:** after a workspace is attached, the narrow layout is now
   terminal-first. A small workspace pill remains available, while identity and
   status chrome no longer consume terminal rows; opening F4 still leaves tmux

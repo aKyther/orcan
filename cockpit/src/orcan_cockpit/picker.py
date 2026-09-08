@@ -120,6 +120,18 @@ def workspace_list_structure(rows: list[dict[str, Any]]) -> tuple[str, ...]:
     return tuple(str(row.get("session") or "") for row in rows)
 
 
+def order_workspace_rows(
+    rows: list[dict[str, Any]], recent_sessions: list[str]
+) -> list[dict[str, Any]]:
+    """Put known recent workspace choices first, preserving all other order."""
+    positions = {session: index for index, session in enumerate(recent_sessions)}
+    fallback = len(positions)
+    return sorted(
+        rows,
+        key=lambda item: positions.get(str(item.get("session") or ""), fallback),
+    )
+
+
 def workspace_list_paint_signature(
     rows: list[dict[str, Any]],
     *,
@@ -226,11 +238,12 @@ from textual import events  # noqa: E402
 from textual.app import ComposeResult  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
+from orcan_cockpit.state import read_recent_sessions  # noqa: E402
 
 # Keep keyboard instructions visible rather than hiding the primary mechanic
 # behind a mouse-only tooltip. `\[` escapes the literal bracket: Static uses
 # Rich markup, so an unescaped `[i]` would be parsed as a tag.
-LEGEND = r"↑↓ browse · Enter attach · \[i] details"
+LEGEND = r"recent first · ↑↓ browse · Enter attach · \[i] details"
 
 # Kept fresh enough to notice a session someone killed elsewhere without
 # feeling like a busy-poll — this is cosmetic session status, not
@@ -295,7 +308,9 @@ class WorkspaceList(Widget):
 
     def refresh_rows(self) -> None:
         try:
-            self.rows = list_workspace_rows()
+            self.rows = order_workspace_rows(
+                list_workspace_rows(), read_recent_sessions()
+            )
         except (OSError, ValueError) as exc:
             self.notify(f"Error reading config: {exc}", severity="error")
             self.rows = []

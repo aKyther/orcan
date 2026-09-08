@@ -162,6 +162,11 @@ class WorkspaceListPaintSignatureTests(unittest.TestCase):
             picker.workspace_list_structure(b),
         )
 
+    def test_recent_sessions_sort_first_without_dropping_other_rows(self) -> None:
+        rows = [_row(name="first", session="first"), _row(name="second", session="second"), _row(name="third", session="third")]
+        ordered = picker.order_workspace_rows(rows, ["third", "second", "stale"])
+        self.assertEqual([row["session"] for row in ordered], ["third", "second", "first"])
+
     def test_row_text_marks_live_and_active(self) -> None:
         text = picker.format_workspace_row_text(
             _row(live=True, name="ws"),

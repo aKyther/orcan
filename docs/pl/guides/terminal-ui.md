@@ -244,6 +244,11 @@ systemu może zmiękczać tekst canvasa.
 | `compact` | 90–119 | Krótszy dolny pasek; picker workspace’a nakłada się na terminal |
 | `minimal` | < 90 | Przed podłączeniem zachowuje chrome pickera. Po podłączeniu przechodzi w tryb terminal-first: zostaje tylko dyskretny pill workspace’a, a tmux odzyskuje wiersze identity i statusu. F4 nadal otwiera picker jako overlay bez zmiany rozmiaru tmuxa. |
 
+Górny pasek zostawia tylko kontekst workspace’a i spokojny zegar. Obciążenie
+CPU oraz pamięć są dostępne po najechaniu na zegar, zamiast stale konkurować
+z terminalem. Picker pokazuje najpierw ostatnio podłączane workspace’y, a
+pozostałe zachowują kolejność z konfiguracji.
+
 | Klawisze | Akcja |
 | --- | --- |
 | **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |
@@ -269,6 +274,11 @@ Krótkie komunikaty Cockpitu pojawiają się jako możliwy do kliknięcia toast 
 prawym dolnym rogu, nad tmuxem; znikają automatycznie i nigdy nie zmieniają
 rozmiaru terminala. Stonowana fioletowa, bursztynowa lub różana krawędź
 rozróżnia informację, ostrzeżenie i błąd.
+
+Gdy aktywny pane tmuxa uruchamia rozpoznane CLI programistyczne, pill
+workspace’a dostaje małą kropkę i nazwę (na przykład `• Codex`). To wskaźnik
+procesu, nie deklaracja, że agent właśnie generuje odpowiedź: CLI czekające na
+input nadal jest procesem CLI.
 
 Paleta komend **Ctrl+P** używa tej samej spokojnej powierzchni sheeta: wpisz
 filtr, użyj strzałek i **Entera**, aby wykonać akcję, albo kliknij poza nią,

@@ -33,7 +33,7 @@ haystack="${cmd} ${cmdline}"
 haystack="${haystack,,}"
 
 # Known agent / coding CLIs — first match wins (substring on cmd + cmdline).
-for name in claude codex aider gemini amp opencode cursor-agent; do
+for name in claude codex aider gemini copilot amp opencode cursor-agent; do
     if [[ "${haystack}" == *"${name}"* ]]; then
         printf '%s' "${name}"
         exit 0

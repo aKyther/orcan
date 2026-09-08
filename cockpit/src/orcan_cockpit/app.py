@@ -261,6 +261,18 @@ CommandPalette > .command-palette--highlight {
     background: #342a44;
 }
 
+/* A known agent process gets one muted leading dot in the workspace pill.
+   It is a foreground-process cue, not a spinner or a claim that the model is
+   actively producing work. */
+#workspace-trigger.agent-active {
+    color: #ddd2eb;
+    background: #302640;
+}
+
+#workspace-trigger.agent-active:hover, #workspace-trigger.agent-active.picker-open {
+    background: #3a2e4d;
+}
+
 #rail {
     layout: horizontal;
     width: auto;
@@ -820,7 +832,7 @@ class MainScreen(Screen):
             )
         )
         workspace_list.set_active_session(row["session"])
-        self.query_one(TopBar).set_workspace(row["name"])
+        self.query_one(TopBar).set_workspace(row["name"], row["session"])
         self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])
         self._set_workspaces_visible(False)
 
