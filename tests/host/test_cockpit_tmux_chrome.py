@@ -36,6 +36,15 @@ class AgentLabelTests(unittest.TestCase):
         with patch.object(tmux_chrome, "_tmux", return_value="codex\t-"):
             self.assertEqual(tmux_chrome.session_agent_label("demo"), "Codex")
 
+    def test_open_project_pane_uses_tmux_start_directory(self) -> None:
+        result = type("Result", (), {"returncode": 0})()
+        with patch.object(tmux_chrome.subprocess, "run", return_value=result) as run:
+            self.assertTrue(tmux_chrome.open_project_pane("demo", "/work/project"))
+        self.assertEqual(
+            run.call_args.args[0],
+            ["tmux", "split-window", "-v", "-t", "=demo:", "-c", "/work/project"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

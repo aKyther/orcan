@@ -255,6 +255,7 @@ from textual.app import ComposeResult  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
 from orcan_cockpit.state import read_recent_sessions  # noqa: E402
+from orcan_cockpit.tmux_chrome import open_project_pane  # noqa: E402
 
 # Keep keyboard instructions visible rather than hiding the primary mechanic
 # behind a mouse-only tooltip. `\[` escapes the literal bracket: Static uses
@@ -266,6 +267,7 @@ LEGEND = r"recent first · ↑↓ browse · Enter attach · \[i] details"
 # anything time-sensitive.
 _REFRESH_INTERVAL_S = 5.0
 _GLANCE_EMPTY = "↑ Enter to attach"
+_PROJECT_ACTION_LIMIT = 6
 
 
 class WorkspaceList(Widget):
@@ -296,11 +298,14 @@ class WorkspaceList(Widget):
         self._list_paint_sig: tuple[tuple[str, bool], ...] | None = None
         self._list_structure: tuple[str, ...] | None = None
         self._glance_text: str | None = None
+        self._project_actions: list[tuple[str, str]] = []
 
     def compose(self) -> ComposeResult:
         yield Static(id="workspace-filter")
         yield ListView(id="workspace-list")
         yield Static(id="workspace-details")
+        for index in range(_PROJECT_ACTION_LIMIT):
+            yield Static(id=f"workspace-project-{index}", classes="workspace-project")
         yield Static(format_glance([], empty_hint=_GLANCE_EMPTY), id="workspace-glance")
         yield Static(LEGEND, id="workspace-legend")
 
@@ -474,6 +479,7 @@ class WorkspaceList(Widget):
         row = self._highlighted_row()
         if not self._expanded or row is None:
             details.update("")
+            self._update_project_actions(None)
             return
         expanded = format_workspace_row_text(
             row,
@@ -484,6 +490,46 @@ class WorkspaceList(Widget):
         details.update(
             "\n".join(expanded + [f"   [#948ba3]tmux {row['session']} · {session_state}[/]"])
         )
+        self._update_project_actions(row)
+
+    def _update_project_actions(self, row: dict[str, Any] | None) -> None:
+        self._project_actions = []
+        if row is not None and row["live"]:
+            for project in row.get("projects") or []:
+                if not isinstance(project, dict):
+                    continue
+                path = str(project.get("path") or "").strip()
+                name = str(project.get("name") or project.get("alias") or path).strip()
+                if path:
+                    self._project_actions.append((name, path))
+                if len(self._project_actions) >= _PROJECT_ACTION_LIMIT:
+                    break
+        for index in range(_PROJECT_ACTION_LIMIT):
+            action = self._project_actions[index] if index < len(self._project_actions) else None
+            target = self.query_one(f"#workspace-project-{index}", Static)
+            if action is None:
+                target.display = False
+            else:
+                name, path = action
+                target.update(f"[#c7b1e2]Open pane[/] {name} · [#948ba3]{path}[/]")
+                target.display = True
+
+    def on_click(self, event: events.Click) -> None:
+        widget_id = event.widget.id if event.widget is not None else ""
+        prefix = "workspace-project-"
+        if not widget_id or not widget_id.startswith(prefix):
+            return
+        try:
+            index = int(widget_id.removeprefix(prefix))
+            name, path = self._project_actions[index]
+        except (IndexError, ValueError):
+            return
+        row = self._highlighted_row()
+        if row is None or not open_project_pane(row["session"], path):
+            self.notify("Could not open project pane", severity="error")
+        else:
+            self.notify(f"Opened pane in {name}", severity="information")
+        event.stop()
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
         self._update_details()

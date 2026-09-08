@@ -381,6 +381,18 @@ CommandPalette > .command-palette--highlight {
     padding-top: 1;
 }
 
+.workspace-project {
+    display: none;
+    height: 1;
+    color: #b0a6ba;
+    padding: 0 1;
+}
+
+.workspace-project:hover {
+    background: #2a2237;
+    color: #e2ddea;
+}
+
 #workspace-legend {
     /* height:2, not 1: the full legend text (44 cells) is wider than this
        card's ~30-col usable width and was silently clipping "[i] expand"

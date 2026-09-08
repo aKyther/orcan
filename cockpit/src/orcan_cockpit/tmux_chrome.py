@@ -185,6 +185,20 @@ def split_run(session: str, command: str, *, vertical: bool = True) -> bool:
     return result.returncode == 0
 
 
+def open_project_pane(session: str, project_path: str) -> bool:
+    """Open a fresh shell pane rooted at *project_path* without touching the agent pane."""
+    try:
+        result = subprocess.run(
+            ["tmux", "split-window", "-v", "-t", f"={session}:", "-c", project_path],
+            check=False,
+            timeout=_TMUX_TIMEOUT_S,
+            capture_output=True,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
 def run_url_picker(session: str) -> bool:
     """tmux ``pick-url.sh`` against the attached session."""
     script = "/etc/tmux/scripts/pick-url.sh"

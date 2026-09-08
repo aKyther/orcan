@@ -254,6 +254,9 @@ term beginning with either character.
 Press **Ctrl+C** in the picker to copy the highlighted workspace root. In the
 terminal, Ctrl+C keeps its normal copy-selection / interrupt behaviour.
 
+With details expanded (`i`), click a project in a live workspace to open a new
+tmux pane rooted there. The current agent pane and its directory are unchanged.
+
 | Keys | Action |
 | --- | --- |
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |

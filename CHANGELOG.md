@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workspace picker:** Ctrl+C copies the highlighted workspace root through
   Cockpit's normal local/browser clipboard path.
 
+- **Project actions:** expanded live workspace details now offer click targets
+  that open a fresh tmux pane in a project's directory without disturbing the
+  current agent pane.
+
 - **Mobile cockpit:** after a workspace is attached, the narrow layout is now
   terminal-first. A small workspace pill remains available, while identity and
   status chrome no longer consume terminal rows; opening F4 still leaves tmux
