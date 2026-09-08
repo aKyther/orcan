@@ -241,6 +241,11 @@ sharpness; fractional browser or OS scaling can soften canvas text.
 | `compact` | 90–119 | Bottom bar shortens; the workspace picker overlays the terminal |
 | `minimal` | < 90 | Before attachment, keeps the picker chrome. After attachment, becomes terminal-first: only a quiet workspace pill remains, so tmux gets the identity and status rows too. F4 still opens the picker as an overlay without resizing tmux. |
 
+The top bar keeps only the workspace context and a quiet clock. CPU load and
+memory are available by hovering the clock, rather than competing with the
+terminal all the time. The picker puts recently attached workspaces first;
+its remaining order stays as configured.
+
 | Keys | Action |
 | --- | --- |
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |
@@ -265,6 +270,11 @@ the sheet fills the screen instead of becoming a clipped desktop dialog.
 Short Cockpit feedback appears as a dismissible, low-right toast above tmux;
 it fades automatically and never changes the terminal's size. Its muted
 violet, amber, or rose edge distinguishes information, warnings, and errors.
+
+When the active tmux pane runs a recognised coding CLI, the workspace pill
+gets a small dot and its name (for example, `• Codex`). This is a process cue,
+not a claim that the agent is currently generating work; a waiting CLI remains
+a CLI process.
 
 The **Ctrl+P** command palette uses the same quiet sheet surface; type to
 filter, use arrow keys and **Enter** to apply, or click outside it to dismiss.

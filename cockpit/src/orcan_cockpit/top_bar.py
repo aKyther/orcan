@@ -1,8 +1,8 @@
-"""Top bar: utility rail icons (left) + system metrics (right, CPU/RAM/
-clock). Sits above #main-row, full width, one row — replaces both the old
-right-hand icon column and the identity+metrics row tmux's own status.conf
-used to render (trimmed there as redundant — see that file's header
-comment)."""
+"""Top bar: utility rail (left) + a quiet clock (right).
+
+CPU/RAM stay available in the clock tooltip rather than permanently turning
+the workspace chrome into a systems dashboard.
+"""
 
 from __future__ import annotations
 
@@ -13,7 +13,8 @@ from textual.widgets import Static
 
 from orcan_cockpit.rail import UtilityRail
 from orcan_cockpit.shortcuts import product_version
-from orcan_cockpit.status import format_top_bar_right, now_hhmm, read_loadavg, read_mem_percent
+from orcan_cockpit.status import now_hhmm, read_loadavg, read_mem_percent
+from orcan_cockpit.tmux_chrome import session_agent_label
 
 _REFRESH_INTERVAL_S = 3.0
 
@@ -21,7 +22,10 @@ _REFRESH_INTERVAL_S = 3.0
 class TopBar(Widget):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._painted_metrics: str | None = None
+        self._painted_clock: str | None = None
+        self._painted_workspace: str | None = None
+        self._workspace_name: str | None = None
+        self._session: str | None = None
 
     def compose(self) -> ComposeResult:
         # 🌀 (cyclone) not ◆ — orcan's own branding is elemental (hurricane/
@@ -47,7 +51,7 @@ class TopBar(Widget):
 
     def on_mount(self) -> None:
         self.query_one("#top-bar-right", Static).tooltip = (
-            "system load · memory used · clock"
+            "clock; system load and memory appear here on hover"
         )
         self.query_one("#top-bar-identity", Static).tooltip = (
             f"About orcan cockpit · v{product_version()}"
@@ -56,15 +60,27 @@ class TopBar(Widget):
             "Choose a workspace and inspect its projects (F4)"
         )
         self.set_workspace(None)
-        self.refresh_metrics()
-        self.set_interval(_REFRESH_INTERVAL_S, self.refresh_metrics)
+        self.refresh_clock()
+        self.set_interval(_REFRESH_INTERVAL_S, self.refresh_clock)
+        self.set_interval(_REFRESH_INTERVAL_S, self.refresh_workspace_indicator)
 
-    def refresh_metrics(self) -> None:
-        line = format_top_bar_right(cpu=read_loadavg(), mem=read_mem_percent(), clock=now_hhmm())
-        if line == self._painted_metrics:
-            return
-        self._painted_metrics = line
+    def refresh_clock(self) -> None:
+        line = now_hhmm()
         right = self.query_one("#top-bar-right", Static)
+        load = read_loadavg()
+        memory = read_mem_percent()
+        metrics = " · ".join(
+            value
+            for value in (
+                f"load {load}" if load else "",
+                f"mem {memory}" if memory else "",
+            )
+            if value
+        )
+        right.tooltip = f"{metrics} · {line}" if metrics else line
+        if line == self._painted_clock:
+            return
+        self._painted_clock = line
         # width:auto also has a real Rich/Textual bug (see #top-bar-right's
         # CSS comment) — a fixed width sidesteps it, but the actual text
         # length varies (cpu/mem readings may be absent). cell_len (not
@@ -74,9 +90,30 @@ class TopBar(Widget):
         right.styles.width = cell_len(line)
         right.update(line)
 
-    def set_workspace(self, name: str | None) -> None:
-        """Keep the current context visible while the picker is closed."""
-        line = f"{name}  ⌄" if name else "Select workspace  ⌄"
+    def set_workspace(self, name: str | None, session: str | None = None) -> None:
+        """Keep current workspace and its foreground-agent cue visible."""
+        self._workspace_name = name
+        self._session = session
+        self._painted_workspace = None
+        self.refresh_workspace_indicator()
+
+    def refresh_workspace_indicator(self) -> None:
+        """Refresh the quiet pane-process cue without claiming model activity."""
+        agent = session_agent_label(self._session)
+        if self._workspace_name:
+            prefix = f"• {agent}  " if agent else ""
+            line = f"{prefix}{self._workspace_name}  ⌄"
+        else:
+            line = "Select workspace  ⌄"
+        if line == self._painted_workspace:
+            return
+        self._painted_workspace = line
         trigger = self.query_one("#workspace-trigger", Static)
         trigger.styles.width = cell_len(line) + 2
         trigger.update(line)
+        trigger.set_class(bool(agent), "agent-active")
+        trigger.tooltip = (
+            f"Current pane runs {agent}; choose or inspect workspaces (F4)"
+            if agent
+            else "Choose a workspace and inspect its projects (F4)"
+        )

@@ -43,9 +43,10 @@ class PaneLabelScriptTests(unittest.TestCase):
             "claude",
         )
 
-    def test_codex_and_aider(self) -> None:
+    def test_codex_aider_and_copilot(self) -> None:
         self.assertEqual(self._label("codex"), "codex")
         self.assertEqual(self._label("python", "python -m aider"), "aider")
+        self.assertEqual(self._label("copilot"), "copilot")
 
     def test_bare_agent_command(self) -> None:
         self.assertEqual(self._label("agent"), "agent")

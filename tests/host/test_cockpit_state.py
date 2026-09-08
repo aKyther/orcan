@@ -27,6 +27,16 @@ class CockpitStateTests(unittest.TestCase):
                 self.assertIsNone(state.read_last_session())
                 state.remember_session("workspace-one")
                 self.assertEqual(state.read_last_session(), "workspace-one")
+                self.assertEqual(state.read_recent_sessions(), ["workspace-one"])
+
+    def test_recent_sessions_are_newest_first_and_unique(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "last-session"
+            with mock.patch.dict(os.environ, {"ORCAN_COCKPIT_STATE_PATH": str(path)}):
+                state.remember_session("one")
+                state.remember_session("two")
+                state.remember_session("one")
+                self.assertEqual(state.read_recent_sessions(), ["one", "two"])
 
     def test_invalid_state_is_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

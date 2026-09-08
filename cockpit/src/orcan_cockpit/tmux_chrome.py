@@ -11,6 +11,18 @@ from pathlib import Path
 _TMUX_TIMEOUT_S = 2
 _PIN_FILE = ".orcan/main-pane"
 
+_AGENT_LABELS = {
+    "claude": "Claude",
+    "codex": "Codex",
+    "gemini": "Gemini",
+    "copilot": "Copilot",
+    "aider": "Aider",
+    "amp": "Amp",
+    "opencode": "OpenCode",
+    "cursor-agent": "Cursor",
+    "agent": "Agent",
+}
+
 
 def _tmux(*args: str) -> str:
     try:
@@ -42,6 +54,46 @@ def session_breadcrumb(session: str | None) -> str:
     win = win.strip() or "?"
     cmd = (cmd.strip() or "zsh").split("/")[-1]
     return f"w{win} › {cmd}"
+
+
+def agent_label(command: str, commandline: str = "") -> str:
+    """Friendly label when a known coding agent owns a pane, else empty.
+
+    This describes the foreground pane process, not model activity: a CLI may
+    be waiting for input even while it is present. Keeping that distinction
+    prevents the Cockpit chrome from making a false "working" claim.
+    """
+    cmd = command.strip().split("/")[-1].lower()
+    haystack = f"{command} {commandline}".lower()
+    for name, label in _AGENT_LABELS.items():
+        if name != "agent" and name in haystack:
+            return label
+    return _AGENT_LABELS["agent"] if cmd == "agent" else ""
+
+
+def session_agent_label(session: str | None) -> str:
+    """Known agent in the active tmux pane, including Node-backed CLIs."""
+    if not session:
+        return ""
+    raw = _tmux(
+        "display-message",
+        "-p",
+        "-t",
+        f"={session}:",
+        "#{pane_current_command}\t#{pane_pid}",
+    )
+    command, separator, pid = raw.partition("\t")
+    if not separator:
+        return ""
+    commandline = ""
+    if pid.isdigit():
+        try:
+            commandline = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(
+                "utf-8", errors="replace"
+            )
+        except OSError:
+            pass
+    return agent_label(command, commandline)
 
 
 def list_agent_panes(session: str | None, *, limit: int = 6) -> list[dict[str, str]]:
