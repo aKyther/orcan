@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import os
 import tempfile
-import json
 from pathlib import Path
 
 _DEFAULT_STATE_PATH = Path("/tmp/orcan-cockpit-last-session")
@@ -52,6 +52,11 @@ def read_recent_sessions() -> list[str]:
         if len(recent) >= _MAX_RECENT_SESSIONS:
             break
     return recent
+
+
+def previous_recent_session(current: str | None) -> str | None:
+    """The newest remembered session other than *current*, if any."""
+    return next((session for session in read_recent_sessions() if session != current), None)
 
 
 def _atomic_write(path: Path, content: str) -> None:

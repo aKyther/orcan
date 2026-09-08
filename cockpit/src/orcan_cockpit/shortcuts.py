@@ -82,6 +82,8 @@ SHORTCUTS: list[Shortcut] = [
     # `lg` shell alias inside the terminal itself.)
     Shortcut("F4", "Open workspace picker", "app", "cockpit",
               ("terminal", "workspaces", "rail")),
+    Shortcut("F6", "Switch to previous workspace", "app", "cockpit",
+              ("terminal", "workspaces", "rail")),
     # "?" is a bare letter, not a function key — PtyTerminal swallows it
     # (event.stop() in on_key) whenever the terminal has focus and sends it
     # into the shell/tmux pane as a literal "?" instead; only F1 reliably

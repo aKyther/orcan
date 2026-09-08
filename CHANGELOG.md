@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workspace name, session, or root; Backspace expands it again without
   changing arrow-key and Enter selection.
 
+- **Workspace navigation:** F6 now switches to the most recently used
+  different workspace, making repeated use a quick toggle between two jobs.
+
 - **Mobile cockpit:** after a workspace is attached, the narrow layout is now
   terminal-first. A small workspace pill remains available, while identity and
   status chrome no longer consume terminal rows; opening F4 still leaves tmux

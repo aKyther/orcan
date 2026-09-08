@@ -254,6 +254,7 @@ term beginning with either character.
 | Keys | Action |
 | --- | --- |
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |
+| **F6** | Switch to the most recently used different workspace; repeated use toggles between the last two |
 | **`i`** (picker) | Show or hide the highlighted workspace's root, Git/worktree/projects and live-session glance; the picker opens as a compact decision list by default |
 | **Focus cue** | The violet edge and the bottom-bar surface label show whether keys go to Terminal, Workspaces, or Controls |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |

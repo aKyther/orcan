@@ -257,6 +257,7 @@ od **`/`**.
 | Klawisze | Akcja |
 | --- | --- |
 | **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |
+| **F6** | Przełącz na ostatnio używany inny workspace; kolejne użycie przełącza między dwoma ostatnimi |
 | **`i`** (picker) | Pokaż lub ukryj root, Git/worktree/projekty i glance żywej sesji zaznaczonego workspace’a; domyślnie picker jest krótką listą decyzji |
 | **Wskaźnik fokusu** | Fioletowa krawędź i etykieta obszaru na dolnym pasku mówią, czy klawisze trafiają do Terminala, Workspace’ów czy Controls |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
