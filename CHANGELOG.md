@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its hover detail; the workspace picker promotes recently attached sessions
   while keeping the configured order for everything else.
 
+- **Workspace picker:** type while the picker is focused to narrow it by
+  workspace name, session, or root; Backspace expands it again without
+  changing arrow-key and Enter selection.
+
 - **Mobile cockpit:** after a workspace is attached, the narrow layout is now
   terminal-first. A small workspace pill remains available, while identity and
   status chrome no longer consume terminal rows; opening F4 still leaves tmux

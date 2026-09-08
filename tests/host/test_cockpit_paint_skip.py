@@ -167,6 +167,16 @@ class WorkspaceListPaintSignatureTests(unittest.TestCase):
         ordered = picker.order_workspace_rows(rows, ["third", "second", "stale"])
         self.assertEqual([row["session"] for row in ordered], ["third", "second", "first"])
 
+    def test_filter_matches_name_session_and_root_without_reordering(self) -> None:
+        rows = [
+            _row(name="orcan-dev", session="orcan-dev", root="/work/orcan"),
+            _row(name="web", session="client", root="/work/frontend"),
+        ]
+        self.assertEqual(picker.filter_workspace_rows(rows, "ORC"), [rows[0]])
+        self.assertEqual(picker.filter_workspace_rows(rows, "client"), [rows[1]])
+        self.assertEqual(picker.filter_workspace_rows(rows, "front"), [rows[1]])
+        self.assertEqual(picker.filter_workspace_rows(rows, ""), rows)
+
     def test_row_text_marks_live_and_active(self) -> None:
         text = picker.format_workspace_row_text(
             _row(live=True, name="ws"),

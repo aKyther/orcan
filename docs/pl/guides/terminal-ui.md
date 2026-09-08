@@ -249,6 +249,11 @@ CPU oraz pamięć są dostępne po najechaniu na zegar, zamiast stale konkurowa�
 z terminalem. Picker pokazuje najpierw ostatnio podłączane workspace’y, a
 pozostałe zachowują kolejność z konfiguracji.
 
+Przy fokusie pickera zacznij pisać, aby filtrować po nazwie workspace’a,
+sesji lub root; **Backspace** poszerza listę ponownie. **`i`** nadal otwiera
+szczegóły, a **`?`** skróty, więc filtr zaczynający się od tych znaków rozpocznij
+od **`/`**.
+
 | Klawisze | Akcja |
 | --- | --- |
 | **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |

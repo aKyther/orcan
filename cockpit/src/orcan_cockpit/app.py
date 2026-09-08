@@ -357,6 +357,14 @@ CommandPalette > .command-palette--highlight {
     background: transparent;
 }
 
+#workspace-filter {
+    display: none;
+    height: 1;
+    color: #b0a6ba;
+    background: #2a2237;
+    padding: 0 1;
+}
+
 #workspace-glance {
     /* Session glance under the highlighted workspace — 2–3 lines of
        brief / pane commands (session_glance.py). */
