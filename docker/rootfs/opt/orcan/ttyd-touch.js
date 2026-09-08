@@ -15,6 +15,8 @@
   let largestViewportHeight = window.visualViewport?.height || window.innerHeight;
   let appliedViewportHeight = 0;
   let resizeFrame = 0;
+  let pendingScrollDelta = 0;
+  let scrollFrame = 0;
 
   function ensureWebglFallback() {
     const url = new URL(window.location.href);
@@ -114,6 +116,23 @@
     terminal.dataset.orcanTouchScroll = "on";
     terminal.style.touchAction = "none";
 
+    // Mobile browsers can emit touchmove faster than xterm can repaint. Keep
+    // the physical distance intact but relay at most one wheel event per
+    // animation frame, rather than making terminal scroll compete with input
+    // and the GPU renderer dozens of times in a single frame.
+    const flushTouchScroll = () => {
+      scrollFrame = 0;
+      const deltaY = pendingScrollDelta;
+      pendingScrollDelta = 0;
+      if (!deltaY) return;
+      terminal.dispatchEvent(new WheelEvent("wheel", {
+        bubbles: true,
+        cancelable: true,
+        deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+        deltaY,
+      }));
+    };
+
     terminal.addEventListener("touchstart", (event) => {
       if (event.touches.length !== 1) {
         dragging = false;
@@ -141,18 +160,17 @@
       previousY = touch.clientY;
       if (!deltaY) return;
       event.preventDefault();
-      terminal.dispatchEvent(new WheelEvent("wheel", {
-        bubbles: true,
-        cancelable: true,
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        deltaMode: WheelEvent.DOM_DELTA_PIXEL,
-        deltaY,
-      }));
+      pendingScrollDelta += deltaY;
+      if (!scrollFrame) scrollFrame = requestAnimationFrame(flushTouchScroll);
     }, { passive: false });
 
-    terminal.addEventListener("touchend", () => { dragging = false; }, { passive: true });
-    terminal.addEventListener("touchcancel", () => { dragging = false; }, { passive: true });
+    const finishTouch = () => {
+      dragging = false;
+      if (scrollFrame) cancelAnimationFrame(scrollFrame);
+      flushTouchScroll();
+    };
+    terminal.addEventListener("touchend", finishTouch, { passive: true });
+    terminal.addEventListener("touchcancel", finishTouch, { passive: true });
 
     // ttyd 1.7.7 can fit before its asynchronous renderer settles. Its fit
     // addon listens for resize, so refit after first paint and slow font/GPU init.
