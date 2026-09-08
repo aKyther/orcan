@@ -311,6 +311,13 @@ class WorkspaceList(Widget):
     def on_key(self, event: events.Key) -> None:
         # ListView (the actual focus target — see app.py's on_mount) doesn't
         # bind "i", so this bubbles up to us unstopped.
+        if event.key == "ctrl+c":
+            row = self._highlighted_row()
+            if row is not None:
+                self.app.copy_to_clipboard(row["root"])
+                self.notify("Workspace root copied", severity="information")
+            event.stop()
+            return
         if event.key == "i" and not self._filter_query and not self._filter_armed:
             self._expanded = not self._expanded
             self._update_details()

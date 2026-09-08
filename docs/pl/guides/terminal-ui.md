@@ -254,6 +254,9 @@ sesji lub root; **Backspace** poszerza listę ponownie. **`i`** nadal otwiera
 szczegóły, a **`?`** skróty, więc filtr zaczynający się od tych znaków rozpocznij
 od **`/`**.
 
+Naciśnij **Ctrl+C** w pickerze, aby skopiować root zaznaczonego workspace’a.
+W terminalu Ctrl+C zachowuje zwykłe działanie kopiowania zaznaczenia / przerwania.
+
 | Klawisze | Akcja |
 | --- | --- |
 | **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |

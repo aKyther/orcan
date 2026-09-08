@@ -251,6 +251,9 @@ root; use **Backspace** to broaden the list again. **`i`** still opens details
 and **`?`** still opens shortcuts, so start with **`/`** when filtering for a
 term beginning with either character.
 
+Press **Ctrl+C** in the picker to copy the highlighted workspace root. In the
+terminal, Ctrl+C keeps its normal copy-selection / interrupt behaviour.
+
 | Keys | Action |
 | --- | --- |
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |
