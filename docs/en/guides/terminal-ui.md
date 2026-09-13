@@ -1,5 +1,5 @@
 ---
-description: Terminal look — restrained graphite and plum chrome around the terminal toolchain. Where to edit and how to extend.
+description: Terminal look — restrained Warm Graphite / Amber chrome around the terminal toolchain. Where to edit and how to extend.
 tags:
   - guide
   - develop
@@ -8,7 +8,7 @@ tags:
 # Terminal UI
 
 Orcan’s cockpit uses a quiet **Warm Graphite / Amber** palette. A
-single violet accent marks interaction; colour is otherwise reserved for
+single amber accent marks interaction; colour is otherwise reserved for
 state. Tmux chrome follows the same hierarchy while programs inside panes
 retain their terminal-native palette. This page is the map for humans and
 agents changing that stack.
@@ -52,7 +52,7 @@ Presets in `cursor-ttyd`:
 
 | `TTYD_THEME` / `ttyd.theme` | Meaning |
 | --- | --- |
-| `dark` or `navy` (default) | Graphite/plum palette (legacy preset name) |
+| `dark` or `navy` (default) | Warm Graphite / Amber palette (legacy preset name) |
 | `mocha` / `catppuccin` | Legacy Catppuccin Mocha |
 | raw `{...}` JSON | Custom xterm.js theme |
 
@@ -262,7 +262,7 @@ tmux pane rooted there. The current agent pane and its directory are unchanged.
 | **F4** / workspace pill | Open the workspace picker without resizing the terminal |
 | **F6** | Switch to the most recently used different workspace; repeated use toggles between the last two |
 | **`i`** (picker) | Show or hide the highlighted workspace's root, Git/worktree/projects and live-session glance; the picker opens as a compact decision list by default |
-| **Focus cue** | The violet edge and the bottom-bar surface label show whether keys go to Terminal, Workspaces, or Controls |
+| **Focus cue** | The amber edge and the bottom-bar surface label show whether keys go to Terminal, Workspaces, or Controls |
 | **F1** (always) · **?** (outside terminal) / rail ? | Shortcuts overlay (not About). With terminal focused, **?** is typed into the shell — use **F1** |
 | **Click `🌀 orcan`** | About (name, version, docs) — close with **Enter** or its visible **Close** button; `about_modal.py` |
 | **Exit** (top bar) | Close Cockpit and return to the host terminal; tmux sessions remain running |
@@ -281,7 +281,7 @@ the sheet fills the screen instead of becoming a clipped desktop dialog.
 
 Short Cockpit feedback appears as a dismissible, low-right toast above tmux;
 it fades automatically and never changes the terminal's size. Its muted
-violet, amber, or rose edge distinguishes information, warnings, and errors.
+amber, warning, or error edge distinguishes information, warnings, and errors.
 
 When the active tmux pane runs a recognised coding CLI, the workspace pill
 gets a small dot and its name (for example, `• Codex`). This is a process cue,

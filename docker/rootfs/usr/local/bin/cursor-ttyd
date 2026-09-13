@@ -33,9 +33,10 @@ case "${TTYD_RENDERER}" in
         ;;
 esac
 
-# Default: graphite / near-black / muted plum (matches /etc/tmux status).
-# ANSI hues remain distinct for logs, diffs, tests, and application state.
-TTYD_THEME_NAVY='{"background":"#12101a","foreground":"#e2ddea","cursor":"#ad91d0","cursorAccent":"#12101a","selectionBackground":"#423452","black":"#1b1724","red":"#d98282","green":"#85ad8c","yellow":"#c9a86a","blue":"#8498bd","magenta":"#ad91d0","cyan":"#82aaa7","white":"#e2ddea","brightBlack":"#746a82","brightRed":"#e2a0a0","brightGreen":"#a3c5a8","brightYellow":"#d7bd8d","brightBlue":"#a2b1cc","brightMagenta":"#c7b1e2","brightCyan":"#a0c1be","brightWhite":"#eee9f2"}'
+# Default: Warm Graphite / Amber (matches /etc/tmux/theme.conf). ANSI slots
+# reuse the documented palette so logs and application state stay legible
+# without introducing a competing hue family.
+TTYD_THEME_NAVY='{"background":"#171512","foreground":"#f0e9e0","cursor":"#e8b76c","cursorAccent":"#171512","selectionBackground":"#2a251f","black":"#201d19","red":"#e06c75","green":"#8fbc6a","yellow":"#e5c07b","blue":"#a8824f","magenta":"#e8b76c","cyan":"#7a9b8e","white":"#f0e9e0","brightBlack":"#9a8f80","brightRed":"#e06c75","brightGreen":"#8fbc6a","brightYellow":"#f5c988","brightBlue":"#f5c988","brightMagenta":"#f5c988","brightCyan":"#7a9b8e","brightWhite":"#f0e9e0"}'
 
 # Legacy Catppuccin Mocha — opt in with TTYD_THEME=mocha.
 TTYD_THEME_MOCHA='{"background":"#1e1e2e","foreground":"#cdd6f4","cursor":"#f5e0dc","selectionBackground":"#585b70","black":"#45475a","red":"#f38ba8","green":"#a6e3a1","yellow":"#f9e2af","blue":"#89b4fa","magenta":"#f5c2e7","cyan":"#94e2d5","white":"#bac2de","brightBlack":"#585b70","brightRed":"#f38ba8","brightGreen":"#a6e3a1","brightYellow":"#f9e2af","brightBlue":"#89b4fa","brightMagenta":"#f5c2e7","brightCyan":"#94e2d5","brightWhite":"#a6adc8"}'
