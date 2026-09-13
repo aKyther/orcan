@@ -46,6 +46,24 @@ class BuildAgentSelectionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "codex+gemini|1")
 
+    def test_build_prune_is_explicit_and_forwarded(self) -> None:
+        result = run_shell(
+            """
+            set -Eeuo pipefail
+            export ORCAN_ROOT="$PWD"
+            source cli/lib/common.sh
+            source cli/commands/build.sh
+            orcan_require_docker() { :; }
+            orcan_require_env_for_build() { :; }
+            orcan_load_env() { :; }
+            orcan_runtime_warn_if_config_stale() { :; }
+            orcan_image_build_local() { printf "%s|%s|%s\\n" "$1" "$2" "$3"; }
+            orcan_cmd_build --agent codex --force --prune
+            """
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "codex|0|1")
+
     def test_all_agents_is_the_complete_manifest_selection(self) -> None:
         result = run_shell(
             """

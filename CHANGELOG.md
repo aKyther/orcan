@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Cockpit resilience:** workspace bootstrap and Git/tmux chrome probes now run
+  outside Textual’s render loop, keeping the embedded terminal responsive
+  during reconnects and slow host commands.
+
+- **Image hygiene:** `orcan build --prune` removes dangling Orcan images after
+  a successful build without touching other projects’ images or BuildKit cache.
+
 - **Cockpit responsiveness:** quiet status probes now avoid `git`/`tmux` on
   compact layouts and run less often elsewhere; touch scrolling in ttyd is
   batched to animation frames for smoother phone/tablet dragging.

@@ -6,6 +6,9 @@ the workspace chrome into a systems dashboard.
 
 from __future__ import annotations
 
+import asyncio
+from functools import partial
+
 from rich.cells import cell_len
 from textual.app import ComposeResult
 from textual.widget import Widget
@@ -103,10 +106,33 @@ class TopBar(Widget):
 
     def refresh_workspace_indicator(self) -> None:
         """Refresh the quiet pane-process cue without claiming model activity."""
-        agent = session_agent_label(self._session)
-        if self._workspace_name:
+        if self._session is None:
+            line = "Select workspace  ⌄"
+            if line != self._painted_workspace:
+                self._painted_workspace = line
+                trigger = self.query_one("#workspace-trigger", Static)
+                trigger.styles.width = cell_len(line) + 2
+                trigger.update(line)
+                trigger.set_class(False, "agent-active")
+                trigger.tooltip = "Choose a workspace and inspect workspaces (F4)"
+            return
+        self.run_worker(
+            partial(self._resolve_workspace_indicator, self._workspace_name, self._session),
+            group="workspace-indicator",
+            exclusive=True,
+            exit_on_error=False,
+        )
+
+    async def _resolve_workspace_indicator(
+        self, workspace_name: str | None, session: str | None
+    ) -> None:
+        """Keep tmux/process probing out of the embedded terminal's UI loop."""
+        agent = await asyncio.to_thread(session_agent_label, session)
+        if self._workspace_name != workspace_name or self._session != session:
+            return
+        if workspace_name:
             prefix = f"• {agent}  " if agent else ""
-            line = f"{prefix}{self._workspace_name}  ⌄"
+            line = f"{prefix}{workspace_name}  ⌄"
         else:
             line = "Select workspace  ⌄"
         if line == self._painted_workspace:
