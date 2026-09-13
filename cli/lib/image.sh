@@ -93,6 +93,7 @@ orcan_image_try_pull() {
 orcan_image_build_local() {
     local agents="$1"
     local no_cache="${2:-0}"
+    local prune="${3:-0}"
     local ver build_args image install_cursor=0 install_claude=0 install_codex=0 install_gemini=0 install_copilot=0 agent
 
     ver="$(orcan_image_version)"
@@ -119,6 +120,20 @@ orcan_image_build_local() {
     docker tag "${image}" "orcan:${ver}" 2>/dev/null || true
     docker tag "${image}" orcan:latest 2>/dev/null || true
     orcan_ok "built ${image} (manifest: /etc/orcan/agents.json)"
+    if (( prune )); then
+        orcan_image_prune_dangling
+    fi
+}
+
+# Remove only untagged images built by Orcan. This deliberately excludes
+# BuildKit cache and images from other projects; a normal Orcan build must
+# never act like a host-wide `docker system prune`.
+orcan_image_prune_dangling() {
+    local source="https://github.com/aKyther/orcan"
+    orcan_info "removing dangling Orcan images"
+    if ! docker image prune --force --filter "label=org.opencontainers.image.source=${source}"; then
+        orcan_warn "could not prune dangling Orcan images"
+    fi
 }
 
 # Push the all-agents local image (orcan:latest / orcan:VERSION) to registry.

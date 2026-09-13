@@ -12,6 +12,7 @@ through the `lg` shell alias inside the terminal.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Iterable
 
 from textual import events
@@ -823,7 +824,10 @@ class MainScreen(Screen):
             )
         )
 
-        bootstrap = bootstrap_workspace(row)
+        # Creating or validating a tmux workspace may touch the filesystem
+        # and spawn a shell. Keep that work out of Textual's render loop: on
+        # a reconnect the loading card must get a chance to paint.
+        bootstrap = await asyncio.to_thread(bootstrap_workspace, row)
         if bootstrap.returncode != 0:
             self._current_session = None
             self._current_root = None

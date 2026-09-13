@@ -4,6 +4,8 @@ live in the top bar (top_bar.py) instead."""
 
 from __future__ import annotations
 
+import asyncio
+from functools import partial
 from pathlib import Path
 
 from textual.app import ComposeResult
@@ -63,15 +65,75 @@ class StatusBar(Widget):
         # spawning their probes entirely there — work that cannot be seen is
         # pure latency on a small terminal.
         detailed = self.tier == "full"
-        branch = git_branch(str(self.workspace_root)) if detailed and self.workspace_root else ""
-        crumb = session_breadcrumb(self.session) if detailed and self.session else ""
+        workspace_name = self.workspace_name
+        workspace_root = self.workspace_root
+        session = self.session
+        tier = self.tier
+        focus = self.focus
+        if not detailed or (workspace_root is None and session is None):
+            line = format_status_line(
+                tier=tier,
+                workspace=workspace_name,
+                branch="",
+                session=session,
+                breadcrumb="",
+                focus=focus,
+            )
+            if line != self._painted_line:
+                self._painted_line = line
+                self.query_one("#status-body", Static).update(line)
+            return
+        self.run_worker(
+            partial(
+                self._resolve_status,
+                detailed=detailed,
+                workspace_name=workspace_name,
+                workspace_root=workspace_root,
+                session=session,
+                tier=tier,
+                focus=focus,
+            ),
+            group="status-refresh",
+            exclusive=True,
+            exit_on_error=False,
+        )
+
+    async def _resolve_status(
+        self,
+        *,
+        detailed: bool,
+        workspace_name: str | None,
+        workspace_root: Path | None,
+        session: str | None,
+        tier: Tier,
+        focus: str | None,
+    ) -> None:
+        """Read Git/tmux outside the UI loop, then paint one current result."""
+        branch = (
+            await asyncio.to_thread(git_branch, str(workspace_root))
+            if detailed and workspace_root
+            else ""
+        )
+        crumb = (
+            await asyncio.to_thread(session_breadcrumb, session)
+            if detailed and session
+            else ""
+        )
+        if (
+            self.workspace_name != workspace_name
+            or self.workspace_root != workspace_root
+            or self.session != session
+            or self.tier != tier
+            or self.focus != focus
+        ):
+            return
         line = format_status_line(
-            tier=self.tier,
-            workspace=self.workspace_name,
+            tier=tier,
+            workspace=workspace_name,
             branch=branch,
-            session=self.session,
+            session=session,
             breadcrumb=crumb,
-            focus=self.focus,
+            focus=focus,
         )
         if line == self._painted_line:
             return

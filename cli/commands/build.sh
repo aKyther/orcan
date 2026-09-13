@@ -4,6 +4,7 @@
 orcan_cmd_build() {
     local agents=""
     local no_cache=0
+    local prune=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --agent)
@@ -22,6 +23,10 @@ orcan_cmd_build() {
                 no_cache=1
                 shift
                 ;;
+            --prune)
+                prune=1
+                shift
+                ;;
             --force | --no-pull)
                 shift
                 ;;
@@ -31,11 +36,13 @@ orcan_cmd_build() {
                 ;;
             -h | --help)
                 cat <<'EOF'
-usage: orcan build --agent NAME [--agent NAME ...] | --all-agents [--no-cache|--force]
+usage: orcan build --agent NAME [--agent NAME ...] | --all-agents [--no-cache|--force] [--prune]
 
   NAME: cursor | claude | codex | gemini | copilot
   Builds the standard orcan:latest image. Its /etc/orcan/agents.json records
   the selected CLIs. Build selection is explicit; use --all-agents for all.
+  --prune removes dangling Orcan images after a successful build. It never
+  runs docker system prune or removes BuildKit cache.
 EOF
                 return 0
                 ;;
@@ -52,5 +59,5 @@ EOF
     orcan_load_env
     orcan_runtime_warn_if_config_stale build
 
-    orcan_image_build_local "${agents}" "${no_cache}"
+    orcan_image_build_local "${agents}" "${no_cache}" "${prune}"
 }
