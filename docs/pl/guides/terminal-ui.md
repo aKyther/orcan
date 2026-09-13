@@ -1,5 +1,5 @@
 ---
-description: Wygląd terminala — stonowany grafitowo-śliwkowy chrome wokół narzędzi terminalowych. Gdzie edytować i jak rozszerzać.
+description: Wygląd terminala — stonowany chrome Warm Graphite / Amber wokół narzędzi terminalowych. Gdzie edytować i jak rozszerzać.
 tags:
   - guide
   - develop
@@ -7,8 +7,8 @@ tags:
 
 # Terminal UI
 
-Cockpit Orcana używa spokojnych powierzchni **grafit / prawie czarny /
-stonowana śliwka**. Jeden fioletowy akcent oznacza interakcję; pozostałe
+Cockpit Orcana używa spokojnej palety **Warm Graphite / Amber**. Jeden
+bursztynowy akcent oznacza interakcję; pozostałe
 kolory są zarezerwowane dla stanu. Chrome tmux używa tej samej hierarchii,
 a programy wewnątrz paneli zachowują własną paletę terminalową. Ta strona to
 mapa dla ludzi i agentów zmieniających ten stack.
@@ -51,7 +51,7 @@ Presety w `cursor-ttyd`:
 
 | `TTYD_THEME` / `ttyd.theme` | Znaczenie |
 | --- | --- |
-| `dark` lub `navy` (domyślne) | Paleta grafit/śliwka (stara nazwa presetu) |
+| `dark` lub `navy` (domyślne) | Paleta Warm Graphite / Amber (stara nazwa presetu) |
 | `mocha` / `catppuccin` | Stary Catppuccin Mocha |
 | surowy JSON `{...}` | Własny motyw xterm.js |
 
@@ -265,7 +265,7 @@ otworzyć tam nowy pane tmuxa. Bieżący pane agenta i jego katalog nie zmieniaj
 | **F4** / pill workspace’a | Otwórz picker workspace’a bez zmiany rozmiaru terminala |
 | **F6** | Przełącz na ostatnio używany inny workspace; kolejne użycie przełącza między dwoma ostatnimi |
 | **`i`** (picker) | Pokaż lub ukryj root, Git/worktree/projekty i glance żywej sesji zaznaczonego workspace’a; domyślnie picker jest krótką listą decyzji |
-| **Wskaźnik fokusu** | Fioletowa krawędź i etykieta obszaru na dolnym pasku mówią, czy klawisze trafiają do Terminala, Workspace’ów czy Controls |
+| **Wskaźnik fokusu** | Bursztynowa krawędź i etykieta obszaru na dolnym pasku mówią, czy klawisze trafiają do Terminala, Workspace’ów czy Controls |
 | **F1** (zawsze) · **?** (poza terminalem) / rail ? | Overlay skrótów (nie About). Przy fokusie w terminalu **?** idzie do shella — użyj **F1** |
 | **Klik `🌀 orcan`** | About (nazwa, wersja, docs) — zamknij **Enterem** albo widocznym przyciskiem **Close**; `about_modal.py` |
 | **Exit** (górny pasek) | Zamknij Cockpit i wróć do terminala hosta; sesje tmux dalej działają |
@@ -284,7 +284,7 @@ wypełnia ekran zamiast zamieniać się w przycięty dialog desktopowy.
 
 Krótkie komunikaty Cockpitu pojawiają się jako możliwy do kliknięcia toast w
 prawym dolnym rogu, nad tmuxem; znikają automatycznie i nigdy nie zmieniają
-rozmiaru terminala. Stonowana fioletowa, bursztynowa lub różana krawędź
+rozmiaru terminala. Stonowana bursztynowa, ostrzegawcza lub błędowa krawędź
 rozróżnia informację, ostrzeżenie i błąd.
 
 Gdy aktywny pane tmuxa uruchamia rozpoznane CLI programistyczne, pill

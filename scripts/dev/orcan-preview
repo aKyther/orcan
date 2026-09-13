@@ -466,6 +466,11 @@ cmd_smoke() {
     require_command "${DOCKER_BIN}"
     assert_preview_container || die "developer UX container is not running"
     [[ "$(container_health)" == "healthy" ]] || die "developer UX container is not healthy"
+    # The smoke starts on the workspace picker. A previous interactive cockpit
+    # run may have left this intentionally persistent-in-process restore hint
+    # in /tmp, so clear only that disposable preview state before testing.
+    "${DOCKER_BIN}" exec "${PREVIEW_CONTAINER}" \
+        rm -f /tmp/orcan-cockpit-last-session
     "${DOCKER_BIN}" exec \
         -e PYTHONPATH="${ROOT_DIR}/cockpit/src:/usr/local/lib" \
         "${PREVIEW_CONTAINER}" \
