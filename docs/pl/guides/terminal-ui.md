@@ -195,9 +195,6 @@ pliki wygasają po 24 godzinach.
 **Scrollback:** pyte trzyma **bieżący** ekran; przewijanie historii robi tmux
 (copy-mode) i przerysowuje pane — mysz musi trafić do tmux jako SGR.
 
-**Scrollback:** pyte trzyma **bieżący** ekran; przewijanie historii robi tmux
-(copy-mode) i przerysowuje pane — mysz musi trafić do tmux jako SGR.
-
 #### Konkretne wymagania (regresja)
 
 - **`C-Space` i `Alt+…` muszą dojść do tmux** — widget mapuje klawisze Textual na bajty pty (`ctrl+space` → `\x00`; `alt+1` → jeden zapis `\x1b` + `1`). Rozdzielenie ESC i klawisza bazowego na dwa write’y psuje `escape-time` (tmux traktuje ESC osobno). Textual mapuje też `ESC+digit` na glify macOS Option (`¡`/`™`/`£`); cockpit odwraca to z powrotem na Meta (`pty_keys.py`), żeby Windows Terminal / Linux Alt+1…9 działało jak przy zwykłym `tmux attach`.
