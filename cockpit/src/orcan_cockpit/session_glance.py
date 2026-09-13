@@ -12,6 +12,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from orcan_cockpit.theme import TEXT_DISABLED, TEXT_MUTED
+
 _MAX_LINES = 3
 _MAX_PANE_CMDS = 3
 _TMUX_TIMEOUT_S = 2
@@ -179,11 +181,11 @@ def glance_lines(
 def format_glance(lines: list[str], *, empty_hint: str = "Enter to attach") -> str:
     """Markup-ready glance body for a Static (dim when only the empty hint)."""
     if not lines:
-        return f"[#64748b]{empty_hint}[/]"
+        return f"[{TEXT_DISABLED}]{empty_hint}[/]"
     # Titles and pane text come from workspace state and may contain
     # Rich/Textual markup delimiters. Escape opening brackets so user text
     # cannot become an accidental style tag (or break rendering altogether).
     def escape_markup(text: str) -> str:
         return text.replace("\\", "\\\\").replace("[", "\\[")
 
-    return "\n".join(f"[#94a3b8]{escape_markup(line)}[/]" for line in lines)
+    return "\n".join(f"[{TEXT_MUTED}]{escape_markup(line)}[/]" for line in lines)

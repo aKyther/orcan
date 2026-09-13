@@ -6,7 +6,7 @@
 set -Eeuo pipefail
 
 if [[ "$(tmux display -p '#{client_prefix}' 2>/dev/null || echo 0)" == "1" ]]; then
-    printf '#[fg=#fbbf24,bold]◉ '
+    printf '#[fg=#e8b76c,bold]◉ '
 else
-    printf '#[fg=#475569]○ '
+    printf '#[fg=#736a5e]○ '
 fi

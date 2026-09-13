@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Warm Graphite / Amber:** Cockpit, tmux, terminal tools, and ttyd now use
+  a shared graphite-and-amber palette. Agent tabs keep neutral surfaces and
+  show status through a compact coloured dot rather than a full-tab hue.
+
 - **Cockpit resilience:** workspace bootstrap and Git/tmux chrome probes now run
   outside Textual’s render loop, keeping the embedded terminal responsive
   during reconnects and slow host commands.

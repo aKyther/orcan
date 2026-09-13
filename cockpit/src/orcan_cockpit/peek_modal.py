@@ -10,8 +10,9 @@ from textual.widgets import Button, Static
 
 from orcan_cockpit.peek import build_peek_text
 from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
+from orcan_cockpit.theme import css
 
-_CSS = SHEET_CSS + """
+_CSS = SHEET_CSS + css("""
 #peek-dialog {
     width: 72;
 }
@@ -34,7 +35,7 @@ _CSS = SHEET_CSS + """
     color: #948ba3;
     margin-top: 1;
 }
-"""
+""")
 
 
 class PeekModal(SheetModal):

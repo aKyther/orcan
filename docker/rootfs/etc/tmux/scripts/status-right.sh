@@ -32,7 +32,7 @@ if [[ -z "${brief_root}" ]]; then
     esac
 fi
 if [[ -n "${brief_root}" && -f "${brief_root}/.orcan/session-brief.md" ]]; then
-    parts+=("#[fg=#4ade80,bold]◆")
+    parts+=("#[fg=#8fbc6a,bold]◆")
 fi
 
 branch=""
@@ -43,7 +43,7 @@ if command -v git >/dev/null 2>&1; then
     fi
 fi
 if [[ -n "${branch}" ]]; then
-    parts+=("#[fg=#7dd3fc,bold]⎇ ${branch}")
+    parts+=("#[fg=#e8b76c,bold]⎇ ${branch}")
 fi
 
 battery=""
@@ -54,11 +54,11 @@ for cap in /sys/class/power_supply/BAT*/capacity; do
     fi
 done
 if [[ -n "${battery}" && "${battery}" =~ ^[0-9]+$ ]]; then
-    bat_colour='#67e8f9'
+    bat_colour='#8fbc6a'
     if (( battery < 20 )); then
-        bat_colour='#f87171'
+        bat_colour='#e06c75'
     elif (( battery < 50 )); then
-        bat_colour='#fbbf24'
+        bat_colour='#e5c07b'
     fi
     parts+=("#[fg=${bat_colour}]⚡ ${battery}%")
 fi
@@ -66,7 +66,7 @@ fi
 # Clock lives top-right in the pane border (status.conf pane-border-format).
 
 out=" "
-sep='#[fg=#334155] · #[default]'
+sep='#[fg=#5c554c] · #[default]'
 first=1
 for segment in "${parts[@]}"; do
     if (( first )); then

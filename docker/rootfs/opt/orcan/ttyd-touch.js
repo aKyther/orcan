@@ -195,7 +195,7 @@
     panel.id = "orcan-render-diagnostics";
     panel.setAttribute("aria-live", "polite");
     panel.style.cssText = "position:fixed;right:8px;top:8px;z-index:10000;padding:6px 8px;"
-      + "border:1px solid #554e61;border-radius:4px;background:#141119e8;color:#d8d2e2;"
+      + "border:1px solid #332e28;border-radius:4px;background:#171512e8;color:#f0e9e0;"
       + "font:12px ui-monospace,monospace;pointer-events:none;white-space:pre-line";
     const update = () => {
       const url = new URL(window.location.href);

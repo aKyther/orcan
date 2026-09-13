@@ -15,8 +15,9 @@ from textual.widgets import Button, Static
 
 from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
 from orcan_cockpit.shortcuts import DOCS_URL, PRODUCT_NAME, product_version
+from orcan_cockpit.theme import css
 
-_CSS = SHEET_CSS + """
+_CSS = SHEET_CSS + css("""
 #about-dialog {
     width: 44;
 }
@@ -25,7 +26,7 @@ _CSS = SHEET_CSS + """
     color: #948ba3;
     margin-top: 1;
 }
-"""
+""")
 
 
 class AboutModal(SheetModal):

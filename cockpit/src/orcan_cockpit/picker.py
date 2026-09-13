@@ -22,6 +22,7 @@ from libtmux.exc import LibTmuxException
 from orcan.workspaces import compact_hints, iter_workspaces, load_config
 from orcan_cockpit.session_glance import format_glance, glance_lines
 from orcan_cockpit.status import git_branch
+from orcan_cockpit.theme import ACCENT, ACCENT_DIM, TEXT_MUTED
 
 # One shared connection to the default tmux server/socket (same one
 # cursor-tmux-workspace-attach and the rest of orcan target) — not a new
@@ -50,7 +51,7 @@ def session_is_live(session: str) -> bool:
 
 def project_git_label(project: dict[str, Any]) -> str:
     """One compact, colored token for a single project entry: dim bare name
-    if it isn't a git repo, light-cyan `⎇ branch` if it is, amber
+    if it isn't a git repo, muted `⎇ branch` if it is, amber
     `⎇+ branch (worktree)` if it's a *linked* worktree rather than the
     repo's main checkout.
 
@@ -62,27 +63,23 @@ def project_git_label(project: dict[str, Any]) -> str:
     shares history with its parent clone and can't be casually deleted or
     moved on its own the way a plain clone can — which is also why it gets
     amber (attention), not the same muted tone as a plain folder. All
-    three colors are pre-existing cockpit roles, not new: `#67e8f9` is the
-    documented "path / secondary highlight" accent (docs/*/guides/
-    terminal-ui.md's palette table), `#fbbf24` is the same amber the rail's
-    pending-count badge uses, `#64748b` is the standard muted tone. Flagged
-    in review: everything on this line used to be one flat muted color and
-    was hard to tell apart from the panel background.
+    The Warm Graphite / Amber tokens keep the path muted, worktrees dim amber,
+    and regular Git branches amber without introducing a separate hue.
     """
     name = str(project.get("name") or project.get("alias") or "?").strip() or "?"
     path = str(project.get("path") or "").strip()
     if not path:
-        return f"[#64748b]{name}[/]"
+        return f"[{TEXT_MUTED}]{name}[/]"
     git_path = Path(path) / ".git"
     if git_path.is_file():
         branch = git_branch(path)
         label = f"⎇+ {branch} (worktree)" if branch else f"{name} (worktree)"
-        return f"[#c4a7b7]{label}[/]"
+        return f"[{ACCENT_DIM}]{label}[/]"
     if git_path.is_dir():
         branch = git_branch(path)
         label = f"⎇ {branch}" if branch else name
-        return f"[#aa9bc2]{label}[/]"
-    return f"[#64748b]{name}[/]"
+        return f"[{ACCENT}]{label}[/]"
+    return f"[{TEXT_MUTED}]{name}[/]"
 
 
 def format_workspace_row_text(
@@ -95,7 +92,7 @@ def format_workspace_row_text(
     refresh can skip tear-down when the visible text would be identical."""
     is_active = row["session"] == active_session
     state = "active" if is_active else ("live" if row["live"] else "new")
-    text = f"{row['name']}  [#948ba3]{state}[/]"
+    text = f"{row['name']}  [{TEXT_MUTED}]{state}[/]"
     if not expanded:
         return text
     repos = f"{row['repo_count']} repo" + ("" if row["repo_count"] == 1 else "s")
@@ -108,10 +105,9 @@ def format_workspace_row_text(
     root = row["root"]
     if home and root.startswith(home):
         root = "~" + root[len(home) :]
-    # #94a3b8 (lighter muted), not #64748b — whole path/line in the darker
-    # tone read as washed-out against this card's background.
-    text += f"\n   [#b0a6ba]{root}[/]"
-    text += f"\n   [#b0a6ba]{repos}[/]"
+    # Paths and repository details share the muted token for a quiet hierarchy.
+    text += f"\n   [{TEXT_MUTED}]{root}[/]"
+    text += f"\n   [{TEXT_MUTED}]{repos}[/]"
     return text
 
 
@@ -400,12 +396,12 @@ class WorkspaceList(Widget):
             filter_line.display = False
             return
         if self._filter_armed:
-            filter_line.update("[#c7b1e2]Filter[/] type to narrow workspaces")
+            filter_line.update(f"[{ACCENT}]Filter[/] type to narrow workspaces")
             filter_line.display = True
             return
         matches = len(self.rows)
         suffix = "match" if matches == 1 else "matches"
-        filter_line.update(f"[#c7b1e2]Filter[/] {self._filter_query} · {matches} {suffix}")
+        filter_line.update(f"[{ACCENT}]Filter[/] {self._filter_query} · {matches} {suffix}")
         filter_line.display = True
 
     def _render_rows(self) -> None:
@@ -488,7 +484,7 @@ class WorkspaceList(Widget):
         ).splitlines()[1:]
         session_state = "running" if row["live"] else "stopped"
         details.update(
-            "\n".join(expanded + [f"   [#948ba3]tmux {row['session']} · {session_state}[/]"])
+            "\n".join(expanded + [f"   [{TEXT_MUTED}]tmux {row['session']} · {session_state}[/]"])
         )
         self._update_project_actions(row)
 
@@ -511,7 +507,7 @@ class WorkspaceList(Widget):
                 target.display = False
             else:
                 name, path = action
-                target.update(f"[#c7b1e2]Open pane[/] {name} · [#948ba3]{path}[/]")
+                target.update(f"[{ACCENT}]Open pane[/] {name} · [{TEXT_MUTED}]{path}[/]")
                 target.display = True
 
     def on_click(self, event: events.Click) -> None:

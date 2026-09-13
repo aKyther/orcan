@@ -37,13 +37,13 @@ terminalowych, ale respektuje programy, które celowo go ukrywają.
 
 | Rola | Hex | Użycie |
 | --- | --- | --- |
-| Tło | `#12101a` | cockpit i puste stany |
-| Podniesione | `#1b1724`, `#211c2b` | paski, picker, dialogi |
-| Zaznaczenie | `#2a2237`, `#342a44` | aktywne i wskazane powierzchnie |
-| Tekst | `#e2ddea` | główny tekst |
-| Wyciszony | `#948ba3`, `#b0a6ba` | metadane i tekst drugorzędny |
-| Akcent | `#ad91d0`, `#c7b1e2` | fokus i interaktywna tożsamość |
-| Ostrzeżenie / błąd | `#fbbf24`, `#f87171` | activity, błędy, niska bateria |
+| Tło | `#171512` | cockpit i puste stany |
+| Powierzchnia | `#201d19` | paski, picker, dialogi |
+| Aktywny panel | `#2a251f` | aktywne i wskazane powierzchnie |
+| Tekst | `#f0e9e0` | główny tekst |
+| Wyciszony | `#9a8f80`, `#5c554c` | metadane i tekst nieaktywny |
+| Akcent | `#e8b76c`, `#f5c988`, `#a8824f` | fokus i interaktywna tożsamość |
+| Status | `#8fbc6a`, `#e06c75`, `#e5c07b`, `#736a5e`, `#7a9b8e` | running, błąd, ostrzeżenie, idle, completed |
 
 **Site MkDocs** używa tych samych tokenów (`docs/assets/stylesheets/orcan.css`, favicon). W jasnym trybie docs — ciemniejszy teal dla czytelnych linków na białym.
 
