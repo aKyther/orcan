@@ -8,8 +8,9 @@ from textual.screen import ModalScreen
 from textual.widgets import Static
 
 from orcan_cockpit.onboarding import mark_onboarding_seen
+from orcan_cockpit.theme import css
 
-_CSS = """
+_CSS = css("""
 FirstRunModal {
     align: center middle;
     background: rgba(0, 0, 0, 0.45);
@@ -37,7 +38,7 @@ FirstRunModal {
     color: #948ba3;
     margin-top: 1;
 }
-"""
+""")
 
 
 class FirstRunModal(ModalScreen[None]):

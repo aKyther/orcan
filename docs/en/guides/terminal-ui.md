@@ -7,7 +7,7 @@ tags:
 
 # Terminal UI
 
-Orcan’s cockpit uses quiet **graphite / near-black / muted plum** surfaces. A
+Orcan’s cockpit uses a quiet **Warm Graphite / Amber** palette. A
 single violet accent marks interaction; colour is otherwise reserved for
 state. Tmux chrome follows the same hierarchy while programs inside panes
 retain their terminal-native palette. This page is the map for humans and
@@ -38,13 +38,13 @@ their cursor.
 
 | Role | Hex | Used for |
 | --- | --- | --- |
-| Background | `#12101a` | cockpit and empty states |
-| Elevated | `#1b1724`, `#211c2b` | bars, picker, dialogs |
-| Selection | `#2a2237`, `#342a44` | active and hover surfaces |
-| Foreground | `#e2ddea` | primary text |
-| Muted | `#948ba3`, `#b0a6ba` | metadata and secondary text |
-| Accent | `#ad91d0`, `#c7b1e2` | focus and interactive identity |
-| Warn / alert | `#fbbf24`, `#f87171` | activity, errors, low battery |
+| Background | `#171512` | cockpit and empty states |
+| Surface | `#201d19` | bars, picker, dialogs |
+| Active panel | `#2a251f` | active and hover surfaces |
+| Text | `#f0e9e0` | primary text |
+| Muted | `#9a8f80`, `#5c554c` | metadata and disabled text |
+| Accent | `#e8b76c`, `#f5c988`, `#a8824f` | focus and interactive identity |
+| Status | `#8fbc6a`, `#e06c75`, `#e5c07b`, `#736a5e`, `#7a9b8e` | running, error, warning, idle, completed |
 
 The **MkDocs site** reuses these tokens (`docs/assets/stylesheets/orcan.css`, favicon). Light docs mode uses a darker teal accent for readable links on white.
 

@@ -1,9 +1,9 @@
 # Default Starship config for orcan (missing-only copy to ~/.config/starship.toml).
-# Two-line, low-noise prompt. Palette matches the graphite/plum tmux chrome.
+# Two-line, low-noise prompt. Palette matches Warm Graphite / Amber.
 
 format = """
 $directory\
-[  ](#554e61)\
+[  ](#292420)\
 $git_branch\
 $git_status\
 $cmd_duration\
@@ -11,24 +11,24 @@ $line_break\
 $character"""
 
 [character]
-success_symbol = "[›](#9b87b8)"
-error_symbol = "[›](#d98282)"
+success_symbol = "[›](#e8b76c)"
+error_symbol = "[›](#e06c75)"
 
 [directory]
 truncation_length = 3
 truncate_to_repo = true
-style = "#b9b3c2"
+style = "#f0e9e0"
 read_only = " ro"
-read_only_style = "#fbbf24"
+read_only_style = "#e5c07b"
 
 [git_branch]
 symbol = ""
 format = "[$branch]($style) "
-style = "#aa9bc2"
+style = "#e8b76c"
 
 [git_status]
 format = '([$all_status$ahead_behind]($style) )'
-style = "#c9a86a"
+style = "#e5c07b"
 conflicted = "!"
 ahead = "↑"
 behind = "↓"
@@ -44,4 +44,4 @@ deleted = "x"
 [cmd_duration]
 min_time = 2_000
 format = "[$duration]($style) "
-style = "#756f82"
+style = "#9a8f80"

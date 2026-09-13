@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from textual.screen import ModalScreen
+from orcan_cockpit.theme import css
 
 
-SHEET_CSS = """
+SHEET_CSS = css("""
 SheetModal {
     align: center middle;
     background: rgba(0, 0, 0, 0.4);
@@ -57,7 +58,7 @@ SheetModal.sheet-full .sheet {
     border-left: none;
     background: #17131f;
 }
-"""
+""")
 
 
 class SheetModal(ModalScreen):

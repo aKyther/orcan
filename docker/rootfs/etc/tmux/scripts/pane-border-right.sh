@@ -10,7 +10,7 @@ if [[ -r /proc/loadavg ]]; then
     load="$(awk '{printf "%.1f", $1}' /proc/loadavg 2>/dev/null || true)"
 fi
 if [[ -n "${load}" ]]; then
-    parts+=("#[fg=#67e8f9]⚙ ${load}")
+    parts+=("#[fg=#e8b76c]⚙ ${load}")
 fi
 
 mem=""
@@ -18,11 +18,11 @@ if command -v free >/dev/null 2>&1; then
     mem="$(free -m 2>/dev/null | awk '/^Mem:/ { if ($2>0) printf "%.0f%%", ($3/$2)*100 }')"
 fi
 if [[ -n "${mem}" ]]; then
-    parts+=("#[fg=#67e8f9]🧠 ${mem}")
+    parts+=("#[fg=#e8b76c]🧠 ${mem}")
 fi
 
 out=""
-sep='#[fg=#334155] │ #[default]'
+sep='#[fg=#5c554c] │ #[default]'
 first=1
 for segment in "${parts[@]}"; do
     if (( first )); then

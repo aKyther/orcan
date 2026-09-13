@@ -34,6 +34,7 @@ from orcan_cockpit.shortcuts_modal import ShortcutsModal
 from orcan_cockpit.status import Tier, tier_for_width
 from orcan_cockpit.status_bar import StatusBar
 from orcan_cockpit.state import previous_recent_session, read_last_session, remember_session
+from orcan_cockpit.theme import ACCENT, ERROR, TEXT_MUTED, css
 from orcan_cockpit.tmux_chrome import (
     TASK_TEMPLATES,
     focus_pinned_pane,
@@ -51,15 +52,15 @@ def format_placeholder_text(workspace_count: int) -> str:
     """
     if workspace_count == 0:
         return (
-            "[#c7b1e2 bold]🌀 orcan[/]\n"
+            f"[{ACCENT} bold]🌀 orcan[/]\n"
             "No workspaces yet\n"
-            "[#948ba3]Run [#c7b1e2]orcan init[/] to create your first workspace.[/]"
+            f"[{TEXT_MUTED}]Run [{ACCENT}]orcan init[/] to create your first workspace.[/]"
         )
     noun = "workspace" if workspace_count == 1 else "workspaces"
     return (
-        "[#c7b1e2 bold]🌀 orcan[/]\n"
+        f"[{ACCENT} bold]🌀 orcan[/]\n"
         "Choose a workspace\n"
-        f"[#948ba3]{workspace_count} {noun} available · use F4 or the workspace pill.[/]"
+        f"[{TEXT_MUTED}]{workspace_count} {noun} available · use F4 or the workspace pill.[/]"
     )
 
 # Maps a focused widget to the context that drives its focus-highlight border.
@@ -80,7 +81,7 @@ def _classify_focus(widget) -> Context | None:
     return None
 
 
-# The workspace list and terminal each get their own bordered card — cyan on
+# The workspace list and terminal each get their own bordered card — amber on
 # focus, matching tmux's own pane-active-border-style (status.conf).
 # "terminal" maps to #center-stack (the card wraps the
 # terminal/placeholder/loading stack) — giving the terminal a border/padding
@@ -96,9 +97,8 @@ _FOCUS_BORDER_IDS: dict[Context, str] = {
 }
 
 
-# Warm, twilight-plum colours shared by Cockpit and terminal chrome, so the
-# interface remains one product while feeling less austere than near-black.
-_CSS = """
+# Warm Graphite / Amber colours shared by Cockpit and terminal chrome.
+_CSS = css("""
 Screen {
     background: #12101a;
 }
@@ -235,12 +235,7 @@ CommandPalette > .command-palette--highlight {
     width: auto;
     height: 1;
     margin-right: 2;
-    /* Violet, not cyan: cyan is reserved for keyboard-focus state
-       exclusively now (see the .focused rules below) — reusing it here
-       too was flagged in review as "everything is the same color".
-       Violet already exists in the product's own ANSI palette
-       (cursor-ttyd's theme JSON, magenta), reused rather than inventing
-       a new hex. */
+    /* Accent establishes identity without adding a bright frame. */
     color: #c7b1e2;
 }
 
@@ -425,8 +420,7 @@ CommandPalette > .command-palette--highlight {
 }
 
 .activity-heading {
-    /* Violet — same "static landmark, not focus state" role as
-       #top-bar-identity above. */
+    /* Accent marks this static landmark without competing with focus. */
     color: #c7b1e2;
     text-style: bold;
 }
@@ -455,8 +449,7 @@ CommandPalette > .command-palette--highlight {
     height: 1;
     border: none;
     background: #2a2237;
-    /* Violet — same "static landmark" role as .activity-heading; cyan
-       stays reserved for the card's own .focused border. */
+    /* Accent marks this static landmark; focus belongs to the card edge. */
     color: #c7b1e2;
     content-align: center middle;
 }
@@ -501,7 +494,7 @@ CommandPalette > .command-palette--highlight {
     height: 1fr;
     /* This one-cell left edge replaces the old empty gutter: it has the same
        footprint, but now quietly tells the user where the keyboard goes.
-       A violet edge appears only while the terminal owns focus, rather than
+       An amber edge appears only while the terminal owns focus, rather than
        adding another permanent frame around every panel. */
     border-left: solid #211c2b;
     background: #12101a;
@@ -620,7 +613,7 @@ MainScreen.tier-minimal.terminal-first #workspace-trigger {
     color: #c7b1e2;
     background: #241e30;
 }
-"""
+""")
 
 
 class MainScreen(Screen):
@@ -817,9 +810,9 @@ class MainScreen(Screen):
         await center.remove_children()
         center.mount(
             Static(
-                "[#948ba3]Opening workspace[/]\n"
-                f"[#c7b1e2 bold]{row['name']}[/]\n"
-                "[#948ba3]Restoring your session…[/]",
+                f"[{TEXT_MUTED}]Opening workspace[/]\n"
+                f"[{ACCENT} bold]{row['name']}[/]\n"
+                f"[{TEXT_MUTED}]Restoring your session…[/]",
                 id="loading",
             )
         )
@@ -837,8 +830,8 @@ class MainScreen(Screen):
             await center.remove_children()
             center.mount(
                 Static(
-                    "[#f87171]Could not open this workspace.[/]\n"
-                    "[#948ba3]Click here to return to workspaces · F4[/]",
+                    f"[{ERROR}]Could not open this workspace.[/]\n"
+                    f"[{TEXT_MUTED}]Click here to return to workspaces · F4[/]",
                     id="error",
                 )
             )

@@ -17,8 +17,9 @@ from textual.widgets import Button, Static
 
 from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
 from orcan_cockpit.shortcuts import BROWSER_KEY_LIMIT, EMBED_DISCLAIMER, format_row, grouped_by_layer
+from orcan_cockpit.theme import css
 
-_CSS = SHEET_CSS + """
+_CSS = SHEET_CSS + css("""
 #shortcuts-dialog {
     width: 74;
 }
@@ -37,7 +38,7 @@ _CSS = SHEET_CSS + """
     color: #948ba3;
     margin-top: 1;
 }
-"""
+""")
 
 
 class ShortcutsModal(SheetModal):
