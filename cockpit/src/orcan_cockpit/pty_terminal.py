@@ -126,6 +126,10 @@ _ESCAPE_KEYS = frozenset({"escape", "ctrl+left_square_brace"})
 _ESC_COALESCE_S = 0.025
 _STAGED_PASTE_BYTES = 32 * 1024
 _STAGED_PASTE_MAX_AGE_S = 24 * 60 * 60
+# A busy agent can write continuously (build logs, test output, streaming
+# responses). Drain enough to keep the terminal current, then yield so input,
+# resize, and Textual chrome are not starved by one readable-fd callback.
+_MAX_READ_BYTES_PER_TICK = 256 * 1024
 _CURSOR_BLINK_S = 0.5
 _CURSOR_STYLE = Style(reverse=True)
 
@@ -344,9 +348,13 @@ class PtyTerminal(Widget):
         if self._master_fd is None or self._stream is None:
             return
         got_data = False
-        while True:
+        bytes_read = 0
+        while bytes_read < _MAX_READ_BYTES_PER_TICK:
             try:
-                data = os.read(self._master_fd, 65536)
+                data = os.read(
+                    self._master_fd,
+                    min(65536, _MAX_READ_BYTES_PER_TICK - bytes_read),
+                )
             except BlockingIOError:
                 break
             except OSError:
@@ -356,6 +364,7 @@ class PtyTerminal(Widget):
                 self._close()
                 return
             got_data = True
+            bytes_read += len(data)
             self._note_mouse_modes(data)
             try:
                 feed_with_osc8(
@@ -385,6 +394,11 @@ class PtyTerminal(Widget):
             # (button 64/65 = '@'/'A') echo as garbage when 1006 is expected.
             self._mouse_sgr = True
         self._schedule_refresh()
+        if bytes_read >= _MAX_READ_BYTES_PER_TICK:
+            # The fd remains registered with add_reader, but scheduling one
+            # follow-up after yielding avoids waiting for a platform-specific
+            # readiness edge while a child is producing a sustained flood.
+            asyncio.get_running_loop().call_soon(self._on_readable)
 
     def _write_pty(self, data: bytes) -> None:
         if self._master_fd is None or not data:

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Cockpit throughput:** sustained tmux output now yields between bounded PTY
+  reads; hidden workspace pickers stop polling tmux/config; and the status
+  bar probes Git and tmux concurrently.
+
 - **Warm Graphite / Amber:** Cockpit, tmux, terminal tools, and ttyd now use
   a shared graphite-and-amber palette. Agent tabs keep neutral surfaces and
   show status through a compact coloured dot rather than a full-tab hue.

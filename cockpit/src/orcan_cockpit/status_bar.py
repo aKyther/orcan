@@ -109,16 +109,17 @@ class StatusBar(Widget):
         focus: str | None,
     ) -> None:
         """Read Git/tmux outside the UI loop, then paint one current result."""
-        branch = (
-            await asyncio.to_thread(git_branch, str(workspace_root))
+        branch_task = (
+            asyncio.to_thread(git_branch, str(workspace_root))
             if detailed and workspace_root
-            else ""
+            else _empty_probe()
         )
-        crumb = (
-            await asyncio.to_thread(session_breadcrumb, session)
+        breadcrumb_task = (
+            asyncio.to_thread(session_breadcrumb, session)
             if detailed and session
-            else ""
+            else _empty_probe()
         )
+        branch, crumb = await asyncio.gather(branch_task, breadcrumb_task)
         if (
             self.workspace_name != workspace_name
             or self.workspace_root != workspace_root
@@ -139,3 +140,8 @@ class StatusBar(Widget):
             return
         self._painted_line = line
         self.query_one("#status-body", Static).update(line)
+
+
+async def _empty_probe() -> str:
+    """Keep optional status probes composable without a special await path."""
+    return ""
