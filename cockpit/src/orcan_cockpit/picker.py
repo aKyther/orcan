@@ -367,6 +367,11 @@ class WorkspaceList(Widget):
         )
 
     def refresh_rows(self) -> None:
+        # The picker is an overlay. Polling tmux/config while it is hidden
+        # competes with the embedded terminal despite producing no visible
+        # change; opening it always triggers one immediate fresh read below.
+        if not self._is_visible_overlay():
+            return
         try:
             self._all_rows = order_workspace_rows(
                 list_workspace_rows(), read_recent_sessions()
@@ -378,6 +383,15 @@ class WorkspaceList(Widget):
         self._render_rows()
         self._update_details()
         self._update_glance()
+
+    def _is_visible_overlay(self) -> bool:
+        """Whether this picker and each parent are displayed in Textual 6.x."""
+        node = self
+        while node is not None:
+            if not node.display:
+                return False
+            node = node.parent
+        return True
 
     def _set_filter(self, query: str) -> None:
         self._filter_query = query

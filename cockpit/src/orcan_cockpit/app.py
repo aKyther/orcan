@@ -758,7 +758,9 @@ class MainScreen(Screen):
         self._update_workspaces_visibility()
         self._refresh_placeholder()
         if visible:
-            self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
+            workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
+            workspace_list.refresh_rows()
+            workspace_list.query_one(ListView).focus()
         elif focus_terminal:
             terminal = self.query("#terminal")
             if terminal:

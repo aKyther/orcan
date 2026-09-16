@@ -116,6 +116,27 @@ class EscCoalesceFlushTests(unittest.TestCase):
         self.assertEqual(term._write_buffer, b"")
         loop.remove_writer.assert_called_once_with(1)
 
+    def test_output_flood_yields_after_one_read_budget(self) -> None:
+        term = self._terminal()
+        term._stream = object()
+        term._screen = MagicMock()
+        term._ready = True
+        term.refresh = MagicMock()
+        loop = MagicMock()
+        chunk = b"x" * 65536
+
+        with (
+            patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
+            patch.object(
+                pty_terminal.os, "read", side_effect=[chunk, chunk, chunk, chunk]
+            ) as read,
+            patch.object(pty_terminal, "feed_with_osc8"),
+        ):
+            term._on_readable()
+
+        self.assertEqual(read.call_count, 4)
+        loop.call_soon.assert_called_once_with(term._on_readable)
+
     def test_large_paste_is_staged_in_a_private_file(self) -> None:
         term = self._terminal()
         payload = b"x" * pty_terminal._STAGED_PASTE_BYTES
