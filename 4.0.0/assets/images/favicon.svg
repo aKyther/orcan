@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Orcan">
+  <!-- Navy tile + cyan mark — matches terminal UI palette -->
+  <rect width="64" height="64" rx="12" fill="#0a0e17"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="10.5" fill="none" stroke="#5eead4" stroke-opacity="0.35" stroke-width="1.5"/>
+  <path fill="#5eead4" d="M18 42V22h7.1c7.2 0 11.7 4.1 11.7 9.1S32.3 40.2 25.1 40.2H23.2V42H18zm5.2-6.6h1.7c3.7 0 5.9-2 5.9-4.3s-2.2-4.3-5.9-4.3h-1.7v8.6z"/>
+  <path fill="#67e8f9" d="M39.2 42l7.8-20h5.5L60 42h-5.6l-1.4-3.8h-7.4L44.2 42h-5zm8.9-8.4h4.8l-2.4-6.4-2.4 6.4z"/>
+</svg>
