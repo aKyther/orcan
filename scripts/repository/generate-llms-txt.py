@@ -107,7 +107,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 ## Develop on Orcan
 
 - [AI project context]({SITE}/ai/project-context/): Goals, non-goals, where-to-change table
-- [Terminal UI]({SITE}/guides/terminal-ui/): Navy/cyan palette; iteration via `make dev-*`
+- [Terminal UI]({SITE}/guides/terminal-ui/): Warm Graphite / Amber palette; iteration via `make dev-*`
 - [Testing]({SITE}/development/testing/): validate, host tests, `make dev-*` / `dev-test` / `dev-smoke` / `dev-a11y` / `dev-visual` / `dev-checklist`
 - [Development overview]({SITE}/development/overview/): Repo map and separation rules
 - [AGENTS.md / CLAUDE.md (repo)]({REPO}/AGENTS.md): Rules for agents editing this repository (keep both files identical)

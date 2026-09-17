@@ -86,7 +86,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 ## Develop on Orcan
 
 - [AI project context](https://akyther.github.io/orcan/latest/ai/project-context/): Goals, non-goals, where-to-change table
-- [Terminal UI](https://akyther.github.io/orcan/latest/guides/terminal-ui/): Navy/cyan palette; iteration via `make dev-*`
+- [Terminal UI](https://akyther.github.io/orcan/latest/guides/terminal-ui/): Warm Graphite / Amber palette; iteration via `make dev-*`
 - [Testing](https://akyther.github.io/orcan/latest/development/testing/): validate, host tests, `make dev-*` / `dev-test` / `dev-smoke` / `dev-a11y` / `dev-visual` / `dev-checklist`
 - [Development overview](https://akyther.github.io/orcan/latest/development/overview/): Repo map and separation rules
 - [AGENTS.md / CLAUDE.md (repo)](https://github.com/aKyther/orcan/blob/main/AGENTS.md): Rules for agents editing this repository (keep both files identical)

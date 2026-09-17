@@ -18,7 +18,8 @@ Installation is a top-level Get started tab — do not bury it under a deeper se
 
 ## Site theme (MkDocs)
 
-Docs chrome uses the same **navy / cyan** tokens as [Terminal UI](en/guides/terminal-ui.md):
+Docs chrome has its own accessible documentation palette. The terminal and
+Cockpit use **Warm Graphite / Amber**; see [Terminal UI](en/guides/terminal-ui.md).
 
 - CSS: `docs/assets/stylesheets/orcan.css`
 - Favicon: `docs/assets/images/favicon.svg`
