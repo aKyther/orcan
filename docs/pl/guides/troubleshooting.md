@@ -29,8 +29,7 @@ Wymaga `orcan up --with-ttyd` (sam `orcan up` = tylko lokalnie — użyj `orcan 
 
 Handoffy sieci komórkowej zrywają WebSocket ttyd — to oczekiwane. Procesy w tmux przeżywają.
 
-- Po reconnect `agent-launcher` auto-reattachuje ostatni workspace (Enter w trakcie odliczania → menu).
-- Wyłączenie auto-reattach: `ORCAN_AUTO_REATTACH=0` w kontenerze.
+- Po reconnect `agent-launcher` ponawia ostatni workspace, gdy picker się ładuje. Jeśli osadzony terminal nie odpowie, Cockpit wraca do pickera workspace'ów; wybierz workspace ponownie.
 - Preferuj Tailscale / VPN zamiast publicznego portu; na LTE i tak bywają krótkie reconnecty.
 - Opcjonalnie: `ttyd.ping_interval` / `TTYD_PING_INTERVAL` (domyślnie `20`).
 

@@ -19,6 +19,7 @@ from textual import events
 from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Container, Vertical
 from textual.screen import Screen
+from textual.timer import Timer
 from textual.widgets import ListView, Static
 
 from orcan_cockpit.about_modal import AboutModal
@@ -95,6 +96,13 @@ _FOCUS_BORDER_IDS: dict[Context, str] = {
     "workspaces": "#workspace-list-widget",
     "terminal": "#center-stack",
 }
+
+# A browser reconnect can start Cockpit before its workspace list has finished
+# its first refresh. Retry the persisted selection briefly instead of leaving
+# the user in an empty picker. An attach which never produces PTY output gets
+# the same explicit recovery path as a failed bootstrap.
+_RESTORE_RETRY_DELAYS_S = (0.0, 0.15, 0.5, 1.0)
+_PTY_READY_TIMEOUT_S = 8.0
 
 
 # Warm Graphite / Amber colours shared by Cockpit and terminal chrome.
@@ -641,6 +649,8 @@ class MainScreen(Screen):
         self._current_session: str | None = None
         self._current_root: str | None = None
         self._tier: Tier = "full"
+        self._attaching_session: str | None = None
+        self._attach_timeout: Timer | None = None
 
     def compose(self) -> ComposeResult:
         yield TopBar(id="top-bar")
@@ -694,21 +704,81 @@ class MainScreen(Screen):
         # A ttyd WebSocket reconnect starts a fresh cockpit process. Restore
         # its last workspace after child widgets have mounted and populated
         # the list; tmux itself retains that session's active window/pane.
-        self.call_after_refresh(self._restore_workspace)
+        self.call_after_refresh(self._start_workspace_restore)
         if not onboarding_already_seen():
             self.set_timer(0.3, self._show_first_run)
+
+    def _start_workspace_restore(self) -> None:
+        self.run_worker(
+            self._restore_workspace(),
+            group="workspace-restore",
+            exclusive=True,
+            exit_on_error=False,
+        )
 
     async def _restore_workspace(self) -> None:
         session = read_last_session()
         if session is None:
             return
         workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
-        for index, row in enumerate(workspace_list.rows):
-            if row["session"] != session:
-                continue
-            workspace_list.query_one(ListView).index = index
-            await self.select_workspace(row)
+        for delay in _RESTORE_RETRY_DELAYS_S:
+            if delay:
+                await asyncio.sleep(delay)
+            if self._current_session is not None:
+                return
+            workspace_list.refresh_rows()
+            for index, row in enumerate(workspace_list.rows):
+                if row["session"] != session:
+                    continue
+                workspace_list.query_one(ListView).index = index
+                await self.select_workspace(row)
+                return
+
+    def _cancel_attach_timeout(self) -> None:
+        if self._attach_timeout is not None:
+            self._attach_timeout.stop()
+            self._attach_timeout = None
+
+    def _start_attach_timeout(self, session: str) -> None:
+        self._cancel_attach_timeout()
+        self._attaching_session = session
+        self._attach_timeout = self.set_timer(
+            _PTY_READY_TIMEOUT_S,
+            lambda: self.run_worker(
+                self._recover_attach_timeout(session),
+                group="workspace-attach-recovery",
+                exclusive=True,
+                exit_on_error=False,
+            ),
+            name="workspace-attach-timeout",
+        )
+
+    async def _recover_attach_timeout(self, session: str) -> None:
+        """Return to a usable picker if tmux never paints after reconnect."""
+        if self._attaching_session != session or self._current_session != session:
             return
+        self._cancel_attach_timeout()
+        self._attaching_session = None
+        self._current_session = None
+        self._current_root = None
+        workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
+        workspace_list.set_active_session(None)
+        self.query_one(TopBar).set_workspace(None)
+        self.query_one(StatusBar).clear_workspace()
+        center = self.query_one("#center-stack", Container)
+        await center.remove_children()
+        await center.mount(
+            Static(
+                f"[{ERROR}]Could not restore the embedded terminal.[/]\n"
+                f"[{TEXT_MUTED}]Choose the workspace again · F4[/]",
+                id="error",
+            )
+        )
+        self._set_workspaces_visible(True)
+        self.notify("Embedded terminal did not respond; choose a workspace again", severity="warning")
+
+    def on_unmount(self) -> None:
+        self._cancel_attach_timeout()
 
     def _show_first_run(self) -> None:
         if not onboarding_already_seen():
@@ -800,6 +870,8 @@ class MainScreen(Screen):
             self._set_workspaces_visible(False, focus_terminal=True)
             return
 
+        self._cancel_attach_timeout()
+        self._attaching_session = None
         center = self.query_one("#center-stack", Container)
         # Must await: remove_children() only *posts* a Prune message — the
         # old child (e.g. PtyTerminal(id="terminal")) is still present in
@@ -810,7 +882,7 @@ class MainScreen(Screen):
         # project configured, since selecting the *same* one short-circuits
         # above (confirmed via a real duplicate-ID crash report).
         await center.remove_children()
-        center.mount(
+        await center.mount(
             Static(
                 f"[{TEXT_MUTED}]Opening workspace[/]\n"
                 f"[{ACCENT} bold]{row['name']}[/]\n"
@@ -830,7 +902,7 @@ class MainScreen(Screen):
             self.query_one(TopBar).set_workspace(None)
             self.query_one(StatusBar).clear_workspace()
             await center.remove_children()
-            center.mount(
+            await center.mount(
                 Static(
                     f"[{ERROR}]Could not open this workspace.[/]\n"
                     f"[{TEXT_MUTED}]Click here to return to workspaces · F4[/]",
@@ -843,8 +915,10 @@ class MainScreen(Screen):
         self._current_root = row["root"]
         remember_session(row["session"])
         # Keep the attaching card until PtyTerminal.Ready — avoids a blank
-        # flash between bootstrap and the first PTY paint.
-        center.mount(
+        # flash between bootstrap and the first PTY paint. Arm the recovery
+        # before mount: a fast tmux can emit Ready while AwaitMount yields.
+        self._start_attach_timeout(row["session"])
+        await center.mount(
             PtyTerminal(
                 ["tmux", "attach", "-t", f"={row['session']}"],
                 session=row["session"],
@@ -857,6 +931,10 @@ class MainScreen(Screen):
         self._set_workspaces_visible(False)
 
     def on_pty_terminal_ready(self, message: PtyTerminal.Ready) -> None:
+        if message.pty_terminal._session != self._attaching_session:
+            return
+        self._cancel_attach_timeout()
+        self._attaching_session = None
         loading = self.query("#loading")
         if loading:
             loading.remove()
