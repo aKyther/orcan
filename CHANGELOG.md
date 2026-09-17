@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Reconnect recovery:** Cockpit retries restoration while workspace data is
+  becoming ready, and returns to the picker with clear feedback if an embedded
+  tmux attach never produces its first frame.
+
 - **Cockpit throughput:** sustained tmux output now yields between bounded PTY
   reads; hidden workspace pickers stop polling tmux/config; and the status
   bar probes Git and tmux concurrently.

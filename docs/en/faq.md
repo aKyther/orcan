@@ -43,7 +43,7 @@ Do **not** pass `PROJECT_DIR=…` to `orcan up`.
 
 WebSocket drops on cellular handoffs are normal. **tmux sessions and agents keep running** — only the browser client reconnects.
 
-After reconnect, the launcher **auto-reattaches** to the last workspace (2s countdown; press Enter for the menu). Disable with `ORCAN_AUTO_REATTACH=0` in the container environment. Ping interval defaults to 20s (`TTYD_PING_INTERVAL` / `ttyd.ping_interval`).
+After reconnect, the launcher retries the last workspace while its list is becoming ready. If the embedded terminal does not answer, it returns to the workspace picker instead of staying on a loading screen. Ping interval defaults to 20s (`TTYD_PING_INTERVAL` / `ttyd.ping_interval`).
 
 ## Can I commit and push from inside the container?
 

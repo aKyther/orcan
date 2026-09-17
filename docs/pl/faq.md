@@ -43,7 +43,7 @@ orcan down && orcan up
 
 Zerwania WebSocketa przy handoffach sieci komórkowej są normalne. **Sesje tmux i agenci działają dalej** — odpada tylko klient w przeglądarce.
 
-Po reconnect launcher **auto-reattachuje** ostatni workspace (odliczanie 2s; Enter = menu). Wyłączenie: `ORCAN_AUTO_REATTACH=0` w środowisku kontenera. Ping domyślnie 20s (`TTYD_PING_INTERVAL` / `ttyd.ping_interval`).
+Po reconnect launcher ponawia próbę ostatniego workspace'a, gdy jego lista dopiero staje się gotowa. Jeśli osadzony terminal nie odpowie, wraca do pickera workspace'ów zamiast pozostawać na ekranie ładowania. Ping domyślnie 20s (`TTYD_PING_INTERVAL` / `ttyd.ping_interval`).
 
 ## Czy mogę commitować i pushować z kontenera?
 

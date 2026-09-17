@@ -213,6 +213,20 @@ async def main() -> None:
         await pilot.pause(1.0)
         assert app.screen.query_one("#terminal", PtyTerminal)._session == "dev-ux"
 
+        # A reconnect can occasionally spawn a PTY that never emits its
+        # first frame. The timeout must clear its stale identity and return
+        # focus to the picker instead of leaving Cockpit on an endless card.
+        app.screen._attaching_session = "dev-ux"
+        await app.screen._recover_attach_timeout("dev-ux")
+        await pilot.pause()
+        error = app.screen.query_one("#error", Static)
+        assert "Could not restore the embedded terminal" in str(error._Static__content)
+        assert app.screen.query_one("#workspaces").display
+        assert app.screen.query_one("#workspace-list", ListView).has_focus
+        await app.select_workspace(base)
+        await pilot.pause(1.0)
+        assert app.screen.query_one("#terminal", PtyTerminal)._session == "dev-ux"
+
     # A ttyd reconnect launches a new cockpit process in the same container.
     # It should consume the /tmp hint written above and attach without making
     # the user pick the workspace again; tmux owns the retained window/pane.

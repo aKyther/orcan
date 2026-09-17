@@ -29,8 +29,7 @@ Requires `orcan up --with-ttyd` (plain `orcan up` is local-only — use `orcan e
 
 Cellular handoffs drop the ttyd WebSocket; that is expected. Processes inside tmux survive.
 
-- After reconnect, `agent-launcher` auto-reattaches to the last workspace (Enter during the countdown → menu).
-- Disable auto-reattach: `ORCAN_AUTO_REATTACH=0` on the container.
+- After reconnect, `agent-launcher` retries the last workspace while the picker is loading. If its embedded terminal does not answer, Cockpit returns to the workspace picker; choose the workspace again.
 - Prefer Tailscale / VPN over exposing the port; still expect brief reconnects on LTE.
 - Optional: `ttyd.ping_interval` / `TTYD_PING_INTERVAL` (default `20`).
 
