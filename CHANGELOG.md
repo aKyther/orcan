@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Image tools:** added `sshpass` for explicit password-authenticated SSH
+  automation inside the image.
+
+- **tmux tabs:** fixed the embedded window-tab strip after the Warm Graphite /
+  Amber theme change; tabs now render their native idle, activity, and error
+  marker colours again.
+
 ## 26.3 — 2026-09-17
 
 ## [4.0.0] - 2026-09-17

@@ -62,6 +62,7 @@ command -v gh >/dev/null
 command -v sg >/dev/null
 command -v ast-grep >/dev/null
 command -v ssh >/dev/null
+command -v sshpass >/dev/null
 command -v rsync >/dev/null
 command -v sqlite3 >/dev/null
 test -x /usr/local/bin/ttyd
@@ -154,6 +155,9 @@ ORCAN_TMUX_ATTACH=0 cursor-tmux-workspace-attach smoke-test \"\${WORKSPACE_ROOT:
 tmux -f \"\${HOME}/.tmux.conf\" has-session -t smoke-test
 test \"\$(tmux -f \"\${HOME}/.tmux.conf\" list-windows -t smoke-test | wc -l)\" -eq 3
 tmux -f \"\${HOME}/.tmux.conf\" list-windows -t smoke-test | grep -q 'tab-1'
+# Keyboard window switching is not enough: verify tmux also renders the
+# native tab strip. A malformed status format previously collapsed to fg=.
+tmux -f \"\${HOME}/.tmux.conf\" display-message -p -t smoke-test '#{W:#{T:window-status-format},#{T:window-status-current-format}}' | grep -q 'tab-1'
 tmux -f \"\${HOME}/.tmux.conf\" kill-session -t smoke-test
 
 printf 'SMOKE_OK\n'
