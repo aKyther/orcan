@@ -7,6 +7,7 @@ Use this page for image tags, Compose overlays, and `$ORCAN_DATA` binds. For **w
 - Base: Debian Bookworm Slim
 - Multi-stage tool fetch (Node, Go, Rust, uv)
 - tmux **3.6a** from `tmux/tmux-builds` (not the bookworm 3.3a package)
+- OpenSSH client and `sshpass` for explicitly password-authenticated SSH automation
 - Non-root user `developer`
 - Entry: `docker-entrypoint`
 
