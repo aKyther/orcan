@@ -956,13 +956,13 @@ def _review_selection_screen(
         stdscr.erase()
         h, w = stdscr.getmaxyx()
         new_n, already_n = stack_apply_summary(selected, paths_in_ws=paths_in_ws)
-        stdscr.addnstr(0, 0, " review changes ".ljust(w), w, curses.A_REVERSE)
-        summary = f" Workspace {workspace!r} · {new_n} new"
+        stdscr.addnstr(0, 0, " orcan init · review and apply ".ljust(w), w, curses.A_REVERSE)
+        summary = f" Step 2/3 · workspace {workspace!r} · {new_n} to add"
         if already_n:
-            summary += f" · {already_n} already connected"
+            summary += f" · {already_n} stay connected"
         stdscr.addnstr(1, 0, _ellipsize(summary, w - 1), w - 1, curses.A_BOLD)
         stdscr.addnstr(
-            2, 0, " ↑↓ inspect · b mount/worktree · Space remove · Enter apply · Esc back"[: w - 1],
+            2, 0, " ↑↓ inspect · b change mode · Space remove · Enter apply · Esc back"[: w - 1],
             w - 1, curses.A_DIM,
         )
         list_top = 4
@@ -986,7 +986,11 @@ def _review_selection_screen(
             line = f" {'›' if idx == cursor else ' '} {path.name} — {outcome}  {path}"
             attr = curses.A_REVERSE if idx == cursor else curses.A_NORMAL
             stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
-        footer = f"Enter applies {len(selected)} selected path(s)" if selected else "Nothing selected — Esc to return"
+        footer = (
+            f"Step 3/3 · Enter applies {new_n} new project(s)"
+            if selected
+            else "Nothing selected — Esc to return"
+        )
         stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
         stdscr.refresh()
 
@@ -1115,21 +1119,21 @@ def _run_curses(args: argparse.Namespace) -> int:
         new_n, already_n = stack_apply_summary(selected, paths_in_ws=paths_in_ws)
         mount_n, worktree_n = selection_mode_summary(selected, worktree_paths)
 
-        title = " orcan context tui "
+        title = " orcan init · choose projects "
         stdscr.addnstr(0, 0, title.ljust(w), w, curses.A_REVERSE)
         stdscr.addnstr(1, 0, _ellipsize(f" Parent: {parent}", w - 1), w - 1)
         mode = f"default worktree @{branch}" if use_worktree else "default mount as-is"
         stdscr.addnstr(
             2,
             0,
-            f" Workspace: {workspace}  |  Mode: {mode}  |  Depth: {depth}"
+            f" Step 1/3 · workspace {workspace}  |  {mode}  |  depth {depth}"
             [: w - 1],
             w - 1,
         )
         stdscr.addnstr(
             3,
             0,
-            " ↑↓ choose · Space select · → open · Enter apply · Tab review · ? more"
+            " ↑↓ choose · Space select · → open · Tab review · Enter apply · ? help"
             [: w - 1],
             w - 1,
             curses.A_DIM,
@@ -1182,7 +1186,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                     is_existing = str(repo.resolve()) in paths_in_ws
                 except OSError:
                     is_existing = False
-                mark = "[=]" if is_existing else "[x]" if repo in selected else "[ ]"
+                mark = " ✓ " if is_existing else "[x]" if repo in selected else "[ ]"
                 bits = classify_pick(
                     repo,
                     repos=repos,
@@ -1207,12 +1211,12 @@ def _run_curses(args: argparse.Namespace) -> int:
 
         if existing_entries:
             stack_title = (
-                f" workspace → {workspace} ({len(existing_entries)} connected, {new_n} adding) "
+                f" workspace · {len(existing_entries)} connected · {new_n} pending "
             )
         elif already_n:
-            stack_title = f" will add → {workspace} ({new_n} new, {already_n} in ws) "
+            stack_title = f" pending · {new_n} new · {already_n} already connected "
         else:
-            stack_title = f" will add → {workspace} ({mount_n} mount, {worktree_n} worktree) "
+            stack_title = f" pending changes · {mount_n} mount · {worktree_n} worktree "
         title_attr = curses.A_BOLD | curses.color_pair(_COLOR_INFO)
 
         if split:
@@ -1276,7 +1280,7 @@ def _run_curses(args: argparse.Namespace) -> int:
             )
         elif existing_entries:
             footer = (
-                f"{len(existing_entries)} already connected · Space selects another project · Tab reviews"
+                f"{len(existing_entries)} connected · Space adds another project · Tab reviews changes"
             )
         else:
             footer = "Space selects · Enter/→ opens folder · ← goes up · Tab reviews"
@@ -1659,8 +1663,15 @@ def _run_manage(args: argparse.Namespace) -> int:
     def draw(stdscr: Any) -> None:
         stdscr.erase()
         h, w = stdscr.getmaxyx()
-        stdscr.addnstr(0, 0, " orcan init — manage workspaces ".ljust(w), w, curses.A_REVERSE)
-        stdscr.addnstr(1, 0, _ellipsize(f" Config: {config_path}", w - 1), w - 1)
+        project_count = sum(
+            len([p for p in (ws.get("projects") or []) if isinstance(p, dict)])
+            for ws in workspaces
+        )
+        stdscr.addnstr(0, 0, " orcan init · workspaces ".ljust(w), w, curses.A_REVERSE)
+        summary = f" {len(workspaces)} workspace(s) · {project_count} project(s)"
+        if state["dirty"]:
+            summary += " · unsaved changes"
+        stdscr.addnstr(1, 0, _ellipsize(summary, w - 1), w - 1, curses.A_BOLD)
         stdscr.addnstr(
             2,
             0,
