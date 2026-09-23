@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import tempfile
@@ -70,6 +71,31 @@ exit 0
         result = self.run_preview("url", ORCAN_PREVIEW_PORT="19001")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "http://127.0.0.1:19001")
+
+    def test_default_bind_is_loopback_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_preview("check", ORCAN_PREVIEW_ROOT=tmp)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            config = Path(tmp) / "home" / "orcan.config.json"
+            self.assertEqual(
+                json.loads(config.read_text(encoding="utf-8"))["ttyd"]["bind"],
+                "127.0.0.1",
+            )
+
+    def test_saved_lan_bind_is_not_reused(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            state.mkdir()
+            (state / "settings.env").write_text(
+                "ORCAN_PREVIEW_BIND=0.0.0.0\n", encoding="utf-8"
+            )
+            result = self.run_preview("check", ORCAN_PREVIEW_ROOT=str(state))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            config = state / "home" / "orcan.config.json"
+            self.assertEqual(
+                json.loads(config.read_text(encoding="utf-8"))["ttyd"]["bind"],
+                "127.0.0.1",
+            )
 
     def test_check_accepts_isolated_custom_identifiers(self) -> None:
         result = self.run_preview(

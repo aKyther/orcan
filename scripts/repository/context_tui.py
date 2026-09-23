@@ -37,6 +37,7 @@ from config_io import (  # noqa: E402
     load_config,
 )
 from git_worktrees import (  # noqa: E402
+    find_worktree_by_branch,
     is_git_repo,
     is_under_managed_root,
     load_manifest,
@@ -593,6 +594,13 @@ def apply_selection(
         }
         added = 0
         for proj_name, repo in projects:
+            idx = by_name.get(proj_name)
+            existing_wt = find_worktree_by_branch(repo, branch_s)
+            if idx is not None and existing_wt is not None:
+                configured = Path(str(plist[idx].get("path") or "")).resolve()
+                if configured == existing_wt.path:
+                    info(f"  worktree: {proj_name} (already connected) → {configured}")
+                    continue
             info(f"  worktree: {proj_name} ← {repo} @ {branch_s}")
             wt = create_worktree(
                 repo,
@@ -603,7 +611,6 @@ def apply_selection(
                 managed=True,
             )
             entry = {"name": proj_name, "path": str(wt.path)}
-            idx = by_name.get(proj_name)
             if idx is not None:
                 if not force:
                     die(

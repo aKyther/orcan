@@ -522,6 +522,28 @@ class ApplySelectionTests(unittest.TestCase):
                 str(api.resolve()),
             )
 
+    def test_readding_existing_managed_worktree_is_a_noop(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            _git_init(api)
+            cfg_path = root / "orcan.config.json"
+            with mock.patch.dict(os.environ, {"ORCAN_PROJECTS_ROOT": str(root / "managed")}):
+                _mod.apply_selection(
+                    config_path=cfg_path,
+                    workspace="acme",
+                    repos=[api],
+                    branch="feature/retry",
+                )
+                before = cfg_path.read_text(encoding="utf-8")
+                _mod.apply_selection(
+                    config_path=cfg_path,
+                    workspace="acme",
+                    repos=[api],
+                    branch="feature/retry",
+                )
+            self.assertEqual(cfg_path.read_text(encoding="utf-8"), before)
+
 
 class ManageRowsTests(unittest.TestCase):
     """manage_rows/manage_* are curses-free by design so the "manage existing

@@ -13,14 +13,15 @@ PORT_EXPLICIT=0
 REQUESTED_BIND="${ORCAN_PREVIEW_BIND:-}"
 REQUESTED_SCENARIO="${ORCAN_PREVIEW_SCENARIO:-}"
 SAVED_PORT=""
-SAVED_BIND=""
 SAVED_SCENARIO=""
 if [[ -f "${PREVIEW_SETTINGS}" ]]; then
     while IFS='=' read -r key value || [[ -n "${key}${value}" ]]; do
         [[ -n "${key}" ]] || continue
         case "${key}" in
             ORCAN_PREVIEW_PORT) SAVED_PORT="${value}" ;;
-            ORCAN_PREVIEW_BIND) SAVED_BIND="${value}" ;;
+            # Do not inherit a network bind from persisted preview state. A LAN
+            # bind must be chosen explicitly for each run.
+            ORCAN_PREVIEW_BIND) : ;;
             ORCAN_PREVIEW_SCENARIO) SAVED_SCENARIO="${value}" ;;
             *) printf 'Error: unsupported key in %s: %s\n' "${PREVIEW_SETTINGS}" "${key}" >&2; exit 1 ;;
         esac
@@ -32,7 +33,9 @@ PREVIEW_IMAGE="${ORCAN_PREVIEW_IMAGE:-orcan:dev-ux}"
 PREVIEW_PROJECT="${ORCAN_PREVIEW_PROJECT:-orcan-dev-ux}"
 PREVIEW_INSTANCE="${ORCAN_PREVIEW_INSTANCE:-dev-ux}"
 PREVIEW_PORT="${REQUESTED_PORT:-${SAVED_PORT:-17681}}"
-PREVIEW_BIND="${REQUESTED_BIND:-${SAVED_BIND:-0.0.0.0}}"
+# Browser preview is a writable terminal. Keep it private unless a maintainer
+# explicitly opts into a LAN bind for a network-specific test.
+PREVIEW_BIND="${REQUESTED_BIND:-127.0.0.1}"
 PREVIEW_SCENARIO="${REQUESTED_SCENARIO:-${SAVED_SCENARIO:-busy}}"
 PREVIEW_CONTAINER="orcan-${PREVIEW_INSTANCE}"
 DOCKER_BIN="${ORCAN_PREVIEW_DOCKER:-docker}"

@@ -13,8 +13,8 @@ orcan_cmd_init() {
                 printf '  No PATH: TUI to create/edit workspaces (default) — pick a folder,\n'
                 printf '           multi-select repos, or manage what is already configured.\n'
                 printf '           --cli: old sequential prompt wizard instead of the TUI.\n'
-                printf '  PATH:    non-interactive — scaffold a single-project config from PATH,\n'
-                printf '           for scripts/CI (skips the wizard/TUI; --cli has no effect).\n'
+                printf '  PATH:    non-interactive — connect one project from PATH (or confirm it is\n'
+                printf '           already connected), then sync; useful for scripts/CI.\n'
                 printf '  Either way, finishes with orcan sync.\n'
                 printf '  Tool settings (tmux, ttyd): orcan settings (separate from this).\n'
                 return 0

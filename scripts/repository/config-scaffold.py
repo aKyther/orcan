@@ -34,6 +34,19 @@ def project_entry(name: str, path: str) -> dict:
     return {"name": name, "path": path}
 
 
+def entry_has_path(entry: object, path: Path) -> bool:
+    """Whether a config project already points to this canonical checkout."""
+    if not isinstance(entry, dict):
+        return False
+    raw = str(entry.get("path") or "").strip()
+    if not raw:
+        return False
+    try:
+        return Path(raw).resolve() == path
+    except OSError:
+        return False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -92,14 +105,19 @@ def main() -> None:
             (i for i, item in enumerate(projects) if item.get("name") == project.name),
             None,
         )
-        if existing is not None and not args.force:
-            die(
-                f"project {project.name!r} already in workspace {ws_name!r}; "
-                "use --force to replace"
-            )
         if existing is not None:
-            projects[existing] = proj
-            action = "updated project"
+            if entry_has_path(projects[existing], project):
+                action = "project already connected"
+            elif args.force:
+                projects[existing] = proj
+                action = "updated project"
+            else:
+                die(
+                    f"project {project.name!r} already in workspace {ws_name!r} "
+                    "at a different path; use --force to replace"
+                )
+        elif any(entry_has_path(item, project) for item in projects):
+            action = "project already connected"
         else:
             projects.append(proj)
             action = "added project"
