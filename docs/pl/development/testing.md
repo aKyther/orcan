@@ -75,7 +75,7 @@ Domyślne (nadpisywalne):
 | Kontener | `orcan-dev-ux` |
 | Projekt Compose | `orcan-dev-ux` |
 | Port ttyd na hoście | `17681` |
-| Bind | `0.0.0.0` (LAN); `ORCAN_PREVIEW_BIND=127.0.0.1` tylko loopback |
+| Bind | `127.0.0.1` (tylko loopback); dla testu LAN jawnie ustaw `ORCAN_PREVIEW_BIND=0.0.0.0` |
 | Scenariusz | `busy` |
 
 Ustaw `ORCAN_PREVIEW_SCENARIO` (lub zmień zapisany `settings.env`), aby wybrać
@@ -116,7 +116,11 @@ flow w przeglądarce (F4/F1, szczegóły workspace'a, wybór Enterem, Alt+1…9,
 i że viewport `480x320` zostawia użyteczny xterm.
 
 !!! warning
-    Domyślny bind to `0.0.0.0` (dostęp LAN). Nie uruchamiaj w niezaufanej sieci bez uwierzytelniania ttyd.
+    Preview jest zapisywalnym terminalem i domyślnie binduje tylko do `127.0.0.1`.
+    Użyj `ORCAN_PREVIEW_BIND=0.0.0.0` wyłącznie dla świadomego testu LAN; ta
+    wartość nie jest zapisywana dla kolejnych uruchomień. Potem uruchom `make dev-stop`.
+    `make dev-test` zawsze usuwa własny tymczasowy stack
+    i stan po zakończeniu, również gdy test się nie powiedzie.
 
 ### Szybki chrome tmux — `terminal-ui-preview`
 

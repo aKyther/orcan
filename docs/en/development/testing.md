@@ -75,7 +75,7 @@ Defaults (overridable):
 | Container | `orcan-dev-ux` |
 | Compose project | `orcan-dev-ux` |
 | Host ttyd port | `17681` |
-| Bind | `0.0.0.0` (LAN); set `ORCAN_PREVIEW_BIND=127.0.0.1` for loopback only |
+| Bind | `127.0.0.1` (loopback only); set `ORCAN_PREVIEW_BIND=0.0.0.0` explicitly for a LAN test |
 | Scenario | `busy` |
 
 Set `ORCAN_PREVIEW_SCENARIO` (or edit the saved `settings.env`) to choose the
@@ -116,7 +116,10 @@ manual browser flow (F4/F1, workspace details, Enter selection, Alt+1…9, resiz
 and that a `480x320` viewport keeps the xterm usable.
 
 !!! warning
-    Default bind is `0.0.0.0` so LAN access works. Do not run on an untrusted network without ttyd authentication.
+    The preview is a writable terminal and binds only to `127.0.0.1` by default.
+    Use `ORCAN_PREVIEW_BIND=0.0.0.0` only for a deliberate LAN test; it is not
+    saved for later runs. Then run `make dev-stop`. `make dev-test` always removes its separate temporary stack
+    and state when it finishes, including after a failure.
 
 ### Fast tmux chrome — `terminal-ui-preview`
 
