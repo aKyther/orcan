@@ -238,6 +238,38 @@ async fn import_plan(
 }
 
 #[tauri::command]
+async fn import_apply(
+    source: String,
+    projects_root: String,
+    destination: Option<String>,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut command = Command::new("orcan");
+        command.args([
+            "studio",
+            "import",
+            "apply",
+            "--source",
+            &source,
+            "--projects-root",
+            &projects_root,
+            "--yes",
+        ]);
+        if let Some(destination) = destination.filter(|value| !value.trim().is_empty()) {
+            command.args(["--destination", &destination]);
+        }
+        command.output()
+    })
+    .await
+    .map_err(|error| format!("import stopped: {error}"))?
+    .map_err(|error| format!("could not start import: {error}"))
+    .and_then(|output| {
+        serde_json::from_slice(&output.stdout)
+            .map_err(|error| format!("invalid import response: {error}"))
+    })
+}
+
+#[tauri::command]
 async fn parent_apply(
     path: String,
     branch: String,
@@ -350,7 +382,8 @@ fn main() {
             save_secret,
             parent_plan,
             parent_apply,
-            import_plan
+            import_plan,
+            import_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");
