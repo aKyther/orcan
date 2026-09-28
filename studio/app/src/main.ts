@@ -13,8 +13,12 @@ type ProbeReport = {
   runtime: { docker: { container: { state: string } } };
   paths: { projects_root: string };
   context: {
-    workspaces: Array<{ name: string; projects: Array<{ name?: string; kind: string }> }>;
+    workspaces: Array<{
+      name: string;
+      projects: Array<{ name?: string; path: string; kind: string; branch?: string; dirty?: boolean }>;
+    }>;
     managed_projects: Array<{ path: string; kind: string }>;
+    repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
   };
 };
 
@@ -53,11 +57,28 @@ function renderSnapshot(report: ProbeReport, cached = false): void {
   snapshotRoot.textContent = report.paths.projects_root;
   snapshotWorkspaces.textContent = String(report.context.workspaces.length);
   snapshotProjects.textContent = String(report.context.managed_projects.length);
-  snapshotList.replaceChildren(...report.context.workspaces.map((workspace) => {
-    const row = document.createElement("p");
-    row.textContent = `${workspace.name} · ${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}`;
-    return row;
-  }));
+  const rows: HTMLElement[] = [];
+  for (const workspace of report.context.workspaces) {
+    const row = document.createElement("div");
+    row.className = "snapshot-workspace";
+    const heading = document.createElement("strong");
+    heading.textContent = `${workspace.name} · ${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}`;
+    row.append(heading);
+    for (const project of workspace.projects) {
+      const projectRow = document.createElement("span");
+      const state = project.branch ? ` · ${project.branch}${project.dirty ? " · dirty" : ""}` : "";
+      projectRow.textContent = `${project.name ?? "unnamed"} · ${project.kind}${state} · ${project.path}`;
+      row.append(projectRow);
+    }
+    rows.push(row);
+  }
+  for (const repository of report.context.repositories.filter((item) => item.bindings.length > 1)) {
+    const shared = document.createElement("p");
+    shared.className = "snapshot-shared";
+    shared.textContent = `Shared repository · ${repository.origin_url ?? repository.repository_id} · ${repository.bindings.length} context families`;
+    rows.push(shared);
+  }
+  snapshotList.replaceChildren(...rows);
   if (cached) result.textContent = "Showing the last known Sandbox snapshot. Refreshing will verify it.";
 }
 

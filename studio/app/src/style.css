@@ -118,10 +118,28 @@ output {
 }
 
 .snapshot dt,
-.snapshot p {
+.snapshot p,
+.snapshot-workspace span {
   color: #9ba294;
   font-size: .74rem;
   margin: 0;
+}
+
+.snapshot-workspace {
+  border-top: 1px solid #363c35;
+  display: grid;
+  gap: .28rem;
+  margin-top: .7rem;
+  padding-top: .7rem;
+}
+
+.snapshot-workspace strong {
+  font-size: .82rem;
+}
+
+.snapshot-shared {
+  color: #d7b26d !important;
+  margin-top: .7rem !important;
 }
 
 .snapshot dd {

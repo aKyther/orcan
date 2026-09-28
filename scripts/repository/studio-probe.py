@@ -13,6 +13,41 @@ import subprocess
 from pathlib import Path
 
 
+def git_output(path: Path, *arguments: str) -> str | None:
+    """Return a small Git fact without invoking a shell or changing repository state."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(path), *arguments],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def git_details(path: Path) -> dict[str, object]:
+    common_dir = git_output(path, "rev-parse", "--git-common-dir")
+    if not common_dir:
+        return {}
+    common_path = (
+        (path / common_dir).resolve()
+        if not Path(common_dir).is_absolute()
+        else Path(common_dir)
+    )
+    branch = git_output(path, "symbolic-ref", "--quiet", "--short", "HEAD")
+    status = git_output(path, "status", "--porcelain=v1", "--untracked-files=normal")
+    return {
+        "repository_id": hashlib.sha256(str(common_path).encode()).hexdigest()[:16],
+        "git_common_dir": str(common_path),
+        "origin_url": git_output(path, "config", "--get", "remote.origin.url"),
+        "branch": branch,
+        "dirty": bool(status),
+    }
+
+
 def classify_path(path: Path) -> dict[str, object]:
     """Classify a configured or managed path without modifying its Git state."""
     if not path.exists():
@@ -26,7 +61,12 @@ def classify_path(path: Path) -> dict[str, object]:
         kind = "git_repository"
     else:
         kind = "directory"
-    return {"path": str(path), "kind": kind, "writable": os.access(path, os.W_OK)}
+    return {
+        "path": str(path),
+        "kind": kind,
+        "writable": os.access(path, os.W_OK),
+        **git_details(path),
+    }
 
 
 def context_snapshot(
@@ -68,6 +108,29 @@ def context_snapshot(
         if projects_root.is_dir()
         else []
     )
+    repositories: dict[str, dict[str, object]] = {}
+    for workspace in workspaces:
+        for project in workspace["projects"]:
+            repository_id = project.get("repository_id")
+            if not isinstance(repository_id, str):
+                continue
+            repository = repositories.setdefault(
+                repository_id,
+                {
+                    "repository_id": repository_id,
+                    "origin_url": project.get("origin_url"),
+                    "git_common_dir": project.get("git_common_dir"),
+                    "bindings": [],
+                },
+            )
+            repository["bindings"].append(
+                {
+                    "workspace": workspace["name"],
+                    "project": project["name"],
+                    "path": project["path"],
+                    "kind": project["kind"],
+                }
+            )
     raw = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
     return {
         "configuration": {
@@ -82,6 +145,7 @@ def context_snapshot(
         },
         "workspaces": workspaces,
         "managed_projects": managed_entries,
+        "repositories": list(repositories.values()),
     }
 
 
