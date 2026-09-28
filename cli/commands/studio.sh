@@ -53,7 +53,7 @@ orcan_cmd_studio() {
             orcan_host_python "${ORCAN_SCRIPTS}/studio-worktree.py" "$@"
             ;;
         settings)
-            if [[ "${1:-}" != "plan" ]]; then orcan_usage_error 'usage: orcan studio settings plan --config PATH'; return; fi
+            if [[ "${1:-}" != "plan" && "${1:-}" != "project-add-plan" && "${1:-}" != "project-add-apply" ]]; then orcan_usage_error 'usage: orcan studio settings plan|project-add-plan|project-add-apply …'; return; fi
             shift; orcan_require_python
             orcan_host_python "${ORCAN_SCRIPTS}/studio-settings.py" "$@"
             ;;
