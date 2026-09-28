@@ -106,29 +106,68 @@ pub enum Target {
     Ssh { destination: String },
 }
 
+/// Container lifecycle actions Studio may run; start and restart replay the
+/// flags of the last `orcan up` through `orcan up --resume`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeAction {
+    Start,
+    Stop,
+    Restart,
+}
+
 impl Target {
-    pub fn sync_request(&self) -> Result<ProcessRequest, StudioError> {
-        match self {
-            Self::Local => Ok(ProcessRequest::new("orcan", &["sync"])),
+    fn orcan_request(&self, orcan_args: &[&str]) -> Result<ProcessRequest, StudioError> {
+        let (program, prefix): (&str, Vec<&str>) = match self {
+            Self::Local => ("orcan", vec![]),
             Self::Wsl2 { distribution } => {
                 validate_identifier("WSL distribution", distribution)?;
-                Ok(ProcessRequest::new(
+                (
                     "wsl.exe",
-                    &["--distribution", distribution, "--exec", "orcan", "sync"],
-                ))
+                    vec!["--distribution", distribution, "--exec", "orcan"],
+                )
             }
             Self::Ssh { destination } => {
                 validate_identifier("SSH destination", destination)?;
-                Ok(ProcessRequest::new(
+                (
                     "ssh",
-                    &["-o", "BatchMode=yes", "--", destination, "orcan", "sync"],
-                ))
+                    vec!["-o", "BatchMode=yes", "--", destination, "orcan"],
+                )
+            }
+        };
+        let arguments: Vec<&str> = prefix
+            .into_iter()
+            .chain(orcan_args.iter().copied())
+            .collect();
+        Ok(ProcessRequest::new(program, &arguments))
+    }
+
+    pub fn sync_request(&self) -> Result<ProcessRequest, StudioError> {
+        self.orcan_request(&["sync"])
+    }
+
+    pub fn runtime_request(&self, action: RuntimeAction) -> Result<ProcessRequest, StudioError> {
+        match action {
+            RuntimeAction::Stop => self.orcan_request(&["down"]),
+            RuntimeAction::Start | RuntimeAction::Restart => {
+                self.orcan_request(&["up", "--resume"])
             }
         }
     }
 
-    pub fn sync<R: ProcessRunner>(&self, runner: &R) -> Result<(), StudioError> {
-        let request = self.sync_request()?;
+    pub fn runtime<R: ProcessRunner>(
+        &self,
+        runner: &R,
+        action: RuntimeAction,
+    ) -> Result<(), StudioError> {
+        self.run_checked(runner, self.runtime_request(action)?)
+    }
+
+    fn run_checked<R: ProcessRunner>(
+        &self,
+        runner: &R,
+        request: ProcessRequest,
+    ) -> Result<(), StudioError> {
         let output = runner.run(&request)?;
         if output.success {
             Ok(())
@@ -138,6 +177,10 @@ impl Target {
                 stderr: output.stderr,
             })
         }
+    }
+
+    pub fn sync<R: ProcessRunner>(&self, runner: &R) -> Result<(), StudioError> {
+        self.run_checked(runner, self.sync_request()?)
     }
 
     pub fn probe_request(&self) -> Result<ProcessRequest, StudioError> {
@@ -555,6 +598,23 @@ pub struct Runtime {
     pub docker: Docker,
     #[serde(default)]
     pub resources: Resources,
+    #[serde(default)]
+    pub launch: Launch,
+}
+
+/// Flags of the last `orcan up`, replayed by `RuntimeAction::Start`/`Restart`.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Launch {
+    pub recorded: bool,
+    #[serde(default)]
+    pub docker: bool,
+    #[serde(default)]
+    pub git: bool,
+    pub network: Option<String>,
+    #[serde(default)]
+    pub ttyd: bool,
+    #[serde(default)]
+    pub ttyd_auth: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -657,7 +717,7 @@ mod tests {
         "host":{"os":"linux","architecture":"x86_64"},
         "paths":{"home":"/home/user/.config/orcan","data":"/home/user/.config/orcan","projects_root":"/home/user/.config/orcan/sandbox","workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},
         "capabilities":{"docker":true,"git":true,"managed_projects":true,"live_reconcile":true},
-        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"},"agents":{"codex":true,"claude":false}},"resources":{"cpus":4,"memory":"8g"}},
+        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"},"agents":{"codex":true,"claude":false}},"resources":{"cpus":4,"memory":"8g"},"launch":{"recorded":true,"git":true,"network":null,"ttyd":true}},
         "context":{"configuration":{"state":"present","revision":"abc"},"paths":{"workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},"workspaces":[],"managed_projects":[]}
     }"#;
 
@@ -692,6 +752,7 @@ mod tests {
         assert_eq!(report.host.os, "linux");
         assert_eq!(report.runtime.resources.memory.as_deref(), Some("8g"));
         assert_eq!(report.runtime.docker.agents.get("codex"), Some(&true));
+        assert!(report.runtime.launch.git && !report.runtime.launch.ttyd_auth);
         assert_eq!(
             runner.requests.borrow()[0],
             ProcessRequest::new("orcan", &["studio", "probe", "--json"])
@@ -741,6 +802,50 @@ mod tests {
                 "studio",
                 "probe",
                 "--json",
+            ]
+        );
+    }
+
+    #[test]
+    fn runtime_actions_replay_the_last_up_flags() {
+        let target = Target::Ssh {
+            destination: "build-host".to_owned(),
+        };
+        let restart = target
+            .runtime_request(RuntimeAction::Restart)
+            .expect("valid");
+        assert_eq!(
+            restart.arguments,
+            [
+                "-o",
+                "BatchMode=yes",
+                "--",
+                "build-host",
+                "orcan",
+                "up",
+                "--resume"
+            ]
+        );
+        assert_eq!(
+            Target::Local
+                .runtime_request(RuntimeAction::Stop)
+                .expect("valid"),
+            ProcessRequest::new("orcan", &["down"])
+        );
+        assert_eq!(
+            Target::Wsl2 {
+                distribution: "Ubuntu".to_owned()
+            }
+            .runtime_request(RuntimeAction::Start)
+            .expect("valid")
+            .arguments,
+            [
+                "--distribution",
+                "Ubuntu",
+                "--exec",
+                "orcan",
+                "up",
+                "--resume"
             ]
         );
     }

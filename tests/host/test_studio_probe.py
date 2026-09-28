@@ -68,6 +68,46 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
     assert repository["origin_url"] == "git@example.test:team/app.git"
     assert repository["bindings"][0]["workspace"] == "dev"
     assert report["paths"]["managed_worktrees_root"].endswith("sandbox/.worktrees")
+    assert report["runtime"]["launch"] == {"recorded": False}
+
+
+def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None:
+    last_up = tmp_path / "last-up.env"
+    last_up.write_text(
+        "WITH_DOCKER=0\nWITH_GIT=1\nWITH_NETWORK=1\nWITH_TTYD=1\n"
+        "WITH_TTYD_AUTH=1\nNETWORK_NAME=my\\ net\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            "python3",
+            "scripts/repository/studio-probe.py",
+            "--protocol=1",
+            "--version=test",
+            f"--home={tmp_path}",
+            f"--data={tmp_path}",
+            f"--projects-root={tmp_path}",
+            f"--config={tmp_path / 'missing.json'}",
+            f"--runtime={tmp_path / 'missing.json'}",
+            "--image=orcan:test",
+            "--container=orcan-test",
+            f"--last-up={last_up}",
+        ],
+        cwd=ROOT,
+        env={**os.environ, "ORCAN_STUDIO_DOCKER": "definitely-not-docker"},
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert json.loads(result.stdout)["runtime"]["launch"] == {
+        "recorded": True,
+        "docker": False,
+        "git": True,
+        "network": "my net",
+        "ttyd": True,
+        "ttyd_auth": True,
+    }
 
 
 def test_probe_requires_the_json_protocol_flag() -> None:

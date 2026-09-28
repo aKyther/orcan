@@ -10,6 +10,7 @@ orcan_cmd_up() {
     local with_ttyd_auth=0
     local network_name=""
     local ttyd_credential=""
+    local resume=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --with-docker)
@@ -47,8 +48,13 @@ orcan_cmd_up() {
                 ttyd_credential="$2"
                 shift 2
                 ;;
+            --resume)
+                resume=1
+                shift
+                ;;
             -h | --help)
-                printf 'usage: orcan up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git]\n'
+                printf 'usage: orcan up --resume [--with-ttyd-auth USER:PASS]\n'
+                printf '       orcan up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git]\n'
                 printf '  default: local-only container (orcan enter); no browser terminal\n'
                 printf '  --with-ttyd | --with-ttyd-auth USER:PASS: pick one (| = mutually exclusive)\n'
                 printf '  --with-ttyd: publish browser terminal, no password prompt\n'
@@ -57,6 +63,7 @@ orcan_cmd_up() {
                 printf '  --with-docker: mount /var/run/docker.sock (DinD)\n'
                 printf '  --with-git: mount host ~/.ssh (+ agent) for push/pull (key exposure risk)\n'
                 printf '  --with-network NAME: join an existing Docker network\n'
+                printf '  --resume: restart with the flags of the last orcan up (kept across orcan down)\n'
                 printf '  --with-docker and --with-git expose credentials/capabilities to agents inside the container.\n'
                 return 0
                 ;;
@@ -65,6 +72,26 @@ orcan_cmd_up() {
                 ;;
         esac
     done
+
+    if (( resume )); then
+        if (( with_docker || with_git || with_network || with_ttyd_opt )); then
+            orcan_usage_error "--resume restores saved flags; only --with-ttyd-auth may be passed with it"
+        fi
+        orcan_load_env
+        local last_up
+        last_up="$(orcan_last_up_file)"
+        [[ -f "${last_up}" ]] || orcan_die "no previous orcan up recorded (${last_up}) — start with explicit flags"
+        # shellcheck disable=SC1090
+        source "${last_up}"
+        with_docker="${WITH_DOCKER:-0}"
+        with_git="${WITH_GIT:-0}"
+        with_network="${WITH_NETWORK:-0}"
+        network_name="${NETWORK_NAME:-}"
+        if [[ "${WITH_TTYD_AUTH:-0}" == "1" ]] && (( ! with_ttyd_auth )); then
+            orcan_die "last start used --with-ttyd-auth; pass it again: orcan up --resume --with-ttyd-auth USER:PASS"
+        fi
+        (( with_ttyd_auth )) || with_ttyd="${WITH_TTYD:-0}"
+    fi
 
     if (( with_docker && with_network )); then
         orcan_usage_error "--with-docker and --with-network are mutually exclusive (pick socket control or network reachability, not both)"
@@ -146,6 +173,7 @@ orcan_cmd_up() {
     fi
     orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" up -d
     orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}"
+    orcan_write_last_up "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_ttyd_auth}" "${network_name}"
 
     if (( with_docker )); then
         if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" exec -T orcan test -S /var/run/docker.sock 2>/dev/null; then

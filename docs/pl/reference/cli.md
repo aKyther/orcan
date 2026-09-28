@@ -102,6 +102,7 @@ orcan down && orcan up
 | *(brak)* | Tylko lokalnie — bez publikacji portu ttyd; użyj `orcan enter` |
 | `--with-ttyd` \| `--with-ttyd-auth USER:PASS` | **Wybierz jedno.** `--with-ttyd`: terminal w przeglądarce, bez hasła. `--with-ttyd-auth USER:PASS`: ten sam terminal **z** HTTP basic auth. Nie podawaj obu. (`TTYD_BIND` domyślnie `0.0.0.0`.) |
 | `--with-docker` \| `--with-network NAME` | **Wybierz jedno.** `--with-docker`: montuje `/var/run/docker.sock` (Docker-from-Docker). `--with-network NAME`: dołącza do istniejącej sieci Docker (bez socketa) |
+| `--resume` | Restart z flagami ostatniego `orcan up` (przetrwają `orcan down`, zapis w `mounts/last-up.env`, nigdy hasło ttyd). Jeśli poprzedni start używał `--with-ttyd-auth`, podaj ponownie `--with-ttyd-auth USER:PASS`. Z tego korzystają Start/Restart w Orcan Studio. |
 | `--with-git` | Montuje hostowy `~/.ssh` tylko do odczytu (+ agent SSH, gdy `SSH_AUTH_SOCK` jest ustawiony) do push/pull |
 
 Pozostałe flagi łączą się z wybraną ścieżką przeglądarki, np. `orcan up --with-ttyd --with-git` albo `orcan up --with-ttyd-auth user:pass --with-network my-net`.
