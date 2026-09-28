@@ -6,6 +6,7 @@ use russh::channels::ChannelMsg;
 use russh::client;
 use russh::keys::{self, PublicKeyOrCertificate};
 use serde::Deserialize;
+use std::process::Command;
 use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::Manager;
@@ -200,6 +201,54 @@ async fn native_ssh_probe(profile: ConnectionProfile) -> Result<ProbeReport, Str
 
 struct ProfileState(Mutex<ProfileStore>);
 
+#[tauri::command]
+async fn parent_plan(path: String, branch: String) -> Result<serde_json::Value, String> {
+    parent_command("plan", &path, &branch, None).await
+}
+
+#[tauri::command]
+async fn parent_apply(
+    path: String,
+    branch: String,
+    expected_head: String,
+) -> Result<serde_json::Value, String> {
+    parent_command("apply", &path, &branch, Some(&expected_head)).await
+}
+
+async fn parent_command(
+    mode: &str,
+    path: &str,
+    branch: &str,
+    expected_head: Option<&str>,
+) -> Result<serde_json::Value, String> {
+    let mode = mode.to_owned();
+    let path = path.to_owned();
+    let branch = branch.to_owned();
+    let expected_head = expected_head.map(str::to_owned);
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        let mut command = Command::new("orcan");
+        command.args([
+            "studio", "parent", &mode, "--path", &path, "--branch", &branch,
+        ]);
+        if let Some(head) = expected_head {
+            command.args(["--expected-head", &head, "--yes"]);
+        }
+        command.output()
+    })
+    .await
+    .map_err(|error| format!("parent task stopped: {error}"))?
+    .map_err(|error| format!("could not start Orcan parent operation: {error}"))?;
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("invalid parent operation response: {error}"))?;
+    if !output.status.success() {
+        return Err(value["error"]
+            .as_str()
+            .unwrap_or("parent operation failed")
+            .to_owned());
+    }
+    Ok(value)
+}
+
 fn vault_entry(profile_id: &str, kind: &str) -> Result<keyring::Entry, String> {
     keyring::Entry::new("io.orcan.studio", &format!("{profile_id}:{kind}"))
         .map_err(|error| format!("credential vault unavailable: {error}"))
@@ -267,7 +316,9 @@ fn main() {
             list_profiles,
             save_profile,
             delete_profile,
-            save_secret
+            save_secret,
+            parent_plan,
+            parent_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");
