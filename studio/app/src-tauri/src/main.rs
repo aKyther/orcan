@@ -2,7 +2,7 @@ use orcan_studio_core::{
     ConnectionProfile, ProbeReport, ProfileStore, SshAuthentication, SystemRunner, Target,
     parse_probe_report,
 };
-use russh::channels::ChannelMsg;
+use russh::ChannelMsg;
 use russh::client;
 use russh::keys::{self, PublicKeyOrCertificate};
 use serde::Deserialize;
