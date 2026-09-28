@@ -51,6 +51,12 @@ const snapshotWorkspaces = document.querySelector<HTMLElement>("#snapshot-worksp
 const snapshotProjects = document.querySelector<HTMLElement>("#snapshot-projects")!;
 const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
+const parentPath = document.querySelector<HTMLInputElement>("#parent-path")!;
+const parentBranch = document.querySelector<HTMLInputElement>("#parent-branch")!;
+const parentPlanButton = document.querySelector<HTMLButtonElement>("#parent-plan")!;
+const parentApplyButton = document.querySelector<HTMLButtonElement>("#parent-apply")!;
+const parentResult = document.querySelector<HTMLOutputElement>("#parent-result")!;
+let parentHead: string | undefined;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
@@ -236,6 +242,24 @@ probeButton.addEventListener("click", async () => {
       probeButton.textContent = "Refresh Sandbox";
     }
   }
+});
+
+parentPlanButton.addEventListener("click", async () => {
+  parentPlanButton.disabled = true; parentResult.textContent = "Checking parent repository…";
+  try {
+    const response = await invoke<{ plan: { head: string; ready: boolean; blockers: string[] } }>("parent_plan", { path: parentPath.value, branch: parentBranch.value });
+    parentHead = response.plan.head;
+    parentApplyButton.disabled = !response.plan.ready;
+    parentResult.textContent = response.plan.ready ? `Ready to fast-forward from ${parentHead}.` : response.plan.blockers.join(" · ");
+  } catch (error) { parentHead = undefined; parentApplyButton.disabled = true; parentResult.textContent = `Plan failed: ${String(error)}`; }
+  finally { parentPlanButton.disabled = false; }
+});
+parentApplyButton.addEventListener("click", async () => {
+  if (!parentHead) return;
+  parentApplyButton.disabled = true; parentResult.textContent = "Applying approved fast-forward…";
+  try { await invoke("parent_apply", { path: parentPath.value, branch: parentBranch.value, expectedHead: parentHead }); parentResult.textContent = "Parent updated."; }
+  catch (error) { parentResult.textContent = `Update failed: ${String(error)}`; }
+  finally { parentApplyButton.disabled = false; }
 });
 
 refreshTargetField();

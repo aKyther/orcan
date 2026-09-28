@@ -62,6 +62,13 @@
         </select>
         <button id="delete-profile" type="button" class="secondary">Delete selected profile</button>
       </section>
+      <section class="card" aria-labelledby="parent-title">
+        <h2 id="parent-title">Parent update</h2>
+        <label for="parent-path">Parent repository path</label><input id="parent-path" autocomplete="off" placeholder="/path/to/repository" />
+        <label for="parent-branch">Branch</label><input id="parent-branch" autocomplete="off" value="main" />
+        <div class="actions"><button id="parent-plan" type="button" class="secondary">Preview update</button><button id="parent-apply" type="button" disabled>Apply fast-forward</button></div>
+        <output id="parent-result" aria-live="polite">Preview before applying an update.</output>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
