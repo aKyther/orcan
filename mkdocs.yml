@@ -131,6 +131,7 @@ plugins:
             Mental Model: Model mentalny
             Agent inbox: Skrzynka agentów
             Runtime reconcile: Runtime reconcile
+            Orcan Studio: Orcan Studio
             Ideas: Idee
             Concepts: Koncepcje
             Workspaces: Workspaces
@@ -218,6 +219,7 @@ nav:
           - Mental Model: ideas/mental-model.md
           - Agent inbox: ideas/agent-inbox.md
           - Runtime reconcile: ideas/runtime-reconcile.md
+          - Orcan Studio: ideas/orcan-studio.md
       - Concepts:
           - Workspaces: concepts/workspaces.md
           - Path parity: concepts/path-parity.md

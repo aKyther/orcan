@@ -1,0 +1,105 @@
+:root {
+  background: #161815;
+  color: #f5f0e7;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  box-sizing: border-box;
+  display: grid;
+  gap: 2rem;
+  margin: 0 auto;
+  max-width: 58rem;
+  padding: 5rem 2rem;
+}
+
+.eyebrow {
+  color: #e6a94c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+h1 {
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+  margin: 0.5rem 0 1rem;
+}
+
+.lede,
+output {
+  color: #c4c0b8;
+  line-height: 1.55;
+}
+
+.card {
+  background: #232722;
+  border: 1px solid #42483f;
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.5rem;
+}
+
+h2 {
+  margin: 0 0 0.5rem;
+}
+
+label {
+  color: #c4c0b8;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+select,
+input,
+button {
+  border-radius: 0.5rem;
+  font: inherit;
+  padding: 0.7rem 0.8rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.actions button {
+  flex: 1;
+}
+
+.secondary {
+  background: transparent;
+  border: 1px solid #747b70;
+  color: #f5f0e7;
+}
+
+select,
+input {
+  background: #151814;
+  border: 1px solid #4b5248;
+  color: inherit;
+}
+
+button {
+  background: #e6a94c;
+  border: 0;
+  color: #1c1c19;
+  cursor: pointer;
+  font-weight: 750;
+  margin-top: 0.75rem;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+output {
+  min-height: 1.6rem;
+}

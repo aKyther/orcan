@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orcan Studio</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">ORCAN STUDIO · CONNECTIONS</p>
+        <h1>Build context where it runs.</h1>
+        <p class="lede">Connect to a local Sandbox, a WSL2 distribution, or an SSH host.</p>
+      </header>
+      <section class="card" aria-labelledby="connection-title">
+        <h2 id="connection-title">Sandbox connection</h2>
+        <label for="transport">Transport</label>
+        <select id="transport">
+          <option value="local">Local Linux or macOS</option>
+          <option value="wsl2">Windows WSL2</option>
+          <option value="ssh">SSH host</option>
+        </select>
+        <label id="target-label" for="target">WSL2 distribution</label>
+        <input id="target" autocomplete="off" placeholder="Ubuntu-24.04" value="Ubuntu-24.04" />
+        <label for="profile-name">Profile name</label>
+        <input id="profile-name" autocomplete="off" placeholder="My WSL Sandbox" />
+        <div class="actions">
+          <button id="save-profile" type="button" class="secondary">Save profile</button>
+          <button id="probe" type="button">Check Sandbox</button>
+        </div>
+        <output id="result" aria-live="polite">Choose a connection and check the Sandbox.</output>
+      </section>
+      <section class="card" aria-labelledby="profiles-title">
+        <h2 id="profiles-title">Reconnect</h2>
+        <label for="profiles">Saved connections</label>
+        <select id="profiles">
+          <option value="">No saved profile selected</option>
+        </select>
+        <button id="delete-profile" type="button" class="secondary">Delete selected profile</button>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
