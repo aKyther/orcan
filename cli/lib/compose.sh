@@ -163,6 +163,26 @@ orcan_write_up_state() {
     } >"${statef}"
 }
 
+# Last requested `orcan up` flags; unlike up-state.env, `orcan down` keeps it
+# so `orcan up --resume` can restore the same stack. Never stores credentials.
+orcan_last_up_file() {
+    printf '%s\n' "${ORCAN_RUNTIME_DIR}/last-up.env"
+}
+
+orcan_write_last_up() {
+    local statef
+    statef="$(orcan_last_up_file)"
+    mkdir -p "$(dirname "${statef}")"
+    {
+        printf 'WITH_DOCKER=%s\n' "${1:-0}"
+        printf 'WITH_GIT=%s\n' "${2:-0}"
+        printf 'WITH_NETWORK=%s\n' "${3:-0}"
+        printf 'WITH_TTYD=%s\n' "${4:-0}"
+        printf 'WITH_TTYD_AUTH=%s\n' "${5:-0}"
+        printf 'NETWORK_NAME=%q\n' "${6:-}"
+    } >"${statef}"
+}
+
 orcan_load_up_state() {
     local statef
     statef="$(orcan_up_state_file)"

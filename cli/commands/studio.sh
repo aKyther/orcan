@@ -25,6 +25,7 @@ orcan_cmd_studio() {
                     --projects-root "${projects_root}" \
                     --config "${ORCAN_CONFIG_FILE}" \
                     --runtime "${ORCAN_RUNTIME_DIR}/runtime-config.json" \
+                    --last-up "$(orcan_last_up_file)" \
                     --image "${IMAGE_LOCAL:-orcan:latest}" \
                     --container "orcan-${ORCAN_INSTANCE:-1}"
             ;;

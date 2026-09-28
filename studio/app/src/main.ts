@@ -13,6 +13,7 @@ type ProbeReport = {
   runtime: {
     docker: { container: { state: string }; agents?: Record<string, boolean> };
     resources?: { cpus?: string | number; memory?: string; shm_size?: string; tmpfs_size?: string };
+    launch?: { recorded: boolean; docker?: boolean; git?: boolean; network?: string | null; ttyd?: boolean; ttyd_auth?: boolean };
   };
   paths: { home: string; data: string; projects_root: string; workspace_metadata_root: string; managed_worktrees_root: string };
   context: {
@@ -126,6 +127,7 @@ const demoReport: ProbeReport = {
   runtime: {
     docker: { container: { state: "running" }, agents: { codex: true, claude: true, gemini: true, copilot: false, cursor: true } },
     resources: { cpus: 4, memory: "8g", shm_size: "1g", tmpfs_size: "1g" },
+    launch: { recorded: true, docker: false, git: true, network: null, ttyd: true, ttyd_auth: false },
   },
   paths: { home: "/home/orcan/.config/orcan", data: "/home/orcan/.config/orcan", projects_root: "/home/orcan/.config/orcan/sandbox", workspace_metadata_root: "/home/orcan/.config/orcan/workspaces", managed_worktrees_root: "/home/orcan/.config/orcan/worktrees" },
   context: {
@@ -151,6 +153,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     worktree_apply: { result: { path: `${worktrees}/api/feature-context` } },
     worktree_cleanup: { plan: { ready: true, blockers: [] } },
     settings_project_action: { plan: { ready: true, blockers: [] } },
+    runtime_action: null,
   };
   return (responses[command] ?? {}) as T;
 }
@@ -216,6 +219,46 @@ function unlockStudio(report: ProbeReport): void {
     : "The Sandbox is reachable, but its container is not running. Review its instance settings before changing context.";
 }
 
+const launchSummary = document.querySelector<HTMLElement>("#launch-summary")!;
+const launchWarning = document.querySelector<HTMLElement>("#launch-warning")!;
+const runtimeResult = document.querySelector<HTMLOutputElement>("#runtime-result")!;
+const runtimeButtons = { start: "#runtime-start", restart: "#runtime-restart", stop: "#runtime-stop" } as const;
+type RuntimeAction = keyof typeof runtimeButtons;
+let launch: NonNullable<ProbeReport["runtime"]["launch"]> = { recorded: false };
+
+function renderRuntime(report: ProbeReport): void {
+  launch = report.runtime.launch ?? { recorded: false };
+  const running = report.runtime.docker.container.state === "running";
+  const flags = [launch.ttyd ? (launch.ttyd_auth ? "browser terminal (password)" : "browser terminal") : "local only", launch.docker && "Docker socket", launch.git && "git/SSH keys", launch.network && `network ${launch.network}`].filter(Boolean);
+  launchSummary.textContent = launch.recorded ? `Start/Restart reuse: ${flags.join(" · ")}` : "No recorded start flags — start this Sandbox once with orcan up on the instance.";
+  launchWarning.hidden = !launch.ttyd;
+  launchWarning.innerHTML = launch.ttyd_auth
+    ? "Password-protected terminal: Studio does not store that password, so restart on the instance with <code>orcan up --resume --with-ttyd-auth USER:PASS</code>."
+    : "The browser terminal is published without a password. Recommended: <code>orcan up --resume --with-ttyd-auth USER:PASS</code>.";
+  document.querySelector<HTMLButtonElement>(runtimeButtons.start)!.disabled = running || !launch.recorded || !!launch.ttyd_auth;
+  document.querySelector<HTMLButtonElement>(runtimeButtons.restart)!.disabled = !running || !launch.recorded || !!launch.ttyd_auth;
+  document.querySelector<HTMLButtonElement>(runtimeButtons.stop)!.disabled = !running;
+}
+
+async function runRuntimeAction(action: RuntimeAction): Promise<void> {
+  const privileged = [launch.docker && "the host Docker socket", launch.git && "your SSH keys"].filter(Boolean);
+  if (action !== "stop" && privileged.length && !window.confirm(`This start gives agents access to ${privileged.join(" and ")}. Continue?`)) return;
+  if (action === "stop" && !window.confirm("Stop the Sandbox container? Running agent sessions will end.")) return;
+  const label = action[0].toUpperCase() + action.slice(1);
+  const job = addJob(`Sandbox ${action}`, transport.value);
+  for (const selector of Object.values(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.disabled = true;
+  runtimeResult.textContent = `${label} in progress…`;
+  try {
+    await invoke("runtime_action", { target: selectedTarget(), action });
+    runtimeResult.textContent = `${label} finished. Refreshing instance…`;
+    finishJob(job, "succeeded", label);
+  } catch (error) {
+    runtimeResult.textContent = `${label} failed: ${String(error)}`;
+    finishJob(job, "failed", String(error));
+  }
+  probeButton.click();
+}
+
 function renderSnapshot(report: ProbeReport): void {
   snapshot.hidden = false;
   snapshotRoot.textContent = report.paths.projects_root;
@@ -233,6 +276,7 @@ function renderSnapshot(report: ProbeReport): void {
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   settingAgents.textContent = agents.length ? agents.join(" · ") : "No image manifest reported";
   unlockStudio(report);
+  renderRuntime(report);
   const rows: HTMLElement[] = [];
   for (const workspace of report.context.workspaces) {
     const row = document.createElement("div");
@@ -338,6 +382,7 @@ profilesSelect.addEventListener("change", () => {
   renderProfiles();
 });
 settingsRefresh.addEventListener("click", () => probeButton.click());
+for (const [action, selector] of Object.entries(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.addEventListener("click", () => void runRuntimeAction(action as RuntimeAction));
 settingsSync.addEventListener("click", async () => { const job = addJob("Orcan sync", transport.value); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { target: selectedTarget() }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
 settingsProjectPlan.addEventListener("click", async () => { try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "attach", apply: false }); settingsProjectReady = response.plan.ready; settingsProjectApply.disabled = !settingsProjectReady; settingsResult.textContent = response.plan.ready ? "Attach plan ready; Orcan sync will be required." : response.plan.blockers.join(" · "); } catch (error) { settingsResult.textContent = `Plan failed: ${String(error)}`; } });
 settingsProjectApply.addEventListener("click", async () => { if (!settingsProjectReady) return; const job = addJob("Project attach", settingsWorkspace.value); try { await invoke("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "attach", apply: true }); settingsResult.textContent = "Project attached. Run orcan sync."; finishJob(job, "succeeded", settingsProject.value); settingsProjectApply.disabled = true; } catch (error) { settingsResult.textContent = `Attach failed: ${String(error)}`; finishJob(job, "failed", String(error)); } });

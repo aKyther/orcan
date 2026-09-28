@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Runtime:** `orcan up --resume` restarts with the flags of the last
+  `orcan up`, which now survive `orcan down`. A password-protected ttyd start
+  requires `--with-ttyd-auth USER:PASS` again instead of silently dropping the
+  password. Orcan Studio adds Start / Restart / Stop on top of it.
+
 - **Image tools:** added `sshpass` for explicit password-authenticated SSH
   automation inside the image.
 

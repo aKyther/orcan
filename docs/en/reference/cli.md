@@ -102,6 +102,7 @@ orcan down && orcan up
 | *(none)* | Local-only container — no published ttyd port; use `orcan enter` |
 | `--with-ttyd` \| `--with-ttyd-auth USER:PASS` | **Pick one.** `--with-ttyd`: browser terminal, no password. `--with-ttyd-auth USER:PASS`: same browser terminal **with** HTTP basic auth. Do not pass both. (`TTYD_BIND` defaults to `0.0.0.0`.) |
 | `--with-docker` \| `--with-network NAME` | **Pick one.** `--with-docker`: mount `/var/run/docker.sock` (Docker-from-Docker). `--with-network NAME`: join an existing Docker network (no socket) |
+| `--resume` | Restart with the flags of the last `orcan up` (kept across `orcan down`, stored in `mounts/last-up.env`, never the ttyd password). A previous `--with-ttyd-auth` start must pass `--with-ttyd-auth USER:PASS` again. Orcan Studio Start/Restart use this. |
 | `--with-git` | Mount host `~/.ssh` read-only (+ SSH agent when `SSH_AUTH_SOCK` is set) for push/pull |
 
 Other flags combine with a chosen browser mode, e.g. `orcan up --with-ttyd --with-git` or `orcan up --with-ttyd-auth user:pass --with-network my-net`.

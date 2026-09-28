@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -231,6 +232,26 @@ def docker_probe(docker: str, image: str, container: str) -> dict[str, object]:
     }
 
 
+def launch_flags(path: Path) -> dict[str, object]:
+    """Flags of the last `orcan up` (credentials are never recorded)."""
+    if not path.is_file():
+        return {"recorded": False}
+    values: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        key, _, value = line.partition("=")
+        parsed = shlex.split(value)
+        values[key] = parsed[0] if parsed else ""
+    flag = lambda key: values.get(key) == "1"  # noqa: E731
+    return {
+        "recorded": True,
+        "docker": flag("WITH_DOCKER"),
+        "git": flag("WITH_GIT"),
+        "network": values.get("NETWORK_NAME") if flag("WITH_NETWORK") else None,
+        "ttyd": flag("WITH_TTYD"),
+        "ttyd_auth": flag("WITH_TTYD_AUTH"),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--protocol", type=int, required=True)
@@ -242,6 +263,7 @@ def main() -> None:
     parser.add_argument("--runtime", required=True)
     parser.add_argument("--image", required=True)
     parser.add_argument("--container", required=True)
+    parser.add_argument("--last-up", default="")
     args = parser.parse_args()
 
     docker = docker_probe(
@@ -277,6 +299,9 @@ def main() -> None:
             "generated": "present" if Path(args.runtime).is_file() else "missing",
             "docker": docker,
             "resources": runtime_data.get("resources", {}),
+            "launch": launch_flags(Path(args.last_up))
+            if args.last_up
+            else {"recorded": False},
         },
         "context": context_snapshot(
             Path(args.config), Path(args.projects_root), Path(args.home)
