@@ -28,8 +28,19 @@ orcan_cmd_studio() {
                     --image "${IMAGE_LOCAL:-orcan:latest}" \
                     --container "orcan-${ORCAN_INSTANCE:-1}"
             ;;
+        parent)
+            local action="${1:-}"
+            shift || true
+            if [[ "${action}" != "plan" && "${action}" != "apply" ]]; then
+                orcan_usage_error 'usage: orcan studio parent plan|apply --path PATH --branch BRANCH [--expected-head SHA --yes]'
+                return
+            fi
+            orcan_require_python
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-parent.py" "${action}" "$@"
+            ;;
         -h | --help | "")
             printf 'usage: orcan studio probe --json\n'
+            printf '       orcan studio parent plan|apply --path PATH --branch BRANCH [--expected-head SHA --yes]\n'
             printf '  Read-only, versioned Sandbox capability report for Orcan Studio.\n'
             ;;
         *)
