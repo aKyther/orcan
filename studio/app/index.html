@@ -69,6 +69,13 @@
         <div class="actions"><button id="parent-plan" type="button" class="secondary">Preview update</button><button id="parent-apply" type="button" disabled>Apply fast-forward</button></div>
         <output id="parent-result" aria-live="polite">Preview before applying an update.</output>
       </section>
+      <section class="card" aria-labelledby="import-title">
+        <h2 id="import-title">Import repository</h2>
+        <label for="import-source">Git URL or existing repository path</label><input id="import-source" autocomplete="off" placeholder="git@github.com:org/project.git" />
+        <label for="import-destination">Destination (leave empty for Orcan default)</label><input id="import-destination" autocomplete="off" placeholder="Provided by the selected Sandbox" />
+        <button id="import-plan" type="button" class="secondary">Preview import plan</button>
+        <output id="import-result" aria-live="polite">Connect to a Sandbox first to use its managed root.</output>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
