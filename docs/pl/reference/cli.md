@@ -53,6 +53,8 @@ Sprawdź: `orcan doctor`. Szczegóły: [Instalacja](../getting-started/installat
 | `orcan context worktree remove --workspace NAME` | Usuń wszystkie managed worktree workspace'a (i wypnij z configu) |
 | `orcan context worktree prune [--force] [--no-config]` | Pogódź `$ORCAN_PROJECTS_ROOT/.worktrees/registry.json` ze stanem na dysku (i `orcan.config.json`); domyślnie dry-run, `--force` sprząta |
 | `orcan studio probe --json` | Tylko do odczytu, wersjonowany raport o możliwościach hosta/runtime dla osobnej aplikacji desktopowej Orcan Studio. Działa przez transport lokalny, SSH i WSL; nie zmienia konfiguracji, obrazów ani kontenerów. |
+| `orcan studio parent plan --path PATH --branch BRANCH` | Plan tylko do odczytu dla aktualizacji parent checkout; pokazuje branch, dirty state, HEAD i head `origin`. |
+| `orcan studio parent apply --path PATH --branch BRANCH --expected-head SHA --yes` | Wykonaj zatwierdzoną aktualizację parent przez `git pull --ff-only`; odmawia dla starego planu, dirty checkout albo złego brancha. |
 | *(wewnątrz kontenera)* `orcan-inbox` | Kolejka przekazywania zadań agentów w `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). Patrz [Skrzynka agentów](../ideas/agent-inbox.md) |
 | `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start kontenera (`orcan enter` lokalnie; **jedna** ścieżka przeglądarki: `--with-ttyd` albo `--with-ttyd-auth`); opcjonalnie socket **albo** join sieci (wybierz jedno) + SSH; podpowiada nowszy release |
 | `orcan down` | Stop kontenerów |

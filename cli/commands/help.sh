@@ -32,6 +32,8 @@ Commands:
   context worktree prune   Reconcile worktrees/registry.json against disk
                            (+ config); dry-run by default, --force to clean
   studio probe --json      Machine-readable host/runtime capabilities for Orcan Studio
+  studio parent plan       Read-only parent update plan (Git fast-forward safety checks)
+  studio parent apply      Apply an approved parent update (--expected-head SHA --yes)
 
   up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git]
                            Start container (local: orcan enter; browser: pick ttyd or ttyd-auth)
