@@ -97,7 +97,9 @@ const navigationItems = Array.from(document.querySelectorAll<HTMLButtonElement>(
 const views = Array.from(document.querySelectorAll<HTMLElement>("[data-view]"));
 const viewTitle = document.querySelector<HTMLElement>("#view-title")!;
 const instanceState = document.querySelector<HTMLElement>("#instance-state")!;
-const activeInstance = document.querySelector<HTMLElement>("#active-instance")!;
+const activeInstance = document.querySelector<HTMLButtonElement>("#active-instance")!;
+const activeDot = document.querySelector<HTMLElement>("#active-dot")!;
+const activeLabel = document.querySelector<HTMLElement>("#active-label")!;
 const healthTitle = document.querySelector<HTMLElement>("#health-title")!;
 const overviewRuntime = document.querySelector<HTMLElement>("#overview-runtime")!;
 const overviewConfig = document.querySelector<HTMLElement>("#overview-config")!;
@@ -136,7 +138,8 @@ let savedCredentials: Credential[] = [];
 let current: Connection | undefined;
 let latestProbe = 0;
 let connected = false;
-const demoMode = new URLSearchParams(window.location.search).has("demo");
+// Outside the Tauri window there is no backend to invoke, so a plain browser always gets the UX preview.
+const demoMode = new URLSearchParams(window.location.search).has("demo") || !("__TAURI_INTERNALS__" in window);
 
 const demoReport: ProbeReport = {
   sandbox: { version: "0.1.0-dev" },
@@ -157,7 +160,11 @@ const demoReport: ProbeReport = {
 };
 
 const demoStore: { profiles: ConnectionProfile[]; credentials: Credential[] } = {
-  profiles: [{ id: "demo", name: "Demo workstation", target: { kind: "local" } }],
+  profiles: [
+    { id: "demo", name: "Demo workstation", target: { kind: "local" } },
+    { id: "gpu", name: "GPU box", target: { kind: "ssh", destination: "gpu.example" } },
+    { id: "staging", name: "Staging VM", target: { kind: "ssh", destination: "staging.example" } },
+  ],
   credentials: [],
 };
 
@@ -180,6 +187,9 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) return tauriInvoke<T>(command, _args as never);
   await new Promise((resolve) => window.setTimeout(resolve, 180));
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
+  const destination = JSON.stringify((_args as { target?: Target } | undefined)?.target ?? {});
+  if (command === "probe" && destination.includes("staging")) throw new Error("SSH connection failed: Connection timed out");
+  if (command === "probe" && destination.includes("gpu")) return { ...demoReport, runtime: { ...demoReport.runtime, docker: { ...demoReport.runtime.docker, container: { state: "exited" } } } } as T;
   const root = demoReport.paths.projects_root;
   const worktrees = demoReport.paths.managed_worktrees_root;
   const responses: Record<string, unknown> = {
@@ -215,6 +225,7 @@ function showView(name: string): void {
   const target = views.find((view) => view.dataset.view === name);
   if (!target || (gatedViews.has(name) && !connected)) return;
   currentView = name;
+  if (name === "enclaves") checkAll();
   for (const view of views) view.hidden = view !== target;
   for (const item of navigationItems) {
     const active = item.dataset.viewTarget === name;
@@ -238,10 +249,9 @@ function lockStudio(): void {
   healthPanel.hidden = true;
   snapshot.hidden = true;
   sandboxSettings.hidden = true;
-  instanceState.textContent = "Not connected";
-  activeInstance.textContent = "Not connected";
   focusTitle.textContent = initialFocus.title;
   nextAction.textContent = initialFocus.action;
+  renderEnclaveStatus();
 }
 
 function unlockStudio(report: ProbeReport): void {
@@ -253,9 +263,6 @@ function unlockStudio(report: ProbeReport): void {
   healthPanel.hidden = false;
   focusTitle.textContent = "Connected";
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
-  const label = `${report.host.os} · Orcan ${report.sandbox.version}`;
-  instanceState.textContent = `Connected · ${report.runtime.docker.container.state}`;
-  activeInstance.textContent = label;
   healthTitle.textContent = report.runtime.docker.container.state === "running" ? "Ready" : "Attention needed";
   overviewRuntime.textContent = report.runtime.docker.container.state;
   overviewConfig.textContent = report.context.configuration.state;
@@ -595,7 +602,9 @@ async function saveProfile(): Promise<void> {
   try {
     await invoke("save_profile", { profile: built.profile });
     if (current?.profileId === built.profile.id) lockStudio();
+    enclaveStatus.delete(built.profile.id);
     await loadStore();
+    void checkEnclave(built.profile);
     result.textContent = `Profile “${built.profile.name}” saved. Connect its Enclave below.`;
     showPane("profiles");
     showView("enclaves");
@@ -610,23 +619,112 @@ function renderProfiles(): void {
 
 // Enclaves
 
-function lastSeen(profile: ConnectionProfile): string {
+type EnclaveStatus = { state: "checking" | "online" | "offline"; report?: ProbeReport; error?: string; at?: number };
+const enclaveStatus = new Map<string, EnclaveStatus>();
+const navEnclaves = $("#nav-enclaves");
+let lastCheckAll = 0;
+
+function profileConnection(profile: ConnectionProfile): Connection {
+  return { target: profile.target, label: profile.name, profileId: profile.id };
+}
+
+/** online = container running, warn = Orcan reachable but container not running. */
+function statusTone(status?: EnclaveStatus): string {
+  if (!status) return "idle";
+  if (status.state !== "online") return status.state;
+  return status.report?.runtime.docker.container.state === "running" ? "online" : "warn";
+}
+
+function ago(at?: number): string {
+  const seconds = Math.round((Date.now() - (at ?? Date.now())) / 1000);
+  return seconds < 45 ? "just now" : seconds < 3600 ? `${Math.round(seconds / 60)} min ago` : `${Math.round(seconds / 3600)} h ago`;
+}
+
+function statusText(status?: EnclaveStatus): string {
+  if (!status) return "Not checked yet";
+  if (status.state === "checking") return status.report ? `Checking… (last: container ${status.report.runtime.docker.container.state})` : "Checking…";
+  if (status.state === "offline") return `Unreachable · checked ${ago(status.at)}`;
+  return `Orcan ${status.report!.sandbox.version} · container ${status.report!.runtime.docker.container.state} · checked ${ago(status.at)}`;
+}
+
+function dot(tone: string): HTMLElement {
+  return el("span", { className: `state-dot ${tone}` });
+}
+
+async function checkEnclave(profile: ConnectionProfile): Promise<EnclaveStatus> {
+  enclaveStatus.set(profile.id, { ...enclaveStatus.get(profile.id), state: "checking" });
+  renderEnclaveStatus();
+  let status: EnclaveStatus;
   try {
-    const cached = localStorage.getItem(cacheKey(profile.target));
-    if (!cached) return "Not checked yet";
-    const report = JSON.parse(cached) as ProbeReport;
-    return `Last seen: Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;
-  } catch { return "Not checked yet"; }
+    const report = await invoke<ProbeReport>("probe", { target: profile.target, profileId: profile.id });
+    localStorage.setItem(cacheKey(profile.target), JSON.stringify(report));
+    status = { state: "online", report, at: Date.now() };
+  } catch (error) {
+    status = { state: "offline", error: String(error), at: Date.now() };
+  }
+  enclaveStatus.set(profile.id, status);
+  if (connected && current?.profileId === profile.id) {
+    if (status.report) renderSnapshot(status.report);
+    else lockStudio();
+  }
+  renderEnclaveStatus();
+  return status;
+}
+
+/** Checks every saved Enclave, at most once a minute unless forced. */
+function checkAll(force = false): void {
+  if (!force && Date.now() - lastCheckAll < 60_000) return;
+  lastCheckAll = Date.now();
+  for (const profile of profiles) void checkEnclave(profile);
+}
+
+function activate(connection: Connection, report: ProbeReport): void {
+  current = connection;
+  renderSnapshot(report);
+  activeGroup.textContent = `ACTIVE · ${connection.label.toUpperCase()}`;
+  renderStore();
+}
+
+/** Makes an Enclave active, from its last report when it is online. */
+async function openEnclave(profile: ConnectionProfile): Promise<void> {
+  let status = enclaveStatus.get(profile.id);
+  if (status?.state !== "online") status = await checkEnclave(profile);
+  if (status.state === "online" && status.report) {
+    activate(profileConnection(profile), status.report);
+    showView("overview");
+  } else showView("enclaves");
 }
 
 function renderEnclaves(): void {
   enclaveList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
+    const status = enclaveStatus.get(profile.id);
     const active = connected && current?.profileId === profile.id;
-    const item = listItem(profile.name, `${describeProfile(profile)} · ${active ? "Connected" : lastSeen(profile)}`,
-      actionButton(active ? "Refresh" : "Connect", () => void connect({ target: profile.target, label: profile.name, profileId: profile.id }).then((report) => { if (report) showView("overview"); }).catch(() => undefined), active ? "secondary" : ""));
+    const actions: HTMLElement[] = [actionButton("Check", () => void checkEnclave(profile))];
+    if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
+    else actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
+    const text = el("div", {}, el("strong", {}, dot(statusTone(status)), profile.name), el("span", { textContent: `${describeProfile(profile)} · ${statusText(status)}` }));
+    if (status?.state === "offline") text.append(el("span", { className: "status-hint", textContent: failureHint(status.error ?? "") }));
+    const item = el("div", { className: "list-item enclave-item" }, text, el("div", { className: "item-actions" }, ...actions));
     item.classList.toggle("active", active);
     return item;
   }) : [emptyState("Enclaves appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
+}
+
+/** Per-Enclave state everywhere it is shown: list, sidebar, topbar chip, summary. */
+function renderEnclaveStatus(): void {
+  renderEnclaves();
+  navEnclaves.replaceChildren(...profiles.map((profile) => {
+    const button = el("button", { type: "button", className: "nav-enclave", title: statusText(enclaveStatus.get(profile.id)) }, dot(statusTone(enclaveStatus.get(profile.id))), el("span", { textContent: profile.name }));
+    button.classList.toggle("active", connected && current?.profileId === profile.id);
+    button.addEventListener("click", () => void openEnclave(profile));
+    return button;
+  }));
+  const activeStatus = current?.profileId ? enclaveStatus.get(current.profileId) : undefined;
+  activeDot.className = `state-dot ${connected ? statusTone(activeStatus) : "idle"}`;
+  activeLabel.textContent = connected && current ? `${current.label} · ${activeStatus?.report?.runtime.docker.container.state ?? "connected"}` : profiles.length ? "Choose an Enclave" : "No Enclaves yet";
+  const online = profiles.filter((profile) => enclaveStatus.get(profile.id)?.state === "online").length;
+  const checking = profiles.some((profile) => enclaveStatus.get(profile.id)?.state === "checking");
+  instanceState.textContent = profiles.length ? `${online} of ${profiles.length} Enclave${profiles.length === 1 ? "" : "s"} online${checking ? " · checking…" : ""}` : "No Enclaves yet";
 }
 
 function failureHint(error: string): string {
@@ -648,7 +746,7 @@ function renderSetup(): void {
 function renderStore(): void {
   renderCredentials();
   renderProfiles();
-  renderEnclaves();
+  renderEnclaveStatus();
   renderSetup();
 }
 
@@ -666,16 +764,15 @@ async function connect(connection: Connection, output: HTMLOutputElement = resul
     const report = await invoke<ProbeReport>("probe", { target: connection.target, profileId: connection.profileId, credentialId: connection.credentialId, username: connection.username });
     if (request !== latestProbe) return undefined;
     localStorage.setItem(cacheKey(connection.target), JSON.stringify(report));
-    current = connection;
-    renderSnapshot(report);
-    activeInstance.textContent = connection.label;
-    activeGroup.textContent = `ACTIVE · ${connection.label.toUpperCase()}`;
+    if (connection.profileId) enclaveStatus.set(connection.profileId, { state: "online", report, at: Date.now() });
+    activate(connection, report);
     output.textContent = `Connected · ${report.host.os}/${report.host.architecture} · Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;
     finishJob(job, "succeeded", "Enclave report refreshed");
     renderStore();
     return report;
   } catch (error) {
     if (request !== latestProbe) return undefined;
+    if (connection.profileId) enclaveStatus.set(connection.profileId, { state: "offline", error: String(error), at: Date.now() });
     lockStudio();
     output.textContent = `Connection failed: ${String(error)}`;
     finishJob(job, "failed", String(error));
@@ -767,6 +864,7 @@ if (demoMode) {
   demoBanner.hidden = false;
   result.textContent = "UX preview: every action below uses sample data.";
 }
-void loadStore().catch((error) => {
+activeInstance.addEventListener("click", () => showView("enclaves"));
+void loadStore().then(() => checkAll(true)).catch((error) => {
   result.textContent = `Could not load saved Enclaves: ${String(error)}`;
 });
