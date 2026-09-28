@@ -76,6 +76,20 @@
         <button id="import-plan" type="button" class="secondary">Preview import plan</button>
         <output id="import-result" aria-live="polite">Connect to a Sandbox first to use its managed root.</output>
       </section>
+      <section id="sandbox-settings" class="card" aria-labelledby="settings-title" hidden>
+        <h2 id="settings-title">Sandbox settings</h2>
+        <p class="lede">Values reported by the connected Orcan. Changes will be planned before they are applied.</p>
+        <dl class="settings-grid">
+          <div><dt>Orcan home</dt><dd id="setting-home">—</dd></div>
+          <div><dt>Data root</dt><dd id="setting-data">—</dd></div>
+          <div><dt>Managed projects root</dt><dd id="setting-projects-root">—</dd></div>
+          <div><dt>Workspace metadata</dt><dd id="setting-workspaces-root">—</dd></div>
+          <div><dt>Managed worktrees</dt><dd id="setting-worktrees-root">—</dd></div>
+          <div><dt>Configuration state</dt><dd id="setting-config-state">—</dd></div>
+        </dl>
+        <button id="settings-refresh" type="button" class="secondary">Refresh from Orcan</button>
+        <output id="settings-result" aria-live="polite">Read-only until a settings plan is available.</output>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
