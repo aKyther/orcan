@@ -401,21 +401,25 @@ async fn worktree_plan(
     repo: String,
     branch: String,
     worktrees_root: String,
+    workspaces: Vec<String>,
 ) -> Result<serde_json::Value, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        Command::new("orcan")
-            .args([
-                "studio",
-                "worktree",
-                "plan",
-                "--repo",
-                &repo,
-                "--branch",
-                &branch,
-                "--worktrees-root",
-                &worktrees_root,
-            ])
-            .output()
+        let mut command = Command::new("orcan");
+        command.args([
+            "studio",
+            "worktree",
+            "plan",
+            "--repo",
+            &repo,
+            "--branch",
+            &branch,
+            "--worktrees-root",
+            &worktrees_root,
+        ]);
+        for workspace in workspaces {
+            command.args(["--workspace", &workspace]);
+        }
+        command.output()
     })
     .await
     .map_err(|error| format!("worktree plan stopped: {error}"))?
