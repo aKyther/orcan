@@ -47,6 +47,17 @@ Tailscale, oraz `ORCAN_STUDIO_PREVIEW_PORT=1420`, aby zmienić port. Vite robi
 hot reload zmian frontendu; nie jest budowany `.exe`, `.app` ani bundle Tauri.
 Do sprawdzenia prawdziwego backendu natywnego użyj `npm run tauri dev`.
 
+Aby ocenić układ na prawdziwych workspace'ach tego hosta, zapisz snapshot
+probe (tylko do odczytu). Enclave „Demo workstation” w preview pokaże go;
+pozostałe Enclave'y i wszystkie akcje pozostają symulowane. Snapshot serwuje
+wyłącznie serwer deweloperski Vite (nigdy nie trafia do builda) i widzi go
+Twój tailnet.
+
+```bash
+make studio-preview-snapshot        # uruchamia orcan studio probe --json na hoście
+make studio-preview-snapshot-clear  # powrót do fixture'ów
+```
+
 ### Pełne developerskie środowisko przeglądarkowe — `orcan-preview`
 
 Izolowany stack Docker z **tego** checkoutu: własny obraz, projekt Compose, home/data, port ttyd i kontener. Nie podmienia `orcan:latest` ani nie tyka `~/.config/orcan`.

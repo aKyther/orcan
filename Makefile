@@ -15,7 +15,7 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 .DEFAULT_GOAL := help
 
 .PHONY: help deprecate-user \
-	validate test test-host test-coverage test-path-parity format format-check studio-test studio-preview-start studio-preview-stop studio-preview-status studio-preview-logs studio-preview-url dev-test \
+	validate test test-host test-coverage test-path-parity format format-check studio-test studio-preview-start studio-preview-stop studio-preview-status studio-preview-logs studio-preview-url studio-preview-snapshot studio-preview-snapshot-clear dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
 	version bump-patch bump-minor bump-major tag release release-retract release-tag release-push \
@@ -73,6 +73,12 @@ studio-preview-logs: ## Follow Studio UX preview logs
 
 studio-preview-url: ## Print the Studio UX preview URL
 	@./scripts/dev/orcan-studio-preview url
+
+studio-preview-snapshot: ## Show this host's real workspaces in the preview (read-only probe)
+	@./scripts/dev/orcan-studio-preview snapshot
+
+studio-preview-snapshot-clear: ## Return the Studio UX preview to fixture data
+	@./scripts/dev/orcan-studio-preview snapshot-clear
 
 # Fixtures live under the checkout so Docker-from-Docker sees the same
 # canonical host path; container-local /tmp is not visible to the daemon.

@@ -35,6 +35,11 @@
             <section class="panel focus-panel"><p class="eyebrow">NEXT BEST ACTION</p><h2 id="focus-title">Connect an Orcan Enclave</h2><p id="next-action">Studio offers context operations only after Orcan on that machine reports its real paths and capabilities. Follow the steps below; each one is saved on this computer.</p></section>
             <section class="panel health-panel" hidden><p class="eyebrow">INSTANCE HEALTH</p><h2 id="health-title">Not checked</h2><dl class="metric-list"><div><dt>Runtime</dt><dd id="overview-runtime">—</dd></div><div><dt>Configuration</dt><dd id="overview-config">—</dd></div><div><dt>Agent tools</dt><dd id="overview-agents">—</dd></div></dl><div class="runtime-controls"><p id="launch-summary" class="muted">Start flags not recorded yet.</p><p id="launch-warning" class="launch-warning" hidden></p><div class="actions compact"><button id="runtime-start" type="button" class="secondary">Start</button><button id="runtime-restart" type="button" class="secondary">Restart</button><button id="runtime-stop" type="button" class="secondary">Stop</button></div><output id="runtime-result" aria-live="polite"></output></div></section>
           </div>
+          <section id="enclave-map" class="panel" aria-labelledby="map-title" hidden>
+            <div class="panel-heading"><div><p class="eyebrow">IN THIS ENCLAVE</p><h2 id="map-title">Workspaces and their projects</h2></div><button type="button" class="secondary" data-go="contexts">Open contexts</button></div>
+            <div id="workspace-cards" class="workspace-cards"></div>
+            <div id="unassigned" class="unassigned" hidden></div>
+          </section>
           <section id="setup-panel" class="panel" aria-labelledby="setup-title">
             <div class="panel-heading"><div><p class="eyebrow">GET CONNECTED</p><h2 id="setup-title">Three steps to your first Enclave</h2></div></div>
             <ol class="setup-steps">
