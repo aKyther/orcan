@@ -2680,6 +2680,7 @@ dependencies = [
  "orcan-studio-core",
  "russh",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
 ]
