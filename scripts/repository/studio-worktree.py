@@ -10,9 +10,18 @@ def run(repo: Path, *args: str) -> str | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", required=True); parser.add_argument("--branch", required=True)
+    parser.add_argument("mode", choices=("plan", "remove-plan"))
+    parser.add_argument("--repo"); parser.add_argument("--branch")
+    parser.add_argument("--path")
     parser.add_argument("--worktrees-root", required=True); parser.add_argument("--workspace", action="append", default=[])
-    args = parser.parse_args(); repo = Path(args.repo).resolve(); root = Path(args.worktrees_root).resolve()
+    args = parser.parse_args(); root = Path(args.worktrees_root).resolve()
+    if args.mode == "remove-plan":
+        if not args.path: parser.error("--path is required for remove-plan")
+        path = Path(args.path).resolve()
+        print(json.dumps({"ok": True, "plan": {"operation": "worktree_remove", "path": str(path), "exists": path.exists(), "changes": ["remove worktree registration", f"remove directory {path}"], "blockers": [] if path.exists() else ["worktree path does not exist"], "ready": path.exists(), "destructive": True}}, separators=(",", ":")))
+        return
+    if not args.repo or not args.branch: parser.error("--repo and --branch are required for plan")
+    repo = Path(args.repo).resolve()
     destination = root / repo.name / args.branch
     blockers = []
     if run(repo, "rev-parse", "--is-inside-work-tree") != "true": blockers.append("parent is not a Git repository")
