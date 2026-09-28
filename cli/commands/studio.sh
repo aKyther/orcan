@@ -48,7 +48,7 @@ orcan_cmd_studio() {
             orcan_host_python "${ORCAN_SCRIPTS}/studio-import.py" "$@"
             ;;
         worktree)
-            if [[ "${1:-}" != "plan" ]]; then orcan_usage_error 'usage: orcan studio worktree plan --repo PATH --branch NAME --worktrees-root PATH [--workspace NAME]'; return; fi
+            if [[ "${1:-}" != "plan" && "${1:-}" != "remove-plan" ]]; then orcan_usage_error 'usage: orcan studio worktree plan|remove-plan …'; return; fi
             shift; orcan_require_python
             orcan_host_python "${ORCAN_SCRIPTS}/studio-worktree.py" "$@"
             ;;
