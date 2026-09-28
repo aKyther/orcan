@@ -37,7 +37,7 @@
           <section id="setup-panel" class="panel" aria-labelledby="setup-title">
             <div class="panel-heading"><div><p class="eyebrow">GET CONNECTED</p><h2 id="setup-title">Three steps to your first Enclave</h2></div></div>
             <ol class="setup-steps">
-              <li id="setup-credential"><div><strong>Add a credential or key</strong><span>A key file or password for a remote server. Skip it for this computer, WSL2, or an SSH agent.</span></div><button type="button" class="secondary" data-go="credentials">Credentials &amp; keys</button></li>
+              <li id="setup-credential"><div><strong>Add a credential or key</strong><span>A key file or password Studio uses to sign in to a remote server. Not needed for this computer or WSL2 (Orcan runs as you), or when your SSH agent already holds the key.</span></div><button type="button" class="secondary" data-go="credentials">Credentials &amp; keys</button></li>
               <li id="setup-profile"><div><strong>Create a profile</strong><span>Where Orcan runs, the user, and the credential that signs in.</span></div><button type="button" class="secondary" data-go="profiles">Profiles</button></li>
               <li id="setup-enclave"><div><strong>Connect an Enclave</strong><span>Studio asks Orcan what this environment offers, then unlocks its views.</span></div><button type="button" class="secondary" data-go="enclaves">Enclaves</button></li>
             </ol>
@@ -55,7 +55,7 @@
 
         <section class="view" data-view="credentials" hidden>
           <div class="pane-stack"><section data-pane="credentials" class="pane">
-                <div class="pane-header"><div><h2>Credentials &amp; keys</h2><p class="muted">Keys and passwords Studio can use to sign in to your Enclaves. Secrets stay in the operating-system credential vault; one credential can serve many Enclaves.</p></div><button id="new-credential" type="button">New credential</button></div>
+                <div class="pane-header"><div><p class="muted">Keys and passwords Studio can use to sign in to your Enclaves. Secrets stay in the operating-system credential vault; one credential can serve many Enclaves.</p></div><button id="new-credential" type="button">New credential</button></div>
                 <div id="credential-list" class="item-list"></div>
               </section><section data-pane="credential-form" class="pane" hidden>
                 <button type="button" class="back-link" id="credential-back">← Credentials &amp; keys</button>
@@ -76,7 +76,7 @@
 
         <section class="view" data-view="profiles" hidden>
           <div class="pane-stack"><section data-pane="profiles" class="pane">
-                <div class="pane-header"><div><h2>Profiles</h2><p class="muted">A profile tells Studio how to reach a machine running Orcan: where it is, which user to sign in as, and which credential proves it.</p></div><button id="new-profile" type="button">New profile</button></div>
+                <div class="pane-header"><div><p class="muted">A profile tells Studio how to reach a machine running Orcan: where it is, which user to sign in as, and which credential proves it.</p></div><button id="new-profile" type="button">New profile</button></div>
                 <div id="profile-list" class="item-list"></div>
               </section><section data-pane="profile-form" class="pane" hidden>
                 <button type="button" class="back-link" data-pane-target="profiles">← Profiles</button>
@@ -105,7 +105,7 @@
 
         <section class="view" data-view="enclaves" hidden>
           <div class="pane-stack"><section data-pane="enclaves" class="pane">
-                <div class="pane-header"><div><h2>Enclaves</h2><p class="muted">An Enclave is an isolated Orcan environment: a container where agents work on your code without reaching the rest of the machine. Studio lists one for every profile and shows what it last saw there.</p></div><button type="button" class="secondary" data-go="profiles">Manage profiles</button></div>
+                <div class="pane-header"><div><p class="muted">An Enclave is an isolated Orcan environment: a container where agents work on your code without reaching the rest of the machine. Studio lists one for every profile and shows what it last saw there.</p></div><button type="button" class="secondary" data-go="profiles">Manage profiles</button></div>
                 <div id="enclave-list" class="item-list"></div>
               </section></div>
         </section>

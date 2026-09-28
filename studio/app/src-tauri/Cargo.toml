@@ -14,5 +14,5 @@ orcan-studio-core = { path = "../../crates/orcan-studio-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = [] }
-keyring = "3.6"
+keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 russh = "0.63"
