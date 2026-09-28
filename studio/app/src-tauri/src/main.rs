@@ -270,6 +270,37 @@ async fn import_apply(
 }
 
 #[tauri::command]
+async fn worktree_cleanup(
+    path: String,
+    worktrees_root: String,
+    apply: bool,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut command = Command::new("orcan");
+        command.args([
+            "studio",
+            "worktree",
+            if apply { "remove-apply" } else { "remove-plan" },
+            "--path",
+            &path,
+            "--worktrees-root",
+            &worktrees_root,
+        ]);
+        if apply {
+            command.arg("--yes");
+        }
+        command.output()
+    })
+    .await
+    .map_err(|error| format!("cleanup stopped: {error}"))?
+    .map_err(|error| format!("could not start cleanup: {error}"))
+    .and_then(|output| {
+        serde_json::from_slice(&output.stdout)
+            .map_err(|error| format!("invalid cleanup response: {error}"))
+    })
+}
+
+#[tauri::command]
 async fn parent_apply(
     path: String,
     branch: String,
@@ -383,7 +414,8 @@ fn main() {
             parent_plan,
             parent_apply,
             import_plan,
-            import_apply
+            import_apply,
+            worktree_cleanup
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");

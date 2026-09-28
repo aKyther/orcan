@@ -90,6 +90,13 @@
         <button id="settings-refresh" type="button" class="secondary">Refresh from Orcan</button>
         <output id="settings-result" aria-live="polite">Read-only until a settings plan is available.</output>
       </section>
+      <section class="card" aria-labelledby="cleanup-title">
+        <h2 id="cleanup-title">Worktree cleanup</h2>
+        <label for="cleanup-path">Worktree path</label><input id="cleanup-path" autocomplete="off" placeholder="/managed/worktree/path" />
+        <label for="cleanup-confirm">Type REMOVE to confirm physical deletion</label><input id="cleanup-confirm" autocomplete="off" placeholder="REMOVE" />
+        <div class="actions"><button id="cleanup-plan" type="button" class="secondary">Preview removal</button><button id="cleanup-apply" type="button" disabled>Remove worktree</button></div>
+        <output id="cleanup-result" aria-live="polite">Removal is destructive and always requires confirmation.</output>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

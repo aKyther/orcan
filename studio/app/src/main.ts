@@ -68,6 +68,11 @@ const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")
 const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
 const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
 const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
+const cleanupPath = document.querySelector<HTMLInputElement>("#cleanup-path")!;
+const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confirm")!;
+const cleanupPlan = document.querySelector<HTMLButtonElement>("#cleanup-plan")!;
+const cleanupApply = document.querySelector<HTMLButtonElement>("#cleanup-apply")!;
+const cleanupResult = document.querySelector<HTMLOutputElement>("#cleanup-result")!;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
@@ -205,6 +210,12 @@ profilesSelect.addEventListener("change", () => {
   renderProfiles();
 });
 settingsRefresh.addEventListener("click", () => probeButton.click());
+cleanupPlan.addEventListener("click", async () => {
+  try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, apply: false }); cleanupApply.disabled = !response.plan.ready; cleanupResult.textContent = response.plan.ready ? "Plan ready. Type REMOVE to enable deletion." : response.plan.blockers.join(" · "); }
+  catch (error) { cleanupResult.textContent = `Plan failed: ${String(error)}`; }
+});
+cleanupConfirm.addEventListener("input", () => { cleanupApply.disabled = cleanupConfirm.value !== "REMOVE"; });
+cleanupApply.addEventListener("click", async () => { try { await invoke("worktree_cleanup", { path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, apply: true }); cleanupResult.textContent = "Worktree removed."; cleanupApply.disabled = true; } catch (error) { cleanupResult.textContent = `Removal failed: ${String(error)}`; } });
 importPlanButton.addEventListener("click", async () => {
   if (!latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check a Sandbox first."; return; }
   importPlanButton.disabled = true; importResult.textContent = "Building import plan…";
