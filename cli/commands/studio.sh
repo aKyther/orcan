@@ -38,6 +38,15 @@ orcan_cmd_studio() {
             orcan_require_python
             orcan_host_python "${ORCAN_SCRIPTS}/studio-parent.py" "${action}" "$@"
             ;;
+        import)
+            if [[ "${1:-}" != "plan" ]]; then
+                orcan_usage_error 'usage: orcan studio import plan --source URL_OR_PATH --projects-root PATH [--destination PATH]'
+                return
+            fi
+            shift
+            orcan_require_python
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-import.py" "$@"
+            ;;
         -h | --help | "")
             printf 'usage: orcan studio probe --json\n'
             printf '       orcan studio parent plan|apply --path PATH --branch BRANCH [--expected-head SHA --yes]\n'
