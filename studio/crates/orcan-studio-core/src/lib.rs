@@ -34,6 +34,36 @@ pub struct StudioJob {
     pub log: Vec<String>,
 }
 
+/// A mutation is always described before it can be approved and scheduled.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OperationPlan {
+    pub id: String,
+    pub operation: String,
+    pub summary: String,
+    #[serde(default)]
+    pub changes: Vec<String>,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+}
+
+impl OperationPlan {
+    pub fn ready(&self) -> bool {
+        self.blockers.is_empty()
+    }
+    pub fn approved_job(&self) -> Result<StudioJob, StudioError> {
+        if !self.ready() {
+            return Err(StudioError::PlanBlocked);
+        }
+        Ok(StudioJob {
+            id: self.id.clone(),
+            operation: self.operation.clone(),
+            state: JobState::Queued,
+            stage: "approved plan queued".to_owned(),
+            log: vec![self.summary.clone()],
+        })
+    }
+}
+
 impl StudioJob {
     pub fn transition(
         &mut self,
@@ -226,6 +256,7 @@ pub enum StudioError {
     InvalidProfile(String),
     InvalidProfileStore(String),
     InvalidJobTransition,
+    PlanBlocked,
     Io { path: PathBuf, reason: String },
 }
 
@@ -250,6 +281,7 @@ impl fmt::Display for StudioError {
                 write!(formatter, "invalid profile store: {reason}")
             }
             Self::InvalidJobTransition => write!(formatter, "invalid Studio job state transition"),
+            Self::PlanBlocked => write!(formatter, "Studio operation plan has blockers"),
             Self::Io { path, reason } => {
                 write!(formatter, "cannot access {}: {reason}", path.display())
             }
