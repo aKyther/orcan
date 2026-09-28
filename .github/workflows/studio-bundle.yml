@@ -2,8 +2,6 @@ name: Orcan Studio bundles
 
 on:
   workflow_dispatch:
-  push:
-    tags: ["studio-v*"]
 
 permissions:
   contents: read
