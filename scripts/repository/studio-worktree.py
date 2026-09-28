@@ -33,7 +33,6 @@ def main() -> None:
     blockers = []
     if run(repo, "rev-parse", "--is-inside-work-tree") != "true": blockers.append("parent is not a Git repository")
     if destination.exists(): blockers.append("managed worktree destination already exists")
-    if len(args.workspace) > 1: blockers.append("apply currently supports one workspace binding at a time")
     plan = {"operation": "worktree_create", "repo": str(repo), "branch": args.branch, "destination": str(destination), "workspaces": args.workspace, "changes": [f"create worktree {destination}", *[f"bind to {x}" for x in args.workspace]], "blockers": blockers, "ready": not blockers}
     if args.mode == "plan": print(json.dumps({"ok": True, "plan": plan}, separators=(",", ":"))); return
     if not args.yes or not plan["ready"]: print(json.dumps({"ok": False, "error": "apply requires --yes and a ready plan"})); raise SystemExit(2)
@@ -41,5 +40,9 @@ def main() -> None:
     if args.workspace: command += ["--workspace", args.workspace[0], "--project", repo.name]
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     if result.returncode: print(json.dumps({"ok": False, "error": result.stderr.strip() or "worktree create failed"})); raise SystemExit(result.returncode)
+    for workspace in args.workspace[1:]:
+        bind = subprocess.run(["orcan", "context", "add", str(destination), "--workspace", workspace], capture_output=True, text=True, check=False)
+        if bind.returncode:
+            print(json.dumps({"ok": False, "error": f"worktree was created but bind to {workspace} failed: {bind.stderr.strip()}"})); raise SystemExit(bind.returncode)
     print(json.dumps({"ok": True, "result": {"operation": "worktree_create", "path": str(destination)}}))
 if __name__ == "__main__": main()
