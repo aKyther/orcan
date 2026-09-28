@@ -67,6 +67,7 @@ let importReady = false;
 const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")!;
 const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
 const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
+const settingsSync = document.querySelector<HTMLButtonElement>("#settings-sync")!;
 const settingsWorkspace = document.querySelector<HTMLInputElement>("#settings-workspace")!;
 const settingsProject = document.querySelector<HTMLInputElement>("#settings-project")!;
 const settingsProjectPlan = document.querySelector<HTMLButtonElement>("#settings-project-plan")!;
@@ -232,6 +233,7 @@ profilesSelect.addEventListener("change", () => {
   renderProfiles();
 });
 settingsRefresh.addEventListener("click", () => probeButton.click());
+settingsSync.addEventListener("click", async () => { const job = addJob("Orcan sync", transport.value); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { target: selectedTarget() }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
 settingsProjectPlan.addEventListener("click", async () => { try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "attach", apply: false }); settingsProjectReady = response.plan.ready; settingsProjectApply.disabled = !settingsProjectReady; settingsResult.textContent = response.plan.ready ? "Attach plan ready; Orcan sync will be required." : response.plan.blockers.join(" · "); } catch (error) { settingsResult.textContent = `Plan failed: ${String(error)}`; } });
 settingsProjectApply.addEventListener("click", async () => { if (!settingsProjectReady) return; const job = addJob("Project attach", settingsWorkspace.value); try { await invoke("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "attach", apply: true }); settingsResult.textContent = "Project attached. Run orcan sync."; finishJob(job, "succeeded", settingsProject.value); settingsProjectApply.disabled = true; } catch (error) { settingsResult.textContent = `Attach failed: ${String(error)}`; finishJob(job, "failed", String(error)); } });
 settingsDetachPlan.addEventListener("click", async () => { const response = await invoke<{ plan: { ready: boolean } }>("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "detach", apply: false }); settingsDetachReady = response.plan.ready; settingsDetachApply.disabled = !settingsDetachReady; settingsResult.textContent = settingsDetachReady ? "Detach plan ready; files remain untouched." : "Detach blocked."; });

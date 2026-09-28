@@ -62,6 +62,15 @@ async fn probe(
         .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+async fn sync(target: TargetInput) -> Result<(), String> {
+    let target = Target::from(target);
+    tauri::async_runtime::spawn_blocking(move || target.sync(&SystemRunner))
+        .await
+        .map_err(|error| format!("sync task stopped: {error}"))?
+        .map_err(|error| error.to_string())
+}
+
 #[derive(Debug)]
 struct KnownHostsHandler {
     host: String,
@@ -516,6 +525,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             probe,
+            sync,
             list_profiles,
             save_profile,
             delete_profile,
