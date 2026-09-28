@@ -29,6 +29,13 @@ aplikacji. Profil ma nazwę, metadane transportu oraz dane SSH, takie jak
 użytkownik albo ścieżka klucza prywatnego. Hasła i passphrase kluczy nie trafiają
 do pliku profilu; należą do systemowego magazynu poświadczeń.
 
+Poświadczenia są osobnymi rekordami wielokrotnego użytku: nazwana ścieżka klucza
+prywatnego albo hasło, do których może odwoływać się wiele profili, a każdy
+profil trzyma własny adres i użytkownika. Nie można usunąć poświadczenia, którego
+używa jakiś profil. UI Studio nazywa połączony Sandbox **Enclave** (izolowane
+środowisko Orcana) i prowadzi przez Credentials & keys → Profiles → Enclaves;
+żaden widok instancji nie pojawia się przed udanym probe.
+
 Aplikacja używa Rust + Tauri. UI nie ma uprawnienia do dowolnego shella:
 warstwa połączenia Rust ma stałe komendy i waliduje identyfikator celu.
 Profile z hasłem i kluczem prywatnym używają natywnego SSH oraz sprawdzają klucz
