@@ -92,5 +92,7 @@ def run_nav(session: str, key: str) -> bool:
     argv = nav_argv(session, key)
     if argv is None:
         return False
-    subprocess.run(argv, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        argv, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
     return True

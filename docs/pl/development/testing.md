@@ -11,7 +11,8 @@ make docs-check
 | Target | Co robi |
 | --- | --- |
 | `make validate` | Wymagane pliki, składnia shell/Python, wersja pyproject, nazwa produktu, Compose `config` gdy Docker działa |
-| `make test-host` | Testy jednostkowe config I/O, `apply-config`, wersja / release check, testy skryptów preview |
+| `make test-host` | Testy hosta w Pytest: config I/O, `apply-config`, wersja / release check, testy skryptów preview |
+| `make format` / `make format-check` | Zastosuj / sprawdź formatowanie Ruff dla helperów hosta, cockpit i testów hosta |
 | `make docs-check` | Ścisły MkDocs (EN+PL) + kontrola nazwy produktu |
 
 ## Testy smoke (pełny obraz — lokalnie)

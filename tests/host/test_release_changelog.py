@@ -48,7 +48,9 @@ class ReleaseFixture:
 
         shutil.copy(RELEASE_SH, self.root / "scripts" / "repository" / "release.sh")
         (self.root / "cockpit" / "pyproject.toml").write_text('version = "3.0.5"\n')
-        (self.root / "cockpit" / "uv.lock").write_text('name = "orcan-cockpit"\nversion = "3.0.5"\n')
+        (self.root / "cockpit" / "uv.lock").write_text(
+            'name = "orcan-cockpit"\nversion = "3.0.5"\n'
+        )
         (self.root / "VERSION").write_text("3.0.5\n")
         (self.root / "mkdocs.yml").write_text('orcan_version: "3.0.5"\n')
         (self.root / "README.md").write_text("Version **3.0.5**\n")
@@ -69,12 +71,19 @@ class ReleaseFixture:
         run(["git", "push", "-q", "-u", "origin", "main"], cwd=self.root)
 
     def sh(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
-        return run(["bash", "./scripts/repository/release.sh", *args], cwd=self.root, check=check)
+        return run(
+            ["bash", "./scripts/repository/release.sh", *args],
+            cwd=self.root,
+            check=check,
+        )
 
-    def retract(self, version: str, calver: str, *, check: bool = True) -> subprocess.CompletedProcess:
+    def retract(
+        self, version: str, calver: str, *, check: bool = True
+    ) -> subprocess.CompletedProcess:
         return run(
             [
-                "bash", "-c",
+                "bash",
+                "-c",
                 "RELEASE_RETRACT_SKIP_DOCS=1 RELEASE_RETRACT_SKIP_GITHUB=1 "
                 f"bash ./scripts/repository/release.sh retract {version} {calver} RETRACT-v{version}",
             ],
@@ -84,9 +93,13 @@ class ReleaseFixture:
 
     def add_unreleased(self, heading: str, bullet: str) -> None:
         p = self.root / "CHANGELOG.md"
-        p.write_text(p.read_text().replace(
-            "## [Unreleased]\n", f"## [Unreleased]\n\n### {heading}\n\n- {bullet}\n", 1
-        ))
+        p.write_text(
+            p.read_text().replace(
+                "## [Unreleased]\n",
+                f"## [Unreleased]\n\n### {heading}\n\n- {bullet}\n",
+                1,
+            )
+        )
         run(["git", "add", "CHANGELOG.md"], cwd=self.root)
         run(["git", "commit", "-q", "-m", f"chore: {bullet}"], cwd=self.root)
 
@@ -98,10 +111,16 @@ class ReleaseFixture:
 
     def remote_tags(self) -> list[str]:
         out = run(["git", "ls-remote", "--tags", "origin"], cwd=self.root).stdout
-        return [line.split("refs/tags/")[1] for line in out.splitlines() if "refs/tags/" in line]
+        return [
+            line.split("refs/tags/")[1]
+            for line in out.splitlines()
+            if "refs/tags/" in line
+        ]
 
     def remote_head(self) -> str:
-        return run(["git", "ls-remote", "origin", "main"], cwd=self.root).stdout.split()[0]
+        return run(
+            ["git", "ls-remote", "origin", "main"], cwd=self.root
+        ).stdout.split()[0]
 
     def local_head(self) -> str:
         return run(["git", "rev-parse", "HEAD"], cwd=self.root).stdout.strip()
@@ -135,7 +154,9 @@ class CheckpointTests(unittest.TestCase):
         # regression: this used to bump/write version files (and leave
         # them uncommitted) *before* checking Unreleased had content.
         self.assertEqual(self.fx.sh("print").stdout.strip(), "3.0.5")
-        self.assertTrue(self.fx.is_clean(), "checkpoint left the tree dirty after failing")
+        self.assertTrue(
+            self.fx.is_clean(), "checkpoint left the tree dirty after failing"
+        )
 
     def test_checkpoint_bumps_cuts_and_pushes_under_checkpoint_namespace(self) -> None:
         self.fx.add_unreleased("Fixed", "a real fix")
@@ -230,7 +251,9 @@ class ReleaseTests(unittest.TestCase):
         # Regression: this used to auto-checkpoint + commit the CHANGELOG
         # divider + tag vX.Y.Z *before* discovering the label collision,
         # leaving a half-finished release (extra local commit/tag) behind.
-        self.assertEqual(self.fx.local_head(), head_before, "release left an extra commit behind")
+        self.assertEqual(
+            self.fx.local_head(), head_before, "release left an extra commit behind"
+        )
         self.assertTrue(self.fx.is_clean(), "release left the tree dirty after failing")
 
     def test_retract_reverts_divider_and_removes_public_tags(self) -> None:
@@ -279,7 +302,9 @@ class UpdateHintSafetyTests(unittest.TestCase):
         self.fx.sh("release", "26.9")  # auto-checkpoints (patch) -> v3.0.7 + 26.9
 
         self.assertEqual(self.fx.cli_git_fn("orcan_git_latest_release_tag"), "v3.0.7")
-        self.assertEqual(self.fx.cli_git_fn("orcan_git_remote_latest_release_tag"), "v3.0.7")
+        self.assertEqual(
+            self.fx.cli_git_fn("orcan_git_remote_latest_release_tag"), "v3.0.7"
+        )
 
     def test_a_deliberately_higher_checkpoint_still_loses(self) -> None:
         # Even a checkpoint numbered far above any real release must
@@ -287,10 +312,15 @@ class UpdateHintSafetyTests(unittest.TestCase):
         # what update targeting keys off.
         self.fx.add_unreleased("Fixed", "a fix")
         self.fx.sh("release", "26.9")  # v3.0.6
-        run(["git", "tag", "-a", "checkpoint/v9.9.9", "-m", "high checkpoint"], cwd=self.fx.root)
+        run(
+            ["git", "tag", "-a", "checkpoint/v9.9.9", "-m", "high checkpoint"],
+            cwd=self.fx.root,
+        )
         run(["git", "push", "-q", "origin", "checkpoint/v9.9.9"], cwd=self.fx.root)
 
-        self.assertEqual(self.fx.cli_git_fn("orcan_git_remote_latest_release_tag"), "v3.0.6")
+        self.assertEqual(
+            self.fx.cli_git_fn("orcan_git_remote_latest_release_tag"), "v3.0.6"
+        )
 
 
 if __name__ == "__main__":

@@ -244,9 +244,7 @@ def remove_managed_workspace(
     cfg = load_config(config_path)
     before = cfg.get("workspaces") or []
     cfg["workspaces"] = [
-        ws
-        for ws in before
-        if not (isinstance(ws, dict) and ws.get("name") == ws_name)
+        ws for ws in before if not (isinstance(ws, dict) and ws.get("name") == ws_name)
     ]
     dump_config(config_path, cfg)
     info(f"removed workspace {ws_name!r} from {config_path}")

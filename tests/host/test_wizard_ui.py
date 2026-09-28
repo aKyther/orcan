@@ -49,8 +49,9 @@ class SuccessIndentTests(unittest.TestCase):
 
     def _captured(self, msg: str) -> str:
         buf = []
-        with patch("builtins.print", side_effect=lambda s: buf.append(s)), patch.object(
-            wu, "_COLOR", False
+        with (
+            patch("builtins.print", side_effect=lambda s: buf.append(s)),
+            patch.object(wu, "_COLOR", False),
         ):
             wu.success(msg)
         return buf[0]
@@ -59,7 +60,9 @@ class SuccessIndentTests(unittest.TestCase):
         self.assertEqual(self._captured("saved config"), "✓ saved config")
 
     def test_two_space_indent_preserved_before_mark(self) -> None:
-        self.assertEqual(self._captured("  will mount folder /x"), "  ✓ will mount folder /x")
+        self.assertEqual(
+            self._captured("  will mount folder /x"), "  ✓ will mount folder /x"
+        )
 
     def test_four_space_indent_preserved_before_mark(self) -> None:
         self.assertEqual(self._captured("    project ready"), "    ✓ project ready")

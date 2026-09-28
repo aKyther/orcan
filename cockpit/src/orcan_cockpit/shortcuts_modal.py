@@ -16,7 +16,12 @@ from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import Button, Static
 
 from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
-from orcan_cockpit.shortcuts import BROWSER_KEY_LIMIT, EMBED_DISCLAIMER, format_row, grouped_by_layer
+from orcan_cockpit.shortcuts import (
+    BROWSER_KEY_LIMIT,
+    EMBED_DISCLAIMER,
+    format_row,
+    grouped_by_layer,
+)
 from orcan_cockpit.theme import css
 
 _CSS = SHEET_CSS + css("""

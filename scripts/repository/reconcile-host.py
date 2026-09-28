@@ -63,7 +63,15 @@ def host_cfg_from_runtime(runtime: dict) -> dict:
 
 
 def defaults_root(orcan_root: Path) -> Path:
-    return orcan_root / "docker" / "rootfs" / "opt" / "cursor-defaults" / "templates" / "workspace"
+    return (
+        orcan_root
+        / "docker"
+        / "rootfs"
+        / "opt"
+        / "cursor-defaults"
+        / "templates"
+        / "workspace"
+    )
 
 
 def main() -> int:

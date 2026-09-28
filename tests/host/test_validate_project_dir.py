@@ -22,9 +22,7 @@ class ValidateProjectDirTests(unittest.TestCase):
         )
 
     def test_allows_home_user_project(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="orcan-validate-", dir="/tmp"
-        ) as tmp:
+        with tempfile.TemporaryDirectory(prefix="orcan-validate-", dir="/tmp") as tmp:
             proc = self._run(tmp)
             self.assertEqual(proc.returncode, 0, proc.stderr)
 

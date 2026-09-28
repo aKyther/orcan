@@ -79,8 +79,18 @@ class HostReconcileIntegrationTests(unittest.TestCase):
                 ]
             }
             cfg = reconcile_host.host_cfg_from_runtime(runtime)
-            templates = ROOT / "docker" / "rootfs" / "opt" / "cursor-defaults" / "templates" / "workspace"
-            report = _reconcile.apply_workspaces(cfg, templates, base / "home" / "workspaces")
+            templates = (
+                ROOT
+                / "docker"
+                / "rootfs"
+                / "opt"
+                / "cursor-defaults"
+                / "templates"
+                / "workspace"
+            )
+            report = _reconcile.apply_workspaces(
+                cfg, templates, base / "home" / "workspaces"
+            )
 
             self.assertTrue((meta / "app").is_symlink())
             self.assertEqual((meta / "app").resolve(), repo.resolve())

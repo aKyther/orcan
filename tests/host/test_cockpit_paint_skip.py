@@ -32,7 +32,9 @@ _STUB_KEYS = (
 
 def _load_picker_helpers():
     """Load paint helpers without importing Textual; leave sys.modules clean."""
-    status_spec = importlib.util.spec_from_file_location("cockpit_status_paint", STATUS_PATH)
+    status_spec = importlib.util.spec_from_file_location(
+        "cockpit_status_paint", STATUS_PATH
+    )
     status_mod = importlib.util.module_from_spec(status_spec)
     assert status_spec.loader is not None
     status_spec.loader.exec_module(status_mod)
@@ -163,9 +165,15 @@ class WorkspaceListPaintSignatureTests(unittest.TestCase):
         )
 
     def test_recent_sessions_sort_first_without_dropping_other_rows(self) -> None:
-        rows = [_row(name="first", session="first"), _row(name="second", session="second"), _row(name="third", session="third")]
+        rows = [
+            _row(name="first", session="first"),
+            _row(name="second", session="second"),
+            _row(name="third", session="third"),
+        ]
         ordered = picker.order_workspace_rows(rows, ["third", "second", "stale"])
-        self.assertEqual([row["session"] for row in ordered], ["third", "second", "first"])
+        self.assertEqual(
+            [row["session"] for row in ordered], ["third", "second", "first"]
+        )
 
     def test_filter_matches_name_session_and_root_without_reordering(self) -> None:
         rows = [
@@ -190,12 +198,15 @@ class WorkspaceListPaintSignatureTests(unittest.TestCase):
     def test_expanded_includes_root(self) -> None:
         with mock.patch.object(picker, "project_git_label", return_value="x"):
             text = picker.format_workspace_row_text(
-                _row(root="/home/developer/workspaces/dev", repo_count=1, projects=[{}]),
+                _row(
+                    root="/home/developer/workspaces/dev", repo_count=1, projects=[{}]
+                ),
                 active_session=None,
                 expanded=True,
             )
         self.assertIn("repo", text)
         self.assertIn("\n", text)
+
 
 if __name__ == "__main__":
     unittest.main()

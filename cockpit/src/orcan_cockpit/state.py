@@ -19,8 +19,10 @@ def state_path() -> Path:
 def recent_sessions_path() -> Path:
     """Small sibling state file; recent choices are runtime-local only."""
     override = os.environ.get("ORCAN_COCKPIT_RECENT_SESSIONS_PATH")
-    return Path(override) if override else state_path().with_name(
-        f"{state_path().name}-recent"
+    return (
+        Path(override)
+        if override
+        else state_path().with_name(f"{state_path().name}-recent")
     )
 
 
@@ -56,7 +58,9 @@ def read_recent_sessions() -> list[str]:
 
 def previous_recent_session(current: str | None) -> str | None:
     """The newest remembered session other than *current*, if any."""
-    return next((session for session in read_recent_sessions() if session != current), None)
+    return next(
+        (session for session in read_recent_sessions() if session != current), None
+    )
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -85,4 +89,6 @@ def remember_session(session: str) -> None:
     """Atomically remember *session*; failure must never block an attach."""
     _atomic_write(state_path(), f"{session}\n")
     recent = [session, *(value for value in read_recent_sessions() if value != session)]
-    _atomic_write(recent_sessions_path(), json.dumps(recent[:_MAX_RECENT_SESSIONS]) + "\n")
+    _atomic_write(
+        recent_sessions_path(), json.dumps(recent[:_MAX_RECENT_SESSIONS]) + "\n"
+    )

@@ -20,7 +20,7 @@ def read_pyproject_version() -> str:
     text = PYPROJECT.read_text(encoding="utf-8")
     match = PYPROJECT_VERSION.search(text)
     if not match:
-        raise AssertionError("cockpit/pyproject.toml missing version = \"X.Y.Z\"")
+        raise AssertionError('cockpit/pyproject.toml missing version = "X.Y.Z"')
     return match.group(1)
 
 
@@ -50,7 +50,12 @@ class VersionTests(unittest.TestCase):
             proc = subprocess.run(
                 [str(ROOT / "bin" / "orcan"), "status"],
                 cwd=ROOT,
-                env={"HOME": home, "ORCAN_HOME": home, "ORCAN_DATA": home, "PATH": "/usr/bin:/bin"},
+                env={
+                    "HOME": home,
+                    "ORCAN_HOME": home,
+                    "ORCAN_DATA": home,
+                    "PATH": "/usr/bin:/bin",
+                },
                 check=False,
                 capture_output=True,
                 text=True,

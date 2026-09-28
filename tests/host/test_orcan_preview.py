@@ -12,7 +12,11 @@ PREVIEW = ROOT / "scripts" / "dev" / "orcan-preview"
 
 class OrcanPreviewTests(unittest.TestCase):
     def fake_docker_env(
-        self, tmp: str, *, project: str = "orcan-dev-ux", container_exists: bool = True,
+        self,
+        tmp: str,
+        *,
+        project: str = "orcan-dev-ux",
+        container_exists: bool = True,
     ) -> tuple[dict[str, str], Path]:
         fake_bin = Path(tmp) / "bin"
         fake_bin.mkdir()
@@ -42,12 +46,19 @@ exit 0
         }
         return env, log
 
-    def run_preview(self, *args: str, **overrides: str) -> subprocess.CompletedProcess[str]:
+    def run_preview(
+        self, *args: str, **overrides: str
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
             env = {**os.environ, "ORCAN_PREVIEW_ROOT": tmp, **overrides}
             return subprocess.run(
-                [str(PREVIEW), *args], cwd=ROOT, env=env, check=False,
-                text=True, capture_output=True, timeout=10,
+                [str(PREVIEW), *args],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=10,
             )
 
     def test_check_generates_an_isolated_preview_profile(self) -> None:
@@ -111,8 +122,20 @@ exit 0
         result = self.run_preview("--help")
         self.assertEqual(result.returncode, 0, result.stderr)
         for command in (
-            "start", "restart", "rebuild", "stop", "status", "url", "logs",
-            "enter", "shell", "checklist", "doctor", "smoke", "reset", "check",
+            "start",
+            "restart",
+            "rebuild",
+            "stop",
+            "status",
+            "url",
+            "logs",
+            "enter",
+            "shell",
+            "checklist",
+            "doctor",
+            "smoke",
+            "reset",
+            "check",
         ):
             self.assertIn(command, result.stdout)
 
@@ -120,8 +143,16 @@ exit 0
         result = self.run_preview("checklist")
         self.assertEqual(result.returncode, 0, result.stderr)
         for expected in (
-            "workspace list", "F4", "F1", "Ctrl+Space", "Alt+1", "resizing",
-            "browser refresh", "480x320", "make dev-a11y", "make dev-test",
+            "workspace list",
+            "F4",
+            "F1",
+            "Ctrl+Space",
+            "Alt+1",
+            "resizing",
+            "browser refresh",
+            "480x320",
+            "make dev-a11y",
+            "make dev-test",
         ):
             self.assertIn(expected, result.stdout)
 
@@ -135,9 +166,13 @@ exit 0
                 encoding="utf-8",
             )
             result = subprocess.run(
-                [str(PREVIEW), "url"], cwd=ROOT,
+                [str(PREVIEW), "url"],
+                cwd=ROOT,
                 env={**os.environ, "ORCAN_PREVIEW_ROOT": str(state)},
-                check=False, text=True, capture_output=True, timeout=10,
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=10,
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertFalse(marker.exists())
@@ -146,8 +181,13 @@ exit 0
         with tempfile.TemporaryDirectory(dir=ROOT, prefix=".dev-ux-test-") as tmp:
             env, log = self.fake_docker_env(tmp)
             result = subprocess.run(
-                [str(PREVIEW), "start"], cwd=ROOT, env=env, check=False,
-                text=True, capture_output=True, timeout=15,
+                [str(PREVIEW), "start"],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=15,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = log.read_text(encoding="utf-8")
@@ -159,8 +199,13 @@ exit 0
         with tempfile.TemporaryDirectory(dir=ROOT, prefix=".dev-ux-test-") as tmp:
             env, log = self.fake_docker_env(tmp)
             result = subprocess.run(
-                [str(PREVIEW), "stop"], cwd=ROOT, env=env, check=False,
-                text=True, capture_output=True, timeout=10,
+                [str(PREVIEW), "stop"],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=10,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = log.read_text(encoding="utf-8")
@@ -172,8 +217,13 @@ exit 0
         with tempfile.TemporaryDirectory(dir=ROOT, prefix=".dev-ux-test-") as tmp:
             env, _ = self.fake_docker_env(tmp, project="foreign-project")
             result = subprocess.run(
-                [str(PREVIEW), "status"], cwd=ROOT, env=env, check=False,
-                text=True, capture_output=True, timeout=10,
+                [str(PREVIEW), "status"],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=10,
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("refusing to touch", result.stderr)
@@ -200,15 +250,22 @@ exit 0
                     "ORCAN_PREVIEW_SCENARIO": scenario,
                 }
                 result = subprocess.run(
-                    [str(PREVIEW), "check"], cwd=ROOT, env=env, check=False,
-                    text=True, capture_output=True, timeout=10,
+                    [str(PREVIEW), "check"],
+                    cwd=ROOT,
+                    env=env,
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    timeout=10,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 cfg = Path(tmp) / "home" / "orcan.config.json"
                 configs[scenario] = json.loads(cfg.read_text(encoding="utf-8"))
 
         rendered = {json.dumps(c, sort_keys=True) for c in configs.values()}
-        self.assertEqual(len(rendered), 3, "each scenario must write a distinct fixture")
+        self.assertEqual(
+            len(rendered), 3, "each scenario must write a distinct fixture"
+        )
         # "busy" stays the stable visual-regression baseline.
         self.assertEqual(configs["busy"]["workspaces"][0]["name"], "dev-ux")
         self.assertEqual(configs["empty"]["tmux"]["initial_windows"], 1)
@@ -221,8 +278,13 @@ exit 0
             lock.mkdir(parents=True)
             (lock / "owner").write_text(f"{os.getpid()} restart\n", encoding="utf-8")
             result = subprocess.run(
-                [str(PREVIEW), "start"], cwd=ROOT, env=env, check=False,
-                text=True, capture_output=True, timeout=10,
+                [str(PREVIEW), "start"],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=10,
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("another preview operation", result.stderr)
@@ -243,8 +305,13 @@ exit 0
                     encoding="utf-8",
                 )
                 result = subprocess.run(
-                    [str(PREVIEW), "start"], cwd=ROOT, env=env, check=False,
-                    text=True, capture_output=True, timeout=15,
+                    [str(PREVIEW), "start"],
+                    cwd=ROOT,
+                    env=env,
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    timeout=15,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn(f"Port {port} is busy; selected", result.stdout)

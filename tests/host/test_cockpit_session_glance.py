@@ -139,15 +139,17 @@ class GlanceLinesTests(unittest.TestCase):
         self.root = Path(self._tmp.name)
         self.now = time.time()
 
-
     def test_worktrees_and_idle_on_visibility_line(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             wt = Path(tmp) / "wt"
             wt.mkdir()
             (wt / ".git").write_text("gitdir: x\n", encoding="utf-8")
             projects = [{"name": "p", "path": str(wt)}]
-            with mock.patch.object(glance, "pane_commands", return_value=[]), mock.patch.object(
-                glance, "session_activity_line", return_value="idle 40m"
+            with (
+                mock.patch.object(glance, "pane_commands", return_value=[]),
+                mock.patch.object(
+                    glance, "session_activity_line", return_value="idle 40m"
+                ),
             ):
                 lines = glance.glance_lines(
                     "ws", self.root, live=True, projects=projects, now=self.now
@@ -159,21 +161,20 @@ class GlanceLinesTests(unittest.TestCase):
         brief.parent.mkdir(parents=True, exist_ok=True)
         brief.write_text("x", encoding="utf-8")
         os.utime(brief, (self.now - 3600, self.now - 3600))
-        with mock.patch.object(glance, "pane_commands") as panes, mock.patch.object(
-            glance, "session_activity_line"
-        ) as activity:
+        with (
+            mock.patch.object(glance, "pane_commands") as panes,
+            mock.patch.object(glance, "session_activity_line") as activity,
+        ):
             lines = glance.glance_lines("ws", self.root, live=False, now=self.now)
         panes.assert_not_called()
         activity.assert_not_called()
         self.assertTrue(any("brief 1h" in line for line in lines))
-
 
     def test_empty_or_non_live_workspace_has_no_pane_line(self) -> None:
         with mock.patch.object(glance, "pane_commands") as panes:
             self.assertEqual(glance.glance_lines(None, None, live=False), [])
             self.assertEqual(glance.glance_lines("ws", None, live=False), [])
         panes.assert_not_called()
-
 
     def test_format_glance_empty_hint(self) -> None:
         text = glance.format_glance([])

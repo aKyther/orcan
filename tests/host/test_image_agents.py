@@ -23,7 +23,11 @@ def run_shell(script: str) -> subprocess.CompletedProcess[str]:
 class BuildAgentSelectionTests(unittest.TestCase):
     def test_build_requires_an_explicit_agent(self) -> None:
         result = subprocess.run(
-            ["./bin/orcan", "build"], cwd=ROOT, text=True, capture_output=True, check=False
+            ["./bin/orcan", "build"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("choose at least one agent", result.stderr)

@@ -17,7 +17,10 @@ sw = load_script("settings-wizard.py")
 
 class EditTmuxTests(unittest.TestCase):
     def test_updates_windows_and_prefix(self) -> None:
-        cfg: dict = {"workspaces": [], "tmux": {"initial_windows": 3, "window_prefix": "tab"}}
+        cfg: dict = {
+            "workspaces": [],
+            "tmux": {"initial_windows": 3, "window_prefix": "tab"},
+        }
         with patch("builtins.input", side_effect=["5", "win"]):
             sw.edit_tmux(cfg)
         self.assertEqual(cfg["tmux"], {"initial_windows": 5, "window_prefix": "win"})
@@ -40,7 +43,9 @@ class EditTmuxTests(unittest.TestCase):
 class EditTtydTests(unittest.TestCase):
     def test_updates_port_and_font(self) -> None:
         cfg: dict = {"workspaces": []}
-        with patch("builtins.input", side_effect=["8080", "8080", "127.0.0.1", "22", "canvas"]):
+        with patch(
+            "builtins.input", side_effect=["8080", "8080", "127.0.0.1", "22", "canvas"]
+        ):
             sw.edit_ttyd(cfg)
         self.assertEqual(cfg["ttyd"]["port"], 8080)
         self.assertEqual(cfg["ttyd"]["host_port"], 8080)
@@ -50,7 +55,9 @@ class EditTtydTests(unittest.TestCase):
 
     def test_invalid_numbers_leave_settings_unchanged(self) -> None:
         cfg: dict = {"workspaces": [], "ttyd": dict(sw.DEFAULT_TTYD)}
-        with patch("builtins.input", side_effect=["nope", "nope", "nope", "nope", "webgl"]):
+        with patch(
+            "builtins.input", side_effect=["nope", "nope", "nope", "nope", "webgl"]
+        ):
             sw.edit_ttyd(cfg)
         self.assertEqual(cfg["ttyd"], sw.DEFAULT_TTYD)
 
@@ -63,9 +70,11 @@ class MainWorkspacesUntouchedTests(unittest.TestCase):
                 json.dumps({"workspaces": [{"name": "acme", "projects": []}]}),
                 encoding="utf-8",
             )
-            with patch("sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]), patch(
-                "sys.stdin.isatty", return_value=True
-            ), patch("builtins.input", side_effect=["n", "n", "y"]):
+            with (
+                patch("sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]),
+                patch("sys.stdin.isatty", return_value=True),
+                patch("builtins.input", side_effect=["n", "n", "y"]),
+            ):
                 sw.main()
             data = json.loads(cfg_path.read_text(encoding="utf-8"))
             self.assertEqual(data["workspaces"], [{"name": "acme", "projects": []}])

@@ -19,8 +19,14 @@ class UtilityRail(Widget):
         self._tier = "full"
 
     def compose(self) -> ComposeResult:
-        yield Button("?", id="rail-shortcuts", tooltip="Keyboard shortcuts (app + tmux)")
-        yield Button("Exit", id="rail-exit", tooltip="Close Cockpit and return to the host terminal")
+        yield Button(
+            "?", id="rail-shortcuts", tooltip="Keyboard shortcuts (app + tmux)"
+        )
+        yield Button(
+            "Exit",
+            id="rail-exit",
+            tooltip="Close Cockpit and return to the host terminal",
+        )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         event.stop()

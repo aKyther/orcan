@@ -9,8 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(
-    __import__("os").environ.get("ORCAN_HOME")
-    or Path(__file__).resolve().parents[2]
+    __import__("os").environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2]
 )
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import die, discover_config, load_config  # noqa: E402

@@ -60,7 +60,9 @@ class FirstRunModal(ModalScreen[None]):
                 "Your tmux sessions survive cockpit and browser reconnects.",
                 classes="first-run-body",
             )
-            yield Static("Enter / Esc — dismiss (won't show again)", classes="first-run-footer")
+            yield Static(
+                "Enter / Esc — dismiss (won't show again)", classes="first-run-footer"
+            )
 
     def action_dismiss_seen(self) -> None:
         mark_onboarding_seen()

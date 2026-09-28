@@ -69,12 +69,32 @@ def _init_repo(path: Path) -> None:
     env["GIT_AUTHOR_NAME"] = env["GIT_COMMITTER_NAME"] = "t"
     env["GIT_AUTHOR_EMAIL"] = env["GIT_COMMITTER_EMAIL"] = "t@example.com"
     path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init", "--quiet", "-b", "main"], cwd=path, check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=path, check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.name", "t"], cwd=path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "--quiet", "-b", "main"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "t@example.com"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "t"], cwd=path, check=True, capture_output=True
+    )
     (path / "f").write_text("x\n", encoding="utf-8")
-    subprocess.run(["git", "add", "f"], cwd=path, check=True, capture_output=True, env=env)
-    subprocess.run(["git", "commit", "-m", "init"], cwd=path, check=True, capture_output=True, env=env)
+    subprocess.run(
+        ["git", "add", "f"], cwd=path, check=True, capture_output=True, env=env
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "init"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+        env=env,
+    )
 
 
 def _add_worktree(main_repo: Path, worktree_path: Path, branch: str) -> None:
@@ -82,7 +102,9 @@ def _add_worktree(main_repo: Path, worktree_path: Path, branch: str) -> None:
 
     subprocess.run(
         ["git", "worktree", "add", "-b", branch, str(worktree_path)],
-        cwd=main_repo, check=True, capture_output=True,
+        cwd=main_repo,
+        check=True,
+        capture_output=True,
     )
 
 
@@ -171,7 +193,9 @@ class ManagedRootTests(unittest.TestCase):
         proj.mkdir(parents=True)
         ws = self._workspace("demo", proj)
 
-        text = apply_config.write_compose_projects([ws], self.root, managed_root=managed)
+        text = apply_config.write_compose_projects(
+            [ws], self.root, managed_root=managed
+        )
 
         self.assertNotIn(f"{proj}:{proj}", text)
 
@@ -181,7 +205,9 @@ class ManagedRootTests(unittest.TestCase):
         external.mkdir(parents=True)
         ws = self._workspace("demo", external)
 
-        text = apply_config.write_compose_projects([ws], self.root, managed_root=managed)
+        text = apply_config.write_compose_projects(
+            [ws], self.root, managed_root=managed
+        )
 
         self.assertIn(f"{external}:{external}", text)
 
@@ -312,12 +338,16 @@ class ApplyConfigE2ETests(unittest.TestCase):
             project = root / "project"
             project.mkdir()
             cfg = {
-                "workspaces": [{"name": "demo", "projects": [{"name": "app", "path": str(project)}]}],
+                "workspaces": [
+                    {
+                        "name": "demo",
+                        "projects": [{"name": "app", "path": str(project)}],
+                    }
+                ],
                 "ttyd": {"renderer": "dom"},
             }
             with self.assertRaises(SystemExit):
                 apply_config.build_from_config(cfg, root)
-
 
     def test_worktree_project_also_mounts_main_repos_git_dir_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -347,21 +377,27 @@ class ApplyConfigE2ETests(unittest.TestCase):
             try:
                 sys.argv = [
                     "apply-config.py",
-                    "--root", str(root),
-                    "--config", str(root / "orcan.config.json"),
+                    "--root",
+                    str(root),
+                    "--config",
+                    str(root / "orcan.config.json"),
                 ]
                 apply_config.main()
             finally:
                 sys.argv = old_argv
 
-            compose_text = (root / "mounts" / "compose-projects.generated.yml").read_text(encoding="utf-8")
+            compose_text = (
+                root / "mounts" / "compose-projects.generated.yml"
+            ).read_text(encoding="utf-8")
             self.assertIn(str(worktree_path.resolve()), compose_text)
             self.assertIn(str((main_repo / ".git").resolve()), compose_text)
             # Isolation: never a bare mount of the main checkout's own root
             # (only its .git dir — a substring check on the root alone would
             # false-positive against the .git line above, so check the exact
             # "path:path" mapping line the main checkout root would produce).
-            self.assertNotIn(f"{main_repo.resolve()}:{main_repo.resolve()}", compose_text)
+            self.assertNotIn(
+                f"{main_repo.resolve()}:{main_repo.resolve()}", compose_text
+            )
 
 
 if __name__ == "__main__":

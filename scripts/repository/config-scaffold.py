@@ -8,8 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(
-    __import__("os").environ.get("ORCAN_HOME")
-    or Path(__file__).resolve().parents[2]
+    __import__("os").environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2]
 )
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import (  # noqa: E402
@@ -54,7 +53,9 @@ def main() -> None:
         default="",
         help="Path to config (default: discover or create orcan.config.json)",
     )
-    parser.add_argument("--project-dir", required=True, help="Absolute host path to a repo")
+    parser.add_argument(
+        "--project-dir", required=True, help="Absolute host path to a repo"
+    )
     parser.add_argument(
         "--workspace",
         default="",

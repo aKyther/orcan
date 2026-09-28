@@ -24,7 +24,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: requirements-docs.txt
+          cache-dependency-path: |
+            requirements-docs.txt
+            requirements-test.txt
+
+      - name: Install Python test tooling
+        run: python -m pip install -r requirements-test.txt
 
       - name: Validate repository
         run: make validate
@@ -32,10 +37,11 @@ jobs:
       - name: Host tests
         run: make test-host
 
+      - name: Python format
+        run: make format-check
+
       - name: Python coverage
-        run: |
-          python -m pip install -r requirements-test.txt
-          make test-coverage
+        run: make test-coverage
 
       - name: Check documentation
         run: make docs-check

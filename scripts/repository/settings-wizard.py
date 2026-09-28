@@ -49,14 +49,18 @@ def summarize(cfg: dict[str, Any]) -> None:
 
 def edit_tmux(cfg: dict[str, Any]) -> None:
     current = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else DEFAULT_TMUX
-    windows = ask("Initial tmux windows per workspace", str(current.get("initial_windows", 3)))
+    windows = ask(
+        "Initial tmux windows per workspace", str(current.get("initial_windows", 3))
+    )
     try:
         n = int(windows)
         n = max(1, min(9, n))
     except ValueError:
         n = 3
         warn("invalid number — using 3")
-    prefix = ask("Window name prefix", str(current.get("window_prefix", "tab"))) or "tab"
+    prefix = (
+        ask("Window name prefix", str(current.get("window_prefix", "tab"))) or "tab"
+    )
     cfg["tmux"] = {"initial_windows": n, "window_prefix": prefix}
 
 
@@ -64,22 +68,33 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
     current = cfg.get("ttyd") if isinstance(cfg.get("ttyd"), dict) else DEFAULT_TTYD
     port = ask("ttyd container port", str(current.get("port", 7681)))
     host_port = ask("ttyd host port", str(current.get("host_port", port)))
-    bind = ask(
-        "ttyd host bind (0.0.0.0=all interfaces; 127.0.0.1=local only)",
-        str(current.get("bind", "0.0.0.0")),
-    ).strip() or "0.0.0.0"
+    bind = (
+        ask(
+            "ttyd host bind (0.0.0.0=all interfaces; 127.0.0.1=local only)",
+            str(current.get("bind", "0.0.0.0")),
+        ).strip()
+        or "0.0.0.0"
+    )
     if bind not in ("127.0.0.1", "0.0.0.0", "localhost") and ":" not in bind:
         # Allow IPv4 literals; reject empty garbage.
         parts = bind.split(".")
-        if not (len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)):
+        if not (
+            len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)
+        ):
             warn("unusual bind address — keeping it; prefer 127.0.0.1 or 0.0.0.0")
     if bind in ("0.0.0.0", "::"):
-        warn("binding all interfaces — set TTYD_CREDENTIAL=user:pass in .env for basic auth")
+        warn(
+            "binding all interfaces — set TTYD_CREDENTIAL=user:pass in .env for basic auth"
+        )
     font = ask("ttyd font size", str(current.get("font_size", 14)))
-    renderer = ask(
-        "ttyd renderer (webgl=fast; canvas=fallback)",
-        str(current.get("renderer", DEFAULT_TTYD["renderer"])),
-    ).strip().lower()
+    renderer = (
+        ask(
+            "ttyd renderer (webgl=fast; canvas=fallback)",
+            str(current.get("renderer", DEFAULT_TTYD["renderer"])),
+        )
+        .strip()
+        .lower()
+    )
     if renderer not in ("webgl", "canvas"):
         warn("renderer must be webgl or canvas — settings unchanged")
         return
@@ -92,7 +107,9 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
             "font_family": current.get("font_family", DEFAULT_TTYD["font_family"]),
             "renderer": renderer,
             "theme": current.get("theme", DEFAULT_TTYD["theme"]),
-            "ping_interval": current.get("ping_interval", DEFAULT_TTYD["ping_interval"]),
+            "ping_interval": current.get(
+                "ping_interval", DEFAULT_TTYD["ping_interval"]
+            ),
         }
     except ValueError:
         warn("invalid ttyd numbers — settings unchanged")

@@ -15,7 +15,9 @@ LOG_SH = ROOT / "cli" / "lib" / "log.sh"
 DEPS_SH = ROOT / "cli" / "lib" / "deps.sh"
 
 
-def _bash(script: str, *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _bash(
+    script: str, *, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     full = f"""
 set -Eeuo pipefail
 ORCAN_NO_COLOR=1
@@ -60,12 +62,14 @@ def _init_tagged_repo(path: Path, tags: list[str]) -> None:
 
 class GitReleaseHelperTests(unittest.TestCase):
     def test_normalize_accepts_v_or_bare(self) -> None:
-        r = _bash('orcan_git_normalize_release_tag 1.2.3; orcan_git_normalize_release_tag v9.0.1')
+        r = _bash(
+            "orcan_git_normalize_release_tag 1.2.3; orcan_git_normalize_release_tag v9.0.1"
+        )
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.strip().splitlines(), ["v1.2.3", "v9.0.1"])
 
     def test_normalize_rejects_junk(self) -> None:
-        r = _bash('orcan_git_normalize_release_tag main')
+        r = _bash("orcan_git_normalize_release_tag main")
         self.assertNotEqual(r.returncode, 0)
 
     def test_previous_and_checkout_to(self) -> None:
@@ -74,11 +78,11 @@ class GitReleaseHelperTests(unittest.TestCase):
             _init_tagged_repo(root, ["v0.1.0", "v0.2.0", "v0.3.0"])
             _git(root, "checkout", "--detach", "v0.3.0")
             env = {"ORCAN_ROOT": str(root), "ORCAN_DATA": str(root / "data")}
-            r = _bash('orcan_git_previous_release_tag v0.3.0', env=env)
+            r = _bash("orcan_git_previous_release_tag v0.3.0", env=env)
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertEqual(r.stdout.strip(), "v0.2.0")
 
-            r = _bash('orcan_git_upgrade to 0.1.0', env=env)
+            r = _bash("orcan_git_upgrade to 0.1.0", env=env)
             self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
             desc = subprocess.check_output(
                 ["git", "-C", str(root), "describe", "--tags", "--exact-match"],

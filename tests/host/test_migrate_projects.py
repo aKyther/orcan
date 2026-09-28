@@ -18,12 +18,26 @@ def _init_repo(path: Path) -> None:
     import subprocess
 
     path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init", "--quiet", "-b", "main"], cwd=path, check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=path, check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.name", "t"], cwd=path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "--quiet", "-b", "main"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "t@example.com"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "t"], cwd=path, check=True, capture_output=True
+    )
     (path / "f.txt").write_text("hello\n", encoding="utf-8")
     subprocess.run(["git", "add", "f.txt"], cwd=path, check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "init"], cwd=path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "init"], cwd=path, check=True, capture_output=True
+    )
 
 
 class PlanMovesTests(unittest.TestCase):
@@ -38,7 +52,9 @@ class PlanMovesTests(unittest.TestCase):
             "workspaces": [
                 {
                     "name": "ws",
-                    "projects": [{"name": "app", "path": str(self.tmp / "external" / "app")}],
+                    "projects": [
+                        {"name": "app", "path": str(self.tmp / "external" / "app")}
+                    ],
                 }
             ]
         }
@@ -50,7 +66,11 @@ class PlanMovesTests(unittest.TestCase):
 
     def test_project_already_under_managed_root_is_skipped(self) -> None:
         already = self.managed_root / "ws" / "app"
-        cfg = {"workspaces": [{"name": "ws", "projects": [{"name": "app", "path": str(already)}]}]}
+        cfg = {
+            "workspaces": [
+                {"name": "ws", "projects": [{"name": "app", "path": str(already)}]}
+            ]
+        }
         moves = migrate_projects.plan_moves(cfg, self.managed_root)
         self.assertEqual(moves, [])
 
@@ -68,7 +88,9 @@ class ApplyMovesTests(unittest.TestCase):
         new_path = self.managed_root / "ws" / "app"
         project = {"name": "app", "path": str(old_path)}
 
-        log = migrate_projects.apply_moves([(project, old_path, new_path)], leave_symlink=True)
+        log = migrate_projects.apply_moves(
+            [(project, old_path, new_path)], leave_symlink=True
+        )
 
         self.assertTrue(new_path.is_dir())
         self.assertTrue((new_path / ".git").exists())
@@ -84,7 +106,9 @@ class ApplyMovesTests(unittest.TestCase):
         new_path = self.managed_root / "ws" / "app"
         project = {"name": "app", "path": str(old_path)}
 
-        migrate_projects.apply_moves([(project, old_path, new_path)], leave_symlink=False)
+        migrate_projects.apply_moves(
+            [(project, old_path, new_path)], leave_symlink=False
+        )
 
         self.assertFalse(old_path.exists())
         self.assertTrue(new_path.is_dir())
@@ -96,7 +120,9 @@ class ApplyMovesTests(unittest.TestCase):
         new_path.mkdir(parents=True)
         project = {"name": "app", "path": str(old_path)}
 
-        log = migrate_projects.apply_moves([(project, old_path, new_path)], leave_symlink=True)
+        log = migrate_projects.apply_moves(
+            [(project, old_path, new_path)], leave_symlink=True
+        )
 
         self.assertTrue(old_path.is_dir())
         self.assertTrue(any("skip" in line for line in log))
@@ -110,16 +136,23 @@ class MainDryRunTests(unittest.TestCase):
             proj = root / "app"
             _init_repo(proj)
             cfg_path = root / "orcan.config.json"
-            cfg = {"workspaces": [{"name": "ws", "projects": [{"name": "app", "path": str(proj)}]}]}
+            cfg = {
+                "workspaces": [
+                    {"name": "ws", "projects": [{"name": "app", "path": str(proj)}]}
+                ]
+            }
             cfg_path.write_text(json.dumps(cfg), encoding="utf-8")
 
             old_argv = sys.argv
             try:
                 sys.argv = [
                     "migrate_projects.py",
-                    "--root", str(root),
-                    "--config", str(cfg_path),
-                    "--managed-root", str(root / "managed"),
+                    "--root",
+                    str(root),
+                    "--config",
+                    str(cfg_path),
+                    "--managed-root",
+                    str(root / "managed"),
                 ]
                 rc = migrate_projects.main()
             finally:
@@ -129,7 +162,9 @@ class MainDryRunTests(unittest.TestCase):
             self.assertTrue(proj.is_dir())
             self.assertFalse((root / "managed").exists())
             self.assertEqual(
-                json.loads(cfg_path.read_text(encoding="utf-8"))["workspaces"][0]["projects"][0]["path"],
+                json.loads(cfg_path.read_text(encoding="utf-8"))["workspaces"][0][
+                    "projects"
+                ][0]["path"],
                 str(proj),
             )
 

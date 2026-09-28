@@ -31,6 +31,7 @@ Commands:
   context worktree remove  Remove a managed worktree (--path or --workspace)
   context worktree prune   Reconcile worktrees/registry.json against disk
                            (+ config); dry-run by default, --force to clean
+  studio probe --json      Machine-readable host/runtime capabilities for Orcan Studio
 
   up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git]
                            Start container (local: orcan enter; browser: pick ttyd or ttyd-auth)

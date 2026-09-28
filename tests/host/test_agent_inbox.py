@@ -32,12 +32,16 @@ class ProposeTests(unittest.TestCase):
         self.assertEqual(proposed[0]["status"], "proposed")
 
     def test_draft_policy_lands_in_proposals_too(self) -> None:
-        agent_inbox.propose(self.root, {"title": "sketch", "execution": {"policy": "draft"}})
+        agent_inbox.propose(
+            self.root, {"title": "sketch", "execution": {"policy": "draft"}}
+        )
         self.assertEqual(len(agent_inbox.list_tasks(self.root, "proposals")), 1)
         self.assertEqual(agent_inbox.list_tasks(self.root, "inbox"), [])
 
     def test_auto_policy_goes_straight_to_inbox(self) -> None:
-        agent_inbox.propose(self.root, {"title": "auto task", "execution": {"policy": "auto"}})
+        agent_inbox.propose(
+            self.root, {"title": "auto task", "execution": {"policy": "auto"}}
+        )
         self.assertEqual(agent_inbox.list_tasks(self.root, "proposals"), [])
         inbox = agent_inbox.list_tasks(self.root, "inbox")
         self.assertEqual(len(inbox), 1)
@@ -120,7 +124,9 @@ class ClaimTests(unittest.TestCase):
                 with lock:
                     winners.append(claimed)
 
-        threads = [threading.Thread(target=worker, args=(f"worker-{i}",)) for i in range(16)]
+        threads = [
+            threading.Thread(target=worker, args=(f"worker-{i}",)) for i in range(16)
+        ]
         for t in threads:
             t.start()
         for t in threads:

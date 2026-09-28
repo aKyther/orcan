@@ -17,7 +17,9 @@ PTY_TERMINAL_PATH = ROOT / "cockpit" / "src" / "orcan_cockpit" / "pty_terminal.p
 
 
 def _load_pty_terminal():
-    spec = importlib.util.spec_from_file_location("cockpit_pty_terminal", PTY_TERMINAL_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "cockpit_pty_terminal", PTY_TERMINAL_PATH
+    )
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -34,7 +36,9 @@ except ModuleNotFoundError as exc:
     _PTY_IMPORT_ERROR = str(exc)
 
 
-@unittest.skipIf(pty_terminal is None, "cockpit dependencies unavailable: " + str(_PTY_IMPORT_ERROR))
+@unittest.skipIf(
+    pty_terminal is None, "cockpit dependencies unavailable: " + str(_PTY_IMPORT_ERROR)
+)
 class EscCoalesceFlushTests(unittest.TestCase):
     def _terminal(self) -> pty_terminal.PtyTerminal:
         term = pty_terminal.PtyTerminal(["true"], session="dev")
@@ -106,7 +110,9 @@ class EscCoalesceFlushTests(unittest.TestCase):
         loop = MagicMock()
         with (
             patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
-            patch.object(pty_terminal.os, "write", side_effect=[2, BlockingIOError(), 3]),
+            patch.object(
+                pty_terminal.os, "write", side_effect=[2, BlockingIOError(), 3]
+            ),
         ):
             term._write_pty(b"hello")
             self.assertEqual(term._write_buffer, b"llo")
@@ -140,7 +146,10 @@ class EscCoalesceFlushTests(unittest.TestCase):
     def test_large_paste_is_staged_in_a_private_file(self) -> None:
         term = self._terminal()
         payload = b"x" * pty_terminal._STAGED_PASTE_BYTES
-        with tempfile.TemporaryDirectory() as tmp, patch.object(pty_terminal.tempfile, "tempdir", tmp):
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            patch.object(pty_terminal.tempfile, "tempdir", tmp),
+        ):
             path = term._stage_large_paste(payload)
             self.assertIsNotNone(path)
             assert path is not None
@@ -148,7 +157,10 @@ class EscCoalesceFlushTests(unittest.TestCase):
             self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
 
     def test_staged_paste_cleanup_removes_only_expired_files(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp, patch.object(pty_terminal.tempfile, "tempdir", tmp):
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            patch.object(pty_terminal.tempfile, "tempdir", tmp),
+        ):
             expired = Path(tmp) / "orcan-paste-expired.md"
             fresh = Path(tmp) / "orcan-paste-fresh.md"
             unrelated = Path(tmp) / "keep.md"
@@ -166,7 +178,9 @@ class EscCoalesceFlushTests(unittest.TestCase):
     def test_large_paste_sends_file_instruction_not_the_payload(self) -> None:
         term = self._terminal()
         event = MagicMock(text="x" * pty_terminal._STAGED_PASTE_BYTES)
-        with patch.object(term, "_stage_large_paste", return_value="/tmp/orcan-paste-test.md"):
+        with patch.object(
+            term, "_stage_large_paste", return_value="/tmp/orcan-paste-test.md"
+        ):
             term.on_paste(event)
         event.stop.assert_called_once()
         prompt = term._write_pty.call_args.args[0].decode()
@@ -179,18 +193,26 @@ class EscCoalesceFlushTests(unittest.TestCase):
         screen.cursor.y = 1
 
         self.assertEqual(
-            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=True, visible=True),
+            pty_terminal.PtyTerminal._cursor_offset(
+                screen, 8, focused=True, visible=True
+            ),
             12,
         )
         self.assertIsNone(
-            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=False, visible=True)
+            pty_terminal.PtyTerminal._cursor_offset(
+                screen, 8, focused=False, visible=True
+            )
         )
         self.assertIsNone(
-            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=True, visible=False)
+            pty_terminal.PtyTerminal._cursor_offset(
+                screen, 8, focused=True, visible=False
+            )
         )
         screen.cursor.hidden = True
         self.assertIsNone(
-            pty_terminal.PtyTerminal._cursor_offset(screen, 8, focused=True, visible=True)
+            pty_terminal.PtyTerminal._cursor_offset(
+                screen, 8, focused=True, visible=True
+            )
         )
 
 

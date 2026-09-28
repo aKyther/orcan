@@ -36,7 +36,8 @@ class TmuxTokenDriftTests(unittest.TestCase):
                 continue
             for token in shortcut.tmux_tokens:
                 self.assertIn(
-                    token, self.conf,
+                    token,
+                    self.conf,
                     f"{shortcut.keys!r} ({shortcut.description!r}) token {token!r} "
                     "not found in keybindings.conf — manifest and config have drifted",
                 )
@@ -44,14 +45,21 @@ class TmuxTokenDriftTests(unittest.TestCase):
     def test_every_tmux_entry_has_at_least_one_token(self) -> None:
         for shortcut in shortcuts.SHORTCUTS:
             if shortcut.layer == "tmux":
-                self.assertTrue(shortcut.tmux_tokens, f"{shortcut.keys!r} has no tmux_tokens to verify")
+                self.assertTrue(
+                    shortcut.tmux_tokens,
+                    f"{shortcut.keys!r} has no tmux_tokens to verify",
+                )
 
 
 class ManifestSanityTests(unittest.TestCase):
     def test_every_context_used_is_a_valid_literal(self) -> None:
         for shortcut in shortcuts.SHORTCUTS:
             for context in shortcut.contexts:
-                self.assertIn(context, shortcuts.VALID_CONTEXTS, f"{shortcut.keys!r} has invalid context {context!r}")
+                self.assertIn(
+                    context,
+                    shortcuts.VALID_CONTEXTS,
+                    f"{shortcut.keys!r} has invalid context {context!r}",
+                )
 
     def test_every_layer_is_tmux_or_app(self) -> None:
         for shortcut in shortcuts.SHORTCUTS:
@@ -61,7 +69,8 @@ class ManifestSanityTests(unittest.TestCase):
         seen: dict[str, set[str]] = {"tmux": set(), "app": set()}
         for shortcut in shortcuts.SHORTCUTS:
             self.assertNotIn(
-                shortcut.keys, seen[shortcut.layer],
+                shortcut.keys,
+                seen[shortcut.layer],
                 f"duplicate {shortcut.layer} entry for {shortcut.keys!r}",
             )
             seen[shortcut.layer].add(shortcut.keys)

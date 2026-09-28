@@ -54,15 +54,15 @@ class TopBar(Widget):
         yield Static(id="top-bar-right")
 
     def on_mount(self) -> None:
-        self.query_one("#top-bar-right", Static).tooltip = (
-            "clock; system load and memory appear here on hover"
-        )
-        self.query_one("#top-bar-identity", Static).tooltip = (
-            f"About orcan cockpit · v{product_version()}"
-        )
-        self.query_one("#workspace-trigger", Static).tooltip = (
-            "Choose a workspace and inspect its projects (F4)"
-        )
+        self.query_one(
+            "#top-bar-right", Static
+        ).tooltip = "clock; system load and memory appear here on hover"
+        self.query_one(
+            "#top-bar-identity", Static
+        ).tooltip = f"About orcan cockpit · v{product_version()}"
+        self.query_one(
+            "#workspace-trigger", Static
+        ).tooltip = "Choose a workspace and inspect its projects (F4)"
         self.set_workspace(None)
         self.refresh_clock()
         self.set_interval(_REFRESH_INTERVAL_S, self.refresh_clock)
@@ -117,7 +117,9 @@ class TopBar(Widget):
                 trigger.tooltip = "Choose a workspace and inspect workspaces (F4)"
             return
         self.run_worker(
-            partial(self._resolve_workspace_indicator, self._workspace_name, self._session),
+            partial(
+                self._resolve_workspace_indicator, self._workspace_name, self._session
+            ),
             group="workspace-indicator",
             exclusive=True,
             exit_on_error=False,

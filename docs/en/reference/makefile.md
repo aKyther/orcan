@@ -14,7 +14,8 @@ This repository ships a Makefile only for **maintainers** working in a git check
 | Target | Role |
 | --- | --- |
 | `make validate` | Layout + script syntax |
-| `make test-host` | Host unit tests |
+| `make test-host` | Pytest host tests |
+| `make format` / `make format-check` | Apply / verify Ruff formatting for Python code |
 | `make test` / `make test-path-parity` | Container tests (needs Docker) |
 | `make dev-test` | Isolated developer UX lifecycle (needs Docker + `orcan:dev-ux`) |
 | `make docs` / `docs-serve` / `docs-check` | MkDocs |

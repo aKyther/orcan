@@ -36,9 +36,7 @@ class SensitivePathTests(unittest.TestCase):
         self.assertFalse(is_sensitive_path("/home/ubuntu/workspace/orcan"))
 
     def test_developer_workspaces_allowed(self) -> None:
-        self.assertFalse(
-            is_sensitive_path("/home/developer/workspaces/my-ws")
-        )
+        self.assertFalse(is_sensitive_path("/home/developer/workspaces/my-ws"))
 
 
 if __name__ == "__main__":

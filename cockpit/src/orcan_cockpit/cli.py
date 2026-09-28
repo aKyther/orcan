@@ -20,7 +20,6 @@ from __future__ import annotations
 import sys
 
 
-
 def main() -> int:
     if not sys.stdin.isatty():
         from orcan_cockpit.picker import run_fallback_menu
