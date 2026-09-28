@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Browser-only Studio UX preview. It serves fixture data, never a real Sandbox.
+# Browser-only Studio UX preview. It serves fixture data and, only after an
+# explicit `snapshot`, a read-only probe report of this host. It never runs
+# actions against a real Sandbox.
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
@@ -10,10 +12,15 @@ DOCKER_BIN="${ORCAN_STUDIO_PREVIEW_DOCKER:-docker}"
 
 usage() {
     cat <<'EOF'
-Usage: scripts/dev/orcan-studio-preview start|stop|status|logs|url
+Usage: scripts/dev/orcan-studio-preview start|stop|status|logs|url|snapshot|snapshot-clear
 
 Starts the browser-only Orcan Studio UX fixture on the first Tailscale IPv4
 address. It has no SSH, Docker, credential-vault, or Orcan connection.
+
+snapshot        Save `orcan studio probe --json` of this host (read-only, no
+                secrets) so the preview's "This computer" Enclave shows real
+                workspaces and projects. Anyone on your tailnet can see it.
+snapshot-clear  Remove the snapshot; the preview returns to fixture data.
 
 Overrides:
   ORCAN_STUDIO_PREVIEW_BIND=100.x.x.x
@@ -23,6 +30,25 @@ EOF
 
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 require() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
+
+SNAPSHOT="${ROOT_DIR}/studio/app/.preview/probe.json"
+case "${1:-}" in
+    snapshot)
+        orcan_bin="$(command -v orcan || printf '%s' "${ROOT_DIR}/bin/orcan")"
+        mkdir -p "$(dirname "${SNAPSHOT}")"
+        "${orcan_bin}" studio probe --json >"${SNAPSHOT}.tmp" || die "orcan studio probe failed"
+        python3 -c 'import json, sys; r = json.load(open(sys.argv[1])); print("Snapshot:", ", ".join(w["name"] for w in r["context"]["workspaces"]) or "no workspaces")' "${SNAPSHOT}.tmp" \
+            || die "probe did not return a JSON report"
+        mv "${SNAPSHOT}.tmp" "${SNAPSHOT}"
+        printf 'Saved %s — reload the preview and open "Demo workstation".\n' "${SNAPSHOT}"
+        exit 0
+        ;;
+    snapshot-clear)
+        rm -f "${SNAPSHOT}"
+        printf 'Snapshot removed; the preview shows fixture data again.\n'
+        exit 0
+        ;;
+esac
 
 if [[ ! "${PORT}" =~ ^[0-9]+$ ]] || (( PORT < 1024 || PORT > 65535 )); then
     die "invalid Studio preview port: ${PORT} (expected 1024-65535)"

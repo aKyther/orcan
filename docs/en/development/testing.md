@@ -48,6 +48,16 @@ Vite hot-reloads frontend edits; no `.exe`, `.app`, or Tauri bundle is built.
 Use `npm run tauri dev` for an integration check against the real native
 backend.
 
+To review the layout with this host's real workspaces, save a read-only probe
+snapshot. The preview's "Demo workstation" Enclave then shows it; other
+Enclaves and every action stay simulated. The snapshot is served only by the
+Vite dev server (never bundled) and is visible to your tailnet.
+
+```bash
+make studio-preview-snapshot        # runs orcan studio probe --json on the host
+make studio-preview-snapshot-clear  # back to fixture data
+```
+
 ### Full developer browser environment — `orcan-preview`
 
 Isolated Docker stack from **this** checkout: own image, Compose project, home/data, ttyd port, and container. Does not replace `orcan:latest` or touch `~/.config/orcan`.

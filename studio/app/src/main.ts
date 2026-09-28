@@ -19,7 +19,7 @@ type ProbeReport = {
   context: {
     workspaces: Array<{
       name: string;
-      projects: Array<{ name?: string; path: string; kind: string; branch?: string; dirty?: boolean }>;
+      projects: Array<{ name?: string; path: string; kind: string; branch?: string; dirty?: boolean; repository_id?: string }>;
     }>;
     managed_projects: Array<{ path: string; kind: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
@@ -152,9 +152,12 @@ const demoReport: ProbeReport = {
   },
   paths: { home: "/home/orcan/.config/orcan", data: "/home/orcan/.config/orcan", projects_root: "/home/orcan/.config/orcan/sandbox", workspace_metadata_root: "/home/orcan/.config/orcan/workspaces", managed_worktrees_root: "/home/orcan/.config/orcan/worktrees" },
   context: {
-    workspaces: [{ name: "platform", projects: [{ name: "api", path: "/home/orcan/.config/orcan/sandbox/api", kind: "git", branch: "main", dirty: false }, { name: "web", path: "/home/orcan/.config/orcan/sandbox/web", kind: "git", branch: "feature/studio", dirty: true }] }],
-    managed_projects: [{ path: "/home/orcan/.config/orcan/sandbox/api", kind: "git" }, { path: "/home/orcan/.config/orcan/sandbox/web", kind: "git" }],
-    repositories: [{ repository_id: "api", origin_url: "git@github.com:example/api.git", bindings: [{ workspace: "platform" }] }, { repository_id: "web", origin_url: "git@github.com:example/web.git", bindings: [{ workspace: "platform" }] }],
+    workspaces: [
+      { name: "platform", projects: [{ name: "api", path: "/home/orcan/.config/orcan/sandbox/api", kind: "git_repository", branch: "main", dirty: false, repository_id: "api" }, { name: "web", path: "/home/orcan/.config/orcan/sandbox/web", kind: "git_repository", branch: "feature/studio", dirty: true, repository_id: "web" }] },
+      { name: "mobile", projects: [{ name: "app", path: "/home/orcan/.config/orcan/sandbox/app", kind: "git_repository", branch: "main", dirty: false, repository_id: "app" }, { name: "api", path: "/home/orcan/.config/orcan/sandbox/api", kind: "git_repository", branch: "main", dirty: false, repository_id: "api" }] },
+    ],
+    managed_projects: ["api", "web", "app", "scratch"].map((name) => ({ path: `/home/orcan/.config/orcan/sandbox/${name}`, kind: "git_repository" })),
+    repositories: [{ repository_id: "api", origin_url: "git@github.com:example/api.git", bindings: [{ workspace: "platform" }, { workspace: "mobile" }] }, { repository_id: "web", origin_url: "git@github.com:example/web.git", bindings: [{ workspace: "platform" }] }, { repository_id: "app", origin_url: "git@github.com:example/app.git", bindings: [{ workspace: "mobile" }] }],
     configuration: { state: "synchronized", revision: "demo" },
   },
 };
@@ -183,11 +186,20 @@ function demoStoreCommand(command: string, args: Record<string, unknown>): unkno
   return null;
 }
 
+/** Read-only host report from `orcan-studio-preview snapshot`, served only by the dev server. */
+const previewSnapshot: Promise<ProbeReport | undefined> = demoMode
+  ? fetch("/preview-probe.json", { cache: "no-store" }).then((response) => (response.ok ? response.json() : undefined)).catch(() => undefined)
+  : Promise.resolve(undefined);
+
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) return tauriInvoke<T>(command, _args as never);
   await new Promise((resolve) => window.setTimeout(resolve, 180));
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
   const destination = JSON.stringify((_args as { target?: Target } | undefined)?.target ?? {});
+  if (command === "probe" && destination.includes('"local"')) {
+    const snapshot = await previewSnapshot;
+    if (snapshot) return snapshot as T;
+  }
   if (command === "probe" && destination.includes("staging")) throw new Error("SSH connection failed: Connection timed out");
   if (command === "probe" && destination.includes("gpu")) return { ...demoReport, runtime: { ...demoReport.runtime, docker: { ...demoReport.runtime.docker, container: { state: "exited" } } } } as T;
   const root = demoReport.paths.projects_root;
@@ -247,6 +259,7 @@ function lockStudio(): void {
   activeGroup.hidden = true;
   for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) item.hidden = true;
   healthPanel.hidden = true;
+  enclaveMap.hidden = true;
   snapshot.hidden = true;
   sandboxSettings.hidden = true;
   focusTitle.textContent = initialFocus.title;
@@ -261,15 +274,14 @@ function unlockStudio(report: ProbeReport): void {
     item.hidden = needsManagedProjects.has(item.dataset.viewTarget ?? "") && !report.capabilities.managed_projects;
   }
   healthPanel.hidden = false;
-  focusTitle.textContent = "Connected";
+  const step = nextStep(report);
+  focusTitle.textContent = step.title;
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   healthTitle.textContent = report.runtime.docker.container.state === "running" ? "Ready" : "Attention needed";
   overviewRuntime.textContent = report.runtime.docker.container.state;
   overviewConfig.textContent = report.context.configuration.state;
   overviewAgents.textContent = agents.length ? agents.join(", ") : "Not reported";
-  nextAction.textContent = report.runtime.docker.container.state === "running"
-    ? "Review the context map, then import a repository or create a worktree for the workspace family that needs it."
-    : "The Enclave is reachable, but its container is not running. Review its instance settings before changing context.";
+  nextAction.textContent = step.action;
 }
 
 const launchSummary = document.querySelector<HTMLElement>("#launch-summary")!;
@@ -313,7 +325,55 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
   void connect(current);
 }
 
+const enclaveMap = $("#enclave-map");
+const workspaceCards = $("#workspace-cards");
+const unassigned = $("#unassigned");
+
+function projectName(project: { name?: string; path: string }): string {
+  return project.name ?? project.path.split("/").pop() ?? project.path;
+}
+
+/** Sandbox projects that no workspace references. */
+function unassignedProjects(report: ProbeReport): Array<{ path: string; kind: string }> {
+  const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
+  return report.context.managed_projects.filter((project) => !used.has(project.path));
+}
+
+function renderEnclaveMap(report: ProbeReport): void {
+  enclaveMap.hidden = false;
+  const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
+  workspaceCards.replaceChildren(...(report.context.workspaces.length ? report.context.workspaces.map((workspace) => {
+    const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` })));
+    const list = el("ul");
+    for (const project of workspace.projects) {
+      const others = (project.repository_id ? sharedIn.get(project.repository_id) ?? [] : []).filter((name) => name !== workspace.name);
+      const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
+      list.append(el("li", { title: project.path }, el("span", { className: "project-name", textContent: projectName(project) }), ...tags, el("small", { textContent: project.path })));
+    }
+    card.append(workspace.projects.length ? list : el("p", { className: "hint", textContent: "No projects yet." }));
+    return card;
+  }) : [el("p", { className: "empty-state", textContent: "This Enclave has no workspaces yet. A workspace groups the projects an agent works on together." })]));
+  const loose = unassignedProjects(report);
+  unassigned.hidden = loose.length === 0;
+  unassigned.replaceChildren(el("strong", { textContent: `In the sandbox, but in no workspace (${loose.length})` }), el("span", { textContent: loose.map(projectName).join(" · ") }), el("small", { textContent: "Attach them to a workspace in Repositories, or leave them for one-off work." }));
+}
+
+/** One sentence that says what to look at first. */
+function nextStep(report: ProbeReport): { title: string; action: string } {
+  const projects = report.context.workspaces.flatMap((workspace) => workspace.projects);
+  const dirty = projects.filter((project) => project.dirty).length;
+  const missing = projects.filter((project) => project.kind === "missing").length;
+  const loose = unassignedProjects(report).length;
+  const summary = `${report.context.workspaces.length} workspace${report.context.workspaces.length === 1 ? "" : "s"} · ${report.context.managed_projects.length} project${report.context.managed_projects.length === 1 ? "" : "s"} in the sandbox`;
+  if (report.runtime.docker.container.state !== "running") return { title: "Container is not running", action: `${summary}. Start the Enclave to let agents work; the map below is read from its configuration.` };
+  if (missing) return { title: `${missing} project path${missing === 1 ? " is" : "s are"} missing`, action: `${summary}. A workspace points at a path that does not exist on this machine; fix or detach it in Repositories.` };
+  if (!report.context.workspaces.length) return { title: "No workspaces yet", action: `${summary}. Create a workspace so agents get a focused set of projects.` };
+  if (loose) return { title: summary, action: `${loose} project${loose === 1 ? " is" : "s are"} in the sandbox but in no workspace. ${dirty ? `${dirty} project${dirty === 1 ? " has" : "s have"} uncommitted changes.` : "Everything else is committed."}` };
+  return { title: summary, action: dirty ? `${dirty} project${dirty === 1 ? " has" : "s have"} uncommitted changes; review them before starting new work.` : "Every project is committed. Pick a workspace below or create a worktree for parallel work." };
+}
+
 function renderSnapshot(report: ProbeReport): void {
+  renderEnclaveMap(report);
   snapshot.hidden = false;
   snapshotRoot.textContent = report.paths.projects_root;
   snapshotWorkspaces.textContent = String(report.context.workspaces.length);
@@ -863,6 +923,9 @@ renderJobs();
 if (demoMode) {
   demoBanner.hidden = false;
   result.textContent = "UX preview: every action below uses sample data.";
+  void previewSnapshot.then((snapshot) => {
+    if (snapshot) demoBanner.textContent = `UX preview · “Demo workstation” shows a read-only snapshot of this host (${snapshot.context.workspaces.map((workspace) => workspace.name).join(", ") || "no workspaces"}); other Enclaves and all actions use sample data.`;
+  });
 }
 activeInstance.addEventListener("click", () => showView("enclaves"));
 void loadStore().then(() => checkAll(true)).catch((error) => {

@@ -10,6 +10,7 @@ orcan.config.yml
 .orcan/
 /mounts/
 /workspaces/
+studio/app/.preview/
 
 # Leftover names from the former "cind" product (safe to ignore)
 cind.config.yaml
