@@ -470,6 +470,7 @@ async fn settings_project_action(
     config: String,
     workspace: String,
     project: String,
+    action: String,
     apply: bool,
 ) -> Result<serde_json::Value, String> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -477,10 +478,11 @@ async fn settings_project_action(
         command.args([
             "studio",
             "settings",
-            if apply {
-                "project-add-apply"
-            } else {
-                "project-add-plan"
+            match (action.as_str(), apply) {
+                ("detach", true) => "project-detach-apply",
+                ("detach", false) => "project-detach-plan",
+                (_, true) => "project-add-apply",
+                _ => "project-add-plan",
             },
             "--config",
             &config,
