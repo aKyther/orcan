@@ -396,6 +396,36 @@ fn save_secret(profile_id: String, kind: String, secret: String) -> Result<(), S
         .map_err(|error| format!("could not store credential: {error}"))
 }
 
+#[tauri::command]
+async fn worktree_plan(
+    repo: String,
+    branch: String,
+    worktrees_root: String,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        Command::new("orcan")
+            .args([
+                "studio",
+                "worktree",
+                "plan",
+                "--repo",
+                &repo,
+                "--branch",
+                &branch,
+                "--worktrees-root",
+                &worktrees_root,
+            ])
+            .output()
+    })
+    .await
+    .map_err(|error| format!("worktree plan stopped: {error}"))?
+    .map_err(|error| format!("could not start worktree plan: {error}"))
+    .and_then(|output| {
+        serde_json::from_slice(&output.stdout)
+            .map_err(|error| format!("invalid worktree plan response: {error}"))
+    })
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -415,7 +445,8 @@ fn main() {
             parent_apply,
             import_plan,
             import_apply,
-            worktree_cleanup
+            worktree_cleanup,
+            worktree_plan
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");

@@ -73,6 +73,10 @@ const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confir
 const cleanupPlan = document.querySelector<HTMLButtonElement>("#cleanup-plan")!;
 const cleanupApply = document.querySelector<HTMLButtonElement>("#cleanup-apply")!;
 const cleanupResult = document.querySelector<HTMLOutputElement>("#cleanup-result")!;
+const worktreeRepo = document.querySelector<HTMLInputElement>("#worktree-repo")!;
+const worktreeBranch = document.querySelector<HTMLInputElement>("#worktree-branch")!;
+const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")!;
+const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
@@ -210,6 +214,7 @@ profilesSelect.addEventListener("change", () => {
   renderProfiles();
 });
 settingsRefresh.addEventListener("click", () => probeButton.click());
+worktreePlan.addEventListener("click", async () => { try { const response = await invoke<{ plan: { destination: string; ready: boolean; blockers: string[] } }>("worktree_plan", { repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent }); worktreeResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination}` : response.plan.blockers.join(" · "); } catch (error) { worktreeResult.textContent = `Plan failed: ${String(error)}`; } });
 cleanupPlan.addEventListener("click", async () => {
   try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, apply: false }); cleanupApply.disabled = !response.plan.ready; cleanupResult.textContent = response.plan.ready ? "Plan ready. Type REMOVE to enable deletion." : response.plan.blockers.join(" · "); }
   catch (error) { cleanupResult.textContent = `Plan failed: ${String(error)}`; }
