@@ -11,7 +11,14 @@ from pathlib import Path
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "mode", choices=("plan", "project-add-plan", "project-add-apply")
+        "mode",
+        choices=(
+            "plan",
+            "project-add-plan",
+            "project-add-apply",
+            "project-detach-plan",
+            "project-detach-apply",
+        ),
     )
     parser.add_argument("--config", required=True)
     parser.add_argument("--workspace")
@@ -34,22 +41,29 @@ def main() -> None:
         blockers = []
         if workspace is None:
             blockers.append("workspace does not exist")
-        if not project.is_dir() or not (project / ".git").exists():
+        detach = args.mode.startswith("project-detach")
+        if not detach and (not project.is_dir() or not (project / ".git").exists()):
             blockers.append("project is not a Git repository")
-        if workspace and any(
+        attached = workspace and any(
             Path(item.get("path", "")).resolve() == project
             for item in workspace.get("projects") or []
-        ):
+        )
+        if not detach and attached:
             blockers.append("project is already attached")
+        if detach and not attached:
+            blockers.append("project is not attached to this workspace")
         plan = {
-            "operation": "project_add",
+            "operation": "project_detach" if detach else "project_add",
             "workspace": args.workspace,
             "project": str(project),
-            "changes": [f"attach {project} to {args.workspace}", "run orcan sync"],
+            "changes": [
+                f"{'detach' if detach else 'attach'} {project} {'from' if detach else 'to'} {args.workspace}",
+                "run orcan sync",
+            ],
             "blockers": blockers,
             "ready": not blockers,
         }
-        if args.mode == "project-add-plan":
+        if args.mode.endswith("-plan"):
             print(json.dumps({"ok": True, "plan": plan}, separators=(",", ":")))
             return
         if not args.yes or not plan["ready"]:
@@ -59,6 +73,18 @@ def main() -> None:
                 )
             )
             raise SystemExit(2)
+        if detach:
+            workspace["projects"] = [
+                item
+                for item in workspace.get("projects") or []
+                if Path(item.get("path", "")).resolve() != project
+            ]
+            temporary = path.with_suffix(".json.tmp")
+            temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+            temporary.replace(path)
+            print(json.dumps({"ok": True, "result": plan}, separators=(",", ":")))
+            return
+
         import subprocess
 
         result = subprocess.run(
