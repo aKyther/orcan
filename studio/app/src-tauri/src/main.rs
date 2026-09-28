@@ -465,6 +465,44 @@ async fn worktree_apply(
     })
 }
 
+#[tauri::command]
+async fn settings_project_action(
+    config: String,
+    workspace: String,
+    project: String,
+    apply: bool,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut command = Command::new("orcan");
+        command.args([
+            "studio",
+            "settings",
+            if apply {
+                "project-add-apply"
+            } else {
+                "project-add-plan"
+            },
+            "--config",
+            &config,
+            "--workspace",
+            &workspace,
+            "--project",
+            &project,
+        ]);
+        if apply {
+            command.arg("--yes");
+        }
+        command.output()
+    })
+    .await
+    .map_err(|error| format!("settings task stopped: {error}"))?
+    .map_err(|error| format!("could not start settings task: {error}"))
+    .and_then(|output| {
+        serde_json::from_slice(&output.stdout)
+            .map_err(|error| format!("invalid settings response: {error}"))
+    })
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -486,7 +524,8 @@ fn main() {
             import_apply,
             worktree_cleanup,
             worktree_plan,
-            worktree_apply
+            worktree_apply,
+            settings_project_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");
