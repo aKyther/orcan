@@ -112,8 +112,8 @@ function refreshTargetField(): void {
     target.placeholder = "Ubuntu-24.04";
   }
   if (transport.value === "ssh") {
-    targetLabel.textContent = "SSH destination";
-    target.placeholder = "orcan-host";
+    targetLabel.textContent = "SSH host or host:port";
+    target.placeholder = "orcan-host:22";
   }
 }
 
@@ -222,7 +222,7 @@ probeButton.addEventListener("click", async () => {
   probeButton.textContent = "Checking Sandbox…";
   result.textContent = "Connecting → reading Orcan context → checking runtime…";
   try {
-    const report = await invoke<ProbeReport>("probe", { target: currentTarget });
+    const report = await invoke<ProbeReport>("probe", { target: currentTarget, profileId: activeProfileId });
     if (request !== latestProbe) return;
     localStorage.setItem(cacheKey(currentTarget), JSON.stringify(report));
     renderSnapshot(report);

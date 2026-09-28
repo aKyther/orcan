@@ -30,6 +30,9 @@ użytkownik albo ścieżka klucza prywatnego. Hasła i passphrase kluczy nie tra
 do pliku profilu; należą do systemowego magazynu poświadczeń.
 
 Aplikacja używa Rust + Tauri. UI nie ma uprawnienia do dowolnego shella:
-warstwa połączenia Rust posiada trzy stałe wywołania procesów i waliduje
-identyfikator celu przed uruchomieniem. Uwierzytelnianie SSH i weryfikacja hosta
-pozostają po stronie OpenSSH oraz `ssh-agent` i `known_hosts` użytkownika.
+warstwa połączenia Rust ma stałe komendy i waliduje identyfikator celu.
+Profile z hasłem i kluczem prywatnym używają natywnego SSH oraz sprawdzają klucz
+hosta wobec lokalnego pliku `known_hosts`. Nieznany albo zmieniony klucz jest
+odrzucany — Studio nigdy nie ufa mu automatycznie. Ich cel to bezpośredni
+`host` albo `host:port`; profile z agentem SSH nadal używają konfiguracji
+systemowego OpenSSH.

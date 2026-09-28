@@ -14,3 +14,4 @@ orcan-studio-core = { path = "../../crates/orcan-studio-core" }
 serde = { version = "1", features = ["derive"] }
 tauri = { version = "2", features = [] }
 keyring = "3.6"
+russh = "0.63"
