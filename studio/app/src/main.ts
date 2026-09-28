@@ -80,11 +80,12 @@ const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")
 const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;
 const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
 const jobsList = document.querySelector<HTMLElement>("#jobs-list")!;
-type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string };
-const jobs: Job[] = [];
-function addJob(name: string, detail: string): Job { const job = { name, detail, state: "running" as const }; jobs.unshift(job); renderJobs(); return job; }
-function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; renderJobs(); }
-function renderJobs(): void { jobsList.replaceChildren(...(jobs.length ? jobs.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No jobs yet." })])); }
+type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string };
+const jobs: Job[] = JSON.parse(localStorage.getItem("orcan-studio:jobs") ?? "[]");
+function saveJobs(): void { localStorage.setItem("orcan-studio:jobs", JSON.stringify(jobs.slice(0, 50))); }
+function addJob(name: string, detail: string): Job { const job = { name, detail, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); saveJobs(); renderJobs(); return job; }
+function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
+function renderJobs(): void { jobsList.replaceChildren(...(jobs.length ? jobs.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${new Date(job.at).toLocaleString()} · ${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No jobs yet." })])); }
 let worktreeReady = false;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
@@ -330,6 +331,7 @@ parentApplyButton.addEventListener("click", async () => {
 
 refreshTargetField();
 refreshCredentials();
+renderJobs();
 void loadProfiles().catch((error) => {
   result.textContent = `Could not load profiles: ${String(error)}`;
 });
