@@ -36,6 +36,12 @@ Studio's UI calls each connected Sandbox an **Enclave** (an isolated Orcan
 environment) and walks through Credentials & keys → Profiles → Enclaves; no
 instance view is shown until a probe succeeds.
 
+Workspace membership is edited on the Enclave map: dragging a project onto a
+workspace (or onto "New workspace") asks Orcan for a plan through
+`orcan studio settings`, shows it for confirmation, applies it on that Enclave
+(system SSH or native SSH with a saved credential), and then offers
+`orcan sync`. Removing a project from a workspace never deletes files.
+
 The application is Rust + Tauri. The UI has no arbitrary shell permission: the
 Rust connection layer owns fixed commands and validates target identifiers.
 Password and private-key profiles use native SSH and check the host key against

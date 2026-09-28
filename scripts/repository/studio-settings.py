@@ -39,9 +39,10 @@ def main() -> None:
             (item for item in workspaces if item.get("name") == args.workspace), None
         )
         blockers = []
-        if workspace is None:
-            blockers.append("workspace does not exist")
         detach = args.mode.startswith("project-detach")
+        # `orcan context add` creates a missing workspace, so only detach needs one.
+        if workspace is None and detach:
+            blockers.append("workspace does not exist")
         if not detach and (not project.is_dir() or not (project / ".git").exists()):
             blockers.append("project is not a Git repository")
         attached = workspace and any(
@@ -56,7 +57,13 @@ def main() -> None:
             "operation": "project_detach" if detach else "project_add",
             "workspace": args.workspace,
             "project": str(project),
-            "changes": [
+            "creates_workspace": workspace is None and not detach,
+            "changes": (
+                [f"create workspace {args.workspace}"]
+                if workspace is None and not detach
+                else []
+            )
+            + [
                 f"{'detach' if detach else 'attach'} {project} {'from' if detach else 'to'} {args.workspace}",
                 "run orcan sync",
             ],

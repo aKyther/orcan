@@ -1,6 +1,7 @@
 use orcan_studio_core::{
-    ConnectionProfile, ProbeReport, ProfileStore, ResolvedSsh, RuntimeAction, SshAuthentication,
-    SshCredential, SystemRunner, Target, parse_probe_report,
+    ConnectionProfile, MembershipAction, ProbeReport, ProfileStore, ResolvedSsh, RuntimeAction,
+    SshAuthentication, SshCredential, SystemRunner, Target, membership_args, parse_probe_report,
+    remote_orcan_command, runtime_args, sync_args,
 };
 use russh::ChannelMsg;
 use russh::client;
@@ -11,7 +12,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::Manager;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum TargetInput {
     Local,
@@ -29,60 +30,115 @@ impl From<TargetInput> for Target {
     }
 }
 
-#[tauri::command]
-async fn probe(
+/// Identifies the Enclave a command runs on; credentials resolve from the store.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EnclaveInput {
     target: TargetInput,
     profile_id: Option<String>,
     credential_id: Option<String>,
     username: Option<String>,
-    state: tauri::State<'_, ProfileState>,
-) -> Result<ProbeReport, String> {
-    let target = Target::from(target);
+}
+
+/// Native SSH options when the Enclave signs in with a saved key or password.
+fn native_ssh(
+    enclave: &EnclaveInput,
+    target: &Target,
+    state: &tauri::State<'_, ProfileState>,
+) -> Result<Option<ResolvedSsh>, String> {
     let resolved = state
         .0
         .lock()
         .map_err(|_| "profile store is unavailable".to_owned())?
         .resolve_ssh(
-            profile_id.as_deref(),
-            credential_id.as_deref(),
-            username.as_deref(),
+            enclave.profile_id.as_deref(),
+            enclave.credential_id.as_deref(),
+            enclave.username.as_deref(),
         )
         .map_err(|error| error.to_string())?;
-    if let Some((profile, resolved)) = resolved {
-        if profile.is_some_and(|profile| profile.target != target) {
-            return Err("save this connection before using its credentials".to_owned());
-        }
-        if let Target::Ssh { destination } = &target
-            && matches!(
-                resolved.ssh.authentication,
-                SshAuthentication::Password | SshAuthentication::PrivateKey { .. }
-            )
-        {
-            return native_ssh_probe(destination, resolved).await;
-        }
+    let Some((profile, resolved)) = resolved else {
+        return Ok(None);
+    };
+    if profile.is_some_and(|profile| &profile.target != target) {
+        return Err("save this connection before using its credentials".to_owned());
     }
-    tauri::async_runtime::spawn_blocking(move || target.probe(&SystemRunner))
+    Ok((matches!(target, Target::Ssh { .. })
+        && matches!(
+            resolved.ssh.authentication,
+            SshAuthentication::Password | SshAuthentication::PrivateKey { .. }
+        ))
+    .then_some(resolved))
+}
+
+/// Runs `orcan <args>` on the Enclave and returns its stdout.
+async fn run_on_enclave(
+    enclave: EnclaveInput,
+    args: Vec<String>,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<String, String> {
+    let target = Target::from(enclave.target.clone());
+    if let (Some(resolved), Target::Ssh { destination }) =
+        (native_ssh(&enclave, &target, &state)?, &target)
+    {
+        return native_ssh_exec(destination, resolved, &remote_orcan_command(&args)).await;
+    }
+    tauri::async_runtime::spawn_blocking(move || target.run_orcan(&SystemRunner, &args))
         .await
-        .map_err(|error| format!("probe task stopped: {error}"))?
+        .map_err(|error| format!("Orcan task stopped: {error}"))?
+        .map(|output| output.stdout)
         .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-async fn sync(target: TargetInput) -> Result<(), String> {
-    let target = Target::from(target);
-    tauri::async_runtime::spawn_blocking(move || target.sync(&SystemRunner))
-        .await
-        .map_err(|error| format!("sync task stopped: {error}"))?
-        .map_err(|error| error.to_string())
+async fn probe(
+    enclave: EnclaveInput,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<ProbeReport, String> {
+    let args = ["studio", "probe", "--json"].map(str::to_owned).to_vec();
+    let stdout = run_on_enclave(enclave, args, state).await?;
+    parse_probe_report(&stdout).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-async fn runtime_action(target: TargetInput, action: RuntimeAction) -> Result<(), String> {
-    let target = Target::from(target);
-    tauri::async_runtime::spawn_blocking(move || target.runtime(&SystemRunner, action))
+async fn sync(enclave: EnclaveInput, state: tauri::State<'_, ProfileState>) -> Result<(), String> {
+    run_on_enclave(enclave, sync_args(), state)
         .await
-        .map_err(|error| format!("runtime task stopped: {error}"))?
-        .map_err(|error| error.to_string())
+        .map(|_| ())
+}
+
+#[tauri::command]
+async fn runtime_action(
+    enclave: EnclaveInput,
+    action: RuntimeAction,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<(), String> {
+    run_on_enclave(enclave, runtime_args(action), state)
+        .await
+        .map(|_| ())
+}
+
+/// Plans or applies a workspace membership change on the Enclave.
+#[tauri::command]
+async fn membership_action(
+    enclave: EnclaveInput,
+    action: MembershipAction,
+    workspace: String,
+    project: String,
+    apply: bool,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    let args =
+        membership_args(action, &workspace, &project, apply).map_err(|error| error.to_string())?;
+    let stdout = run_on_enclave(enclave, args, state).await?;
+    let value: serde_json::Value = serde_json::from_str(&stdout)
+        .map_err(|error| format!("invalid settings response: {error}"))?;
+    if value["ok"] == false {
+        return Err(value["error"]
+            .as_str()
+            .unwrap_or("settings change refused")
+            .to_owned());
+    }
+    Ok(value)
 }
 
 #[derive(Debug)]
@@ -136,7 +192,12 @@ fn required_vault_secret(owner: &str, kind: &str) -> Result<String, String> {
         .map_err(|_| format!("no {kind} is stored for this connection"))
 }
 
-async fn native_ssh_probe(destination: &str, resolved: ResolvedSsh) -> Result<ProbeReport, String> {
+/// Runs one command over native SSH (host key checked against known_hosts).
+async fn native_ssh_exec(
+    destination: &str,
+    resolved: ResolvedSsh,
+    command: &str,
+) -> Result<String, String> {
     let ResolvedSsh { vault_owner, ssh } = resolved;
     let username = ssh
         .username
@@ -193,9 +254,9 @@ async fn native_ssh_probe(destination: &str, resolved: ResolvedSsh) -> Result<Pr
         .await
         .map_err(|error| format!("could not open SSH command channel: {error}"))?;
     channel
-        .exec(true, "orcan studio probe --json")
+        .exec(true, command)
         .await
-        .map_err(|error| format!("could not start Orcan probe: {error}"))?;
+        .map_err(|error| format!("could not start Orcan on the Enclave: {error}"))?;
 
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -212,11 +273,11 @@ async fn native_ssh_probe(destination: &str, resolved: ResolvedSsh) -> Result<Pr
     }
     if exit_status.unwrap_or(1) != 0 {
         return Err(format!(
-            "remote Orcan probe failed: {}",
+            "`{command}` failed on the Enclave: {}",
             String::from_utf8_lossy(&stderr).trim()
         ));
     }
-    parse_probe_report(&String::from_utf8_lossy(&stdout)).map_err(|error| error.to_string())
+    Ok(String::from_utf8_lossy(&stdout).into_owned())
 }
 
 struct ProfileState(Mutex<ProfileStore>);
@@ -538,46 +599,6 @@ async fn worktree_apply(
     })
 }
 
-#[tauri::command]
-async fn settings_project_action(
-    config: String,
-    workspace: String,
-    project: String,
-    action: String,
-    apply: bool,
-) -> Result<serde_json::Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new("orcan");
-        command.args([
-            "studio",
-            "settings",
-            match (action.as_str(), apply) {
-                ("detach", true) => "project-detach-apply",
-                ("detach", false) => "project-detach-plan",
-                (_, true) => "project-add-apply",
-                _ => "project-add-plan",
-            },
-            "--config",
-            &config,
-            "--workspace",
-            &workspace,
-            "--project",
-            &project,
-        ]);
-        if apply {
-            command.arg("--yes");
-        }
-        command.output()
-    })
-    .await
-    .map_err(|error| format!("settings task stopped: {error}"))?
-    .map_err(|error| format!("could not start settings task: {error}"))
-    .and_then(|output| {
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid settings response: {error}"))
-    })
-}
-
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -605,7 +626,7 @@ fn main() {
             worktree_cleanup,
             worktree_plan,
             worktree_apply,
-            settings_project_action
+            membership_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");
