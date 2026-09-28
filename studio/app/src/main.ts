@@ -79,6 +79,12 @@ const worktreeWorkspaces = document.querySelector<HTMLInputElement>("#worktree-w
 const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")!;
 const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;
 const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
+const jobsList = document.querySelector<HTMLElement>("#jobs-list")!;
+type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string };
+const jobs: Job[] = [];
+function addJob(name: string, detail: string): Job { const job = { name, detail, state: "running" as const }; jobs.unshift(job); renderJobs(); return job; }
+function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; renderJobs(); }
+function renderJobs(): void { jobsList.replaceChildren(...(jobs.length ? jobs.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No jobs yet." })])); }
 let worktreeReady = false;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
@@ -282,15 +288,18 @@ probeButton.addEventListener("click", async () => {
   probeButton.disabled = true;
   probeButton.textContent = "Checking Sandbox…";
   result.textContent = "Connecting → reading Orcan context → checking runtime…";
+  const job = addJob("Sandbox probe", "Connecting");
   try {
     const report = await invoke<ProbeReport>("probe", { target: currentTarget, profileId: activeProfileId });
     if (request !== latestProbe) return;
     localStorage.setItem(cacheKey(currentTarget), JSON.stringify(report));
     renderSnapshot(report);
     result.textContent = `${report.host.os}/${report.host.architecture} · Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;
+    finishJob(job, "succeeded", "Sandbox snapshot refreshed");
   } catch (error) {
     if (request !== latestProbe) return;
     result.textContent = `Connection failed: ${String(error)}`;
+    finishJob(job, "failed", String(error));
   } finally {
     if (request === latestProbe) {
       probeButton.disabled = false;
