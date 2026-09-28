@@ -776,4 +776,24 @@ mod tests {
 
         assert!(profile.validate().is_err());
     }
+
+    #[test]
+    fn approved_plan_becomes_a_queued_job_but_blocked_plan_cannot_run() {
+        let plan = OperationPlan {
+            id: "parent-update".to_owned(),
+            operation: "parent_update".to_owned(),
+            summary: "Fast-forward parent".to_owned(),
+            changes: vec!["git pull --ff-only".to_owned()],
+            blockers: vec![],
+        };
+        assert_eq!(
+            plan.approved_job().expect("ready plan").state,
+            JobState::Queued
+        );
+        let blocked = OperationPlan {
+            blockers: vec!["dirty checkout".to_owned()],
+            ..plan
+        };
+        assert!(blocked.approved_job().is_err());
+    }
 }
