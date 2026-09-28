@@ -1,6 +1,6 @@
 use orcan_studio_core::{
-    ConnectionProfile, ProbeReport, ProfileStore, RuntimeAction, SshAuthentication, SystemRunner,
-    Target, parse_probe_report,
+    ConnectionProfile, ProbeReport, ProfileStore, ResolvedSsh, RuntimeAction, SshAuthentication,
+    SshCredential, SystemRunner, Target, parse_probe_report,
 };
 use russh::ChannelMsg;
 use russh::client;
@@ -33,27 +33,32 @@ impl From<TargetInput> for Target {
 async fn probe(
     target: TargetInput,
     profile_id: Option<String>,
+    credential_id: Option<String>,
+    username: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<ProbeReport, String> {
     let target = Target::from(target);
-    if let Some(profile_id) = profile_id {
-        let profile = state
-            .0
-            .lock()
-            .map_err(|_| "profile store is unavailable".to_owned())?
-            .list()
-            .map_err(|error| error.to_string())?
-            .into_iter()
-            .find(|profile| profile.id == profile_id)
-            .ok_or_else(|| "selected profile no longer exists".to_owned())?;
-        if profile.target != target {
+    let resolved = state
+        .0
+        .lock()
+        .map_err(|_| "profile store is unavailable".to_owned())?
+        .resolve_ssh(
+            profile_id.as_deref(),
+            credential_id.as_deref(),
+            username.as_deref(),
+        )
+        .map_err(|error| error.to_string())?;
+    if let Some((profile, resolved)) = resolved {
+        if profile.is_some_and(|profile| profile.target != target) {
             return Err("save this connection before using its credentials".to_owned());
         }
-        if matches!(
-            profile.ssh.authentication,
-            SshAuthentication::Password | SshAuthentication::PrivateKey { .. }
-        ) {
-            return native_ssh_probe(profile).await;
+        if let Target::Ssh { destination } = &target
+            && matches!(
+                resolved.ssh.authentication,
+                SshAuthentication::Password | SshAuthentication::PrivateKey { .. }
+            )
+        {
+            return native_ssh_probe(destination, resolved).await;
         }
     }
     tauri::async_runtime::spawn_blocking(move || target.probe(&SystemRunner))
@@ -125,18 +130,15 @@ fn ssh_endpoint(destination: &str) -> Result<(String, u16), String> {
     Ok((destination.to_owned(), 22))
 }
 
-fn required_vault_secret(profile_id: &str, kind: &str) -> Result<String, String> {
-    vault_entry(profile_id, kind)?
+fn required_vault_secret(owner: &str, kind: &str) -> Result<String, String> {
+    vault_entry(owner, kind)?
         .get_password()
-        .map_err(|_| format!("no {kind} is stored for this profile"))
+        .map_err(|_| format!("no {kind} is stored for this connection"))
 }
 
-async fn native_ssh_probe(profile: ConnectionProfile) -> Result<ProbeReport, String> {
-    let Target::Ssh { destination } = &profile.target else {
-        return Err("native SSH requires an SSH profile".to_owned());
-    };
-    let username = profile
-        .ssh
+async fn native_ssh_probe(destination: &str, resolved: ResolvedSsh) -> Result<ProbeReport, String> {
+    let ResolvedSsh { vault_owner, ssh } = resolved;
+    let username = ssh
         .username
         .as_deref()
         .ok_or_else(|| "SSH username is required for this authentication method".to_owned())?;
@@ -153,9 +155,9 @@ async fn native_ssh_probe(profile: ConnectionProfile) -> Result<ProbeReport, Str
     .await
     .map_err(|error| format!("SSH connection or host-key verification failed: {error}"))?;
 
-    let authenticated = match &profile.ssh.authentication {
+    let authenticated = match &ssh.authentication {
         SshAuthentication::Password => {
-            let password = required_vault_secret(&profile.id, "password")?;
+            let password = required_vault_secret(&vault_owner, "password")?;
             session
                 .authenticate_password(username, password)
                 .await
@@ -166,7 +168,7 @@ async fn native_ssh_probe(profile: ConnectionProfile) -> Result<ProbeReport, Str
             has_passphrase,
         } => {
             let passphrase = has_passphrase
-                .then(|| required_vault_secret(&profile.id, "key-passphrase"))
+                .then(|| required_vault_secret(&vault_owner, "key-passphrase"))
                 .transpose()?;
             let key = keys::load_secret_key(path, passphrase.as_deref())
                 .map_err(|error| format!("could not read private key: {error}"))?;
@@ -361,8 +363,9 @@ async fn parent_command(
     Ok(value)
 }
 
-fn vault_entry(profile_id: &str, kind: &str) -> Result<keyring::Entry, String> {
-    keyring::Entry::new("io.orcan.studio", &format!("{profile_id}:{kind}"))
+/// `owner` is a profile id (legacy inline SSH) or `credential:<id>`.
+fn vault_entry(owner: &str, kind: &str) -> Result<keyring::Entry, String> {
+    keyring::Entry::new("io.orcan.studio", &format!("{owner}:{kind}"))
         .map_err(|error| format!("credential vault unavailable: {error}"))
 }
 
@@ -397,10 +400,62 @@ fn delete_profile(id: String, state: tauri::State<'_, ProfileState>) -> Result<(
         .map_err(|_| "profile store is unavailable".to_owned())?
         .delete(&id)
         .map_err(|error| error.to_string())?;
+    delete_vault_secrets(&id);
+    Ok(())
+}
+
+fn delete_vault_secrets(owner: &str) {
     for kind in ["password", "key-passphrase"] {
-        let _ = vault_entry(&id, kind)
+        let _ = vault_entry(owner, kind)
             .and_then(|entry| entry.delete_credential().map_err(|error| error.to_string()));
     }
+}
+
+#[tauri::command]
+fn list_credentials(state: tauri::State<'_, ProfileState>) -> Result<Vec<SshCredential>, String> {
+    state
+        .0
+        .lock()
+        .map_err(|_| "profile store is unavailable".to_owned())?
+        .list_credentials()
+        .map_err(|error| error.to_string())
+}
+
+/// Saves the credential and, when given, its secret in the OS vault.
+#[tauri::command]
+fn save_credential(
+    credential: SshCredential,
+    secret: Option<String>,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<(), String> {
+    let kind = match credential.authentication {
+        SshAuthentication::Password => "password",
+        SshAuthentication::PrivateKey { .. } => "key-passphrase",
+        SshAuthentication::Agent => "",
+    };
+    state
+        .0
+        .lock()
+        .map_err(|_| "profile store is unavailable".to_owned())?
+        .upsert_credential(credential.clone())
+        .map_err(|error| error.to_string())?;
+    match secret.filter(|secret| !secret.is_empty()) {
+        Some(secret) if !kind.is_empty() => vault_entry(&credential.vault_owner(), kind)?
+            .set_password(&secret)
+            .map_err(|error| format!("could not store credential: {error}")),
+        _ => Ok(()),
+    }
+}
+
+#[tauri::command]
+fn delete_credential(id: String, state: tauri::State<'_, ProfileState>) -> Result<(), String> {
+    state
+        .0
+        .lock()
+        .map_err(|_| "profile store is unavailable".to_owned())?
+        .delete_credential(&id)
+        .map_err(|error| error.to_string())?;
+    delete_vault_secrets(&format!("credential:{id}"));
     Ok(())
 }
 
@@ -540,6 +595,9 @@ fn main() {
             save_profile,
             delete_profile,
             save_secret,
+            list_credentials,
+            save_credential,
+            delete_credential,
             parent_plan,
             parent_apply,
             import_plan,

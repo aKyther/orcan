@@ -29,6 +29,13 @@ profile contains a display name, transport metadata, and SSH metadata such as a
 username or private-key path. Passwords and key passphrases are not written to
 the profile file; they belong in the operating system credential vault.
 
+Credentials are separate, reusable records: a named private-key path or
+password that several profiles can reference, while each profile keeps its own
+address and username. A credential cannot be deleted while a profile uses it.
+Studio's UI calls each connected Sandbox an **Enclave** (an isolated Orcan
+environment) and walks through Credentials & keys → Profiles → Enclaves; no
+instance view is shown until a probe succeeds.
+
 The application is Rust + Tauri. The UI has no arbitrary shell permission: the
 Rust connection layer owns fixed commands and validates target identifiers.
 Password and private-key profiles use native SSH and check the host key against
