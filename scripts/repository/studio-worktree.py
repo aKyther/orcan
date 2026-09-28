@@ -10,15 +10,22 @@ def run(repo: Path, *args: str) -> str | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=("plan", "remove-plan"))
+    parser.add_argument("mode", choices=("plan", "remove-plan", "remove-apply"))
     parser.add_argument("--repo"); parser.add_argument("--branch")
     parser.add_argument("--path")
+    parser.add_argument("--yes", action="store_true")
     parser.add_argument("--worktrees-root", required=True); parser.add_argument("--workspace", action="append", default=[])
     args = parser.parse_args(); root = Path(args.worktrees_root).resolve()
-    if args.mode == "remove-plan":
+    if args.mode in {"remove-plan", "remove-apply"}:
         if not args.path: parser.error("--path is required for remove-plan")
         path = Path(args.path).resolve()
-        print(json.dumps({"ok": True, "plan": {"operation": "worktree_remove", "path": str(path), "exists": path.exists(), "changes": ["remove worktree registration", f"remove directory {path}"], "blockers": [] if path.exists() else ["worktree path does not exist"], "ready": path.exists(), "destructive": True}}, separators=(",", ":")))
+        plan = {"operation": "worktree_remove", "path": str(path), "exists": path.exists(), "changes": ["remove worktree registration", f"remove directory {path}"], "blockers": [] if path.exists() else ["worktree path does not exist"], "ready": path.exists(), "destructive": True}
+        if args.mode == "remove-plan": print(json.dumps({"ok": True, "plan": plan}, separators=(",", ":"))); return
+        if not args.yes or not plan["ready"]:
+            print(json.dumps({"ok": False, "error": "remove apply requires --yes and a ready plan"})); raise SystemExit(2)
+        result = subprocess.run(["orcan", "context", "worktree", "remove", "--path", str(path), "--force"], capture_output=True, text=True, check=False)
+        if result.returncode: print(json.dumps({"ok": False, "error": result.stderr.strip() or "worktree remove failed"})); raise SystemExit(result.returncode)
+        print(json.dumps({"ok": True, "result": {"operation": "worktree_remove", "path": str(path)}}))
         return
     if not args.repo or not args.branch: parser.error("--repo and --branch are required for plan")
     repo = Path(args.repo).resolve()
