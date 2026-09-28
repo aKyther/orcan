@@ -15,7 +15,7 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 .DEFAULT_GOAL := help
 
 .PHONY: help deprecate-user \
-	validate test test-host test-coverage test-path-parity format format-check dev-test \
+	validate test test-host test-coverage test-path-parity format format-check studio-test dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
 	version bump-patch bump-minor bump-major tag release release-retract release-tag release-push \
@@ -55,6 +55,9 @@ format: ## Format host and cockpit Python with Ruff
 
 format-check: ## Verify host and cockpit Python is Ruff-formatted
 	@python3 -m ruff format --check scripts/repository cockpit/src tests/host
+
+studio-test: ## Test the transport-neutral Orcan Studio Rust core
+	@cargo test --manifest-path studio/Cargo.toml -p orcan-studio-core
 
 # Fixtures live under the checkout so Docker-from-Docker sees the same
 # canonical host path; container-local /tmp is not visible to the daemon.
