@@ -57,6 +57,10 @@ const parentPlanButton = document.querySelector<HTMLButtonElement>("#parent-plan
 const parentApplyButton = document.querySelector<HTMLButtonElement>("#parent-apply")!;
 const parentResult = document.querySelector<HTMLOutputElement>("#parent-result")!;
 let parentHead: string | undefined;
+const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
+const importDestination = document.querySelector<HTMLInputElement>("#import-destination")!;
+const importPlanButton = document.querySelector<HTMLButtonElement>("#import-plan")!;
+const importResult = document.querySelector<HTMLOutputElement>("#import-result")!;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
@@ -185,6 +189,15 @@ profilesSelect.addEventListener("change", () => {
   if (profile) applyProfile(profile);
   else activeProfileId = undefined;
   renderProfiles();
+});
+importPlanButton.addEventListener("click", async () => {
+  if (!latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check a Sandbox first."; return; }
+  importPlanButton.disabled = true; importResult.textContent = "Building import plan…";
+  try {
+    const response = await invoke<{ plan: { destination: string; destination_state: string; ready: boolean; blockers: string[] } }>("import_plan", { source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined });
+    importResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination} · ${response.plan.destination_state}` : response.plan.blockers.join(" · ");
+  } catch (error) { importResult.textContent = `Plan failed: ${String(error)}`; }
+  finally { importPlanButton.disabled = false; }
 });
 saveProfileButton.addEventListener("click", async () => {
   const name = profileName.value.trim();
