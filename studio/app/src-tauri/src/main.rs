@@ -430,6 +430,41 @@ async fn worktree_plan(
     })
 }
 
+#[tauri::command]
+async fn worktree_apply(
+    repo: String,
+    branch: String,
+    worktrees_root: String,
+    workspaces: Vec<String>,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut command = Command::new("orcan");
+        command.args([
+            "studio",
+            "worktree",
+            "apply",
+            "--repo",
+            &repo,
+            "--branch",
+            &branch,
+            "--worktrees-root",
+            &worktrees_root,
+            "--yes",
+        ]);
+        for workspace in workspaces {
+            command.args(["--workspace", &workspace]);
+        }
+        command.output()
+    })
+    .await
+    .map_err(|error| format!("worktree task stopped: {error}"))?
+    .map_err(|error| format!("could not start worktree: {error}"))
+    .and_then(|output| {
+        serde_json::from_slice(&output.stdout)
+            .map_err(|error| format!("invalid worktree response: {error}"))
+    })
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -450,7 +485,8 @@ fn main() {
             import_plan,
             import_apply,
             worktree_cleanup,
-            worktree_plan
+            worktree_plan,
+            worktree_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");
