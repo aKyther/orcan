@@ -15,7 +15,19 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
     home = tmp_path / "home"
     project = tmp_path / "project"
     project.mkdir()
-    (project / ".git").mkdir()
+    subprocess.run(["git", "init", "-q", str(project)], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(project),
+            "remote",
+            "add",
+            "origin",
+            "git@example.test:team/app.git",
+        ],
+        check=True,
+    )
     (home / "orcan.config.json").parent.mkdir(parents=True)
     (home / "orcan.config.json").write_text(
         json.dumps(
@@ -52,6 +64,9 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
     assert report["runtime"]["docker"]["container"]["state"] == "unavailable"
     assert report["capabilities"]["managed_projects"]
     assert report["context"]["workspaces"][0]["projects"][0]["kind"] == "git_repository"
+    repository = report["context"]["repositories"][0]
+    assert repository["origin_url"] == "git@example.test:team/app.git"
+    assert repository["bindings"][0]["workspace"] == "dev"
     assert report["paths"]["managed_worktrees_root"].endswith("sandbox/.worktrees")
 
 

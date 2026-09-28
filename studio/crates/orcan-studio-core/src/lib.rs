@@ -438,6 +438,8 @@ pub struct ContextSnapshot {
     pub paths: ContextPaths,
     pub workspaces: Vec<Workspace>,
     pub managed_projects: Vec<ManagedProject>,
+    #[serde(default)]
+    pub repositories: Vec<Repository>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -464,6 +466,28 @@ pub struct ManagedProject {
     pub path: String,
     pub kind: String,
     pub writable: bool,
+    pub repository_id: Option<String>,
+    pub git_common_dir: Option<String>,
+    pub origin_url: Option<String>,
+    pub branch: Option<String>,
+    #[serde(default)]
+    pub dirty: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Repository {
+    pub repository_id: String,
+    pub origin_url: Option<String>,
+    pub git_common_dir: Option<String>,
+    pub bindings: Vec<RepositoryBinding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RepositoryBinding {
+    pub workspace: String,
+    pub project: Option<String>,
+    pub path: String,
+    pub kind: String,
 }
 
 #[cfg(test)]
