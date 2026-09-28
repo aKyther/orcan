@@ -37,6 +37,9 @@ output {
   line-height: 1.55;
 }
 
+.credentials { border-top: 1px solid #42483f; display: grid; gap: .5rem; margin-top: .5rem; padding-top: .7rem; }
+.credentials summary { cursor: pointer; font-size: .8rem; font-weight: 700; }
+
 .card {
   background: #232722;
   border: 1px solid #42483f;
@@ -141,6 +144,9 @@ output {
   color: #d7b26d !important;
   margin-top: .7rem !important;
 }
+
+.context-map { display: grid; gap: .45rem; margin-top: 1rem; }
+.repo-node { background: #1a1d18; border-left: 2px solid #e6a94c; color: #bdc5b6; font-size: .74rem; overflow: hidden; padding: .65rem .75rem; text-overflow: ellipsis; white-space: nowrap; }
 
 .snapshot dd {
   font-size: .82rem;
