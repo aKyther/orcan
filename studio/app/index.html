@@ -6,117 +6,47 @@
     <title>Orcan Studio</title>
   </head>
   <body>
-    <main>
-      <header>
-        <p class="eyebrow">ORCAN STUDIO · CONNECTIONS</p>
-        <h1>Build context where it runs.</h1>
-        <p class="lede">Connect to a local Sandbox, a WSL2 distribution, or an SSH host.</p>
-        <p id="demo-banner" class="demo-banner" hidden>UX preview · sample data only · no Sandbox, SSH, Docker, or credentials are contacted.</p>
-      </header>
-      <section class="card" aria-labelledby="connection-title">
-        <h2 id="connection-title">Sandbox connection</h2>
-        <label for="transport">Transport</label>
-        <select id="transport">
-          <option value="local">Local Linux or macOS</option>
-          <option value="wsl2">Windows WSL2</option>
-          <option value="ssh">SSH host</option>
-        </select>
-        <label id="target-label" for="target">WSL2 distribution</label>
-        <input id="target" autocomplete="off" placeholder="Ubuntu-24.04" value="Ubuntu-24.04" />
-        <details class="credentials"><summary>SSH credentials</summary>
-          <label for="ssh-user">SSH user</label><input id="ssh-user" autocomplete="username" placeholder="Required for password or private key" />
-          <label for="ssh-auth">Authentication</label>
-          <select id="ssh-auth">
-            <option value="agent">SSH agent</option>
-            <option value="password">Password</option>
-            <option value="private_key">Private key</option>
-          </select>
-          <label id="key-path-label" for="key-path" hidden>Private-key path on this computer</label>
-          <input id="key-path" hidden autocomplete="off" placeholder="~/.ssh/id_ed25519" />
-          <label id="secret-label" for="secret" hidden>SSH password</label>
-          <input id="secret" hidden type="password" autocomplete="current-password" />
-          <p class="credential-note">Passwords and key passphrases are stored in the operating system credential vault, never in this profile.</p>
-        </details>
-        <label for="profile-name">Profile name</label>
-        <input id="profile-name" autocomplete="off" placeholder="My WSL Sandbox" />
-        <div class="actions">
-          <button id="save-profile" type="button" class="secondary">Save profile</button>
-          <button id="probe" type="button">Check Sandbox</button>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Studio navigation">
+        <div class="brand"><span class="brand-mark">◌</span><span>ORCAN<br /><strong>STUDIO</strong></span></div>
+        <nav class="primary-nav" aria-label="Workspace views">
+          <button type="button" class="nav-item active" data-view-target="overview" aria-current="page"><span>⌂</span>Overview</button>
+          <button type="button" class="nav-item gated" data-view-target="contexts" hidden><span>◫</span>Contexts</button>
+          <button type="button" class="nav-item gated" data-view-target="repositories" hidden><span>◇</span>Repositories</button>
+          <button type="button" class="nav-item gated" data-view-target="worktrees" hidden><span>⑂</span>Worktrees</button>
+          <button type="button" class="nav-item gated" data-view-target="activity" hidden><span>◷</span>Activity</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <button type="button" class="nav-item gated" data-view-target="settings" hidden><span>⚙</span>Settings</button>
+          <p class="instance-state"><span class="state-dot"></span><span id="instance-state">No Sandbox checked</span></p>
         </div>
-        <output id="result" aria-live="polite">Choose a connection and check the Sandbox.</output>
-        <section id="snapshot" class="snapshot" hidden aria-live="polite">
-          <p class="eyebrow">LIVE SANDBOX SNAPSHOT</p>
-          <dl>
-            <div><dt>Managed root</dt><dd id="snapshot-root">—</dd></div>
-            <div><dt>Workspace families</dt><dd id="snapshot-workspaces">—</dd></div>
-            <div><dt>Managed repositories</dt><dd id="snapshot-projects">—</dd></div>
-          </dl>
-          <div id="snapshot-list"></div>
-          <div id="context-map" class="context-map" aria-label="Repository to context family map"></div>
+      </aside>
+      <section class="app-content">
+        <header class="topbar"><div><p class="eyebrow">CONTEXT CONTROL PLANE</p><h1 id="view-title">Overview</h1></div><div class="topbar-instance"><span class="state-dot"></span><span id="active-instance">Connect an instance</span></div></header>
+        <p id="demo-banner" class="demo-banner" hidden>UX preview · sample data only · no Sandbox, SSH, Docker, or credentials are contacted.</p>
+
+        <section class="view active" data-view="overview">
+          <div class="overview-grid">
+            <section class="panel focus-panel"><p class="eyebrow">NEXT BEST ACTION</p><h2 id="focus-title">Connect an Orcan Sandbox</h2><p id="next-action">Choose a saved instance or check a local, WSL2, or SSH Sandbox. Studio asks Orcan for its actual paths and capabilities before it offers context operations.</p></section>
+            <section class="panel health-panel" hidden><p class="eyebrow">INSTANCE HEALTH</p><h2 id="health-title">Not checked</h2><dl class="metric-list"><div><dt>Runtime</dt><dd id="overview-runtime">—</dd></div><div><dt>Configuration</dt><dd id="overview-config">—</dd></div><div><dt>Agent tools</dt><dd id="overview-agents">—</dd></div></dl></section>
+          </div>
+          <section class="panel" aria-labelledby="connection-title">
+            <div class="panel-heading"><div><p class="eyebrow">INSTANCE</p><h2 id="connection-title">Connect to a Sandbox</h2></div><p class="muted">Profiles reconnect without storing passwords in Studio.</p></div>
+            <div class="connection-grid"><div><label for="profiles">Saved connection</label><select id="profiles"><option value="">No saved profile selected</option></select><button id="delete-profile" type="button" class="text-button">Delete selected profile</button></div><div><label for="transport">Transport</label><select id="transport"><option value="local">Local Linux or macOS</option><option value="wsl2">Windows WSL2</option><option value="ssh">SSH host</option></select></div><div><label id="target-label" for="target">WSL2 distribution</label><input id="target" autocomplete="off" placeholder="Ubuntu-24.04" value="Ubuntu-24.04" /></div></div>
+            <details class="credentials"><summary>SSH credentials</summary><div class="connection-grid credentials-grid"><div><label for="ssh-user">SSH user</label><input id="ssh-user" autocomplete="username" placeholder="Required for password or private key" /></div><div><label for="ssh-auth">Authentication</label><select id="ssh-auth"><option value="agent">SSH agent</option><option value="password">Password</option><option value="private_key">Private key</option></select></div><div><label id="key-path-label" for="key-path" hidden>Private-key path on this computer</label><input id="key-path" hidden autocomplete="off" placeholder="~/.ssh/id_ed25519" /></div><div><label id="secret-label" for="secret" hidden>SSH password</label><input id="secret" hidden type="password" autocomplete="current-password" /></div></div><p class="credential-note">Passwords and key passphrases are stored in the operating system credential vault, never in this profile.</p></details>
+            <div class="connection-footer"><div><label for="profile-name">Profile name</label><input id="profile-name" autocomplete="off" placeholder="My WSL Sandbox" /></div><div class="actions"><button id="save-profile" type="button" class="secondary">Save profile</button><button id="probe" type="button">Check Sandbox</button></div></div><output id="result" aria-live="polite">Choose a connection and check the Sandbox.</output>
+          </section>
         </section>
-      </section>
-      <section class="card" aria-labelledby="profiles-title">
-        <h2 id="profiles-title">Reconnect</h2>
-        <label for="profiles">Saved connections</label>
-        <select id="profiles">
-          <option value="">No saved profile selected</option>
-        </select>
-        <button id="delete-profile" type="button" class="secondary">Delete selected profile</button>
-      </section>
-      <section class="card" aria-labelledby="parent-title">
-        <h2 id="parent-title">Parent update</h2>
-        <label for="parent-path">Parent repository path</label><input id="parent-path" autocomplete="off" placeholder="/path/to/repository" />
-        <label for="parent-branch">Branch</label><input id="parent-branch" autocomplete="off" value="main" />
-        <div class="actions"><button id="parent-plan" type="button" class="secondary">Preview update</button><button id="parent-apply" type="button" disabled>Apply fast-forward</button></div>
-        <output id="parent-result" aria-live="polite">Preview before applying an update.</output>
-      </section>
-      <section class="card" aria-labelledby="import-title">
-        <h2 id="import-title">Import repository</h2>
-        <label for="import-source">Git URL or existing repository path</label><input id="import-source" autocomplete="off" placeholder="git@github.com:org/project.git" />
-        <label for="import-destination">Destination (leave empty for Orcan default)</label><input id="import-destination" autocomplete="off" placeholder="Provided by the selected Sandbox" />
-        <div class="actions"><button id="import-plan" type="button" class="secondary">Preview import plan</button><button id="import-apply" type="button" disabled>Clone repository</button></div>
-        <output id="import-result" aria-live="polite">Connect to a Sandbox first to use its managed root.</output>
-      </section>
-      <section id="sandbox-settings" class="card" aria-labelledby="settings-title" hidden>
-        <h2 id="settings-title">Sandbox settings</h2>
-        <p class="lede">Values reported by the connected Orcan. Changes will be planned before they are applied.</p>
-        <dl class="settings-grid">
-          <div><dt>Orcan home</dt><dd id="setting-home">—</dd></div>
-          <div><dt>Data root</dt><dd id="setting-data">—</dd></div>
-          <div><dt>Managed projects root</dt><dd id="setting-projects-root">—</dd></div>
-          <div><dt>Workspace metadata</dt><dd id="setting-workspaces-root">—</dd></div>
-          <div><dt>Managed worktrees</dt><dd id="setting-worktrees-root">—</dd></div>
-          <div><dt>Configuration state</dt><dd id="setting-config-state">—</dd></div>
-          <div><dt>Container resources</dt><dd id="setting-resources">—</dd></div>
-          <div><dt>Agent tools in this Sandbox image</dt><dd id="setting-agents">—</dd></div>
-        </dl>
-        <button id="settings-refresh" type="button" class="secondary">Refresh from Orcan</button>
-        <output id="settings-result" aria-live="polite">Read-only until a settings plan is available.</output>
-        <button id="settings-sync" type="button" class="secondary">Run Orcan sync</button>
-        <label for="settings-workspace">Workspace</label><input id="settings-workspace" placeholder="api" />
-        <label for="settings-project">Existing Git repository path</label><input id="settings-project" placeholder="/path/to/repository" />
-        <div class="actions"><button id="settings-project-plan" type="button" class="secondary">Preview attach</button><button id="settings-project-apply" type="button" disabled>Attach project</button></div>
-        <div class="actions"><button id="settings-detach-plan" type="button" class="secondary">Preview detach</button><button id="settings-detach-apply" type="button" disabled>Detach project</button></div>
-      </section>
-      <section class="card" aria-labelledby="cleanup-title">
-        <h2 id="cleanup-title">Worktree cleanup</h2>
-        <label for="cleanup-path">Worktree path</label><input id="cleanup-path" autocomplete="off" placeholder="/managed/worktree/path" />
-        <label for="cleanup-confirm">Type REMOVE to confirm physical deletion</label><input id="cleanup-confirm" autocomplete="off" placeholder="REMOVE" />
-        <div class="actions"><button id="cleanup-plan" type="button" class="secondary">Preview removal</button><button id="cleanup-apply" type="button" disabled>Remove worktree</button></div>
-        <output id="cleanup-result" aria-live="polite">Removal is destructive and always requires confirmation.</output>
-      </section>
-      <section class="card" aria-labelledby="worktree-title">
-        <h2 id="worktree-title">New worktree</h2>
-        <label for="worktree-repo">Parent repository</label><input id="worktree-repo" placeholder="/path/to/parent" />
-        <label for="worktree-branch">Branch</label><input id="worktree-branch" placeholder="feature/context" />
-        <label for="worktree-workspaces">Workspace names (comma-separated)</label><input id="worktree-workspaces" placeholder="client, api" />
-        <div class="actions"><button id="worktree-plan" type="button" class="secondary">Preview worktree plan</button><button id="worktree-apply" type="button" disabled>Create worktree</button></div>
-        <output id="worktree-result" aria-live="polite">The plan uses this Sandbox's managed worktree root.</output>
-      </section>
-      <section class="card" aria-labelledby="jobs-title">
-        <h2 id="jobs-title">Jobs</h2>
-        <p class="lede">Recent Studio operations on this device.</p>
-        <div id="jobs-list" class="jobs-list" aria-live="polite"><p class="snapshot-shared">No jobs yet.</p></div>
+
+        <section class="view" data-view="contexts" hidden><div class="view-intro"><p class="eyebrow">CONTEXTS</p><h2>What each instance gives an agent.</h2><p>Workspace families are the unit of context. A repository can belong to more than one family.</p></div><section id="snapshot" class="panel snapshot" hidden aria-live="polite"><div class="snapshot-metrics"><div><span id="snapshot-workspaces">—</span><small>workspace families</small></div><div><span id="snapshot-projects">—</span><small>managed repositories</small></div><div><span id="snapshot-root">—</span><small>managed root</small></div></div><div id="snapshot-list"></div><div id="context-map" class="context-map" aria-label="Repository to context family map"></div></section><section class="panel" aria-labelledby="parent-title"><div class="panel-heading"><div><p class="eyebrow">PARENT REPOSITORY</p><h2 id="parent-title">Bring a parent branch forward</h2></div><p class="muted">Preview first. Studio only applies the approved fast-forward.</p></div><div class="form-row"><div><label for="parent-path">Parent repository path</label><input id="parent-path" autocomplete="off" placeholder="/path/to/repository" /></div><div><label for="parent-branch">Branch</label><input id="parent-branch" autocomplete="off" value="main" /></div></div><div class="actions compact"><button id="parent-plan" type="button" class="secondary">Preview update</button><button id="parent-apply" type="button" disabled>Apply fast-forward</button></div><output id="parent-result" aria-live="polite">Preview before applying an update.</output></section></section>
+
+        <section class="view" data-view="repositories" hidden><div class="view-intro"><p class="eyebrow">REPOSITORIES</p><h2>Bring code into the right managed root.</h2><p>Orcan provides paths; Studio plans the change before cloning or attaching anything.</p></div><section class="panel" aria-labelledby="import-title"><h2 id="import-title">Import repository</h2><div class="form-row"><div><label for="import-source">Git URL or existing repository path</label><input id="import-source" autocomplete="off" placeholder="git@github.com:org/project.git" /></div><div><label for="import-destination">Destination</label><input id="import-destination" autocomplete="off" placeholder="Leave empty for Orcan default" /></div></div><div class="actions compact"><button id="import-plan" type="button" class="secondary">Preview import plan</button><button id="import-apply" type="button" disabled>Clone repository</button></div><output id="import-result" aria-live="polite">Connect to a Sandbox first to use its managed root.</output></section><section class="panel" aria-labelledby="membership-title"><h2 id="membership-title">Context membership</h2><p class="muted">Attach an existing repository to a workspace family, or detach it without deleting its files.</p><div class="form-row"><div><label for="settings-workspace">Workspace</label><input id="settings-workspace" placeholder="api" /></div><div><label for="settings-project">Existing Git repository path</label><input id="settings-project" placeholder="/path/to/repository" /></div></div><div class="actions compact"><button id="settings-project-plan" type="button" class="secondary">Preview attach</button><button id="settings-project-apply" type="button" disabled>Attach project</button><button id="settings-detach-plan" type="button" class="secondary">Preview detach</button><button id="settings-detach-apply" type="button" disabled>Detach project</button></div></section></section>
+
+        <section class="view" data-view="worktrees" hidden><div class="view-intro"><p class="eyebrow">WORKTREES</p><h2>Parallel changes, connected to the context that needs them.</h2></div><section class="panel" aria-labelledby="worktree-title"><h2 id="worktree-title">New worktree</h2><div class="form-row three"><div><label for="worktree-repo">Parent repository</label><input id="worktree-repo" placeholder="/path/to/parent" /></div><div><label for="worktree-branch">Branch</label><input id="worktree-branch" placeholder="feature/context" /></div><div><label for="worktree-workspaces">Workspace families</label><input id="worktree-workspaces" placeholder="client, api" /></div></div><div class="actions compact"><button id="worktree-plan" type="button" class="secondary">Preview worktree plan</button><button id="worktree-apply" type="button" disabled>Create worktree</button></div><output id="worktree-result" aria-live="polite">The plan uses this Sandbox's managed worktree root.</output></section><section class="panel danger-panel" aria-labelledby="cleanup-title"><h2 id="cleanup-title">Remove a worktree</h2><p class="muted">This removes the directory. The explicit text confirmation remains required.</p><div class="form-row"><div><label for="cleanup-path">Worktree path</label><input id="cleanup-path" autocomplete="off" placeholder="/managed/worktree/path" /></div><div><label for="cleanup-confirm">Type REMOVE to confirm</label><input id="cleanup-confirm" autocomplete="off" placeholder="REMOVE" /></div></div><div class="actions compact"><button id="cleanup-plan" type="button" class="secondary">Preview removal</button><button id="cleanup-apply" type="button" disabled>Remove worktree</button></div><output id="cleanup-result" aria-live="polite">Removal is destructive and always requires confirmation.</output></section></section>
+
+        <section class="view" data-view="activity" hidden><div class="view-intro"><p class="eyebrow">ACTIVITY</p><h2>Recent work from this Studio device.</h2></div><section class="panel" aria-labelledby="jobs-title"><h2 id="jobs-title">Jobs</h2><div id="jobs-list" class="jobs-list" aria-live="polite"><p class="snapshot-shared">No jobs yet.</p></div></section></section>
+
+        <section class="view" data-view="settings" hidden><div class="view-intro"><p class="eyebrow">SETTINGS</p><h2>Instance facts and reconciliation.</h2><p>Values below are reported by the selected Orcan. Studio does not invent paths or agent capabilities.</p></div><section id="sandbox-settings" class="panel" aria-labelledby="settings-title" hidden><div class="panel-heading"><div><h2 id="settings-title">Connected Sandbox</h2><p class="muted">Read-only facts from the latest probe.</p></div><button id="settings-refresh" type="button" class="secondary">Refresh from Orcan</button></div><dl class="settings-grid"><div><dt>Orcan home</dt><dd id="setting-home">—</dd></div><div><dt>Data root</dt><dd id="setting-data">—</dd></div><div><dt>Managed projects root</dt><dd id="setting-projects-root">—</dd></div><div><dt>Workspace metadata</dt><dd id="setting-workspaces-root">—</dd></div><div><dt>Managed worktrees</dt><dd id="setting-worktrees-root">—</dd></div><div><dt>Configuration state</dt><dd id="setting-config-state">—</dd></div><div><dt>Container resources</dt><dd id="setting-resources">—</dd></div><div><dt>Agent tools in this Sandbox image</dt><dd id="setting-agents">—</dd></div></dl><div class="sync-row"><div><strong>Reconcile context</strong><p>Apply the configured mount and context structure on this instance.</p></div><button id="settings-sync" type="button">Run Orcan sync</button></div><output id="settings-result" aria-live="polite">Read-only until a settings plan is available.</output></section></section>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>

@@ -74,6 +74,16 @@ const settingsSync = document.querySelector<HTMLButtonElement>("#settings-sync")
 const settingResources = document.querySelector<HTMLElement>("#setting-resources")!;
 const settingAgents = document.querySelector<HTMLElement>("#setting-agents")!;
 const demoBanner = document.querySelector<HTMLElement>("#demo-banner")!;
+const navigationItems = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-view-target]"));
+const views = Array.from(document.querySelectorAll<HTMLElement>("[data-view]"));
+const viewTitle = document.querySelector<HTMLElement>("#view-title")!;
+const instanceState = document.querySelector<HTMLElement>("#instance-state")!;
+const activeInstance = document.querySelector<HTMLElement>("#active-instance")!;
+const healthTitle = document.querySelector<HTMLElement>("#health-title")!;
+const overviewRuntime = document.querySelector<HTMLElement>("#overview-runtime")!;
+const overviewConfig = document.querySelector<HTMLElement>("#overview-config")!;
+const overviewAgents = document.querySelector<HTMLElement>("#overview-agents")!;
+const nextAction = document.querySelector<HTMLElement>("#next-action")!;
 const settingsWorkspace = document.querySelector<HTMLInputElement>("#settings-workspace")!;
 const settingsProject = document.querySelector<HTMLInputElement>("#settings-project")!;
 const settingsProjectPlan = document.querySelector<HTMLButtonElement>("#settings-project-plan")!;
@@ -106,6 +116,7 @@ let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
 let storedKeyPassphrase = false;
+let connected = false;
 const demoMode = new URLSearchParams(window.location.search).has("demo");
 
 const demoReport: ProbeReport = {
@@ -154,7 +165,58 @@ function cacheKey(targetValue: Target): string {
   return `orcan-studio:snapshot:${JSON.stringify(targetValue)}`;
 }
 
-function renderSnapshot(report: ProbeReport, cached = false): void {
+function showView(name: string): void {
+  const target = views.find((view) => view.dataset.view === name);
+  if (!target || (name !== "overview" && !connected)) return;
+  for (const view of views) view.hidden = view !== target;
+  for (const item of navigationItems) {
+    const active = item.dataset.viewTarget === name;
+    item.classList.toggle("active", active);
+    item.toggleAttribute("aria-current", active);
+  }
+  viewTitle.textContent = name[0].toUpperCase() + name.slice(1);
+}
+
+const healthPanel = document.querySelector<HTMLElement>(".health-panel")!;
+const focusTitle = document.querySelector<HTMLElement>("#focus-title")!;
+const initialFocus = { title: focusTitle.textContent, action: nextAction.textContent };
+const needsManagedProjects = new Set(["repositories", "worktrees"]);
+
+function lockStudio(): void {
+  if (!connected) return;
+  connected = false;
+  showView("overview");
+  for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) item.hidden = true;
+  healthPanel.hidden = true;
+  snapshot.hidden = true;
+  sandboxSettings.hidden = true;
+  instanceState.textContent = "No Sandbox checked";
+  activeInstance.textContent = "Connect an instance";
+  focusTitle.textContent = initialFocus.title;
+  nextAction.textContent = initialFocus.action;
+}
+
+function unlockStudio(report: ProbeReport): void {
+  connected = true;
+  for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) {
+    item.hidden = needsManagedProjects.has(item.dataset.viewTarget ?? "") && !report.capabilities.managed_projects;
+  }
+  healthPanel.hidden = false;
+  focusTitle.textContent = "Connected";
+  const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
+  const label = `${report.host.os} · Orcan ${report.sandbox.version}`;
+  instanceState.textContent = `Connected · ${report.runtime.docker.container.state}`;
+  activeInstance.textContent = label;
+  healthTitle.textContent = report.runtime.docker.container.state === "running" ? "Ready" : "Attention needed";
+  overviewRuntime.textContent = report.runtime.docker.container.state;
+  overviewConfig.textContent = report.context.configuration.state;
+  overviewAgents.textContent = agents.length ? agents.join(", ") : "Not reported";
+  nextAction.textContent = report.runtime.docker.container.state === "running"
+    ? "Review the context map, then import a repository or create a worktree for the workspace family that needs it."
+    : "The Sandbox is reachable, but its container is not running. Review its instance settings before changing context.";
+}
+
+function renderSnapshot(report: ProbeReport): void {
   snapshot.hidden = false;
   snapshotRoot.textContent = report.paths.projects_root;
   snapshotWorkspaces.textContent = String(report.context.workspaces.length);
@@ -170,6 +232,7 @@ function renderSnapshot(report: ProbeReport, cached = false): void {
   settingResources.textContent = resources ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"} · SHM ${resources.shm_size ?? "—"}` : "Not reported";
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   settingAgents.textContent = agents.length ? agents.join(" · ") : "No image manifest reported";
+  unlockStudio(report);
   const rows: HTMLElement[] = [];
   for (const workspace of report.context.workspaces) {
     const row = document.createElement("div");
@@ -198,7 +261,6 @@ function renderSnapshot(report: ProbeReport, cached = false): void {
     node.textContent = `${repository.origin_url ?? repository.repository_id}  →  ${repository.bindings.map((binding) => binding.workspace).join(" · ")}`;
     return node;
   }));
-  if (cached) result.textContent = "Showing the last known Sandbox snapshot. Refreshing will verify it.";
 }
 
 function refreshTargetField(): void {
@@ -249,14 +311,7 @@ function applyProfile(profile: ConnectionProfile): void {
   refreshCredentials();
   target.value = profile.target.kind === "local" ? "" : profile.target.kind === "wsl2" ? profile.target.distribution : profile.target.destination;
   refreshTargetField();
-  const cached = localStorage.getItem(cacheKey(profile.target));
-  if (cached) {
-    try {
-      renderSnapshot(JSON.parse(cached) as ProbeReport, true);
-    } catch {
-      localStorage.removeItem(cacheKey(profile.target));
-    }
-  }
+  result.textContent = "Profile selected. Check Sandbox to retrieve a current Orcan report.";
 }
 
 function renderProfiles(): void {
@@ -271,12 +326,15 @@ async function loadProfiles(): Promise<void> {
   renderProfiles();
 }
 
-transport.addEventListener("change", refreshTargetField);
+transport.addEventListener("change", () => { refreshTargetField(); lockStudio(); });
+target.addEventListener("input", lockStudio);
 sshAuth.addEventListener("change", refreshCredentials);
+for (const item of navigationItems) item.addEventListener("click", () => showView(item.dataset.viewTarget ?? "overview"));
 profilesSelect.addEventListener("change", () => {
   const profile = profiles.find((item) => item.id === profilesSelect.value);
   if (profile) applyProfile(profile);
   else activeProfileId = undefined;
+  lockStudio();
   renderProfiles();
 });
 settingsRefresh.addEventListener("click", () => probeButton.click());
@@ -361,6 +419,7 @@ probeButton.addEventListener("click", async () => {
     finishJob(job, "succeeded", "Sandbox snapshot refreshed");
   } catch (error) {
     if (request !== latestProbe) return;
+    lockStudio();
     result.textContent = `Connection failed: ${String(error)}`;
     finishJob(job, "failed", String(error));
   } finally {
