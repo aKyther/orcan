@@ -368,6 +368,7 @@ pub struct ProbeReport {
     pub paths: Paths,
     pub capabilities: Capabilities,
     pub runtime: Runtime,
+    pub context: ContextSnapshot,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -393,6 +394,8 @@ pub struct Paths {
     pub home: String,
     pub data: String,
     pub projects_root: String,
+    pub workspace_metadata_root: String,
+    pub managed_worktrees_root: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -429,6 +432,40 @@ pub struct Container {
     pub state: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContextSnapshot {
+    pub configuration: ConfigurationState,
+    pub paths: ContextPaths,
+    pub workspaces: Vec<Workspace>,
+    pub managed_projects: Vec<ManagedProject>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConfigurationState {
+    pub state: String,
+    pub revision: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContextPaths {
+    pub workspace_metadata_root: String,
+    pub managed_worktrees_root: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Workspace {
+    pub name: String,
+    pub projects: Vec<ManagedProject>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ManagedProject {
+    pub name: Option<String>,
+    pub path: String,
+    pub kind: String,
+    pub writable: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -439,9 +476,10 @@ mod tests {
         "protocol":{"name":"orcan-studio","version":1,"methods":["probe"]},
         "sandbox":{"version":"4.0.0"},
         "host":{"os":"linux","architecture":"x86_64"},
-        "paths":{"home":"/home/user/.config/orcan","data":"/home/user/.config/orcan","projects_root":"/home/user/.config/orcan/sandbox"},
+        "paths":{"home":"/home/user/.config/orcan","data":"/home/user/.config/orcan","projects_root":"/home/user/.config/orcan/sandbox","workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},
         "capabilities":{"docker":true,"git":true,"managed_projects":true,"live_reconcile":true},
-        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"}}}
+        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"}}},
+        "context":{"configuration":{"state":"present","revision":"abc"},"paths":{"workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},"workspaces":[],"managed_projects":[]}
     }"#;
 
     struct FakeRunner {

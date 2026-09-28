@@ -29,6 +29,15 @@
           <button id="probe" type="button">Check Sandbox</button>
         </div>
         <output id="result" aria-live="polite">Choose a connection and check the Sandbox.</output>
+        <section id="snapshot" class="snapshot" hidden aria-live="polite">
+          <p class="eyebrow">LIVE SANDBOX SNAPSHOT</p>
+          <dl>
+            <div><dt>Managed root</dt><dd id="snapshot-root">—</dd></div>
+            <div><dt>Workspace families</dt><dd id="snapshot-workspaces">—</dd></div>
+            <div><dt>Managed repositories</dt><dd id="snapshot-projects">—</dd></div>
+          </dl>
+          <div id="snapshot-list"></div>
+        </section>
       </section>
       <section class="card" aria-labelledby="profiles-title">
         <h2 id="profiles-title">Reconnect</h2>

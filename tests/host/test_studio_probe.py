@@ -12,9 +12,24 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / ".git").mkdir()
+    (home / "orcan.config.json").parent.mkdir(parents=True)
+    (home / "orcan.config.json").write_text(
+        json.dumps(
+            {
+                "workspaces": [
+                    {"name": "dev", "projects": [{"name": "app", "path": str(project)}]}
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
     env = {
         **os.environ,
-        "ORCAN_HOME": str(tmp_path / "home"),
+        "ORCAN_HOME": str(home),
         "ORCAN_DATA": str(tmp_path / "data"),
         "ORCAN_STUDIO_DOCKER": "definitely-not-docker",
     }
@@ -36,6 +51,8 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
     }
     assert report["runtime"]["docker"]["container"]["state"] == "unavailable"
     assert report["capabilities"]["managed_projects"]
+    assert report["context"]["workspaces"][0]["projects"][0]["kind"] == "git_repository"
+    assert report["paths"]["managed_worktrees_root"].endswith("sandbox/.worktrees")
 
 
 def test_probe_requires_the_json_protocol_flag() -> None:
