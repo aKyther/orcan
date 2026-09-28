@@ -30,6 +30,8 @@ username or private-key path. Passwords and key passphrases are not written to
 the profile file; they belong in the operating system credential vault.
 
 The application is Rust + Tauri. The UI has no arbitrary shell permission: the
-Rust connection layer owns three fixed process invocations and validates the
-target identifier before starting one. SSH authentication and host verification
-stay with OpenSSH and the user's `ssh-agent` and `known_hosts`.
+Rust connection layer owns fixed commands and validates target identifiers.
+Password and private-key profiles use native SSH and check the host key against
+the local `known_hosts` file. An unknown or changed key is rejected; Studio
+never trusts it automatically. Their destination is direct `host` or
+`host:port`; SSH-agent profiles continue to use system OpenSSH configuration.

@@ -1,5 +1,12 @@
-use orcan_studio_core::{ConnectionProfile, ProbeReport, ProfileStore, SystemRunner, Target};
+use orcan_studio_core::{
+    ConnectionProfile, ProbeReport, ProfileStore, SshAuthentication, SystemRunner, Target,
+    parse_probe_report,
+};
+use russh::channels::ChannelMsg;
+use russh::client;
+use russh::keys::{self, PublicKeyOrCertificate};
 use serde::Deserialize;
+use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::Manager;
 
@@ -22,12 +29,173 @@ impl From<TargetInput> for Target {
 }
 
 #[tauri::command]
-async fn probe(target: TargetInput) -> Result<ProbeReport, String> {
+async fn probe(
+    target: TargetInput,
+    profile_id: Option<String>,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<ProbeReport, String> {
     let target = Target::from(target);
+    if let Some(profile_id) = profile_id {
+        let profile = state
+            .0
+            .lock()
+            .map_err(|_| "profile store is unavailable".to_owned())?
+            .list()
+            .map_err(|error| error.to_string())?
+            .into_iter()
+            .find(|profile| profile.id == profile_id)
+            .ok_or_else(|| "selected profile no longer exists".to_owned())?;
+        if profile.target != target {
+            return Err("save this connection before using its credentials".to_owned());
+        }
+        if matches!(
+            profile.ssh.authentication,
+            SshAuthentication::Password | SshAuthentication::PrivateKey { .. }
+        ) {
+            return native_ssh_probe(profile).await;
+        }
+    }
     tauri::async_runtime::spawn_blocking(move || target.probe(&SystemRunner))
         .await
         .map_err(|error| format!("probe task stopped: {error}"))?
         .map_err(|error| error.to_string())
+}
+
+#[derive(Debug)]
+struct KnownHostsHandler {
+    host: String,
+    port: u16,
+}
+
+impl client::Handler for KnownHostsHandler {
+    type Error = russh::Error;
+
+    async fn check_server_key(
+        &mut self,
+        server_public_key: &PublicKeyOrCertificate,
+    ) -> Result<bool, Self::Error> {
+        // Unknown, changed, and unreadable known_hosts entries all reject the
+        // connection. Studio never learns a key merely because it saw one.
+        Ok(keys::known_hosts::check_known_hosts(
+            &self.host,
+            self.port,
+            &server_public_key.public_key(),
+        )
+        .unwrap_or(false))
+    }
+}
+
+fn ssh_endpoint(destination: &str) -> Result<(String, u16), String> {
+    if let Some(bracketed) = destination.strip_prefix('[') {
+        let (host, port) = bracketed
+            .split_once("]:")
+            .ok_or_else(|| "use [IPv6-address]:port for an IPv6 SSH destination".to_owned())?;
+        return Ok((
+            host.to_owned(),
+            port.parse().map_err(|_| "invalid SSH port".to_owned())?,
+        ));
+    }
+    if let Some((host, port)) = destination.rsplit_once(':') {
+        if !host.contains(':') && port.chars().all(|character| character.is_ascii_digit()) {
+            return Ok((
+                host.to_owned(),
+                port.parse().map_err(|_| "invalid SSH port".to_owned())?,
+            ));
+        }
+    }
+    Ok((destination.to_owned(), 22))
+}
+
+fn required_vault_secret(profile_id: &str, kind: &str) -> Result<String, String> {
+    vault_entry(profile_id, kind)?
+        .get_password()
+        .map_err(|_| format!("no {kind} is stored for this profile"))
+}
+
+async fn native_ssh_probe(profile: ConnectionProfile) -> Result<ProbeReport, String> {
+    let Target::Ssh { destination } = &profile.target else {
+        return Err("native SSH requires an SSH profile".to_owned());
+    };
+    let username = profile
+        .ssh
+        .username
+        .as_deref()
+        .ok_or_else(|| "SSH username is required for this authentication method".to_owned())?;
+    let (host, port) = ssh_endpoint(destination)?;
+    let handler = KnownHostsHandler {
+        host: host.clone(),
+        port,
+    };
+    let mut session = client::connect(
+        Arc::new(client::Config::default()),
+        (host.as_str(), port),
+        handler,
+    )
+    .await
+    .map_err(|error| format!("SSH connection or host-key verification failed: {error}"))?;
+
+    let authenticated = match &profile.ssh.authentication {
+        SshAuthentication::Password => {
+            let password = required_vault_secret(&profile.id, "password")?;
+            session
+                .authenticate_password(username, password)
+                .await
+                .map_err(|error| format!("password authentication failed: {error}"))?
+        }
+        SshAuthentication::PrivateKey {
+            path,
+            has_passphrase,
+        } => {
+            let passphrase = has_passphrase
+                .then(|| required_vault_secret(&profile.id, "key-passphrase"))
+                .transpose()?;
+            let key = keys::load_secret_key(path, passphrase.as_deref())
+                .map_err(|error| format!("could not read private key: {error}"))?;
+            session
+                .authenticate_publickey(
+                    username,
+                    keys::PrivateKeyWithHashAlg::new(Arc::new(key), None),
+                )
+                .await
+                .map_err(|error| format!("private-key authentication failed: {error}"))?
+        }
+        SshAuthentication::Agent => {
+            return Err("SSH agent profiles use the system SSH transport".to_owned());
+        }
+    };
+    if !authenticated.success() {
+        return Err("SSH authentication was rejected by the remote host".to_owned());
+    }
+
+    let mut channel = session
+        .channel_open_session()
+        .await
+        .map_err(|error| format!("could not open SSH command channel: {error}"))?;
+    channel
+        .exec(true, "orcan studio probe --json")
+        .await
+        .map_err(|error| format!("could not start Orcan probe: {error}"))?;
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let mut exit_status = None;
+    while let Some(message) = channel.wait().await {
+        match message {
+            ChannelMsg::Data { data } => stdout.extend_from_slice(&data),
+            ChannelMsg::ExtendedData { data, .. } => stderr.extend_from_slice(&data),
+            ChannelMsg::ExitStatus {
+                exit_status: status,
+            } => exit_status = Some(status),
+            _ => {}
+        }
+    }
+    if exit_status.unwrap_or(1) != 0 {
+        return Err(format!(
+            "remote Orcan probe failed: {}",
+            String::from_utf8_lossy(&stderr).trim()
+        ));
+    }
+    parse_probe_report(&String::from_utf8_lossy(&stdout)).map_err(|error| error.to_string())
 }
 
 struct ProfileState(Mutex<ProfileStore>);

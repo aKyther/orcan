@@ -72,26 +72,32 @@ impl Target {
             });
         }
 
-        let report: ProbeReport = serde_json::from_str(&output.stdout)
-            .map_err(|error| StudioError::InvalidReport(error.to_string()))?;
-        if report.protocol.name != PROTOCOL_NAME || report.protocol.version != PROTOCOL_VERSION {
-            return Err(StudioError::IncompatibleProtocol {
-                name: report.protocol.name,
-                version: report.protocol.version,
-            });
-        }
-        if !report
-            .protocol
-            .methods
-            .iter()
-            .any(|method| method == "probe")
-        {
-            return Err(StudioError::InvalidReport(
-                "protocol report does not advertise probe".to_owned(),
-            ));
-        }
-        Ok(report)
+        parse_probe_report(&output.stdout)
     }
+}
+
+/// Decode the fixed, read-only response returned by `orcan studio probe`.
+/// Native transports use this after collecting command output without invoking a shell.
+pub fn parse_probe_report(output: &str) -> Result<ProbeReport, StudioError> {
+    let report: ProbeReport = serde_json::from_str(output)
+        .map_err(|error| StudioError::InvalidReport(error.to_string()))?;
+    if report.protocol.name != PROTOCOL_NAME || report.protocol.version != PROTOCOL_VERSION {
+        return Err(StudioError::IncompatibleProtocol {
+            name: report.protocol.name,
+            version: report.protocol.version,
+        });
+    }
+    if !report
+        .protocol
+        .methods
+        .iter()
+        .any(|method| method == "probe")
+    {
+        return Err(StudioError::InvalidReport(
+            "protocol report does not advertise probe".to_owned(),
+        ));
+    }
+    Ok(report)
 }
 
 fn validate_identifier(label: &str, value: &str) -> Result<(), StudioError> {
@@ -246,12 +252,28 @@ impl ConnectionProfile {
         }
         self.target.probe_request().map(|_| ())?;
         match (&self.target, &self.ssh.authentication) {
-            (Target::Ssh { .. }, SshAuthentication::PrivateKey { path, .. }) if path.is_empty() => {
-                Err(StudioError::InvalidProfile(
-                    "private key path cannot be empty".to_owned(),
-                ))
+            (Target::Ssh { .. }, SshAuthentication::PrivateKey { path, .. }) => {
+                if path.is_empty() {
+                    return Err(StudioError::InvalidProfile(
+                        "private key path cannot be empty".to_owned(),
+                    ));
+                }
+                let username = self.ssh.username.as_deref().ok_or_else(|| {
+                    StudioError::InvalidProfile(
+                        "username is required for native private-key SSH".to_owned(),
+                    )
+                })?;
+                validate_identifier("SSH username", username)
             }
-            (Target::Ssh { .. }, _) => {
+            (Target::Ssh { .. }, SshAuthentication::Password) => {
+                let username = self.ssh.username.as_deref().ok_or_else(|| {
+                    StudioError::InvalidProfile(
+                        "username is required for native password SSH".to_owned(),
+                    )
+                })?;
+                validate_identifier("SSH username", username)
+            }
+            (Target::Ssh { .. }, SshAuthentication::Agent) => {
                 if let Some(username) = &self.ssh.username {
                     validate_identifier("SSH username", username)?;
                 }
@@ -645,6 +667,23 @@ mod tests {
             target: Target::Local,
             ssh: SshProfileOptions {
                 username: Some("developer".to_owned()),
+                authentication: SshAuthentication::Password,
+            },
+        };
+
+        assert!(profile.validate().is_err());
+    }
+
+    #[test]
+    fn native_ssh_authentication_requires_a_username() {
+        let profile = ConnectionProfile {
+            id: "remote".to_owned(),
+            name: "Remote".to_owned(),
+            target: Target::Ssh {
+                destination: "remote.example".to_owned(),
+            },
+            ssh: SshProfileOptions {
+                username: None,
                 authentication: SshAuthentication::Password,
             },
         };
