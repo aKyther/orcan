@@ -487,7 +487,7 @@ function renderCredentials(): void {
   credentialList.replaceChildren(...(savedCredentials.length ? savedCredentials.map((credential) => {
     const users = profileUsers(credential.id);
     return listItem(credential.name, `${authLabel(credential.authentication)} · ${users.length ? `used by ${users.join(", ")}` : "not used yet"}`, actionButton("Edit", () => openCredentialForm(credential)));
-  }) : [emptyState("No credentials yet. Add a key file or password to sign in to remote servers. This computer, WSL2, and an SSH agent need none.", "Add a credential or key", () => openCredentialForm())]));
+  }) : [emptyState("No credentials yet. You need one only when Studio itself signs in to a remote server with a key file or a password. This computer and WSL2 run Orcan directly as your user, and with an SSH agent your system ssh already holds the key, so none of those needs a credential here.", "Add a credential or key", () => openCredentialForm())]));
 }
 
 // Profiles
