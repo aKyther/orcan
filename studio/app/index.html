@@ -105,6 +105,11 @@
         <div class="actions"><button id="worktree-plan" type="button" class="secondary">Preview worktree plan</button><button id="worktree-apply" type="button" disabled>Create worktree</button></div>
         <output id="worktree-result" aria-live="polite">The plan uses this Sandbox's managed worktree root.</output>
       </section>
+      <section class="card" aria-labelledby="jobs-title">
+        <h2 id="jobs-title">Jobs</h2>
+        <p class="lede">Recent Studio operations on this device.</p>
+        <div id="jobs-list" class="jobs-list" aria-live="polite"><p class="snapshot-shared">No jobs yet.</p></div>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

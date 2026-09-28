@@ -149,6 +149,9 @@ output {
 }
 
 .context-map { display: grid; gap: .45rem; margin-top: 1rem; }
+.jobs-list { display: grid; gap: .45rem; }
+.job { border-left: 2px solid #747b70; color: #bdc5b6; font-size: .78rem; padding: .55rem .7rem; }
+.job.running { border-color: #e6a94c; }.job.succeeded { border-color: #77b576; }.job.failed { border-color: #dd7770; }
 .repo-node { background: #1a1d18; border-left: 2px solid #e6a94c; color: #bdc5b6; font-size: .74rem; overflow: hidden; padding: .65rem .75rem; text-overflow: ellipsis; white-space: nowrap; }
 
 .snapshot dd {
