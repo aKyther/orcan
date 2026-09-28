@@ -11,7 +11,7 @@ type ProbeReport = {
   host: { os: string; architecture: string };
   capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean };
   runtime: { docker: { container: { state: string } } };
-  paths: { projects_root: string };
+  paths: { home: string; data: string; projects_root: string; workspace_metadata_root: string; managed_worktrees_root: string };
   context: {
     workspaces: Array<{
       name: string;
@@ -19,6 +19,7 @@ type ProbeReport = {
     }>;
     managed_projects: Array<{ path: string; kind: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
+    configuration: { state: string; revision?: string };
   };
 };
 
@@ -61,6 +62,10 @@ const importSource = document.querySelector<HTMLInputElement>("#import-source")!
 const importDestination = document.querySelector<HTMLInputElement>("#import-destination")!;
 const importPlanButton = document.querySelector<HTMLButtonElement>("#import-plan")!;
 const importResult = document.querySelector<HTMLOutputElement>("#import-result")!;
+const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")!;
+const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
+const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
+const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
@@ -81,6 +86,13 @@ function renderSnapshot(report: ProbeReport, cached = false): void {
   snapshotRoot.textContent = report.paths.projects_root;
   snapshotWorkspaces.textContent = String(report.context.workspaces.length);
   snapshotProjects.textContent = String(report.context.managed_projects.length);
+  sandboxSettings.hidden = false;
+  setting("setting-home").textContent = report.paths.home;
+  setting("setting-data").textContent = report.paths.data;
+  setting("setting-projects-root").textContent = report.paths.projects_root;
+  setting("setting-workspaces-root").textContent = report.paths.workspace_metadata_root;
+  setting("setting-worktrees-root").textContent = report.paths.managed_worktrees_root;
+  setting("setting-config-state").textContent = report.context.configuration.revision ? `${report.context.configuration.state} · ${report.context.configuration.revision}` : report.context.configuration.state;
   const rows: HTMLElement[] = [];
   for (const workspace of report.context.workspaces) {
     const row = document.createElement("div");
@@ -190,6 +202,7 @@ profilesSelect.addEventListener("change", () => {
   else activeProfileId = undefined;
   renderProfiles();
 });
+settingsRefresh.addEventListener("click", () => probeButton.click());
 importPlanButton.addEventListener("click", async () => {
   if (!latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check a Sandbox first."; return; }
   importPlanButton.disabled = true; importResult.textContent = "Building import plan…";

@@ -120,6 +120,8 @@ output {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: .65rem 0;
 }
+.settings-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: .5rem 0; }
+.settings-grid dd { color: #bdc5b6; font-size: .78rem; margin: .2rem 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .snapshot dt,
 .snapshot p,
