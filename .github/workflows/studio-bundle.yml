@@ -42,5 +42,5 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: orcan-studio-${{ runner.os }}
-          path: studio/app/src-tauri/target/release/bundle/
+          path: studio/target/release/bundle/
           if-no-files-found: error
