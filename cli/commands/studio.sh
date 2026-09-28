@@ -54,9 +54,11 @@ orcan_cmd_studio() {
             orcan_host_python "${ORCAN_SCRIPTS}/studio-worktree.py" "$@"
             ;;
         settings)
-            if [[ "${1:-}" != "plan" && "${1:-}" != "project-add-plan" && "${1:-}" != "project-add-apply" && "${1:-}" != "project-detach-plan" && "${1:-}" != "project-detach-apply" ]]; then orcan_usage_error 'usage: orcan studio settings plan|project-add-plan|project-add-apply|project-detach-plan|project-detach-apply …'; return; fi
+            local mode="${1:-}"
+            if [[ "${mode}" != "plan" && "${mode}" != "project-add-plan" && "${mode}" != "project-add-apply" && "${mode}" != "project-detach-plan" && "${mode}" != "project-detach-apply" ]]; then orcan_usage_error 'usage: orcan studio settings plan|project-add-plan|project-add-apply|project-detach-plan|project-detach-apply …'; return; fi
             shift; orcan_require_python
-            orcan_host_python "${ORCAN_SCRIPTS}/studio-settings.py" "$@"
+            # Orcan resolves its own config so Studio never guesses a path on the instance.
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-settings.py" "${mode}" --config "${ORCAN_CONFIG_FILE}" "$@"
             ;;
         -h | --help | "")
             printf 'usage: orcan studio probe --json\n'

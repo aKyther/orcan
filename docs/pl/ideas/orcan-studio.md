@@ -36,6 +36,12 @@ używa jakiś profil. UI Studio nazywa połączony Sandbox **Enclave** (izolowan
 środowisko Orcana) i prowadzi przez Credentials & keys → Profiles → Enclaves;
 żaden widok instancji nie pojawia się przed udanym probe.
 
+Przynależność do workspace'ów edytuje się na mapie Enclave'a: przeciągnięcie
+projektu na workspace (albo na „New workspace”) prosi Orcana o plan przez
+`orcan studio settings`, pokazuje go do potwierdzenia, stosuje na tym
+Enclavie (systemowe SSH albo natywne SSH z zapisanym poświadczeniem), a potem
+proponuje `orcan sync`. Usunięcie projektu z workspace'u nigdy nie kasuje plików.
+
 Aplikacja używa Rust + Tauri. UI nie ma uprawnienia do dowolnego shella:
 warstwa połączenia Rust ma stałe komendy i waliduje identyfikator celu.
 Profile z hasłem i kluczem prywatnym używają natywnego SSH oraz sprawdzają klucz

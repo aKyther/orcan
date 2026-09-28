@@ -116,71 +116,147 @@ pub enum RuntimeAction {
     Restart,
 }
 
+/// Workspace membership changes Studio plans before applying.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MembershipAction {
+    Attach,
+    Detach,
+}
+
+pub fn sync_args() -> Vec<String> {
+    vec!["sync".to_owned()]
+}
+
+pub fn runtime_args(action: RuntimeAction) -> Vec<String> {
+    match action {
+        RuntimeAction::Stop => vec!["down".to_owned()],
+        RuntimeAction::Start | RuntimeAction::Restart => {
+            vec!["up".to_owned(), "--resume".to_owned()]
+        }
+    }
+}
+
+/// `orcan studio settings` arguments; Orcan resolves its own config path.
+pub fn membership_args(
+    action: MembershipAction,
+    workspace: &str,
+    project: &str,
+    apply: bool,
+) -> Result<Vec<String>, StudioError> {
+    if workspace.is_empty()
+        || workspace.len() > 64
+        || !workspace
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character))
+    {
+        return Err(StudioError::InvalidTarget(
+            "workspace names use letters, digits, dots, hyphens, or underscores".to_owned(),
+        ));
+    }
+    if !project.starts_with('/') || project.chars().any(char::is_control) {
+        return Err(StudioError::InvalidTarget(
+            "project must be an absolute path on the Enclave".to_owned(),
+        ));
+    }
+    let mode = match (action, apply) {
+        (MembershipAction::Attach, false) => "project-add-plan",
+        (MembershipAction::Attach, true) => "project-add-apply",
+        (MembershipAction::Detach, false) => "project-detach-plan",
+        (MembershipAction::Detach, true) => "project-detach-apply",
+    };
+    let mut args: Vec<String> = [
+        "studio",
+        "settings",
+        mode,
+        "--workspace",
+        workspace,
+        "--project",
+        project,
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    if apply {
+        args.push("--yes".to_owned());
+    }
+    Ok(args)
+}
+
+/// Quotes an argument for the remote POSIX shell that SSH runs commands in.
+fn shell_word(value: &str) -> String {
+    if !value.is_empty()
+        && value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || "._/@:=+-".contains(character))
+    {
+        value.to_owned()
+    } else {
+        format!("'{}'", value.replace('\'', "'\\''"))
+    }
+}
+
+/// The command line an SSH session runs for `orcan <args>`.
+pub fn remote_orcan_command(args: &[String]) -> String {
+    std::iter::once("orcan".to_owned())
+        .chain(args.iter().map(|argument| shell_word(argument)))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 impl Target {
-    fn orcan_request(&self, orcan_args: &[&str]) -> Result<ProcessRequest, StudioError> {
-        let (program, prefix): (&str, Vec<&str>) = match self {
-            Self::Local => ("orcan", vec![]),
+    pub fn orcan_request(&self, args: &[String]) -> Result<ProcessRequest, StudioError> {
+        let mut arguments: Vec<String> = match self {
+            Self::Local => vec![],
             Self::Wsl2 { distribution } => {
                 validate_identifier("WSL distribution", distribution)?;
-                (
-                    "wsl.exe",
-                    vec!["--distribution", distribution, "--exec", "orcan"],
-                )
+                ["--distribution", distribution, "--exec", "orcan"]
+                    .map(str::to_owned)
+                    .to_vec()
             }
             Self::Ssh { destination } => {
                 validate_identifier("SSH destination", destination)?;
-                (
-                    "ssh",
-                    vec!["-o", "BatchMode=yes", "--", destination, "orcan"],
-                )
+                ["-o", "BatchMode=yes", "--", destination]
+                    .map(str::to_owned)
+                    .to_vec()
             }
         };
-        let arguments: Vec<&str> = prefix
-            .into_iter()
-            .chain(orcan_args.iter().copied())
-            .collect();
-        Ok(ProcessRequest::new(program, &arguments))
-    }
-
-    pub fn sync_request(&self) -> Result<ProcessRequest, StudioError> {
-        self.orcan_request(&["sync"])
-    }
-
-    pub fn runtime_request(&self, action: RuntimeAction) -> Result<ProcessRequest, StudioError> {
-        match action {
-            RuntimeAction::Stop => self.orcan_request(&["down"]),
-            RuntimeAction::Start | RuntimeAction::Restart => {
-                self.orcan_request(&["up", "--resume"])
-            }
+        match self {
+            Self::Ssh { .. } => arguments.push(remote_orcan_command(args)),
+            _ => arguments.extend(args.iter().cloned()),
         }
+        Ok(ProcessRequest {
+            program: match self {
+                Self::Local => "orcan",
+                Self::Wsl2 { .. } => "wsl.exe",
+                Self::Ssh { .. } => "ssh",
+            }
+            .to_owned(),
+            arguments,
+        })
     }
 
-    pub fn runtime<R: ProcessRunner>(
+    /// Runs `orcan <args>` on this target and fails with its stderr.
+    pub fn run_orcan<R: ProcessRunner>(
         &self,
         runner: &R,
-        action: RuntimeAction,
-    ) -> Result<(), StudioError> {
-        self.run_checked(runner, self.runtime_request(action)?)
-    }
-
-    fn run_checked<R: ProcessRunner>(
-        &self,
-        runner: &R,
-        request: ProcessRequest,
-    ) -> Result<(), StudioError> {
+        args: &[String],
+    ) -> Result<ProcessOutput, StudioError> {
+        let request = self.orcan_request(args)?;
         let output = runner.run(&request)?;
         if output.success {
-            Ok(())
+            Ok(output)
         } else {
+            // Orcan's JSON endpoints report refusals on stdout.
+            let stderr = if output.stderr.trim().is_empty() {
+                output.stdout
+            } else {
+                output.stderr
+            };
             Err(StudioError::CommandFailed {
                 command: request.display(),
-                stderr: output.stderr,
+                stderr,
             })
         }
-    }
-
-    pub fn sync<R: ProcessRunner>(&self, runner: &R) -> Result<(), StudioError> {
-        self.run_checked(runner, self.sync_request()?)
     }
 
     pub fn probe_request(&self) -> Result<ProcessRequest, StudioError> {
@@ -994,7 +1070,7 @@ mod tests {
             destination: "build-host".to_owned(),
         };
         let restart = target
-            .runtime_request(RuntimeAction::Restart)
+            .orcan_request(&runtime_args(RuntimeAction::Restart))
             .expect("valid");
         assert_eq!(
             restart.arguments,
@@ -1003,14 +1079,12 @@ mod tests {
                 "BatchMode=yes",
                 "--",
                 "build-host",
-                "orcan",
-                "up",
-                "--resume"
+                "orcan up --resume"
             ]
         );
         assert_eq!(
             Target::Local
-                .runtime_request(RuntimeAction::Stop)
+                .orcan_request(&runtime_args(RuntimeAction::Stop))
                 .expect("valid"),
             ProcessRequest::new("orcan", &["down"])
         );
@@ -1018,7 +1092,7 @@ mod tests {
             Target::Wsl2 {
                 distribution: "Ubuntu".to_owned()
             }
-            .runtime_request(RuntimeAction::Start)
+            .orcan_request(&runtime_args(RuntimeAction::Start))
             .expect("valid")
             .arguments,
             [
@@ -1030,6 +1104,19 @@ mod tests {
                 "--resume"
             ]
         );
+    }
+
+    #[test]
+    fn membership_changes_are_validated_and_shell_quoted_for_ssh() {
+        let args = membership_args(MembershipAction::Attach, "org-dev", "/srv/My Repo's", true)
+            .expect("valid membership change");
+        assert_eq!(
+            remote_orcan_command(&args),
+            "orcan studio settings project-add-apply --workspace org-dev --project '/srv/My Repo'\\''s' --yes"
+        );
+        assert!(membership_args(MembershipAction::Detach, "a;rm", "/srv/x", false).is_err());
+        assert!(membership_args(MembershipAction::Detach, "dev", "relative/x", false).is_err());
+        assert!(membership_args(MembershipAction::Detach, "dev", "/srv/x\nid", false).is_err());
     }
 
     #[test]

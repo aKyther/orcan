@@ -105,14 +105,6 @@ const overviewRuntime = document.querySelector<HTMLElement>("#overview-runtime")
 const overviewConfig = document.querySelector<HTMLElement>("#overview-config")!;
 const overviewAgents = document.querySelector<HTMLElement>("#overview-agents")!;
 const nextAction = document.querySelector<HTMLElement>("#next-action")!;
-const settingsWorkspace = document.querySelector<HTMLInputElement>("#settings-workspace")!;
-const settingsProject = document.querySelector<HTMLInputElement>("#settings-project")!;
-const settingsProjectPlan = document.querySelector<HTMLButtonElement>("#settings-project-plan")!;
-const settingsProjectApply = document.querySelector<HTMLButtonElement>("#settings-project-apply")!;
-const settingsDetachPlan = document.querySelector<HTMLButtonElement>("#settings-detach-plan")!;
-const settingsDetachApply = document.querySelector<HTMLButtonElement>("#settings-detach-apply")!;
-let settingsProjectReady = false;
-let settingsDetachReady = false;
 const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
 const cleanupPath = document.querySelector<HTMLInputElement>("#cleanup-path")!;
 const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confirm")!;
@@ -191,31 +183,63 @@ const previewSnapshot: Promise<ProbeReport | undefined> = demoMode
   ? fetch("/preview-probe.json", { cache: "no-store" }).then((response) => (response.ok ? response.json() : undefined)).catch(() => undefined)
   : Promise.resolve(undefined);
 
+type MembershipArgs = { action: "attach" | "detach"; workspace: string; project: string; apply: boolean };
+const demoReports = new Map<string, ProbeReport>();
+
+/** Each demo Enclave keeps its own report so membership changes stick until reload. */
+async function demoReportFor(target: Target): Promise<ProbeReport> {
+  const key = JSON.stringify(target);
+  if (!demoReports.has(key)) {
+    const snapshot = target.kind === "local" ? await previewSnapshot : undefined;
+    const base = snapshot ?? (key.includes("gpu") ? { ...demoReport, runtime: { ...demoReport.runtime, docker: { ...demoReport.runtime.docker, container: { state: "exited" } } } } : demoReport);
+    demoReports.set(key, structuredClone(base));
+  }
+  return demoReports.get(key)!;
+}
+
+/** Mirrors studio-settings.py: plan with blockers, then apply to the demo report. */
+function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
+  const workspace = report.context.workspaces.find((item) => item.name === args.workspace);
+  const attached = workspace?.projects.some((project) => project.path === args.project) ?? false;
+  const detach = args.action === "detach";
+  const blockers = [detach && !workspace && "workspace does not exist", !detach && attached && "project is already attached", detach && workspace && !attached && "project is not attached to this workspace"].filter(Boolean);
+  const plan = { creates_workspace: !workspace && !detach, changes: [...(!workspace && !detach ? [`create workspace ${args.workspace}`] : []), `${detach ? "detach" : "attach"} ${args.project} ${detach ? "from" : "to"} ${args.workspace}`, "run orcan sync"], blockers, ready: blockers.length === 0 };
+  if (!args.apply) return { ok: true, plan };
+  if (!plan.ready) throw new Error("apply requires a ready plan");
+  if (detach) workspace!.projects = workspace!.projects.filter((project) => project.path !== args.project);
+  else {
+    const target = workspace ?? { name: args.workspace, projects: [] };
+    if (!workspace) report.context.workspaces.push(target);
+    target.projects.push({ name: args.project.split("/").pop(), path: args.project, kind: "git_repository", branch: "main", dirty: false });
+  }
+  return { ok: true, result: plan };
+}
+
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) return tauriInvoke<T>(command, _args as never);
   await new Promise((resolve) => window.setTimeout(resolve, 180));
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
-  const destination = JSON.stringify((_args as { target?: Target } | undefined)?.target ?? {});
-  if (command === "probe" && destination.includes('"local"')) {
-    const snapshot = await previewSnapshot;
-    if (snapshot) return snapshot as T;
-  }
-  if (command === "probe" && destination.includes("staging")) throw new Error("SSH connection failed: Connection timed out");
-  if (command === "probe" && destination.includes("gpu")) return { ...demoReport, runtime: { ...demoReport.runtime, docker: { ...demoReport.runtime.docker, container: { state: "exited" } } } } as T;
+  const enclave = (_args as { enclave?: { target: Target } } | undefined)?.enclave;
+  if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
+  if (command === "probe") return structuredClone(await demoReportFor(enclave!.target)) as T;
+  if (command === "membership_action") return demoMembership(await demoReportFor(enclave!.target), _args as MembershipArgs) as T;
   const root = demoReport.paths.projects_root;
   const worktrees = demoReport.paths.managed_worktrees_root;
   const responses: Record<string, unknown> = {
-    probe: demoReport,
     parent_plan: { plan: { head: "abc1234", ready: true, blockers: [] } },
     import_plan: { plan: { destination: `${root}/new-repository`, destination_state: "absent", ready: true, blockers: [] } },
     import_apply: { result: { destination: `${root}/new-repository` } },
     worktree_plan: { plan: { destination: `${worktrees}/api/feature-context`, ready: true, blockers: [] } },
     worktree_apply: { result: { path: `${worktrees}/api/feature-context` } },
     worktree_cleanup: { plan: { ready: true, blockers: [] } },
-    settings_project_action: { plan: { ready: true, blockers: [] } },
     runtime_action: null,
   };
   return (responses[command] ?? {}) as T;
+}
+
+/** What the backend needs to run a command on an Enclave. */
+function enclaveInput(connection: Connection): { target: Target; profileId?: string; credentialId?: string; username?: string } {
+  return { target: connection.target, profileId: connection.profileId, credentialId: connection.credentialId, username: connection.username };
 }
 
 function describeTarget(value: Target): string {
@@ -315,7 +339,7 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
   for (const selector of Object.values(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.disabled = true;
   runtimeResult.textContent = `${label} in progress…`;
   try {
-    await invoke("runtime_action", { target: current.target, action });
+    await invoke("runtime_action", { enclave: enclaveInput(current), action });
     runtimeResult.textContent = `${label} finished. Refreshing instance…`;
     finishJob(job, "succeeded", label);
   } catch (error) {
@@ -327,7 +351,16 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
 
 const enclaveMap = $("#enclave-map");
 const workspaceCards = $("#workspace-cards");
-const unassigned = $("#unassigned");
+const sandboxTray = $("#sandbox-tray");
+const syncBanner = $("#sync-banner");
+const planDialog = $<HTMLDialogElement>("#plan-dialog");
+const planTitle = $("#plan-title");
+const planNameField = $("#plan-name-field");
+const planWorkspaceName = $<HTMLInputElement>("#plan-workspace-name");
+const planChanges = $("#plan-changes");
+const planStatus = $("#plan-status");
+const planConfirm = $<HTMLButtonElement>("#plan-confirm");
+const DRAG_TYPE = "application/x-orcan-project";
 
 function projectName(project: { name?: string; path: string }): string {
   return project.name ?? project.path.split("/").pop() ?? project.path;
@@ -339,24 +372,144 @@ function unassignedProjects(report: ProbeReport): Array<{ path: string; kind: st
   return report.context.managed_projects.filter((project) => !used.has(project.path));
 }
 
+type ProjectRef = { name: string; path: string };
+
+function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string): HTMLElement {
+  const chip = el("span", { className: "project-chip", draggable: true, title: `${project.path}\nDrag onto a workspace to add it` }, el("span", { className: "grip", textContent: "⠿" }), el("span", { className: "project-name", textContent: project.name }), ...extra);
+  chip.addEventListener("dragstart", (event) => {
+    event.dataTransfer!.setData(DRAG_TYPE, JSON.stringify({ ...project, from }));
+    event.dataTransfer!.effectAllowed = "copy";
+    document.body.classList.add("dragging-project");
+  });
+  chip.addEventListener("dragend", () => document.body.classList.remove("dragging-project"));
+  return chip;
+}
+
+function dropZone(zone: HTMLElement, onDrop: (project: ProjectRef) => void): void {
+  zone.addEventListener("dragover", (event) => {
+    if (!event.dataTransfer?.types.includes(DRAG_TYPE)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    zone.classList.add("drop-target");
+  });
+  zone.addEventListener("dragleave", (event) => { if (!zone.contains(event.relatedTarget as Node)) zone.classList.remove("drop-target"); });
+  zone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    zone.classList.remove("drop-target");
+    const raw = event.dataTransfer?.getData(DRAG_TYPE);
+    if (raw) onDrop(JSON.parse(raw) as ProjectRef);
+  });
+}
+
+/** Click alternative to dragging: a menu of workspaces to add the project to. */
+function addToMenu(project: ProjectRef, report: ProbeReport): HTMLElement {
+  const select = el("select", { className: "add-to", title: "Add to a workspace" });
+  select.append(new Option("⋯", ""), ...report.context.workspaces.filter((workspace) => !workspace.projects.some((item) => item.path === project.path)).map((workspace) => new Option(`Add to ${workspace.name}`, workspace.name)), new Option("Add to a new workspace…", "__new__"));
+  select.addEventListener("change", () => {
+    const choice = select.value;
+    select.value = "";
+    if (choice) void reviewChange("attach", choice === "__new__" ? undefined : choice, project);
+  });
+  return select;
+}
+
 function renderEnclaveMap(report: ProbeReport): void {
   enclaveMap.hidden = false;
   const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
-  workspaceCards.replaceChildren(...(report.context.workspaces.length ? report.context.workspaces.map((workspace) => {
+  const cards = report.context.workspaces.map((workspace) => {
     const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` })));
     const list = el("ul");
     for (const project of workspace.projects) {
+      const ref = { name: projectName(project), path: project.path };
       const others = (project.repository_id ? sharedIn.get(project.repository_id) ?? [] : []).filter((name) => name !== workspace.name);
       const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
-      list.append(el("li", { title: project.path }, el("span", { className: "project-name", textContent: projectName(project) }), ...tags, el("small", { textContent: project.path })));
+      const remove = actionButton("✕", () => void reviewChange("detach", workspace.name, ref), "chip-remove");
+      remove.title = `Remove ${ref.name} from ${workspace.name} (files stay)`;
+      list.append(el("li", {}, projectChip(ref, tags, workspace.name), remove, el("small", { textContent: project.path })));
     }
-    card.append(workspace.projects.length ? list : el("p", { className: "hint", textContent: "No projects yet." }));
+    card.append(workspace.projects.length ? list : el("p", { className: "hint", textContent: "Empty — drop a project here." }));
+    dropZone(card, (project) => void reviewChange("attach", workspace.name, project));
     return card;
-  }) : [el("p", { className: "empty-state", textContent: "This Enclave has no workspaces yet. A workspace groups the projects an agent works on together." })]));
-  const loose = unassignedProjects(report);
-  unassigned.hidden = loose.length === 0;
-  unassigned.replaceChildren(el("strong", { textContent: `In the sandbox, but in no workspace (${loose.length})` }), el("span", { textContent: loose.map(projectName).join(" · ") }), el("small", { textContent: "Attach them to a workspace in Repositories, or leave them for one-off work." }));
+  });
+  const create = el("article", { className: "workspace-card new-workspace" }, el("strong", { textContent: "＋ New workspace" }), el("span", { className: "hint", textContent: "Drop a project here to start a workspace around it." }));
+  dropZone(create, (project) => void reviewChange("attach", undefined, project));
+  workspaceCards.replaceChildren(...cards, create);
+  const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
+  const chips = report.context.managed_projects.map((project) => {
+    const ref = { name: projectName(project), path: project.path };
+    const chip = projectChip(ref, used.has(project.path) ? [] : [el("span", { className: "tag warn", textContent: "no workspace" })]);
+    return el("span", { className: "tray-item" }, chip, addToMenu(ref, report));
+  });
+  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Projects in the sandbox (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), chips.length ? el("div", { className: "tray-chips" }, ...chips) : el("p", { className: "hint", textContent: "No projects in the sandbox yet. Import one in Repositories." }));
 }
+
+let pendingChange: { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef } | undefined;
+
+async function planChange(): Promise<void> {
+  if (!pendingChange || !current) return;
+  const workspace = pendingChange.workspace ?? planWorkspaceName.value.trim();
+  planConfirm.disabled = true;
+  planChanges.replaceChildren();
+  if (!/^[A-Za-z0-9._-]{1,64}$/.test(workspace)) { planStatus.textContent = "Enter a workspace name."; return; }
+  planStatus.textContent = "Asking Orcan for a plan…";
+  try {
+    const response = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("membership_action", { enclave: enclaveInput(current), action: pendingChange.action, workspace, project: pendingChange.project.path, apply: false });
+    planChanges.replaceChildren(...response.plan.changes.map((change) => el("li", { textContent: change })), ...response.plan.blockers.map((blocker) => el("li", { className: "blocker", textContent: blocker })));
+    planStatus.textContent = response.plan.ready ? `Applies to ${current.label}. Nothing else changes.` : "Orcan cannot apply this change.";
+    planConfirm.disabled = !response.plan.ready;
+  } catch (error) { planStatus.textContent = `Plan failed: ${String(error)}`; }
+}
+
+/** Opens the review dialog; nothing changes until the user confirms Orcan's plan. */
+async function reviewChange(action: MembershipArgs["action"], workspace: string | undefined, project: ProjectRef): Promise<void> {
+  if (action === "attach" && workspace && currentReport?.context.workspaces.find((item) => item.name === workspace)?.projects.some((item) => item.path === project.path)) {
+    result.textContent = `${project.name} is already in ${workspace}.`;
+    return;
+  }
+  pendingChange = { action, workspace, project };
+  planTitle.textContent = action === "detach" ? `Remove ${project.name} from ${workspace}` : workspace ? `Add ${project.name} to ${workspace}` : `New workspace with ${project.name}`;
+  planNameField.hidden = workspace !== undefined;
+  planWorkspaceName.value = workspace ? "" : project.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
+  planDialog.showModal();
+  await planChange();
+}
+
+async function applyChange(): Promise<void> {
+  if (!pendingChange || !current) return;
+  const workspace = pendingChange.workspace ?? planWorkspaceName.value.trim();
+  const { action, project } = pendingChange;
+  planConfirm.disabled = true;
+  planStatus.textContent = "Applying…";
+  const job = addJob(action === "detach" ? "Remove from workspace" : "Add to workspace", `${project.name} · ${workspace}`);
+  try {
+    await invoke("membership_action", { enclave: enclaveInput(current), action, workspace, project: project.path, apply: true });
+    finishJob(job, "succeeded", `${project.name} ${action === "detach" ? "removed from" : "added to"} ${workspace}`);
+    planDialog.close();
+    syncBanner.hidden = false;
+    result.textContent = `${project.name} ${action === "detach" ? "removed from" : "added to"} ${workspace}. Run orcan sync to apply it.`;
+    await connect(current).catch(() => undefined);
+  } catch (error) {
+    planStatus.textContent = `Could not apply: ${String(error)}`;
+    finishJob(job, "failed", String(error));
+  }
+}
+
+planWorkspaceName.addEventListener("input", () => void planChange());
+planConfirm.addEventListener("click", () => void applyChange());
+$("#sync-now").addEventListener("click", async () => {
+  if (!current) return;
+  const button = $<HTMLButtonElement>("#sync-now");
+  button.disabled = true;
+  const job = addJob("Orcan sync", current.label);
+  try {
+    await invoke("sync", { enclave: enclaveInput(current) });
+    finishJob(job, "succeeded", "Context reconciled");
+    syncBanner.hidden = true;
+    result.textContent = "Sync finished; the Enclave now mounts the new workspace layout.";
+    await connect(current).catch(() => undefined);
+  } catch (error) { finishJob(job, "failed", String(error)); result.textContent = `Sync failed: ${String(error)}`; }
+  finally { button.disabled = false; }
+});
 
 /** One sentence that says what to look at first. */
 function nextStep(report: ProbeReport): { title: string; action: string } {
@@ -372,7 +525,10 @@ function nextStep(report: ProbeReport): { title: string; action: string } {
   return { title: summary, action: dirty ? `${dirty} project${dirty === 1 ? " has" : "s have"} uncommitted changes; review them before starting new work.` : "Every project is committed. Pick a workspace below or create a worktree for parallel work." };
 }
 
+let currentReport: ProbeReport | undefined;
+
 function renderSnapshot(report: ProbeReport): void {
+  currentReport = report;
   renderEnclaveMap(report);
   snapshot.hidden = false;
   snapshotRoot.textContent = report.paths.projects_root;
@@ -643,7 +799,7 @@ async function testProfile(): Promise<void> {
   profileTest.disabled = true;
   profileTestResult.textContent = `Testing ${connection.label}: connecting → asking Orcan for its report…`;
   try {
-    const report = await invoke<ProbeReport>("probe", { target: connection.target, profileId: connection.profileId, credentialId: connection.credentialId, username: connection.username });
+    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
     const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
     profileTestResult.textContent = `✓ Reached Orcan ${report.sandbox.version} on ${report.host.os} · container ${report.runtime.docker.container.state} · ${report.context.workspaces.length} workspace families${agents.length ? ` · agents: ${agents.join(", ")}` : ""}`;
   } catch (error) {
@@ -716,7 +872,7 @@ async function checkEnclave(profile: ConnectionProfile): Promise<EnclaveStatus> 
   renderEnclaveStatus();
   let status: EnclaveStatus;
   try {
-    const report = await invoke<ProbeReport>("probe", { target: profile.target, profileId: profile.id });
+    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(profileConnection(profile)) });
     localStorage.setItem(cacheKey(profile.target), JSON.stringify(report));
     status = { state: "online", report, at: Date.now() };
   } catch (error) {
@@ -739,6 +895,7 @@ function checkAll(force = false): void {
 }
 
 function activate(connection: Connection, report: ProbeReport): void {
+  if (current?.profileId !== connection.profileId) syncBanner.hidden = true;
   current = connection;
   renderSnapshot(report);
   activeGroup.textContent = `ACTIVE · ${connection.label.toUpperCase()}`;
@@ -821,7 +978,7 @@ async function connect(connection: Connection, output: HTMLOutputElement = resul
   output.textContent = `Connecting to ${connection.label} → reading Orcan report → checking runtime…`;
   const job = addJob("Enclave check", connection.label);
   try {
-    const report = await invoke<ProbeReport>("probe", { target: connection.target, profileId: connection.profileId, credentialId: connection.credentialId, username: connection.username });
+    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
     if (request !== latestProbe) return undefined;
     localStorage.setItem(cacheKey(connection.target), JSON.stringify(report));
     if (connection.profileId) enclaveStatus.set(connection.profileId, { state: "online", report, at: Date.now() });
@@ -870,11 +1027,7 @@ credentialDelete.addEventListener("click", async () => {
 for (const item of navigationItems) item.addEventListener("click", () => showView(item.dataset.viewTarget ?? "overview"));
 settingsRefresh.addEventListener("click", () => { if (current) void connect(current, settingsResult).catch(() => undefined); });
 for (const [action, selector] of Object.entries(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.addEventListener("click", () => void runRuntimeAction(action as RuntimeAction));
-settingsSync.addEventListener("click", async () => { if (!current) return; const job = addJob("Orcan sync", current.label); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { target: current.target }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
-settingsProjectPlan.addEventListener("click", async () => { try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "attach", apply: false }); settingsProjectReady = response.plan.ready; settingsProjectApply.disabled = !settingsProjectReady; settingsResult.textContent = response.plan.ready ? "Attach plan ready; Orcan sync will be required." : response.plan.blockers.join(" · "); } catch (error) { settingsResult.textContent = `Plan failed: ${String(error)}`; } });
-settingsProjectApply.addEventListener("click", async () => { if (!settingsProjectReady) return; const job = addJob("Project attach", settingsWorkspace.value); try { await invoke("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "attach", apply: true }); settingsResult.textContent = "Project attached. Run orcan sync."; finishJob(job, "succeeded", settingsProject.value); settingsProjectApply.disabled = true; } catch (error) { settingsResult.textContent = `Attach failed: ${String(error)}`; finishJob(job, "failed", String(error)); } });
-settingsDetachPlan.addEventListener("click", async () => { const response = await invoke<{ plan: { ready: boolean } }>("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "detach", apply: false }); settingsDetachReady = response.plan.ready; settingsDetachApply.disabled = !settingsDetachReady; settingsResult.textContent = settingsDetachReady ? "Detach plan ready; files remain untouched." : "Detach blocked."; });
-settingsDetachApply.addEventListener("click", async () => { if (!settingsDetachReady) return; const job = addJob("Project detach", settingsWorkspace.value); try { await invoke("settings_project_action", { config: "orcan.config.json", workspace: settingsWorkspace.value, project: settingsProject.value, action: "detach", apply: true }); finishJob(job, "succeeded", settingsProject.value); settingsResult.textContent = "Project detached. Run orcan sync."; } catch (error) { finishJob(job, "failed", String(error)); settingsResult.textContent = `Detach failed: ${String(error)}`; } });
+settingsSync.addEventListener("click", async () => { if (!current) return; const job = addJob("Orcan sync", current.label); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { enclave: enclaveInput(current) }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
 worktreePlan.addEventListener("click", async () => { try { const workspaces = worktreeWorkspaces.value.split(",").map((value) => value.trim()).filter(Boolean); const response = await invoke<{ plan: { destination: string; ready: boolean; blockers: string[] } }>("worktree_plan", { repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces }); worktreeReady = response.plan.ready; worktreeApply.disabled = !worktreeReady; worktreeResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination} · ${workspaces.join(", ") || "no bindings"}` : response.plan.blockers.join(" · "); } catch (error) { worktreeReady = false; worktreeApply.disabled = true; worktreeResult.textContent = `Plan failed: ${String(error)}`; } });
 worktreeApply.addEventListener("click", async () => { if (!worktreeReady) return; const workspaces = worktreeWorkspaces.value.split(",").map((value) => value.trim()).filter(Boolean); worktreeApply.disabled = true; worktreeResult.textContent = "Creating worktree…"; const job = addJob("Worktree create", worktreeBranch.value); try { const response = await invoke<{ result: { path: string } }>("worktree_apply", { repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces }); worktreeResult.textContent = `Created: ${response.result.path}`; worktreeReady = false; finishJob(job, "succeeded", response.result.path); } catch (error) { worktreeResult.textContent = `Create failed: ${String(error)}`; finishJob(job, "failed", String(error)); } });
 cleanupPlan.addEventListener("click", async () => {
