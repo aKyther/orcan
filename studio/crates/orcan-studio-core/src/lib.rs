@@ -12,6 +12,58 @@ use std::process::Command;
 pub const PROTOCOL_NAME: &str = "orcan-studio";
 pub const PROTOCOL_VERSION: u32 = 1;
 
+/// A UI-safe lifecycle shared by every asynchronous Studio operation.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JobState {
+    Queued,
+    Running,
+    NeedsApproval,
+    Succeeded,
+    Failed,
+    Cancelled,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StudioJob {
+    pub id: String,
+    pub operation: String,
+    pub state: JobState,
+    pub stage: String,
+    #[serde(default)]
+    pub log: Vec<String>,
+}
+
+impl StudioJob {
+    pub fn transition(
+        &mut self,
+        state: JobState,
+        stage: impl Into<String>,
+    ) -> Result<(), StudioError> {
+        let allowed = matches!(
+            (&self.state, &state),
+            (JobState::Queued, JobState::Running | JobState::Cancelled)
+                | (
+                    JobState::Running,
+                    JobState::NeedsApproval
+                        | JobState::Succeeded
+                        | JobState::Failed
+                        | JobState::Cancelled
+                )
+                | (
+                    JobState::NeedsApproval,
+                    JobState::Running | JobState::Cancelled
+                )
+        );
+        if !allowed {
+            return Err(StudioError::InvalidJobTransition);
+        }
+        self.state = state;
+        self.stage = stage.into();
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Target {
@@ -173,6 +225,7 @@ pub enum StudioError {
     IncompatibleProtocol { name: String, version: u32 },
     InvalidProfile(String),
     InvalidProfileStore(String),
+    InvalidJobTransition,
     Io { path: PathBuf, reason: String },
 }
 
@@ -196,6 +249,7 @@ impl fmt::Display for StudioError {
             Self::InvalidProfileStore(reason) => {
                 write!(formatter, "invalid profile store: {reason}")
             }
+            Self::InvalidJobTransition => write!(formatter, "invalid Studio job state transition"),
             Self::Io { path, reason } => {
                 write!(formatter, "cannot access {}: {reason}", path.display())
             }
