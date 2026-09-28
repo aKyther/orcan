@@ -32,6 +32,11 @@ async fn probe(target: TargetInput) -> Result<ProbeReport, String> {
 
 struct ProfileState(Mutex<ProfileStore>);
 
+fn vault_entry(profile_id: &str, kind: &str) -> Result<keyring::Entry, String> {
+    keyring::Entry::new("io.orcan.studio", &format!("{profile_id}:{kind}"))
+        .map_err(|error| format!("credential vault unavailable: {error}"))
+}
+
 #[tauri::command]
 fn list_profiles(state: tauri::State<'_, ProfileState>) -> Result<Vec<ConnectionProfile>, String> {
     state
@@ -62,7 +67,22 @@ fn delete_profile(id: String, state: tauri::State<'_, ProfileState>) -> Result<(
         .lock()
         .map_err(|_| "profile store is unavailable".to_owned())?
         .delete(&id)
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    for kind in ["password", "key-passphrase"] {
+        let _ = vault_entry(&id, kind)
+            .and_then(|entry| entry.delete_credential().map_err(|error| error.to_string()));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn save_secret(profile_id: String, kind: String, secret: String) -> Result<(), String> {
+    if secret.is_empty() || !matches!(kind.as_str(), "password" | "key-passphrase") {
+        return Err("invalid credential payload".to_owned());
+    }
+    vault_entry(&profile_id, &kind)?
+        .set_password(&secret)
+        .map_err(|error| format!("could not store credential: {error}"))
 }
 
 fn main() {
@@ -78,7 +98,8 @@ fn main() {
             probe,
             list_profiles,
             save_profile,
-            delete_profile
+            delete_profile,
+            save_secret
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");

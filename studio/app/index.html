@@ -22,6 +22,11 @@
         </select>
         <label id="target-label" for="target">WSL2 distribution</label>
         <input id="target" autocomplete="off" placeholder="Ubuntu-24.04" value="Ubuntu-24.04" />
+        <details class="credentials"><summary>SSH credentials</summary>
+          <label for="ssh-user">SSH user</label><input id="ssh-user" autocomplete="username" placeholder="Optional" />
+          <label for="ssh-auth">Authentication</label><select id="ssh-auth"><option value="agent">SSH agent</option><option value="password">Password</option><option value="private_key">Private key</option></select>
+          <label id="secret-label" for="secret" hidden>Secret</label><input id="secret" hidden type="password" autocomplete="current-password" />
+        </details>
         <label for="profile-name">Profile name</label>
         <input id="profile-name" autocomplete="off" placeholder="My WSL Sandbox" />
         <div class="actions">
@@ -37,6 +42,7 @@
             <div><dt>Managed repositories</dt><dd id="snapshot-projects">—</dd></div>
           </dl>
           <div id="snapshot-list"></div>
+          <div id="context-map" class="context-map" aria-label="Repository to context family map"></div>
         </section>
       </section>
       <section class="card" aria-labelledby="profiles-title">

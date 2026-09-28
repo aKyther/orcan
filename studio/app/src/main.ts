@@ -22,7 +22,8 @@ type ProbeReport = {
   };
 };
 
-type ConnectionProfile = { id: string; name: string; target: Target };
+type SshOptions = { username?: string; authentication: { kind: "agent" | "password" } };
+type ConnectionProfile = { id: string; name: string; target: Target; ssh?: SshOptions };
 
 const transport = document.querySelector<HTMLSelectElement>("#transport")!;
 const target = document.querySelector<HTMLInputElement>("#target")!;
@@ -33,11 +34,16 @@ const deleteProfileButton = document.querySelector<HTMLButtonElement>("#delete-p
 const result = document.querySelector<HTMLOutputElement>("#result")!;
 const profileName = document.querySelector<HTMLInputElement>("#profile-name")!;
 const profilesSelect = document.querySelector<HTMLSelectElement>("#profiles")!;
+const sshUser = document.querySelector<HTMLInputElement>("#ssh-user")!;
+const sshAuth = document.querySelector<HTMLSelectElement>("#ssh-auth")!;
+const secret = document.querySelector<HTMLInputElement>("#secret")!;
+const secretLabel = document.querySelector<HTMLLabelElement>("#secret-label")!;
 const snapshot = document.querySelector<HTMLElement>("#snapshot")!;
 const snapshotRoot = document.querySelector<HTMLElement>("#snapshot-root")!;
 const snapshotWorkspaces = document.querySelector<HTMLElement>("#snapshot-workspaces")!;
 const snapshotProjects = document.querySelector<HTMLElement>("#snapshot-projects")!;
 const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
+const contextMap = document.querySelector<HTMLElement>("#context-map")!;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
@@ -79,6 +85,12 @@ function renderSnapshot(report: ProbeReport, cached = false): void {
     rows.push(shared);
   }
   snapshotList.replaceChildren(...rows);
+  contextMap.replaceChildren(...report.context.repositories.map((repository) => {
+    const node = document.createElement("div");
+    node.className = "repo-node";
+    node.textContent = `${repository.origin_url ?? repository.repository_id}  →  ${repository.bindings.map((binding) => binding.workspace).join(" · ")}`;
+    return node;
+  }));
   if (cached) result.textContent = "Showing the last known Sandbox snapshot. Refreshing will verify it.";
 }
 
@@ -96,10 +108,20 @@ function refreshTargetField(): void {
   }
 }
 
+function refreshCredentials(): void {
+  const password = sshAuth.value === "password";
+  secret.hidden = !password;
+  secretLabel.hidden = !password;
+}
+
 function applyProfile(profile: ConnectionProfile): void {
   activeProfileId = profile.id;
   profileName.value = profile.name;
   transport.value = profile.target.kind;
+  sshUser.value = profile.ssh?.username ?? "";
+  sshAuth.value = profile.ssh?.authentication.kind ?? "agent";
+  secret.value = "";
+  refreshCredentials();
   target.value = profile.target.kind === "local" ? "" : profile.target.kind === "wsl2" ? profile.target.distribution : profile.target.destination;
   refreshTargetField();
   const cached = localStorage.getItem(cacheKey(profile.target));
@@ -125,6 +147,7 @@ async function loadProfiles(): Promise<void> {
 }
 
 transport.addEventListener("change", refreshTargetField);
+sshAuth.addEventListener("change", refreshCredentials);
 profilesSelect.addEventListener("change", () => {
   const profile = profiles.find((item) => item.id === profilesSelect.value);
   if (profile) applyProfile(profile);
@@ -141,9 +164,14 @@ saveProfileButton.addEventListener("click", async () => {
     id: activeProfileId ?? crypto.randomUUID(),
     name,
     target: selectedTarget(),
+    ssh: { username: sshUser.value.trim() || undefined, authentication: { kind: sshAuth.value as "agent" | "password" } },
   };
   try {
     await invoke("save_profile", { profile });
+    if (secret.value) {
+      await invoke("save_secret", { profileId: profile.id, kind: "password", secret: secret.value });
+      secret.value = "";
+    }
     activeProfileId = profile.id;
     await loadProfiles();
     result.textContent = `Saved profile: ${profile.name}`;
@@ -182,6 +210,7 @@ probeButton.addEventListener("click", async () => {
 });
 
 refreshTargetField();
+refreshCredentials();
 void loadProfiles().catch((error) => {
   result.textContent = `Could not load profiles: ${String(error)}`;
 });
