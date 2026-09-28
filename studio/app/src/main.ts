@@ -22,7 +22,11 @@ type ProbeReport = {
   };
 };
 
-type SshOptions = { username?: string; authentication: { kind: "agent" | "password" } };
+type SshAuthentication =
+  | { kind: "agent" }
+  | { kind: "password" }
+  | { kind: "private_key"; path: string; has_passphrase: boolean };
+type SshOptions = { username?: string; authentication: SshAuthentication };
 type ConnectionProfile = { id: string; name: string; target: Target; ssh?: SshOptions };
 
 const transport = document.querySelector<HTMLSelectElement>("#transport")!;
@@ -36,6 +40,9 @@ const profileName = document.querySelector<HTMLInputElement>("#profile-name")!;
 const profilesSelect = document.querySelector<HTMLSelectElement>("#profiles")!;
 const sshUser = document.querySelector<HTMLInputElement>("#ssh-user")!;
 const sshAuth = document.querySelector<HTMLSelectElement>("#ssh-auth")!;
+const credentials = document.querySelector<HTMLDetailsElement>(".credentials")!;
+const keyPath = document.querySelector<HTMLInputElement>("#key-path")!;
+const keyPathLabel = document.querySelector<HTMLLabelElement>("#key-path-label")!;
 const secret = document.querySelector<HTMLInputElement>("#secret")!;
 const secretLabel = document.querySelector<HTMLLabelElement>("#secret-label")!;
 const snapshot = document.querySelector<HTMLElement>("#snapshot")!;
@@ -47,6 +54,7 @@ const contextMap = document.querySelector<HTMLElement>("#context-map")!;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
+let storedKeyPassphrase = false;
 
 function selectedTarget(): Target {
   if (transport.value === "local") return { kind: "local" };
@@ -98,6 +106,7 @@ function refreshTargetField(): void {
   const local = transport.value === "local";
   target.hidden = local;
   targetLabel.hidden = local;
+  credentials.hidden = transport.value !== "ssh";
   if (transport.value === "wsl2") {
     targetLabel.textContent = "WSL2 distribution";
     target.placeholder = "Ubuntu-24.04";
@@ -110,8 +119,23 @@ function refreshTargetField(): void {
 
 function refreshCredentials(): void {
   const password = sshAuth.value === "password";
-  secret.hidden = !password;
-  secretLabel.hidden = !password;
+  const privateKey = sshAuth.value === "private_key";
+  keyPath.hidden = !privateKey;
+  keyPathLabel.hidden = !privateKey;
+  secret.hidden = !password && !privateKey;
+  secretLabel.hidden = !password && !privateKey;
+  secretLabel.textContent = privateKey ? "Key passphrase (optional)" : "SSH password";
+}
+
+function selectedAuthentication(): SshAuthentication | undefined {
+  if (transport.value !== "ssh") return undefined;
+  if (sshAuth.value === "password") return { kind: "password" };
+  if (sshAuth.value === "private_key") {
+    const path = keyPath.value.trim();
+    if (!path) throw new Error("Enter the path to the private key.");
+    return { kind: "private_key", path, has_passphrase: secret.value.length > 0 || storedKeyPassphrase };
+  }
+  return { kind: "agent" };
 }
 
 function applyProfile(profile: ConnectionProfile): void {
@@ -120,6 +144,8 @@ function applyProfile(profile: ConnectionProfile): void {
   transport.value = profile.target.kind;
   sshUser.value = profile.ssh?.username ?? "";
   sshAuth.value = profile.ssh?.authentication.kind ?? "agent";
+  keyPath.value = profile.ssh?.authentication.kind === "private_key" ? profile.ssh.authentication.path : "";
+  storedKeyPassphrase = profile.ssh?.authentication.kind === "private_key" && profile.ssh.authentication.has_passphrase;
   secret.value = "";
   refreshCredentials();
   target.value = profile.target.kind === "local" ? "" : profile.target.kind === "wsl2" ? profile.target.distribution : profile.target.destination;
@@ -160,16 +186,19 @@ saveProfileButton.addEventListener("click", async () => {
     result.textContent = "Enter a profile name before saving.";
     return;
   }
-  const profile: ConnectionProfile = {
-    id: activeProfileId ?? crypto.randomUUID(),
-    name,
-    target: selectedTarget(),
-    ssh: { username: sshUser.value.trim() || undefined, authentication: { kind: sshAuth.value as "agent" | "password" } },
-  };
   try {
+    const authentication = selectedAuthentication();
+    const profile: ConnectionProfile = {
+      id: activeProfileId ?? crypto.randomUUID(),
+      name,
+      target: selectedTarget(),
+      ...(authentication ? { ssh: { username: sshUser.value.trim() || undefined, authentication } } : {}),
+    };
     await invoke("save_profile", { profile });
     if (secret.value) {
-      await invoke("save_secret", { profileId: profile.id, kind: "password", secret: secret.value });
+      const kind = authentication?.kind === "private_key" ? "key-passphrase" : "password";
+      await invoke("save_secret", { profileId: profile.id, kind, secret: secret.value });
+      if (kind === "key-passphrase") storedKeyPassphrase = true;
       secret.value = "";
     }
     activeProfileId = profile.id;

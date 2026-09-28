@@ -627,6 +627,11 @@ mod tests {
 
         store.upsert(profile.clone()).expect("profile saves");
         assert_eq!(store.list().expect("profile loads"), vec![profile]);
+        let persisted = fs::read_to_string(&path).expect("profile document reads");
+        assert!(persisted.contains("id_ed25519"));
+        // Only the fact that a vault entry exists is profile metadata; a secret
+        // such as this must never be serializable through ConnectionProfile.
+        assert!(!persisted.contains("super-secret-passphrase"));
         store.delete("work-ssh").expect("profile deletes");
         assert!(store.list().expect("empty profile list").is_empty());
         fs::remove_file(path).expect("test profile store is removed");
