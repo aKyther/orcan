@@ -73,7 +73,7 @@
         <h2 id="import-title">Import repository</h2>
         <label for="import-source">Git URL or existing repository path</label><input id="import-source" autocomplete="off" placeholder="git@github.com:org/project.git" />
         <label for="import-destination">Destination (leave empty for Orcan default)</label><input id="import-destination" autocomplete="off" placeholder="Provided by the selected Sandbox" />
-        <button id="import-plan" type="button" class="secondary">Preview import plan</button>
+        <div class="actions"><button id="import-plan" type="button" class="secondary">Preview import plan</button><button id="import-apply" type="button" disabled>Clone repository</button></div>
         <output id="import-result" aria-live="polite">Connect to a Sandbox first to use its managed root.</output>
       </section>
       <section id="sandbox-settings" class="card" aria-labelledby="settings-title" hidden>

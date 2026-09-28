@@ -61,7 +61,9 @@ let parentHead: string | undefined;
 const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
 const importDestination = document.querySelector<HTMLInputElement>("#import-destination")!;
 const importPlanButton = document.querySelector<HTMLButtonElement>("#import-plan")!;
+const importApplyButton = document.querySelector<HTMLButtonElement>("#import-apply")!;
 const importResult = document.querySelector<HTMLOutputElement>("#import-result")!;
+let importReady = false;
 const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")!;
 const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
 const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
@@ -208,9 +210,16 @@ importPlanButton.addEventListener("click", async () => {
   importPlanButton.disabled = true; importResult.textContent = "Building import plan…";
   try {
     const response = await invoke<{ plan: { destination: string; destination_state: string; ready: boolean; blockers: string[] } }>("import_plan", { source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined });
+    importReady = response.plan.ready; importApplyButton.disabled = !importReady;
     importResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination} · ${response.plan.destination_state}` : response.plan.blockers.join(" · ");
-  } catch (error) { importResult.textContent = `Plan failed: ${String(error)}`; }
+  } catch (error) { importReady = false; importApplyButton.disabled = true; importResult.textContent = `Plan failed: ${String(error)}`; }
   finally { importPlanButton.disabled = false; }
+});
+importApplyButton.addEventListener("click", async () => {
+  if (!importReady) return;
+  importApplyButton.disabled = true; importResult.textContent = "Cloning repository…";
+  try { const response = await invoke<{ result: { destination: string } }>("import_apply", { source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined }); importResult.textContent = `Imported: ${response.result.destination}`; importReady = false; }
+  catch (error) { importResult.textContent = `Import failed: ${String(error)}`; }
 });
 saveProfileButton.addEventListener("click", async () => {
   const name = profileName.value.trim();
