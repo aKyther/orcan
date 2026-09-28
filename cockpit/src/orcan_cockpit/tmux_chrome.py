@@ -88,8 +88,11 @@ def session_agent_label(session: str | None) -> str:
     commandline = ""
     if pid.isdigit():
         try:
-            commandline = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(
-                "utf-8", errors="replace"
+            commandline = (
+                Path(f"/proc/{pid}/cmdline")
+                .read_bytes()
+                .replace(b"\0", b" ")
+                .decode("utf-8", errors="replace")
             )
         except OSError:
             pass
@@ -125,7 +128,9 @@ def list_agent_panes(session: str | None, *, limit: int = 6) -> list[dict[str, s
     return rows
 
 
-def pin_main_pane(session: str, workspace_root: str | Path, pane_id: str | None = None) -> bool:
+def pin_main_pane(
+    session: str, workspace_root: str | Path, pane_id: str | None = None
+) -> bool:
     """Remember the active (or given) pane id under ``.orcan/main-pane``."""
     root = Path(workspace_root)
     if pane_id is None:
@@ -179,7 +184,9 @@ def split_run(session: str, command: str, *, vertical: bool = True) -> bool:
         command,
     ]
     try:
-        result = subprocess.run(argv, check=False, timeout=_TMUX_TIMEOUT_S, capture_output=True)
+        result = subprocess.run(
+            argv, check=False, timeout=_TMUX_TIMEOUT_S, capture_output=True
+        )
     except (OSError, subprocess.TimeoutExpired):
         return False
     return result.returncode == 0
@@ -204,7 +211,15 @@ def run_url_picker(session: str) -> bool:
     script = "/etc/tmux/scripts/pick-url.sh"
     if not Path(script).is_file():
         # Checkout / preview mirror.
-        alt = Path(__file__).resolve().parents[3] / "docker" / "rootfs" / "etc" / "tmux" / "scripts" / "pick-url.sh"
+        alt = (
+            Path(__file__).resolve().parents[3]
+            / "docker"
+            / "rootfs"
+            / "etc"
+            / "tmux"
+            / "scripts"
+            / "pick-url.sh"
+        )
         script = str(alt) if alt.is_file() else script
     try:
         result = subprocess.run(

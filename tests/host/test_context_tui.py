@@ -216,7 +216,10 @@ class WorkspaceMembershipTests(unittest.TestCase):
                 json.dumps(
                     {
                         "workspaces": [
-                            {"name": "acme", "projects": [{"name": "api", "path": str(api)}]}
+                            {
+                                "name": "acme",
+                                "projects": [{"name": "api", "path": str(api)}],
+                            }
                         ]
                     }
                 ),
@@ -242,10 +245,17 @@ class WorkspaceMembershipTests(unittest.TestCase):
             cfg = root / "orcan.config.json"
             cfg.write_text(
                 json.dumps(
-                    {"workspaces": [{"name": "acme", "projects": [
-                        {"name": "backend", "path": str(api)},
-                        {"name": "frontend", "path": str(web)},
-                    ]}]}
+                    {
+                        "workspaces": [
+                            {
+                                "name": "acme",
+                                "projects": [
+                                    {"name": "backend", "path": str(api)},
+                                    {"name": "frontend", "path": str(web)},
+                                ],
+                            }
+                        ]
+                    }
                 ),
                 encoding="utf-8",
             )
@@ -284,7 +294,9 @@ class PerProjectModeTests(unittest.TestCase):
             )
             self.assertEqual(worktrees, [web])
             self.assertEqual(mounts, [api, docs])
-            self.assertEqual(_mod.selection_mode_summary([api, docs, web], {web}), (2, 1))
+            self.assertEqual(
+                _mod.selection_mode_summary([api, docs, web], {web}), (2, 1)
+            )
 
 
 class ReviewOutcomeTests(unittest.TestCase):
@@ -429,7 +441,9 @@ class UpdatePickHistoryTests(unittest.TestCase):
 
 class ExistingProjectNamesTests(unittest.TestCase):
     def test_missing_config_is_empty(self) -> None:
-        self.assertEqual(_mod.existing_project_names(Path("/no/such/config.json"), "acme"), set())
+        self.assertEqual(
+            _mod.existing_project_names(Path("/no/such/config.json"), "acme"), set()
+        )
 
     def test_missing_workspace_is_empty(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -449,19 +463,26 @@ class ExistingProjectNamesTests(unittest.TestCase):
                         "workspaces": [
                             {
                                 "name": "acme",
-                                "projects": [{"name": "api", "path": "/x"}, {"name": "web", "path": "/y"}],
+                                "projects": [
+                                    {"name": "api", "path": "/x"},
+                                    {"name": "web", "path": "/y"},
+                                ],
                             }
                         ]
                     }
                 ),
                 encoding="utf-8",
             )
-            self.assertEqual(_mod.existing_project_names(cfg_path, "acme"), {"api", "web"})
+            self.assertEqual(
+                _mod.existing_project_names(cfg_path, "acme"), {"api", "web"}
+            )
 
 
 class FindPathConflictsTests(unittest.TestCase):
     def test_missing_config_is_empty(self) -> None:
-        self.assertEqual(_mod.find_path_conflicts(Path("/no/such/config.json"), [Path("/x")]), {})
+        self.assertEqual(
+            _mod.find_path_conflicts(Path("/no/such/config.json"), [Path("/x")]), {}
+        )
 
     def test_flags_path_used_in_another_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -471,7 +492,14 @@ class FindPathConflictsTests(unittest.TestCase):
             cfg_path = root / "orcan.config.json"
             cfg_path.write_text(
                 json.dumps(
-                    {"workspaces": [{"name": "other", "projects": [{"name": "api", "path": str(api)}]}]}
+                    {
+                        "workspaces": [
+                            {
+                                "name": "other",
+                                "projects": [{"name": "api", "path": str(api)}],
+                            }
+                        ]
+                    }
                 ),
                 encoding="utf-8",
             )
@@ -488,7 +516,14 @@ class FindPathConflictsTests(unittest.TestCase):
             cfg_path = root / "orcan.config.json"
             cfg_path.write_text(
                 json.dumps(
-                    {"workspaces": [{"name": "ws", "projects": [{"name": "api", "path": str(api)}]}]}
+                    {
+                        "workspaces": [
+                            {
+                                "name": "ws",
+                                "projects": [{"name": "api", "path": str(api)}],
+                            }
+                        ]
+                    }
                 ),
                 encoding="utf-8",
             )
@@ -528,7 +563,9 @@ class ApplySelectionTests(unittest.TestCase):
             api = root / "api"
             _git_init(api)
             cfg_path = root / "orcan.config.json"
-            with mock.patch.dict(os.environ, {"ORCAN_PROJECTS_ROOT": str(root / "managed")}):
+            with mock.patch.dict(
+                os.environ, {"ORCAN_PROJECTS_ROOT": str(root / "managed")}
+            ):
                 _mod.apply_selection(
                     config_path=cfg_path,
                     workspace="acme",
@@ -569,7 +606,10 @@ class ManageRenameTests(unittest.TestCase):
         self.assertEqual(workspaces[0]["name"], "acme2")
 
     def test_rename_workspace_rejects_duplicate(self) -> None:
-        workspaces = [{"name": "acme", "projects": []}, {"name": "other", "projects": []}]
+        workspaces = [
+            {"name": "acme", "projects": []},
+            {"name": "other", "projects": []},
+        ]
         err = _mod.manage_rename_workspace(workspaces, 1, "acme")
         self.assertEqual(err, "workspace 'acme' already exists")
         self.assertEqual(workspaces[1]["name"], "other")
@@ -625,7 +665,10 @@ class ManageDeleteTests(unittest.TestCase):
         self.assertEqual([p["name"] for p in ws["projects"]], ["web"])
 
     def test_delete_workspace_removes_and_returns_it(self) -> None:
-        workspaces = [{"name": "acme", "projects": []}, {"name": "other", "projects": []}]
+        workspaces = [
+            {"name": "acme", "projects": []},
+            {"name": "other", "projects": []},
+        ]
         deleted = _mod.manage_delete_workspace(workspaces, 0)
         self.assertEqual(deleted["name"], "acme")
         self.assertEqual([ws["name"] for ws in workspaces], ["other"])

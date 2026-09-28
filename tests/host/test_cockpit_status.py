@@ -72,14 +72,20 @@ class FormatStatusLineTests(unittest.TestCase):
 
     def test_full_tier_includes_branch_and_session(self) -> None:
         line = status.format_status_line(
-            tier="full", workspace="orcan", branch="main", session="orcan-dev",
+            tier="full",
+            workspace="orcan",
+            branch="main",
+            session="orcan-dev",
         )
         for expected in ("orcan", "main", "orcan-dev"):
             self.assertIn(expected, line)
 
     def test_compact_tier_drops_branch_and_session(self) -> None:
         line = status.format_status_line(
-            tier="compact", workspace="orcan", branch="main", session="orcan-dev",
+            tier="compact",
+            workspace="orcan",
+            branch="main",
+            session="orcan-dev",
         )
         self.assertIn("orcan", line)
         self.assertNotIn("main", line)
@@ -87,21 +93,30 @@ class FormatStatusLineTests(unittest.TestCase):
 
     def test_non_minimal_tier_shows_active_surface(self) -> None:
         line = status.format_status_line(
-            tier="compact", workspace="orcan", branch="main", session="orcan-dev",
+            tier="compact",
+            workspace="orcan",
+            branch="main",
+            session="orcan-dev",
             focus="Terminal",
         )
         self.assertIn("Terminal", line)
 
     def test_minimal_tier_is_workspace_only(self) -> None:
         line = status.format_status_line(
-            tier="minimal", workspace="orcan", branch="main", session="orcan-dev",
+            tier="minimal",
+            workspace="orcan",
+            branch="main",
+            session="orcan-dev",
             focus="Terminal",
         )
         self.assertEqual(line, "orcan")
 
     def test_missing_workspace_has_a_placeholder(self) -> None:
         line = status.format_status_line(
-            tier="full", workspace=None, branch="", session=None,
+            tier="full",
+            workspace=None,
+            branch="",
+            session=None,
         )
         self.assertIn("(no workspace)", line)
 

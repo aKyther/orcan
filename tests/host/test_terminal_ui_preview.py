@@ -26,7 +26,11 @@ class TerminalUiPreviewTests(unittest.TestCase):
     def test_check_loads_ui_on_an_isolated_server(self):
         result = subprocess.run(
             [str(PREVIEW), "tmux", "--check", "--size", "90x24"],
-            cwd=ROOT, check=False, text=True, capture_output=True, timeout=15,
+            cwd=ROOT,
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=15,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("UI preview check OK", result.stdout)
@@ -36,7 +40,11 @@ class TerminalUiPreviewTests(unittest.TestCase):
     def test_rejects_invalid_size(self):
         result = subprocess.run(
             [str(PREVIEW), "--check", "--size", "wide"],
-            cwd=ROOT, check=False, text=True, capture_output=True, timeout=5,
+            cwd=ROOT,
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=5,
         )
         self.assertEqual(result.returncode, 2)
         self.assertIn("invalid size", result.stderr)

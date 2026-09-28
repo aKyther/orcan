@@ -90,9 +90,13 @@ class ApplyWorkspacesTests(unittest.TestCase):
         self.assertTrue((self.ws_root / "AGENTS.md").is_file())
         self.assertTrue((self.ws_root / "CLAUDE.md").is_file())
         agents = (self.ws_root / "AGENTS.md").read_text(encoding="utf-8")
-        self.assertEqual(agents, (self.ws_root / "CLAUDE.md").read_text(encoding="utf-8"))
+        self.assertEqual(
+            agents, (self.ws_root / "CLAUDE.md").read_text(encoding="utf-8")
+        )
         self.assertIn("project's `AGENTS.md` / `CLAUDE.md` is SoT", agents)
-        self.assertEqual(report.workspaces[0].symlinks_created, [str(self.ws_root / "app")])
+        self.assertEqual(
+            report.workspaces[0].symlinks_created, [str(self.ws_root / "app")]
+        )
 
     def test_replaces_real_directory_blocking_symlink_slot(self) -> None:
         cfg = _cfg(
@@ -137,7 +141,9 @@ class ApplyWorkspacesTests(unittest.TestCase):
         self.assertFalse(report2.changed())
         # AGENTS.md content is regenerated and compared every run, but only
         # actually rewritten (and its mtime bumped) when it changed.
-        self.assertTrue((self.ws_root / "AGENTS.md").stat().st_mtime_ns >= agents_md_before)
+        self.assertTrue(
+            (self.ws_root / "AGENTS.md").stat().st_mtime_ns >= agents_md_before
+        )
 
     def test_removing_project_drops_orphan_symlink(self) -> None:
         cfg_with = _cfg(
@@ -156,7 +162,9 @@ class ApplyWorkspacesTests(unittest.TestCase):
         report = self._apply(cfg_without)
 
         self.assertFalse((self.ws_root / "app").exists())
-        self.assertEqual(report.workspaces[0].symlinks_removed, [str(self.ws_root / "app")])
+        self.assertEqual(
+            report.workspaces[0].symlinks_removed, [str(self.ws_root / "app")]
+        )
 
     def test_removing_the_only_workspace_prunes_its_stale_dir(self) -> None:
         cfg_with = _cfg(
@@ -212,7 +220,9 @@ class ApplyWorkspacesTests(unittest.TestCase):
         )
         report = self._apply(cfg2)
 
-        self.assertEqual(report.workspaces[0].symlinks_created, [str(self.ws_root / "app2")])
+        self.assertEqual(
+            report.workspaces[0].symlinks_created, [str(self.ws_root / "app2")]
+        )
         self.assertTrue((self.ws_root / "app").is_symlink())
         self.assertTrue((self.ws_root / "app2").is_symlink())
 

@@ -14,7 +14,8 @@ Repozytorium ma Makefile tylko dla **maintainerów** w checkoutcie gita:
 | Cel | Rola |
 | --- | --- |
 | `make validate` | Layout + składnia skryptów |
-| `make test-host` | Testy jednostkowe hosta |
+| `make test-host` | Testy hosta w Pytest |
+| `make format` / `make format-check` | Zastosuj / sprawdź formatowanie Ruff kodu Python |
 | `make test` / `make test-path-parity` | Testy kontenera (wymaga Dockera) |
 | `make dev-test` | Lifecycle izolowanego UX developerskiego (Docker + `orcan:dev-ux`) |
 | `make docs` / `docs-serve` / `docs-check` | MkDocs |

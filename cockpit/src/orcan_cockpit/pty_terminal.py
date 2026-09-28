@@ -63,6 +63,7 @@ from orcan_cockpit.pty_links import (
 from orcan_cockpit.pty_mouse import mouse_bytes, parse_mouse_modes
 from orcan_cockpit.pty_tmux_nav import esc_follow_up_nav_key, run_nav
 
+
 # pyte's fg/bg color values come in three shapes (see pyte.graphics /
 # Screen.select_graphic_rendition): ANSI names (pyte uses classic terminfo
 # "brown" for SGR 33 — Rich wants "yellow"), aixterm bright names
@@ -91,7 +92,16 @@ def _char_style(char: "pyte.screens.Char", link: str | None = None) -> Style:
     fg, bg = char.fg, char.bg
     if char.reverse:
         fg, bg = bg, fg
-    key = (fg, bg, char.bold, char.italics, char.underscore, char.strikethrough, char.blink, link)
+    key = (
+        fg,
+        bg,
+        char.bold,
+        char.italics,
+        char.underscore,
+        char.strikethrough,
+        char.blink,
+        link,
+    )
     style = _style_cache.get(key)
     if style is None:
         style = Style(
@@ -410,7 +420,9 @@ class PtyTerminal(Widget):
         if self._master_fd is None or self._write_watch_installed:
             return
         try:
-            asyncio.get_running_loop().add_writer(self._master_fd, self._flush_pty_write)
+            asyncio.get_running_loop().add_writer(
+                self._master_fd, self._flush_pty_write
+            )
         except (RuntimeError, TypeError, ValueError, OSError):
             return
         self._write_watch_installed = True

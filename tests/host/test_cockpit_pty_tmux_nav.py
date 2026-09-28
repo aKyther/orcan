@@ -21,20 +21,34 @@ _spec.loader.exec_module(nav)
 
 class NavActionTests(unittest.TestCase):
     def test_alt_arrows_focus_pane(self) -> None:
-        for direction, flag in (("left", "-L"), ("right", "-R"), ("up", "-U"), ("down", "-D")):
+        for direction, flag in (
+            ("left", "-L"),
+            ("right", "-R"),
+            ("up", "-U"),
+            ("down", "-D"),
+        ):
             self.assertEqual(nav.nav_action(f"alt+{direction}"), ("select-pane", flag))
 
     def test_ctrl_arrows_focus_pane(self) -> None:
         # Intentional cockpit mix: Alt often arrives as Ctrl, so both focus.
-        for direction, flag in (("left", "-L"), ("right", "-R"), ("up", "-U"), ("down", "-D")):
+        for direction, flag in (
+            ("left", "-L"),
+            ("right", "-R"),
+            ("up", "-U"),
+            ("down", "-D"),
+        ):
             self.assertEqual(nav.nav_action(f"ctrl+{direction}"), ("select-pane", flag))
 
     def test_ctrl_shift_arrows_split_pane(self) -> None:
-        self.assertEqual(nav.nav_action("ctrl+shift+left"), ("split-window", "-h", "-b"))
+        self.assertEqual(
+            nav.nav_action("ctrl+shift+left"), ("split-window", "-h", "-b")
+        )
         self.assertEqual(nav.nav_action("ctrl+shift+right"), ("split-window", "-h"))
         self.assertEqual(nav.nav_action("ctrl+shift+up"), ("split-window", "-v", "-b"))
         self.assertEqual(nav.nav_action("ctrl+shift+down"), ("split-window", "-v"))
-        self.assertEqual(nav.nav_action("shift+ctrl+left"), ("split-window", "-h", "-b"))
+        self.assertEqual(
+            nav.nav_action("shift+ctrl+left"), ("split-window", "-h", "-b")
+        )
 
     def test_non_nav_keys_untouched(self) -> None:
         self.assertIsNone(nav.nav_action("ctrl+space"))
@@ -45,7 +59,12 @@ class NavActionTests(unittest.TestCase):
     def test_alt_focus_still_matches_keybindings_conf(self) -> None:
         """Alt focus matches conf; Ctrl/Ctrl+Shift diverge on purpose (cockpit mix)."""
         conf = KEYBINDINGS_PATH.read_text(encoding="utf-8")
-        for direction, flag in (("Left", "-L"), ("Right", "-R"), ("Up", "-U"), ("Down", "-D")):
+        for direction, flag in (
+            ("Left", "-L"),
+            ("Right", "-R"),
+            ("Up", "-U"),
+            ("Down", "-D"),
+        ):
             binding = f"bind -n M-{direction} select-pane {flag}"
             self.assertIn(binding, conf)
             self.assertEqual(

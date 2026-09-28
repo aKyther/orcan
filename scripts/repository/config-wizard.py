@@ -16,9 +16,7 @@ try:
 except ImportError:  # not available on every platform — degrade to plain input()
     readline = None  # type: ignore[assignment]
 
-ROOT = Path(
-    os.environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2]
-)
+ROOT = Path(os.environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2])
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import (  # noqa: E402
     default_write_path,
@@ -49,10 +47,7 @@ def validate_name(name: str, *, label: str) -> str | None:
     if not name:
         return f"{label} cannot be empty"
     if not NAME_RE.match(name):
-        return (
-            f"{label}: letters, digits, _ and - only "
-            "(must start with alphanumeric)"
-        )
+        return f"{label}: letters, digits, _ and - only (must start with alphanumeric)"
     return None
 
 
@@ -143,7 +138,9 @@ def _path_completion():
         return
     old_delims = readline.get_completer_delims()
     old_completer = readline.get_completer()
-    readline.set_completer_delims(" \t\n")  # keep '/' out of delims — complete whole paths
+    readline.set_completer_delims(
+        " \t\n"
+    )  # keep '/' out of delims — complete whole paths
     readline.set_completer(_path_completer)
     readline.parse_and_bind("tab: complete")
     try:
@@ -175,7 +172,12 @@ def ask_project_path(
 def maybe_pick_worktree(path: Path) -> str:
     """If path is a git repo with extra worktrees, offer to use one of them."""
     try:
-        from git_worktrees import format_table, is_git_repo, list_worktrees, resolve_worktree
+        from git_worktrees import (
+            format_table,
+            is_git_repo,
+            list_worktrees,
+            resolve_worktree,
+        )
     except ImportError:
         return str(path)
 
@@ -196,7 +198,10 @@ def maybe_pick_worktree(path: Path) -> str:
     while True:
         info("  Pick one of these worktrees:")
         info(format_table(trees))
-        raw = ask("  Which worktree? (number, branch, or path)", "2" if len(trees) > 1 else "1")
+        raw = ask(
+            "  Which worktree? (number, branch, or path)",
+            "2" if len(trees) > 1 else "1",
+        )
         try:
             wt = resolve_worktree(path, raw)
         except SystemExit:
@@ -332,7 +337,9 @@ def _create_worktree_with_retry(
 
     default_branch = project_name
     while True:
-        branch = ask(f"{prefix}Branch name for the new worktree", default_branch).strip()
+        branch = ask(
+            f"{prefix}Branch name for the new worktree", default_branch
+        ).strip()
         if not branch:
             warn("empty branch name")
             if ask_yes_no(f"{prefix}Mount the original folder instead?", default=True):
@@ -399,7 +406,9 @@ def _create_worktree_with_retry(
             if choice == "cancel":
                 success(f"{prefix}mounting {source}")
                 return str(source)
-            default_branch = f"{branch}-2" if not branch.endswith("-2") else f"{branch}b"
+            default_branch = (
+                f"{branch}-2" if not branch.endswith("-2") else f"{branch}b"
+            )
             continue
 
         success(f"{prefix}worktree ready: {wt.path}")
@@ -442,7 +451,9 @@ def ask_project(
     return {"name": name, "path": final_path}
 
 
-def ask_new_workspace(*, another: bool = False, cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+def ask_new_workspace(
+    *, another: bool = False, cfg: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Collect one workspace: a name + project paths (worktree optional per project)."""
     if another:
         heading("Another workspace")
@@ -451,7 +462,9 @@ def ask_new_workspace(*, another: bool = False, cfg: dict[str, Any] | None = Non
     suggestion = suggest_cwd_project(cfg)
     info("  Workspace = name for this whole set of folders (e.g. myapp, client-a).")
     if suggestion:
-        info(f"  Detected current directory ({suggestion[1]}) — suggested below, Enter to accept.")
+        info(
+            f"  Detected current directory ({suggestion[1]}) — suggested below, Enter to accept."
+        )
     name = ask_name(
         "  Workspace name",
         default=suggestion[0] if suggestion else "",
@@ -465,7 +478,9 @@ def ask_new_workspace(*, another: bool = False, cfg: dict[str, Any] | None = Non
             info(f"  So far in workspace {name!r}:")
             for p in projects:
                 info(f"    • {p['name']} → {p['path']}")
-            if not ask_yes_no(f"  Add another project to workspace {name!r}?", default=False):
+            if not ask_yes_no(
+                f"  Add another project to workspace {name!r}?", default=False
+            ):
                 break
             projects.append(ask_project(workspace=name, another=True))
         else:
@@ -490,6 +505,7 @@ def summarize(cfg: dict[str, Any], *, title: str = "Summary") -> None:
     try:
         from git_worktrees import is_under_managed_root
     except ImportError:
+
         def is_under_managed_root(_p: Path) -> bool:  # type: ignore[misc]
             return False
 
@@ -655,7 +671,9 @@ def create_fresh() -> dict[str, Any]:
     return cfg
 
 
-def wizard_remove_managed_worktrees(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
+def wizard_remove_managed_worktrees(
+    cfg: dict[str, Any], config_path: Path
+) -> dict[str, Any]:
     from managed_workspace import remove_managed_workspace
     from git_worktrees import is_under_managed_root, load_manifest, managed_root
 
@@ -674,7 +692,9 @@ def wizard_remove_managed_worktrees(cfg: dict[str, Any], config_path: Path) -> d
         if not name or name in by_ws:
             continue
         for p in ws.get("projects") or []:
-            if isinstance(p, dict) and is_under_managed_root(Path(str(p.get("path") or ""))):
+            if isinstance(p, dict) and is_under_managed_root(
+                Path(str(p.get("path") or ""))
+            ):
                 by_ws[name] = by_ws.get(name, 0) + 1
 
     if not by_ws:
@@ -716,7 +736,10 @@ def top_menu(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
         [
             ("add", "add a workspace (mount project folders)"),
             ("edit", "change existing workspaces"),
-            ("clean", "remove worktrees Orcan created under $ORCAN_PROJECTS_ROOT/.worktrees"),
+            (
+                "clean",
+                "remove worktrees Orcan created under $ORCAN_PROJECTS_ROOT/.worktrees",
+            ),
         ],
         default="add",
     )
@@ -729,7 +752,9 @@ def top_menu(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
             if not (isinstance(ws, dict) and ws.get("name") == ws_name)
         ]
         if find_workspace(cfg, ws_name) is not None:
-            if not ask_yes_no(f"Workspace {ws_name!r} already exists — replace it?", default=False):
+            if not ask_yes_no(
+                f"Workspace {ws_name!r} already exists — replace it?", default=False
+            ):
                 info("Cancelled.")
                 return cfg
         workspaces.append(created)

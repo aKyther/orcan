@@ -19,7 +19,14 @@ _spec.loader.exec_module(pty_mouse)
 
 
 def _event(**kwargs: object) -> SimpleNamespace:
-    defaults = {"x": 4, "y": 2, "button": 1, "shift": False, "meta": False, "ctrl": False}
+    defaults = {
+        "x": 4,
+        "y": 2,
+        "button": 1,
+        "shift": False,
+        "meta": False,
+        "ctrl": False,
+    }
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
 
@@ -62,7 +69,9 @@ class SgrMouseTests(unittest.TestCase):
         self.assertEqual(release, b"\x1b[<32;5;3m")
 
     def test_coords_clamped_to_terminal_size(self) -> None:
-        data = pty_mouse.sgr_mouse_bytes(_event(x=999, y=999), scroll=65, rows=10, cols=20)
+        data = pty_mouse.sgr_mouse_bytes(
+            _event(x=999, y=999), scroll=65, rows=10, cols=20
+        )
         self.assertEqual(data, b"\x1b[<65;20;10M")
 
 

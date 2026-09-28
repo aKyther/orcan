@@ -38,9 +38,7 @@ class ShellExecutorTests(unittest.TestCase):
     def test_runs_command_in_given_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             executor = agent_executor.ShellExecutor()
-            result = executor.execute(
-                {"execution": {"command": "pwd"}}, {"cwd": tmp}
-            )
+            result = executor.execute({"execution": {"command": "pwd"}}, {"cwd": tmp})
             self.assertTrue(result.ok)
             self.assertIn(str(Path(tmp).resolve()), result.output)
 
@@ -96,7 +94,9 @@ class DispatchOnceTests(unittest.TestCase):
 
     def test_empty_inbox_returns_none(self) -> None:
         self.assertIsNone(
-            agent_executor.dispatch_once(self.root, agent_executor.ShellExecutor(), "worker-1")
+            agent_executor.dispatch_once(
+                self.root, agent_executor.ShellExecutor(), "worker-1"
+            )
         )
 
 

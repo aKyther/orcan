@@ -55,8 +55,9 @@ class AskNewWorkspaceCwdDefaultTests(unittest.TestCase):
         """The whole point: pressing Enter through every prompt should mount
         cwd as both the workspace name and the sole project's path — no
         typing required, like `uv init` / `poetry init`."""
-        with patch.object(cw.Path, "cwd", return_value=self.cwd), patch(
-            "builtins.input", side_effect=["", "", "", ""]
+        with (
+            patch.object(cw.Path, "cwd", return_value=self.cwd),
+            patch("builtins.input", side_effect=["", "", "", ""]),
         ):
             ws = cw.ask_new_workspace(another=False, cfg=None)
         self.assertEqual(ws["name"], self.cwd.name)
@@ -71,9 +72,12 @@ class AskNewWorkspaceCwdDefaultTests(unittest.TestCase):
             ]
         }
         typed_name = "my-typed-workspace"
-        with patch.object(cw.Path, "cwd", return_value=self.cwd), patch(
-            "builtins.input",
-            side_effect=[typed_name, str(self.cwd), "proj", ""],
+        with (
+            patch.object(cw.Path, "cwd", return_value=self.cwd),
+            patch(
+                "builtins.input",
+                side_effect=[typed_name, str(self.cwd), "proj", ""],
+            ),
         ):
             ws = cw.ask_new_workspace(another=True, cfg=cfg)
         self.assertEqual(ws["name"], typed_name)
@@ -136,10 +140,11 @@ class MainAlreadyConfiguredTests(unittest.TestCase):
 
     def test_declining_change_exits_without_touching_config(self) -> None:
         before = self.config_path.read_text()
-        with patch.object(cw.Path, "cwd", return_value=self.project), patch(
-            "sys.argv", self.argv
-        ), patch("sys.stdin.isatty", return_value=True), patch(
-            "builtins.input", side_effect=["n"]
+        with (
+            patch.object(cw.Path, "cwd", return_value=self.project),
+            patch("sys.argv", self.argv),
+            patch("sys.stdin.isatty", return_value=True),
+            patch("builtins.input", side_effect=["n"]),
         ):
             cw.main()
         self.assertEqual(self.config_path.read_text(), before)
@@ -149,10 +154,11 @@ class MainAlreadyConfiguredTests(unittest.TestCase):
         # ""=no more projects, ""=no more workspaces, n=decline final save.
         answers = ["y", "edit", "", "", "", "n"]
         before = self.config_path.read_text()
-        with patch.object(cw.Path, "cwd", return_value=self.project), patch(
-            "sys.argv", self.argv
-        ), patch("sys.stdin.isatty", return_value=True), patch(
-            "builtins.input", side_effect=answers
+        with (
+            patch.object(cw.Path, "cwd", return_value=self.project),
+            patch("sys.argv", self.argv),
+            patch("sys.stdin.isatty", return_value=True),
+            patch("builtins.input", side_effect=answers),
         ):
             cw.main()
         # declined the final save too, so config is still untouched
@@ -194,7 +200,9 @@ class PathCompleterTests(unittest.TestCase):
         self.assertIsNone(cw._path_completer(f"{self.root}/nope", 0))
 
     def test_expands_tilde_for_listing_but_preserves_typed_prefix(self) -> None:
-        with patch.object(cw.os.path, "expanduser", return_value=str(self.root) + "/wo"):
+        with patch.object(
+            cw.os.path, "expanduser", return_value=str(self.root) + "/wo"
+        ):
             matches = self._matches("~/wo")
         # the returned completion keeps the "~" the user typed, not the
         # expanded /home/... form
@@ -209,27 +217,34 @@ class OfferPullBeforeWorktreeTests(unittest.TestCase):
     def test_detached_head_skips_question_entirely(self) -> None:
         import git_worktrees as gw
 
-        with patch.object(gw, "current_branch", return_value=""), patch(
-            "builtins.input"
-        ) as mock_input:
+        with (
+            patch.object(gw, "current_branch", return_value=""),
+            patch("builtins.input") as mock_input,
+        ):
             cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
         mock_input.assert_not_called()
 
     def test_declining_skips_pull(self) -> None:
         import git_worktrees as gw
 
-        with patch.object(gw, "current_branch", return_value="main"), patch.object(
-            gw, "pull_current_branch"
-        ) as pull, patch("builtins.input", side_effect=["n"]):
+        with (
+            patch.object(gw, "current_branch", return_value="main"),
+            patch.object(gw, "pull_current_branch") as pull,
+            patch("builtins.input", side_effect=["n"]),
+        ):
             cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
         pull.assert_not_called()
 
     def test_accepting_calls_pull_current_branch(self) -> None:
         import git_worktrees as gw
 
-        with patch.object(gw, "current_branch", return_value="main"), patch.object(
-            gw, "pull_current_branch", return_value=(True, "Already up to date.")
-        ) as pull, patch("builtins.input", side_effect=["y"]):
+        with (
+            patch.object(gw, "current_branch", return_value="main"),
+            patch.object(
+                gw, "pull_current_branch", return_value=(True, "Already up to date.")
+            ) as pull,
+            patch("builtins.input", side_effect=["y"]),
+        ):
             cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
         pull.assert_called_once_with(Path("/tmp/whatever"))
 
@@ -237,9 +252,13 @@ class OfferPullBeforeWorktreeTests(unittest.TestCase):
         """ask_yes_no's default is True ("Y/n") — bare Enter should pull."""
         import git_worktrees as gw
 
-        with patch.object(gw, "current_branch", return_value="main"), patch.object(
-            gw, "pull_current_branch", return_value=(True, "Already up to date.")
-        ) as pull, patch("builtins.input", side_effect=[""]):
+        with (
+            patch.object(gw, "current_branch", return_value="main"),
+            patch.object(
+                gw, "pull_current_branch", return_value=(True, "Already up to date.")
+            ) as pull,
+            patch("builtins.input", side_effect=[""]),
+        ):
             cw._offer_pull_before_worktree(Path("/tmp/whatever"), prefix="  ")
         pull.assert_called_once()
 

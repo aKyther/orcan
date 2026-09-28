@@ -34,7 +34,10 @@ def git_branch(root: str) -> str:
     try:
         result = subprocess.run(
             ["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True, timeout=0.5, check=False,
+            capture_output=True,
+            text=True,
+            timeout=0.5,
+            check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
         return ""
@@ -45,7 +48,10 @@ def git_branch(root: str) -> str:
     try:
         result = subprocess.run(
             ["git", "-C", root, "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, timeout=0.5, check=False,
+            capture_output=True,
+            text=True,
+            timeout=0.5,
+            check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
         return ""

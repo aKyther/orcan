@@ -38,7 +38,9 @@ class AboutModal(SheetModal):
     def compose(self) -> ComposeResult:
         with Container(classes="sheet", id="about-dialog"):
             with Horizontal(classes="sheet-header"):
-                yield Static(f"{PRODUCT_NAME} · v{product_version()}", classes="sheet-title")
+                yield Static(
+                    f"{PRODUCT_NAME} · v{product_version()}", classes="sheet-title"
+                )
                 yield Button("Close", id="about-close", classes="sheet-close")
             # Quotes around the URL are required, not decorative: Textual's
             # own markup engine (Content.from_markup, not Rich's) fails to

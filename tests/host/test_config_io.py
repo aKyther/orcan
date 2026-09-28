@@ -38,7 +38,9 @@ class ConfigIoTests(unittest.TestCase):
     def test_yaml_leftover_dies(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "orcan.config.yaml").write_text("workspaces: []\n", encoding="utf-8")
+            (root / "orcan.config.yaml").write_text(
+                "workspaces: []\n", encoding="utf-8"
+            )
             with self.assertRaises(SystemExit):
                 config_io.discover_config(root)
 

@@ -299,7 +299,9 @@ def attach_hyperlink_screen():
                     self.buffer[y] = self.buffer.pop(src)
                 else:
                     self.buffer.pop(y, None)
-                self._links[y] = self._links[src] if src <= bottom else [None] * self.columns
+                self._links[y] = (
+                    self._links[src] if src <= bottom else [None] * self.columns
+                )
 
         def scroll_down_region(self, count: int | None = None) -> None:
             """CSI Ps T (SD) — the scroll_up_region counterpart, shifting
@@ -313,7 +315,9 @@ def attach_hyperlink_screen():
                     self.buffer[y] = self.buffer.pop(src)
                 else:
                     self.buffer.pop(y, None)
-                self._links[y] = self._links[src] if src >= top else [None] * self.columns
+                self._links[y] = (
+                    self._links[src] if src >= top else [None] * self.columns
+                )
 
     class ScrollAwareStream(pyte.Stream):
         # Extends, doesn't replace, pyte's own dispatch table — see

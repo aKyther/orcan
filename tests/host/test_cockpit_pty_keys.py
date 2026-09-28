@@ -68,7 +68,9 @@ class KeyToBytesTests(unittest.TestCase):
         self.assertEqual(pty_keys.key_to_bytes("f12", None), b"\x1b[24~")
 
     def test_ctrl_bracket_keys_for_vim(self) -> None:
-        self.assertEqual(pty_keys.key_to_bytes("ctrl+right_square_brace", None), b"\x1d")
+        self.assertEqual(
+            pty_keys.key_to_bytes("ctrl+right_square_brace", None), b"\x1d"
+        )
         self.assertEqual(pty_keys.key_to_bytes("ctrl+backslash", None), b"\x1c")
         self.assertEqual(pty_keys.key_to_bytes("ctrl+underscore", None), b"\x1f")
 

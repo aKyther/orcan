@@ -80,104 +80,270 @@ SHORTCUTS: list[Shortcut] = [
     # tmux pane/window/session list.
     # (No F3/Git entry — removed on request; lazygit stays reachable via the
     # `lg` shell alias inside the terminal itself.)
-    Shortcut("F4", "Open workspace picker", "app", "cockpit",
-              ("terminal", "workspaces", "rail")),
-    Shortcut("F6", "Switch to previous workspace", "app", "cockpit",
-              ("terminal", "workspaces", "rail")),
+    Shortcut(
+        "F4",
+        "Open workspace picker",
+        "app",
+        "cockpit",
+        ("terminal", "workspaces", "rail"),
+    ),
+    Shortcut(
+        "F6",
+        "Switch to previous workspace",
+        "app",
+        "cockpit",
+        ("terminal", "workspaces", "rail"),
+    ),
     # "?" is a bare letter, not a function key — PtyTerminal swallows it
     # (event.stop() in on_key) whenever the terminal has focus and sends it
     # into the shell/tmux pane as a literal "?" instead; only F1 reliably
     # opens this from there. One entry (not split by context) so the shortcuts
     # modal/CLI show a single "Open shortcuts" row. Confirmed via real pty
     # test: typing "?" while attached lands in the pane.
-    Shortcut("F1 / ?", "Open shortcuts", "app", "cockpit",
-              ("terminal", "workspaces", "rail")),
+    Shortcut(
+        "F1 / ?", "Open shortcuts", "app", "cockpit", ("terminal", "workspaces", "rail")
+    ),
     # --- app: cockpit nav mix (see pty_tmux_nav — differs from raw --tmux) ---
     Shortcut("Ctrl/Alt+←/→/↑/↓", "Focus pane", "app", "panes", ("terminal",)),
     Shortcut("Ctrl+Shift+←/→/↑/↓", "Split pane", "app", "panes", ("terminal",)),
     # --- tmux: panes -------------------------------------------------------
-    Shortcut("prefix -", "Split pane (down)", "tmux", "panes", ("terminal",),
-              ("bind - split-window -v",)),
-    Shortcut("prefix |", "Split pane (right)", "tmux", "panes", ("terminal",),
-              ("bind | split-window -h",)),
+    Shortcut(
+        "prefix -",
+        "Split pane (down)",
+        "tmux",
+        "panes",
+        ("terminal",),
+        ("bind - split-window -v",),
+    ),
+    Shortcut(
+        "prefix |",
+        "Split pane (right)",
+        "tmux",
+        "panes",
+        ("terminal",),
+        ("bind | split-window -h",),
+    ),
     # No "terminal" context: cockpit remaps these (the APP "Split pane" row
     # above covers the cockpit case). Still listed under TMUX in F1 /
     # prefix-? for raw ``orcan enter --tmux``.
-    Shortcut("Ctrl+↓/↑/→/←", "Split pane (no prefix; --tmux only)", "tmux", "panes", (), (
-        "bind -n C-Down split-window -v",
-        "bind -n C-Up split-window -v -b",
-        "bind -n C-Right split-window -h",
-        "bind -n C-Left split-window -h -b",
-    )),
-    Shortcut("Alt+←/→/↑/↓", "Focus pane (--tmux when Meta works)", "tmux", "panes", (), (
-        "bind -n M-Left select-pane -L",
-        "bind -n M-Right select-pane -R",
-        "bind -n M-Up select-pane -U",
-        "bind -n M-Down select-pane -D",
-    )),
-    Shortcut("prefix z", "Zoom pane", "tmux", "panes", ("terminal",),
-              ("bind z resize-pane -Z",)),
-    Shortcut("prefix x", "Kill pane", "tmux", "panes", ("terminal",),
-              ("bind x kill-pane",)),
+    Shortcut(
+        "Ctrl+↓/↑/→/←",
+        "Split pane (no prefix; --tmux only)",
+        "tmux",
+        "panes",
+        (),
+        (
+            "bind -n C-Down split-window -v",
+            "bind -n C-Up split-window -v -b",
+            "bind -n C-Right split-window -h",
+            "bind -n C-Left split-window -h -b",
+        ),
+    ),
+    Shortcut(
+        "Alt+←/→/↑/↓",
+        "Focus pane (--tmux when Meta works)",
+        "tmux",
+        "panes",
+        (),
+        (
+            "bind -n M-Left select-pane -L",
+            "bind -n M-Right select-pane -R",
+            "bind -n M-Up select-pane -U",
+            "bind -n M-Down select-pane -D",
+        ),
+    ),
+    Shortcut(
+        "prefix z",
+        "Zoom pane",
+        "tmux",
+        "panes",
+        ("terminal",),
+        ("bind z resize-pane -Z",),
+    ),
+    Shortcut(
+        "prefix x", "Kill pane", "tmux", "panes", ("terminal",), ("bind x kill-pane",)
+    ),
     # --- tmux: windows -------------------------------------------------------
-    Shortcut("Ctrl+Alt+←/→", "Previous / next window", "tmux", "windows", ("terminal",), (
-        "bind -n C-M-Left previous-window",
-        "bind -n C-M-Right next-window",
-    )),
-    Shortcut("Alt+c", "New window", "tmux", "windows", ("terminal",),
-              ("bind -n M-c new-window",)),
+    Shortcut(
+        "Ctrl+Alt+←/→",
+        "Previous / next window",
+        "tmux",
+        "windows",
+        ("terminal",),
+        (
+            "bind -n C-M-Left previous-window",
+            "bind -n C-M-Right next-window",
+        ),
+    ),
+    Shortcut(
+        "Alt+c",
+        "New window",
+        "tmux",
+        "windows",
+        ("terminal",),
+        ("bind -n M-c new-window",),
+    ),
     # Cockpit intercepts Ctrl+Shift+arrows for split; swap remains --tmux only.
-    Shortcut("Ctrl+Shift+←/→", "Swap window (--tmux only)", "tmux", "windows", (), (
-        "bind -n C-S-Left swap-window -t -1",
-        "bind -n C-S-Right swap-window -t +1",
-    )),
-    Shortcut("Alt+1..9", "Select window (left Alt only — right Alt/AltGr on "
-              "international Windows layouts won't send it, see prefix 1..9)",
-              "tmux", "windows", ("terminal",), ("bind -n M-1 select-window -t 1",)),
-    Shortcut("prefix 0..9", "Select window (layout-independent fallback)", "tmux", "windows",
-              ("terminal",), ("bind 0 select-window -t :$", "bind 1 select-window -t 1")),
-    Shortcut("prefix W", "Choose window", "tmux", "windows", ("terminal",),
-              ("bind W choose-window -Z",)),
+    Shortcut(
+        "Ctrl+Shift+←/→",
+        "Swap window (--tmux only)",
+        "tmux",
+        "windows",
+        (),
+        (
+            "bind -n C-S-Left swap-window -t -1",
+            "bind -n C-S-Right swap-window -t +1",
+        ),
+    ),
+    Shortcut(
+        "Alt+1..9",
+        "Select window (left Alt only — right Alt/AltGr on "
+        "international Windows layouts won't send it, see prefix 1..9)",
+        "tmux",
+        "windows",
+        ("terminal",),
+        ("bind -n M-1 select-window -t 1",),
+    ),
+    Shortcut(
+        "prefix 0..9",
+        "Select window (layout-independent fallback)",
+        "tmux",
+        "windows",
+        ("terminal",),
+        ("bind 0 select-window -t :$", "bind 1 select-window -t 1"),
+    ),
+    Shortcut(
+        "prefix W",
+        "Choose window",
+        "tmux",
+        "windows",
+        ("terminal",),
+        ("bind W choose-window -Z",),
+    ),
     # --- tmux: sessions ------------------------------------------------------
-    Shortcut("prefix s / w", "Switch session", "tmux", "sessions", ("terminal",), (
-        "bind s run-shell '/etc/tmux/scripts/session-switch.sh'",
-        "bind w run-shell '/etc/tmux/scripts/session-switch.sh'",
-    )),
-    Shortcut("prefix I", "Session info", "tmux", "sessions", ("terminal",),
-              ("bind I display-message",)),
+    Shortcut(
+        "prefix s / w",
+        "Switch session",
+        "tmux",
+        "sessions",
+        ("terminal",),
+        (
+            "bind s run-shell '/etc/tmux/scripts/session-switch.sh'",
+            "bind w run-shell '/etc/tmux/scripts/session-switch.sh'",
+        ),
+    ),
+    Shortcut(
+        "prefix I",
+        "Session info",
+        "tmux",
+        "sessions",
+        ("terminal",),
+        ("bind I display-message",),
+    ),
     # --- tmux: mouse / misc --------------------------------------------------
-    Shortcut("Alt+a / Alt+q", "Mouse on / off", "tmux", "misc", ("terminal",), (
-        "bind -n M-a set -g mouse on",
-        "bind -n M-q set -g mouse off",
-    )),
-    Shortcut("prefix r", "Reload tmux config", "tmux", "misc", ("terminal",),
-              ("bind r source-file /etc/tmux/tmux.conf",)),
-    Shortcut("prefix P", "Copy current path", "tmux", "misc", ("terminal",),
-              ("bind P run-shell '/etc/tmux/scripts/copy-path.sh'",)),
-    Shortcut("prefix u", "Pick URL from pane", "tmux", "misc", ("terminal",),
-              ("bind u run-shell '/etc/tmux/scripts/pick-url.sh'",)),
-    Shortcut("prefix ?", "Shortcuts (standalone popup)", "tmux", "misc", ("terminal",),
-              ("bind ? display-popup",)),
-    Shortcut("drag · Ctrl+C", "Copy selection (embedded terminal)", "app", "misc",
-              ("terminal",)),
+    Shortcut(
+        "Alt+a / Alt+q",
+        "Mouse on / off",
+        "tmux",
+        "misc",
+        ("terminal",),
+        (
+            "bind -n M-a set -g mouse on",
+            "bind -n M-q set -g mouse off",
+        ),
+    ),
+    Shortcut(
+        "prefix r",
+        "Reload tmux config",
+        "tmux",
+        "misc",
+        ("terminal",),
+        ("bind r source-file /etc/tmux/tmux.conf",),
+    ),
+    Shortcut(
+        "prefix P",
+        "Copy current path",
+        "tmux",
+        "misc",
+        ("terminal",),
+        ("bind P run-shell '/etc/tmux/scripts/copy-path.sh'",),
+    ),
+    Shortcut(
+        "prefix u",
+        "Pick URL from pane",
+        "tmux",
+        "misc",
+        ("terminal",),
+        ("bind u run-shell '/etc/tmux/scripts/pick-url.sh'",),
+    ),
+    Shortcut(
+        "prefix ?",
+        "Shortcuts (standalone popup)",
+        "tmux",
+        "misc",
+        ("terminal",),
+        ("bind ? display-popup",),
+    ),
+    Shortcut(
+        "drag · Ctrl+C",
+        "Copy selection (embedded terminal)",
+        "app",
+        "misc",
+        ("terminal",),
+    ),
     Shortcut("Ctrl+V", "Paste (embedded terminal)", "app", "misc", ("terminal",)),
     # --- tmux: copy-mode -------------------------------------------------------
-    Shortcut("v", "Begin selection", "tmux", "copy-mode", ("terminal",),
-              ("bind -T copy-mode-vi v send-keys -X begin-selection",)),
-    Shortcut("Ctrl+v", "Toggle rectangle select", "tmux", "copy-mode", ("terminal",),
-              ("bind -T copy-mode-vi C-v send-keys -X rectangle-toggle",)),
-    Shortcut("y", "Copy selection", "tmux", "copy-mode", ("terminal",),
-              ("bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel",)),
-    Shortcut("Escape", "Cancel copy mode", "tmux", "copy-mode", ("terminal",),
-              ("bind -T copy-mode-vi Escape send-keys -X cancel",)),
+    Shortcut(
+        "v",
+        "Begin selection",
+        "tmux",
+        "copy-mode",
+        ("terminal",),
+        ("bind -T copy-mode-vi v send-keys -X begin-selection",),
+    ),
+    Shortcut(
+        "Ctrl+v",
+        "Toggle rectangle select",
+        "tmux",
+        "copy-mode",
+        ("terminal",),
+        ("bind -T copy-mode-vi C-v send-keys -X rectangle-toggle",),
+    ),
+    Shortcut(
+        "y",
+        "Copy selection",
+        "tmux",
+        "copy-mode",
+        ("terminal",),
+        ("bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel",),
+    ),
+    Shortcut(
+        "Escape",
+        "Cancel copy mode",
+        "tmux",
+        "copy-mode",
+        ("terminal",),
+        ("bind -T copy-mode-vi Escape send-keys -X cancel",),
+    ),
     # --- app (cockpit) layer, remainder (the terminal-context subset lives
     # at the top of this list — see the comment there) ----------------------
     Shortcut("Ctrl+P", "Command palette", "app", "cockpit", ("workspaces", "rail")),
-    Shortcut("F5", "Peek session brief", "app", "cockpit",
-             ("terminal", "workspaces", "rail")),
-    Shortcut("↑ / ↓, Enter", "Navigate / attach workspace", "app", "cockpit", ("workspaces",)),
-    Shortcut("Ctrl+C", "Copy highlighted workspace root", "app", "cockpit", ("workspaces",)),
-    Shortcut("i", "Expand workspace details (root, repo count)", "app", "cockpit", ("workspaces",)),
+    Shortcut(
+        "F5", "Peek session brief", "app", "cockpit", ("terminal", "workspaces", "rail")
+    ),
+    Shortcut(
+        "↑ / ↓, Enter", "Navigate / attach workspace", "app", "cockpit", ("workspaces",)
+    ),
+    Shortcut(
+        "Ctrl+C", "Copy highlighted workspace root", "app", "cockpit", ("workspaces",)
+    ),
+    Shortcut(
+        "i",
+        "Expand workspace details (root, repo count)",
+        "app",
+        "cockpit",
+        ("workspaces",),
+    ),
 ]
 
 

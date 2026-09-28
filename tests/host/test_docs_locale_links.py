@@ -36,4 +36,6 @@ class DocsLocaleLinksTests(unittest.TestCase):
                     resolved = (source.parent / target).resolve()
                     with self.subTest(locale=locale, source=source_relative, href=href):
                         self.assertTrue(resolved.is_relative_to(locale_root))
-                        self.assertTrue(resolved.is_file(), f"missing target: {resolved}")
+                        self.assertTrue(
+                            resolved.is_file(), f"missing target: {resolved}"
+                        )

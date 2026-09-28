@@ -18,7 +18,12 @@ import history  # noqa: E402
 
 def _init_repo(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init", "--quiet", "-b", "main"], cwd=path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "--quiet", "-b", "main"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
 
 
 class RecordAndRecentTests(unittest.TestCase):
@@ -69,11 +74,15 @@ class RecordAndRecentTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertTrue(all(r["workspace"] == "ws-a" for r in rows))
 
-    def test_same_repo_reused_from_different_worktrees_keys_by_canonical_project_id(self) -> None:
+    def test_same_repo_reused_from_different_worktrees_keys_by_canonical_project_id(
+        self,
+    ) -> None:
         main_repo = self.data / "main-repo"
         _init_repo(main_repo)
 
-        history.record_use(self.store, workspace="ws-a", project_path=main_repo, now=1.0)
+        history.record_use(
+            self.store, workspace="ws-a", project_path=main_repo, now=1.0
+        )
         rows = history.load(self.store)
         self.assertIsNotNone(rows[0]["project_id"])
 

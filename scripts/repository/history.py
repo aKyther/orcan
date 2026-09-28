@@ -41,7 +41,9 @@ def project_id(project_path: Path) -> str:
     resolved = project_path.resolve()
     common_dir = _git_common_dir(resolved)
     identity = common_dir or resolved
-    base_source = common_dir.parent if common_dir and common_dir.name == ".git" else identity
+    base_source = (
+        common_dir.parent if common_dir and common_dir.name == ".git" else identity
+    )
     digest = hashlib.sha256(str(identity).encode("utf-8")).hexdigest()[:10]
     base = re.sub(r"[^A-Za-z0-9._-]+", "-", base_source.name).strip("-") or "project"
     return f"{base}-{digest}"

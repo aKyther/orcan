@@ -33,7 +33,9 @@ def load_orcan_module(name: str) -> types.ModuleType:
     if full_name in sys.modules:
         return sys.modules[full_name]
 
-    spec = importlib.util.spec_from_file_location(full_name, LIB_ORCAN_DIR / f"{name}.py")
+    spec = importlib.util.spec_from_file_location(
+        full_name, LIB_ORCAN_DIR / f"{name}.py"
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[full_name] = module

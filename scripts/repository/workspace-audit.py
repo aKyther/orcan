@@ -18,7 +18,9 @@ SCRIPTS = Path(__file__).resolve().parent
 def _load_apply_config():
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location("apply_config", SCRIPTS / "apply-config.py")
+    spec = importlib.util.spec_from_file_location(
+        "apply_config", SCRIPTS / "apply-config.py"
+    )
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -86,18 +88,30 @@ def audit(
     runtime = load_runtime(home)
     workspaces = runtime.get("workspaces") or []
     if not workspaces:
-        findings.append(Finding("ok", "workspace mapping", "no runtime workspaces (run: orcan sync)"))
+        findings.append(
+            Finding(
+                "ok", "workspace mapping", "no runtime workspaces (run: orcan sync)"
+            )
+        )
         return findings
 
     binds = compose_bind_paths(compose_file)
-    enabled = [ws for ws in workspaces if isinstance(ws, dict) and ws.get("enabled") is not False]
+    enabled = [
+        ws
+        for ws in workspaces
+        if isinstance(ws, dict) and ws.get("enabled") is not False
+    ]
 
     for ws in enabled:
         ws_name = str(ws.get("name") or "?")
         meta_raw = str(ws.get("meta_path") or "").strip()
         if not meta_raw:
             findings.append(
-                Finding("fail", f"workspace {ws_name}", "missing meta_path in runtime config")
+                Finding(
+                    "fail",
+                    f"workspace {ws_name}",
+                    "missing meta_path in runtime config",
+                )
             )
             continue
         meta = Path(meta_raw)
@@ -128,7 +142,9 @@ def audit(
 
             expected = _resolve(Path(host_path))
             if not expected.is_dir():
-                findings.append(Finding("fail", label, f"project path missing on host: {host_path}"))
+                findings.append(
+                    Finding("fail", label, f"project path missing on host: {host_path}")
+                )
                 continue
 
             slot = meta / pname
@@ -163,7 +179,9 @@ def audit(
                 findings.append(Finding("fail", label, f"unexpected slot type: {slot}"))
 
             needs_bind = True
-            if managed_root is not None and apply_config._is_under(expected, managed_root):
+            if managed_root is not None and apply_config._is_under(
+                expected, managed_root
+            ):
                 needs_bind = False
             if needs_bind and binds and str(expected) not in binds:
                 findings.append(

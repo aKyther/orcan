@@ -83,7 +83,9 @@ def apply_moves(
                 old_resolved.symlink_to(new_path, target_is_directory=True)
                 log.append(f"  compat symlink left at: {old_resolved}")
             except OSError as exc:
-                log.append(f"  warning: could not leave compat symlink at {old_resolved}: {exc}")
+                log.append(
+                    f"  warning: could not leave compat symlink at {old_resolved}: {exc}"
+                )
     return log
 
 
@@ -91,10 +93,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="", help="Path to orcan.config.json")
     parser.add_argument("--root", default="", help="ORCAN_HOME (config discovery root)")
-    parser.add_argument("--managed-root", default="", help="Override ORCAN_PROJECTS_ROOT")
-    parser.add_argument("--yes", action="store_true", help="Actually move (default: dry-run)")
     parser.add_argument(
-        "--no-symlink", action="store_true", help="Do not leave a compat symlink at the old path"
+        "--managed-root", default="", help="Override ORCAN_PROJECTS_ROOT"
+    )
+    parser.add_argument(
+        "--yes", action="store_true", help="Actually move (default: dry-run)"
+    )
+    parser.add_argument(
+        "--no-symlink",
+        action="store_true",
+        help="Do not leave a compat symlink at the old path",
     )
     args = parser.parse_args()
 
@@ -107,7 +115,9 @@ def main() -> int:
         return 1
 
     managed_root = (
-        Path(args.managed_root) if args.managed_root else default_managed_root(dict(os.environ))
+        Path(args.managed_root)
+        if args.managed_root
+        else default_managed_root(dict(os.environ))
     )
 
     cfg = load_config(config_path)

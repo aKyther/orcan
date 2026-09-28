@@ -151,7 +151,11 @@ def scan_dirs(parent: Path, *, max_depth: int = 1) -> list[tuple[Path, bool]]:
             continue
         try:
             grand = sorted(
-                (p for p in child.iterdir() if p.is_dir() and not p.name.startswith(".")),
+                (
+                    p
+                    for p in child.iterdir()
+                    if p.is_dir() and not p.name.startswith(".")
+                ),
                 key=lambda p: p.name.lower(),
             )
         except OSError:
@@ -214,7 +218,9 @@ def workspace_membership(
     return names, paths
 
 
-def workspace_project_entries(config_path: Path, workspace: str) -> list[tuple[str, Path]]:
+def workspace_project_entries(
+    config_path: Path, workspace: str
+) -> list[tuple[str, Path]]:
     """Configured projects in workspace order, for an add-project preview."""
     if not config_path.is_file():
         return []
@@ -353,7 +359,9 @@ def stack_apply_summary(
     return len(selected) - already, already
 
 
-def selection_mode_summary(selected: list[Path], worktree_paths: set[Path]) -> tuple[int, int]:
+def selection_mode_summary(
+    selected: list[Path], worktree_paths: set[Path]
+) -> tuple[int, int]:
     """Return (mount_as_is, worktree) counts for the pending selection."""
     worktrees = sum(path in worktree_paths for path in selected)
     return len(selected) - worktrees, worktrees
@@ -363,7 +371,9 @@ def partition_selection_by_mode(
     selected: list[Path], worktree_paths: set[Path]
 ) -> tuple[list[Path], list[Path]]:
     """Return (worktree_paths, mount_as_is_paths), preserving pick order."""
-    worktrees = [path for path in selected if path in worktree_paths and is_git_repo(path)]
+    worktrees = [
+        path for path in selected if path in worktree_paths and is_git_repo(path)
+    ]
     mounts = [path for path in selected if path not in worktrees]
     return worktrees, mounts
 
@@ -672,6 +682,7 @@ def apply_selection(
 
 # ── curses UI ────────────────────────────────────────────────────────────────
 
+
 def _prompt_line(stdscr: Any, label: str, initial: str, *, attr: int = 0) -> str | None:
     """Editable text prompt, pre-filled with `initial` and cursor at the end —
     Left/Right/Home/End/Backspace/Delete work like a normal line editor, so
@@ -731,11 +742,19 @@ def _prompt_line(stdscr: Any, label: str, initial: str, *, attr: int = 0) -> str
         curses.curs_set(0)
 
 
-def _confirm_line(stdscr: Any, label: str, *, default: bool = False, danger: bool = False) -> bool:
+def _confirm_line(
+    stdscr: Any, label: str, *, default: bool = False, danger: bool = False
+) -> bool:
     import curses
 
-    attr = curses.color_pair(_COLOR_DANGER) | curses.A_BOLD if danger and curses.has_colors() else 0
-    raw = _prompt_line(stdscr, f"{label} ({'Y/n' if default else 'y/N'})", "", attr=attr)
+    attr = (
+        curses.color_pair(_COLOR_DANGER) | curses.A_BOLD
+        if danger and curses.has_colors()
+        else 0
+    )
+    raw = _prompt_line(
+        stdscr, f"{label} ({'Y/n' if default else 'y/N'})", "", attr=attr
+    )
     if not raw:
         return default
     return raw.strip().lower() in ("y", "yes")
@@ -769,12 +788,22 @@ def _browse_dir(stdscr: Any, start: Path) -> Path | None:
         stdscr.addnstr(0, 0, " choose parent directory ".ljust(w), w, curses.A_REVERSE)
         stdscr.addnstr(1, 0, _ellipsize(f" {current}", w - 1), w - 1, curses.A_BOLD)
         stdscr.addnstr(
-            2, 0,
-            " Up/Down move · Enter open · s select this dir · f filter · / type path · q cancel"[: w - 1],
-            w - 1, curses.A_DIM,
+            2,
+            0,
+            " Up/Down move · Enter open · s select this dir · f filter · / type path · q cancel"[
+                : w - 1
+            ],
+            w - 1,
+            curses.A_DIM,
         )
         if filter_text:
-            stdscr.addnstr(3, 0, f" filter: {filter_text}  (f to edit, empty to clear)"[: w - 1], w - 1, curses.A_DIM)
+            stdscr.addnstr(
+                3,
+                0,
+                f" filter: {filter_text}  (f to edit, empty to clear)"[: w - 1],
+                w - 1,
+                curses.A_DIM,
+            )
 
         list_top = 4
         list_h = max(1, h - list_top - 2)
@@ -840,7 +869,13 @@ def _show_help(stdscr: Any, title: str, lines: list[str]) -> None:
         if row >= h - 1:
             break
         stdscr.addnstr(row, 0, _ellipsize(f"  {line}", w - 1), w - 1)
-    stdscr.addnstr(h - 1, 0, " press any key to close ".ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
+    stdscr.addnstr(
+        h - 1,
+        0,
+        " press any key to close ".ljust(w - 1)[: w - 1],
+        w - 1,
+        curses.A_REVERSE,
+    )
     stdscr.refresh()
     stdscr.getch()
 
@@ -864,12 +899,15 @@ def _recent_picks_screen(
     while True:
         stdscr.erase()
         h, w = stdscr.getmaxyx()
-        stdscr.addnstr(0, 0, " recent picks — add without browsing ".ljust(w), w, curses.A_REVERSE)
+        stdscr.addnstr(
+            0, 0, " recent picks — add without browsing ".ljust(w), w, curses.A_REVERSE
+        )
         stdscr.addnstr(
             1,
             0,
-            " Up/Down · Space toggle onto will-add · Enter/Esc done · o jump to its folder"
-            [: w - 1],
+            " Up/Down · Space toggle onto will-add · Enter/Esc done · o jump to its folder"[
+                : w - 1
+            ],
             w - 1,
             curses.A_DIM,
         )
@@ -890,7 +928,10 @@ def _recent_picks_screen(
             if path in selected and idx != cursor:
                 attr |= curses.A_BOLD
             stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
-        footer = note or f"{sum(1 for p, _ in items if p in selected)} of {len(items)} in will-add"
+        footer = (
+            note
+            or f"{sum(1 for p, _ in items if p in selected)} of {len(items)} in will-add"
+        )
         stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
         stdscr.refresh()
         note = ""
@@ -956,14 +997,21 @@ def _review_selection_screen(
         stdscr.erase()
         h, w = stdscr.getmaxyx()
         new_n, already_n = stack_apply_summary(selected, paths_in_ws=paths_in_ws)
-        stdscr.addnstr(0, 0, " orcan init · review and apply ".ljust(w), w, curses.A_REVERSE)
+        stdscr.addnstr(
+            0, 0, " orcan init · review and apply ".ljust(w), w, curses.A_REVERSE
+        )
         summary = f" Step 2/3 · workspace {workspace!r} · {new_n} to add"
         if already_n:
             summary += f" · {already_n} stay connected"
         stdscr.addnstr(1, 0, _ellipsize(summary, w - 1), w - 1, curses.A_BOLD)
         stdscr.addnstr(
-            2, 0, " ↑↓ inspect · b change mode · Space remove · Enter apply · Esc back"[: w - 1],
-            w - 1, curses.A_DIM,
+            2,
+            0,
+            " ↑↓ inspect · b change mode · Space remove · Enter apply · Esc back"[
+                : w - 1
+            ],
+            w - 1,
+            curses.A_DIM,
         )
         list_top = 4
         list_h = max(1, h - list_top - 1)
@@ -978,8 +1026,12 @@ def _review_selection_screen(
                 break
             path = selected[idx]
             bits = classify_pick(
-                path, repos=repos, names_in_ws=names_in_ws,
-                paths_in_ws=paths_in_ws, path_ws=path_ws, workspace=workspace,
+                path,
+                repos=repos,
+                names_in_ws=names_in_ws,
+                paths_in_ws=paths_in_ws,
+                path_ws=path_ws,
+                workspace=workspace,
             )
             mode = f"worktree @{branch}" if path in worktree_paths else "mount as-is"
             outcome = f"{mode} · {review_outcome(bits)}"
@@ -1085,9 +1137,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         filter_text = ""
         outside = selection_outside_scan(selected, repos)
         if outside:
-            message = (
-                f"{message} · kept {len(outside)} selection(s) from other folders"
-            )
+            message = f"{message} · kept {len(outside)} selection(s) from other folders"
         if not workspace or workspace == default_workspace_name(Path(".")):
             workspace = default_workspace_name(parent)
 
@@ -1126,20 +1176,26 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             2,
             0,
-            f" Step 1/3 · workspace {workspace}  |  {mode}  |  depth {depth}"
-            [: w - 1],
+            f" Step 1/3 · workspace {workspace}  |  {mode}  |  depth {depth}"[: w - 1],
             w - 1,
         )
         stdscr.addnstr(
             3,
             0,
-            " ↑↓ choose · Space select · → open · Tab review · Enter apply · ? help"
-            [: w - 1],
+            " ↑↓ choose · Space select · → open · Tab review · Enter apply · ? help"[
+                : w - 1
+            ],
             w - 1,
             curses.A_DIM,
         )
         if filter_text:
-            stdscr.addnstr(4, 0, f" filter: {filter_text}  (/ to edit, empty to clear)"[: w - 1], w - 1, curses.A_DIM)
+            stdscr.addnstr(
+                4,
+                0,
+                f" filter: {filter_text}  (/ to edit, empty to clear)"[: w - 1],
+                w - 1,
+                curses.A_DIM,
+            )
 
         view = visible_repos()
         list_top = 5 if filter_text else 4
@@ -1175,7 +1231,9 @@ def _run_curses(args: argparse.Namespace) -> int:
                 if filter_text
                 else "nothing found — l/→ needs a row; try e to browse, or u to go up"
             )
-            stdscr.addnstr(list_top, 0, _ellipsize(f"  ({hint})", left_w - 1), left_w - 1)
+            stdscr.addnstr(
+                list_top, 0, _ellipsize(f"  ({hint})", left_w - 1), left_w - 1
+            )
         else:
             for i in range(list_h):
                 idx = scroll + i
@@ -1197,7 +1255,9 @@ def _run_curses(args: argparse.Namespace) -> int:
                 )
                 bits = [b for b in bits if b != "elsewhere"]
                 if repo in selected:
-                    bits.append(f"worktree @{branch}" if repo in worktree_paths else "mount")
+                    bits.append(
+                        f"worktree @{branch}" if repo in worktree_paths else "mount"
+                    )
                 tag = f"  ({' · '.join(bits)})" if bits else ""
                 line = f" {mark} {repo.name}{tag}  {repo}"
                 attr = curses.A_NORMAL
@@ -1207,7 +1267,9 @@ def _run_curses(args: argparse.Namespace) -> int:
                     attr |= curses.A_BOLD
                 if not is_git and idx != cursor:
                     attr |= curses.color_pair(_COLOR_WARN)
-                stdscr.addnstr(list_top + i, 0, _ellipsize(line, left_w - 1), left_w - 1, attr)
+                stdscr.addnstr(
+                    list_top + i, 0, _ellipsize(line, left_w - 1), left_w - 1, attr
+                )
 
         if existing_entries:
             stack_title = (
@@ -1255,10 +1317,16 @@ def _run_curses(args: argparse.Namespace) -> int:
                     path_ws=path_ws,
                     workspace=workspace,
                 )
-                bits.append(f"worktree @{branch}" if path in worktree_paths else "mount")
-                panel_lines.append((format_pick_label(path, bits), curses.color_pair(_COLOR_INFO)))
+                bits.append(
+                    f"worktree @{branch}" if path in worktree_paths else "mount"
+                )
+                panel_lines.append(
+                    (format_pick_label(path, bits), curses.color_pair(_COLOR_INFO))
+                )
             if selected and existing_entries:
-                panel_lines.append((f" already in workspace ({len(existing_entries)})", curses.A_DIM))
+                panel_lines.append(
+                    (f" already in workspace ({len(existing_entries)})", curses.A_DIM)
+                )
             for name, _path in existing_entries:
                 panel_lines.append((f" = {name}", curses.A_DIM))
             for i, (line, attr) in enumerate(panel_lines[:stack_body_h]):
@@ -1279,9 +1347,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                 + (f" · {outside_n} elsewhere" if outside_n else "")
             )
         elif existing_entries:
-            footer = (
-                f"{len(existing_entries)} connected · Space adds another project · Tab reviews changes"
-            )
+            footer = f"{len(existing_entries)} connected · Space adds another project · Tab reviews changes"
         else:
             footer = "Space selects · Enter/→ opens folder · ← goes up · Tab reviews"
         stdscr.addnstr(h - 1, 0, footer.ljust(w - 1)[: w - 1], w - 1, curses.A_REVERSE)
@@ -1299,7 +1365,9 @@ def _run_curses(args: argparse.Namespace) -> int:
         if worktree_paths and not branch.strip():
             message = "branch required for selected worktrees (press b)"
             return None
-        conflicts = existing_project_names(config_path, workspace) & {p.name for p in selected}
+        conflicts = existing_project_names(config_path, workspace) & {
+            p.name for p in selected
+        }
         if conflicts and not _confirm_line(
             stdscr,
             f"{len(conflicts)} project(s) already in {workspace!r} "
@@ -1311,7 +1379,9 @@ def _run_curses(args: argparse.Namespace) -> int:
             args.force = True
         cross = {
             path: ws_name
-            for path, ws_name in find_path_conflicts(config_path, list(selected)).items()
+            for path, ws_name in find_path_conflicts(
+                config_path, list(selected)
+            ).items()
             if ws_name != workspace
         }
         if cross and not _confirm_line(
@@ -1324,7 +1394,14 @@ def _run_curses(args: argparse.Namespace) -> int:
         return 0
 
     def main_loop(stdscr: Any) -> int:
-        nonlocal parent, workspace, use_worktree, branch, cursor, selected, worktree_paths
+        nonlocal \
+            parent, \
+            workspace, \
+            use_worktree, \
+            branch, \
+            cursor, \
+            selected, \
+            worktree_paths
         nonlocal message, repos, filter_text, depth
         curses.curs_set(0)
         _init_curses_session()
@@ -1344,9 +1421,15 @@ def _run_curses(args: argparse.Namespace) -> int:
                 message = ""
                 names_in_ws, paths_in_ws, path_ws = membership()
                 if _review_selection_screen(
-                    stdscr, selected, workspace=workspace, repos=repos,
-                    names_in_ws=names_in_ws, paths_in_ws=paths_in_ws,
-                    path_ws=path_ws, worktree_paths=worktree_paths, branch=branch,
+                    stdscr,
+                    selected,
+                    workspace=workspace,
+                    repos=repos,
+                    names_in_ws=names_in_ws,
+                    paths_in_ws=paths_in_ws,
+                    path_ws=path_ws,
+                    worktree_paths=worktree_paths,
+                    branch=branch,
                 ):
                     rc_apply = try_apply(stdscr)
                     if rc_apply is not None:
@@ -1454,7 +1537,9 @@ def _run_curses(args: argparse.Namespace) -> int:
                     message = "no recent picks yet — Space-select something first"
                 else:
                     jump = _recent_picks_screen(stdscr, items, selected)
-                    remember_picks(*[p for p in selected if any(p == it[0] for it in items)])
+                    remember_picks(
+                        *[p for p in selected if any(p == it[0] for it in items)]
+                    )
                     if jump is not None:
                         parent = jump
                         after_parent_change()
@@ -1462,7 +1547,9 @@ def _run_curses(args: argparse.Namespace) -> int:
                     else:
                         message = f"will-add has {len(selected)} path(s)"
             elif key == ord("w"):
-                workspace = _prompt_line(stdscr, "Workspace name", workspace) or workspace
+                workspace = (
+                    _prompt_line(stdscr, "Workspace name", workspace) or workspace
+                )
             elif key == ord("t"):
                 use_worktree = not use_worktree
                 for path in selected:
@@ -1471,9 +1558,16 @@ def _run_curses(args: argparse.Namespace) -> int:
                             worktree_paths.add(path)
                         else:
                             worktree_paths.discard(path)
-                message = "all selected git projects → worktree" if use_worktree else "all selected projects → mount as-is"
+                message = (
+                    "all selected git projects → worktree"
+                    if use_worktree
+                    else "all selected projects → mount as-is"
+                )
             elif key == ord("b"):
-                branch = _prompt_line(stdscr, "Branch for selected worktrees", branch) or branch
+                branch = (
+                    _prompt_line(stdscr, "Branch for selected worktrees", branch)
+                    or branch
+                )
             elif key in (curses.KEY_ENTER, 10, 13):
                 if selected:
                     rc_apply = try_apply(stdscr)
@@ -1501,7 +1595,9 @@ def _run_curses(args: argparse.Namespace) -> int:
             "last_workspace": workspace,
             "last_branch": branch,
             "last_use_worktree": use_worktree,
-            "parent_history": update_parent_history(state.get("parent_history") or [], parent),
+            "parent_history": update_parent_history(
+                state.get("parent_history") or [], parent
+            ),
             "pick_history": pick_history,
         }
     )
@@ -1559,7 +1655,9 @@ def manage_rows(
     return out
 
 
-def manage_rename_workspace(workspaces: list[Any], wi: int, new_name: str) -> str | None:
+def manage_rename_workspace(
+    workspaces: list[Any], wi: int, new_name: str
+) -> str | None:
     """Returns an error message, or None on success (mutates in place)."""
     if not NAME_RE.match(new_name):
         return "invalid workspace name"
@@ -1581,7 +1679,9 @@ def manage_rename_project(ws: dict[str, Any], pi: int, new_name: str) -> str | N
     return None
 
 
-def manage_change_project_path(ws: dict[str, Any], pi: int, new_path: str) -> str | None:
+def manage_change_project_path(
+    ws: dict[str, Any], pi: int, new_path: str
+) -> str | None:
     err, resolved = _validate_manage_path(new_path)
     if err:
         return err
@@ -1602,7 +1702,11 @@ def managed_projects(ws: dict[str, Any]) -> list[dict[str, Any]]:
     (i.e. was created via --branch / managed_workspace.create). Pure/curses-free."""
     out = []
     for p in ws.get("projects") or []:
-        if isinstance(p, dict) and p.get("path") and is_under_managed_root(Path(str(p["path"]))):
+        if (
+            isinstance(p, dict)
+            and p.get("path")
+            and is_under_managed_root(Path(str(p["path"])))
+        ):
             out.append(p)
     return out
 
@@ -1675,9 +1779,9 @@ def _run_manage(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             2,
             0,
-            (
-                " ↑↓ choose · ←→ collapse/expand · Enter toggle · a add · n new · ? more"
-            )[: w - 1],
+            (" ↑↓ choose · ←→ collapse/expand · Enter toggle · a add · n new · ? more")[
+                : w - 1
+            ],
             w - 1,
             curses.A_DIM,
         )
@@ -1692,7 +1796,10 @@ def _run_manage(args: argparse.Namespace) -> int:
 
         if not current_rows:
             stdscr.addnstr(
-                list_top, 0, "  (no workspaces — press n to scan a folder)"[: w - 1], w - 1
+                list_top,
+                0,
+                "  (no workspaces — press n to scan a folder)"[: w - 1],
+                w - 1,
             )
         else:
             for i in range(list_h):
@@ -1702,17 +1809,25 @@ def _run_manage(args: argparse.Namespace) -> int:
                 kind, wi, pi = current_rows[idx]
                 ws = workspaces[wi]
                 if kind == "ws":
-                    n = len([p for p in (ws.get("projects") or []) if isinstance(p, dict)])
+                    n = len(
+                        [p for p in (ws.get("projects") or []) if isinstance(p, dict)]
+                    )
                     marker = "▸" if wi in state["collapsed"] else "▾"
                     line = f" {marker} {ws.get('name')}  ({n} project{'s' if n != 1 else ''})"
                     attr = curses.A_BOLD
                 else:
                     proj = (ws.get("projects") or [])[pi]
                     path_str = str(proj.get("path") or "")
-                    is_managed = bool(path_str) and is_under_managed_root(Path(path_str))
+                    is_managed = bool(path_str) and is_under_managed_root(
+                        Path(path_str)
+                    )
                     tag = " [worktree]" if is_managed else ""
                     line = f"     {proj.get('name')}{tag}  →  {proj.get('path')}"
-                    attr = curses.color_pair(_COLOR_INFO) if is_managed else curses.A_NORMAL
+                    attr = (
+                        curses.color_pair(_COLOR_INFO)
+                        if is_managed
+                        else curses.A_NORMAL
+                    )
                 if idx == state["cursor"]:
                     attr |= curses.A_REVERSE
                 stdscr.addnstr(list_top + i, 0, _ellipsize(line, w - 1), w - 1, attr)
@@ -1747,7 +1862,10 @@ def _run_manage(args: argparse.Namespace) -> int:
             if key in (ord("q"), 27):
                 if state["dirty"]:
                     choice = (
-                        _prompt_line(stdscr, "Save before quitting? (y/n/c to cancel)", "") or ""
+                        _prompt_line(
+                            stdscr, "Save before quitting? (y/n/c to cancel)", ""
+                        )
+                        or ""
                     )
                     c = choice.strip().lower()
                     if c in ("c", "cancel"):
@@ -1759,7 +1877,9 @@ def _run_manage(args: argparse.Namespace) -> int:
                 state["cursor"] = max(0, state["cursor"] - 1)
                 continue
             if key in (curses.KEY_DOWN, ord("j")):
-                state["cursor"] = min(max(0, len(current_rows) - 1), state["cursor"] + 1)
+                state["cursor"] = min(
+                    max(0, len(current_rows) - 1), state["cursor"] + 1
+                )
                 continue
             if key in (curses.KEY_LEFT, curses.KEY_RIGHT):
                 if current_rows:
@@ -1817,7 +1937,9 @@ def _run_manage(args: argparse.Namespace) -> int:
                 continue
             if key in (ord("r"), curses.KEY_ENTER, 10, 13):
                 if kind == "ws":
-                    new_name = _prompt_line(stdscr, "Workspace name", str(ws.get("name") or ""))
+                    new_name = _prompt_line(
+                        stdscr, "Workspace name", str(ws.get("name") or "")
+                    )
                     if new_name:
                         err = manage_rename_workspace(workspaces, wi, new_name)
                         if err:
@@ -1826,7 +1948,9 @@ def _run_manage(args: argparse.Namespace) -> int:
                             state["dirty"] = True
                 else:
                     proj = (ws.get("projects") or [])[pi]
-                    new_name = _prompt_line(stdscr, "Project name", str(proj.get("name") or ""))
+                    new_name = _prompt_line(
+                        stdscr, "Project name", str(proj.get("name") or "")
+                    )
                     if new_name:
                         err = manage_rename_project(ws, pi, new_name)
                         if err:
@@ -1838,7 +1962,9 @@ def _run_manage(args: argparse.Namespace) -> int:
                     state["message"] = "position on a project to change its path"
                 else:
                     proj = (ws.get("projects") or [])[pi]
-                    new_path = _prompt_line(stdscr, "Project path", str(proj.get("path") or ""))
+                    new_path = _prompt_line(
+                        stdscr, "Project path", str(proj.get("path") or "")
+                    )
                     if new_path:
                         err = manage_change_project_path(ws, pi, new_path)
                         if err:
@@ -1847,14 +1973,19 @@ def _run_manage(args: argparse.Namespace) -> int:
                             state["dirty"] = True
             elif key == ord("d"):
                 if kind != "proj":
-                    state["message"] = "position on a project to delete it (W deletes a workspace)"
+                    state["message"] = (
+                        "position on a project to delete it (W deletes a workspace)"
+                    )
                 else:
                     proj = (ws.get("projects") or [])[pi]
                     if _confirm_line(stdscr, f"Delete project {proj.get('name')!r}?"):
                         path = Path(str(proj.get("path") or ""))
-                        is_managed = str(proj.get("path") or "") and is_under_managed_root(path)
+                        is_managed = str(
+                            proj.get("path") or ""
+                        ) and is_under_managed_root(path)
                         remove_wt = is_managed and _confirm_line(
-                            stdscr, "Also remove its managed worktree from disk (git worktree remove)?"
+                            stdscr,
+                            "Also remove its managed worktree from disk (git worktree remove)?",
                         )
                         if remove_wt and worktree_is_dirty(path):
                             remove_wt = _confirm_line(
@@ -1868,22 +1999,34 @@ def _run_manage(args: argparse.Namespace) -> int:
                         if remove_wt:
                             try:
                                 if path.exists():
-                                    remove_worktree(path, force=True, allow_unmanaged=False)
-                                manifest_remove(workspace=str(ws.get("name") or ""), project=str(deleted.get("name") or ""))
-                                state["message"] = f"deleted {deleted.get('name')} + worktree"
+                                    remove_worktree(
+                                        path, force=True, allow_unmanaged=False
+                                    )
+                                manifest_remove(
+                                    workspace=str(ws.get("name") or ""),
+                                    project=str(deleted.get("name") or ""),
+                                )
+                                state["message"] = (
+                                    f"deleted {deleted.get('name')} + worktree"
+                                )
                             except SystemExit as exc:
-                                state["message"] = f"deleted from config; worktree removal failed: {exc}"
+                                state["message"] = (
+                                    f"deleted from config; worktree removal failed: {exc}"
+                                )
                         else:
                             state["message"] = f"deleted {deleted.get('name')}"
             elif key == ord("W"):
                 if _confirm_line(stdscr, f"Delete whole workspace {ws.get('name')!r}?"):
                     managed = managed_projects(ws)
                     remove_wt = managed and _confirm_line(
-                        stdscr, f"Also remove {len(managed)} managed worktree(s) from disk?"
+                        stdscr,
+                        f"Also remove {len(managed)} managed worktree(s) from disk?",
                     )
                     if remove_wt:
                         dirty_names = [
-                            str(p.get("name")) for p in managed if worktree_is_dirty(Path(str(p["path"])))
+                            str(p.get("name"))
+                            for p in managed
+                            if worktree_is_dirty(Path(str(p["path"])))
                         ]
                         if dirty_names and not _confirm_line(
                             stdscr,
@@ -1901,14 +2044,20 @@ def _run_manage(args: argparse.Namespace) -> int:
                             path = Path(str(p["path"]))
                             try:
                                 if path.exists():
-                                    remove_worktree(path, force=True, allow_unmanaged=False)
+                                    remove_worktree(
+                                        path, force=True, allow_unmanaged=False
+                                    )
                             except SystemExit as exc:
                                 failures.append(f"{p.get('name')}: {exc}")
                         manifest_remove(workspace=str(deleted.get("name") or ""))
                         if failures:
-                            state["message"] = f"deleted workspace {deleted.get('name')}; worktree removal failed: {'; '.join(failures)}"
+                            state["message"] = (
+                                f"deleted workspace {deleted.get('name')}; worktree removal failed: {'; '.join(failures)}"
+                            )
                         else:
-                            state["message"] = f"deleted workspace {deleted.get('name')} + {len(managed)} worktree(s)"
+                            state["message"] = (
+                                f"deleted workspace {deleted.get('name')} + {len(managed)} worktree(s)"
+                            )
                     else:
                         state["message"] = f"deleted workspace {deleted.get('name')}"
             elif key == ord("a"):
@@ -1983,9 +2132,13 @@ def main() -> None:
         action="store_true",
         help="Non-interactive: require --dir and --select; skip curses",
     )
-    parser.add_argument("--force", action="store_true", help="Replace existing workspace/projects")
+    parser.add_argument(
+        "--force", action="store_true", help="Replace existing workspace/projects"
+    )
     parser.add_argument("--config", default="", help="orcan.config.json path")
-    parser.add_argument("--start-point", default="HEAD", help="git worktree start point")
+    parser.add_argument(
+        "--start-point", default="HEAD", help="git worktree start point"
+    )
     parser.add_argument(
         "--sync",
         action="store_true",
@@ -2031,13 +2184,18 @@ def main() -> None:
         raise SystemExit(_run_sync() if args.sync else 0)
 
     if not sys.stdin.isatty() or not sys.stdout.isatty():
-        die("not a TTY — use: orcan context tui --yes --dir DIR --select a,b [--branch NAME]")
+        die(
+            "not a TTY — use: orcan context tui --yes --dir DIR --select a,b [--branch NAME]"
+        )
 
     if not args.dir and not args.select:
         existing_path = resolve_config(args.config)
         if existing_path.is_file():
             existing_cfg = load_config(existing_path)
-            if isinstance(existing_cfg.get("workspaces"), list) and existing_cfg["workspaces"]:
+            if (
+                isinstance(existing_cfg.get("workspaces"), list)
+                and existing_cfg["workspaces"]
+            ):
                 raise SystemExit(_run_manage(args))
 
     raise SystemExit(_run_curses(args))

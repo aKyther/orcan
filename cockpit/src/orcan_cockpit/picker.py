@@ -138,7 +138,8 @@ def filter_workspace_rows(
     return [
         row
         for row in rows
-        if needle in " ".join(
+        if needle
+        in " ".join(
             str(row.get(field) or "") for field in ("name", "session", "root")
         ).casefold()
     ]
@@ -344,8 +345,12 @@ class WorkspaceList(Widget):
             self._filter_armed = True
             self._update_filter()
             event.stop()
-        elif character and character.isprintable() and (
-            character not in {"?", "i"} or self._filter_query or self._filter_armed
+        elif (
+            character
+            and character.isprintable()
+            and (
+                character not in {"?", "i"} or self._filter_query or self._filter_armed
+            )
         ):
             self._filter_armed = False
             self._set_filter(self._filter_query + character)
@@ -362,9 +367,7 @@ class WorkspaceList(Widget):
 
     def row_for_session(self, session: str) -> dict[str, Any] | None:
         """Find a configured workspace even while the visible list is filtered."""
-        return next(
-            (row for row in self._all_rows if row["session"] == session), None
-        )
+        return next((row for row in self._all_rows if row["session"] == session), None)
 
     def refresh_rows(self) -> None:
         # The picker is an overlay. Polling tmux/config while it is hidden
@@ -415,7 +418,9 @@ class WorkspaceList(Widget):
             return
         matches = len(self.rows)
         suffix = "match" if matches == 1 else "matches"
-        filter_line.update(f"[{ACCENT}]Filter[/] {self._filter_query} · {matches} {suffix}")
+        filter_line.update(
+            f"[{ACCENT}]Filter[/] {self._filter_query} · {matches} {suffix}"
+        )
         filter_line.display = True
 
     def _render_rows(self) -> None:
@@ -498,7 +503,10 @@ class WorkspaceList(Widget):
         ).splitlines()[1:]
         session_state = "running" if row["live"] else "stopped"
         details.update(
-            "\n".join(expanded + [f"   [{TEXT_MUTED}]tmux {row['session']} · {session_state}[/]"])
+            "\n".join(
+                expanded
+                + [f"   [{TEXT_MUTED}]tmux {row['session']} · {session_state}[/]"]
+            )
         )
         self._update_project_actions(row)
 
@@ -515,13 +523,19 @@ class WorkspaceList(Widget):
                 if len(self._project_actions) >= _PROJECT_ACTION_LIMIT:
                     break
         for index in range(_PROJECT_ACTION_LIMIT):
-            action = self._project_actions[index] if index < len(self._project_actions) else None
+            action = (
+                self._project_actions[index]
+                if index < len(self._project_actions)
+                else None
+            )
             target = self.query_one(f"#workspace-project-{index}", Static)
             if action is None:
                 target.display = False
             else:
                 name, path = action
-                target.update(f"[{ACCENT}]Open pane[/] {name} · [{TEXT_MUTED}]{path}[/]")
+                target.update(
+                    f"[{ACCENT}]Open pane[/] {name} · [{TEXT_MUTED}]{path}[/]"
+                )
                 target.display = True
 
     def on_click(self, event: events.Click) -> None:

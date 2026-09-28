@@ -81,7 +81,9 @@ class WorktreeCreateError(Exception):
         self.code = code
 
 
-def run_git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run_git(
+    repo: Path, *args: str, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", "-C", str(repo), *args],
         check=check,
@@ -195,7 +197,9 @@ def manifest_upsert(entry: ManifestEntry) -> None:
     save_manifest(entries)
 
 
-def manifest_remove(*, workspace: str, project: str | None = None) -> list[ManifestEntry]:
+def manifest_remove(
+    *, workspace: str, project: str | None = None
+) -> list[ManifestEntry]:
     """Remove matching entries; return removed list."""
     before = load_manifest()
     removed: list[ManifestEntry] = []
@@ -313,13 +317,20 @@ def resolve_worktree(repo: Path, selector: str) -> Worktree:
 
 
 def branch_exists(repo: Path, branch: str) -> bool:
-    r = run_git(repo, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}", check=False)
+    r = run_git(
+        repo, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}", check=False
+    )
     return r.returncode == 0
 
 
 def remote_branch_exists(repo: Path, branch: str, remote: str = "origin") -> bool:
     r = run_git(
-        repo, "show-ref", "--verify", "--quiet", f"refs/remotes/{remote}/{branch}", check=False
+        repo,
+        "show-ref",
+        "--verify",
+        "--quiet",
+        f"refs/remotes/{remote}/{branch}",
+        check=False,
     )
     return r.returncode == 0
 
@@ -383,7 +394,11 @@ def pull_current_branch(repo: Path) -> tuple[bool, str]:
 
     pull = run_git(repo, "pull", "--ff-only", check=False)
     if pull.returncode != 0:
-        detail = pull.stderr.strip().splitlines()[-1] if pull.stderr.strip() else "pull failed"
+        detail = (
+            pull.stderr.strip().splitlines()[-1]
+            if pull.stderr.strip()
+            else "pull failed"
+        )
         return False, detail[:200]
     out_lines = pull.stdout.strip().splitlines()
     return True, out_lines[-1] if out_lines else "already up to date"
@@ -455,7 +470,10 @@ def create_worktree(
         dest = path.resolve()
     elif managed or (workspace and project):
         if not workspace or not project:
-            fail("managed worktree needs --workspace and --project (or --path)", code="args")
+            fail(
+                "managed worktree needs --workspace and --project (or --path)",
+                code="args",
+            )
         dest = managed_worktree_path(workspace, project)
     else:
         dest = default_worktree_path(repo, branch)
@@ -487,14 +505,20 @@ def create_worktree(
 
     if branch_exists(repo, branch):
         # Branch exists but is free — attach a new worktree to it.
-        print(f"branch {branch!r} already exists locally — attaching worktree to it", file=sys.stderr)
+        print(
+            f"branch {branch!r} already exists locally — attaching worktree to it",
+            file=sys.stderr,
+        )
         args = ["worktree", "add", str(dest), branch]
     elif start_point == "HEAD":
         # No local branch and the caller didn't ask for a specific start
         # point — check whether someone else already pushed this branch
         # before silently creating an empty one off HEAD under the same
         # name. See fetch_branch_safely(): never prompts, never hangs.
-        print(f"branch {branch!r} not found locally, checking {remote}...", file=sys.stderr)
+        print(
+            f"branch {branch!r} not found locally, checking {remote}...",
+            file=sys.stderr,
+        )
         fetched = fetch_branch_safely(repo, branch, remote=remote)
         if not fetched:
             print(
@@ -503,14 +527,25 @@ def create_worktree(
             )
         if remote_branch_exists(repo, branch, remote=remote):
             if fetched:
-                print(f"fetched {remote}/{branch} — creating worktree from it", file=sys.stderr)
+                print(
+                    f"fetched {remote}/{branch} — creating worktree from it",
+                    file=sys.stderr,
+                )
             else:
                 print(
                     f"using existing local copy of {remote}/{branch} (may be stale) — "
                     "creating worktree from it",
                     file=sys.stderr,
                 )
-            args = ["worktree", "add", "--track", "-b", branch, str(dest), f"{remote}/{branch}"]
+            args = [
+                "worktree",
+                "add",
+                "--track",
+                "-b",
+                branch,
+                str(dest),
+                f"{remote}/{branch}",
+            ]
         else:
             print(
                 f"{remote}/{branch} not available — creating new branch {branch!r} from HEAD",
@@ -656,7 +691,9 @@ def cmd_prune(args: argparse.Namespace) -> None:
     if not (orphans or config_stale):
         return
     if not args.force:
-        print("\nRe-run with --force to remove orphan directories / config-stale worktrees.")
+        print(
+            "\nRe-run with --force to remove orphan directories / config-stale worktrees."
+        )
         return
 
     for p in orphans:
@@ -767,17 +804,24 @@ def main() -> None:
     p_rm.add_argument("--force", action="store_true")
     p_rm.set_defaults(func=cmd_remove)
 
-    p_root = sub.add_parser("managed-root", help="Print $ORCAN_PROJECTS_ROOT/.worktrees")
+    p_root = sub.add_parser(
+        "managed-root", help="Print $ORCAN_PROJECTS_ROOT/.worktrees"
+    )
     p_root.set_defaults(func=cmd_managed_root)
 
     p_prune = sub.add_parser(
-        "prune", help="Reconcile worktrees/registry.json against disk (and optionally config)"
+        "prune",
+        help="Reconcile worktrees/registry.json against disk (and optionally config)",
     )
     p_prune.add_argument(
-        "--config", default="", help="Also flag registry entries missing from this orcan.config.json"
+        "--config",
+        default="",
+        help="Also flag registry entries missing from this orcan.config.json",
     )
     p_prune.add_argument(
-        "--force", action="store_true", help="Remove orphan dirs / config-stale worktrees (default: report only)"
+        "--force",
+        action="store_true",
+        help="Remove orphan dirs / config-stale worktrees (default: report only)",
     )
     p_prune.set_defaults(func=cmd_prune)
 

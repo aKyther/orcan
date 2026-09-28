@@ -164,9 +164,7 @@ def glance_lines(
     lines: list[str] = []
     root = Path(workspace_root) if workspace_root else None
 
-    visibility = _visibility_line(
-        session, root, live=live, projects=projects, now=now
-    )
+    visibility = _visibility_line(session, root, live=live, projects=projects, now=now)
     if visibility:
         lines.append(visibility)
 
@@ -182,6 +180,7 @@ def format_glance(lines: list[str], *, empty_hint: str = "Enter to attach") -> s
     """Markup-ready glance body for a Static (dim when only the empty hint)."""
     if not lines:
         return f"[{TEXT_DISABLED}]{empty_hint}[/]"
+
     # Titles and pane text come from workspace state and may contain
     # Rich/Textual markup delimiters. Escape opening brackets so user text
     # cannot become an accidental style tag (or break rendering altogether).

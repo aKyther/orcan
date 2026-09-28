@@ -34,7 +34,11 @@ from orcan_cockpit.shortcuts import Context
 from orcan_cockpit.shortcuts_modal import ShortcutsModal
 from orcan_cockpit.status import Tier, tier_for_width
 from orcan_cockpit.status_bar import StatusBar
-from orcan_cockpit.state import previous_recent_session, read_last_session, remember_session
+from orcan_cockpit.state import (
+    previous_recent_session,
+    read_last_session,
+    remember_session,
+)
 from orcan_cockpit.theme import ACCENT, ERROR, TEXT_MUTED, css
 from orcan_cockpit.tmux_chrome import (
     TASK_TEMPLATES,
@@ -44,6 +48,7 @@ from orcan_cockpit.tmux_chrome import (
     split_run,
 )
 from orcan_cockpit.top_bar import TopBar
+
 
 def format_placeholder_text(workspace_count: int) -> str:
     """The calm zero-state behind the workspace overlay.
@@ -63,6 +68,7 @@ def format_placeholder_text(workspace_count: int) -> str:
         "Choose a workspace\n"
         f"[{TEXT_MUTED}]{workspace_count} {noun} available · use F4 or the workspace pill.[/]"
     )
+
 
 # Maps a focused widget to the context that drives its focus-highlight border.
 _CONTEXT_ROOT_IDS: dict[str, Context] = {
@@ -676,7 +682,9 @@ class MainScreen(Screen):
             # keyboard equivalent.
             event.stop()
             self._set_workspaces_visible(True)
-        elif self._workspaces_visible and not self._event_is_within(event, "workspaces"):
+        elif self._workspaces_visible and not self._event_is_within(
+            event, "workspaces"
+        ):
             self._set_workspaces_visible(False, focus_terminal=True)
             event.stop()
         elif event.widget is not None and event.widget.id == "center-stack":
@@ -697,7 +705,9 @@ class MainScreen(Screen):
     def on_mount(self) -> None:
         # Nothing's attached yet — start with the workspace list focused so
         # arrow keys + Enter work immediately, no Tab hunting required.
-        self.query_one("#workspace-list-widget", WorkspaceList).query_one(ListView).focus()
+        self.query_one("#workspace-list-widget", WorkspaceList).query_one(
+            ListView
+        ).focus()
         self._update_focus_highlight("workspaces")
         self._apply_tier(tier_for_width(self.size.width))
         self._refresh_placeholder()
@@ -775,7 +785,10 @@ class MainScreen(Screen):
             )
         )
         self._set_workspaces_visible(True)
-        self.notify("Embedded terminal did not respond; choose a workspace again", severity="warning")
+        self.notify(
+            "Embedded terminal did not respond; choose a workspace again",
+            severity="warning",
+        )
 
     def on_unmount(self) -> None:
         self._cancel_attach_timeout()
@@ -823,7 +836,9 @@ class MainScreen(Screen):
         for placeholder in self.query("#placeholder"):
             placeholder.update(format_placeholder_text(len(rows)))
 
-    def _set_workspaces_visible(self, visible: bool, *, focus_terminal: bool = False) -> None:
+    def _set_workspaces_visible(
+        self, visible: bool, *, focus_terminal: bool = False
+    ) -> None:
         self._workspaces_visible = visible
         self._update_workspaces_visibility()
         self._refresh_placeholder()
@@ -927,7 +942,9 @@ class MainScreen(Screen):
         )
         workspace_list.set_active_session(row["session"])
         self.query_one(TopBar).set_workspace(row["name"], row["session"])
-        self.query_one(StatusBar).set_workspace(row["name"], row["root"], row["session"])
+        self.query_one(StatusBar).set_workspace(
+            row["name"], row["root"], row["session"]
+        )
         self._set_workspaces_visible(False)
 
     def on_pty_terminal_ready(self, message: PtyTerminal.Ready) -> None:
@@ -1009,7 +1026,9 @@ class CockpitApp(App):
         yield from super().get_system_commands(screen)
         if not isinstance(screen, MainScreen):
             return
-        yield SystemCommand("Open workspace picker", "F4", screen.action_toggle_workspaces)
+        yield SystemCommand(
+            "Open workspace picker", "F4", screen.action_toggle_workspaces
+        )
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
         yield SystemCommand("Peek session brief", "F5", screen.action_open_peek)
         yield SystemCommand(
@@ -1049,7 +1068,6 @@ class CockpitApp(App):
                     "template",
                     lambda cmd=command: split_run(session, cmd, vertical=True),
                 )
-
 
 
 def run_cockpit() -> int:
