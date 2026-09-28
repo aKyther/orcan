@@ -217,7 +217,12 @@ def docker_probe(docker: str, image: str, container: str) -> dict[str, object]:
             check=False,
         )
         if manifest.returncode == 0:
-            agents = read_json_text(manifest.stdout).get("agents", {})
+            reported_agents = read_json_text(manifest.stdout).get("agents", {})
+            if isinstance(reported_agents, dict) and all(
+                isinstance(name, str) and isinstance(available, bool)
+                for name, available in reported_agents.items()
+            ):
+                agents = reported_agents
     return {
         "available": True,
         "image": {"name": image, "present": image_present},
@@ -242,7 +247,7 @@ def main() -> None:
     docker = docker_probe(
         os.environ.get("ORCAN_STUDIO_DOCKER", "docker"), args.image, args.container
     )
-    runtime_data = load_json(Path(args.runtime)) or {}
+    runtime_data = read_json(Path(args.runtime))
     report = {
         "protocol": {
             "name": "orcan-studio",

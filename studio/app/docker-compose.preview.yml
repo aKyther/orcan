@@ -1,0 +1,13 @@
+services:
+  studio-preview:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c 'npm ci && npm run dev:preview'
+    ports:
+      - "${ORCAN_STUDIO_PREVIEW_BIND:?set by scripts/dev/orcan-studio-preview}:${ORCAN_STUDIO_PREVIEW_PORT:-1420}:1420"
+    volumes:
+      - ./:/app
+      - orcan-studio-preview-node-modules:/app/node_modules
+
+volumes:
+  orcan-studio-preview-node-modules:

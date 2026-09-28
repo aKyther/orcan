@@ -27,6 +27,26 @@ Uruchamia `tests/smoke/test-container.sh` po `orcan build`. Oczekuje **pełnego*
 
 Helpery lokalne w checkoutcie pod `scripts/dev/`. To **nie** jest publiczne CLI `orcan`. Preferuj cienkie wrappery `make dev-*`, żeby workflow testowy był łatwy do odkrycia **bez** ruszania codziennego zainstalowanego Orcana.
 
+### Szybki preview UX Studio — `orcan-studio-preview`
+
+To osobny, przeglądarkowy kontener Vite do oceny układu Studio, tekstów,
+stanów ładowania i potwierdzeń z innego urządzenia Tailscale. Używa
+reprezentatywnych fixture’ów: nie otwiera SSH, Dockera, sejfu credentiali ani
+prawdziwego Sandboxa Orcana.
+
+```bash
+make studio-preview-start
+# otwórz wypisany adres http://100.x.x.x:1420/?demo=1 z urządzenia Tailscale
+make studio-preview-logs
+make studio-preview-stop
+```
+
+Helper wykrywa pierwszy adres IPv4 Tailscale hosta i odmawia binda spoza
+Tailscale. Ustaw `ORCAN_STUDIO_PREVIEW_BIND=100.x.x.x`, aby wybrać inny adres
+Tailscale, oraz `ORCAN_STUDIO_PREVIEW_PORT=1420`, aby zmienić port. Vite robi
+hot reload zmian frontendu; nie jest budowany `.exe`, `.app` ani bundle Tauri.
+Do sprawdzenia prawdziwego backendu natywnego użyj `npm run tauri dev`.
+
 ### Pełne developerskie środowisko przeglądarkowe — `orcan-preview`
 
 Izolowany stack Docker z **tego** checkoutu: własny obraz, projekt Compose, home/data, port ttyd i kontener. Nie podmienia `orcan:latest` ani nie tyka `~/.config/orcan`.

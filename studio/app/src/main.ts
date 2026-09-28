@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import "./style.css";
 
 type Target =
@@ -10,7 +10,10 @@ type ProbeReport = {
   sandbox: { version: string };
   host: { os: string; architecture: string };
   capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean };
-  runtime: { docker: { container: { state: string } } };
+  runtime: {
+    docker: { container: { state: string }; agents?: Record<string, boolean> };
+    resources?: { cpus?: string | number; memory?: string; shm_size?: string; tmpfs_size?: string };
+  };
   paths: { home: string; data: string; projects_root: string; workspace_metadata_root: string; managed_worktrees_root: string };
   context: {
     workspaces: Array<{
@@ -68,6 +71,9 @@ const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")
 const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
 const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
 const settingsSync = document.querySelector<HTMLButtonElement>("#settings-sync")!;
+const settingResources = document.querySelector<HTMLElement>("#setting-resources")!;
+const settingAgents = document.querySelector<HTMLElement>("#setting-agents")!;
+const demoBanner = document.querySelector<HTMLElement>("#demo-banner")!;
 const settingsWorkspace = document.querySelector<HTMLInputElement>("#settings-workspace")!;
 const settingsProject = document.querySelector<HTMLInputElement>("#settings-project")!;
 const settingsProjectPlan = document.querySelector<HTMLButtonElement>("#settings-project-plan")!;
@@ -100,6 +106,43 @@ let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
 let storedKeyPassphrase = false;
+const demoMode = new URLSearchParams(window.location.search).has("demo");
+
+const demoReport: ProbeReport = {
+  sandbox: { version: "0.1.0-dev" },
+  host: { os: "Linux", architecture: "x86_64" },
+  capabilities: { docker: true, managed_projects: true, live_reconcile: true },
+  runtime: {
+    docker: { container: { state: "running" }, agents: { codex: true, claude: true, gemini: true, copilot: false, cursor: true } },
+    resources: { cpus: 4, memory: "8g", shm_size: "1g", tmpfs_size: "1g" },
+  },
+  paths: { home: "/home/orcan/.config/orcan", data: "/home/orcan/.config/orcan", projects_root: "/home/orcan/.config/orcan/sandbox", workspace_metadata_root: "/home/orcan/.config/orcan/workspaces", managed_worktrees_root: "/home/orcan/.config/orcan/worktrees" },
+  context: {
+    workspaces: [{ name: "platform", projects: [{ name: "api", path: "/home/orcan/.config/orcan/sandbox/api", kind: "git", branch: "main", dirty: false }, { name: "web", path: "/home/orcan/.config/orcan/sandbox/web", kind: "git", branch: "feature/studio", dirty: true }] }],
+    managed_projects: [{ path: "/home/orcan/.config/orcan/sandbox/api", kind: "git" }, { path: "/home/orcan/.config/orcan/sandbox/web", kind: "git" }],
+    repositories: [{ repository_id: "api", origin_url: "git@github.com:example/api.git", bindings: [{ workspace: "platform" }] }, { repository_id: "web", origin_url: "git@github.com:example/web.git", bindings: [{ workspace: "platform" }] }],
+    configuration: { state: "synchronized", revision: "demo" },
+  },
+};
+
+async function invoke<T>(command: string, _args?: unknown): Promise<T> {
+  if (!demoMode) return tauriInvoke<T>(command, _args as never);
+  await new Promise((resolve) => window.setTimeout(resolve, 180));
+  const root = demoReport.paths.projects_root;
+  const worktrees = demoReport.paths.managed_worktrees_root;
+  const responses: Record<string, unknown> = {
+    list_profiles: [{ id: "demo", name: "Demo Linux Sandbox", target: { kind: "local" } }],
+    probe: demoReport,
+    parent_plan: { plan: { head: "abc1234", ready: true, blockers: [] } },
+    import_plan: { plan: { destination: `${root}/new-repository`, destination_state: "absent", ready: true, blockers: [] } },
+    import_apply: { result: { destination: `${root}/new-repository` } },
+    worktree_plan: { plan: { destination: `${worktrees}/api/feature-context`, ready: true, blockers: [] } },
+    worktree_apply: { result: { path: `${worktrees}/api/feature-context` } },
+    worktree_cleanup: { plan: { ready: true, blockers: [] } },
+    settings_project_action: { plan: { ready: true, blockers: [] } },
+  };
+  return (responses[command] ?? {}) as T;
+}
 
 function selectedTarget(): Target {
   if (transport.value === "local") return { kind: "local" };
@@ -123,6 +166,10 @@ function renderSnapshot(report: ProbeReport, cached = false): void {
   setting("setting-workspaces-root").textContent = report.paths.workspace_metadata_root;
   setting("setting-worktrees-root").textContent = report.paths.managed_worktrees_root;
   setting("setting-config-state").textContent = report.context.configuration.revision ? `${report.context.configuration.state} · ${report.context.configuration.revision}` : report.context.configuration.state;
+  const resources = report.runtime.resources;
+  settingResources.textContent = resources ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"} · SHM ${resources.shm_size ?? "—"}` : "Not reported";
+  const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
+  settingAgents.textContent = agents.length ? agents.join(" · ") : "No image manifest reported";
   const rows: HTMLElement[] = [];
   for (const workspace of report.context.workspaces) {
     const row = document.createElement("div");
@@ -346,6 +393,10 @@ parentApplyButton.addEventListener("click", async () => {
 refreshTargetField();
 refreshCredentials();
 renderJobs();
+if (demoMode) {
+  demoBanner.hidden = false;
+  result.textContent = "UX preview ready. Check Sandbox loads representative sample data.";
+}
 void loadProfiles().catch((error) => {
   result.textContent = `Could not load profiles: ${String(error)}`;
 });

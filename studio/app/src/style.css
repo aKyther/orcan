@@ -37,6 +37,17 @@ output {
   line-height: 1.55;
 }
 
+.demo-banner {
+  background: #303a2b;
+  border: 1px solid #6b7c58;
+  border-radius: .65rem;
+  color: #dce7c9;
+  font-size: .85rem;
+  line-height: 1.45;
+  margin: 1.25rem 0 0;
+  padding: .75rem .9rem;
+}
+
 .credentials { border-top: 1px solid #42483f; display: grid; gap: .5rem; margin-top: .5rem; padding-top: .7rem; }
 .credentials summary { cursor: pointer; font-size: .8rem; font-weight: 700; }
 .credential-note { color: #9ba294; font-size: .74rem; line-height: 1.45; margin: .2rem 0 0; }

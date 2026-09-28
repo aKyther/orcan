@@ -4,6 +4,7 @@
 //! asks this crate to invoke the fixed Orcan Studio protocol endpoint.
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -552,6 +553,16 @@ pub struct Runtime {
     pub config: String,
     pub generated: String,
     pub docker: Docker,
+    #[serde(default)]
+    pub resources: Resources,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Resources {
+    pub cpus: Option<serde_json::Value>,
+    pub memory: Option<String>,
+    pub shm_size: Option<String>,
+    pub tmpfs_size: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -559,6 +570,9 @@ pub struct Docker {
     pub available: bool,
     pub image: Image,
     pub container: Container,
+    /// Agent CLIs baked into the selected Sandbox image; Orcan does not pick models.
+    #[serde(default)]
+    pub agents: BTreeMap<String, bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -643,7 +657,7 @@ mod tests {
         "host":{"os":"linux","architecture":"x86_64"},
         "paths":{"home":"/home/user/.config/orcan","data":"/home/user/.config/orcan","projects_root":"/home/user/.config/orcan/sandbox","workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},
         "capabilities":{"docker":true,"git":true,"managed_projects":true,"live_reconcile":true},
-        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"}}},
+        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"},"agents":{"codex":true,"claude":false}},"resources":{"cpus":4,"memory":"8g"}},
         "context":{"configuration":{"state":"present","revision":"abc"},"paths":{"workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},"workspaces":[],"managed_projects":[]}
     }"#;
 
@@ -676,6 +690,8 @@ mod tests {
         let report = Target::Local.probe(&runner).expect("probe succeeds");
 
         assert_eq!(report.host.os, "linux");
+        assert_eq!(report.runtime.resources.memory.as_deref(), Some("8g"));
+        assert_eq!(report.runtime.docker.agents.get("codex"), Some(&true));
         assert_eq!(
             runner.requests.borrow()[0],
             ProcessRequest::new("orcan", &["studio", "probe", "--json"])
