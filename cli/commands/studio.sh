@@ -39,8 +39,8 @@ orcan_cmd_studio() {
             orcan_host_python "${ORCAN_SCRIPTS}/studio-parent.py" "${action}" "$@"
             ;;
         import)
-            if [[ "${1:-}" != "plan" ]]; then
-                orcan_usage_error 'usage: orcan studio import plan --source URL_OR_PATH --projects-root PATH [--destination PATH]'
+            if [[ "${1:-}" != "plan" && "${1:-}" != "apply" ]]; then
+                orcan_usage_error 'usage: orcan studio import plan|apply --source URL_OR_PATH --projects-root PATH [--destination PATH] [--yes]'
                 return
             fi
             shift
