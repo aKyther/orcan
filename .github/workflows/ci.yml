@@ -12,6 +12,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  studio:
+    name: Orcan Studio (Linux build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            build-essential \
+            libayatana-appindicator3-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            pkg-config
+
+      - name: Test Studio transport core
+        run: make studio-test
+
+      - name: Build Studio user interface
+        working-directory: studio/app
+        run: |
+          npm ci
+          npm run build
+
+      - name: Check native Studio application
+        run: cargo check --manifest-path studio/Cargo.toml -p orcan-studio
+
   checks:
     name: Checks
     runs-on: ubuntu-latest
