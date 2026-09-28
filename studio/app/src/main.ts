@@ -244,8 +244,9 @@ importPlanButton.addEventListener("click", async () => {
 importApplyButton.addEventListener("click", async () => {
   if (!importReady) return;
   importApplyButton.disabled = true; importResult.textContent = "Cloning repository…";
-  try { const response = await invoke<{ result: { destination: string } }>("import_apply", { source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined }); importResult.textContent = `Imported: ${response.result.destination}`; importReady = false; }
-  catch (error) { importResult.textContent = `Import failed: ${String(error)}`; }
+  const job = addJob("Repository import", importSource.value);
+  try { const response = await invoke<{ result: { destination: string } }>("import_apply", { source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined }); importResult.textContent = `Imported: ${response.result.destination}`; importReady = false; finishJob(job, "succeeded", response.result.destination); }
+  catch (error) { importResult.textContent = `Import failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
 });
 saveProfileButton.addEventListener("click", async () => {
   const name = profileName.value.trim();
@@ -321,8 +322,9 @@ parentPlanButton.addEventListener("click", async () => {
 parentApplyButton.addEventListener("click", async () => {
   if (!parentHead) return;
   parentApplyButton.disabled = true; parentResult.textContent = "Applying approved fast-forward…";
-  try { await invoke("parent_apply", { path: parentPath.value, branch: parentBranch.value, expectedHead: parentHead }); parentResult.textContent = "Parent updated."; }
-  catch (error) { parentResult.textContent = `Update failed: ${String(error)}`; }
+  const job = addJob("Parent update", parentBranch.value);
+  try { await invoke("parent_apply", { path: parentPath.value, branch: parentBranch.value, expectedHead: parentHead }); parentResult.textContent = "Parent updated."; finishJob(job, "succeeded", "Fast-forward applied"); }
+  catch (error) { parentResult.textContent = `Update failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
   finally { parentApplyButton.disabled = false; }
 });
 
