@@ -77,7 +77,9 @@ const worktreeRepo = document.querySelector<HTMLInputElement>("#worktree-repo")!
 const worktreeBranch = document.querySelector<HTMLInputElement>("#worktree-branch")!;
 const worktreeWorkspaces = document.querySelector<HTMLInputElement>("#worktree-workspaces")!;
 const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")!;
+const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;
 const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
+let worktreeReady = false;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
 let latestProbe = 0;
@@ -215,7 +217,8 @@ profilesSelect.addEventListener("change", () => {
   renderProfiles();
 });
 settingsRefresh.addEventListener("click", () => probeButton.click());
-worktreePlan.addEventListener("click", async () => { try { const workspaces = worktreeWorkspaces.value.split(",").map((value) => value.trim()).filter(Boolean); const response = await invoke<{ plan: { destination: string; ready: boolean; blockers: string[] } }>("worktree_plan", { repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces }); worktreeResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination} · ${workspaces.join(", ") || "no bindings"}` : response.plan.blockers.join(" · "); } catch (error) { worktreeResult.textContent = `Plan failed: ${String(error)}`; } });
+worktreePlan.addEventListener("click", async () => { try { const workspaces = worktreeWorkspaces.value.split(",").map((value) => value.trim()).filter(Boolean); const response = await invoke<{ plan: { destination: string; ready: boolean; blockers: string[] } }>("worktree_plan", { repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces }); worktreeReady = response.plan.ready; worktreeApply.disabled = !worktreeReady; worktreeResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination} · ${workspaces.join(", ") || "no bindings"}` : response.plan.blockers.join(" · "); } catch (error) { worktreeReady = false; worktreeApply.disabled = true; worktreeResult.textContent = `Plan failed: ${String(error)}`; } });
+worktreeApply.addEventListener("click", async () => { if (!worktreeReady) return; const workspaces = worktreeWorkspaces.value.split(",").map((value) => value.trim()).filter(Boolean); worktreeApply.disabled = true; worktreeResult.textContent = "Creating worktree…"; try { const response = await invoke<{ result: { path: string } }>("worktree_apply", { repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces }); worktreeResult.textContent = `Created: ${response.result.path}`; worktreeReady = false; } catch (error) { worktreeResult.textContent = `Create failed: ${String(error)}`; } });
 cleanupPlan.addEventListener("click", async () => {
   try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, apply: false }); cleanupApply.disabled = !response.plan.ready; cleanupResult.textContent = response.plan.ready ? "Plan ready. Type REMOVE to enable deletion." : response.plan.blockers.join(" · "); }
   catch (error) { cleanupResult.textContent = `Plan failed: ${String(error)}`; }
