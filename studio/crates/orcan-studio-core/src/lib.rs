@@ -106,6 +106,39 @@ pub enum Target {
 }
 
 impl Target {
+    pub fn sync_request(&self) -> Result<ProcessRequest, StudioError> {
+        match self {
+            Self::Local => Ok(ProcessRequest::new("orcan", &["sync"])),
+            Self::Wsl2 { distribution } => {
+                validate_identifier("WSL distribution", distribution)?;
+                Ok(ProcessRequest::new(
+                    "wsl.exe",
+                    &["--distribution", distribution, "--exec", "orcan", "sync"],
+                ))
+            }
+            Self::Ssh { destination } => {
+                validate_identifier("SSH destination", destination)?;
+                Ok(ProcessRequest::new(
+                    "ssh",
+                    &["-o", "BatchMode=yes", "--", destination, "orcan", "sync"],
+                ))
+            }
+        }
+    }
+
+    pub fn sync<R: ProcessRunner>(&self, runner: &R) -> Result<(), StudioError> {
+        let request = self.sync_request()?;
+        let output = runner.run(&request)?;
+        if output.success {
+            Ok(())
+        } else {
+            Err(StudioError::CommandFailed {
+                command: request.display(),
+                stderr: output.stderr,
+            })
+        }
+    }
+
     pub fn probe_request(&self) -> Result<ProcessRequest, StudioError> {
         let orcan_args = ["studio", "probe", "--json"];
         match self {
