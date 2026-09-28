@@ -14,6 +14,7 @@
           <button type="button" class="nav-item" data-view-target="credentials"><span>⚿</span>Credentials &amp; keys</button>
           <button type="button" class="nav-item" data-view-target="profiles"><span>◧</span>Profiles</button>
           <button type="button" class="nav-item" data-view-target="enclaves"><span>◌</span>Enclaves</button>
+          <div id="nav-enclaves" class="nav-enclaves" aria-label="Your Enclaves"></div>
           <p id="active-group" class="nav-group" hidden>ACTIVE ENCLAVE</p>
           <button type="button" class="nav-item gated" data-view-target="contexts" hidden><span>◫</span>Contexts</button>
           <button type="button" class="nav-item gated" data-view-target="repositories" hidden><span>◇</span>Repositories</button>
@@ -22,11 +23,11 @@
         </nav>
         <div class="sidebar-bottom">
           <button type="button" class="nav-item gated" data-view-target="settings" hidden><span>⚙</span>Settings</button>
-          <p class="instance-state"><span class="state-dot"></span><span id="instance-state">Not connected</span></p>
+          <p class="instance-state"><span id="instance-state">No Enclaves yet</span></p>
         </div>
       </aside>
       <section class="app-content">
-        <header class="topbar"><div><p class="eyebrow">CONTEXT CONTROL PLANE</p><h1 id="view-title">Overview</h1></div><div class="topbar-instance"><span class="state-dot"></span><span id="active-instance">Not connected</span></div></header>
+        <header class="topbar"><div><p class="eyebrow">CONTEXT CONTROL PLANE</p><h1 id="view-title">Overview</h1></div><button id="active-instance" type="button" class="topbar-instance" title="Switch Enclave"><span id="active-dot" class="state-dot"></span><span id="active-label">Choose an Enclave</span></button></header>
         <p id="demo-banner" class="demo-banner" hidden>UX preview · sample data only · no Enclave, SSH, Docker, or credentials are contacted.</p>
 
         <section class="view active" data-view="overview">
