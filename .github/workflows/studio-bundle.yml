@@ -1,0 +1,48 @@
+name: Orcan Studio bundles
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["studio-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows installer
+            os: windows-latest
+          - name: macOS application
+            os: macos-latest
+          - name: Linux package
+            os: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@1e60f620b9541d3f5cfe45e115e6f52c3b00d5d9 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: studio/app/package-lock.json
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libayatana-appindicator3-dev libgtk-3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev pkg-config
+      - name: Install UI dependencies
+        working-directory: studio/app
+        run: npm ci
+      - name: Build native bundle
+        working-directory: studio/app
+        run: npm run tauri build
+      - name: Upload bundle
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: orcan-studio-${{ runner.os }}
+          path: studio/app/src-tauri/target/release/bundle/
+          if-no-files-found: error
