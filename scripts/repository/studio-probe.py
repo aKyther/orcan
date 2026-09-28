@@ -13,6 +13,20 @@ import subprocess
 from pathlib import Path
 
 
+def read_json(path: Path) -> dict[str, object]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def read_json_text(contents: str) -> dict[str, object]:
+    try:
+        return json.loads(contents)
+    except json.JSONDecodeError:
+        return {}
+
+
 def git_output(path: Path, *arguments: str) -> str | None:
     """Return a small Git fact without invoking a shell or changing repository state."""
     try:
@@ -73,12 +87,7 @@ def context_snapshot(
     config_path: Path, projects_root: Path, home: Path
 ) -> dict[str, object]:
     """Return Studio-visible configuration and path membership, never secrets."""
-    config: dict[str, object] = {}
-    if config_path.is_file():
-        try:
-            config = json.loads(config_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            config = {}
+    config = read_json(config_path)
     workspaces: list[dict[str, object]] = []
     for workspace in config.get("workspaces") or []:
         if not isinstance(workspace, dict):
@@ -190,10 +199,30 @@ def docker_probe(docker: str, image: str, container: str) -> dict[str, object]:
         check=False,
     )
     container_state = state.stdout.strip() if state.returncode == 0 else "missing"
+    agents: dict[str, object] = {}
+    if image_present:
+        manifest = subprocess.run(
+            [
+                docker,
+                "run",
+                "--rm",
+                "--entrypoint",
+                "cat",
+                image,
+                "/etc/orcan/agents.json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if manifest.returncode == 0:
+            agents = read_json_text(manifest.stdout).get("agents", {})
     return {
         "available": True,
         "image": {"name": image, "present": image_present},
         "container": {"name": container, "state": container_state},
+        "agents": agents,
     }
 
 
@@ -213,6 +242,7 @@ def main() -> None:
     docker = docker_probe(
         os.environ.get("ORCAN_STUDIO_DOCKER", "docker"), args.image, args.container
     )
+    runtime_data = load_json(Path(args.runtime)) or {}
     report = {
         "protocol": {
             "name": "orcan-studio",
@@ -241,6 +271,7 @@ def main() -> None:
             "config": "present" if Path(args.config).is_file() else "missing",
             "generated": "present" if Path(args.runtime).is_file() else "missing",
             "docker": docker,
+            "resources": runtime_data.get("resources", {}),
         },
         "context": context_snapshot(
             Path(args.config), Path(args.projects_root), Path(args.home)
