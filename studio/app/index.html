@@ -11,6 +11,7 @@
         <p class="eyebrow">ORCAN STUDIO · CONNECTIONS</p>
         <h1>Build context where it runs.</h1>
         <p class="lede">Connect to a local Sandbox, a WSL2 distribution, or an SSH host.</p>
+        <p id="demo-banner" class="demo-banner" hidden>UX preview · sample data only · no Sandbox, SSH, Docker, or credentials are contacted.</p>
       </header>
       <section class="card" aria-labelledby="connection-title">
         <h2 id="connection-title">Sandbox connection</h2>
@@ -86,6 +87,8 @@
           <div><dt>Workspace metadata</dt><dd id="setting-workspaces-root">—</dd></div>
           <div><dt>Managed worktrees</dt><dd id="setting-worktrees-root">—</dd></div>
           <div><dt>Configuration state</dt><dd id="setting-config-state">—</dd></div>
+          <div><dt>Container resources</dt><dd id="setting-resources">—</dd></div>
+          <div><dt>Agent tools in this Sandbox image</dt><dd id="setting-agents">—</dd></div>
         </dl>
         <button id="settings-refresh" type="button" class="secondary">Refresh from Orcan</button>
         <output id="settings-result" aria-live="polite">Read-only until a settings plan is available.</output>

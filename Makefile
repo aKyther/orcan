@@ -15,7 +15,7 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 .DEFAULT_GOAL := help
 
 .PHONY: help deprecate-user \
-	validate test test-host test-coverage test-path-parity format format-check studio-test dev-test \
+	validate test test-host test-coverage test-path-parity format format-check studio-test studio-preview-start studio-preview-stop studio-preview-status studio-preview-logs studio-preview-url dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
 	version bump-patch bump-minor bump-major tag release release-retract release-tag release-push \
@@ -58,6 +58,21 @@ format-check: ## Verify host and cockpit Python is Ruff-formatted
 
 studio-test: ## Test the transport-neutral Orcan Studio Rust core
 	@cargo test --manifest-path studio/Cargo.toml -p orcan-studio-core
+
+studio-preview-start: ## Serve fixture-only Studio UX on the host Tailscale address
+	@./scripts/dev/orcan-studio-preview start
+
+studio-preview-stop: ## Stop the fixture-only Studio UX preview
+	@./scripts/dev/orcan-studio-preview stop
+
+studio-preview-status: ## Show Studio UX preview container status
+	@./scripts/dev/orcan-studio-preview status
+
+studio-preview-logs: ## Follow Studio UX preview logs
+	@./scripts/dev/orcan-studio-preview logs
+
+studio-preview-url: ## Print the Studio UX preview URL
+	@./scripts/dev/orcan-studio-preview url
 
 # Fixtures live under the checkout so Docker-from-Docker sees the same
 # canonical host path; container-local /tmp is not visible to the daemon.

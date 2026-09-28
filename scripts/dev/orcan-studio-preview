@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Browser-only Studio UX preview. It serves fixture data, never a real Sandbox.
+set -Eeuo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+COMPOSE_FILE="${ROOT_DIR}/studio/app/docker-compose.preview.yml"
+PROJECT="orcan-studio-preview"
+PORT="${ORCAN_STUDIO_PREVIEW_PORT:-1420}"
+DOCKER_BIN="${ORCAN_STUDIO_PREVIEW_DOCKER:-docker}"
+
+usage() {
+    cat <<'EOF'
+Usage: scripts/dev/orcan-studio-preview start|stop|status|logs|url
+
+Starts the browser-only Orcan Studio UX fixture on the first Tailscale IPv4
+address. It has no SSH, Docker, credential-vault, or Orcan connection.
+
+Overrides:
+  ORCAN_STUDIO_PREVIEW_BIND=100.x.x.x
+  ORCAN_STUDIO_PREVIEW_PORT=1420
+EOF
+}
+
+die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
+require() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
+
+if [[ ! "${PORT}" =~ ^[0-9]+$ ]] || (( PORT < 1024 || PORT > 65535 )); then
+    die "invalid Studio preview port: ${PORT} (expected 1024-65535)"
+fi
+
+if [[ -z "${ORCAN_STUDIO_PREVIEW_BIND:-}" ]]; then
+    require tailscale
+    BIND="$(tailscale ip -4 | sed -n '1p')"
+else
+    BIND="${ORCAN_STUDIO_PREVIEW_BIND}"
+fi
+[[ "${BIND}" =~ ^100\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] || die "Studio preview bind must be a Tailscale IPv4 address (100.x.x.x)"
+
+compose() {
+    ORCAN_STUDIO_PREVIEW_BIND="${BIND}" ORCAN_STUDIO_PREVIEW_PORT="${PORT}" \
+        "${DOCKER_BIN}" compose --project-name "${PROJECT}" --file "${COMPOSE_FILE}" "$@"
+}
+
+case "${1:-}" in
+    start)
+        require "${DOCKER_BIN}"
+        "${DOCKER_BIN}" info >/dev/null 2>&1 || die "Docker daemon is unavailable"
+        compose up --detach
+        printf 'Studio UX preview: http://%s:%s/?demo=1\n' "${BIND}" "${PORT}"
+        ;;
+    stop) compose down ;;
+    status) compose ps ;;
+    logs) compose logs --follow ;;
+    url) printf 'http://%s:%s/?demo=1\n' "${BIND}" "${PORT}" ;;
+    *) usage; exit 2 ;;
+esac
