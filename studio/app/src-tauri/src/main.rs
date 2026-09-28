@@ -22,9 +22,11 @@ impl From<TargetInput> for Target {
 }
 
 #[tauri::command]
-fn probe(target: TargetInput) -> Result<ProbeReport, String> {
-    Target::from(target)
-        .probe(&SystemRunner)
+async fn probe(target: TargetInput) -> Result<ProbeReport, String> {
+    let target = Target::from(target);
+    tauri::async_runtime::spawn_blocking(move || target.probe(&SystemRunner))
+        .await
+        .map_err(|error| format!("probe task stopped: {error}"))?
         .map_err(|error| error.to_string())
 }
 

@@ -11,6 +11,11 @@ type ProbeReport = {
   host: { os: string; architecture: string };
   capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean };
   runtime: { docker: { container: { state: string } } };
+  paths: { projects_root: string };
+  context: {
+    workspaces: Array<{ name: string; projects: Array<{ name?: string; kind: string }> }>;
+    managed_projects: Array<{ path: string; kind: string }>;
+  };
 };
 
 type ConnectionProfile = { id: string; name: string; target: Target };
@@ -24,13 +29,36 @@ const deleteProfileButton = document.querySelector<HTMLButtonElement>("#delete-p
 const result = document.querySelector<HTMLOutputElement>("#result")!;
 const profileName = document.querySelector<HTMLInputElement>("#profile-name")!;
 const profilesSelect = document.querySelector<HTMLSelectElement>("#profiles")!;
+const snapshot = document.querySelector<HTMLElement>("#snapshot")!;
+const snapshotRoot = document.querySelector<HTMLElement>("#snapshot-root")!;
+const snapshotWorkspaces = document.querySelector<HTMLElement>("#snapshot-workspaces")!;
+const snapshotProjects = document.querySelector<HTMLElement>("#snapshot-projects")!;
+const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
 let profiles: ConnectionProfile[] = [];
 let activeProfileId: string | undefined;
+let latestProbe = 0;
 
 function selectedTarget(): Target {
   if (transport.value === "local") return { kind: "local" };
   if (transport.value === "wsl2") return { kind: "wsl2", distribution: target.value };
   return { kind: "ssh", destination: target.value };
+}
+
+function cacheKey(targetValue: Target): string {
+  return `orcan-studio:snapshot:${JSON.stringify(targetValue)}`;
+}
+
+function renderSnapshot(report: ProbeReport, cached = false): void {
+  snapshot.hidden = false;
+  snapshotRoot.textContent = report.paths.projects_root;
+  snapshotWorkspaces.textContent = String(report.context.workspaces.length);
+  snapshotProjects.textContent = String(report.context.managed_projects.length);
+  snapshotList.replaceChildren(...report.context.workspaces.map((workspace) => {
+    const row = document.createElement("p");
+    row.textContent = `${workspace.name} · ${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}`;
+    return row;
+  }));
+  if (cached) result.textContent = "Showing the last known Sandbox snapshot. Refreshing will verify it.";
 }
 
 function refreshTargetField(): void {
@@ -53,6 +81,14 @@ function applyProfile(profile: ConnectionProfile): void {
   transport.value = profile.target.kind;
   target.value = profile.target.kind === "local" ? "" : profile.target.kind === "wsl2" ? profile.target.distribution : profile.target.destination;
   refreshTargetField();
+  const cached = localStorage.getItem(cacheKey(profile.target));
+  if (cached) {
+    try {
+      renderSnapshot(JSON.parse(cached) as ProbeReport, true);
+    } catch {
+      localStorage.removeItem(cacheKey(profile.target));
+    }
+  }
 }
 
 function renderProfiles(): void {
@@ -102,15 +138,25 @@ deleteProfileButton.addEventListener("click", async () => {
   result.textContent = "Profile deleted.";
 });
 probeButton.addEventListener("click", async () => {
+  const request = ++latestProbe;
+  const currentTarget = selectedTarget();
   probeButton.disabled = true;
-  result.textContent = "Checking Sandbox…";
+  probeButton.textContent = "Checking Sandbox…";
+  result.textContent = "Connecting → reading Orcan context → checking runtime…";
   try {
-    const report = await invoke<ProbeReport>("probe", { target: selectedTarget() });
+    const report = await invoke<ProbeReport>("probe", { target: currentTarget });
+    if (request !== latestProbe) return;
+    localStorage.setItem(cacheKey(currentTarget), JSON.stringify(report));
+    renderSnapshot(report);
     result.textContent = `${report.host.os}/${report.host.architecture} · Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;
   } catch (error) {
+    if (request !== latestProbe) return;
     result.textContent = `Connection failed: ${String(error)}`;
   } finally {
-    probeButton.disabled = false;
+    if (request === latestProbe) {
+      probeButton.disabled = false;
+      probeButton.textContent = "Refresh Sandbox";
+    }
   }
 });
 

@@ -103,3 +103,31 @@ button:disabled {
 output {
   min-height: 1.6rem;
 }
+
+.snapshot {
+  border-top: 1px solid #42483f;
+  margin-top: .5rem;
+  padding-top: 1rem;
+}
+
+.snapshot dl {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: .65rem 0;
+}
+
+.snapshot dt,
+.snapshot p {
+  color: #9ba294;
+  font-size: .74rem;
+  margin: 0;
+}
+
+.snapshot dd {
+  font-size: .82rem;
+  margin: .18rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
