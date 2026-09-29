@@ -16,7 +16,7 @@ def run(repo: Path, *args: str) -> str | None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "mode", choices=("plan", "apply", "remove-plan", "remove-apply")
+        "mode", choices=("list", "plan", "apply", "remove-plan", "remove-apply")
     )
     parser.add_argument("--repo")
     parser.add_argument("--branch")
@@ -26,6 +26,24 @@ def main() -> None:
     parser.add_argument("--workspace", action="append", default=[])
     args = parser.parse_args()
     root = Path(args.worktrees_root).resolve()
+    if args.mode == "list":
+        entries = []
+        if root.is_dir():
+            for path in sorted(item for item in root.glob("*/*") if item.is_dir()):
+                if run(path, "rev-parse", "--is-inside-work-tree") != "true":
+                    continue
+                entries.append(
+                    {
+                        "path": str(path.resolve()),
+                        "project": path.parent.name,
+                        "branch": run(
+                            path, "symbolic-ref", "--quiet", "--short", "HEAD"
+                        ),
+                        "dirty": bool(run(path, "status", "--porcelain=v1")),
+                    }
+                )
+        print(json.dumps({"ok": True, "worktrees": entries}, separators=(",", ":")))
+        return
     if args.mode in {"remove-plan", "remove-apply"}:
         if not args.path:
             parser.error("--path is required for remove-plan")

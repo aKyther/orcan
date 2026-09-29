@@ -557,6 +557,26 @@ async fn worktree_plan(
 }
 
 #[tauri::command]
+async fn worktree_inventory(
+    enclave: EnclaveInput,
+    worktrees_root: String,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    studio_json(
+        enclave,
+        vec![
+            "studio".to_owned(),
+            "worktree".to_owned(),
+            "list".to_owned(),
+            "--worktrees-root".to_owned(),
+            worktrees_root,
+        ],
+        state,
+    )
+    .await
+}
+
+#[tauri::command]
 async fn worktree_apply(
     enclave: EnclaveInput,
     repo: String,
@@ -609,6 +629,7 @@ fn main() {
             import_apply,
             worktree_cleanup,
             worktree_plan,
+            worktree_inventory,
             worktree_apply,
             membership_action
         ])
