@@ -357,6 +357,9 @@ const workspaceCards = $("#workspace-cards");
 const sandboxTray = $("#sandbox-tray");
 const mapFilter = $<HTMLInputElement>("#map-filter");
 const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
+const mapFilterChips = $("#map-filter-chips");
+const mapFocusClear = $<HTMLButtonElement>("#map-focus-clear");
+let focusedWorkspace: string | undefined;
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
 const planTitle = $("#plan-title");
@@ -481,18 +484,38 @@ function addToMenu(project: ProjectRef, report: ProbeReport): HTMLElement {
 
 function renderEnclaveMap(report: ProbeReport): void {
   enclaveMap.hidden = false;
+  mapFocusClear.hidden = !focusedWorkspace;
   const query = mapFilter.value.trim().toLowerCase();
   const matches = (...values: Array<string | undefined>) => !query || values.some((value) => value?.toLowerCase().includes(query));
+  const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
+  const plannedPaths = new Set(queuedForCurrent().filter((change) => change.action === "attach").map((change) => change.project.path));
+  const sourceMatchesFilters = (project: { path: string; kind?: string; dirty?: boolean }) => [...activeMapFilters].every((filter) => {
+    if (filter === "git") return project.kind === "git_repository" || project.kind === "git_worktree";
+    if (filter === "worktree") return project.kind === "git_worktree" || project.path.startsWith(report.paths.managed_worktrees_root);
+    if (filter === "mount") return project.kind === "directory";
+    if (filter === "unassigned") return !used.has(project.path);
+    if (filter === "dirty") return Boolean(project.dirty);
+    if (filter === "planned") return plannedPaths.has(project.path);
+    return project.path.startsWith(report.paths.managed_worktrees_root) && !used.has(project.path);
+  });
   const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
   const cards = report.context.workspaces.flatMap((workspace) => {
+    if (focusedWorkspace && workspace.name !== focusedWorkspace) return [];
     const drafts = workspaceDrafts(workspace.name);
     const workspaceMatches = matches(workspace.name);
-    const projects = workspaceMatches ? workspace.projects : workspace.projects.filter((project) => matches(project.name, project.path, project.branch));
-    const visibleDrafts = workspaceMatches ? drafts : drafts.filter((draft) => matches(draft.project.name, draft.project.path, draft.branch));
-    if (query && !projects.length && !visibleDrafts.length) return [];
+    const projects = workspace.projects.filter((project) => sourceMatchesFilters(project) && (workspaceMatches || matches(project.name, project.path, project.branch)));
+    const visibleDrafts = drafts.filter((draft) => sourceMatchesFilters({ ...draft.project, dirty: false }) && (workspaceMatches || matches(draft.project.name, draft.project.path, draft.branch)));
+    if ((query || activeMapFilters.size) && !projects.length && !visibleDrafts.length) return [];
     const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
     if (drafts.length) meta.append(el("span", { className: "tag draft", textContent: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` }), actionButton("Discard", () => discardWorkspaceDraft(workspace.name), "workspace-draft-discard"));
     const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), meta));
+    card.classList.toggle("focused", focusedWorkspace === workspace.name);
+    card.title = "Click empty space to focus this workspace";
+    card.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("button, select, input, .project-chip")) return;
+      focusedWorkspace = workspace.name;
+      renderEnclaveMap(report);
+    });
     const list = el("ul");
     for (const project of projects) {
       const ref = { name: projectName(project), path: project.path, kind: project.kind };
@@ -513,7 +536,7 @@ function renderEnclaveMap(report: ProbeReport): void {
   });
   const existingWorkspaces = new Set(report.context.workspaces.map((workspace) => workspace.name));
   const plannedWorkspaceGroups = Object.entries(groupWorkspaceDrafts()) as Array<[string, QueuedChange[]]>;
-  for (const [workspace, drafts] of plannedWorkspaceGroups.filter(([name, entries]) => !existingWorkspaces.has(name) && (matches(name) || entries.some((draft) => matches(draft.project.name, draft.project.path, draft.branch))))) {
+  for (const [workspace, drafts] of plannedWorkspaceGroups.filter(([name, entries]) => !existingWorkspaces.has(name) && (!focusedWorkspace || focusedWorkspace === name) && (matches(name) || entries.some((draft) => sourceMatchesFilters({ ...draft.project, dirty: false }) && matches(draft.project.name, draft.project.path, draft.branch))))) {
     const meta = el("div", { className: "workspace-meta" }, el("span", { className: "tag draft", textContent: "draft workspace" }), actionButton("Discard", () => discardWorkspaceDraft(workspace), "workspace-draft-discard"));
     const card = el("article", { className: "workspace-card planned-workspace" }, el("header", {}, el("strong", { textContent: workspace }), meta));
     const additions = drafts.filter((draft) => draft.action === "attach");
@@ -530,13 +553,14 @@ function renderEnclaveMap(report: ProbeReport): void {
   const create = el("article", { className: "workspace-card new-workspace" }, el("strong", { textContent: "＋ New workspace" }), el("span", { className: "hint", textContent: "Drop a project here to start a workspace around it." }));
   dropZone(create, (project) => void reviewChange("attach", undefined, project));
   const visibleProjectPaths = new Set(cards.flatMap((card) => Array.from(card.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")).map((chip) => chip.dataset.projectPath ?? "")));
-  const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
-  const chips = report.context.managed_projects.filter((project) => !query || matches(project.path) || visibleProjectPaths.has(project.path)).map((project) => {
+  const dirtyPaths = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.dirty).map((project) => project.path)));
+  const chips = report.context.managed_projects.filter((project) => sourceMatchesFilters({ ...project, dirty: dirtyPaths.has(project.path) }) && (!query || matches(project.path) || visibleProjectPaths.has(project.path))).map((project) => {
     const ref = { name: projectName(project), path: project.path, kind: project.kind };
     const chip = projectChip(ref, used.has(project.path) ? [] : [el("span", { className: "tag warn", textContent: "no workspace" })]);
     return { parent: parentDirectory(project.path), item: el("span", { className: "tray-item" }, chip, addToMenu(ref, report)) };
   });
-  workspaceCards.replaceChildren(...(cards.length ? cards : [el("p", { className: "hint map-empty", textContent: "No workspace or planned relation matches this filter." })]), create);
+  const showCreate = !focusedWorkspace && activeMapFilters.size === 0;
+  workspaceCards.replaceChildren(...(cards.length ? cards : [el("p", { className: "hint map-empty", textContent: "No workspace or planned relation matches this filter." })]), ...(showCreate ? [create] : []));
   const groups = chips.reduce<Map<string, HTMLElement[]>>((all, chip) => {
     (all.get(chip.parent) ?? all.set(chip.parent, []).get(chip.parent)!).push(chip.item);
     return all;
@@ -549,6 +573,17 @@ function renderEnclaveMap(report: ProbeReport): void {
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 mapFilter.addEventListener("input", () => { if (currentReport) renderEnclaveMap(currentReport); });
 mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
+type MapFilter = "git" | "worktree" | "mount" | "unassigned" | "dirty" | "planned" | "orphan";
+const activeMapFilters = new Set<MapFilter>();
+for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) {
+  button.addEventListener("click", () => {
+    const filter = button.dataset.mapFilter as MapFilter;
+    activeMapFilters.has(filter) ? activeMapFilters.delete(filter) : activeMapFilters.add(filter);
+    button.classList.toggle("active", activeMapFilters.has(filter));
+    if (currentReport) renderEnclaveMap(currentReport);
+  });
+}
+mapFocusClear.addEventListener("click", () => { focusedWorkspace = undefined; if (currentReport) renderEnclaveMap(currentReport); });
 
 type PendingChange = { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef };
 type QueuedChange = PendingChange & {
