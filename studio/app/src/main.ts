@@ -676,9 +676,11 @@ function loadQueuedChanges(): QueuedChange[] {
 
 function saveQueuedChanges(): void {
   localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(queuedChanges));
+  renderEnclaveStatus();
 }
 
 const queuedChanges: QueuedChange[] = loadQueuedChanges();
+const restoredDraftIds = new Set(queuedChanges.map((change) => change.id));
 
 function enclaveChangeKey(connection: Connection): string {
   return JSON.stringify({ target: connection.target, username: connection.username, credentialId: connection.credentialId });
@@ -707,7 +709,7 @@ function discardWorkspaceDraft(workspace: string): void {
   if (!window.confirm(`Discard ${drafts.length} planned ${noun} for ${workspace}? Nothing has been applied to Orcan.`)) return;
   const key = enclaveChangeKey(current);
   for (let index = queuedChanges.length - 1; index >= 0; index -= 1) {
-    if (queuedChanges[index].enclave === key && queuedChanges[index].workspace === workspace) queuedChanges.splice(index, 1);
+    if (queuedChanges[index].enclave === key && queuedChanges[index].workspace === workspace) restoredDraftIds.delete(queuedChanges.splice(index, 1)[0].id);
   }
   saveQueuedChanges();
   renderChangeSet();
@@ -728,14 +730,16 @@ function renderChangeSet(): void {
   changeSetApply.disabled = changes.length === 0;
   changeSetClear.disabled = changes.length === 0;
   changeSetList.replaceChildren(...changes.map((change) => {
-    const detail = change.error ?? change.changes.join(" · ");
+    const detail = change.error ?? (restoredDraftIds.has(change.id) ? "Saved draft — recheck before applying" : change.changes.join(" · "));
     const remove = actionButton("Remove", () => {
       const index = queuedChanges.findIndex((item) => item.id === change.id);
       if (index >= 0) queuedChanges.splice(index, 1);
+      restoredDraftIds.delete(change.id);
       saveQueuedChanges();
       renderChangeSet();
     });
-    return el("div", { className: `change-set-item${change.error ? " failed" : ""}` }, el("div", {}, el("strong", { textContent: changeTitle(change) }), el("span", { textContent: detail })), remove);
+    const recheck = actionButton("Recheck", () => void recheckQueuedChange(change), "secondary");
+    return el("div", { className: `change-set-item${change.error ? " failed" : ""}` }, el("div", {}, el("strong", { textContent: changeTitle(change) }), el("span", { textContent: detail })), el("div", { className: "change-set-actions" }, recheck, remove));
   }));
   if (currentReport) renderEnclaveMap(currentReport);
 }
@@ -817,6 +821,7 @@ async function applyQueuedChanges(): Promise<void> {
       }
       const index = queuedChanges.findIndex((item) => item.id === change.id);
       if (index >= 0) queuedChanges.splice(index, 1);
+      restoredDraftIds.delete(change.id);
       saveQueuedChanges();
       finishJob(job, "succeeded", changeTitle(change));
       if (current && enclaveChangeKey(current) === enclave) syncBanner.hidden = false;
@@ -841,7 +846,25 @@ async function revalidateQueuedChange(change: QueuedChange, connection: Connecti
   if (!response.plan.ready) throw new Error(response.plan.blockers.join(" · ") || "Orcan no longer accepts this planned change");
   change.changes = response.plan.changes;
   change.error = undefined;
+  restoredDraftIds.delete(change.id);
   saveQueuedChanges();
+}
+
+async function recheckQueuedChange(change: QueuedChange): Promise<void> {
+  const connection = current;
+  if (!connection || change.enclave !== enclaveChangeKey(connection)) {
+    change.error = "Open the Enclave this draft belongs to before rechecking it.";
+    saveQueuedChanges();
+    renderChangeSet();
+    return;
+  }
+  try {
+    await revalidateQueuedChange(change, connection, setting("setting-worktrees-root").textContent);
+  } catch (error) {
+    change.error = String(error);
+    saveQueuedChanges();
+  }
+  renderChangeSet();
 }
 
 planWorkspaceName.addEventListener("input", () => void planChange());
@@ -852,7 +875,7 @@ planConfirm.addEventListener("click", queueChange);
 changeSetClear.addEventListener("click", () => {
   if (!current) return;
   const key = enclaveChangeKey(current);
-  for (let index = queuedChanges.length - 1; index >= 0; index -= 1) if (queuedChanges[index].enclave === key) queuedChanges.splice(index, 1);
+  for (let index = queuedChanges.length - 1; index >= 0; index -= 1) if (queuedChanges[index].enclave === key) restoredDraftIds.delete(queuedChanges.splice(index, 1)[0].id);
   saveQueuedChanges();
   renderChangeSet();
 });
@@ -1300,11 +1323,12 @@ async function openEnclave(profile: ConnectionProfile): Promise<void> {
 function renderEnclaves(): void {
   enclaveList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
     const status = enclaveStatus.get(profile.id);
+    const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
     const active = connected && current?.profileId === profile.id;
     const actions: HTMLElement[] = [actionButton("Check", () => void checkEnclave(profile))];
     if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
     else actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
-    const text = el("div", {}, el("strong", {}, dot(statusTone(status)), profile.name), el("span", { textContent: `${describeProfile(profile)} · ${statusText(status)}` }));
+    const text = el("div", {}, el("strong", {}, dot(statusTone(status)), profile.name), el("span", { textContent: `${describeProfile(profile)} · ${statusText(status)}${drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}` }));
     if (status?.state === "offline") text.append(el("span", { className: "status-hint", textContent: failureHint(status.error ?? "") }));
     const item = el("div", { className: "list-item enclave-item" }, text, el("div", { className: "item-actions" }, ...actions));
     item.classList.toggle("active", active);
@@ -1316,7 +1340,8 @@ function renderEnclaves(): void {
 function renderEnclaveStatus(): void {
   renderEnclaves();
   navEnclaves.replaceChildren(...profiles.map((profile) => {
-    const button = el("button", { type: "button", className: "nav-enclave", title: statusText(enclaveStatus.get(profile.id)) }, dot(statusTone(enclaveStatus.get(profile.id))), el("span", { textContent: profile.name }));
+    const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
+    const button = el("button", { type: "button", className: "nav-enclave", title: `${statusText(enclaveStatus.get(profile.id))}${drafts ? ` · ${drafts} drafts` : ""}` }, dot(statusTone(enclaveStatus.get(profile.id))), el("span", { textContent: profile.name }), ...(drafts ? [el("small", { className: "draft-count", textContent: String(drafts) })] : []));
     button.classList.toggle("active", connected && current?.profileId === profile.id);
     button.addEventListener("click", () => void openEnclave(profile));
     return button;
