@@ -569,8 +569,16 @@ function renderEnclaveMap(report: ProbeReport): void {
   const dirtyPaths = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.dirty).map((project) => project.path)));
   const chips = report.context.managed_projects.filter((project) => sourceMatchesFilters({ ...project, dirty: dirtyPaths.has(project.path) }) && (!query || matches(project.path) || visibleProjectPaths.has(project.path))).map((project) => {
     const ref = { name: projectName(project), path: project.path, kind: project.kind };
-    const chip = projectChip(ref, used.has(project.path) ? [] : [el("span", { className: "tag warn", textContent: "no workspace" })]);
-    return { parent: parentDirectory(project.path), item: el("span", { className: "tray-item" }, chip, addToMenu(ref, report)) };
+    const connectedToFocus = focusedWorkspace && report.context.workspaces.find((workspace) => workspace.name === focusedWorkspace)?.projects.some((item) => item.path === project.path);
+    const tags = [!used.has(project.path) && el("span", { className: "tag warn", textContent: "no workspace" }), connectedToFocus && el("span", { className: "tag connected", textContent: "connected" })].filter((tag): tag is HTMLElement => Boolean(tag));
+    const chip = projectChip(ref, tags);
+    const action = focusedWorkspace
+      ? connectedToFocus
+        ? el("span", { className: "focus-attached", textContent: "✓", title: `Already connected to ${focusedWorkspace}` })
+        : actionButton("+", () => void reviewChange("attach", focusedWorkspace, ref), "attach-to-focus")
+      : addToMenu(ref, report);
+    if (action instanceof HTMLButtonElement) action.title = `Add ${ref.name} to ${focusedWorkspace}`;
+    return { parent: parentDirectory(project.path), item: el("span", { className: "tray-item" }, chip, action) };
   });
   const showCreate = !focusedWorkspace && activeMapFilters.size === 0;
   workspaceCards.replaceChildren(...(cards.length ? cards : [el("p", { className: "hint map-empty", textContent: "No workspace or planned relation matches this filter." })]), ...(showCreate ? [create] : []));
