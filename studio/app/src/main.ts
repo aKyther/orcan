@@ -360,6 +360,14 @@ const mapFilter = $<HTMLInputElement>("#map-filter");
 const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
 const mapFilterChips = $("#map-filter-chips");
 const mapFocusClear = $<HTMLButtonElement>("#map-focus-clear");
+const workspaceInspector = $("#workspace-inspector");
+const workspaceInspectorTitle = $("#workspace-inspector-title");
+const workspaceInspectorState = $("#workspace-inspector-state");
+const workspaceInspectorMetrics = $("#workspace-inspector-metrics");
+const workspaceInspectorAgent = $("#workspace-inspector-agent");
+const workspaceInspectorAdd = $<HTMLButtonElement>("#workspace-inspector-add");
+const workspaceInspectorWorktree = $<HTMLButtonElement>("#workspace-inspector-worktree");
+const workspaceInspectorDiscard = $<HTMLButtonElement>("#workspace-inspector-discard");
 let focusedWorkspace: string | undefined;
 let tracedPath: string | undefined;
 const syncBanner = $("#sync-banner");
@@ -498,6 +506,7 @@ function addToMenu(project: ProjectRef, report: ProbeReport): HTMLElement {
 function renderEnclaveMap(report: ProbeReport): void {
   enclaveMap.hidden = false;
   mapFocusClear.hidden = !focusedWorkspace;
+  renderWorkspaceInspector(report);
   const query = mapFilter.value.trim().toLowerCase();
   const matches = (...values: Array<string | undefined>) => !query || values.some((value) => value?.toLowerCase().includes(query));
   const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
@@ -591,6 +600,28 @@ function renderEnclaveMap(report: ProbeReport): void {
   requestAnimationFrame(drawConnections);
 }
 
+function renderWorkspaceInspector(report: ProbeReport): void {
+  const workspace = report.context.workspaces.find((item) => item.name === focusedWorkspace);
+  workspaceInspector.hidden = !workspace;
+  if (!workspace) return;
+  const drafts = workspaceDrafts(workspace.name);
+  const worktrees = workspace.projects.filter((project) => project.kind === "git_worktree" || project.path.startsWith(report.paths.managed_worktrees_root)).length;
+  const mounts = workspace.projects.filter((project) => project.kind === "directory").length;
+  const dirty = workspace.projects.filter((project) => project.dirty).length;
+  const missing = workspace.projects.filter((project) => project.kind === "missing").length;
+  const names = [...workspace.projects.map(projectName), ...drafts.filter((draft) => draft.action === "attach").map((draft) => draft.project.name)];
+  workspaceInspectorTitle.textContent = workspace.name;
+  workspaceInspectorState.textContent = drafts.length ? `${drafts.length} planned change${drafts.length === 1 ? "" : "s"}` : "No pending changes";
+  workspaceInspectorMetrics.replaceChildren(
+    el("span", { textContent: `${workspace.projects.length} elements` }),
+    el("span", { textContent: `${worktrees} worktrees` }),
+    el("span", { textContent: `${mounts} mounts` }),
+    el("span", { className: dirty || missing ? "warn" : "", textContent: dirty ? `${dirty} dirty` : missing ? `${missing} missing` : "ready" }),
+  );
+  workspaceInspectorAgent.textContent = `After applying the plan and running sync, the agent sees: ${names.length ? names.slice(0, 6).join(" · ") + (names.length > 6 ? ` · +${names.length - 6} more` : "") : "no elements yet"}.`;
+  workspaceInspectorDiscard.hidden = drafts.length === 0;
+}
+
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 mapFilter.addEventListener("input", () => { if (currentReport) renderEnclaveMap(currentReport); });
 mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
@@ -605,6 +636,14 @@ for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-m
   });
 }
 mapFocusClear.addEventListener("click", () => { focusedWorkspace = undefined; if (currentReport) renderEnclaveMap(currentReport); });
+workspaceInspectorAdd.addEventListener("click", () => sandboxTray.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+workspaceInspectorWorktree.addEventListener("click", () => {
+  if (!focusedWorkspace) return;
+  showView("worktrees");
+  worktreeWorkspaces.value = focusedWorkspace;
+  worktreeRepo.focus();
+});
+workspaceInspectorDiscard.addEventListener("click", () => { if (focusedWorkspace) discardWorkspaceDraft(focusedWorkspace); });
 
 type PendingChange = { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef };
 type QueuedChange = PendingChange & {

@@ -43,6 +43,12 @@
               <div id="change-set-list" class="change-set-list"></div>
               <p class="hint">Each entry was checked by Orcan. Applying runs them in order; completed entries are removed and a failed one stays here to review.</p>
             </section>
+            <section id="workspace-inspector" class="workspace-inspector" hidden aria-live="polite">
+              <header><div><p class="eyebrow">SELECTED WORKSPACE</p><h3 id="workspace-inspector-title">—</h3></div><p id="workspace-inspector-state" class="hint"></p></header>
+              <div id="workspace-inspector-metrics" class="workspace-inspector-metrics"></div>
+              <p id="workspace-inspector-agent" class="hint"></p>
+              <div class="actions compact"><button id="workspace-inspector-add" type="button" class="secondary">Add element</button><button id="workspace-inspector-worktree" type="button" class="secondary">New worktree</button><button id="workspace-inspector-discard" type="button" class="secondary" hidden>Discard drafts</button></div>
+            </section>
             <p class="hint">Workspace is the target context on the left. Drag an available element from the right to attach it, use ⋯ for an alternative, or click a project to trace only its relationships.</p>
             <div class="map-legend" aria-label="Map legend"><span><i class="legend-line current"></i>connected</span><span><i class="legend-line planned"></i>planned</span><span><i class="legend-line removing"></i>detach planned</span><span title="Git repository or worktree">⎇ Git</span><span title="Shared directory mount">▣ mount</span></div>
             <div class="map-tools"><label for="map-filter">Focus diagram</label><input id="map-filter" type="search" autocomplete="off" placeholder="Workspace, project, or path" /><button id="map-filter-clear" type="button" class="secondary">Clear</button></div>
