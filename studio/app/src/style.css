@@ -38,6 +38,10 @@ html { scrollbar-gutter: stable; }
 .workspace-card header strong { font-size: .9rem; }
 .workspace-card ul { gap: .4rem; }
 .project-name { font-size: .78rem; }
+.cleanup-suggestions { display: grid; gap: .35rem; max-height: 10rem; overflow: auto; }
+.cleanup-item { align-items: center; background: #1b1e19; border-radius: .45rem; display: flex; font-size: .78rem; gap: .6rem; justify-content: space-between; padding: .45rem .55rem; }
+.cleanup-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cleanup-item button { font-size: .72rem; padding: .35rem .5rem; }
 .nav-enclaves { display: grid; gap: .1rem; margin: 0 0 .3rem 1.6rem; }button.nav-enclave { align-items: center; background: none; border: 0; border-radius: .45rem; color: #aeb4a6; display: flex; font-size: .8rem; gap: .55rem; overflow: hidden; padding: .42rem .6rem; text-align: left; }.nav-enclave span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }button.nav-enclave:hover, button.nav-enclave.active { background: #2a2f27; color: #f7f3eb; }button.nav-enclave.active { box-shadow: inset 2px 0 #e6a94c; }
 button.topbar-instance { background: #1f231d; border: 1px solid #3c4339; border-radius: 999px; color: #d8ddd2; font-size: .82rem; font-weight: 600; padding: .45rem .85rem; }button.topbar-instance:hover { border-color: #e6a94c; }
 .enclave-item strong { align-items: center; display: flex; gap: .55rem; }.item-actions { align-items: center; display: flex; gap: .5rem; }.badge { border: 1px solid #e6a94c; border-radius: 999px; color: #e6a94c; font-size: .72rem; font-weight: 750; padding: .3rem .65rem; }.list-item span.status-hint { color: #e3a69e; white-space: normal; }
