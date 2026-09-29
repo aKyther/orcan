@@ -367,6 +367,11 @@ const worktreeBranchName = $<HTMLInputElement>("#worktree-branch-name");
 const planChanges = $("#plan-changes");
 const planStatus = $("#plan-status");
 const planConfirm = $<HTMLButtonElement>("#plan-confirm");
+const changeSet = $("#change-set");
+const changeSetCount = $("#change-set-count");
+const changeSetList = $("#change-set-list");
+const changeSetClear = $<HTMLButtonElement>("#change-set-clear");
+const changeSetApply = $<HTMLButtonElement>("#change-set-apply");
 const DRAG_TYPE = "application/x-orcan-project";
 
 function projectName(project: { name?: string; path: string }): string {
@@ -485,12 +490,60 @@ function renderEnclaveMap(report: ProbeReport): void {
 
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 
-let pendingChange: { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef } | undefined;
+type PendingChange = { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef };
+type QueuedChange = PendingChange & {
+  id: string;
+  enclave: string;
+  workspace: string;
+  projectMode: "git" | "mount";
+  relationship: "share" | "worktree";
+  branch?: string;
+  changes: string[];
+  error?: string;
+};
+
+let pendingChange: PendingChange | undefined;
+let pendingPlan: { ready: boolean; changes: string[] } | undefined;
+const queuedChanges: QueuedChange[] = [];
+
+function enclaveChangeKey(connection: Connection): string {
+  return JSON.stringify({ target: connection.target, username: connection.username, credentialId: connection.credentialId });
+}
+
+function queuedForCurrent(): QueuedChange[] {
+  const connection = current;
+  return connection ? queuedChanges.filter((change) => change.enclave === enclaveChangeKey(connection)) : [];
+}
+
+function changeTitle(change: QueuedChange): string {
+  if (change.action === "detach") return `Detach ${change.project.name} from ${change.workspace}`;
+  if (change.relationship === "worktree") return `Create ${change.branch} for ${change.workspace}`;
+  return `Add ${change.project.name} to ${change.workspace}`;
+}
+
+function renderChangeSet(): void {
+  const changes = queuedForCurrent();
+  changeSet.hidden = changes.length === 0;
+  changeSetCount.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"}`;
+  changeSetApply.textContent = `Apply ${changes.length} change${changes.length === 1 ? "" : "s"}`;
+  changeSetApply.disabled = changes.length === 0;
+  changeSetClear.disabled = changes.length === 0;
+  changeSetList.replaceChildren(...changes.map((change) => {
+    const detail = change.error ?? change.changes.join(" · ");
+    const remove = actionButton("Remove", () => {
+      const index = queuedChanges.findIndex((item) => item.id === change.id);
+      if (index >= 0) queuedChanges.splice(index, 1);
+      renderChangeSet();
+    });
+    return el("div", { className: `change-set-item${change.error ? " failed" : ""}` }, el("div", {}, el("strong", { textContent: changeTitle(change) }), el("span", { textContent: detail })), remove);
+  }));
+}
 
 async function planChange(): Promise<void> {
   if (!pendingChange || !current) return;
   const workspace = pendingChange.workspace ?? planWorkspaceName.value.trim();
   planConfirm.disabled = true;
+  pendingPlan = undefined;
   planChanges.replaceChildren();
   if (!/^[A-Za-z0-9._-]{1,64}$/.test(workspace)) { planStatus.textContent = "Enter a workspace name."; return; }
   planStatus.textContent = "Asking Orcan for a plan…";
@@ -500,6 +553,7 @@ async function planChange(): Promise<void> {
       : await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("membership_action", { enclave: enclaveInput(current), action: pendingChange.action, workspace, project: pendingChange.project.path, projectMode: selectedProjectMode(), apply: false });
     planChanges.replaceChildren(...response.plan.changes.map((change) => el("li", { textContent: change })), ...response.plan.blockers.map((blocker) => el("li", { className: "blocker", textContent: blocker })));
     planStatus.textContent = response.plan.ready ? `Applies to ${current.label}. Nothing else changes.` : "Orcan cannot apply this change.";
+    pendingPlan = { ready: response.plan.ready, changes: response.plan.changes };
     planConfirm.disabled = !response.plan.ready;
   } catch (error) { planStatus.textContent = `Plan failed: ${String(error)}`; }
 }
@@ -525,35 +579,67 @@ async function reviewChange(action: MembershipArgs["action"], workspace: string 
   await planChange();
 }
 
-async function applyChange(): Promise<void> {
-  if (!pendingChange || !current) return;
+function queueChange(): void {
+  if (!pendingChange || !pendingPlan?.ready || !current) return;
   const workspace = pendingChange.workspace ?? planWorkspaceName.value.trim();
   const { action, project } = pendingChange;
-  planConfirm.disabled = true;
-  planStatus.textContent = "Applying…";
-  const job = addJob(action === "detach" ? "Remove from workspace" : "Add to workspace", `${project.name} · ${workspace}`);
-  try {
-    if (action === "attach" && selectedRelationshipMode() === "worktree") {
-      await invoke("worktree_apply", { enclave: enclaveInput(current), repo: project.path, branch: worktreeBranchName.value.trim(), worktreesRoot: setting("setting-worktrees-root").textContent, workspaces: [workspace] });
-    } else {
-      await invoke("membership_action", { enclave: enclaveInput(current), action, workspace, project: project.path, projectMode: selectedProjectMode(), apply: true });
-    }
-    finishJob(job, "succeeded", `${project.name} ${action === "detach" ? "removed from" : "added to"} ${workspace}`);
-    planDialog.close();
-    syncBanner.hidden = false;
-    result.textContent = `${project.name} ${action === "detach" ? "removed from" : "added to"} ${workspace}. Run orcan sync to apply it.`;
-    await connect(current).catch(() => undefined);
-  } catch (error) {
-    planStatus.textContent = `Could not apply: ${String(error)}`;
-    finishJob(job, "failed", String(error));
+  const relationship = action === "attach" ? selectedRelationshipMode() : "share";
+  const branch = relationship === "worktree" ? worktreeBranchName.value.trim() : undefined;
+  const duplicate = queuedForCurrent().some((change) => change.action === action && change.workspace === workspace && change.project.path === project.path && change.relationship === relationship && change.branch === branch);
+  if (duplicate) {
+    planStatus.textContent = "This exact change is already in the plan.";
+    return;
   }
+  queuedChanges.push({ id: crypto.randomUUID(), enclave: enclaveChangeKey(current), action, workspace, project, projectMode: selectedProjectMode(), relationship, branch, changes: pendingPlan.changes });
+  planDialog.close();
+  renderChangeSet();
+  result.textContent = `${changeTitle(queuedChanges.at(-1)!)} is ready to apply.`;
+}
+
+async function applyQueuedChanges(): Promise<void> {
+  const connection = current;
+  if (!connection) return;
+  const enclave = enclaveChangeKey(connection);
+  const changes = queuedChanges.filter((change) => change.enclave === enclave);
+  changeSetApply.disabled = true;
+  changeSetClear.disabled = true;
+  for (const change of changes) {
+    const job = addJob("Apply planned context change", changeTitle(change));
+    try {
+      if (change.action === "attach" && change.relationship === "worktree") {
+        await invoke("worktree_apply", { enclave: enclaveInput(connection), repo: change.project.path, branch: change.branch, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces: [change.workspace] });
+      } else {
+        await invoke("membership_action", { enclave: enclaveInput(connection), action: change.action, workspace: change.workspace, project: change.project.path, projectMode: change.projectMode, apply: true });
+      }
+      const index = queuedChanges.findIndex((item) => item.id === change.id);
+      if (index >= 0) queuedChanges.splice(index, 1);
+      finishJob(job, "succeeded", changeTitle(change));
+      if (current && enclaveChangeKey(current) === enclave) syncBanner.hidden = false;
+    } catch (error) {
+      change.error = String(error);
+      finishJob(job, "failed", change.error);
+    }
+    renderChangeSet();
+  }
+  if (current && enclaveChangeKey(current) === enclave) {
+    result.textContent = queuedChanges.some((change) => change.enclave === enclave && change.error) ? "Some planned changes could not be applied; review the marked entries." : "Context changes applied. Run orcan sync to update the Enclave mounts.";
+    await connect(connection).catch(() => undefined);
+  }
+  renderChangeSet();
 }
 
 planWorkspaceName.addEventListener("input", () => void planChange());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="project-mode"]')) input.addEventListener("change", () => void planChange());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="relationship-mode"]')) input.addEventListener("change", () => { worktreeBranchField.hidden = selectedRelationshipMode() !== "worktree"; planModeField.hidden = selectedRelationshipMode() === "worktree"; void planChange(); });
 worktreeBranchName.addEventListener("input", () => void planChange());
-planConfirm.addEventListener("click", () => void applyChange());
+planConfirm.addEventListener("click", queueChange);
+changeSetClear.addEventListener("click", () => {
+  if (!current) return;
+  const key = enclaveChangeKey(current);
+  for (let index = queuedChanges.length - 1; index >= 0; index -= 1) if (queuedChanges[index].enclave === key) queuedChanges.splice(index, 1);
+  renderChangeSet();
+});
+changeSetApply.addEventListener("click", () => void applyQueuedChanges());
 $("#sync-now").addEventListener("click", async () => {
   if (!current) return;
   const button = $<HTMLButtonElement>("#sync-now");
@@ -979,6 +1065,7 @@ function activate(connection: Connection, report: ProbeReport): void {
   if (current?.profileId !== connection.profileId) syncBanner.hidden = true;
   current = connection;
   renderSnapshot(report);
+  renderChangeSet();
   activeGroup.textContent = `ACTIVE · ${connection.label.toUpperCase()}`;
   renderStore();
 }

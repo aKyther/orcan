@@ -38,6 +38,11 @@
           <section id="enclave-map" class="panel" aria-labelledby="map-title" hidden>
             <div class="panel-heading"><div><p class="eyebrow">IN THIS ENCLAVE</p><h2 id="map-title">Workspaces and their projects</h2></div><button type="button" class="secondary" data-go="contexts">Open contexts</button></div>
             <div id="sync-banner" class="sync-banner" hidden><span><strong>Context changed.</strong> Run orcan sync so the Enclave mounts the new workspace layout.</span><button id="sync-now" type="button">Run orcan sync</button></div>
+            <section id="change-set" class="change-set" hidden aria-live="polite">
+              <header><div><strong>Planned context changes</strong><span id="change-set-count">0 changes</span></div><div class="actions compact"><button id="change-set-clear" type="button" class="secondary">Clear</button><button id="change-set-apply" type="button">Apply changes</button></div></header>
+              <div id="change-set-list" class="change-set-list"></div>
+              <p class="hint">Each entry was checked by Orcan. Applying runs them in order; completed entries are removed and a failed one stays here to review.</p>
+            </section>
             <p class="hint">Drag a project onto a workspace to add it, or use ⋯ on a project. A project can belong to several workspaces; removing it never deletes files.</p>
             <div id="context-canvas" class="context-canvas"><svg id="connection-lines" class="connection-lines" aria-hidden="true"></svg><div id="workspace-cards" class="workspace-cards"></div><div id="sandbox-tray" class="sandbox-tray"></div></div>
           </section>
@@ -51,7 +56,7 @@
               <fieldset id="plan-mode-field" class="field"><legend>Use this project as</legend><div class="choice-grid two"><label class="choice"><input type="radio" name="project-mode" value="git" checked /><strong>Git directory</strong><span>Show branch and changes.</span></label><label class="choice"><input type="radio" name="project-mode" value="mount" /><strong>Shared directory</strong><span>Mount the same files in this workspace.</span></label></div></fieldset>
               <ul id="plan-changes" class="plan-changes"></ul>
               <p id="plan-status" class="hint"></p>
-              <div class="form-actions"><span></span><button type="submit" value="cancel" class="secondary">Cancel</button><button id="plan-confirm" type="button">Confirm</button></div>
+              <div class="form-actions"><span></span><button type="submit" value="cancel" class="secondary">Cancel</button><button id="plan-confirm" type="button">Add to plan</button></div>
             </form>
           </dialog>
           <section id="setup-panel" class="panel" aria-labelledby="setup-title">
