@@ -421,6 +421,7 @@ function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: stri
   chip.dataset.workspace = from ?? "sandbox";
   chip.dataset.connectionState = state;
   chip.classList.toggle("traced", tracedPath === project.path);
+  chip.classList.toggle("dimmed", Boolean(tracedPath) && tracedPath !== project.path);
   chip.addEventListener("dragstart", (event) => {
     event.dataTransfer!.setData(DRAG_TYPE, JSON.stringify({ ...project, from }));
     event.dataTransfer!.effectAllowed = "copy";
