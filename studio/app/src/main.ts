@@ -360,6 +360,7 @@ const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
 const mapFilterChips = $("#map-filter-chips");
 const mapFocusClear = $<HTMLButtonElement>("#map-focus-clear");
 let focusedWorkspace: string | undefined;
+let tracedPath: string | undefined;
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
 const planTitle = $("#plan-title");
@@ -418,12 +419,17 @@ function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: stri
   chip.dataset.projectPath = project.path;
   chip.dataset.workspace = from ?? "sandbox";
   chip.dataset.connectionState = state;
+  chip.classList.toggle("traced", tracedPath === project.path);
   chip.addEventListener("dragstart", (event) => {
     event.dataTransfer!.setData(DRAG_TYPE, JSON.stringify({ ...project, from }));
     event.dataTransfer!.effectAllowed = "copy";
     document.body.classList.add("dragging-project");
   });
   chip.addEventListener("dragend", () => document.body.classList.remove("dragging-project"));
+  chip.addEventListener("click", () => {
+    tracedPath = tracedPath === project.path ? undefined : project.path;
+    if (currentReport) renderEnclaveMap(currentReport);
+  });
   return chip;
 }
 
@@ -448,7 +454,7 @@ function drawConnections(): void {
       const endY = targetBox.bottom - bounds.top;
       const middleY = (startY + endY) / 2;
       line.setAttribute("d", `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
-      line.setAttribute("class", `context-link ${target.dataset.connectionState ?? "current"}`);
+      line.setAttribute("class", `context-link ${target.dataset.connectionState ?? "current"} ${tracedPath === path ? "highlight" : "muted"}`);
       connectionLines.append(line);
     }
   }
