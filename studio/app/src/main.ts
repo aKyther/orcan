@@ -572,7 +572,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     return all;
   }, new Map());
   const groupNodes = [...groups.entries()].map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parent }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
-  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Projects in the sandbox (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), groupNodes.length ? el("div", { className: "project-parent-groups" }, ...groupNodes) : el("p", { className: "hint", textContent: query ? "No sandbox project matches this filter." : "No projects in the sandbox yet. Import one in Repositories." }));
+  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available elements (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), groupNodes.length ? el("div", { className: "project-parent-groups" }, ...groupNodes) : el("p", { className: "hint", textContent: query ? "No available element matches this filter." : "No projects in the sandbox yet. Import one in Repositories." }));
   requestAnimationFrame(drawConnections);
 }
 
