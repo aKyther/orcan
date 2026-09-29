@@ -369,6 +369,7 @@ async fn worktree_cleanup(
     enclave: EnclaveInput,
     path: String,
     worktrees_root: String,
+    remove_branch: bool,
     apply: bool,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
@@ -386,6 +387,9 @@ async fn worktree_cleanup(
     .collect::<Vec<_>>();
     if apply {
         args.push("--yes".to_owned());
+    }
+    if remove_branch {
+        args.push("--remove-branch".to_owned());
     }
     studio_json(enclave, args, state).await
 }
