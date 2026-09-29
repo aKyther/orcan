@@ -461,7 +461,10 @@ function renderEnclaveMap(report: ProbeReport): void {
   enclaveMap.hidden = false;
   const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
   const cards = report.context.workspaces.map((workspace) => {
-    const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` })));
+    const drafts = workspaceDrafts(workspace.name);
+    const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
+    if (drafts.length) meta.append(el("span", { className: "tag draft", textContent: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` }), actionButton("Discard", () => discardWorkspaceDraft(workspace.name), "workspace-draft-discard"));
+    const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), meta));
     const list = el("ul");
     for (const project of workspace.projects) {
       const ref = { name: projectName(project), path: project.path, kind: project.kind };
@@ -475,6 +478,20 @@ function renderEnclaveMap(report: ProbeReport): void {
     dropZone(card, (project) => void reviewChange("attach", workspace.name, project));
     return card;
   });
+  const existingWorkspaces = new Set(report.context.workspaces.map((workspace) => workspace.name));
+  for (const [workspace, drafts] of Object.entries(groupWorkspaceDrafts()).filter(([name]) => !existingWorkspaces.has(name))) {
+    const meta = el("div", { className: "workspace-meta" }, el("span", { className: "tag draft", textContent: "draft workspace" }), actionButton("Discard", () => discardWorkspaceDraft(workspace), "workspace-draft-discard"));
+    const card = el("article", { className: "workspace-card planned-workspace" }, el("header", {}, el("strong", { textContent: workspace }), meta));
+    const additions = drafts.filter((draft) => draft.action === "attach");
+    card.append(additions.length
+      ? el("ul", {}, ...additions.map((draft) => el("li", {}, projectChip(
+        draft.project,
+        [el("span", { className: "tag draft", textContent: draft.relationship === "worktree" ? `new ${draft.branch}` : "planned" })],
+        workspace,
+      ))))
+      : el("p", { className: "hint", textContent: "No projects are planned for this workspace." }));
+    cards.push(card);
+  }
   const create = el("article", { className: "workspace-card new-workspace" }, el("strong", { textContent: "＋ New workspace" }), el("span", { className: "hint", textContent: "Drop a project here to start a workspace around it." }));
   dropZone(create, (project) => void reviewChange("attach", undefined, project));
   workspaceCards.replaceChildren(...cards, create);
@@ -515,6 +532,30 @@ function queuedForCurrent(): QueuedChange[] {
   return connection ? queuedChanges.filter((change) => change.enclave === enclaveChangeKey(connection)) : [];
 }
 
+function groupWorkspaceDrafts(): Record<string, QueuedChange[]> {
+  return queuedForCurrent().reduce<Record<string, QueuedChange[]>>((groups, change) => {
+    (groups[change.workspace] ??= []).push(change);
+    return groups;
+  }, {});
+}
+
+function workspaceDrafts(workspace: string): QueuedChange[] {
+  return groupWorkspaceDrafts()[workspace] ?? [];
+}
+
+function discardWorkspaceDraft(workspace: string): void {
+  const drafts = workspaceDrafts(workspace);
+  if (!drafts.length || !current) return;
+  const noun = drafts.length === 1 ? "change" : "changes";
+  if (!window.confirm(`Discard ${drafts.length} planned ${noun} for ${workspace}? Nothing has been applied to Orcan.`)) return;
+  const key = enclaveChangeKey(current);
+  for (let index = queuedChanges.length - 1; index >= 0; index -= 1) {
+    if (queuedChanges[index].enclave === key && queuedChanges[index].workspace === workspace) queuedChanges.splice(index, 1);
+  }
+  renderChangeSet();
+  result.textContent = `Discarded planned changes for ${workspace}.`;
+}
+
 function changeTitle(change: QueuedChange): string {
   if (change.action === "detach") return `Detach ${change.project.name} from ${change.workspace}`;
   if (change.relationship === "worktree") return `Create ${change.branch} for ${change.workspace}`;
@@ -537,6 +578,7 @@ function renderChangeSet(): void {
     });
     return el("div", { className: `change-set-item${change.error ? " failed" : ""}` }, el("div", {}, el("strong", { textContent: changeTitle(change) }), el("span", { textContent: detail })), remove);
   }));
+  if (currentReport) renderEnclaveMap(currentReport);
 }
 
 async function planChange(): Promise<void> {
