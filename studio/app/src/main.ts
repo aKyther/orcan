@@ -519,7 +519,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     card.title = "Click empty space to focus this workspace";
     card.addEventListener("click", (event) => {
       if ((event.target as HTMLElement).closest("button, select, input, .project-chip")) return;
-      focusedWorkspace = workspace.name;
+      focusedWorkspace = focusedWorkspace === workspace.name ? undefined : workspace.name;
       renderEnclaveMap(report);
     });
     const list = el("ul");
