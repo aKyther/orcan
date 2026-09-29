@@ -355,6 +355,8 @@ const contextCanvas = $("#context-canvas");
 const connectionLines = document.querySelector<SVGSVGElement>("#connection-lines")!;
 const workspaceCards = $("#workspace-cards");
 const sandboxTray = $("#sandbox-tray");
+const mapFilter = $<HTMLInputElement>("#map-filter");
+const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
 const planTitle = $("#plan-title");
@@ -394,10 +396,25 @@ function selectedRelationshipMode(): "share" | "worktree" {
   return radioValue("relationship-mode") === "worktree" ? "worktree" : "share";
 }
 
-function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string): HTMLElement {
-  const chip = el("span", { className: "project-chip", draggable: true, title: `${project.path}\nDrag onto a workspace to add it` }, el("span", { className: "grip", textContent: "⠿" }), el("span", { className: "project-name", textContent: project.name }), ...extra);
+function projectKindIcon(project: ProjectRef): HTMLElement {
+  const mount = project.kind === "directory";
+  const worktree = project.kind === "git_worktree";
+  const label = mount ? "Shared directory mount" : worktree ? "Git worktree" : "Git repository";
+  const icon = el("span", { className: "project-kind", textContent: mount ? "▣" : "⎇", title: label, ariaLabel: label });
+  icon.dataset.tooltip = label;
+  return icon;
+}
+
+function parentDirectory(path: string): string {
+  const separator = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return separator > 0 ? path.slice(0, separator) : path;
+}
+
+function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string, state: "current" | "planned" | "removing" = "current"): HTMLElement {
+  const chip = el("span", { className: `project-chip ${state}`, draggable: true, title: `${project.path}\nDrag onto a workspace to add it` }, el("span", { className: "connection-anchor", ariaHidden: "true" }), el("span", { className: "grip", textContent: "⠿" }), projectKindIcon(project), el("span", { className: "project-name", textContent: project.name }), ...extra);
   chip.dataset.projectPath = project.path;
   chip.dataset.workspace = from ?? "sandbox";
+  chip.dataset.connectionState = state;
   chip.addEventListener("dragstart", (event) => {
     event.dataTransfer!.setData(DRAG_TYPE, JSON.stringify({ ...project, from }));
     event.dataTransfer!.effectAllowed = "copy";
@@ -412,10 +429,15 @@ function drawConnections(): void {
   connectionLines.replaceChildren();
   connectionLines.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
   for (const source of sandboxTray.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")) {
-    const sourceBox = source.getBoundingClientRect();
+    const sourceAnchor = source.querySelector<HTMLElement>(".connection-anchor");
+    if (!sourceAnchor) continue;
+    const sourceBox = sourceAnchor.getBoundingClientRect();
+    if (!sourceBox.width || !sourceBox.height) continue;
     const path = source.dataset.projectPath;
     for (const target of workspaceCards.querySelectorAll<HTMLElement>(`.project-chip[data-project-path="${CSS.escape(path ?? "")}"]`)) {
-      const targetBox = target.getBoundingClientRect();
+      const targetAnchor = target.querySelector<HTMLElement>(".connection-anchor");
+      if (!targetAnchor) continue;
+      const targetBox = targetAnchor.getBoundingClientRect();
       const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
       const startX = sourceBox.left - bounds.left + sourceBox.width / 2;
       const startY = sourceBox.top - bounds.top;
@@ -423,7 +445,7 @@ function drawConnections(): void {
       const endY = targetBox.bottom - bounds.top;
       const middleY = (startY + endY) / 2;
       line.setAttribute("d", `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
-      line.setAttribute("class", "context-link");
+      line.setAttribute("class", `context-link ${target.dataset.connectionState ?? "current"}`);
       connectionLines.append(line);
     }
   }
@@ -459,27 +481,39 @@ function addToMenu(project: ProjectRef, report: ProbeReport): HTMLElement {
 
 function renderEnclaveMap(report: ProbeReport): void {
   enclaveMap.hidden = false;
+  const query = mapFilter.value.trim().toLowerCase();
+  const matches = (...values: Array<string | undefined>) => !query || values.some((value) => value?.toLowerCase().includes(query));
   const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
-  const cards = report.context.workspaces.map((workspace) => {
+  const cards = report.context.workspaces.flatMap((workspace) => {
     const drafts = workspaceDrafts(workspace.name);
+    const workspaceMatches = matches(workspace.name);
+    const projects = workspaceMatches ? workspace.projects : workspace.projects.filter((project) => matches(project.name, project.path, project.branch));
+    const visibleDrafts = workspaceMatches ? drafts : drafts.filter((draft) => matches(draft.project.name, draft.project.path, draft.branch));
+    if (query && !projects.length && !visibleDrafts.length) return [];
     const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
     if (drafts.length) meta.append(el("span", { className: "tag draft", textContent: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` }), actionButton("Discard", () => discardWorkspaceDraft(workspace.name), "workspace-draft-discard"));
     const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), meta));
     const list = el("ul");
-    for (const project of workspace.projects) {
+    for (const project of projects) {
       const ref = { name: projectName(project), path: project.path, kind: project.kind };
       const others = (project.repository_id ? sharedIn.get(project.repository_id) ?? [] : []).filter((name) => name !== workspace.name);
-      const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
+      const removing = drafts.some((draft) => draft.action === "detach" && draft.project.path === project.path);
+      const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` }), removing && el("span", { className: "tag removing", textContent: "detach planned" })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
       const remove = actionButton("✕", () => void reviewChange("detach", workspace.name, ref), "chip-remove");
       remove.title = `Remove ${ref.name} from ${workspace.name} (files stay)`;
-      list.append(el("li", {}, projectChip(ref, tags, workspace.name), remove, el("small", { textContent: project.path })));
+      list.append(el("li", {}, projectChip(ref, tags, workspace.name, removing ? "removing" : "current"), remove, el("small", { textContent: project.path })));
     }
-    card.append(workspace.projects.length ? list : el("p", { className: "hint", textContent: "Empty — drop a project here." }));
+    for (const draft of visibleDrafts.filter((draft) => draft.action === "attach")) {
+      const tag = el("span", { className: "tag draft", textContent: draft.relationship === "worktree" ? `new ${draft.branch}` : "planned" });
+      list.append(el("li", { className: "planned-project" }, projectChip(draft.project, [tag], workspace.name, "planned"), el("small", { textContent: "Not applied yet" })));
+    }
+    card.append(projects.length || visibleDrafts.length ? list : el("p", { className: "hint", textContent: "Empty — drop a project here." }));
     dropZone(card, (project) => void reviewChange("attach", workspace.name, project));
-    return card;
+    return [card];
   });
   const existingWorkspaces = new Set(report.context.workspaces.map((workspace) => workspace.name));
-  for (const [workspace, drafts] of Object.entries(groupWorkspaceDrafts()).filter(([name]) => !existingWorkspaces.has(name))) {
+  const plannedWorkspaceGroups = Object.entries(groupWorkspaceDrafts()) as Array<[string, QueuedChange[]]>;
+  for (const [workspace, drafts] of plannedWorkspaceGroups.filter(([name, entries]) => !existingWorkspaces.has(name) && (matches(name) || entries.some((draft) => matches(draft.project.name, draft.project.path, draft.branch))))) {
     const meta = el("div", { className: "workspace-meta" }, el("span", { className: "tag draft", textContent: "draft workspace" }), actionButton("Discard", () => discardWorkspaceDraft(workspace), "workspace-draft-discard"));
     const card = el("article", { className: "workspace-card planned-workspace" }, el("header", {}, el("strong", { textContent: workspace }), meta));
     const additions = drafts.filter((draft) => draft.action === "attach");
@@ -488,24 +522,33 @@ function renderEnclaveMap(report: ProbeReport): void {
         draft.project,
         [el("span", { className: "tag draft", textContent: draft.relationship === "worktree" ? `new ${draft.branch}` : "planned" })],
         workspace,
+        "planned",
       ))))
       : el("p", { className: "hint", textContent: "No projects are planned for this workspace." }));
     cards.push(card);
   }
   const create = el("article", { className: "workspace-card new-workspace" }, el("strong", { textContent: "＋ New workspace" }), el("span", { className: "hint", textContent: "Drop a project here to start a workspace around it." }));
   dropZone(create, (project) => void reviewChange("attach", undefined, project));
-  workspaceCards.replaceChildren(...cards, create);
+  const visibleProjectPaths = new Set(cards.flatMap((card) => Array.from(card.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")).map((chip) => chip.dataset.projectPath ?? "")));
   const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
-  const chips = report.context.managed_projects.map((project) => {
+  const chips = report.context.managed_projects.filter((project) => !query || matches(project.path) || visibleProjectPaths.has(project.path)).map((project) => {
     const ref = { name: projectName(project), path: project.path, kind: project.kind };
     const chip = projectChip(ref, used.has(project.path) ? [] : [el("span", { className: "tag warn", textContent: "no workspace" })]);
-    return el("span", { className: "tray-item" }, chip, addToMenu(ref, report));
+    return { parent: parentDirectory(project.path), item: el("span", { className: "tray-item" }, chip, addToMenu(ref, report)) };
   });
-  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Projects in the sandbox (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), chips.length ? el("div", { className: "tray-chips" }, ...chips) : el("p", { className: "hint", textContent: "No projects in the sandbox yet. Import one in Repositories." }));
+  workspaceCards.replaceChildren(...(cards.length ? cards : [el("p", { className: "hint map-empty", textContent: "No workspace or planned relation matches this filter." })]), create);
+  const groups = chips.reduce<Map<string, HTMLElement[]>>((all, chip) => {
+    (all.get(chip.parent) ?? all.set(chip.parent, []).get(chip.parent)!).push(chip.item);
+    return all;
+  }, new Map());
+  const groupNodes = [...groups.entries()].map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parent }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
+  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Projects in the sandbox (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), groupNodes.length ? el("div", { className: "project-parent-groups" }, ...groupNodes) : el("p", { className: "hint", textContent: query ? "No sandbox project matches this filter." : "No projects in the sandbox yet. Import one in Repositories." }));
   requestAnimationFrame(drawConnections);
 }
 
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
+mapFilter.addEventListener("input", () => { if (currentReport) renderEnclaveMap(currentReport); });
+mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
 
 type PendingChange = { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef };
 type QueuedChange = PendingChange & {
@@ -632,7 +675,7 @@ function queueChange(): void {
     planStatus.textContent = "This exact change is already in the plan.";
     return;
   }
-  queuedChanges.push({ id: crypto.randomUUID(), enclave: enclaveChangeKey(current), action, workspace, project, projectMode: selectedProjectMode(), relationship, branch, changes: pendingPlan.changes });
+  queuedChanges.push({ id: newId(), enclave: enclaveChangeKey(current), action, workspace, project, projectMode: selectedProjectMode(), relationship, branch, changes: pendingPlan.changes });
   planDialog.close();
   renderChangeSet();
   result.textContent = `${changeTitle(queuedChanges.at(-1)!)} is ready to apply.`;

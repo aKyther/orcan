@@ -36,7 +36,7 @@
             <section class="panel health-panel" hidden><p class="eyebrow">INSTANCE HEALTH</p><h2 id="health-title">Not checked</h2><dl class="metric-list"><div><dt>Runtime</dt><dd id="overview-runtime">—</dd></div><div><dt>Configuration</dt><dd id="overview-config">—</dd></div><div><dt>Agent tools</dt><dd id="overview-agents">—</dd></div></dl><div class="runtime-controls"><p id="launch-summary" class="muted">Start flags not recorded yet.</p><p id="launch-warning" class="launch-warning" hidden></p><div class="actions compact"><button id="runtime-start" type="button" class="secondary">Start</button><button id="runtime-restart" type="button" class="secondary">Restart</button><button id="runtime-stop" type="button" class="secondary">Stop</button></div><output id="runtime-result" aria-live="polite"></output></div></section>
           </div>
           <section id="enclave-map" class="panel" aria-labelledby="map-title" hidden>
-            <div class="panel-heading"><div><p class="eyebrow">IN THIS ENCLAVE</p><h2 id="map-title">Workspaces and their projects</h2></div><button type="button" class="secondary" data-go="contexts">Open contexts</button></div>
+            <div class="panel-heading"><div><p class="eyebrow">IN THIS ENCLAVE</p><h2 id="map-title">Workspaces and their projects</h2><p class="muted">This is a working relationship diagram: reuse existing projects, inspect what is connected, then stage additions or detachments before Orcan changes anything.</p></div><button type="button" class="secondary" data-go="contexts">Open contexts</button></div>
             <div id="sync-banner" class="sync-banner" hidden><span><strong>Context changed.</strong> Run orcan sync so the Enclave mounts the new workspace layout.</span><button id="sync-now" type="button">Run orcan sync</button></div>
             <section id="change-set" class="change-set" hidden aria-live="polite">
               <header><div><strong>Planned context changes</strong><span id="change-set-count">0 changes</span></div><div class="actions compact"><button id="change-set-clear" type="button" class="secondary">Clear</button><button id="change-set-apply" type="button">Apply changes</button></div></header>
@@ -44,6 +44,8 @@
               <p class="hint">Each entry was checked by Orcan. Applying runs them in order; completed entries are removed and a failed one stays here to review.</p>
             </section>
             <p class="hint">Drag a project onto a workspace to add it, or use ⋯ on a project. A project can belong to several workspaces; removing it never deletes files.</p>
+            <div class="map-legend" aria-label="Map legend"><span><i class="legend-line current"></i>connected</span><span><i class="legend-line planned"></i>planned</span><span><i class="legend-line removing"></i>detach planned</span><span title="Git repository or worktree">⎇ Git</span><span title="Shared directory mount">▣ mount</span></div>
+            <div class="map-tools"><label for="map-filter">Focus diagram</label><input id="map-filter" type="search" autocomplete="off" placeholder="Workspace, project, or path" /><button id="map-filter-clear" type="button" class="secondary">Clear</button></div>
             <div id="context-canvas" class="context-canvas"><svg id="connection-lines" class="connection-lines" aria-hidden="true"></svg><div id="workspace-cards" class="workspace-cards"></div><div id="sandbox-tray" class="sandbox-tray"></div></div>
           </section>
           <dialog id="plan-dialog" class="plan-dialog" aria-labelledby="plan-title">
