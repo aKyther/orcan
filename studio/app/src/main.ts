@@ -650,7 +650,10 @@ async function refreshWorktreeInventory(root: string): Promise<void> {
     if (!response.worktrees.length) return;
     cleanupSuggestions.replaceChildren(...response.worktrees.map((worktree) => {
       const review = actionButton("Review", () => { cleanupPath.value = worktree.path; cleanupResult.textContent = `Selected ${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}.`; });
-      return el("div", { className: "cleanup-item" }, el("span", { textContent: `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""}` }), review);
+      const bindings = currentReport?.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.path === worktree.path).map(() => workspace.name)) ?? [];
+      const actions: HTMLElement[] = [review];
+      if (bindings[0]) actions.push(actionButton("Detach", () => void reviewChange("detach", bindings[0], { name: worktree.project, path: worktree.path, kind: "git_worktree" })));
+      return el("div", { className: `cleanup-item ${bindings.length ? "bound" : "orphan"}` }, el("span", { textContent: `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""} · ${bindings.length ? bindings.join(", ") : "orphan"}` }), ...actions);
     }));
   } catch { /* The current context map remains usable if inventory is unavailable. */ }
 }
