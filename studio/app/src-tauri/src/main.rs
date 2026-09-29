@@ -282,146 +282,145 @@ async fn native_ssh_exec(
 
 struct ProfileState(Mutex<ProfileStore>);
 
+/// Execute a Studio helper through the selected Enclave and decode its JSON reply.
+async fn studio_json(
+    enclave: EnclaveInput,
+    args: Vec<String>,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    let stdout = run_on_enclave(enclave, args, state).await?;
+    let value: serde_json::Value = serde_json::from_str(&stdout)
+        .map_err(|error| format!("invalid Orcan Studio response: {error}"))?;
+    if value["ok"] == false {
+        return Err(value["error"]
+            .as_str()
+            .unwrap_or("Orcan Studio operation refused")
+            .to_owned());
+    }
+    Ok(value)
+}
+
 #[tauri::command]
-async fn parent_plan(path: String, branch: String) -> Result<serde_json::Value, String> {
-    parent_command("plan", &path, &branch, None).await
+async fn parent_plan(
+    enclave: EnclaveInput,
+    path: String,
+    branch: String,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    parent_command(enclave, "plan", path, branch, None, state).await
 }
 
 #[tauri::command]
 async fn import_plan(
+    enclave: EnclaveInput,
     source: String,
     projects_root: String,
     destination: Option<String>,
+    state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new("orcan");
-        command.args([
-            "studio",
-            "import",
-            "plan",
-            "--source",
-            &source,
-            "--projects-root",
-            &projects_root,
-        ]);
-        if let Some(destination) = destination.filter(|value| !value.trim().is_empty()) {
-            command.args(["--destination", &destination]);
-        }
-        command.output()
-    })
-    .await
-    .map_err(|error| format!("import plan stopped: {error}"))?
-    .map_err(|error| format!("could not start import plan: {error}"))
-    .and_then(|output| {
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid import plan response: {error}"))
-    })
+    let mut args = vec![
+        "studio",
+        "import",
+        "plan",
+        "--source",
+        &source,
+        "--projects-root",
+        &projects_root,
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect::<Vec<_>>();
+    if let Some(destination) = destination.filter(|value| !value.trim().is_empty()) {
+        args.extend(["--destination".to_owned(), destination]);
+    }
+    studio_json(enclave, args, state).await
 }
 
 #[tauri::command]
 async fn import_apply(
+    enclave: EnclaveInput,
     source: String,
     projects_root: String,
     destination: Option<String>,
+    state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new("orcan");
-        command.args([
-            "studio",
-            "import",
-            "apply",
-            "--source",
-            &source,
-            "--projects-root",
-            &projects_root,
-            "--yes",
-        ]);
-        if let Some(destination) = destination.filter(|value| !value.trim().is_empty()) {
-            command.args(["--destination", &destination]);
-        }
-        command.output()
-    })
-    .await
-    .map_err(|error| format!("import stopped: {error}"))?
-    .map_err(|error| format!("could not start import: {error}"))
-    .and_then(|output| {
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid import response: {error}"))
-    })
+    let mut args = vec![
+        "studio",
+        "import",
+        "apply",
+        "--source",
+        &source,
+        "--projects-root",
+        &projects_root,
+        "--yes",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect::<Vec<_>>();
+    if let Some(destination) = destination.filter(|value| !value.trim().is_empty()) {
+        args.extend(["--destination".to_owned(), destination]);
+    }
+    studio_json(enclave, args, state).await
 }
 
 #[tauri::command]
 async fn worktree_cleanup(
+    enclave: EnclaveInput,
     path: String,
     worktrees_root: String,
     apply: bool,
+    state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new("orcan");
-        command.args([
-            "studio",
-            "worktree",
-            if apply { "remove-apply" } else { "remove-plan" },
-            "--path",
-            &path,
-            "--worktrees-root",
-            &worktrees_root,
-        ]);
-        if apply {
-            command.arg("--yes");
-        }
-        command.output()
-    })
-    .await
-    .map_err(|error| format!("cleanup stopped: {error}"))?
-    .map_err(|error| format!("could not start cleanup: {error}"))
-    .and_then(|output| {
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid cleanup response: {error}"))
-    })
+    let mut args = vec![
+        "studio",
+        "worktree",
+        if apply { "remove-apply" } else { "remove-plan" },
+        "--path",
+        &path,
+        "--worktrees-root",
+        &worktrees_root,
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect::<Vec<_>>();
+    if apply {
+        args.push("--yes".to_owned());
+    }
+    studio_json(enclave, args, state).await
 }
 
 #[tauri::command]
 async fn parent_apply(
+    enclave: EnclaveInput,
     path: String,
     branch: String,
     expected_head: String,
+    state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    parent_command("apply", &path, &branch, Some(&expected_head)).await
+    parent_command(enclave, "apply", path, branch, Some(expected_head), state).await
 }
 
 async fn parent_command(
+    enclave: EnclaveInput,
     mode: &str,
-    path: &str,
-    branch: &str,
-    expected_head: Option<&str>,
+    path: String,
+    branch: String,
+    expected_head: Option<String>,
+    state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    let mode = mode.to_owned();
-    let path = path.to_owned();
-    let branch = branch.to_owned();
-    let expected_head = expected_head.map(str::to_owned);
-    let output = tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new("orcan");
-        command.args([
-            "studio", "parent", &mode, "--path", &path, "--branch", &branch,
-        ]);
-        if let Some(head) = expected_head {
-            command.args(["--expected-head", &head, "--yes"]);
-        }
-        command.output()
-    })
-    .await
-    .map_err(|error| format!("parent task stopped: {error}"))?
-    .map_err(|error| format!("could not start Orcan parent operation: {error}"))?;
-    let value: serde_json::Value = serde_json::from_slice(&output.stdout)
-        .map_err(|error| format!("invalid parent operation response: {error}"))?;
-    if !output.status.success() {
-        return Err(value["error"]
-            .as_str()
-            .unwrap_or("parent operation failed")
-            .to_owned());
+    let mut args = vec![
+        "studio".to_owned(),
+        "parent".to_owned(),
+        mode.to_owned(),
+        "--path".to_owned(),
+        path,
+        "--branch".to_owned(),
+        branch,
+    ];
+    if let Some(head) = expected_head {
+        args.extend(["--expected-head".to_owned(), head, "--yes".to_owned()]);
     }
-    Ok(value)
+    studio_json(enclave, args, state).await
 }
 
 /// `owner` is a profile id (legacy inline SSH) or `credential:<id>`.
@@ -532,71 +531,55 @@ fn save_secret(profile_id: String, kind: String, secret: String) -> Result<(), S
 
 #[tauri::command]
 async fn worktree_plan(
+    enclave: EnclaveInput,
     repo: String,
     branch: String,
     worktrees_root: String,
     workspaces: Vec<String>,
+    state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new("orcan");
-        command.args([
-            "studio",
-            "worktree",
-            "plan",
-            "--repo",
-            &repo,
-            "--branch",
-            &branch,
-            "--worktrees-root",
-            &worktrees_root,
-        ]);
-        for workspace in workspaces {
-            command.args(["--workspace", &workspace]);
-        }
-        command.output()
-    })
-    .await
-    .map_err(|error| format!("worktree plan stopped: {error}"))?
-    .map_err(|error| format!("could not start worktree plan: {error}"))
-    .and_then(|output| {
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid worktree plan response: {error}"))
-    })
+    let mut args = vec![
+        "studio".to_owned(),
+        "worktree".to_owned(),
+        "plan".to_owned(),
+        "--repo".to_owned(),
+        repo,
+        "--branch".to_owned(),
+        branch,
+        "--worktrees-root".to_owned(),
+        worktrees_root,
+    ];
+    for workspace in workspaces {
+        args.extend(["--workspace".to_owned(), workspace]);
+    }
+    studio_json(enclave, args, state).await
 }
 
 #[tauri::command]
 async fn worktree_apply(
+    enclave: EnclaveInput,
     repo: String,
     branch: String,
     worktrees_root: String,
     workspaces: Vec<String>,
+    state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new("orcan");
-        command.args([
-            "studio",
-            "worktree",
-            "apply",
-            "--repo",
-            &repo,
-            "--branch",
-            &branch,
-            "--worktrees-root",
-            &worktrees_root,
-            "--yes",
-        ]);
-        for workspace in workspaces {
-            command.args(["--workspace", &workspace]);
-        }
-        command.output()
-    })
-    .await
-    .map_err(|error| format!("worktree task stopped: {error}"))?
-    .map_err(|error| format!("could not start worktree: {error}"))
-    .and_then(|output| {
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid worktree response: {error}"))
-    })
+    let mut args = vec![
+        "studio".to_owned(),
+        "worktree".to_owned(),
+        "apply".to_owned(),
+        "--repo".to_owned(),
+        repo,
+        "--branch".to_owned(),
+        branch,
+        "--worktrees-root".to_owned(),
+        worktrees_root,
+        "--yes".to_owned(),
+    ];
+    for workspace in workspaces {
+        args.extend(["--workspace".to_owned(), workspace]);
+    }
+    studio_json(enclave, args, state).await
 }
 
 fn main() {
