@@ -611,6 +611,7 @@ function renderSnapshot(report: ProbeReport): void {
     return el("div", { className: "cleanup-item" }, el("span", { textContent: `${project.name ?? project.path.split("/").pop()} · ${workspace}${project.branch ? ` · ${project.branch}` : ""}` }), review);
   }) : [el("p", { className: "hint", textContent: "No managed worktrees are currently connected to a workspace." })]));
   unlockStudio(report);
+  void refreshWorktreeInventory(report.paths.managed_worktrees_root);
   renderRuntime(report);
   const rows: HTMLElement[] = [];
   for (const workspace of report.context.workspaces) {
@@ -640,6 +641,18 @@ function renderSnapshot(report: ProbeReport): void {
     node.textContent = `${repository.origin_url ?? repository.repository_id}  →  ${repository.bindings.map((binding) => binding.workspace).join(" · ")}`;
     return node;
   }));
+}
+
+async function refreshWorktreeInventory(root: string): Promise<void> {
+  if (!current) return;
+  try {
+    const response = await invoke<{ worktrees: Array<{ path: string; project: string; branch?: string; dirty: boolean }> }>("worktree_inventory", { enclave: enclaveInput(current), worktreesRoot: root });
+    if (!response.worktrees.length) return;
+    cleanupSuggestions.replaceChildren(...response.worktrees.map((worktree) => {
+      const review = actionButton("Review", () => { cleanupPath.value = worktree.path; cleanupResult.textContent = `Selected ${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}.`; });
+      return el("div", { className: "cleanup-item" }, el("span", { textContent: `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""}` }), review);
+    }));
+  } catch { /* The current context map remains usable if inventory is unavailable. */ }
 }
 
 const SYSTEM_SSH = "";
