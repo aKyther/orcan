@@ -22,6 +22,7 @@ def main() -> None:
     parser.add_argument("--branch")
     parser.add_argument("--path")
     parser.add_argument("--yes", action="store_true")
+    parser.add_argument("--remove-branch", action="store_true")
     parser.add_argument("--worktrees-root", required=True)
     parser.add_argument("--workspace", action="append", default=[])
     args = parser.parse_args()
@@ -48,6 +49,19 @@ def main() -> None:
         if not args.path:
             parser.error("--path is required for remove-plan")
         path = Path(args.path).resolve()
+        branch = (
+            run(path, "symbolic-ref", "--quiet", "--short", "HEAD")
+            if path.exists()
+            else None
+        )
+        git_dir = (
+            run(path, "rev-parse", "--absolute-git-dir") if path.exists() else None
+        )
+        merged = (
+            branch in (run(path, "branch", "--merged") or "").split()
+            if branch
+            else False
+        )
         plan = {
             "operation": "worktree_remove",
             "path": str(path),
@@ -56,7 +70,14 @@ def main() -> None:
             "blockers": [] if path.exists() else ["worktree path does not exist"],
             "ready": path.exists(),
             "destructive": True,
+            "branch": branch,
+            "remove_branch": args.remove_branch,
         }
+        if args.remove_branch and not branch:
+            plan["blockers"].append("worktree has no removable branch")
+        if args.remove_branch and not merged:
+            plan["blockers"].append("branch is not merged; refusing to delete it")
+        plan["ready"] = not plan["blockers"]
         if args.mode == "remove-plan":
             print(json.dumps({"ok": True, "plan": plan}, separators=(",", ":")))
             return
@@ -86,11 +107,33 @@ def main() -> None:
                 )
             )
             raise SystemExit(result.returncode)
+        if args.remove_branch and git_dir and branch:
+            deleted = subprocess.run(
+                ["git", "--git-dir", git_dir, "branch", "-d", branch],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if deleted.returncode:
+                print(
+                    json.dumps(
+                        {
+                            "ok": False,
+                            "error": deleted.stderr.strip()
+                            or "worktree removed but branch deletion failed",
+                        }
+                    )
+                )
+                raise SystemExit(deleted.returncode)
         print(
             json.dumps(
                 {
                     "ok": True,
-                    "result": {"operation": "worktree_remove", "path": str(path)},
+                    "result": {
+                        "operation": "worktree_remove",
+                        "path": str(path),
+                        "branch_removed": args.remove_branch,
+                    },
                 }
             )
         )
