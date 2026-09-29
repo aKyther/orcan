@@ -659,7 +659,26 @@ type QueuedChange = PendingChange & {
 
 let pendingChange: PendingChange | undefined;
 let pendingPlan: { ready: boolean; changes: string[] } | undefined;
-const queuedChanges: QueuedChange[] = [];
+const DRAFT_STORAGE_KEY = "orcan-studio:context-drafts";
+
+function isQueuedChange(value: unknown): value is QueuedChange {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<QueuedChange>;
+  return typeof item.id === "string" && typeof item.enclave === "string" && (item.action === "attach" || item.action === "detach") && typeof item.workspace === "string" && typeof item.project?.path === "string" && typeof item.project?.name === "string" && (item.projectMode === "git" || item.projectMode === "mount") && (item.relationship === "share" || item.relationship === "worktree") && Array.isArray(item.changes);
+}
+
+function loadQueuedChanges(): QueuedChange[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter(isQueuedChange) : [];
+  } catch { return []; }
+}
+
+function saveQueuedChanges(): void {
+  localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(queuedChanges));
+}
+
+const queuedChanges: QueuedChange[] = loadQueuedChanges();
 
 function enclaveChangeKey(connection: Connection): string {
   return JSON.stringify({ target: connection.target, username: connection.username, credentialId: connection.credentialId });
@@ -690,6 +709,7 @@ function discardWorkspaceDraft(workspace: string): void {
   for (let index = queuedChanges.length - 1; index >= 0; index -= 1) {
     if (queuedChanges[index].enclave === key && queuedChanges[index].workspace === workspace) queuedChanges.splice(index, 1);
   }
+  saveQueuedChanges();
   renderChangeSet();
   result.textContent = `Discarded planned changes for ${workspace}.`;
 }
@@ -712,6 +732,7 @@ function renderChangeSet(): void {
     const remove = actionButton("Remove", () => {
       const index = queuedChanges.findIndex((item) => item.id === change.id);
       if (index >= 0) queuedChanges.splice(index, 1);
+      saveQueuedChanges();
       renderChangeSet();
     });
     return el("div", { className: `change-set-item${change.error ? " failed" : ""}` }, el("div", {}, el("strong", { textContent: changeTitle(change) }), el("span", { textContent: detail })), remove);
@@ -771,6 +792,7 @@ function queueChange(): void {
     return;
   }
   queuedChanges.push({ id: newId(), enclave: enclaveChangeKey(current), action, workspace, project, projectMode: selectedProjectMode(), relationship, branch, changes: pendingPlan.changes });
+  saveQueuedChanges();
   planDialog.close();
   renderChangeSet();
   result.textContent = `${changeTitle(queuedChanges.at(-1)!)} is ready to apply.`;
@@ -781,22 +803,26 @@ async function applyQueuedChanges(): Promise<void> {
   if (!connection) return;
   const enclave = enclaveChangeKey(connection);
   const changes = queuedChanges.filter((change) => change.enclave === enclave);
+  const worktreesRoot = setting("setting-worktrees-root").textContent;
   changeSetApply.disabled = true;
   changeSetClear.disabled = true;
   for (const change of changes) {
     const job = addJob("Apply planned context change", changeTitle(change));
     try {
+      await revalidateQueuedChange(change, connection, worktreesRoot);
       if (change.action === "attach" && change.relationship === "worktree") {
-        await invoke("worktree_apply", { enclave: enclaveInput(connection), repo: change.project.path, branch: change.branch, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces: [change.workspace] });
+        await invoke("worktree_apply", { enclave: enclaveInput(connection), repo: change.project.path, branch: change.branch, worktreesRoot, workspaces: [change.workspace] });
       } else {
         await invoke("membership_action", { enclave: enclaveInput(connection), action: change.action, workspace: change.workspace, project: change.project.path, projectMode: change.projectMode, apply: true });
       }
       const index = queuedChanges.findIndex((item) => item.id === change.id);
       if (index >= 0) queuedChanges.splice(index, 1);
+      saveQueuedChanges();
       finishJob(job, "succeeded", changeTitle(change));
       if (current && enclaveChangeKey(current) === enclave) syncBanner.hidden = false;
     } catch (error) {
       change.error = String(error);
+      saveQueuedChanges();
       finishJob(job, "failed", change.error);
     }
     renderChangeSet();
@@ -808,6 +834,16 @@ async function applyQueuedChanges(): Promise<void> {
   renderChangeSet();
 }
 
+async function revalidateQueuedChange(change: QueuedChange, connection: Connection, worktreesRoot: string): Promise<void> {
+  const response = change.action === "attach" && change.relationship === "worktree"
+    ? await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("worktree_plan", { enclave: enclaveInput(connection), repo: change.project.path, branch: change.branch, worktreesRoot, workspaces: [change.workspace] })
+    : await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("membership_action", { enclave: enclaveInput(connection), action: change.action, workspace: change.workspace, project: change.project.path, projectMode: change.projectMode, apply: false });
+  if (!response.plan.ready) throw new Error(response.plan.blockers.join(" · ") || "Orcan no longer accepts this planned change");
+  change.changes = response.plan.changes;
+  change.error = undefined;
+  saveQueuedChanges();
+}
+
 planWorkspaceName.addEventListener("input", () => void planChange());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="project-mode"]')) input.addEventListener("change", () => void planChange());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="relationship-mode"]')) input.addEventListener("change", () => { worktreeBranchField.hidden = selectedRelationshipMode() !== "worktree"; planModeField.hidden = selectedRelationshipMode() === "worktree"; void planChange(); });
@@ -817,6 +853,7 @@ changeSetClear.addEventListener("click", () => {
   if (!current) return;
   const key = enclaveChangeKey(current);
   for (let index = queuedChanges.length - 1; index >= 0; index -= 1) if (queuedChanges[index].enclave === key) queuedChanges.splice(index, 1);
+  saveQueuedChanges();
   renderChangeSet();
 });
 changeSetApply.addEventListener("click", () => void applyQueuedChanges());
