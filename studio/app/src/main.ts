@@ -353,6 +353,7 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
 const enclaveMap = $("#enclave-map");
 const contextCanvas = $("#context-canvas");
 const connectionLines = document.querySelector<SVGSVGElement>("#connection-lines")!;
+const traceLines = document.querySelector<SVGSVGElement>("#trace-lines")!;
 const workspaceCards = $("#workspace-cards");
 const sandboxTray = $("#sandbox-tray");
 const mapFilter = $<HTMLInputElement>("#map-filter");
@@ -436,7 +437,8 @@ function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: stri
 function drawConnections(): void {
   const bounds = contextCanvas.getBoundingClientRect();
   connectionLines.replaceChildren();
-  connectionLines.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
+  traceLines.replaceChildren();
+  for (const layer of [connectionLines, traceLines]) layer.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
   for (const source of sandboxTray.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")) {
     const sourceAnchor = source.querySelector<HTMLElement>(".connection-anchor");
     if (!sourceAnchor) continue;
@@ -452,10 +454,14 @@ function drawConnections(): void {
       const startY = sourceBox.top - bounds.top;
       const endX = targetBox.left - bounds.left + targetBox.width / 2;
       const endY = targetBox.bottom - bounds.top;
+      const horizontal = window.matchMedia("(min-width: 761px)").matches;
+      const middleX = (startX + endX) / 2;
       const middleY = (startY + endY) / 2;
-      line.setAttribute("d", `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
+      line.setAttribute("d", horizontal
+        ? `M ${startX} ${startY} C ${middleX} ${startY}, ${middleX} ${endY}, ${endX} ${endY}`
+        : `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
       line.setAttribute("class", `context-link ${target.dataset.connectionState ?? "current"} ${tracedPath === path ? "highlight" : "muted"}`);
-      connectionLines.append(line);
+      (tracedPath === path ? traceLines : connectionLines).append(line);
     }
   }
 }
