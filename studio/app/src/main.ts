@@ -107,6 +107,7 @@ const overviewAgents = document.querySelector<HTMLElement>("#overview-agents")!;
 const nextAction = document.querySelector<HTMLElement>("#next-action")!;
 const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
 const cleanupPath = document.querySelector<HTMLInputElement>("#cleanup-path")!;
+const cleanupSuggestions = $("#cleanup-suggestions");
 const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confirm")!;
 const cleanupPlan = document.querySelector<HTMLButtonElement>("#cleanup-plan")!;
 const cleanupApply = document.querySelector<HTMLButtonElement>("#cleanup-apply")!;
@@ -360,6 +361,9 @@ const planTitle = $("#plan-title");
 const planNameField = $("#plan-name-field");
 const planWorkspaceName = $<HTMLInputElement>("#plan-workspace-name");
 const planModeField = $("#plan-mode-field");
+const relationshipModeField = $("#relationship-mode-field");
+const worktreeBranchField = $("#worktree-branch-field");
+const worktreeBranchName = $<HTMLInputElement>("#worktree-branch-name");
 const planChanges = $("#plan-changes");
 const planStatus = $("#plan-status");
 const planConfirm = $<HTMLButtonElement>("#plan-confirm");
@@ -379,6 +383,10 @@ type ProjectRef = { name: string; path: string; kind?: string };
 
 function selectedProjectMode(): "git" | "mount" {
   return radioValue("project-mode") === "mount" ? "mount" : "git";
+}
+
+function selectedRelationshipMode(): "share" | "worktree" {
+  return radioValue("relationship-mode") === "worktree" ? "worktree" : "share";
 }
 
 function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string): HTMLElement {
@@ -487,7 +495,9 @@ async function planChange(): Promise<void> {
   if (!/^[A-Za-z0-9._-]{1,64}$/.test(workspace)) { planStatus.textContent = "Enter a workspace name."; return; }
   planStatus.textContent = "Asking Orcan for a plan…";
   try {
-    const response = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("membership_action", { enclave: enclaveInput(current), action: pendingChange.action, workspace, project: pendingChange.project.path, projectMode: selectedProjectMode(), apply: false });
+    const response = pendingChange.action === "attach" && selectedRelationshipMode() === "worktree"
+      ? await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("worktree_plan", { enclave: enclaveInput(current), repo: pendingChange.project.path, branch: worktreeBranchName.value.trim(), worktreesRoot: setting("setting-worktrees-root").textContent, workspaces: [workspace] })
+      : await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("membership_action", { enclave: enclaveInput(current), action: pendingChange.action, workspace, project: pendingChange.project.path, projectMode: selectedProjectMode(), apply: false });
     planChanges.replaceChildren(...response.plan.changes.map((change) => el("li", { textContent: change })), ...response.plan.blockers.map((blocker) => el("li", { className: "blocker", textContent: blocker })));
     planStatus.textContent = response.plan.ready ? `Applies to ${current.label}. Nothing else changes.` : "Orcan cannot apply this change.";
     planConfirm.disabled = !response.plan.ready;
@@ -503,6 +513,11 @@ async function reviewChange(action: MembershipArgs["action"], workspace: string 
   pendingChange = { action, workspace, project };
   planTitle.textContent = action === "detach" ? `Remove ${project.name} from ${workspace}` : workspace ? `Add ${project.name} to ${workspace}` : `New workspace with ${project.name}`;
   planNameField.hidden = workspace !== undefined;
+  const gitProject = project.kind === "git_repository" || project.kind === "git_worktree";
+  relationshipModeField.hidden = action === "detach" || !gitProject;
+  worktreeBranchField.hidden = action === "detach" || !gitProject || selectedRelationshipMode() !== "worktree";
+  setRadio("relationship-mode", "share");
+  worktreeBranchName.value = `feature/${workspace ?? project.name}`.replace(/[^A-Za-z0-9._/-]+/g, "-");
   planModeField.hidden = action === "detach";
   setRadio("project-mode", project.kind === "directory" ? "mount" : "git");
   planWorkspaceName.value = workspace ? "" : project.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
@@ -518,7 +533,11 @@ async function applyChange(): Promise<void> {
   planStatus.textContent = "Applying…";
   const job = addJob(action === "detach" ? "Remove from workspace" : "Add to workspace", `${project.name} · ${workspace}`);
   try {
-    await invoke("membership_action", { enclave: enclaveInput(current), action, workspace, project: project.path, projectMode: selectedProjectMode(), apply: true });
+    if (action === "attach" && selectedRelationshipMode() === "worktree") {
+      await invoke("worktree_apply", { enclave: enclaveInput(current), repo: project.path, branch: worktreeBranchName.value.trim(), worktreesRoot: setting("setting-worktrees-root").textContent, workspaces: [workspace] });
+    } else {
+      await invoke("membership_action", { enclave: enclaveInput(current), action, workspace, project: project.path, projectMode: selectedProjectMode(), apply: true });
+    }
     finishJob(job, "succeeded", `${project.name} ${action === "detach" ? "removed from" : "added to"} ${workspace}`);
     planDialog.close();
     syncBanner.hidden = false;
@@ -532,6 +551,8 @@ async function applyChange(): Promise<void> {
 
 planWorkspaceName.addEventListener("input", () => void planChange());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="project-mode"]')) input.addEventListener("change", () => void planChange());
+for (const input of document.querySelectorAll<HTMLInputElement>('input[name="relationship-mode"]')) input.addEventListener("change", () => { worktreeBranchField.hidden = selectedRelationshipMode() !== "worktree"; planModeField.hidden = selectedRelationshipMode() === "worktree"; void planChange(); });
+worktreeBranchName.addEventListener("input", () => void planChange());
 planConfirm.addEventListener("click", () => void applyChange());
 $("#sync-now").addEventListener("click", async () => {
   if (!current) return;
@@ -582,6 +603,13 @@ function renderSnapshot(report: ProbeReport): void {
   settingResources.textContent = resources ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"} · SHM ${resources.shm_size ?? "—"}` : "Not reported";
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   settingAgents.textContent = agents.length ? agents.join(" · ") : "No image manifest reported";
+  const managedWorktrees = report.context.workspaces.flatMap((workspace) => workspace.projects
+    .filter((project) => project.path.startsWith(report.paths.managed_worktrees_root))
+    .map((project) => ({ workspace: workspace.name, project })));
+  cleanupSuggestions.replaceChildren(...(managedWorktrees.length ? managedWorktrees.map(({ workspace, project }) => {
+    const review = actionButton("Review", () => { cleanupPath.value = project.path; cleanupResult.textContent = `Selected ${project.name ?? project.path} from ${workspace}.`; });
+    return el("div", { className: "cleanup-item" }, el("span", { textContent: `${project.name ?? project.path.split("/").pop()} · ${workspace}${project.branch ? ` · ${project.branch}` : ""}` }), review);
+  }) : [el("p", { className: "hint", textContent: "No managed worktrees are currently connected to a workspace." })]));
   unlockStudio(report);
   renderRuntime(report);
   const rows: HTMLElement[] = [];
