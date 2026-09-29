@@ -23,6 +23,7 @@ def main() -> None:
     parser.add_argument("--config", required=True)
     parser.add_argument("--workspace")
     parser.add_argument("--project")
+    parser.add_argument("--project-mode", choices=("git", "mount"), default="git")
     parser.add_argument("--yes", action="store_true")
     args = parser.parse_args()
     path = Path(args.config).resolve()
@@ -43,8 +44,14 @@ def main() -> None:
         # `orcan context add` creates a missing workspace, so only detach needs one.
         if workspace is None and detach:
             blockers.append("workspace does not exist")
-        if not detach and (not project.is_dir() or not (project / ".git").exists()):
-            blockers.append("project is not a Git repository")
+        if not detach and not project.is_dir():
+            blockers.append("project directory does not exist")
+        if (
+            not detach
+            and args.project_mode == "git"
+            and not (project / ".git").exists()
+        ):
+            blockers.append("project is not a Git repository; choose mount as-is")
         attached = workspace and any(
             Path(item.get("path", "")).resolve() == project
             for item in workspace.get("projects") or []
@@ -57,6 +64,7 @@ def main() -> None:
             "operation": "project_detach" if detach else "project_add",
             "workspace": args.workspace,
             "project": str(project),
+            "project_mode": args.project_mode,
             "creates_workspace": workspace is None and not detach,
             "changes": (
                 [f"create workspace {args.workspace}"]
@@ -65,6 +73,15 @@ def main() -> None:
             )
             + [
                 f"{'detach' if detach else 'attach'} {project} {'from' if detach else 'to'} {args.workspace}",
+                *(
+                    []
+                    if detach
+                    else [
+                        "use Git directory"
+                        if args.project_mode == "git"
+                        else "mount directory as-is"
+                    ]
+                ),
                 "run orcan sync",
             ],
             "blockers": blockers,

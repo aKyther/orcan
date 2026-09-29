@@ -63,6 +63,41 @@ def test_attach_blocks_an_already_attached_project(tmp_path: Path) -> None:
     assert plan["blockers"] == ["project is already attached"]
 
 
+def test_mount_mode_allows_a_plain_directory_in_multiple_workspaces(
+    tmp_path: Path,
+) -> None:
+    home, project = make_home(tmp_path)
+    shared = tmp_path / "shared-config"
+    shared.mkdir()
+
+    plan = run_settings(
+        home,
+        "project-add-plan",
+        "--workspace",
+        "ops",
+        "--project",
+        str(shared),
+        "--project-mode",
+        "mount",
+    )["plan"]
+
+    assert plan["ready"]
+    assert plan["project_mode"] == "mount"
+    assert "mount directory as-is" in plan["changes"]
+    # A Git project can still be shared with another workspace as the same path.
+    git_plan = run_settings(
+        home,
+        "project-add-plan",
+        "--workspace",
+        "ops",
+        "--project",
+        str(project),
+        "--project-mode",
+        "mount",
+    )["plan"]
+    assert git_plan["ready"]
+
+
 def test_detach_removes_membership_but_keeps_files(tmp_path: Path) -> None:
     home, project = make_home(tmp_path)
 

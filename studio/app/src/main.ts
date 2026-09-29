@@ -350,6 +350,8 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
 }
 
 const enclaveMap = $("#enclave-map");
+const contextCanvas = $("#context-canvas");
+const connectionLines = document.querySelector<SVGSVGElement>("#connection-lines")!;
 const workspaceCards = $("#workspace-cards");
 const sandboxTray = $("#sandbox-tray");
 const syncBanner = $("#sync-banner");
@@ -357,6 +359,7 @@ const planDialog = $<HTMLDialogElement>("#plan-dialog");
 const planTitle = $("#plan-title");
 const planNameField = $("#plan-name-field");
 const planWorkspaceName = $<HTMLInputElement>("#plan-workspace-name");
+const planModeField = $("#plan-mode-field");
 const planChanges = $("#plan-changes");
 const planStatus = $("#plan-status");
 const planConfirm = $<HTMLButtonElement>("#plan-confirm");
@@ -372,10 +375,16 @@ function unassignedProjects(report: ProbeReport): Array<{ path: string; kind: st
   return report.context.managed_projects.filter((project) => !used.has(project.path));
 }
 
-type ProjectRef = { name: string; path: string };
+type ProjectRef = { name: string; path: string; kind?: string };
+
+function selectedProjectMode(): "git" | "mount" {
+  return radioValue("project-mode") === "mount" ? "mount" : "git";
+}
 
 function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string): HTMLElement {
   const chip = el("span", { className: "project-chip", draggable: true, title: `${project.path}\nDrag onto a workspace to add it` }, el("span", { className: "grip", textContent: "⠿" }), el("span", { className: "project-name", textContent: project.name }), ...extra);
+  chip.dataset.projectPath = project.path;
+  chip.dataset.workspace = from ?? "sandbox";
   chip.addEventListener("dragstart", (event) => {
     event.dataTransfer!.setData(DRAG_TYPE, JSON.stringify({ ...project, from }));
     event.dataTransfer!.effectAllowed = "copy";
@@ -383,6 +392,28 @@ function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: stri
   });
   chip.addEventListener("dragend", () => document.body.classList.remove("dragging-project"));
   return chip;
+}
+
+function drawConnections(): void {
+  const bounds = contextCanvas.getBoundingClientRect();
+  connectionLines.replaceChildren();
+  connectionLines.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
+  for (const source of sandboxTray.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")) {
+    const sourceBox = source.getBoundingClientRect();
+    const path = source.dataset.projectPath;
+    for (const target of workspaceCards.querySelectorAll<HTMLElement>(`.project-chip[data-project-path="${CSS.escape(path ?? "")}"]`)) {
+      const targetBox = target.getBoundingClientRect();
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const startX = sourceBox.left - bounds.left + sourceBox.width / 2;
+      const startY = sourceBox.top - bounds.top;
+      const endX = targetBox.left - bounds.left + targetBox.width / 2;
+      const endY = targetBox.bottom - bounds.top;
+      const middleY = (startY + endY) / 2;
+      line.setAttribute("d", `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
+      line.setAttribute("class", "context-link");
+      connectionLines.append(line);
+    }
+  }
 }
 
 function dropZone(zone: HTMLElement, onDrop: (project: ProjectRef) => void): void {
@@ -420,7 +451,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` })));
     const list = el("ul");
     for (const project of workspace.projects) {
-      const ref = { name: projectName(project), path: project.path };
+      const ref = { name: projectName(project), path: project.path, kind: project.kind };
       const others = (project.repository_id ? sharedIn.get(project.repository_id) ?? [] : []).filter((name) => name !== workspace.name);
       const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
       const remove = actionButton("✕", () => void reviewChange("detach", workspace.name, ref), "chip-remove");
@@ -436,12 +467,15 @@ function renderEnclaveMap(report: ProbeReport): void {
   workspaceCards.replaceChildren(...cards, create);
   const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
   const chips = report.context.managed_projects.map((project) => {
-    const ref = { name: projectName(project), path: project.path };
+    const ref = { name: projectName(project), path: project.path, kind: project.kind };
     const chip = projectChip(ref, used.has(project.path) ? [] : [el("span", { className: "tag warn", textContent: "no workspace" })]);
     return el("span", { className: "tray-item" }, chip, addToMenu(ref, report));
   });
   sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Projects in the sandbox (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), chips.length ? el("div", { className: "tray-chips" }, ...chips) : el("p", { className: "hint", textContent: "No projects in the sandbox yet. Import one in Repositories." }));
+  requestAnimationFrame(drawConnections);
 }
+
+window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 
 let pendingChange: { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef } | undefined;
 
@@ -453,7 +487,7 @@ async function planChange(): Promise<void> {
   if (!/^[A-Za-z0-9._-]{1,64}$/.test(workspace)) { planStatus.textContent = "Enter a workspace name."; return; }
   planStatus.textContent = "Asking Orcan for a plan…";
   try {
-    const response = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("membership_action", { enclave: enclaveInput(current), action: pendingChange.action, workspace, project: pendingChange.project.path, apply: false });
+    const response = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("membership_action", { enclave: enclaveInput(current), action: pendingChange.action, workspace, project: pendingChange.project.path, projectMode: selectedProjectMode(), apply: false });
     planChanges.replaceChildren(...response.plan.changes.map((change) => el("li", { textContent: change })), ...response.plan.blockers.map((blocker) => el("li", { className: "blocker", textContent: blocker })));
     planStatus.textContent = response.plan.ready ? `Applies to ${current.label}. Nothing else changes.` : "Orcan cannot apply this change.";
     planConfirm.disabled = !response.plan.ready;
@@ -469,6 +503,8 @@ async function reviewChange(action: MembershipArgs["action"], workspace: string 
   pendingChange = { action, workspace, project };
   planTitle.textContent = action === "detach" ? `Remove ${project.name} from ${workspace}` : workspace ? `Add ${project.name} to ${workspace}` : `New workspace with ${project.name}`;
   planNameField.hidden = workspace !== undefined;
+  planModeField.hidden = action === "detach";
+  setRadio("project-mode", project.kind === "directory" ? "mount" : "git");
   planWorkspaceName.value = workspace ? "" : project.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
   planDialog.showModal();
   await planChange();
@@ -482,7 +518,7 @@ async function applyChange(): Promise<void> {
   planStatus.textContent = "Applying…";
   const job = addJob(action === "detach" ? "Remove from workspace" : "Add to workspace", `${project.name} · ${workspace}`);
   try {
-    await invoke("membership_action", { enclave: enclaveInput(current), action, workspace, project: project.path, apply: true });
+    await invoke("membership_action", { enclave: enclaveInput(current), action, workspace, project: project.path, projectMode: selectedProjectMode(), apply: true });
     finishJob(job, "succeeded", `${project.name} ${action === "detach" ? "removed from" : "added to"} ${workspace}`);
     planDialog.close();
     syncBanner.hidden = false;
@@ -495,6 +531,7 @@ async function applyChange(): Promise<void> {
 }
 
 planWorkspaceName.addEventListener("input", () => void planChange());
+for (const input of document.querySelectorAll<HTMLInputElement>('input[name="project-mode"]')) input.addEventListener("change", () => void planChange());
 planConfirm.addEventListener("click", () => void applyChange());
 $("#sync-now").addEventListener("click", async () => {
   if (!current) return;

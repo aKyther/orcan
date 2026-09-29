@@ -1,7 +1,7 @@
 use orcan_studio_core::{
-    ConnectionProfile, MembershipAction, ProbeReport, ProfileStore, ResolvedSsh, RuntimeAction,
-    SshAuthentication, SshCredential, SystemRunner, Target, membership_args, parse_probe_report,
-    remote_orcan_command, runtime_args, sync_args,
+    ConnectionProfile, MembershipAction, ProbeReport, ProfileStore, ProjectMode, ResolvedSsh,
+    RuntimeAction, SshAuthentication, SshCredential, SystemRunner, Target, membership_args,
+    parse_probe_report, remote_orcan_command, runtime_args, sync_args,
 };
 use russh::ChannelMsg;
 use russh::client;
@@ -124,11 +124,12 @@ async fn membership_action(
     action: MembershipAction,
     workspace: String,
     project: String,
+    project_mode: ProjectMode,
     apply: bool,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    let args =
-        membership_args(action, &workspace, &project, apply).map_err(|error| error.to_string())?;
+    let args = membership_args(action, &workspace, &project, project_mode, apply)
+        .map_err(|error| error.to_string())?;
     let stdout = run_on_enclave(enclave, args, state).await?;
     let value: serde_json::Value = serde_json::from_str(&stdout)
         .map_err(|error| format!("invalid settings response: {error}"))?;
