@@ -124,6 +124,15 @@ pub enum MembershipAction {
     Detach,
 }
 
+/// The intent selected in Studio for a directory added to a workspace.
+/// Orcan still mounts the canonical path; Git behaviour is discovered from it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectMode {
+    Git,
+    Mount,
+}
+
 pub fn sync_args() -> Vec<String> {
     vec!["sync".to_owned()]
 }
@@ -142,6 +151,7 @@ pub fn membership_args(
     action: MembershipAction,
     workspace: &str,
     project: &str,
+    project_mode: ProjectMode,
     apply: bool,
 ) -> Result<Vec<String>, StudioError> {
     if workspace.is_empty()
@@ -173,6 +183,11 @@ pub fn membership_args(
         workspace,
         "--project",
         project,
+        "--project-mode",
+        match project_mode {
+            ProjectMode::Git => "git",
+            ProjectMode::Mount => "mount",
+        },
     ]
     .map(str::to_owned)
     .to_vec();
@@ -1108,15 +1123,48 @@ mod tests {
 
     #[test]
     fn membership_changes_are_validated_and_shell_quoted_for_ssh() {
-        let args = membership_args(MembershipAction::Attach, "org-dev", "/srv/My Repo's", true)
-            .expect("valid membership change");
+        let args = membership_args(
+            MembershipAction::Attach,
+            "org-dev",
+            "/srv/My Repo's",
+            ProjectMode::Git,
+            true,
+        )
+        .expect("valid membership change");
         assert_eq!(
             remote_orcan_command(&args),
-            "orcan studio settings project-add-apply --workspace org-dev --project '/srv/My Repo'\\''s' --yes"
+            "orcan studio settings project-add-apply --workspace org-dev --project '/srv/My Repo'\\''s' --project-mode git --yes"
         );
-        assert!(membership_args(MembershipAction::Detach, "a;rm", "/srv/x", false).is_err());
-        assert!(membership_args(MembershipAction::Detach, "dev", "relative/x", false).is_err());
-        assert!(membership_args(MembershipAction::Detach, "dev", "/srv/x\nid", false).is_err());
+        assert!(
+            membership_args(
+                MembershipAction::Detach,
+                "a;rm",
+                "/srv/x",
+                ProjectMode::Mount,
+                false
+            )
+            .is_err()
+        );
+        assert!(
+            membership_args(
+                MembershipAction::Detach,
+                "dev",
+                "relative/x",
+                ProjectMode::Mount,
+                false
+            )
+            .is_err()
+        );
+        assert!(
+            membership_args(
+                MembershipAction::Detach,
+                "dev",
+                "/srv/x\nid",
+                ProjectMode::Mount,
+                false
+            )
+            .is_err()
+        );
     }
 
     #[test]
