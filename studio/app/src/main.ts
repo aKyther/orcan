@@ -706,6 +706,31 @@ function workspaceDrafts(workspace: string): QueuedChange[] {
   return groupWorkspaceDrafts()[workspace] ?? [];
 }
 
+function queueConflicts(changes: QueuedChange[]): Map<string, string> {
+  const conflicts = new Map<string, string>();
+  const relationships = new Map<string, QueuedChange[]>();
+  const worktrees = new Map<string, QueuedChange[]>();
+  for (const change of changes) {
+    const relationship = `${change.workspace}\u0000${change.project.path}`;
+    (relationships.get(relationship) ?? relationships.set(relationship, []).get(relationship)!).push(change);
+    if (change.action === "attach" && change.relationship === "worktree" && change.branch) {
+      const worktree = `${change.project.path}\u0000${change.branch}`;
+      (worktrees.get(worktree) ?? worktrees.set(worktree, []).get(worktree)!).push(change);
+    }
+  }
+  for (const entries of relationships.values()) {
+    if (new Set(entries.map((change) => change.action)).size > 1) {
+      for (const change of entries) conflicts.set(change.id, "Conflicts with an attach/detach draft for the same workspace and element.");
+    }
+  }
+  for (const entries of worktrees.values()) {
+    if (entries.length > 1) {
+      for (const change of entries) conflicts.set(change.id, "Another draft creates a worktree from this repository with the same branch.");
+    }
+  }
+  return conflicts;
+}
+
 function discardWorkspaceDraft(workspace: string): void {
   const drafts = workspaceDrafts(workspace);
   if (!drafts.length || !current) return;
@@ -728,13 +753,15 @@ function changeTitle(change: QueuedChange): string {
 
 function renderChangeSet(): void {
   const changes = queuedForCurrent();
+  const conflicts = queueConflicts(changes);
   changeSet.hidden = changes.length === 0;
-  changeSetCount.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"}`;
+  changeSetCount.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"}${conflicts.size ? ` · ${conflicts.size} conflict${conflicts.size === 1 ? "" : "s"}` : ""}`;
   changeSetApply.textContent = `Apply ${changes.length} change${changes.length === 1 ? "" : "s"}`;
-  changeSetApply.disabled = changes.length === 0;
+  changeSetApply.disabled = changes.length === 0 || conflicts.size > 0;
   changeSetClear.disabled = changes.length === 0;
   changeSetList.replaceChildren(...changes.map((change) => {
-    const detail = change.error ?? (restoredDraftIds.has(change.id) ? "Saved draft — recheck before applying" : change.changes.join(" · "));
+    const conflict = conflicts.get(change.id);
+    const detail = conflict ?? change.error ?? (restoredDraftIds.has(change.id) ? "Saved draft — recheck before applying" : change.changes.join(" · "));
     const remove = actionButton("Remove", () => {
       const index = queuedChanges.findIndex((item) => item.id === change.id);
       if (index >= 0) queuedChanges.splice(index, 1);
@@ -743,7 +770,7 @@ function renderChangeSet(): void {
       renderChangeSet();
     });
     const recheck = actionButton("Recheck", () => void recheckQueuedChange(change), "secondary");
-    return el("div", { className: `change-set-item${change.error ? " failed" : ""}` }, el("div", {}, el("strong", { textContent: changeTitle(change) }), el("span", { textContent: detail })), el("div", { className: "change-set-actions" }, recheck, remove));
+    return el("div", { className: `change-set-item${change.error || conflict ? " failed" : ""}` }, el("div", {}, el("strong", { textContent: changeTitle(change) }), el("span", { textContent: detail })), el("div", { className: "change-set-actions" }, recheck, remove));
   }));
   if (currentReport) renderEnclaveMap(currentReport);
 }
@@ -811,6 +838,11 @@ async function applyQueuedChanges(): Promise<void> {
   if (!connection) return;
   const enclave = enclaveChangeKey(connection);
   const changes = queuedChanges.filter((change) => change.enclave === enclave);
+  if (queueConflicts(changes).size) {
+    result.textContent = "Resolve the conflicting planned changes before applying them.";
+    renderChangeSet();
+    return;
+  }
   const worktreesRoot = setting("setting-worktrees-root").textContent;
   changeSetApply.disabled = true;
   changeSetClear.disabled = true;
@@ -845,7 +877,7 @@ async function applyQueuedChanges(): Promise<void> {
 
 function openApplyReview(): void {
   const changes = queuedForCurrent();
-  if (!changes.length) return;
+  if (!changes.length || queueConflicts(changes).size) return;
   applyChanges.replaceChildren(...changes.map((change) => el("li", { textContent: changeTitle(change) })));
   applyStatus.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"} will be rechecked with Orcan immediately before execution. Nothing has changed yet.`;
   applyDialog.showModal();
