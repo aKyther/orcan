@@ -68,6 +68,15 @@
               <div class="form-actions"><span></span><button type="submit" value="cancel" class="secondary">Cancel</button><button id="plan-confirm" type="button">Add to plan</button></div>
             </form>
           </dialog>
+          <dialog id="apply-dialog" class="plan-dialog" aria-labelledby="apply-title">
+            <form method="dialog">
+              <p class="eyebrow">FINAL REVIEW</p>
+              <h2 id="apply-title">Apply planned context changes</h2>
+              <p id="apply-status" class="hint">Orcan will recheck every entry before it changes anything.</p>
+              <ul id="apply-changes" class="plan-changes"></ul>
+              <div class="form-actions"><span></span><button type="submit" value="cancel" class="secondary">Cancel</button><button id="apply-confirm" type="button">Apply checked changes</button></div>
+            </form>
+          </dialog>
           <section id="setup-panel" class="panel" aria-labelledby="setup-title">
             <div class="panel-heading"><div><p class="eyebrow">GET CONNECTED</p><h2 id="setup-title">Three steps to your first Enclave</h2></div></div>
             <ol class="setup-steps">
