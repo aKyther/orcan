@@ -1,8 +1,12 @@
-#!/usr/bin/env python3
 """Read-only worktree plan consumed by Orcan Studio."""
 
 from __future__ import annotations
-import argparse, json, subprocess
+
+import argparse
+import hashlib
+import json
+import re
+import subprocess
 from pathlib import Path
 
 
@@ -11,6 +15,45 @@ def run(repo: Path, *args: str) -> str | None:
         ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
     )
     return result.stdout.strip() if result.returncode == 0 else None
+
+
+def registry_entries(root: Path) -> dict[str, dict[str, object]]:
+    """Read legacy and current registry entries without making list stateful."""
+    try:
+        raw = json.loads((root / "registry.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    entries = raw.get("worktrees") if isinstance(raw, dict) else None
+    if not isinstance(entries, list):
+        return {}
+    return {
+        str(Path(str(entry["path"])).resolve()): entry
+        for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("path"), str)
+    }
+
+
+def segment(value: str) -> str:
+    """Return a filesystem-safe, human-readable branch label."""
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip(".-")
+    return normalized or "branch"
+
+
+def worktree_project_name(root: Path, workspace: str, repo: Path, branch: str) -> str:
+    """Make a stable project identity for one branch in one workspace.
+
+    ``api--feature-auth`` keeps the source repository visually primary.  A
+    short hash is added only when two distinct branch spellings normalize to
+    the same path (for example ``feature/auth`` and ``feature-auth``).
+    """
+    base = f"{segment(repo.name)}--{segment(branch)}"
+    destination = root / workspace / base
+    if not destination.exists():
+        return base
+    existing_branch = run(destination, "symbolic-ref", "--quiet", "--short", "HEAD")
+    if existing_branch == branch:
+        return base
+    return f"{base}--{hashlib.sha256(branch.encode()).hexdigest()[:6]}"
 
 
 def main() -> None:
@@ -29,14 +72,20 @@ def main() -> None:
     root = Path(args.worktrees_root).resolve()
     if args.mode == "list":
         entries = []
+        registered = registry_entries(root)
         if root.is_dir():
             for path in sorted(item for item in root.glob("*/*") if item.is_dir()):
                 if run(path, "rev-parse", "--is-inside-work-tree") != "true":
                     continue
+                registration = registered.get(str(path.resolve()), {})
                 entries.append(
                     {
                         "path": str(path.resolve()),
-                        "project": path.parent.name,
+                        # New layout: <workspace>/<repo>--<branch>. Old layouts
+                        # retain their registry labels, falling back to the old
+                        # parent-folder interpretation when no registry exists.
+                        "project": registration.get("project", path.parent.name),
+                        "workspace": registration.get("workspace"),
                         "branch": run(
                             path, "symbolic-ref", "--quiet", "--short", "HEAD"
                         ),
@@ -141,7 +190,17 @@ def main() -> None:
     if not args.repo or not args.branch:
         parser.error("--repo and --branch are required for plan")
     repo = Path(args.repo).resolve()
-    destination = root / repo.name / args.branch
+    primary_workspace = args.workspace[0] if args.workspace else None
+    project = (
+        worktree_project_name(root, primary_workspace, repo, args.branch)
+        if primary_workspace
+        else None
+    )
+    destination = (
+        root / primary_workspace / project
+        if primary_workspace and project
+        else root / repo.name / args.branch
+    )
     blockers = []
     if run(repo, "rev-parse", "--is-inside-work-tree") != "true":
         blockers.append("parent is not a Git repository")
@@ -151,6 +210,7 @@ def main() -> None:
         "operation": "worktree_create",
         "repo": str(repo),
         "branch": args.branch,
+        "project": project,
         "destination": str(destination),
         "workspaces": args.workspace,
         "changes": [
@@ -180,8 +240,8 @@ def main() -> None:
         "--path",
         str(destination),
     ]
-    if args.workspace:
-        command += ["--workspace", args.workspace[0], "--project", repo.name]
+    if primary_workspace and project:
+        command += ["--workspace", primary_workspace, "--project", project]
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     if result.returncode:
         print(
