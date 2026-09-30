@@ -641,7 +641,9 @@ function renderEnclaveMap(report: ProbeReport): void {
     if (focusedWorkspace && workspace.name !== focusedWorkspace) return [];
     const drafts = workspaceDrafts(workspace.name);
     const workspaceMatches = matches(workspace.name);
-    const projects = workspace.projects.filter((project) => inSelectedParent(project.path) && sourceMatchesFilters(project) && (workspaceMatches || matches(project.name, project.path, project.branch)));
+    const projects = workspace.projects
+      .filter((project) => inSelectedParent(project.path) && sourceMatchesFilters(project) && (workspaceMatches || matches(project.name, project.path, project.branch)))
+      .sort((left, right) => parentDirectory(left.path).localeCompare(parentDirectory(right.path)) || projectName(left).localeCompare(projectName(right)));
     const visibleDrafts = drafts.filter((draft) => inSelectedParent(draft.project.path) && sourceMatchesFilters({ ...draft.project, dirty: false }) && (workspaceMatches || matches(draft.project.name, draft.project.path, draft.branch)));
     if ((query || activeMapFilters.size) && !projects.length && !visibleDrafts.length) return [];
     const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
@@ -668,7 +670,7 @@ function renderEnclaveMap(report: ProbeReport): void {
       const projectList = projectGroups.get(parent) ?? projectGroups.set(parent, el("ul")).get(parent)!;
       projectList.append(el("li", {}, projectChip(ref, tags, workspace.name, removing ? "removing" : "current"), remove, el("small", { textContent: project.path })));
     }
-    for (const [parent, projectList] of projectGroups) {
+    for (const [parent, projectList] of [...projectGroups.entries()].sort(([left], [right]) => left.localeCompare(right))) {
       list.append(el("details", { className: "workspace-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent) }), el("small", { textContent: `${projectList.children.length} project${projectList.children.length === 1 ? "" : "s"}` })), projectList));
     }
     for (const draft of visibleDrafts.filter((draft) => draft.action === "attach")) {
@@ -699,7 +701,10 @@ function renderEnclaveMap(report: ProbeReport): void {
   dropZone(create, (project) => void reviewChange("attach", undefined, project));
   const visibleProjectPaths = new Set(cards.flatMap((card) => Array.from(card.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")).map((chip) => chip.dataset.projectPath ?? "")));
   const dirtyPaths = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.dirty).map((project) => project.path)));
-  const chips = report.context.managed_projects.filter((project) => inSelectedParent(project.path) && sourceMatchesFilters({ ...project, dirty: dirtyPaths.has(project.path) }) && (!query || matches(project.path) || visibleProjectPaths.has(project.path))).map((project) => {
+  const chips = report.context.managed_projects
+    .filter((project) => inSelectedParent(project.path) && sourceMatchesFilters({ ...project, dirty: dirtyPaths.has(project.path) }) && (!query || matches(project.path) || visibleProjectPaths.has(project.path)))
+    .sort((left, right) => parentDirectory(left.path).localeCompare(parentDirectory(right.path)) || projectName(left).localeCompare(projectName(right)))
+    .map((project) => {
     const ref = { name: projectName(project), path: project.path, kind: project.kind };
     const connectedToFocus = focusedWorkspace && report.context.workspaces.find((workspace) => workspace.name === focusedWorkspace)?.projects.some((item) => item.path === project.path);
     const alerts = projectAlerts(report, { ...project, dirty: dirtyPaths.has(project.path) }, project.path.startsWith(report.paths.managed_worktrees_root) && !used.has(project.path));
@@ -712,7 +717,7 @@ function renderEnclaveMap(report: ProbeReport): void {
       : addToMenu(ref, report);
     if (action instanceof HTMLButtonElement) action.title = `Add ${ref.name} to ${focusedWorkspace}`;
     return { parent: parentDirectory(project.path), item: el("span", { className: "tray-item" }, chip, action) };
-  });
+    });
   const showCreate = !focusedWorkspace && activeMapFilters.size === 0;
   workspaceCards.replaceChildren(...(cards.length ? cards : [el("p", { className: "hint map-empty", textContent: "No workspace or planned relation matches this filter." })]), ...(showCreate ? [create] : []));
   const groups = chips.reduce<Map<string, HTMLElement[]>>((all, chip) => {
