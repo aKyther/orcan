@@ -188,11 +188,15 @@ def save_manifest(entries: list[ManifestEntry]) -> None:
 
 
 def manifest_upsert(entry: ManifestEntry) -> None:
-    entries = [
-        e
-        for e in load_manifest()
-        if not (e.workspace == entry.workspace and e.project == entry.project)
-    ]
+    """Record a managed worktree by its canonical checkout path.
+
+    Older Orcan versions used ``workspace + project`` as the key.  That made
+    two branches of one repository in one workspace overwrite each other.
+    Existing entries remain readable; new writes replace only the same
+    worktree path.
+    """
+    entry_path = str(Path(entry.path).resolve())
+    entries = [e for e in load_manifest() if str(Path(e.path).resolve()) != entry_path]
     entries.append(entry)
     save_manifest(entries)
 

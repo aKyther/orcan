@@ -7,7 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -42,8 +41,16 @@ def test_worktree_plan_refuses_existing_destination(tmp_path: Path) -> None:
     repo.mkdir()
     subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
     root = tmp_path / "worktrees"
-    destination = root / "parent" / "feature"
+    destination = root / "api" / "parent--feature"
     destination.mkdir(parents=True)
+    subprocess.run(
+        ["git", "-C", str(destination), "init", "-q"], check=True, capture_output=True
+    )
+    subprocess.run(
+        ["git", "-C", str(destination), "checkout", "-q", "-b", "feature"],
+        check=True,
+        capture_output=True,
+    )
 
     report = studio_script(
         "studio-worktree.py",
@@ -60,3 +67,42 @@ def test_worktree_plan_refuses_existing_destination(tmp_path: Path) -> None:
 
     assert report["plan"]["ready"] is False
     assert "already exists" in report["plan"]["blockers"][0]
+
+
+def test_worktree_plan_names_multiple_branches_of_one_repo_in_one_workspace(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "api"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+    root = tmp_path / "worktrees"
+
+    first = studio_script(
+        "studio-worktree.py",
+        "plan",
+        "--repo",
+        str(repo),
+        "--branch",
+        "feature/auth",
+        "--worktrees-root",
+        str(root),
+        "--workspace",
+        "platform",
+    )["plan"]
+    second = studio_script(
+        "studio-worktree.py",
+        "plan",
+        "--repo",
+        str(repo),
+        "--branch",
+        "fix/cache",
+        "--worktrees-root",
+        str(root),
+        "--workspace",
+        "platform",
+    )["plan"]
+
+    assert first["project"] == "api--feature-auth"
+    assert second["project"] == "api--fix-cache"
+    assert first["destination"] == str(root / "platform" / "api--feature-auth")
+    assert second["destination"] == str(root / "platform" / "api--fix-cache")

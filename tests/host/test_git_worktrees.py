@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unit tests for git_worktrees.parse_porcelain / resolve helpers."""
 
 from __future__ import annotations
@@ -7,16 +6,19 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "repository"))
 
-from git_worktrees import (  # noqa: E402
+from git_worktrees import (
+    ManifestEntry,
     default_worktree_path,
+    load_manifest,
+    manifest_upsert,
     parse_porcelain,
     resolve_worktree,
 )
-
 
 SAMPLE = """\
 worktree /tmp/repo-main
@@ -52,6 +54,38 @@ class DefaultPathTests(unittest.TestCase):
         self.assertEqual(
             default_worktree_path(repo, "feature/x"),
             Path("/home/u/code/api-feature-x").resolve(),
+        )
+
+
+class ManifestTests(unittest.TestCase):
+    def test_keeps_multiple_branches_of_one_repo_in_one_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "sandbox"
+            with patch.dict("os.environ", {"ORCAN_PROJECTS_ROOT": str(root)}):
+                manifest_upsert(
+                    ManifestEntry(
+                        workspace="platform",
+                        project="api--feature-auth",
+                        repo="/source/api",
+                        path=str(root / ".worktrees/platform/api--feature-auth"),
+                        branch="feature/auth",
+                    )
+                )
+                manifest_upsert(
+                    ManifestEntry(
+                        workspace="platform",
+                        project="api--fix-cache",
+                        repo="/source/api",
+                        path=str(root / ".worktrees/platform/api--fix-cache"),
+                        branch="fix/cache",
+                    )
+                )
+
+                entries = load_manifest()
+
+        self.assertEqual(
+            [entry.project for entry in entries],
+            ["api--feature-auth", "api--fix-cache"],
         )
 
 
