@@ -426,8 +426,8 @@ const workspaceCards = $("#workspace-cards");
 const sandboxTray = $("#sandbox-tray");
 const mapFilter = $<HTMLInputElement>("#map-filter");
 const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
-const mapFiltersToggle = $<HTMLButtonElement>("#map-filters-toggle");
-const mapFilterRow = $("#map-filter-row");
+const mapFiltersToggle = document.querySelector<HTMLButtonElement>("#map-filters-toggle");
+const mapFilterRow = document.querySelector<HTMLElement>("#map-filter-row");
 const mapFilterChips = $("#map-filter-chips");
 const mapFocusClear = $<HTMLButtonElement>("#map-focus-clear");
 const contextHealth = $("#context-health");
@@ -439,8 +439,15 @@ const workspaceInspectorAgent = $("#workspace-inspector-agent");
 const workspaceInspectorAdd = $<HTMLButtonElement>("#workspace-inspector-add");
 const workspaceInspectorWorktree = $<HTMLButtonElement>("#workspace-inspector-worktree");
 const workspaceInspectorDiscard = $<HTMLButtonElement>("#workspace-inspector-discard");
+const projectInspector = $("#project-inspector");
+const projectInspectorTitle = $("#project-inspector-title");
+const projectInspectorState = $("#project-inspector-state");
+const projectInspectorMetrics = $("#project-inspector-metrics");
+const projectInspectorPath = $("#project-inspector-path");
+const projectInspectorActions = $("#project-inspector-actions");
 let focusedWorkspace: string | undefined;
 let tracedPath: string | undefined;
+let inspectedProject: { path: string; workspace?: string } | undefined;
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
 const applyDialog = $<HTMLDialogElement>("#apply-dialog");
@@ -532,6 +539,7 @@ function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: stri
   chip.addEventListener("dragend", () => document.body.classList.remove("dragging-project"));
   chip.addEventListener("click", () => {
     tracedPath = tracedPath === project.path ? undefined : project.path;
+    inspectedProject = { path: project.path, workspace: from };
     if (currentReport) renderEnclaveMap(currentReport);
   });
   return chip;
@@ -760,7 +768,8 @@ function renderWorkspaceInspector(report: ProbeReport): void {
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 mapFilter.addEventListener("input", () => { if (currentReport) renderEnclaveMap(currentReport); });
 mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
-mapFiltersToggle.addEventListener("click", () => {
+mapFiltersToggle?.addEventListener("click", () => {
+  if (!mapFilterRow) return;
   mapFilterRow.hidden = !mapFilterRow.hidden;
   mapFiltersToggle.setAttribute("aria-expanded", String(!mapFilterRow.hidden));
 });
