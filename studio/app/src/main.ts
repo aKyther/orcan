@@ -19,9 +19,9 @@ type ProbeReport = {
   context: {
     workspaces: Array<{
       name: string;
-      projects: Array<{ name?: string; path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; repository_id?: string }>;
+      projects: Array<{ name?: string; path: string; kind: string; writable?: boolean; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; repository_id?: string }>;
     }>;
-    managed_projects: Array<{ path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
+    managed_projects: Array<{ path: string; kind: string; writable?: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
     update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }>;
     configuration: { state: string; revision?: string };
@@ -428,6 +428,7 @@ const mapFilter = $<HTMLInputElement>("#map-filter");
 const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
 const mapFilterChips = $("#map-filter-chips");
 const mapFocusClear = $<HTMLButtonElement>("#map-focus-clear");
+const contextHealth = $("#context-health");
 const workspaceInspector = $("#workspace-inspector");
 const workspaceInspectorTitle = $("#workspace-inspector-title");
 const workspaceInspectorState = $("#workspace-inspector-state");
@@ -472,6 +473,21 @@ function unassignedProjects(report: ProbeReport): Array<{ path: string; kind: st
 }
 
 type ProjectRef = { name: string; path: string; kind?: string };
+
+type HealthProject = { path: string; kind?: string; writable?: boolean; dirty?: boolean; repository_id?: string };
+
+function projectAlerts(report: ProbeReport, project: HealthProject, orphan = false): string[] {
+  const alerts: string[] = [];
+  if (project.kind === "missing") alerts.push("missing");
+  else if (project.writable === false) alerts.push("read-only");
+  if (project.dirty) alerts.push("uncommitted");
+  if (orphan) alerts.push("orphan worktree");
+  const source = project.repository_id
+    ? report.context.update_targets.find((target) => target.repository_id === project.repository_id)
+    : undefined;
+  if (source?.behind) alerts.push(`source ${source.behind} behind`);
+  return alerts;
+}
 
 function selectedProjectMode(): "git" | "mount" {
   return radioValue("project-mode") === "mount" ? "mount" : "git";
@@ -583,15 +599,26 @@ function renderEnclaveMap(report: ProbeReport): void {
   const matches = (...values: Array<string | undefined>) => !query || values.some((value) => value?.toLowerCase().includes(query));
   const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
   const plannedPaths = new Set(queuedForCurrent().filter((change) => change.action === "attach").map((change) => change.project.path));
-  const sourceMatchesFilters = (project: { path: string; kind?: string; dirty?: boolean }) => [...activeMapFilters].every((filter) => {
+  const sourceMatchesFilters = (project: HealthProject) => [...activeMapFilters].every((filter) => {
     if (filter === "git") return project.kind === "git_repository" || project.kind === "git_worktree";
     if (filter === "worktree") return project.kind === "git_worktree" || project.path.startsWith(report.paths.managed_worktrees_root);
     if (filter === "mount") return project.kind === "directory";
     if (filter === "unassigned") return !used.has(project.path);
     if (filter === "dirty") return Boolean(project.dirty);
     if (filter === "planned") return plannedPaths.has(project.path);
-    return project.path.startsWith(report.paths.managed_worktrees_root) && !used.has(project.path);
+    const orphan = project.path.startsWith(report.paths.managed_worktrees_root) && !used.has(project.path);
+    if (filter === "orphan") return orphan;
+    return projectAlerts(report, project, orphan).length > 0;
   });
+  const healthProjects = new Map<string, HealthProject>();
+  for (const project of report.context.managed_projects) healthProjects.set(project.path, project);
+  for (const workspace of report.context.workspaces) {
+    for (const project of workspace.projects) healthProjects.set(project.path, project);
+  }
+  const healthIssues = [...healthProjects.values()].flatMap((project) => projectAlerts(report, project, project.path.startsWith(report.paths.managed_worktrees_root) && !used.has(project.path)));
+  contextHealth.textContent = healthIssues.length
+    ? `Context health: ${healthIssues.length} attention item${healthIssues.length === 1 ? "" : "s"} · ${[...new Set(healthIssues)].join(" · ")}.`
+    : "Context health: no missing paths, local changes, read-only mounts, orphan worktrees, or stale branch sources.";
   const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
   const cards = report.context.workspaces.flatMap((workspace) => {
     if (focusedWorkspace && workspace.name !== focusedWorkspace) return [];
@@ -615,7 +642,8 @@ function renderEnclaveMap(report: ProbeReport): void {
       const ref = { name: projectName(project), path: project.path, kind: project.kind };
       const others = (project.repository_id ? sharedIn.get(project.repository_id) ?? [] : []).filter((name) => name !== workspace.name);
       const removing = drafts.some((draft) => draft.action === "detach" && draft.project.path === project.path);
-      const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` }), removing && el("span", { className: "tag removing", textContent: "detach planned" })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
+      const alertTags = projectAlerts(report, project).filter((alert) => alert !== "uncommitted" && alert !== "missing");
+      const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), ...alertTags.map((alert) => el("span", { className: "tag warn", textContent: alert })), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` }), removing && el("span", { className: "tag removing", textContent: "detach planned" })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
       const remove = actionButton("✕", () => void reviewChange("detach", workspace.name, ref), "chip-remove");
       remove.title = `Remove ${ref.name} from ${workspace.name} (files stay)`;
       list.append(el("li", {}, projectChip(ref, tags, workspace.name, removing ? "removing" : "current"), remove, el("small", { textContent: project.path })));
@@ -651,7 +679,8 @@ function renderEnclaveMap(report: ProbeReport): void {
   const chips = report.context.managed_projects.filter((project) => sourceMatchesFilters({ ...project, dirty: dirtyPaths.has(project.path) }) && (!query || matches(project.path) || visibleProjectPaths.has(project.path))).map((project) => {
     const ref = { name: projectName(project), path: project.path, kind: project.kind };
     const connectedToFocus = focusedWorkspace && report.context.workspaces.find((workspace) => workspace.name === focusedWorkspace)?.projects.some((item) => item.path === project.path);
-    const tags = [!used.has(project.path) && el("span", { className: "tag warn", textContent: "no workspace" }), connectedToFocus && el("span", { className: "tag connected", textContent: "connected" })].filter((tag): tag is HTMLElement => Boolean(tag));
+    const alerts = projectAlerts(report, { ...project, dirty: dirtyPaths.has(project.path) }, project.path.startsWith(report.paths.managed_worktrees_root) && !used.has(project.path));
+    const tags = [!used.has(project.path) && el("span", { className: "tag warn", textContent: "no workspace" }), ...alerts.map((alert) => el("span", { className: "tag warn", textContent: alert })), connectedToFocus && el("span", { className: "tag connected", textContent: "connected" })].filter((tag): tag is HTMLElement => Boolean(tag));
     const chip = projectChip(ref, tags);
     const action = focusedWorkspace
       ? connectedToFocus
@@ -697,7 +726,7 @@ function renderWorkspaceInspector(report: ProbeReport): void {
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 mapFilter.addEventListener("input", () => { if (currentReport) renderEnclaveMap(currentReport); });
 mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
-type MapFilter = "git" | "worktree" | "mount" | "unassigned" | "dirty" | "planned" | "orphan";
+type MapFilter = "attention" | "git" | "worktree" | "mount" | "unassigned" | "dirty" | "planned" | "orphan";
 const activeMapFilters = new Set<MapFilter>();
 for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) {
   button.addEventListener("click", () => {
