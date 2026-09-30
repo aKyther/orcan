@@ -833,11 +833,12 @@ function queueChange(): void {
   result.textContent = `${changeTitle(queuedChanges.at(-1)!)} is ready to apply.`;
 }
 
-async function applyQueuedChanges(): Promise<void> {
+async function applyQueuedChanges(selectedIds?: Set<string>): Promise<void> {
   const connection = current;
   if (!connection) return;
   const enclave = enclaveChangeKey(connection);
-  const changes = queuedChanges.filter((change) => change.enclave === enclave);
+  const changes = queuedChanges.filter((change) => change.enclave === enclave && (!selectedIds || selectedIds.has(change.id)));
+  if (!changes.length) return;
   if (queueConflicts(changes).size) {
     result.textContent = "Resolve the conflicting planned changes before applying them.";
     renderChangeSet();
@@ -878,7 +879,10 @@ async function applyQueuedChanges(): Promise<void> {
 function openApplyReview(): void {
   const changes = queuedForCurrent();
   if (!changes.length || queueConflicts(changes).size) return;
-  applyChanges.replaceChildren(...changes.map((change) => el("li", { textContent: changeTitle(change) })));
+  applyChanges.replaceChildren(...changes.map((change) => {
+    const checkbox = el("input", { type: "checkbox", checked: true, value: change.id });
+    return el("li", { className: "apply-choice" }, el("label", {}, checkbox, el("span", { textContent: changeTitle(change) })));
+  }));
   applyStatus.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"} will be rechecked with Orcan immediately before execution. Nothing has changed yet.`;
   applyDialog.showModal();
 }
@@ -924,7 +928,11 @@ changeSetClear.addEventListener("click", () => {
   renderChangeSet();
 });
 changeSetApply.addEventListener("click", openApplyReview);
-applyConfirm.addEventListener("click", () => { applyDialog.close(); void applyQueuedChanges(); });
+applyConfirm.addEventListener("click", () => {
+  const selected = new Set(Array.from(applyChanges.querySelectorAll<HTMLInputElement>("input:checked"), (input) => input.value));
+  applyDialog.close();
+  void applyQueuedChanges(selected);
+});
 $("#sync-now").addEventListener("click", async () => {
   if (!current) return;
   const button = $<HTMLButtonElement>("#sync-now");
