@@ -23,6 +23,7 @@ type ProbeReport = {
     }>;
     managed_projects: Array<{ path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
+    update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }>;
     configuration: { state: string; revision?: string };
   };
 };
@@ -90,7 +91,7 @@ const parentRuns: ParentRun[] = (() => {
   } catch { return []; }
 })();
 
-type ParentCandidate = { path: string; name: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
+type ParentCandidate = { path: string; name: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; readOnly: boolean; eligible: boolean; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
 
 function rememberParentRun(path: string, branch: string): void {
   const existing = parentRuns.findIndex((run) => run.path === path && run.branch === branch);
@@ -101,14 +102,13 @@ function rememberParentRun(path: string, branch: string): void {
 }
 
 function parentCandidates(report: ProbeReport): ParentCandidate[] {
-  const candidates = new Map<string, ParentCandidate>();
-  const add = (project: { name?: string; path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }) => {
-    if (project.kind !== "git_repository" || candidates.has(project.path)) return;
-    candidates.set(project.path, { path: project.path, name: project.name ?? project.path.split("/").pop() ?? project.path, branch: project.branch, dirty: project.dirty, upstream: project.upstream, ahead: project.ahead, behind: project.behind });
-  };
-  report.context.managed_projects.forEach(add);
-  report.context.workspaces.flatMap((workspace) => workspace.projects).forEach(add);
-  return [...candidates.values()].sort((left, right) => {
+  return report.context.update_targets.map((target) => ({
+    path: target.path, name: target.name, role: target.role,
+    worktree_count: target.worktree_count, readOnly: target.read_only,
+    eligible: target.eligible, branch: target.branch, dirty: target.dirty,
+    upstream: target.upstream, ahead: target.ahead, behind: target.behind,
+  })).sort((left, right) => {
+    if (left.role !== right.role) return left.role === "worktree_parent" ? -1 : 1;
     const leftRun = parentRuns.find((run) => run.path === left.path)?.at ?? "";
     const rightRun = parentRuns.find((run) => run.path === right.path)?.at ?? "";
     return rightRun.localeCompare(leftRun) || left.name.localeCompare(right.name);
@@ -120,7 +120,8 @@ function renderParentRepositories(report: ProbeReport): void {
   const previousPath = parentPath.value;
   parentRepository.replaceChildren(new Option("Choose a managed repository…", ""), ...candidates.map((candidate) => {
     const run = parentRuns.find((item) => item.path === candidate.path && item.branch === (candidate.branch ?? "main"));
-    const status = [candidate.branch, candidate.upstream ? candidate.behind ? `${candidate.behind} behind` : "up to date" : "no upstream", candidate.ahead ? `${candidate.ahead} ahead` : "", candidate.dirty ? "dirty" : "", run ? `updated ${new Date(run.at).toLocaleDateString()}` : ""].filter(Boolean).join(" · ");
+    const role = candidate.role === "worktree_parent" ? `worktree source · ${candidate.worktree_count} worktree${candidate.worktree_count === 1 ? "" : "s"}` : "mounted checkout · read-only update";
+    const status = [role, candidate.branch, candidate.upstream ? candidate.behind ? `${candidate.behind} behind` : "up to date" : "no upstream", candidate.ahead ? `${candidate.ahead} ahead` : "", candidate.dirty ? "dirty — blocked" : "", run ? `updated ${new Date(run.at).toLocaleDateString()}` : ""].filter(Boolean).join(" · ");
     return new Option(`${candidate.name} · ${status}`, candidate.path);
   }), new Option("Other path…", "__manual__"));
   const selected = candidates.find((candidate) => candidate.path === previousPath) ?? candidates[0];
@@ -201,6 +202,10 @@ const demoReport: ProbeReport = {
     ],
     managed_projects: ["api", "web", "app", "scratch"].map((name) => ({ path: `/home/orcan/.config/orcan/sandbox/${name}`, kind: "git_repository" })),
     repositories: [{ repository_id: "api", origin_url: "git@github.com:example/api.git", bindings: [{ workspace: "platform" }, { workspace: "mobile" }] }, { repository_id: "web", origin_url: "git@github.com:example/web.git", bindings: [{ workspace: "platform" }] }, { repository_id: "app", origin_url: "git@github.com:example/app.git", bindings: [{ workspace: "mobile" }] }],
+    update_targets: [
+      { name: "api", path: "/home/orcan/.config/orcan/sandbox/api", kind: "git_repository", role: "worktree_parent", worktree_count: 3, read_only: false, eligible: true, branch: "main", dirty: false, upstream: "origin/main", ahead: 0, behind: 2 },
+      { name: "web", path: "/home/orcan/.config/orcan/sandbox/web", kind: "git_repository", role: "configured_mount", worktree_count: 0, read_only: true, eligible: false, branch: "feature/studio", dirty: true, upstream: "origin/feature/studio", ahead: 1, behind: 0 },
+    ],
     configuration: { state: "synchronized", revision: "demo" },
   },
 };

@@ -7,7 +7,6 @@ import os
 import subprocess
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -108,6 +107,124 @@ def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None
         "ttyd": True,
         "ttyd_auth": True,
     }
+
+
+def test_probe_marks_worktree_sources_and_clean_git_mounts_separately(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    source = tmp_path / "source"
+    mount = tmp_path / "mount"
+    plain_directory = tmp_path / "plain-directory"
+    for repository in (source, mount):
+        repository.mkdir()
+        subprocess.run(["git", "init", "-q", str(repository)], check=True)
+    plain_directory.mkdir()
+    config = home / "orcan.config.json"
+    config.parent.mkdir()
+    config.write_text(
+        json.dumps(
+            {
+                "workspaces": [
+                    {
+                        "name": "dev",
+                        "projects": [
+                            {"path": str(source)},
+                            {"path": str(mount)},
+                            {"path": str(plain_directory)},
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    projects_root = tmp_path / "sandbox"
+    registry = projects_root / ".worktrees" / "registry.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(
+        json.dumps(
+            {
+                "worktrees": [
+                    {
+                        "workspace": "dev",
+                        "project": "source",
+                        "repo": str(source),
+                        "path": str(projects_root / ".worktrees" / "dev" / "source"),
+                        "branch": "feature/dev",
+                    },
+                    {
+                        "workspace": "review",
+                        "project": "source",
+                        "repo": str(source),
+                        "path": str(projects_root / ".worktrees" / "review" / "source"),
+                        "branch": "review/dev",
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            "python3",
+            "scripts/repository/studio-probe.py",
+            "--protocol=1",
+            "--version=test",
+            f"--home={home}",
+            f"--data={tmp_path}",
+            f"--projects-root={projects_root}",
+            f"--config={config}",
+            f"--runtime={tmp_path / 'missing.json'}",
+            "--image=orcan:test",
+            "--container=orcan-test",
+        ],
+        cwd=ROOT,
+        env={**os.environ, "ORCAN_STUDIO_DOCKER": "definitely-not-docker"},
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    targets = {
+        target["path"]: target
+        for target in json.loads(result.stdout)["context"]["update_targets"]
+    }
+    assert set(targets) == {str(source), str(mount)}
+    assert targets[str(source)]["role"] == "worktree_parent"
+    assert targets[str(source)]["worktree_count"] == 2
+    assert targets[str(source)]["read_only"] is False
+    assert targets[str(mount)]["role"] == "configured_mount"
+    assert targets[str(mount)]["read_only"] is True
+    assert targets[str(mount)]["eligible"] is True
+
+    (mount / "local-change.txt").write_text("do not pull here\n", encoding="utf-8")
+    dirty_result = subprocess.run(
+        [
+            "python3",
+            "scripts/repository/studio-probe.py",
+            "--protocol=1",
+            "--version=test",
+            f"--home={home}",
+            f"--data={tmp_path}",
+            f"--projects-root={projects_root}",
+            f"--config={config}",
+            f"--runtime={tmp_path / 'missing.json'}",
+            "--image=orcan:test",
+            "--container=orcan-test",
+        ],
+        cwd=ROOT,
+        env={**os.environ, "ORCAN_STUDIO_DOCKER": "definitely-not-docker"},
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    dirty_targets = {
+        target["path"]
+        for target in json.loads(dirty_result.stdout)["context"]["update_targets"]
+    }
+    assert str(source) in dirty_targets
+    assert str(mount) not in dirty_targets
 
 
 def test_probe_requires_the_json_protocol_flag() -> None:
