@@ -232,15 +232,18 @@ def context_snapshot(
             if isinstance(path, str) and path:
                 add_update_target(path, role="configured_mount")
     raw = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
+    source = (
+        "config" if config_path.is_file() else "runtime_index" if workspaces else "none"
+    )
     return {
         "configuration": {
-            "state": (
-                "present"
-                if config_path.is_file()
-                else "runtime_index"
-                if workspaces
-                else "missing"
-            ),
+            "state": "present"
+            if source == "config"
+            else "runtime_index"
+            if source == "runtime_index"
+            else "missing",
+            "source": source,
+            "editable": source == "config",
             "revision": hashlib.sha256(raw).hexdigest()
             if config_path.is_file()
             else None,

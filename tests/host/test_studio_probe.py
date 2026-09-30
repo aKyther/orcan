@@ -155,6 +155,8 @@ def test_probe_uses_the_last_synced_workspace_index_when_config_is_missing(
 
     report = json.loads(result.stdout)
     assert report["context"]["configuration"]["state"] == "runtime_index"
+    assert report["context"]["configuration"]["source"] == "runtime_index"
+    assert report["context"]["configuration"]["editable"] is False
     assert report["paths"]["workspace_metadata_root"] == str(index.parent)
     workspace = report["context"]["workspaces"]
     assert workspace[0]["name"] == "existing"
