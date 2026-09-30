@@ -372,6 +372,10 @@ let focusedWorkspace: string | undefined;
 let tracedPath: string | undefined;
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
+const applyDialog = $<HTMLDialogElement>("#apply-dialog");
+const applyStatus = $("#apply-status");
+const applyChanges = $("#apply-changes");
+const applyConfirm = $<HTMLButtonElement>("#apply-confirm");
 const planTitle = $("#plan-title");
 const planNameField = $("#plan-name-field");
 const planWorkspaceName = $<HTMLInputElement>("#plan-workspace-name");
@@ -839,6 +843,14 @@ async function applyQueuedChanges(): Promise<void> {
   renderChangeSet();
 }
 
+function openApplyReview(): void {
+  const changes = queuedForCurrent();
+  if (!changes.length) return;
+  applyChanges.replaceChildren(...changes.map((change) => el("li", { textContent: changeTitle(change) })));
+  applyStatus.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"} will be rechecked with Orcan immediately before execution. Nothing has changed yet.`;
+  applyDialog.showModal();
+}
+
 async function revalidateQueuedChange(change: QueuedChange, connection: Connection, worktreesRoot: string): Promise<void> {
   const response = change.action === "attach" && change.relationship === "worktree"
     ? await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("worktree_plan", { enclave: enclaveInput(connection), repo: change.project.path, branch: change.branch, worktreesRoot, workspaces: [change.workspace] })
@@ -879,7 +891,8 @@ changeSetClear.addEventListener("click", () => {
   saveQueuedChanges();
   renderChangeSet();
 });
-changeSetApply.addEventListener("click", () => void applyQueuedChanges());
+changeSetApply.addEventListener("click", openApplyReview);
+applyConfirm.addEventListener("click", () => { applyDialog.close(); void applyQueuedChanges(); });
 $("#sync-now").addEventListener("click", async () => {
   if (!current) return;
   const button = $<HTMLButtonElement>("#sync-now");
