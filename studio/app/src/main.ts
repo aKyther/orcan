@@ -424,10 +424,6 @@ const connectionLines = document.querySelector<SVGSVGElement>("#connection-lines
 const traceLines = document.querySelector<SVGSVGElement>("#trace-lines")!;
 const workspaceCards = $("#workspace-cards");
 const sandboxTray = $("#sandbox-tray");
-const mapFilter = $<HTMLInputElement>("#map-filter");
-const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
-const mapFiltersToggle = document.querySelector<HTMLButtonElement>("#map-filters-toggle");
-const mapFilterRow = document.querySelector<HTMLElement>("#map-filter-row");
 const mapFilterChips = $("#map-filter-chips");
 const mapFocusClear = $<HTMLButtonElement>("#map-focus-clear");
 const contextHealth = $("#context-health");
@@ -609,23 +605,8 @@ function renderEnclaveMap(report: ProbeReport): void {
   enclaveMap.hidden = false;
   mapFocusClear.hidden = !focusedWorkspace;
   renderWorkspaceInspector(report);
-  const search = mapFilter.value.trim();
-  const literal = search.match(/^\/(.+)\/([iI]?)$/);
-  let expression: RegExp | undefined;
-  let regexError: string | undefined;
-  if (literal) {
-    try {
-      expression = new RegExp(literal[1], literal[2].toLowerCase());
-    } catch {
-      regexError = "Invalid regular expression";
-    }
-  }
-  mapFilter.classList.toggle("invalid", Boolean(regexError));
-  mapFilter.title = regexError ?? "Use plain text, /pattern/, or /pattern/i";
-  const query = search.toLowerCase();
-  const matches = (...values: Array<string | undefined>) => !search || (expression
-    ? values.some((value) => expression!.test(value ?? ""))
-    : !regexError && values.some((value) => value?.toLowerCase().includes(query)));
+  const query = "";
+  const matches = (..._values: Array<string | undefined>) => true;
   const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
   const plannedPaths = new Set(queuedForCurrent().filter((change) => change.action === "attach").map((change) => change.project.path));
   const sourceMatchesFilters = (project: HealthProject) => [...activeMapFilters].every((filter) => {
@@ -645,9 +626,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     for (const project of workspace.projects) healthProjects.set(project.path, project);
   }
   const healthIssues = [...healthProjects.values()].flatMap((project) => projectAlerts(report, project, project.path.startsWith(report.paths.managed_worktrees_root) && !used.has(project.path)));
-  contextHealth.textContent = regexError
-    ? `${regexError}. Use /pattern/ or /pattern/i.`
-    : healthIssues.length
+  contextHealth.textContent = healthIssues.length
     ? `Context health: ${healthIssues.length} attention item${healthIssues.length === 1 ? "" : "s"} · ${[...new Set(healthIssues)].join(" · ")}.`
     : "Context health: no missing paths, local changes, read-only mounts, orphan worktrees, or stale branch sources.";
   const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
@@ -766,13 +745,6 @@ function renderWorkspaceInspector(report: ProbeReport): void {
 }
 
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
-mapFilter.addEventListener("input", () => { if (currentReport) renderEnclaveMap(currentReport); });
-mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
-mapFiltersToggle?.addEventListener("click", () => {
-  if (!mapFilterRow) return;
-  mapFilterRow.hidden = !mapFilterRow.hidden;
-  mapFiltersToggle.setAttribute("aria-expanded", String(!mapFilterRow.hidden));
-});
 type MapFilter = "attention" | "git" | "worktree" | "mount" | "unassigned" | "dirty" | "planned" | "orphan";
 const activeMapFilters = new Set<MapFilter>();
 for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) {
