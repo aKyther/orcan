@@ -425,8 +425,9 @@ const traceLines = document.querySelector<SVGSVGElement>("#trace-lines")!;
 const workspaceCards = $("#workspace-cards");
 const sandboxTray = $("#sandbox-tray");
 const mapFilter = $<HTMLInputElement>("#map-filter");
-const mapParentFilter = $<HTMLSelectElement>("#map-parent-filter");
 const mapFilterClear = $<HTMLButtonElement>("#map-filter-clear");
+const mapFiltersToggle = $<HTMLButtonElement>("#map-filters-toggle");
+const mapFilterRow = $("#map-filter-row");
 const mapFilterChips = $("#map-filter-chips");
 const mapFocusClear = $<HTMLButtonElement>("#map-focus-clear");
 const contextHealth = $("#context-health");
@@ -603,18 +604,6 @@ function renderEnclaveMap(report: ProbeReport): void {
   const query = mapFilter.value.trim().toLowerCase();
   const matches = (...values: Array<string | undefined>) => !query || values.some((value) => value?.toLowerCase().includes(query));
   const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
-  const parentCounts = new Map<string, number>();
-  for (const project of [...report.context.managed_projects, ...report.context.workspaces.flatMap((workspace) => workspace.projects)]) {
-    const parent = parentDirectory(project.path);
-    parentCounts.set(parent, (parentCounts.get(parent) ?? 0) + 1);
-  }
-  const selectedParent = mapParentFilter.value;
-  mapParentFilter.replaceChildren(
-    new Option("All parent folders", ""),
-    ...[...parentCounts.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([parent, count]) => new Option(`${parentLabel(parent)} · ${count} project${count === 1 ? "" : "s"}`, parent)),
-  );
-  mapParentFilter.value = parentCounts.has(selectedParent) ? selectedParent : "";
-  const inSelectedParent = (path: string) => !mapParentFilter.value || parentDirectory(path) === mapParentFilter.value;
   const plannedPaths = new Set(queuedForCurrent().filter((change) => change.action === "attach").map((change) => change.project.path));
   const sourceMatchesFilters = (project: HealthProject) => [...activeMapFilters].every((filter) => {
     if (filter === "git") return project.kind === "git_repository" || project.kind === "git_worktree";
@@ -642,9 +631,9 @@ function renderEnclaveMap(report: ProbeReport): void {
     const drafts = workspaceDrafts(workspace.name);
     const workspaceMatches = matches(workspace.name);
     const projects = workspace.projects
-      .filter((project) => inSelectedParent(project.path) && sourceMatchesFilters(project) && (workspaceMatches || matches(project.name, project.path, project.branch)))
+      .filter((project) => sourceMatchesFilters(project) && (workspaceMatches || matches(project.name, project.path, project.branch)))
       .sort((left, right) => parentDirectory(left.path).localeCompare(parentDirectory(right.path)) || projectName(left).localeCompare(projectName(right)));
-    const visibleDrafts = drafts.filter((draft) => inSelectedParent(draft.project.path) && sourceMatchesFilters({ ...draft.project, dirty: false }) && (workspaceMatches || matches(draft.project.name, draft.project.path, draft.branch)));
+    const visibleDrafts = drafts.filter((draft) => sourceMatchesFilters({ ...draft.project, dirty: false }) && (workspaceMatches || matches(draft.project.name, draft.project.path, draft.branch)));
     if ((query || activeMapFilters.size) && !projects.length && !visibleDrafts.length) return [];
     const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
     if (drafts.length) meta.append(el("span", { className: "tag draft", textContent: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` }), actionButton("Discard", () => discardWorkspaceDraft(workspace.name), "workspace-draft-discard"));
@@ -702,7 +691,7 @@ function renderEnclaveMap(report: ProbeReport): void {
   const visibleProjectPaths = new Set(cards.flatMap((card) => Array.from(card.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")).map((chip) => chip.dataset.projectPath ?? "")));
   const dirtyPaths = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.dirty).map((project) => project.path)));
   const chips = report.context.managed_projects
-    .filter((project) => inSelectedParent(project.path) && sourceMatchesFilters({ ...project, dirty: dirtyPaths.has(project.path) }) && (!query || matches(project.path) || visibleProjectPaths.has(project.path)))
+    .filter((project) => sourceMatchesFilters({ ...project, dirty: dirtyPaths.has(project.path) }) && (!query || matches(project.path) || visibleProjectPaths.has(project.path)))
     .sort((left, right) => parentDirectory(left.path).localeCompare(parentDirectory(right.path)) || projectName(left).localeCompare(projectName(right)))
     .map((project) => {
     const ref = { name: projectName(project), path: project.path, kind: project.kind };
@@ -724,7 +713,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     (all.get(chip.parent) ?? all.set(chip.parent, []).get(chip.parent)!).push(chip.item);
     return all;
   }, new Map());
-  const groupNodes = [...groups.entries()].map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parent }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
+  const groupNodes = [...groups.entries()].map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent) }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
   sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available elements (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), groupNodes.length ? el("div", { className: "project-parent-groups" }, ...groupNodes) : el("p", { className: "hint", textContent: query ? "No available element matches this filter." : "No projects in the sandbox yet. Import one in Repositories." }));
   requestAnimationFrame(drawConnections);
 }
@@ -753,8 +742,11 @@ function renderWorkspaceInspector(report: ProbeReport): void {
 
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 mapFilter.addEventListener("input", () => { if (currentReport) renderEnclaveMap(currentReport); });
-mapParentFilter.addEventListener("change", () => { if (currentReport) renderEnclaveMap(currentReport); });
-mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; mapParentFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
+mapFilterClear.addEventListener("click", () => { mapFilter.value = ""; if (currentReport) renderEnclaveMap(currentReport); mapFilter.focus(); });
+mapFiltersToggle.addEventListener("click", () => {
+  mapFilterRow.hidden = !mapFilterRow.hidden;
+  mapFiltersToggle.setAttribute("aria-expanded", String(!mapFilterRow.hidden));
+});
 type MapFilter = "attention" | "git" | "worktree" | "mount" | "unassigned" | "dirty" | "planned" | "orphan";
 const activeMapFilters = new Set<MapFilter>();
 for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) {
