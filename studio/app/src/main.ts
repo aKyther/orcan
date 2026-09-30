@@ -1466,6 +1466,7 @@ function renderProfiles(): void {
 
 type EnclaveStatus = { state: "checking" | "online" | "offline"; report?: ProbeReport; error?: string; at?: number };
 const enclaveStatus = new Map<string, EnclaveStatus>();
+const enclaveChecks = new Map<string, Promise<EnclaveStatus>>();
 const navEnclaves = $("#nav-enclaves");
 let lastCheckAll = 0;
 
@@ -1496,7 +1497,7 @@ function dot(tone: string): HTMLElement {
   return el("span", { className: `state-dot ${tone}` });
 }
 
-async function checkEnclave(profile: ConnectionProfile): Promise<EnclaveStatus> {
+async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatus> {
   enclaveStatus.set(profile.id, { ...enclaveStatus.get(profile.id), state: "checking" });
   renderEnclaveStatus();
   let status: EnclaveStatus;
@@ -1505,7 +1506,12 @@ async function checkEnclave(profile: ConnectionProfile): Promise<EnclaveStatus> 
     localStorage.setItem(cacheKey(profile.target), JSON.stringify(report));
     status = { state: "online", report, at: Date.now() };
   } catch (error) {
-    status = { state: "offline", error: String(error), at: Date.now() };
+    status = {
+      state: "offline",
+      report: enclaveStatus.get(profile.id)?.report,
+      error: String(error),
+      at: Date.now(),
+    };
   }
   enclaveStatus.set(profile.id, status);
   if (connected && current?.profileId === profile.id) {
@@ -1514,6 +1520,14 @@ async function checkEnclave(profile: ConnectionProfile): Promise<EnclaveStatus> 
   }
   renderEnclaveStatus();
   return status;
+}
+
+function checkEnclave(profile: ConnectionProfile): Promise<EnclaveStatus> {
+  const inFlight = enclaveChecks.get(profile.id);
+  if (inFlight) return inFlight;
+  const pending = checkEnclaveNow(profile).finally(() => enclaveChecks.delete(profile.id));
+  enclaveChecks.set(profile.id, pending);
+  return pending;
 }
 
 /** Checks every saved Enclave, at most once a minute unless forced. */
@@ -1532,14 +1546,35 @@ function activate(connection: Connection, report: ProbeReport): void {
   renderStore();
 }
 
-/** Makes an Enclave active, from its last report when it is online. */
+function cachedEnclaveReport(profile: ConnectionProfile): ProbeReport | undefined {
+  try {
+    const raw = localStorage.getItem(cacheKey(profile.target));
+    return raw ? JSON.parse(raw) as ProbeReport : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Makes an Enclave active immediately, then verifies it in the background. */
 async function openEnclave(profile: ConnectionProfile): Promise<void> {
-  let status = enclaveStatus.get(profile.id);
-  if (status?.state !== "online") status = await checkEnclave(profile);
-  if (status.state === "online" && status.report) {
-    activate(profileConnection(profile), status.report);
+  const connection = profileConnection(profile);
+  const report = enclaveStatus.get(profile.id)?.report ?? cachedEnclaveReport(profile);
+  if (report) {
+    if (!enclaveStatus.get(profile.id)?.report) {
+      enclaveStatus.set(profile.id, { state: "online", report, at: Date.now() });
+    }
+    activate(connection, report);
     showView("overview");
-  } else showView("enclaves");
+    void checkEnclave(profile);
+    return;
+  }
+  result.textContent = `Connecting to ${profile.name}…`;
+  showView("enclaves");
+  const status = await checkEnclave(profile);
+  if (status.report) {
+    activate(connection, status.report);
+    showView("overview");
+  }
 }
 
 function renderEnclaves(): void {
