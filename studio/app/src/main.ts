@@ -24,7 +24,7 @@ type ProbeReport = {
     managed_projects: Array<{ path: string; kind: string; writable?: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
     update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }>;
-    configuration: { state: string; revision?: string };
+    configuration: { state: string; revision?: string; source?: "config" | "runtime_index" | "none"; editable?: boolean };
   };
 };
 
@@ -387,7 +387,7 @@ function unlockStudio(report: ProbeReport): void {
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   healthTitle.textContent = report.runtime.docker.container.state === "running" ? "Ready" : "Attention needed";
   overviewRuntime.textContent = report.runtime.docker.container.state;
-  overviewConfig.textContent = report.context.configuration.state;
+  overviewConfig.textContent = contextSourceLabel(report);
   overviewAgents.textContent = agents.length ? agents.join(", ") : "Not reported";
   overviewAccess.textContent = accessExposure(report.runtime.launch);
   nextAction.textContent = step.action;
@@ -629,6 +629,7 @@ function renderEnclaveMap(report: ProbeReport): void {
   enclaveMap.hidden = false;
   mapFocusClear.hidden = !focusedWorkspace;
   renderWorkspaceInspector(report);
+  renderProjectInspector(report);
   const query = "";
   const matches = (..._values: Array<string | undefined>) => true;
   const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
@@ -766,6 +767,61 @@ function renderWorkspaceInspector(report: ProbeReport): void {
   );
   workspaceInspectorAgent.textContent = `After applying the plan and running sync, the agent sees: ${names.length ? names.slice(0, 6).join(" · ") + (names.length > 6 ? ` · +${names.length - 6} more` : "") : "no elements yet"}.`;
   workspaceInspectorDiscard.hidden = drafts.length === 0;
+  workspaceInspectorWorktree.disabled = !canEditContext(report);
+}
+
+function renderProjectInspector(report: ProbeReport): void {
+  const reference = inspectedProject;
+  if (!reference) {
+    projectInspector.hidden = true;
+    return;
+  }
+  const workspace = reference.workspace
+    ? report.context.workspaces.find((item) => item.name === reference.workspace)
+    : undefined;
+  const project = workspace?.projects.find((item) => item.path === reference.path)
+    ?? report.context.managed_projects.find((item) => item.path === reference.path)
+    ?? report.context.workspaces.flatMap((item) => item.projects).find((item) => item.path === reference.path);
+  if (!project) {
+    inspectedProject = undefined;
+    projectInspector.hidden = true;
+    return;
+  }
+  const bindings = report.context.workspaces
+    .filter((item) => item.projects.some((candidate) => candidate.path === project.path))
+    .map((item) => item.name);
+  const alerts = projectAlerts(report, project, project.path.startsWith(report.paths.managed_worktrees_root) && bindings.length === 0);
+  projectInspector.hidden = false;
+  projectInspectorTitle.textContent = projectName(project);
+  projectInspectorState.textContent = [project.kind, project.branch, ...alerts].filter(Boolean).join(" · ") || "No Git details reported";
+  projectInspectorMetrics.replaceChildren(
+    el("span", { textContent: `${bindings.length} workspace${bindings.length === 1 ? "" : "s"}` }),
+    el("span", { textContent: project.writable === false ? "read-only" : "writable" }),
+    el("span", { className: project.dirty ? "warn" : "", textContent: project.dirty ? "uncommitted" : "clean" }),
+  );
+  projectInspectorPath.textContent = project.path;
+  const actions: HTMLElement[] = [];
+  if (reference.workspace && bindings.includes(reference.workspace)) {
+    actions.push(actionButton(`Detach from ${reference.workspace}`, () => void reviewChange("detach", reference.workspace, { name: projectName(project), path: project.path, kind: project.kind })));
+  }
+  if (focusedWorkspace && !bindings.includes(focusedWorkspace)) {
+    actions.push(actionButton(`Add to ${focusedWorkspace}`, () => void reviewChange("attach", focusedWorkspace, { name: projectName(project), path: project.path, kind: project.kind }), "secondary"));
+  }
+  if ((project.kind === "git_repository" || project.kind === "git_worktree") && canEditContext(report)) {
+    actions.push(actionButton("New worktree", () => {
+      showView("worktrees");
+      const source = parentCandidates(report).find((candidate) => candidate.repositoryId === project.repository_id && candidate.eligible);
+      if (source) worktreeRepo.value = source.path;
+      for (const option of worktreeWorkspaces.options) option.selected = option.value === (reference.workspace ?? focusedWorkspace);
+      renderWorktreeExisting();
+      worktreeBranch.focus();
+    }, "secondary"));
+  }
+  actions.push(actionButton("Clear", () => { inspectedProject = undefined; tracedPath = undefined; renderEnclaveMap(report); }, "secondary"));
+  for (const action of actions) {
+    if (!canEditContext(report) && action.textContent !== "Clear" && action instanceof HTMLButtonElement) action.disabled = true;
+  }
+  projectInspectorActions.replaceChildren(...actions);
 }
 
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
@@ -898,7 +954,7 @@ function renderChangeSet(): void {
   changeSet.hidden = changes.length === 0;
   changeSetCount.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"}${conflicts.size ? ` · ${conflicts.size} conflict${conflicts.size === 1 ? "" : "s"}` : ""}`;
   changeSetApply.textContent = `Apply ${changes.length} change${changes.length === 1 ? "" : "s"}`;
-  changeSetApply.disabled = changes.length === 0 || conflicts.size > 0;
+  changeSetApply.disabled = changes.length === 0 || conflicts.size > 0 || !canEditContext();
   changeSetClear.disabled = changes.length === 0;
   changeSetList.replaceChildren(...changes.map((change) => {
     const conflict = conflicts.get(change.id);
@@ -937,6 +993,10 @@ async function planChange(): Promise<void> {
 
 /** Opens the review dialog; nothing changes until the user confirms Orcan's plan. */
 async function reviewChange(action: MembershipArgs["action"], workspace: string | undefined, project: ProjectRef): Promise<void> {
+  if (!canEditContext()) {
+    result.textContent = contextEditMessage();
+    return;
+  }
   if (action === "attach" && workspace && currentReport?.context.workspaces.find((item) => item.name === workspace)?.projects.some((item) => item.path === project.path)) {
     result.textContent = `${project.name} is already in ${workspace}.`;
     return;
@@ -977,6 +1037,10 @@ function queueChange(): void {
 async function applyQueuedChanges(selectedIds?: Set<string>): Promise<void> {
   const connection = current;
   if (!connection) return;
+  if (!canEditContext()) {
+    result.textContent = contextEditMessage();
+    return;
+  }
   const enclave = enclaveChangeKey(connection);
   const changes = queuedChanges.filter((change) => change.enclave === enclave && (!selectedIds || selectedIds.has(change.id)));
   if (!changes.length) return;
@@ -1105,6 +1169,20 @@ function nextStep(report: ProbeReport): { title: string; action: string } {
 
 let currentReport: ProbeReport | undefined;
 
+function canEditContext(report = currentReport): boolean {
+  const configuration = report?.context.configuration;
+  return Boolean(configuration && (configuration.editable ?? (configuration.source === "config" || (!configuration.source && configuration.state === "present"))));
+}
+
+function contextSourceLabel(report: ProbeReport): string {
+  const source = report.context.configuration.source ?? (report.context.configuration.state === "present" ? "config" : "runtime_index");
+  return source === "config" ? "orcan.config.json" : source === "runtime_index" ? "synced workspace index · read-only" : "no Orcan context source";
+}
+
+function contextEditMessage(): string {
+  return "This Enclave reports only its last synced workspace index. Reconnect where orcan.config.json is available before changing context.";
+}
+
 function selectedWorkspaces(): string[] {
   return Array.from(worktreeWorkspaces.selectedOptions, (option) => option.value);
 }
@@ -1163,7 +1241,9 @@ function renderSnapshot(report: ProbeReport): void {
   setting("setting-projects-root").textContent = report.paths.projects_root;
   setting("setting-workspaces-root").textContent = report.paths.workspace_metadata_root;
   setting("setting-worktrees-root").textContent = report.paths.managed_worktrees_root;
-  setting("setting-config-state").textContent = report.context.configuration.revision ? `${report.context.configuration.state} · ${report.context.configuration.revision}` : report.context.configuration.state;
+  setting("setting-config-state").textContent = report.context.configuration.revision ? `${contextSourceLabel(report)} · ${report.context.configuration.revision}` : contextSourceLabel(report);
+  settingsSync.disabled = !canEditContext(report);
+  if (!canEditContext(report)) settingsResult.textContent = contextEditMessage();
   setting("setting-access").textContent = accessExposure(report.runtime.launch);
   renderParentRepositories(report);
   renderWorktreeChoices(report);
@@ -1722,11 +1802,12 @@ credentialDelete.addEventListener("click", async () => {
 for (const item of navigationItems) item.addEventListener("click", () => showView(item.dataset.viewTarget ?? "overview"));
 settingsRefresh.addEventListener("click", () => { if (current) void connect(current, settingsResult).catch(() => undefined); });
 for (const [action, selector] of Object.entries(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.addEventListener("click", () => void runRuntimeAction(action as RuntimeAction));
-settingsSync.addEventListener("click", async () => { if (!current) return; const job = addJob("Orcan sync", current.label); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { enclave: enclaveInput(current) }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
+settingsSync.addEventListener("click", async () => { if (!current || !canEditContext()) { settingsResult.textContent = contextEditMessage(); return; } const job = addJob("Orcan sync", current.label); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { enclave: enclaveInput(current) }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
 worktreeRepo.addEventListener("change", renderWorktreeExisting);
 worktreeWorkspaces.addEventListener("change", renderWorktreeExisting);
 worktreePlan.addEventListener("click", async () => {
   if (!current) return;
+  if (!canEditContext()) { worktreeResult.textContent = contextEditMessage(); return; }
   const workspaces = selectedWorkspaces();
   if (!worktreeRepo.value || !workspaces.length) {
     worktreeResult.textContent = "Choose a Git source and at least one workspace family.";
@@ -1747,6 +1828,7 @@ worktreePlan.addEventListener("click", async () => {
 });
 worktreeApply.addEventListener("click", async () => {
   if (!worktreeReady || !current) return;
+  if (!canEditContext()) { worktreeResult.textContent = contextEditMessage(); return; }
   const workspaces = selectedWorkspaces();
   worktreeApply.disabled = true;
   worktreeResult.textContent = "Creating worktree…";
@@ -1771,6 +1853,7 @@ cleanupPath.addEventListener("input", resetCleanupPlan);
 cleanupRemoveBranch.addEventListener("change", resetCleanupPlan);
 cleanupPlan.addEventListener("click", async () => {
   if (!current) return;
+  if (!canEditContext()) { cleanupResult.textContent = contextEditMessage(); return; }
   const bindings = worktreeBindings(cleanupPath.value);
   if (bindings.length) {
     resetCleanupPlan();
@@ -1792,6 +1875,7 @@ cleanupPlan.addEventListener("click", async () => {
 cleanupConfirm.addEventListener("input", () => { cleanupApply.disabled = !cleanupReady || cleanupConfirm.value !== "REMOVE"; });
 cleanupApply.addEventListener("click", async () => {
   if (!current || !cleanupReady || cleanupConfirm.value !== "REMOVE") return;
+  if (!canEditContext()) { cleanupResult.textContent = contextEditMessage(); return; }
   const connection = current;
   const path = cleanupPath.value;
   const job = addJob("Worktree cleanup", path);
