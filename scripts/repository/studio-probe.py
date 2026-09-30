@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Emit a read-only, versioned Orcan Sandbox report for Orcan Studio."""
 
 from __future__ import annotations
@@ -157,6 +156,54 @@ def context_snapshot(
                     "kind": project["kind"],
                 }
             )
+    # The worktree registry is Orcan's source of truth for repositories used to
+    # create branches. Regular configured Git mounts remain distinct: they may
+    # be updated only while clean, and never gain the worktree-parent role.
+    registry = read_json(projects_root / ".worktrees" / "registry.json")
+    parent_counts: dict[str, int] = {}
+    for entry in registry.get("worktrees") or []:
+        if not isinstance(entry, dict):
+            continue
+        raw_repo = entry.get("repo")
+        if not isinstance(raw_repo, str) or not raw_repo:
+            continue
+        path = str(Path(raw_repo).expanduser().resolve())
+        parent_counts[path] = parent_counts.get(path, 0) + 1
+
+    update_targets: dict[str, dict[str, object]] = {}
+
+    def add_update_target(raw_path: str, *, role: str, worktree_count: int = 0) -> None:
+        path = str(Path(raw_path).expanduser().resolve())
+        item = classify_path(Path(path))
+        # Directories and files are deliberately not update targets.
+        if item.get("kind") != "git_repository":
+            return
+        # A mount-as-is is a read-only convenience target, never a place where
+        # Studio should compete with local work. Dirty mounts stay out of the
+        # selector entirely; studio-parent.py checks again before git pull.
+        if role == "configured_mount" and item.get("dirty"):
+            return
+        existing = update_targets.get(path)
+        if existing and existing.get("role") == "worktree_parent":
+            return
+        item.update(
+            {
+                "name": Path(path).name or path,
+                "role": role,
+                "worktree_count": worktree_count,
+                "read_only": role == "configured_mount",
+                "eligible": not bool(item.get("dirty")),
+            }
+        )
+        update_targets[path] = item
+
+    for path, count in parent_counts.items():
+        add_update_target(path, role="worktree_parent", worktree_count=count)
+    for workspace in workspaces:
+        for project in workspace["projects"]:
+            path = project.get("path")
+            if isinstance(path, str) and path:
+                add_update_target(path, role="configured_mount")
     raw = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
     return {
         "configuration": {
@@ -172,6 +219,13 @@ def context_snapshot(
         "workspaces": workspaces,
         "managed_projects": managed_entries,
         "repositories": list(repositories.values()),
+        "update_targets": sorted(
+            update_targets.values(),
+            key=lambda target: (
+                target.get("role") != "worktree_parent",
+                str(target.get("name") or "").lower(),
+            ),
+        ),
     }
 
 
@@ -257,7 +311,7 @@ def launch_flags(path: Path) -> dict[str, object]:
         key, _, value = line.partition("=")
         parsed = shlex.split(value)
         values[key] = parsed[0] if parsed else ""
-    flag = lambda key: values.get(key) == "1"  # noqa: E731
+    flag = lambda key: values.get(key) == "1"
     return {
         "recorded": True,
         "docker": flag("WITH_DOCKER"),
