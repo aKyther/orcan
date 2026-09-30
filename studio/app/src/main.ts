@@ -317,9 +317,13 @@ const gatedViews = new Set(navigationItems.filter((item) => item.classList.conta
 gatedViews.add("settings");
 let currentView = "overview";
 
+function canViewContexts(): boolean {
+  return connected || Boolean(currentReport);
+}
+
 function showView(name: string): void {
   const target = views.find((view) => view.dataset.view === name);
-  if (!target || (gatedViews.has(name) && !connected)) return;
+  if (!target || (gatedViews.has(name) && !connected && !(name === "contexts" && canViewContexts()))) return;
   currentView = name;
   if (name === "enclaves") checkAll();
   for (const view of views) view.hidden = view !== target;
@@ -341,7 +345,9 @@ function lockStudio(): void {
   connected = false;
   if (gatedViews.has(currentView)) showView("overview");
   activeGroup.hidden = true;
-  for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) item.hidden = true;
+  for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) {
+    item.hidden = item.dataset.viewTarget !== "contexts" || !canViewContexts();
+  }
   healthPanel.hidden = true;
   enclaveMap.hidden = true;
   snapshot.hidden = true;
