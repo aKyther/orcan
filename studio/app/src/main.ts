@@ -243,6 +243,24 @@ const previewSnapshot: Promise<ProbeReport | undefined> = demoMode
   ? fetch("/preview-probe.json", { cache: "no-store" }).then((response) => (response.ok ? response.json() : undefined)).catch(() => undefined)
   : Promise.resolve(undefined);
 
+/**
+ * Preview snapshots can outlive the Studio that reads them.  Keep an older
+ * Orcan report useful when a newly-added collection was emitted as null.
+ */
+function normalizeProbeReport(report: ProbeReport): ProbeReport {
+  const context = report.context;
+  return {
+    ...report,
+    context: {
+      ...context,
+      workspaces: Array.isArray(context.workspaces) ? context.workspaces : [],
+      managed_projects: Array.isArray(context.managed_projects) ? context.managed_projects : [],
+      repositories: Array.isArray(context.repositories) ? context.repositories : [],
+      update_targets: Array.isArray(context.update_targets) ? context.update_targets : [],
+    },
+  };
+}
+
 type MembershipArgs = { action: "attach" | "detach"; workspace: string; project: string; apply: boolean };
 const demoReports = new Map<string, ProbeReport>();
 
@@ -251,7 +269,7 @@ async function demoReportFor(target: Target): Promise<ProbeReport> {
   const key = JSON.stringify(target);
   if (!demoReports.has(key)) {
     const snapshot = target.kind === "local" ? await previewSnapshot : undefined;
-    const base = snapshot ?? (key.includes("gpu") ? { ...demoReport, runtime: { ...demoReport.runtime, docker: { ...demoReport.runtime.docker, container: { state: "exited" } } } } : demoReport);
+    const base = normalizeProbeReport(snapshot ?? (key.includes("gpu") ? { ...demoReport, runtime: { ...demoReport.runtime, docker: { ...demoReport.runtime.docker, container: { state: "exited" } } } } : demoReport));
     demoReports.set(key, structuredClone(base));
   }
   return demoReports.get(key)!;
@@ -1129,7 +1147,11 @@ function renderWorktreeChoices(report: ProbeReport): void {
 }
 
 function renderSnapshot(report: ProbeReport): void {
+  report = normalizeProbeReport(report);
   currentReport = report;
+  // The navigation is the essential connection result.  Map decorations and
+  // inventories below are helpful, but must never keep a valid report locked.
+  unlockStudio(report);
   renderEnclaveMap(report);
   snapshot.hidden = false;
   snapshotRoot.textContent = report.paths.projects_root;
@@ -1156,7 +1178,6 @@ function renderSnapshot(report: ProbeReport): void {
     const review = actionButton("Review", () => { cleanupPath.value = project.path; cleanupResult.textContent = `Selected ${project.name ?? project.path} from ${workspace}.`; });
     return el("div", { className: "cleanup-item" }, el("span", { textContent: `${project.name ?? project.path.split("/").pop()} · ${workspace}${project.branch ? ` · ${project.branch}` : ""}` }), review);
   }) : [el("p", { className: "hint", textContent: "No managed worktrees are currently connected to a workspace." })]));
-  unlockStudio(report);
   void refreshWorktreeInventory(report.paths.managed_worktrees_root);
   renderRuntime(report);
   const rows: HTMLElement[] = [];
