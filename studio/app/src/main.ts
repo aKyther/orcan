@@ -23,7 +23,7 @@ type ProbeReport = {
     }>;
     managed_projects: Array<{ path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
-    update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }>;
+    update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }>;
     configuration: { state: string; revision?: string };
   };
 };
@@ -91,7 +91,7 @@ const parentRuns: ParentRun[] = (() => {
   } catch { return []; }
 })();
 
-type ParentCandidate = { path: string; name: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; readOnly: boolean; eligible: boolean; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
+type ParentCandidate = { path: string; name: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; readOnly: boolean; eligible: boolean; repositoryId?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
 
 function rememberParentRun(path: string, branch: string): void {
   const existing = parentRuns.findIndex((run) => run.path === path && run.branch === branch);
@@ -105,7 +105,7 @@ function parentCandidates(report: ProbeReport): ParentCandidate[] {
   return report.context.update_targets.map((target) => ({
     path: target.path, name: target.name, role: target.role,
     worktree_count: target.worktree_count, readOnly: target.read_only,
-    eligible: target.eligible, branch: target.branch, dirty: target.dirty,
+    eligible: target.eligible, repositoryId: target.repository_id, branch: target.branch, dirty: target.dirty,
     upstream: target.upstream, ahead: target.ahead, behind: target.behind,
   })).sort((left, right) => {
     if (left.role !== right.role) return left.role === "worktree_parent" ? -1 : 1;
@@ -163,12 +163,13 @@ const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confir
 const cleanupPlan = document.querySelector<HTMLButtonElement>("#cleanup-plan")!;
 const cleanupApply = document.querySelector<HTMLButtonElement>("#cleanup-apply")!;
 const cleanupResult = document.querySelector<HTMLOutputElement>("#cleanup-result")!;
-const worktreeRepo = document.querySelector<HTMLInputElement>("#worktree-repo")!;
+const worktreeRepo = document.querySelector<HTMLSelectElement>("#worktree-repo")!;
 const worktreeBranch = document.querySelector<HTMLInputElement>("#worktree-branch")!;
-const worktreeWorkspaces = document.querySelector<HTMLInputElement>("#worktree-workspaces")!;
+const worktreeWorkspaces = document.querySelector<HTMLSelectElement>("#worktree-workspaces")!;
 const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")!;
 const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;
 const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
+const worktreeExisting = document.querySelector<HTMLElement>("#worktree-existing")!;
 const jobsList = document.querySelector<HTMLElement>("#jobs-list")!;
 type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string };
 const jobs: Job[] = JSON.parse(localStorage.getItem("orcan-studio:jobs") ?? "[]");
@@ -699,7 +700,8 @@ workspaceInspectorAdd.addEventListener("click", () => sandboxTray.scrollIntoView
 workspaceInspectorWorktree.addEventListener("click", () => {
   if (!focusedWorkspace) return;
   showView("worktrees");
-  worktreeWorkspaces.value = focusedWorkspace;
+  for (const option of worktreeWorkspaces.options) option.selected = option.value === focusedWorkspace;
+  renderWorktreeExisting();
   worktreeRepo.focus();
 });
 workspaceInspectorDiscard.addEventListener("click", () => { if (focusedWorkspace) discardWorkspaceDraft(focusedWorkspace); });
@@ -1019,6 +1021,47 @@ function nextStep(report: ProbeReport): { title: string; action: string } {
 
 let currentReport: ProbeReport | undefined;
 
+function selectedWorkspaces(): string[] {
+  return Array.from(worktreeWorkspaces.selectedOptions, (option) => option.value);
+}
+
+function renderWorktreeExisting(): void {
+  const report = currentReport;
+  const candidate = report && parentCandidates(report).find((item) => item.path === worktreeRepo.value);
+  const selected = selectedWorkspaces();
+  if (!report || !candidate || !selected.length) {
+    worktreeExisting.textContent = "Choose a source repository and one or more workspace families to inspect existing branches.";
+    return;
+  }
+  const branches = selected.flatMap((workspaceName) => {
+    const workspace = report.context.workspaces.find((item) => item.name === workspaceName);
+    return (workspace?.projects ?? [])
+      .filter((project) => project.repository_id === candidate.repositoryId && project.path.startsWith(report.paths.managed_worktrees_root))
+      .map((project) => `${workspaceName} · ${project.branch ?? project.name ?? "detached"}`);
+  });
+  worktreeExisting.textContent = branches.length
+    ? `Already connected from this source: ${branches.join(" · ")}.`
+    : "No managed branches from this source are connected to the selected workspace families.";
+}
+
+function renderWorktreeChoices(report: ProbeReport): void {
+  const previousRepository = worktreeRepo.value;
+  const previousWorkspaces = new Set(selectedWorkspaces());
+  const sources = parentCandidates(report).filter((candidate) => candidate.eligible);
+  worktreeRepo.replaceChildren(
+    new Option("Choose a clean Git source…", ""),
+    ...sources.map((candidate) => new Option(
+      `${candidate.name} · ${candidate.branch ?? "detached"}${candidate.role === "worktree_parent" ? ` · ${candidate.worktree_count} worktrees` : " · mounted source"}`,
+      candidate.path,
+    )),
+  );
+  worktreeRepo.value = sources.some((candidate) => candidate.path === previousRepository)
+    ? previousRepository
+    : sources[0]?.path ?? "";
+  worktreeWorkspaces.replaceChildren(...report.context.workspaces.map((workspace) => new Option(`${workspace.name} · ${workspace.projects.length} projects`, workspace.name, false, previousWorkspaces.has(workspace.name) || focusedWorkspace === workspace.name)));
+  renderWorktreeExisting();
+}
+
 function renderSnapshot(report: ProbeReport): void {
   currentReport = report;
   renderEnclaveMap(report);
@@ -1034,6 +1077,7 @@ function renderSnapshot(report: ProbeReport): void {
   setting("setting-worktrees-root").textContent = report.paths.managed_worktrees_root;
   setting("setting-config-state").textContent = report.context.configuration.revision ? `${report.context.configuration.state} · ${report.context.configuration.revision}` : report.context.configuration.state;
   renderParentRepositories(report);
+  renderWorktreeChoices(report);
   const resources = report.runtime.resources;
   settingResources.textContent = resources ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"} · SHM ${resources.shm_size ?? "—"}` : "Not reported";
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
@@ -1547,8 +1591,45 @@ for (const item of navigationItems) item.addEventListener("click", () => showVie
 settingsRefresh.addEventListener("click", () => { if (current) void connect(current, settingsResult).catch(() => undefined); });
 for (const [action, selector] of Object.entries(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.addEventListener("click", () => void runRuntimeAction(action as RuntimeAction));
 settingsSync.addEventListener("click", async () => { if (!current) return; const job = addJob("Orcan sync", current.label); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { enclave: enclaveInput(current) }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
-worktreePlan.addEventListener("click", async () => { if (!current) return; try { const workspaces = worktreeWorkspaces.value.split(",").map((value) => value.trim()).filter(Boolean); const response = await invoke<{ plan: { destination: string; ready: boolean; blockers: string[] } }>("worktree_plan", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces }); worktreeReady = response.plan.ready; worktreeApply.disabled = !worktreeReady; worktreeResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination} · ${workspaces.join(", ") || "no bindings"}` : response.plan.blockers.join(" · "); } catch (error) { worktreeReady = false; worktreeApply.disabled = true; worktreeResult.textContent = `Plan failed: ${String(error)}`; } });
-worktreeApply.addEventListener("click", async () => { if (!worktreeReady || !current) return; const workspaces = worktreeWorkspaces.value.split(",").map((value) => value.trim()).filter(Boolean); worktreeApply.disabled = true; worktreeResult.textContent = "Creating worktree…"; const job = addJob("Worktree create", worktreeBranch.value); try { const response = await invoke<{ result: { path: string } }>("worktree_apply", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces }); worktreeResult.textContent = `Created: ${response.result.path}`; worktreeReady = false; finishJob(job, "succeeded", response.result.path); } catch (error) { worktreeResult.textContent = `Create failed: ${String(error)}`; finishJob(job, "failed", String(error)); } });
+worktreeRepo.addEventListener("change", renderWorktreeExisting);
+worktreeWorkspaces.addEventListener("change", renderWorktreeExisting);
+worktreePlan.addEventListener("click", async () => {
+  if (!current) return;
+  const workspaces = selectedWorkspaces();
+  if (!worktreeRepo.value || !workspaces.length) {
+    worktreeResult.textContent = "Choose a Git source and at least one workspace family.";
+    return;
+  }
+  try {
+    const response = await invoke<{ plan: { project?: string; destination: string; ready: boolean; blockers: string[] } }>("worktree_plan", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces });
+    worktreeReady = response.plan.ready;
+    worktreeApply.disabled = !worktreeReady;
+    worktreeResult.textContent = response.plan.ready
+      ? `Ready: ${response.plan.project ?? "worktree"} → ${response.plan.destination} · attach to ${workspaces.join(", ")}.`
+      : response.plan.blockers.join(" · ");
+  } catch (error) {
+    worktreeReady = false;
+    worktreeApply.disabled = true;
+    worktreeResult.textContent = `Plan failed: ${String(error)}`;
+  }
+});
+worktreeApply.addEventListener("click", async () => {
+  if (!worktreeReady || !current) return;
+  const workspaces = selectedWorkspaces();
+  worktreeApply.disabled = true;
+  worktreeResult.textContent = "Creating worktree…";
+  const job = addJob("Worktree create", worktreeBranch.value);
+  try {
+    const response = await invoke<{ result: { path: string } }>("worktree_apply", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces });
+    worktreeReady = false;
+    await connect(current);
+    worktreeResult.textContent = `Created: ${response.result.path}. Map refreshed; run Orcan sync when you want the Enclave mounts reconciled.`;
+    finishJob(job, "succeeded", response.result.path);
+  } catch (error) {
+    worktreeResult.textContent = `Create failed: ${String(error)}`;
+    finishJob(job, "failed", String(error));
+  }
+});
 cleanupPlan.addEventListener("click", async () => {
   if (!current) return;
   try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(current), path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: false }); cleanupApply.disabled = !response.plan.ready; cleanupResult.textContent = response.plan.ready ? "Plan ready. Type REMOVE to enable deletion." : response.plan.blockers.join(" · "); }
