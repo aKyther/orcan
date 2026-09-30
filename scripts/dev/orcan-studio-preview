@@ -34,7 +34,9 @@ require() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
 SNAPSHOT="${ROOT_DIR}/studio/app/.preview/probe.json"
 case "${1:-}" in
     snapshot)
-        orcan_bin="$(command -v orcan || printf '%s' "${ROOT_DIR}/bin/orcan")"
+        # The browser preview and its snapshot must use the same checkout.
+        # Falling back to an installed Orcan can produce an older report schema.
+        orcan_bin="${ROOT_DIR}/bin/orcan"
         mkdir -p "$(dirname "${SNAPSHOT}")"
         "${orcan_bin}" studio probe --json >"${SNAPSHOT}.tmp" || die "orcan studio probe failed"
         python3 -c 'import json, sys; r = json.load(open(sys.argv[1])); print("Snapshot:", ", ".join(w["name"] for w in r["context"]["workspaces"]) or "no workspaces")' "${SNAPSHOT}.tmp" \
