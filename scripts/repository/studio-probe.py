@@ -99,8 +99,33 @@ def classify_path(path: Path) -> dict[str, object]:
     }
 
 
+def indexed_workspaces(index_path: Path) -> list[dict[str, object]]:
+    """Re-classify the last synced workspace index without trusting stale facts."""
+    index = read_json(index_path)
+    workspaces: list[dict[str, object]] = []
+    for workspace in index.get("workspaces") or []:
+        if not isinstance(workspace, dict) or workspace.get("enabled") is False:
+            continue
+        name = workspace.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        projects: list[dict[str, object]] = []
+        for project in workspace.get("projects") or []:
+            if not isinstance(project, dict):
+                continue
+            raw_path = project.get("path")
+            if not isinstance(raw_path, str) or not raw_path:
+                continue
+            path = Path(raw_path)
+            item = classify_path(path)
+            item["name"] = str(project.get("name") or path.name)
+            projects.append(item)
+        workspaces.append({"name": name, "projects": projects})
+    return workspaces
+
+
 def context_snapshot(
-    config_path: Path, projects_root: Path, home: Path
+    config_path: Path, projects_root: Path, workspace_index: Path
 ) -> dict[str, object]:
     """Return Studio-visible configuration and path membership, never secrets."""
     config = read_json(config_path)
@@ -124,6 +149,8 @@ def context_snapshot(
             item["name"] = str(project.get("name") or default_name)
             projects.append(item)
         workspaces.append({"name": name, "projects": projects})
+    if not workspaces:
+        workspaces = indexed_workspaces(workspace_index)
     managed_entries = (
         [
             classify_path(entry)
@@ -207,13 +234,19 @@ def context_snapshot(
     raw = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
     return {
         "configuration": {
-            "state": "present" if config_path.is_file() else "missing",
+            "state": (
+                "present"
+                if config_path.is_file()
+                else "runtime_index"
+                if workspaces
+                else "missing"
+            ),
             "revision": hashlib.sha256(raw).hexdigest()
             if config_path.is_file()
             else None,
         },
         "paths": {
-            "workspace_metadata_root": str(home / "workspaces"),
+            "workspace_metadata_root": str(workspace_index.parent),
             "managed_worktrees_root": str(projects_root / ".worktrees"),
         },
         "workspaces": workspaces,
@@ -329,6 +362,7 @@ def main() -> None:
     parser.add_argument("--home", required=True)
     parser.add_argument("--data", required=True)
     parser.add_argument("--projects-root", required=True)
+    parser.add_argument("--workspace-index", required=True)
     parser.add_argument("--config", required=True)
     parser.add_argument("--runtime", required=True)
     parser.add_argument("--image", required=True)
@@ -355,7 +389,7 @@ def main() -> None:
             "home": str(Path(args.home)),
             "data": str(Path(args.data)),
             "projects_root": str(Path(args.projects_root)),
-            "workspace_metadata_root": str(Path(args.home) / "workspaces"),
+            "workspace_metadata_root": str(Path(args.workspace_index).parent),
             "managed_worktrees_root": str(Path(args.projects_root) / ".worktrees"),
         },
         "capabilities": {
@@ -374,7 +408,9 @@ def main() -> None:
             else {"recorded": False},
         },
         "context": context_snapshot(
-            Path(args.config), Path(args.projects_root), Path(args.home)
+            Path(args.config),
+            Path(args.projects_root),
+            Path(args.workspace_index),
         ),
     }
     print(json.dumps(report, separators=(",", ":"), sort_keys=True))

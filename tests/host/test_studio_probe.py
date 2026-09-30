@@ -86,6 +86,7 @@ def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None
             f"--home={tmp_path}",
             f"--data={tmp_path}",
             f"--projects-root={tmp_path}",
+            f"--workspace-index={tmp_path / 'workspaces' / 'index.json'}",
             f"--config={tmp_path / 'missing.json'}",
             f"--runtime={tmp_path / 'missing.json'}",
             "--image=orcan:test",
@@ -107,6 +108,59 @@ def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None
         "ttyd": True,
         "ttyd_auth": True,
     }
+
+
+def test_probe_uses_the_last_synced_workspace_index_when_config_is_missing(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    subprocess.run(["git", "init", "-q", str(project)], check=True)
+    index = tmp_path / "workspaces" / "index.json"
+    index.parent.mkdir()
+    index.write_text(
+        json.dumps(
+            {
+                "workspaces": [
+                    {
+                        "name": "existing",
+                        "projects": [{"name": "app", "path": str(project)}],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            "python3",
+            "scripts/repository/studio-probe.py",
+            "--protocol=1",
+            "--version=test",
+            f"--home={tmp_path / 'home'}",
+            f"--data={tmp_path}",
+            f"--projects-root={tmp_path}",
+            f"--workspace-index={index}",
+            f"--config={tmp_path / 'missing.json'}",
+            f"--runtime={tmp_path / 'missing-runtime.json'}",
+            "--image=orcan:test",
+            "--container=orcan-test",
+        ],
+        cwd=ROOT,
+        env={**os.environ, "ORCAN_STUDIO_DOCKER": "definitely-not-docker"},
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    report = json.loads(result.stdout)
+    assert report["context"]["configuration"]["state"] == "runtime_index"
+    assert report["paths"]["workspace_metadata_root"] == str(index.parent)
+    workspace = report["context"]["workspaces"]
+    assert workspace[0]["name"] == "existing"
+    assert workspace[0]["projects"][0]["name"] == "app"
+    assert workspace[0]["projects"][0]["path"] == str(project)
+    assert workspace[0]["projects"][0]["kind"] == "git_repository"
 
 
 def test_probe_marks_worktree_sources_and_clean_git_mounts_separately(
@@ -174,6 +228,7 @@ def test_probe_marks_worktree_sources_and_clean_git_mounts_separately(
             f"--home={home}",
             f"--data={tmp_path}",
             f"--projects-root={projects_root}",
+            f"--workspace-index={tmp_path / 'workspaces' / 'index.json'}",
             f"--config={config}",
             f"--runtime={tmp_path / 'missing.json'}",
             "--image=orcan:test",
@@ -208,6 +263,7 @@ def test_probe_marks_worktree_sources_and_clean_git_mounts_separately(
             f"--home={home}",
             f"--data={tmp_path}",
             f"--projects-root={projects_root}",
+            f"--workspace-index={tmp_path / 'workspaces' / 'index.json'}",
             f"--config={config}",
             f"--runtime={tmp_path / 'missing.json'}",
             "--image=orcan:test",

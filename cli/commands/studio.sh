@@ -16,6 +16,10 @@ orcan_cmd_studio() {
             orcan_require_python
             local data="${ORCAN_DATA:-${XDG_CONFIG_HOME:-${HOME}/.config}/orcan}"
             local projects_root="${ORCAN_PROJECTS_ROOT:-${data}/sandbox}"
+            local workspace_index="${ORCAN_WORKSPACE_INDEX:-${ORCAN_HOME}/workspaces/index.json}"
+            if [[ ! -f "${workspace_index}" && -f "${HOME}/workspaces/index.json" ]]; then
+                workspace_index="${HOME}/workspaces/index.json"
+            fi
             ORCAN_STUDIO_DOCKER="${ORCAN_STUDIO_DOCKER:-docker}" \
                 orcan_host_python "${ORCAN_SCRIPTS}/studio-probe.py" \
                     --protocol 1 \
@@ -23,6 +27,7 @@ orcan_cmd_studio() {
                     --home "${ORCAN_HOME}" \
                     --data "${data}" \
                     --projects-root "${projects_root}" \
+                    --workspace-index "${workspace_index}" \
                     --config "${ORCAN_CONFIG_FILE}" \
                     --runtime "${ORCAN_RUNTIME_DIR}/runtime-config.json" \
                     --last-up "$(orcan_last_up_file)" \
