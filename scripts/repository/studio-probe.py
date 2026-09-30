@@ -54,12 +54,28 @@ def git_details(path: Path) -> dict[str, object]:
     )
     branch = git_output(path, "symbolic-ref", "--quiet", "--short", "HEAD")
     status = git_output(path, "status", "--porcelain=v1", "--untracked-files=normal")
+    upstream = git_output(
+        path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"
+    )
+    ahead_behind = git_output(
+        path, "rev-list", "--left-right", "--count", "HEAD...@{upstream}"
+    )
+    ahead: int | None = None
+    behind: int | None = None
+    if ahead_behind:
+        try:
+            ahead, behind = (int(value) for value in ahead_behind.split())
+        except ValueError:
+            pass
     return {
         "repository_id": hashlib.sha256(str(common_path).encode()).hexdigest()[:16],
         "git_common_dir": str(common_path),
         "origin_url": git_output(path, "config", "--get", "remote.origin.url"),
         "branch": branch,
         "dirty": bool(status),
+        "upstream": upstream,
+        "ahead": ahead,
+        "behind": behind,
     }
 
 

@@ -19,9 +19,9 @@ type ProbeReport = {
   context: {
     workspaces: Array<{
       name: string;
-      projects: Array<{ name?: string; path: string; kind: string; branch?: string; dirty?: boolean; repository_id?: string }>;
+      projects: Array<{ name?: string; path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; repository_id?: string }>;
     }>;
-    managed_projects: Array<{ path: string; kind: string }>;
+    managed_projects: Array<{ path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
     configuration: { state: string; revision?: string };
   };
@@ -74,12 +74,62 @@ const snapshotWorkspaces = document.querySelector<HTMLElement>("#snapshot-worksp
 const snapshotProjects = document.querySelector<HTMLElement>("#snapshot-projects")!;
 const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
+const parentRepository = document.querySelector<HTMLSelectElement>("#parent-repository")!;
 const parentPath = document.querySelector<HTMLInputElement>("#parent-path")!;
 const parentBranch = document.querySelector<HTMLInputElement>("#parent-branch")!;
 const parentPlanButton = document.querySelector<HTMLButtonElement>("#parent-plan")!;
 const parentApplyButton = document.querySelector<HTMLButtonElement>("#parent-apply")!;
 const parentResult = document.querySelector<HTMLOutputElement>("#parent-result")!;
 let parentHead: string | undefined;
+type ParentRun = { path: string; branch: string; at: string };
+const PARENT_RUNS_KEY = "orcan-studio:parent-runs";
+const parentRuns: ParentRun[] = (() => {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(PARENT_RUNS_KEY) ?? "[]");
+    return Array.isArray(saved) ? saved.filter((item): item is ParentRun => Boolean(item) && typeof item === "object" && typeof (item as ParentRun).path === "string" && typeof (item as ParentRun).branch === "string" && typeof (item as ParentRun).at === "string") : [];
+  } catch { return []; }
+})();
+
+type ParentCandidate = { path: string; name: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
+
+function rememberParentRun(path: string, branch: string): void {
+  const existing = parentRuns.findIndex((run) => run.path === path && run.branch === branch);
+  if (existing >= 0) parentRuns.splice(existing, 1);
+  parentRuns.unshift({ path, branch, at: new Date().toISOString() });
+  parentRuns.splice(20);
+  localStorage.setItem(PARENT_RUNS_KEY, JSON.stringify(parentRuns));
+}
+
+function parentCandidates(report: ProbeReport): ParentCandidate[] {
+  const candidates = new Map<string, ParentCandidate>();
+  const add = (project: { name?: string; path: string; kind: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }) => {
+    if (project.kind !== "git_repository" || candidates.has(project.path)) return;
+    candidates.set(project.path, { path: project.path, name: project.name ?? project.path.split("/").pop() ?? project.path, branch: project.branch, dirty: project.dirty, upstream: project.upstream, ahead: project.ahead, behind: project.behind });
+  };
+  report.context.managed_projects.forEach(add);
+  report.context.workspaces.flatMap((workspace) => workspace.projects).forEach(add);
+  return [...candidates.values()].sort((left, right) => {
+    const leftRun = parentRuns.find((run) => run.path === left.path)?.at ?? "";
+    const rightRun = parentRuns.find((run) => run.path === right.path)?.at ?? "";
+    return rightRun.localeCompare(leftRun) || left.name.localeCompare(right.name);
+  });
+}
+
+function renderParentRepositories(report: ProbeReport): void {
+  const candidates = parentCandidates(report);
+  const previousPath = parentPath.value;
+  parentRepository.replaceChildren(new Option("Choose a managed repository…", ""), ...candidates.map((candidate) => {
+    const run = parentRuns.find((item) => item.path === candidate.path && item.branch === (candidate.branch ?? "main"));
+    const status = [candidate.branch, candidate.upstream ? candidate.behind ? `${candidate.behind} behind` : "up to date" : "no upstream", candidate.ahead ? `${candidate.ahead} ahead` : "", candidate.dirty ? "dirty" : "", run ? `updated ${new Date(run.at).toLocaleDateString()}` : ""].filter(Boolean).join(" · ");
+    return new Option(`${candidate.name} · ${status}`, candidate.path);
+  }), new Option("Other path…", "__manual__"));
+  const selected = candidates.find((candidate) => candidate.path === previousPath) ?? candidates[0];
+  if (!selected) return;
+  parentRepository.value = selected.path;
+  parentPath.hidden = true;
+  parentPath.value = selected.path;
+  if (!parentBranch.value || previousPath !== selected.path) parentBranch.value = selected.branch ?? "main";
+}
 const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
 const importDestination = document.querySelector<HTMLInputElement>("#import-destination")!;
 const importPlanButton = document.querySelector<HTMLButtonElement>("#import-plan")!;
@@ -978,6 +1028,7 @@ function renderSnapshot(report: ProbeReport): void {
   setting("setting-workspaces-root").textContent = report.paths.workspace_metadata_root;
   setting("setting-worktrees-root").textContent = report.paths.managed_worktrees_root;
   setting("setting-config-state").textContent = report.context.configuration.revision ? `${report.context.configuration.state} · ${report.context.configuration.revision}` : report.context.configuration.state;
+  renderParentRepositories(report);
   const resources = report.runtime.resources;
   settingResources.textContent = resources ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"} · SHM ${resources.shm_size ?? "—"}` : "Not reported";
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
@@ -1517,6 +1568,21 @@ importApplyButton.addEventListener("click", async () => {
   try { const response = await invoke<{ result: { destination: string } }>("import_apply", { enclave: enclaveInput(current!), source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined }); importResult.textContent = `Imported: ${response.result.destination}`; importReady = false; finishJob(job, "succeeded", response.result.destination); }
   catch (error) { importResult.textContent = `Import failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
 });
+parentRepository.addEventListener("change", () => {
+  if (parentRepository.value === "__manual__") {
+    parentPath.hidden = false;
+    parentPath.value = "";
+    parentPath.focus();
+  } else {
+    const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === parentRepository.value);
+    parentPath.hidden = true;
+    parentPath.value = parentRepository.value;
+    if (candidate?.branch) parentBranch.value = candidate.branch;
+  }
+  parentHead = undefined;
+  parentApplyButton.disabled = true;
+  parentResult.textContent = "Preview before applying an update.";
+});
 parentPlanButton.addEventListener("click", async () => {
   parentPlanButton.disabled = true; parentResult.textContent = "Checking parent repository…";
   try {
@@ -1532,7 +1598,13 @@ parentApplyButton.addEventListener("click", async () => {
   if (!parentHead) return;
   parentApplyButton.disabled = true; parentResult.textContent = "Applying approved fast-forward…";
   const job = addJob("Parent update", parentBranch.value);
-  try { await invoke("parent_apply", { enclave: enclaveInput(current!), path: parentPath.value, branch: parentBranch.value, expectedHead: parentHead }); parentResult.textContent = "Parent updated."; finishJob(job, "succeeded", "Fast-forward applied"); }
+  try {
+    await invoke("parent_apply", { enclave: enclaveInput(current!), path: parentPath.value, branch: parentBranch.value, expectedHead: parentHead });
+    rememberParentRun(parentPath.value, parentBranch.value);
+    if (currentReport) renderParentRepositories(currentReport);
+    parentResult.textContent = "Parent updated.";
+    finishJob(job, "succeeded", "Fast-forward applied");
+  }
   catch (error) { parentResult.textContent = `Update failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
   finally { parentApplyButton.disabled = false; }
 });
