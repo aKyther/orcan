@@ -155,11 +155,13 @@ const healthTitle = document.querySelector<HTMLElement>("#health-title")!;
 const overviewRuntime = document.querySelector<HTMLElement>("#overview-runtime")!;
 const overviewConfig = document.querySelector<HTMLElement>("#overview-config")!;
 const overviewAgents = document.querySelector<HTMLElement>("#overview-agents")!;
+const overviewAccess = document.querySelector<HTMLElement>("#overview-access")!;
 const nextAction = document.querySelector<HTMLElement>("#next-action")!;
 const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
 const cleanupPath = document.querySelector<HTMLInputElement>("#cleanup-path")!;
 const cleanupSuggestions = $("#cleanup-suggestions");
 const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confirm")!;
+const cleanupRemoveBranch = document.querySelector<HTMLInputElement>("#cleanup-remove-branch")!;
 const cleanupPlan = document.querySelector<HTMLButtonElement>("#cleanup-plan")!;
 const cleanupApply = document.querySelector<HTMLButtonElement>("#cleanup-apply")!;
 const cleanupResult = document.querySelector<HTMLOutputElement>("#cleanup-result")!;
@@ -178,6 +180,7 @@ function addJob(name: string, detail: string): Job { const job = { name, detail,
 function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
 function renderJobs(): void { jobsList.replaceChildren(...(jobs.length ? jobs.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${new Date(job.at).toLocaleString()} · ${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No jobs yet." })])); }
 let worktreeReady = false;
+let cleanupReady = false;
 let profiles: ConnectionProfile[] = [];
 let savedCredentials: Credential[] = [];
 let current: Connection | undefined;
@@ -362,6 +365,7 @@ function unlockStudio(report: ProbeReport): void {
   overviewRuntime.textContent = report.runtime.docker.container.state;
   overviewConfig.textContent = report.context.configuration.state;
   overviewAgents.textContent = agents.length ? agents.join(", ") : "Not reported";
+  overviewAccess.textContent = accessExposure(report.runtime.launch);
   nextAction.textContent = step.action;
 }
 
@@ -371,6 +375,14 @@ const runtimeResult = document.querySelector<HTMLOutputElement>("#runtime-result
 const runtimeButtons = { start: "#runtime-start", restart: "#runtime-restart", stop: "#runtime-stop" } as const;
 type RuntimeAction = keyof typeof runtimeButtons;
 let launch: NonNullable<ProbeReport["runtime"]["launch"]> = { recorded: false };
+
+function accessExposure(value: ProbeReport["runtime"]["launch"]): string {
+  if (!value?.recorded) return "Not recorded";
+  const terminal = value.ttyd ? (value.ttyd_auth ? "ttyd protected" : "ttyd public") : "no browser terminal";
+  const docker = value.docker ? "Docker socket" : "no Docker socket";
+  const ssh = value.git ? "Git/SSH access" : "no Git/SSH access";
+  return `${terminal} · ${docker} · ${ssh}`;
+}
 
 function renderRuntime(report: ProbeReport): void {
   launch = report.runtime.launch ?? { recorded: false };
@@ -1076,6 +1088,7 @@ function renderSnapshot(report: ProbeReport): void {
   setting("setting-workspaces-root").textContent = report.paths.workspace_metadata_root;
   setting("setting-worktrees-root").textContent = report.paths.managed_worktrees_root;
   setting("setting-config-state").textContent = report.context.configuration.revision ? `${report.context.configuration.state} · ${report.context.configuration.revision}` : report.context.configuration.state;
+  setting("setting-access").textContent = accessExposure(report.runtime.launch);
   renderParentRepositories(report);
   renderWorktreeChoices(report);
   const resources = report.runtime.resources;
@@ -1131,10 +1144,18 @@ async function refreshWorktreeInventory(root: string): Promise<void> {
       const review = actionButton("Review", () => { cleanupPath.value = worktree.path; cleanupResult.textContent = `Selected ${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}.`; });
       const bindings = currentReport?.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.path === worktree.path).map(() => workspace.name)) ?? [];
       const actions: HTMLElement[] = [review];
-      if (bindings[0]) actions.push(actionButton("Detach", () => void reviewChange("detach", bindings[0], { name: worktree.project, path: worktree.path, kind: "git_worktree" })));
+      for (const workspace of bindings) {
+        actions.push(actionButton(`Detach ${workspace}`, () => void reviewChange("detach", workspace, { name: worktree.project, path: worktree.path, kind: "git_worktree" })));
+      }
       return el("div", { className: `cleanup-item ${bindings.length ? "bound" : "orphan"}` }, el("span", { textContent: `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""} · ${bindings.length ? bindings.join(", ") : "orphan"}` }), ...actions);
     }));
   } catch { /* The current context map remains usable if inventory is unavailable. */ }
+}
+
+function worktreeBindings(path: string): string[] {
+  return currentReport?.context.workspaces.flatMap((workspace) => workspace.projects
+    .filter((project) => project.path === path)
+    .map(() => workspace.name)) ?? [];
 }
 
 const SYSTEM_SSH = "";
@@ -1481,7 +1502,8 @@ function renderEnclaves(): void {
     const actions: HTMLElement[] = [actionButton("Check", () => void checkEnclave(profile))];
     if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
     else actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
-    const text = el("div", {}, el("strong", {}, dot(statusTone(status)), profile.name), el("span", { textContent: `${describeProfile(profile)} · ${statusText(status)}${drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}` }));
+    const access = status?.report ? ` · ${accessExposure(status.report.runtime.launch)}` : "";
+    const text = el("div", {}, el("strong", {}, dot(statusTone(status)), profile.name), el("span", { textContent: `${describeProfile(profile)} · ${statusText(status)}${access}${drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}` }));
     if (status?.state === "offline") text.append(el("span", { className: "status-hint", textContent: failureHint(status.error ?? "") }));
     const item = el("div", { className: "list-item enclave-item" }, text, el("div", { className: "item-actions" }, ...actions));
     item.classList.toggle("active", active);
@@ -1630,13 +1652,51 @@ worktreeApply.addEventListener("click", async () => {
     finishJob(job, "failed", String(error));
   }
 });
+function resetCleanupPlan(): void {
+  cleanupReady = false;
+  cleanupApply.disabled = true;
+}
+
+cleanupPath.addEventListener("input", resetCleanupPlan);
+cleanupRemoveBranch.addEventListener("change", resetCleanupPlan);
 cleanupPlan.addEventListener("click", async () => {
   if (!current) return;
-  try { const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(current), path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: false }); cleanupApply.disabled = !response.plan.ready; cleanupResult.textContent = response.plan.ready ? "Plan ready. Type REMOVE to enable deletion." : response.plan.blockers.join(" · "); }
-  catch (error) { cleanupResult.textContent = `Plan failed: ${String(error)}`; }
+  const bindings = worktreeBindings(cleanupPath.value);
+  if (bindings.length) {
+    resetCleanupPlan();
+    cleanupResult.textContent = `Detach this worktree from ${bindings.join(", ")} before deleting its directory.`;
+    return;
+  }
+  try {
+    const response = await invoke<{ plan: { branch?: string; ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(current), path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: cleanupRemoveBranch.checked, apply: false });
+    cleanupReady = response.plan.ready;
+    cleanupApply.disabled = !cleanupReady || cleanupConfirm.value !== "REMOVE";
+    cleanupResult.textContent = response.plan.ready
+      ? `Ready to remove ${response.plan.branch ?? "the worktree"}${cleanupRemoveBranch.checked ? " and its merged branch" : ""}. Type REMOVE to enable deletion.`
+      : response.plan.blockers.join(" · ");
+  } catch (error) {
+    resetCleanupPlan();
+    cleanupResult.textContent = `Plan failed: ${String(error)}`;
+  }
 });
-cleanupConfirm.addEventListener("input", () => { cleanupApply.disabled = cleanupConfirm.value !== "REMOVE"; });
-cleanupApply.addEventListener("click", async () => { if (!current) return; const job = addJob("Worktree cleanup", cleanupPath.value); try { await invoke("worktree_cleanup", { enclave: enclaveInput(current), path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: true }); cleanupResult.textContent = "Worktree removed."; cleanupApply.disabled = true; finishJob(job, "succeeded", cleanupPath.value); } catch (error) { cleanupResult.textContent = `Removal failed: ${String(error)}`; finishJob(job, "failed", String(error)); } });
+cleanupConfirm.addEventListener("input", () => { cleanupApply.disabled = !cleanupReady || cleanupConfirm.value !== "REMOVE"; });
+cleanupApply.addEventListener("click", async () => {
+  if (!current || !cleanupReady || cleanupConfirm.value !== "REMOVE") return;
+  const connection = current;
+  const path = cleanupPath.value;
+  const job = addJob("Worktree cleanup", path);
+  try {
+    await invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: cleanupRemoveBranch.checked, apply: true });
+    await connect(connection);
+    cleanupResult.textContent = "Worktree removed and Studio refreshed the context map.";
+    resetCleanupPlan();
+    cleanupConfirm.value = "";
+    finishJob(job, "succeeded", path);
+  } catch (error) {
+    cleanupResult.textContent = `Removal failed: ${String(error)}`;
+    finishJob(job, "failed", String(error));
+  }
+});
 importPlanButton.addEventListener("click", async () => {
   if (!current || !latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check an Enclave first."; return; }
   importPlanButton.disabled = true; importResult.textContent = "Building import plan…";
