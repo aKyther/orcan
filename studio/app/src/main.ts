@@ -312,6 +312,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     worktree_plan: { plan: { destination: `${worktrees}/api/feature-context`, ready: true, blockers: [] } },
     worktree_apply: { result: { path: `${worktrees}/api/feature-context` } },
     worktree_cleanup: { plan: { ready: true, blockers: [] } },
+    workspace_action: { plan: { ready: true, blockers: [], changes: ["update workspace", "run orcan sync"] } },
     runtime_action: null,
   };
   return (responses[command] ?? {}) as T;
@@ -1318,10 +1319,28 @@ function renderContextWorkspaceList(report: ProbeReport): void {
       for (const option of worktreeWorkspaces.options) option.selected = option.value === workspace.name;
       renderWorktreeExisting();
     }, "secondary");
+    const rename = actionButton("Rename", () => void manageWorkspace("rename", workspace.name), "secondary");
+    const remove = actionButton("Remove", () => void manageWorkspace("remove", workspace.name), "secondary");
     add.disabled = !editable;
     worktree.disabled = !editable;
-    return listItem(workspace.name, state, open, add, worktree);
+    rename.disabled = !editable;
+    remove.disabled = !editable;
+    return listItem(workspace.name, state, open, add, worktree, rename, remove);
   }));
+}
+
+async function manageWorkspace(action: "rename" | "remove", workspace: string): Promise<void> {
+  if (!current || !canEditContext()) { result.textContent = contextEditMessage(); return; }
+  const newName = action === "rename" ? window.prompt(`New name for ${workspace}:`, workspace)?.trim() : undefined;
+  if (action === "rename" && (!newName || newName === workspace)) return;
+  try {
+    const plan = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: false });
+    if (!plan.plan.ready) { result.textContent = plan.plan.blockers.join(" · "); return; }
+    if (!window.confirm(`${plan.plan.changes.join("\n")}\n\nApply this Orcan plan?`)) return;
+    await invoke("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: true });
+    result.textContent = `${action === "rename" ? "Workspace renamed" : "Workspace removed"}. Run Orcan sync to reconcile mounts.`;
+    await connect(current);
+  } catch (error) { result.textContent = `Workspace change failed: ${String(error)}`; }
 }
 
 async function refreshWorktreeInventory(root: string): Promise<void> {

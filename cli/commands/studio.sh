@@ -60,7 +60,7 @@ orcan_cmd_studio() {
             ;;
         settings)
             local mode="${1:-}"
-            if [[ "${mode}" != "plan" && "${mode}" != "project-add-plan" && "${mode}" != "project-add-apply" && "${mode}" != "project-detach-plan" && "${mode}" != "project-detach-apply" ]]; then orcan_usage_error 'usage: orcan studio settings plan|project-add-plan|project-add-apply|project-detach-plan|project-detach-apply …'; return; fi
+            if [[ "${mode}" != "plan" && "${mode}" != "project-add-plan" && "${mode}" != "project-add-apply" && "${mode}" != "project-detach-plan" && "${mode}" != "project-detach-apply" && "${mode}" != "workspace-rename-plan" && "${mode}" != "workspace-rename-apply" && "${mode}" != "workspace-remove-plan" && "${mode}" != "workspace-remove-apply" ]]; then orcan_usage_error 'usage: orcan studio settings plan|project-add-plan|project-add-apply|project-detach-plan|project-detach-apply|workspace-rename-plan|workspace-rename-apply|workspace-remove-plan|workspace-remove-apply …'; return; fi
             shift; orcan_require_python
             # Orcan resolves its own config so Studio never guesses a path on the instance.
             orcan_host_python "${ORCAN_SCRIPTS}/studio-settings.py" "${mode}" --config "${ORCAN_CONFIG_FILE}" "$@"
