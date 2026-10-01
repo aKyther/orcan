@@ -20,6 +20,13 @@ enum TargetInput {
     Ssh { destination: String },
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum WorkspaceAction {
+    Rename,
+    Remove,
+}
+
 impl From<TargetInput> for Target {
     fn from(input: TargetInput) -> Self {
         match input {
@@ -140,6 +147,35 @@ async fn membership_action(
             .to_owned());
     }
     Ok(value)
+}
+
+#[tauri::command]
+async fn workspace_action(
+    enclave: EnclaveInput,
+    action: WorkspaceAction,
+    workspace: String,
+    new_name: Option<String>,
+    apply: bool,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    let operation = match action {
+        WorkspaceAction::Rename => "workspace-rename",
+        WorkspaceAction::Remove => "workspace-remove",
+    };
+    let mut args = vec![
+        "studio".to_owned(),
+        "settings".to_owned(),
+        format!("{operation}-{}", if apply { "apply" } else { "plan" }),
+        "--workspace".to_owned(),
+        workspace,
+    ];
+    if let Some(new_name) = new_name {
+        args.extend(["--new-name".to_owned(), new_name]);
+    }
+    if apply {
+        args.push("--yes".to_owned());
+    }
+    studio_json(enclave, args, state).await
 }
 
 #[derive(Debug)]
@@ -635,7 +671,8 @@ fn main() {
             worktree_plan,
             worktree_inventory,
             worktree_apply,
-            membership_action
+            membership_action,
+            workspace_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orcan Studio");
