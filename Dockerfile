@@ -55,6 +55,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         jq \
         less \
         make \
+        pkg-config \
+        libayatana-appindicator3-dev \
+        libdbus-1-dev \
+        libglib2.0-dev \
+        libgtk-3-dev \
+        librsvg2-dev \
+        libssl-dev \
+        libwebkit2gtk-4.1-dev \
         nano \
         net-tools \
         openssh-client \
