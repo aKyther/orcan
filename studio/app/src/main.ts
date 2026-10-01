@@ -74,6 +74,8 @@ const snapshotRoot = document.querySelector<HTMLElement>("#snapshot-root")!;
 const snapshotWorkspaces = document.querySelector<HTMLElement>("#snapshot-workspaces")!;
 const snapshotProjects = document.querySelector<HTMLElement>("#snapshot-projects")!;
 const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
+const contextWorkspaceList = el("div", { className: "item-list context-workspace-list" });
+snapshot.insertBefore(contextWorkspaceList, snapshotList);
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
 const parentRepository = document.querySelector<HTMLSelectElement>("#parent-repository")!;
 const parentPath = document.querySelector<HTMLInputElement>("#parent-path")!;
@@ -530,7 +532,7 @@ function projectKindIcon(project: ProjectRef): HTMLElement {
   const mount = project.kind === "directory";
   const worktree = project.kind === "git_worktree";
   const label = mount ? "Shared directory mount" : worktree ? "Git worktree" : "Git repository";
-  const icon = el("span", { className: "project-kind", textContent: mount ? "▣" : "⎇", title: label, ariaLabel: label });
+  const icon = el("span", { className: "project-kind", textContent: mount ? "▣" : worktree ? "⑂" : "⎇", title: label, ariaLabel: label });
   icon.dataset.tooltip = label;
   return icon;
 }
@@ -591,8 +593,9 @@ function drawConnections(): void {
       line.setAttribute("d", horizontal
         ? `M ${startX} ${startY} C ${middleX} ${startY}, ${middleX} ${endY}, ${endX} ${endY}`
         : `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
-      line.setAttribute("class", `context-link ${target.dataset.connectionState ?? "current"} ${tracedPath === path ? "highlight" : "muted"}`);
-      (tracedPath === path ? traceLines : connectionLines).append(line);
+      const highlighted = tracedPath === path || target.dataset.workspace === focusedWorkspace;
+      line.setAttribute("class", `context-link ${target.dataset.connectionState ?? "current"} ${highlighted ? "highlight" : "muted"}`);
+      (highlighted ? traceLines : connectionLines).append(line);
     }
   }
 }
@@ -1235,6 +1238,7 @@ function renderSnapshot(report: ProbeReport): void {
   snapshotRoot.textContent = report.paths.projects_root;
   snapshotWorkspaces.textContent = String(report.context.workspaces.length);
   snapshotProjects.textContent = String(report.context.managed_projects.length);
+  renderContextWorkspaceList(report);
   sandboxSettings.hidden = false;
   setting("setting-home").textContent = report.paths.home;
   setting("setting-data").textContent = report.paths.data;
@@ -1287,6 +1291,36 @@ function renderSnapshot(report: ProbeReport): void {
     node.className = "repo-node";
     node.textContent = `${repository.origin_url ?? repository.repository_id}  →  ${repository.bindings.map((binding) => binding.workspace).join(" · ")}`;
     return node;
+  }));
+}
+
+function renderContextWorkspaceList(report: ProbeReport): void {
+  const editable = canEditContext(report);
+  contextWorkspaceList.replaceChildren(...report.context.workspaces.map((workspace) => {
+    const worktrees = workspace.projects.filter((project) => project.kind === "git_worktree" || project.path.startsWith(report.paths.managed_worktrees_root)).length;
+    const dirty = workspace.projects.filter((project) => project.dirty).length;
+    const state = [`${workspace.projects.length} projects`, worktrees ? `${worktrees} worktrees` : "no worktrees", dirty ? `${dirty} dirty` : "clean"].join(" · ");
+    const open = actionButton("Open on map", () => {
+      focusedWorkspace = workspace.name;
+      showView("overview");
+      renderEnclaveMap(report);
+      enclaveMap.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    const add = actionButton("Add project", () => {
+      focusedWorkspace = workspace.name;
+      showView("overview");
+      renderEnclaveMap(report);
+      sandboxTray.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, "secondary");
+    const worktree = actionButton("New worktree", () => {
+      focusedWorkspace = workspace.name;
+      showView("worktrees");
+      for (const option of worktreeWorkspaces.options) option.selected = option.value === workspace.name;
+      renderWorktreeExisting();
+    }, "secondary");
+    add.disabled = !editable;
+    worktree.disabled = !editable;
+    return listItem(workspace.name, state, open, add, worktree);
   }));
 }
 
