@@ -128,7 +128,7 @@ function renderParentRepositories(report: ProbeReport): void {
     const role = candidate.role === "worktree_parent" ? `worktree source · ${candidate.worktree_count} worktree${candidate.worktree_count === 1 ? "" : "s"}` : "mounted checkout · read-only update";
     const status = [role, candidate.branch, candidate.upstream ? candidate.behind ? `${candidate.behind} behind` : "up to date" : "no upstream", candidate.ahead ? `${candidate.ahead} ahead` : "", candidate.dirty ? "dirty — blocked" : "", run ? `updated ${new Date(run.at).toLocaleDateString()}` : ""].filter(Boolean).join(" · ");
     return new Option(`${candidate.name} · ${status}`, candidate.path);
-  }), new Option("Other path…", "__manual__"));
+  }));
   const selected = candidates.find((candidate) => candidate.path === previousPath) ?? candidates[0];
   if (!selected) return;
   parentRepository.value = selected.path;
@@ -138,6 +138,10 @@ function renderParentRepositories(report: ProbeReport): void {
 }
 const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
 const importDestination = document.querySelector<HTMLInputElement>("#import-destination")!;
+importDestination.readOnly = true;
+importDestination.placeholder = "Orcan chooses the managed destination";
+document.querySelector<HTMLLabelElement>('label[for="import-source"]')!.textContent = "Git URL";
+document.querySelector<HTMLLabelElement>('label[for="import-destination"]')!.textContent = "Destination";
 const importPlanButton = document.querySelector<HTMLButtonElement>("#import-plan")!;
 const importApplyButton = document.querySelector<HTMLButtonElement>("#import-apply")!;
 const importResult = document.querySelector<HTMLOutputElement>("#import-result")!;
@@ -164,6 +168,8 @@ const overviewAccess = document.querySelector<HTMLElement>("#overview-access")!;
 const nextAction = document.querySelector<HTMLElement>("#next-action")!;
 const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
 const cleanupPath = document.querySelector<HTMLInputElement>("#cleanup-path")!;
+cleanupPath.readOnly = true;
+cleanupPath.placeholder = "Choose a listed worktree above";
 const cleanupSuggestions = $("#cleanup-suggestions");
 const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confirm")!;
 const cleanupRemoveBranch = document.querySelector<HTMLInputElement>("#cleanup-remove-branch")!;
@@ -1966,16 +1972,10 @@ importApplyButton.addEventListener("click", async () => {
   catch (error) { importResult.textContent = `Import failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
 });
 parentRepository.addEventListener("change", () => {
-  if (parentRepository.value === "__manual__") {
-    parentPath.hidden = false;
-    parentPath.value = "";
-    parentPath.focus();
-  } else {
-    const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === parentRepository.value);
-    parentPath.hidden = true;
-    parentPath.value = parentRepository.value;
-    if (candidate?.branch) parentBranch.value = candidate.branch;
-  }
+  const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === parentRepository.value);
+  parentPath.hidden = true;
+  parentPath.value = parentRepository.value;
+  if (candidate?.branch) parentBranch.value = candidate.branch;
   parentHead = undefined;
   parentApplyButton.disabled = true;
   parentResult.textContent = "Preview before applying an update.";
