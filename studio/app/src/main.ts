@@ -77,6 +77,7 @@ const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
 const contextManager = el("div", { className: "context-manager" });
 const contextWorkspaceList = el("div", { className: "context-workspace-list" });
 const contextWorkspaceDetail = el("section", { className: "context-workspace-detail" });
+const contextWorkspaceNotice = el("output", { className: "context-workspace-notice", ariaLive: "polite" });
 contextManager.append(contextWorkspaceList, contextWorkspaceDetail);
 snapshot.insertBefore(contextManager, snapshotList);
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
@@ -1196,6 +1197,11 @@ function contextEditMessage(): string {
   return "This Enclave reports only its last synced workspace index. Reconnect where orcan.config.json is available before changing context.";
 }
 
+function setContextNotice(message: string): void {
+  contextWorkspaceNotice.textContent = message;
+  result.textContent = message;
+}
+
 function selectedWorkspaces(): string[] {
   return Array.from(worktreeWorkspaces.selectedOptions, (option) => option.value);
 }
@@ -1322,35 +1328,40 @@ function renderContextWorkspaceList(report: ProbeReport): void {
   add.title = "Add a project from the map";
   const worktree = actionButton("⑂", () => { showView("worktrees"); for (const option of worktreeWorkspaces.options) option.selected = option.value === workspace.name; renderWorktreeExisting(); }, "secondary");
   worktree.title = "Create a new Git worktree";
-  const rename = actionButton("✎", () => void manageWorkspace("rename", workspace.name), "secondary");
+  const rename = actionButton("Rename", () => void manageWorkspace("rename", workspace.name), "secondary");
   rename.title = "Rename workspace";
   const remove = actionButton("×", () => void manageWorkspace("remove", workspace.name), "secondary");
   remove.title = "Remove empty workspace";
   if (!editable) {
-    for (const button of [worktree, rename, remove]) button.title = contextEditMessage();
+    for (const button of [worktree, rename, remove]) {
+      button.disabled = true;
+      button.title = contextEditMessage();
+    }
   }
   const projects = workspace.projects.map((project) => {
     const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
     detach.title = editable ? `Detach ${projectName(project)} from ${workspace.name}` : contextEditMessage();
+    detach.disabled = !editable;
     return el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", {}, el("strong", { textContent: projectName(project) }), el("small", { textContent: [project.branch, project.dirty && "dirty", project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind })), detach);
   });
   const open = actionButton("⌁", () => { showView("overview"); renderEnclaveMap(report); enclaveMap.scrollIntoView({ behavior: "smooth", block: "start" }); });
   open.title = "Open relationship map";
-  contextWorkspaceDetail.replaceChildren(el("header", {}, el("div", {}, el("p", { className: "eyebrow", textContent: "WORKSPACE" }), el("h3", { textContent: workspace.name })), open), el("div", { className: "actions compact" }, add, worktree, rename, remove), el("div", { className: "context-project-list" }, ...(projects.length ? projects : [el("p", { className: "hint", textContent: "Empty workspace — add its first project." })])));
+  contextWorkspaceNotice.textContent = editable ? "" : `Read-only · ${contextSourceLabel(report)}. ${contextEditMessage()}`;
+  contextWorkspaceDetail.replaceChildren(el("header", {}, el("div", {}, el("p", { className: "eyebrow", textContent: "WORKSPACE" }), el("h3", { textContent: workspace.name })), open), el("div", { className: "actions compact" }, add, worktree, rename, remove), contextWorkspaceNotice, el("div", { className: "context-project-list" }, ...(projects.length ? projects : [el("p", { className: "hint", textContent: "Empty workspace — add its first project." })])));
 }
 
 async function manageWorkspace(action: "rename" | "remove", workspace: string): Promise<void> {
-  if (!current || !canEditContext()) { result.textContent = contextEditMessage(); return; }
+  if (!current || !canEditContext()) { setContextNotice(contextEditMessage()); return; }
   const newName = action === "rename" ? window.prompt(`New name for ${workspace}:`, workspace)?.trim() : undefined;
   if (action === "rename" && (!newName || newName === workspace)) return;
   try {
     const plan = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: false });
-    if (!plan.plan.ready) { result.textContent = plan.plan.blockers.join(" · "); return; }
+    if (!plan.plan.ready) { setContextNotice(plan.plan.blockers.join(" · ")); return; }
     if (!window.confirm(`${plan.plan.changes.join("\n")}\n\nApply this Orcan plan?`)) return;
     await invoke("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: true });
-    result.textContent = `${action === "rename" ? "Workspace renamed" : "Workspace removed"}. Run Orcan sync to reconcile mounts.`;
+    setContextNotice(`${action === "rename" ? "Workspace renamed" : "Workspace removed"}. Run Orcan sync to reconcile mounts.`);
     await connect(current);
-  } catch (error) { result.textContent = `Workspace change failed: ${String(error)}`; }
+  } catch (error) { setContextNotice(`Workspace change failed: ${String(error)}`); }
 }
 
 async function refreshWorktreeInventory(root: string): Promise<void> {
