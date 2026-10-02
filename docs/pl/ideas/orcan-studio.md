@@ -24,6 +24,12 @@ mounty i stan runtime'u zamiast uznawać zapamiętany domyślny katalog desktopo
 za prawdę. Studio wymaga obsługiwanej wersji deklarowanego protokołu
 `orcan-studio`, zanim udostępni przyszłe akcje edycji kontekstu.
 
+Studio edytuje kontekst tylko wtedy, gdy probe wskazuje aktywny
+`orcan.config.json` jako źródło. Zsynchronizowany indeks workspace'ów nadal
+jest przydatny do podglądu, ale pozostaje tylko do odczytu: Studio blokuje
+zmianę nazwy, odłączanie i tworzenie worktree, dopóki nie połączy się z
+instancją Orcan, która posiada konfigurację.
+
 Studio zapisuje profile ponownego połączenia w natywnym katalogu danych
 aplikacji. Profil ma nazwę, metadane transportu oraz dane SSH, takie jak
 użytkownik albo ścieżka klucza prywatnego. Hasła i passphrase kluczy nie trafiają

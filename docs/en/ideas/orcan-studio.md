@@ -24,6 +24,11 @@ each reconnect instead of treating a cached desktop default as the truth.
 Studio requires its declared `orcan-studio` protocol version before it offers
 any future context-editing action.
 
+Studio edits context only when the probe reports the live `orcan.config.json`
+as its source. A synced workspace index remains useful for inspection, but is
+read-only: Studio disables rename, detach, and worktree actions until it can
+reconnect to the Orcan instance that owns the configuration.
+
 Studio saves reconnect profiles in its native application-data directory. A
 profile contains a display name, transport metadata, and SSH metadata such as a
 username or private-key path. Passwords and key passphrases are not written to
