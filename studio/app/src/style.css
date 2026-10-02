@@ -79,3 +79,4 @@ section[data-view="contexts"] .view-intro > p:not(.eyebrow), section[data-view="
 
 /* The selected workspace is the current editing target, so it leads visually. */
 .context-workspace-item.active { background: #dce7c9; border-color: #b4ce9f; color: #182014; }.context-workspace-item.active small { color: #40503b; }.context-workspace-item.active .context-workspace-icon { color: #31422d; }
+.context-workspace-item:not(.active) { background: #181b17; color: #798273; }.context-workspace-item:not(.active) small { color: #626c5f; }.context-workspace-item:not(.active) .context-workspace-icon { color: #6d7767; }.context-workspace-item:not(.active):hover { background: #22261f; color: #b9c2b0; }
