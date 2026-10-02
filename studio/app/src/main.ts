@@ -74,8 +74,11 @@ const snapshotRoot = document.querySelector<HTMLElement>("#snapshot-root")!;
 const snapshotWorkspaces = document.querySelector<HTMLElement>("#snapshot-workspaces")!;
 const snapshotProjects = document.querySelector<HTMLElement>("#snapshot-projects")!;
 const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
-const contextWorkspaceList = el("div", { className: "item-list context-workspace-list" });
-snapshot.insertBefore(contextWorkspaceList, snapshotList);
+const contextManager = el("div", { className: "context-manager" });
+const contextWorkspaceList = el("div", { className: "context-workspace-list" });
+const contextWorkspaceDetail = el("section", { className: "context-workspace-detail" });
+contextManager.append(contextWorkspaceList, contextWorkspaceDetail);
+snapshot.insertBefore(contextManager, snapshotList);
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
 const parentRepository = document.querySelector<HTMLSelectElement>("#parent-repository")!;
 const parentPath = document.querySelector<HTMLInputElement>("#parent-path")!;
@@ -1297,36 +1300,31 @@ function renderSnapshot(report: ProbeReport): void {
 
 function renderContextWorkspaceList(report: ProbeReport): void {
   const editable = canEditContext(report);
+  const selected = focusedWorkspace && report.context.workspaces.some((workspace) => workspace.name === focusedWorkspace)
+    ? focusedWorkspace : report.context.workspaces[0]?.name;
+  focusedWorkspace = selected;
   contextWorkspaceList.replaceChildren(...report.context.workspaces.map((workspace) => {
-    const worktrees = workspace.projects.filter((project) => project.kind === "git_worktree" || project.path.startsWith(report.paths.managed_worktrees_root)).length;
     const dirty = workspace.projects.filter((project) => project.dirty).length;
-    const state = [`${workspace.projects.length} projects`, worktrees ? `${worktrees} worktrees` : "no worktrees", dirty ? `${dirty} dirty` : "clean"].join(" · ");
-    const open = actionButton("Open on map", () => {
-      focusedWorkspace = workspace.name;
-      showView("overview");
-      renderEnclaveMap(report);
-      enclaveMap.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    const add = actionButton("Add project", () => {
-      focusedWorkspace = workspace.name;
-      showView("overview");
-      renderEnclaveMap(report);
-      sandboxTray.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, "secondary");
-    const worktree = actionButton("New worktree", () => {
-      focusedWorkspace = workspace.name;
-      showView("worktrees");
-      for (const option of worktreeWorkspaces.options) option.selected = option.value === workspace.name;
-      renderWorktreeExisting();
-    }, "secondary");
-    const rename = actionButton("Rename", () => void manageWorkspace("rename", workspace.name), "secondary");
-    const remove = actionButton("Remove", () => void manageWorkspace("remove", workspace.name), "secondary");
-    add.disabled = !editable;
-    worktree.disabled = !editable;
-    rename.disabled = !editable;
-    remove.disabled = !editable;
-    return listItem(workspace.name, state, open, add, worktree, rename, remove);
+    const button = el("button", { type: "button", className: "context-workspace-item" }, el("span", { className: "context-workspace-icon", textContent: "◫" }), el("span", {}, el("strong", { textContent: workspace.name }), el("small", { textContent: `${workspace.projects.length} · ${dirty ? `${dirty} dirty` : "clean"}` })));
+    button.classList.toggle("active", workspace.name === selected);
+    button.addEventListener("click", () => { focusedWorkspace = workspace.name; renderContextWorkspaceList(report); });
+    return button;
   }));
+  const workspace = report.context.workspaces.find((item) => item.name === selected);
+  if (!workspace) { contextWorkspaceDetail.replaceChildren(el("p", { className: "hint", textContent: "No workspace selected." })); return; }
+  const add = actionButton("＋ Add project", () => { showView("overview"); renderEnclaveMap(report); sandboxTray.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, "secondary");
+  const worktree = actionButton("⑂ New worktree", () => { showView("worktrees"); for (const option of worktreeWorkspaces.options) option.selected = option.value === workspace.name; renderWorktreeExisting(); }, "secondary");
+  const rename = actionButton("Rename", () => void manageWorkspace("rename", workspace.name), "secondary");
+  const remove = actionButton("Remove", () => void manageWorkspace("remove", workspace.name), "secondary");
+  for (const button of [add, worktree, rename, remove]) button.disabled = !editable;
+  const projects = workspace.projects.map((project) => {
+    const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
+    detach.title = `Detach ${projectName(project)} from ${workspace.name}`;
+    detach.disabled = !editable;
+    return el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", {}, el("strong", { textContent: projectName(project) }), el("small", { textContent: [project.branch, project.dirty && "dirty", project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind })), detach);
+  });
+  const open = actionButton("Open relationship map", () => { showView("overview"); renderEnclaveMap(report); enclaveMap.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  contextWorkspaceDetail.replaceChildren(el("header", {}, el("div", {}, el("p", { className: "eyebrow", textContent: "WORKSPACE" }), el("h3", { textContent: workspace.name })), open), el("div", { className: "actions compact" }, add, worktree, rename, remove), el("div", { className: "context-project-list" }, ...(projects.length ? projects : [el("p", { className: "hint", textContent: "Empty workspace — add its first project." })])));
 }
 
 async function manageWorkspace(action: "rename" | "remove", workspace: string): Promise<void> {
