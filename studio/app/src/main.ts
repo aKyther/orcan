@@ -1320,11 +1320,12 @@ function renderContextWorkspaceList(report: ProbeReport): void {
   rename.title = "Rename workspace";
   const remove = actionButton("×", () => void manageWorkspace("remove", workspace.name), "secondary");
   remove.title = "Remove empty workspace";
-  for (const button of [add, worktree, rename, remove]) button.disabled = !editable;
+  if (!editable) {
+    for (const button of [worktree, rename, remove]) button.title = contextEditMessage();
+  }
   const projects = workspace.projects.map((project) => {
     const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
-    detach.title = `Detach ${projectName(project)} from ${workspace.name}`;
-    detach.disabled = !editable;
+    detach.title = editable ? `Detach ${projectName(project)} from ${workspace.name}` : contextEditMessage();
     return el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", {}, el("strong", { textContent: projectName(project) }), el("small", { textContent: [project.branch, project.dirty && "dirty", project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind })), detach);
   });
   const open = actionButton("⌁", () => { showView("overview"); renderEnclaveMap(report); enclaveMap.scrollIntoView({ behavior: "smooth", block: "start" }); });
