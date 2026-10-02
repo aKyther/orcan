@@ -76,3 +76,6 @@ button.topbar-instance { background: #1f231d; border: 1px solid #3c4339; border-
 /* Contexts is an editor, so raw probe dumps do not compete with the working view. */
 section[data-view="contexts"] .view-intro > p:not(.eyebrow), section[data-view="contexts"] #snapshot-list, section[data-view="contexts"] #context-map { display: none; }
 .context-workspace-detail .actions.compact { gap: .3rem; }.context-workspace-detail .actions.compact button { min-width: 2rem; padding: .38rem .5rem; }.context-workspace-detail > header > button { min-width: 2rem; padding: .38rem .5rem; }
+
+/* The selected workspace is the current editing target, so it leads visually. */
+.context-workspace-item.active { background: #dce7c9; border-color: #b4ce9f; color: #182014; }.context-workspace-item.active small { color: #40503b; }.context-workspace-item.active .context-workspace-icon { color: #31422d; }
