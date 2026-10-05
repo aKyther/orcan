@@ -22,10 +22,6 @@
       
       
         
-          <link rel="alternate" href="./" hreflang="en">
-        
-          <link rel="alternate" href="../../pl/development/testing/" hreflang="pl">
-        
       
       
       <link rel="icon" href="../../assets/images/favicon.svg">
@@ -203,13 +199,13 @@
     
       <div class="orcan-version-select" hidden>
         <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
-          <span class="orcan-version-select__label">v3.1.1</span>
+          <span class="orcan-version-select__label">v4.0.0</span>
           <span class="orcan-version-select__caret" aria-hidden="true"></span>
         </button>
         <ul class="orcan-version-select__list" role="listbox" hidden></ul>
       </div>
       <a class="orcan-header-version" href="../../changelog/" title="Product SemVer — open changelog">
-        <span class="orcan-header-version__label">v3.1.1</span>
+        <span class="orcan-header-version__label">v4.0.0</span>
       </a>
     
     
@@ -252,32 +248,6 @@
     
       <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
     
-    
-      <div class="md-header__option">
-  <div class="md-select">
-    
-    <button class="md-header__button md-icon" aria-label="Select language">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
-    </button>
-    <div class="md-select__inner">
-      <ul class="md-select__list">
-        
-          <li class="md-select__item">
-            <a href="./" hreflang="en" class="md-select__link">
-              English
-            </a>
-          </li>
-        
-          <li class="md-select__item">
-            <a href="../../pl/development/testing/" hreflang="pl" class="md-select__link">
-              Polski
-            </a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-</div>
     
     
       
@@ -926,6 +896,34 @@
     
   
     Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ideas/orcan-studio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orcan Studio
   
 
     
@@ -1828,6 +1826,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#fast-studio-ux-preview-orcan-studio-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fast Studio UX preview — orcan-studio-preview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#full-developer-browser-environment-orcan-preview" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2076,6 +2085,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#fast-studio-ux-preview-orcan-studio-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fast Studio UX preview — orcan-studio-preview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#full-developer-browser-environment-orcan-preview" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2188,11 +2208,15 @@
 </tr>
 <tr>
 <td><code>make test-host</code></td>
-<td>Unit tests for config I/O, <code>apply-config</code>, version / release check, preview script checks</td>
+<td>Pytest host tests for config I/O, <code>apply-config</code>, version / release check, preview script checks</td>
+</tr>
+<tr>
+<td><code>make format</code> / <code>make format-check</code></td>
+<td>Apply / verify Ruff formatting for host helpers, cockpit, and host tests</td>
 </tr>
 <tr>
 <td><code>make docs-check</code></td>
-<td>Strict MkDocs (EN+PL) + product-name check</td>
+<td>Strict MkDocs build + product-name check</td>
 </tr>
 </tbody>
 </table>
@@ -2202,22 +2226,45 @@
 <p>Runs <code>tests/smoke/test-container.sh</code> after <code>orcan build --agent codex</code>. It asserts the selected manifest and Codex CLI. Not run in CI (image build is too heavy).</p>
 <h2 id="maintainer-previews-scriptsdev">Maintainer previews (<code>scripts/dev/</code>)<a class="headerlink" href="#maintainer-previews-scriptsdev" title="Permanent link">&para;</a></h2>
 <p>Checkout-local helpers under <code>scripts/dev/</code>. They are <strong>not</strong> the public <code>orcan</code> CLI. Prefer the thin <code>make dev-*</code> wrappers so the developer testing workflow is easy to discover without disturbing an installed daily Orcan stack.</p>
+<h3 id="fast-studio-ux-preview-orcan-studio-preview">Fast Studio UX preview — <code>orcan-studio-preview</code><a class="headerlink" href="#fast-studio-ux-preview-orcan-studio-preview" title="Permanent link">&para;</a></h3>
+<p>This is a separate browser-only Vite container for reviewing the Studio layout,
+copy, loading states, and confirmation flow from another Tailscale device. It
+uses representative fixture data: it never opens SSH, Docker, the credential
+vault, or a real Orcan Sandbox.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>studio-preview-start
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># open the printed http://100.x.x.x:1420/?demo=1 URL from a Tailscale device</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>make<span class="w"> </span>studio-preview-logs
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>make<span class="w"> </span>studio-preview-stop
+</span></code></pre></div>
+<p>The helper discovers the host's first Tailscale IPv4 address and refuses a
+non-Tailscale bind. Set <code>ORCAN_STUDIO_PREVIEW_BIND=100.x.x.x</code> to choose another
+Tailscale address and <code>ORCAN_STUDIO_PREVIEW_PORT=1420</code> to change the port.
+Vite hot-reloads frontend edits; no <code>.exe</code>, <code>.app</code>, or Tauri bundle is built.
+Use <code>npm run tauri dev</code> for an integration check against the real native
+backend.</p>
+<p>To review the layout with this host's real workspaces, save a read-only probe
+snapshot. The preview's "Demo workstation" Enclave then shows it; other
+Enclaves and every action stay simulated. The snapshot is served only by the
+Vite dev server (never bundled) and is visible to your tailnet.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>studio-preview-snapshot<span class="w">        </span><span class="c1"># runs orcan studio probe --json on the host</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>make<span class="w"> </span>studio-preview-snapshot-clear<span class="w">  </span><span class="c1"># back to fixture data</span>
+</span></code></pre></div>
 <h3 id="full-developer-browser-environment-orcan-preview">Full developer browser environment — <code>orcan-preview</code><a class="headerlink" href="#full-developer-browser-environment-orcan-preview" title="Permanent link">&para;</a></h3>
 <p>Isolated Docker stack from <strong>this</strong> checkout: own image, Compose project, home/data, ttyd port, and container. Does not replace <code>orcan:latest</code> or touch <code>~/.config/orcan</code>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>dev-start<span class="w">                           </span><span class="c1"># build only if missing + start</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># open http://127.0.0.1:17681</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>make<span class="w"> </span>dev-restart<span class="w">                         </span><span class="c1"># fast refresh from checkout source</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>make<span class="w"> </span>dev-status
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>make<span class="w"> </span>dev-doctor<span class="w">                          </span><span class="c1"># isolation + health + HTTP + checkout cockpit</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>make<span class="w"> </span>dev-smoke<span class="w">                           </span><span class="c1"># real Textual + tmux PTY</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>make<span class="w"> </span>dev-a11y<span class="w">                            </span><span class="c1"># keyboard/focus/axe (+ 480x320 viewport)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>make<span class="w"> </span>dev-visual<span class="w">                          </span><span class="c1"># Chromium screenshot regression (900x700 / compact)</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>make<span class="w"> </span>dev-test<span class="w">                            </span><span class="c1"># separate real-Docker lifecycle; orcan-1 unchanged</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>make<span class="w"> </span>dev-checklist<span class="w">                       </span><span class="c1"># print pre-merge automated + manual browser checks</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>make<span class="w"> </span>dev-shell<span class="w">                           </span><span class="c1"># shell inside isolated preview</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>make<span class="w"> </span>dev-enter<span class="w">                           </span><span class="c1"># isolated developer launcher</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>make<span class="w"> </span>dev-stop<span class="w">                            </span><span class="c1"># keep image/cache</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>make<span class="w"> </span>dev-reset<span class="w">                           </span><span class="c1"># stop + delete default fixture state</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>dev-start<span class="w">                           </span><span class="c1"># build only if missing + start</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># open http://127.0.0.1:17681</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>make<span class="w"> </span>dev-restart<span class="w">                         </span><span class="c1"># fast refresh from checkout source</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>make<span class="w"> </span>dev-status
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>make<span class="w"> </span>dev-doctor<span class="w">                          </span><span class="c1"># isolation + health + HTTP + checkout cockpit</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>make<span class="w"> </span>dev-smoke<span class="w">                           </span><span class="c1"># real Textual + tmux PTY</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>make<span class="w"> </span>dev-a11y<span class="w">                            </span><span class="c1"># keyboard/focus/axe (+ 480x320 viewport)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>make<span class="w"> </span>dev-visual<span class="w">                          </span><span class="c1"># Chromium screenshot regression (900x700 / compact)</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>make<span class="w"> </span>dev-test<span class="w">                            </span><span class="c1"># separate real-Docker lifecycle; orcan-1 unchanged</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>make<span class="w"> </span>dev-checklist<span class="w">                       </span><span class="c1"># print pre-merge automated + manual browser checks</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>make<span class="w"> </span>dev-shell<span class="w">                           </span><span class="c1"># shell inside isolated preview</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>make<span class="w"> </span>dev-enter<span class="w">                           </span><span class="c1"># isolated developer launcher</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>make<span class="w"> </span>dev-stop<span class="w">                            </span><span class="c1"># keep image/cache</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>make<span class="w"> </span>dev-reset<span class="w">                           </span><span class="c1"># stop + delete default fixture state</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -2341,7 +2388,7 @@
 </tr>
 <tr>
 <td>Bind</td>
-<td><code>0.0.0.0</code> (LAN); set <code>ORCAN_PREVIEW_BIND=127.0.0.1</code> for loopback only</td>
+<td><code>127.0.0.1</code> (loopback only); set <code>ORCAN_PREVIEW_BIND=0.0.0.0</code> explicitly for a LAN test</td>
 </tr>
 <tr>
 <td>Scenario</td>
@@ -2398,13 +2445,16 @@ manual browser flow (F4/F1, workspace details, Enter selection, Alt+1…9, resiz
 and that a <code>480x320</code> viewport keeps the xterm usable.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Default bind is <code>0.0.0.0</code> so LAN access works. Do not run on an untrusted network without ttyd authentication.</p>
+<p>The preview is a writable terminal and binds only to <code>127.0.0.1</code> by default.
+Use <code>ORCAN_PREVIEW_BIND=0.0.0.0</code> only for a deliberate LAN test; it is not
+saved for later runs. Then run <code>make dev-stop</code>. <code>make dev-test</code> always removes its separate temporary stack
+and state when it finishes, including after a failure.</p>
 </div>
 <h3 id="fast-tmux-chrome-terminal-ui-preview">Fast tmux chrome — <code>terminal-ui-preview</code><a class="headerlink" href="#fast-tmux-chrome-terminal-ui-preview" title="Permanent link">&para;</a></h3>
 <p>No Docker. Spins an <strong>isolated tmux server</strong> (private socket) from <code>docker/rootfs/etc/tmux/</code> in the checkout. Your normal Orcan tmux is untouched.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./scripts/dev/terminal-ui-preview<span class="w">              </span><span class="c1"># attach; exit/detach cleans up</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>./scripts/dev/terminal-ui-preview<span class="w"> </span>--check<span class="w">      </span><span class="c1"># assert status=2, 3 windows; no attach</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>./scripts/dev/terminal-ui-preview<span class="w"> </span>--size<span class="w"> </span>140x40
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>./scripts/dev/terminal-ui-preview<span class="w">              </span><span class="c1"># attach; exit/detach cleans up</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>./scripts/dev/terminal-ui-preview<span class="w"> </span>--check<span class="w">      </span><span class="c1"># assert status=2, 3 windows; no attach</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>./scripts/dev/terminal-ui-preview<span class="w"> </span>--size<span class="w"> </span>140x40
 </span></code></pre></div>
 <p>Inside the preview: prefix <strong>C-Space</strong>; <strong>C-Space r</strong> reloads UI files from the checkout. Gallery windows exercise short/long tab titles and tiled panes.</p>
 <p>Prefer this for status-bar / keybinding / layout edits. Prefer <code>orcan-preview</code> when you need ttyd, launcher/cockpit, or a real image build.</p>
@@ -2413,7 +2463,7 @@ Cockpit smoke (inside preview): <code>tests/smoke/test-cockpit-tui.py</code> via
 Browser: <code>tests/browser/dev-ux.spec.js</code> (<code>make dev-visual</code>), <code>tests/browser/dev-a11y.spec.js</code>
 (<code>make dev-a11y</code>). Lifecycle isolation: <code>tests/integration/test-dev-ux.sh</code> (<code>make dev-test</code>).</p>
 <h2 id="path-parity">Path parity<a class="headerlink" href="#path-parity" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>test-path-parity
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>test-path-parity
 </span></code></pre></div>
 <p>Needs Docker and the host socket. Skips cleanly if unavailable. Not run in CI.</p>
 <h2 id="ci">CI<a class="headerlink" href="#ci" title="Permanent link">&para;</a></h2>
@@ -2433,7 +2483,6 @@ A green PR means validate + host tests + docs — not a verified image or
 browser UX run. Run those locally when Docker or cockpit UX behaviour changes.</p>
 </div>
 <p>Versioned docs URLs: https://akyther.github.io/orcan/latest/ — see <a href="../../deployment/">Deployment</a>.</p>
-<p>Polish search uses the English lunr analyzer (lunr has no Polish stemmer).</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../overview/">Development overview</a></li>
@@ -2464,7 +2513,7 @@ browser UX run. Run those locally when Docker or cockpit UX behaviour changes.</
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 3, 2026 19:10:31 UTC">September 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 5, 2026 10:58:50 UTC">October 5, 2026</span>
   </span>
 
     
@@ -2609,8 +2658,6 @@ browser UX run. Run those locally when Docker or cockpit UX behaviour changes.</
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
-      
-        <script src="../../assets/javascripts/mike-i18n.js"></script>
       
         <script src="../../assets/javascripts/orcan-version.js"></script>
       

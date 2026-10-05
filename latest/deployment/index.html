@@ -22,10 +22,6 @@
       
       
         
-          <link rel="alternate" href="./" hreflang="en">
-        
-          <link rel="alternate" href="../pl/deployment/" hreflang="pl">
-        
       
       
       <link rel="icon" href="../assets/images/favicon.svg">
@@ -203,13 +199,13 @@
     
       <div class="orcan-version-select" hidden>
         <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
-          <span class="orcan-version-select__label">v3.1.1</span>
+          <span class="orcan-version-select__label">v4.0.0</span>
           <span class="orcan-version-select__caret" aria-hidden="true"></span>
         </button>
         <ul class="orcan-version-select__list" role="listbox" hidden></ul>
       </div>
       <a class="orcan-header-version" href="../changelog/" title="Product SemVer — open changelog">
-        <span class="orcan-header-version__label">v3.1.1</span>
+        <span class="orcan-header-version__label">v4.0.0</span>
       </a>
     
     
@@ -252,32 +248,6 @@
     
       <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
     
-    
-      <div class="md-header__option">
-  <div class="md-select">
-    
-    <button class="md-header__button md-icon" aria-label="Select language">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
-    </button>
-    <div class="md-select__inner">
-      <ul class="md-select__list">
-        
-          <li class="md-select__item">
-            <a href="./" hreflang="en" class="md-select__link">
-              English
-            </a>
-          </li>
-        
-          <li class="md-select__item">
-            <a href="../pl/deployment/" hreflang="pl" class="md-select__link">
-              Polski
-            </a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-</div>
     
     
       
@@ -926,6 +896,34 @@
     
   
     Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ideas/orcan-studio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orcan Studio
   
 
     
@@ -2248,7 +2246,7 @@
 <h3 id="multi-host">Multi-host<a class="headerlink" href="#multi-host" title="Permanent link">&para;</a></h3>
 <p>On each host: <code>orcan build --agent codex</code> (or <code>--all-agents</code>; build is local and never publishes). CI does not publish images.</p>
 <h2 id="documentation-site-versioned-mike">Documentation site (versioned, mike)<a class="headerlink" href="#documentation-site-versioned-mike" title="Permanent link">&para;</a></h2>
-<p>Docs use <a href="https://github.com/jimporter/mike">mike</a> + Material’s version selector, with English + Polish inside each version.</p>
+<p>Docs use <a href="https://github.com/jimporter/mike">mike</a> + Material’s version selector.</p>
 <table>
 <thead>
 <tr>
@@ -2282,8 +2280,8 @@
 </table>
 <p><code>latest</code> here means "what's on <code>main</code> right now", not "last release" —
 see <a href="../development/release/">Release process</a> for the full <code>make tag</code> /
-<code>make release</code> split. Polish pages live under the same version prefix,
-e.g. <code>/latest/pl/</code>, <code>/0.1.0/pl/</code>.</p>
+<code>make release</code> keeps the English documentation under the same version prefix,
+for example <code>/latest/</code> and <code>/0.1.0/</code>.</p>
 <h3 id="what-publishes-what">What publishes what<a class="headerlink" href="#what-publishes-what" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2326,7 +2324,7 @@ e.g. <code>/latest/pl/</code>, <code>/0.1.0/pl/</code>.</p>
   Keeps the current page path when switching (e.g. Installation → same page on <code>2.0.0</code>).</li>
 <li><strong><code>vX.Y.Z</code> chip</strong> — product SemVer from <code>extra.orcan_version</code>; links to Changelog.</li>
 </ul>
-<p>Nested pages keep relative language links; <code>mike-i18n.js</code> fixes absolute homepage language links under <code>/latest/</code> and <code>/X.Y.Z/</code>.</p>
+<p>Nested pages keep their relative links under <code>/latest/</code> and <code>/X.Y.Z/</code>.</p>
 <p>If a page is missing in an older version, you may land on a 404 or that version’s home — there is no smart cross-version remap.</p>
 <h2 id="todo">TODO<a class="headerlink" href="#todo" title="Permanent link">&para;</a></h2>
 <ul class="task-list">
@@ -2362,7 +2360,7 @@ e.g. <code>/latest/pl/</code>, <code>/0.1.0/pl/</code>.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 3, 2026 19:10:31 UTC">September 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 5, 2026 10:58:50 UTC">October 5, 2026</span>
   </span>
 
     
@@ -2507,8 +2505,6 @@ e.g. <code>/latest/pl/</code>, <code>/0.1.0/pl/</code>.</p>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
-      
-        <script src="../assets/javascripts/mike-i18n.js"></script>
       
         <script src="../assets/javascripts/orcan-version.js"></script>
       
