@@ -21,8 +21,8 @@ Installation is a top-level Get started tab — do not bury it under a deeper se
 Docs chrome has its own accessible documentation palette. The terminal and
 Cockpit use **Warm Graphite / Amber**; see [Terminal UI](en/guides/terminal-ui.md).
 
-- CSS: `docs/assets/stylesheets/orcan.css`
-- Favicon: `docs/assets/images/favicon.svg`
+- CSS: `docs/en/assets/stylesheets/orcan.css`
+- Favicon: `docs/en/assets/images/favicon.svg`
 - Fonts: IBM Plex Sans / IBM Plex Mono (`mkdocs.yml` `theme.font`)
 - `mkdocs.yml`: `primary` / `accent` = `custom`; tabs = Home / Get started / Understand / Guides / Reference / Develop
 - Header: docs **version dropdown** (`orcan-version.js`, reads `versions.json` from Pages) + SemVer chip → Changelog
@@ -31,7 +31,7 @@ Do not reintroduce Material stock indigo. Keep light-mode accents darker teal fo
 
 ## Agent-facing public index
 
-- `docs/llms.txt` — curated [llms.txt](https://llmstxt.org/) map for external agents
+- `docs/en/llms.txt` — curated [llms.txt](https://llmstxt.org/) map for external agents
   (regenerate: `make docs-llms`). Must stay **opinionated**: source priority,
   what to pay attention to, and explicit non-goals / “do not invent” — not only
   a link dump.

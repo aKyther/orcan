@@ -8,7 +8,7 @@ tags:
 
 Single **docs** orientation page for coding agents working **on the Orcan repository**.
 
-**In-repo SoT:** root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AGENTS.md) / [`CLAUDE.md`](https://github.com/aKyther/orcan/blob/main/CLAUDE.md) (keep identical) and `.cursor/rules/agents.mdc` (always on). Do not invent a second conflicting ritual. Public care/non-goals index: [`docs/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) (`make docs-llms`).
+**In-repo SoT:** root [`AGENTS.md`](https://github.com/aKyther/orcan/blob/main/AGENTS.md) / [`CLAUDE.md`](https://github.com/aKyther/orcan/blob/main/CLAUDE.md) (keep identical) and `.cursor/rules/agents.mdc` (always on). Do not invent a second conflicting ritual. Public care/non-goals index: [`docs/en/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) (`make docs-llms`).
 
 When you are inside an orcan workspace (e.g. `orcan-dev`), read the workspace context pack first, then `cd` into the `orcan` project and follow **that** repo’s `AGENTS.md`.
 
@@ -60,7 +60,7 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 | Terminal UI | [Terminal UI](../guides/terminal-ui.md); rule `.cursor/rules/terminal-ui.mdc` |
 | Global agent defaults in image | `docker/rootfs/opt/cursor-defaults/` |
 | Rules for developing Orcan | `.cursor/rules/`, `AGENTS.md` / `CLAUDE.md` |
-| Public agent index | `scripts/repository/generate-llms-txt.py` → `docs/llms.txt` |
+| Public agent index | `scripts/repository/generate-llms-txt.py` → `docs/en/llms.txt` |
 | User docs | `docs/` + short `README.md` |
 
 ## Documentation map
@@ -78,7 +78,7 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 | Security | [reference/security.md](../reference/security.md) |
 | Release | [development/release.md](../development/release.md) |
 | Tests | [development/testing.md](../development/testing.md) |
-| Public agent index | [`docs/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) |
+| Public agent index | [`docs/en/llms.txt`](https://akyther.github.io/orcan/latest/llms.txt) |
 
 ## Definition of done
 

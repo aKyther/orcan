@@ -4,7 +4,7 @@ You are editing the **Orcan product repo**. Official name: **Orcan** (ids: `orca
 Cursor also applies `.cursor/rules/agents.mdc` (always on).
 **Keep `AGENTS.md` and `CLAUDE.md` identical** — Cursor loads `AGENTS.md`; Claude Code loads `CLAUDE.md`.
 
-Public agent index: `docs/llms.txt` (`make docs-llms`).
+Public agent index: `docs/en/llms.txt` (`make docs-llms`).
 Longer maps: `docs/en/ai/project-context.md`, `docs/en/change-map.md`.
 
 In a live **orcan workspace** (e.g. `orcan-dev`), honour that root’s context pack
@@ -128,7 +128,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Terminal look | `docker/rootfs/etc/tmux/`, `cursor-ttyd`, `opt/orcan/*` |
 | Image agent defaults | `docker/rootfs/opt/cursor-defaults/` |
 | User docs / theme | `docs/`, `mkdocs.yml`, `overrides/` |
-| Public agent index | `scripts/repository/generate-llms-txt.py` → `docs/llms.txt` |
+| Public agent index | `scripts/repository/generate-llms-txt.py` → `docs/en/llms.txt` |
 | This guidance | `AGENTS.md` / `CLAUDE.md`, `.cursor/rules/` |
 
 **Layout (scan):** `bin/orcan`+`cli/` · `install.sh` · `Dockerfile`+compose ·

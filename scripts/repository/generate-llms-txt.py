@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate docs/llms.txt — curated map of Orcan docs for LLM / agent clients.
+"""Generate docs/en/llms.txt — curated map of Orcan docs for LLM / agent clients.
 
 Spec: https://llmstxt.org/
 Run from repo root or via `make docs` / `make docs-check` (pre-build).
@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "docs" / "llms.txt"
+OUT = ROOT / "docs" / "en" / "llms.txt"
 SITE = "https://akyther.github.io/orcan/latest"
 RAW = "https://raw.githubusercontent.com/aKyther/orcan/main/docs/en"
 REPO = "https://github.com/aKyther/orcan/blob/main"

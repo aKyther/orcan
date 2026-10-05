@@ -172,7 +172,7 @@ docs-venv:
 	fi; \
 	"$(DOCS_PYTHON)" -m pip install -q -r requirements-docs.txt
 
-docs-llms: ## Regenerate docs/llms.txt (agent-facing docs index)
+docs-llms: ## Regenerate docs/en/llms.txt (agent-facing docs index)
 	@./scripts/repository/python.sh scripts/repository/generate-llms-txt.py
 
 docs: docs-venv docs-llms ## Build the MkDocs site into ./site (strict)

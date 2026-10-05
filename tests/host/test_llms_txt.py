@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard rails for docs/llms.txt — orientation for external agents."""
+"""Guard rails for docs/en/llms.txt — orientation for external agents."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 GENERATOR = ROOT / "scripts" / "repository" / "generate-llms-txt.py"
-LLMS = ROOT / "docs" / "llms.txt"
+LLMS = ROOT / "docs" / "en" / "llms.txt"
 
 # Phrases that encode what matters / what not — keep these if the file is rewritten.
 REQUIRED = (

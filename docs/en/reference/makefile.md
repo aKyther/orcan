@@ -20,7 +20,7 @@ This repository ships a Makefile only for **maintainers** working in a git check
 | `make test` / `make test-path-parity` | Container tests (needs Docker) |
 | `make dev-test` | Isolated developer UX lifecycle (needs Docker + `orcan:dev-ux`) |
 | `make docs` / `docs-serve` / `docs-check` | MkDocs |
-| `make docs-llms` | Regenerate `docs/llms.txt` (also runs before docs / docs-check) |
+| `make docs-llms` | Regenerate `docs/en/llms.txt` (also runs before docs / docs-check) |
 | `make docs-mike-latest` / `docs-mike-release` | Versioned docs deploy |
 | `make tag` | Checkpoint: bump + CHANGELOG cut + commit + tag, all pushed (see [Release process](../development/release.md)) |
 | `make release` | The real, deliberate release: CalVer + tag + push |
