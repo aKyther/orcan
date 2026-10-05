@@ -9,6 +9,11 @@ bin_dir="${ORCAN_BIN_DIR:-$HOME/.local/bin}"
 runtime="$kit_dir/orcan-runtime.tar.gz"
 
 test -f "$runtime" || { echo "missing orcan-runtime.tar.gz" >&2; exit 2; }
+if command -v sha256sum >/dev/null 2>&1 && [[ -f "$kit_dir/manifest.json" ]]; then
+    expected="$(python3 -c 'import json,sys; print(next(x["sha256"] for x in json.load(open(sys.argv[1]))["artifacts"] if x["name"] == "orcan-runtime.tar.gz"))' "$kit_dir/manifest.json")"
+    actual="$(sha256sum "$runtime" | awk '{print $1}')"
+    [[ "$actual" == "$expected" ]] || { echo "runtime checksum mismatch" >&2; exit 2; }
+fi
 mkdir -p "$bin_dir" "$(dirname -- "$install_dir")"
 staging="${install_dir}.staging.$$"
 rm -rf -- "$staging"
