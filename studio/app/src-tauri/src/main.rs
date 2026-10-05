@@ -112,7 +112,8 @@ fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> 
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
     }
-    let mut fields = String::from_utf8_lossy(&output.stdout).trim().split('\t');
+    let output_text = String::from_utf8_lossy(&output.stdout);
+    let mut fields = output_text.trim().split('\t');
     let id = fields.next().unwrap_or_default();
     let size = fields.next().unwrap_or_default();
     if id.is_empty() || size.is_empty() {
@@ -306,14 +307,27 @@ async fn enclave_action(
     ttyd_credential: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    let mut args = vec!["studio".to_owned(), "enclave".to_owned(), if apply { "apply" } else { "plan" }.to_owned(), "--empty".to_owned()];
-    if with_git { args.push("--with-git".to_owned()); }
-    if with_docker { args.push("--with-docker".to_owned()); }
-    if with_ttyd { args.push("--with-ttyd".to_owned()); }
+    let mut args = vec![
+        "studio".to_owned(),
+        "enclave".to_owned(),
+        if apply { "apply" } else { "plan" }.to_owned(),
+        "--empty".to_owned(),
+    ];
+    if with_git {
+        args.push("--with-git".to_owned());
+    }
+    if with_docker {
+        args.push("--with-docker".to_owned());
+    }
+    if with_ttyd {
+        args.push("--with-ttyd".to_owned());
+    }
     if let Some(credential) = ttyd_credential.filter(|value| !value.is_empty()) {
         args.extend(["--with-ttyd-auth".to_owned(), credential]);
     }
-    if apply { args.push("--yes".to_owned()); }
+    if apply {
+        args.push("--yes".to_owned());
+    }
     let stdout = run_on_enclave(enclave, args, state).await?;
     serde_json::from_str(&stdout).map_err(|error| format!("invalid enclave response: {error}"))
 }
