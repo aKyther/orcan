@@ -22,7 +22,11 @@ else
     pid="${2:-}"
     cmdline=""
     if [[ -n "${pid}" && -r "/proc/${pid}/cmdline" ]]; then
-        cmdline="$(tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
+        argv=()
+        # /proc cmdline is NUL-separated; read it with bash so pane redraws do
+        # not depend on an external tr process or its timing.
+        readarray -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
+        cmdline="${argv[*]}"
     fi
 fi
 
