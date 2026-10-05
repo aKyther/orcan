@@ -20,7 +20,8 @@ const activeGroup = $("#active-group");
 const profileFormTitle = $("#profile-form-title");
 const profileName = $<HTMLInputElement>("#profile-name");
 const wslFields = $("#wsl-fields");
-const wslDistribution = $<HTMLInputElement>("#wsl-distribution");
+const wslDistribution = $<HTMLSelectElement>("#wsl-distribution");
+const wslDistributionHint = $("#wsl-distribution-hint");
 const sshFields = $("#ssh-fields");
 const sshHost = $<HTMLInputElement>("#ssh-host");
 const sshUser = $<HTMLInputElement>("#ssh-user");
@@ -1496,6 +1497,7 @@ function renderCredentialOptions(selected: string): void {
 function refreshProfileForm(): void {
   const location = radioValue("location");
   wslFields.hidden = location !== "wsl2";
+  if (location === "wsl2") void discoverWslDistributions();
   sshFields.hidden = location !== "ssh";
   const value = credentialSelect.value;
   credentialHint.textContent = value === SYSTEM_SSH
@@ -1506,13 +1508,36 @@ function refreshProfileForm(): void {
   profileTestHint.hidden = true;
 }
 
+let knownWslDistributions: string[] | undefined;
+async function discoverWslDistributions(): Promise<void> {
+  if (knownWslDistributions) return;
+  wslDistribution.disabled = true;
+  try {
+    const distributions = await invoke<string[]>("list_wsl_distributions");
+    knownWslDistributions = distributions;
+    const selected = wslDistribution.value;
+    wslDistribution.replaceChildren(
+      new Option(distributions.length ? "Choose a WSL2 distribution…" : "No WSL2 distributions found", ""),
+      ...distributions.map((distribution) => new Option(distribution, distribution)),
+    );
+    wslDistribution.value = distributions.includes(selected) ? selected : distributions.includes("Ubuntu") ? "Ubuntu" : distributions[0] ?? "";
+    wslDistribution.disabled = distributions.length === 0;
+    wslDistributionHint.textContent = distributions.length
+      ? "Detected locally by Studio. Orcan must be installed inside the selected distribution."
+      : "No WSL2 distributions were found. Install one with `wsl --install`, then reopen this profile.";
+  } catch (error) {
+    wslDistribution.replaceChildren(new Option("WSL2 discovery unavailable", ""));
+    wslDistributionHint.textContent = `Studio could not query WSL: ${String(error)}`;
+  }
+}
+
 function openProfileForm(profile?: ConnectionProfile): void {
   editingProfile = profile;
   showView("profiles");
   profileFormTitle.textContent = profile ? `Edit ${profile.name}` : "New profile";
   profileName.value = profile?.name ?? "";
   setRadio("location", profile?.target.kind ?? "ssh");
-  wslDistribution.value = profile?.target.kind === "wsl2" ? profile.target.distribution : "Ubuntu-24.04";
+  wslDistribution.value = profile?.target.kind === "wsl2" ? profile.target.distribution : "";
   let host = profile?.target.kind === "ssh" ? profile.target.destination : "";
   let user = profile?.ssh?.username ?? "";
   if (profile?.target.kind === "ssh" && !profile.credential_id && host.includes("@")) {

@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use orcan_studio_core::{
     ConnectionProfile, MembershipAction, ProbeReport, ProfileStore, ProjectMode, ResolvedSsh,
     RuntimeAction, SshAuthentication, SshCredential, SystemRunner, Target, membership_args,
@@ -104,6 +106,28 @@ async fn probe(
     let args = ["studio", "probe", "--json"].map(str::to_owned).to_vec();
     let stdout = run_on_enclave(enclave, args, state).await?;
     parse_probe_report(&stdout).map_err(|error| error.to_string())
+}
+
+/// Lists distributions that the Windows WSL launcher exposes to Studio.
+#[tauri::command]
+async fn list_wsl_distributions() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let output = Command::new("wsl.exe")
+            .args(["--list", "--quiet"])
+            .output()
+            .map_err(|error| format!("could not start wsl.exe: {error}"))?;
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
+        }
+        Ok(String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .map(str::to_owned)
+            .collect())
+    })
+    .await
+    .map_err(|error| format!("WSL discovery stopped: {error}"))?
 }
 
 #[tauri::command]
@@ -738,6 +762,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            list_wsl_distributions,
             probe,
             sync,
             runtime_action,

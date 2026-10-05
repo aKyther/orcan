@@ -129,7 +129,7 @@
                     <label class="choice"><input type="radio" name="location" value="ssh" /><strong>Remote server</strong><span>Orcan runs on a machine you reach over SSH.</span></label>
                   </div>
                 </fieldset>
-                <div id="wsl-fields" class="field" hidden><label for="wsl-distribution">WSL2 distribution</label><input id="wsl-distribution" autocomplete="off" value="Ubuntu-24.04" /><p class="hint">Run <code>wsl -l -v</code> in PowerShell to list the names.</p></div>
+                <div id="wsl-fields" class="field" hidden><label for="wsl-distribution">WSL2 distribution</label><select id="wsl-distribution" disabled><option value="">Looking for WSL2 distributions…</option></select><p id="wsl-distribution-hint" class="hint">Studio checks <code>wsl --list --quiet</code> in the background.</p></div>
                 <div id="ssh-fields" class="field-stack" hidden>
                   <div class="connection-grid">
                     <div class="field"><label for="ssh-host">Server address</label><input id="ssh-host" autocomplete="off" placeholder="orcan.example.com or 100.64.0.5:2222" /><p class="hint">Hostname, IP address, or a Host alias from <code>~/.ssh/config</code>.</p></div>
