@@ -22,11 +22,11 @@ else
     pid="${2:-}"
     cmdline=""
     if [[ -n "${pid}" && -r "/proc/${pid}/cmdline" ]]; then
-        argv=()
-        # /proc cmdline is NUL-separated; read it with bash so pane redraws do
-        # not depend on an external tr process or its timing.
-        readarray -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
-        cmdline="${argv[*]}"
+        # /proc cmdline is NUL-separated.  Use read directly: readarray -d ''
+        # differs between bash builds used by local images and CI runners.
+        while IFS= read -r -d $'\0' argument; do
+            cmdline+=" ${argument}"
+        done <"/proc/${pid}/cmdline" 2>/dev/null || true
     fi
 fi
 
