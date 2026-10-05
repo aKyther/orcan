@@ -352,7 +352,7 @@ async fn import_plan(
     enclave: EnclaveInput,
     source: String,
     projects_root: String,
-    destination: Option<String>,
+    parent: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
     let mut args = vec![
@@ -367,8 +367,8 @@ async fn import_plan(
     .into_iter()
     .map(str::to_owned)
     .collect::<Vec<_>>();
-    if let Some(destination) = destination.filter(|value| !value.trim().is_empty()) {
-        args.extend(["--destination".to_owned(), destination]);
+    if let Some(parent) = parent.filter(|value| !value.trim().is_empty()) {
+        args.extend(["--parent".to_owned(), parent]);
     }
     studio_json(enclave, args, state).await
 }
@@ -378,7 +378,7 @@ async fn import_apply(
     enclave: EnclaveInput,
     source: String,
     projects_root: String,
-    destination: Option<String>,
+    parent: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
     let mut args = vec![
@@ -394,8 +394,8 @@ async fn import_apply(
     .into_iter()
     .map(str::to_owned)
     .collect::<Vec<_>>();
-    if let Some(destination) = destination.filter(|value| !value.trim().is_empty()) {
-        args.extend(["--destination".to_owned(), destination]);
+    if let Some(parent) = parent.filter(|value| !value.trim().is_empty()) {
+        args.extend(["--parent".to_owned(), parent]);
     }
     studio_json(enclave, args, state).await
 }

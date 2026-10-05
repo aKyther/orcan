@@ -46,7 +46,7 @@ orcan_cmd_studio() {
             ;;
         import)
             if [[ "${1:-}" != "plan" && "${1:-}" != "apply" ]]; then
-                orcan_usage_error 'usage: orcan studio import plan|apply --source URL_OR_PATH --projects-root PATH [--destination PATH] [--yes]'
+                orcan_usage_error 'usage: orcan studio import plan|apply --source URL --projects-root PATH [--parent PATH] [--yes]'
                 return
             fi
             shift

@@ -20,19 +20,23 @@ def main() -> None:
     parser.add_argument("mode", choices=("plan", "apply"))
     parser.add_argument("--source", required=True)
     parser.add_argument("--projects-root", required=True)
-    parser.add_argument("--destination")
+    parser.add_argument("--parent")
     parser.add_argument("--yes", action="store_true")
     args = parser.parse_args()
     root = Path(args.projects_root).expanduser().resolve()
-    destination = (
-        Path(args.destination).expanduser()
-        if args.destination
-        else root / suggested_name(args.source)
-    )
-    destination = destination.resolve()
+    parent = Path(args.parent).expanduser().resolve() if args.parent else root
+    blockers = []
+    try:
+        parent.relative_to(root)
+    except ValueError:
+        blockers.append("selected parent is outside Orcan's managed projects root")
+    if args.parent and not parent.is_dir():
+        blockers.append("selected parent directory does not exist")
+    if not args.parent and parent.exists() and not parent.is_dir():
+        blockers.append("selected parent directory does not exist")
+    destination = (parent / suggested_name(args.source)).resolve()
     exists = destination.exists()
     git = (destination / ".git").exists() if exists and destination.is_dir() else False
-    blockers = []
     if exists and not git:
         blockers.append("destination exists but is not a Git repository")
     plan = {
@@ -40,7 +44,8 @@ def main() -> None:
         "source": args.source,
         "projects_root": str(root),
         "destination": str(destination),
-        "default_destination": args.destination is None,
+        "parent": str(parent),
+        "default_destination": args.parent is None,
         "destination_state": "git_repository"
         if git
         else "missing"

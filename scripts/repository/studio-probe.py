@@ -394,6 +394,7 @@ def studio_control(
         " · ".join(name for name, enabled in agents.items() if enabled)
         or "Not reported"
     )
+    ssh_agent = bool(os.environ.get("SSH_AUTH_SOCK"))
     terminal = (
         "ttyd protected"
         if launch.get("ttyd_auth")
@@ -469,6 +470,15 @@ def studio_control(
                 "state": "locked",
                 "value": access_value,
                 "detail": "Access flags come from the recorded Orcan launch. Studio can replay them, but does not silently change exposure.",
+            },
+            {
+                "id": "git_auth",
+                "label": "Git authentication",
+                "state": "locked",
+                "value": "SSH agent available"
+                if ssh_agent
+                else "No SSH agent reported",
+                "detail": "Repository cloning runs through Orcan on this machine. Studio never reads or transfers SSH keys; private repository access is checked by Git during the clone.",
             },
         ],
     }

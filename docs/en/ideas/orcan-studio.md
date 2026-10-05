@@ -41,12 +41,17 @@ locked facts: container resources, image-provided agent tools, protected
 environment values, managed paths, and launch exposure. Locked environment
 values are intentionally neither displayed nor editable in Studio.
 
-Contexts also lists the branch sources that Orcan reports, regardless of which
-managed project root contains them. Studio shows their clean/dirty and
-ahead/behind state, checks the selected tracked branch against `origin`, then
-requires confirmation before a `git pull --ff-only`. Updating a parent never
-rewrites its dependent worktrees; their branches can be rebased later by the
-user or an agent.
+Each Git project in Contexts carries the state of its Orcan-reported parent.
+Studio shows clean/dirty and ahead/behind inline, checks that parent's tracked
+branch against `origin`, then requires confirmation before a `git pull
+--ff-only`. Updating a parent never rewrites its dependent worktrees; their
+branches can be rebased later by the user or an agent.
+
+Repository import accepts a Git URL and an Orcan-reported parent directory
+under the managed projects root. Orcan derives the new checkout name from the
+URL and validates the destination; Studio never accepts an arbitrary path.
+Git authentication remains on the Orcan host (for example its SSH agent), and
+Studio reports its availability without reading keys or secrets.
 
 Studio saves reconnect profiles in its native application-data directory. A
 profile contains a display name, transport metadata, and SSH metadata such as a

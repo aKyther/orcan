@@ -85,15 +85,6 @@ const contextWorkspaceNotice = el("output", { className: "context-workspace-noti
 contextManager.append(contextWorkspaceList, contextWorkspaceDetail);
 snapshot.insertBefore(contextManager, snapshotList);
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
-const parentRepository = document.querySelector<HTMLSelectElement>("#parent-repository")!;
-const parentPath = document.querySelector<HTMLInputElement>("#parent-path")!;
-const parentBranch = document.querySelector<HTMLInputElement>("#parent-branch")!;
-const parentPlanButton = document.querySelector<HTMLButtonElement>("#parent-plan")!;
-const parentApplyButton = document.querySelector<HTMLButtonElement>("#parent-apply")!;
-const parentResult = document.querySelector<HTMLOutputElement>("#parent-result")!;
-const parentSourceState = document.querySelector<HTMLElement>("#parent-source-state")!;
-parentBranch.title = "Reported by Orcan; switch branches outside Studio before updating a different branch.";
-let parentHead: string | undefined;
 type ParentRun = { path: string; branch: string; at: string };
 const PARENT_RUNS_KEY = "orcan-studio:parent-runs";
 const parentRuns: ParentRun[] = (() => {
@@ -104,6 +95,7 @@ const parentRuns: ParentRun[] = (() => {
 })();
 
 type ParentCandidate = { path: string; name: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; readOnly: boolean; eligible: boolean; repositoryId?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
+type ContextProject = ProbeReport["context"]["workspaces"][number]["projects"][number];
 
 function rememberParentRun(path: string, branch: string): void {
   const existing = parentRuns.findIndex((run) => run.path === path && run.branch === branch);
@@ -127,57 +119,14 @@ function parentCandidates(report: ProbeReport): ParentCandidate[] {
   });
 }
 
-function renderParentSourceState(candidate?: ParentCandidate): void {
-  if (!candidate) {
-    parentSourceState.replaceChildren(el("span", { textContent: "No branch source reported by Orcan." }));
-    parentPlanButton.disabled = true;
-    parentApplyButton.disabled = true;
-    return;
-  }
-  const state = candidate.dirty
-    ? "Dirty — update blocked"
-    : !candidate.upstream
-      ? "No configured upstream — Studio will check origin"
-      : candidate.behind
-        ? `${candidate.behind} commit${candidate.behind === 1 ? "" : "s"} behind`
-        : "Up to date at last probe";
-  const source = candidate.role === "worktree_parent"
-    ? `Worktree parent · ${candidate.worktree_count} linked worktree${candidate.worktree_count === 1 ? "" : "s"}`
-    : "Mounted Git source · update only while clean";
-  parentSourceState.replaceChildren(
-    el("span", { className: candidate.dirty || !candidate.upstream ? "blocked" : "ready", textContent: state }),
-    el("span", { textContent: `${source} · ${candidate.branch ?? "detached"}` }),
-  );
-  parentPlanButton.disabled = Boolean(candidate.dirty || !candidate.branch);
-}
-
-function renderParentRepositories(report: ProbeReport): void {
-  const candidates = parentCandidates(report);
-  const previousPath = parentPath.value;
-  parentRepository.replaceChildren(new Option("Choose a managed repository…", ""), ...candidates.map((candidate) => {
-    const run = parentRuns.find((item) => item.path === candidate.path && item.branch === (candidate.branch ?? "main"));
-    const role = candidate.role === "worktree_parent" ? `worktree source · ${candidate.worktree_count} worktree${candidate.worktree_count === 1 ? "" : "s"}` : "mounted checkout · read-only update";
-    const status = [role, candidate.branch, candidate.upstream ? candidate.behind ? `${candidate.behind} behind` : "up to date" : "no upstream", candidate.ahead ? `${candidate.ahead} ahead` : "", candidate.dirty ? "dirty — blocked" : "", run ? `updated ${new Date(run.at).toLocaleDateString()}` : ""].filter(Boolean).join(" · ");
-    return new Option(`${candidate.name} · ${status}`, candidate.path);
-  }));
-  const selected = candidates.find((candidate) => candidate.path === previousPath) ?? candidates[0];
-  if (!selected) {
-    parentPath.value = "";
-    renderParentSourceState();
-    return;
-  }
-  parentRepository.value = selected.path;
-  parentPath.hidden = true;
-  parentPath.value = selected.path;
-  if (!parentBranch.value || previousPath !== selected.path) parentBranch.value = selected.branch ?? "main";
-  renderParentSourceState(selected);
+function parentForProject(report: ProbeReport, project: ContextProject): ParentCandidate | undefined {
+  return parentCandidates(report).find((candidate) => candidate.repositoryId && candidate.repositoryId === project.repository_id)
+    ?? parentCandidates(report).find((candidate) => candidate.path === project.path);
 }
 const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
-const importDestination = document.querySelector<HTMLInputElement>("#import-destination")!;
-importDestination.readOnly = true;
-importDestination.placeholder = "Orcan chooses the managed destination";
-document.querySelector<HTMLLabelElement>('label[for="import-source"]')!.textContent = "Git URL";
-document.querySelector<HTMLLabelElement>('label[for="import-destination"]')!.textContent = "Destination";
+const importParent = document.querySelector<HTMLSelectElement>("#import-parent")!;
+const importDestination = document.querySelector<HTMLElement>("#import-destination")!;
+const importAuth = document.querySelector<HTMLElement>("#import-auth")!;
 const importPlanButton = document.querySelector<HTMLButtonElement>("#import-plan")!;
 const importApplyButton = document.querySelector<HTMLButtonElement>("#import-apply")!;
 const importResult = document.querySelector<HTMLOutputElement>("#import-result")!;
@@ -820,7 +769,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     return all;
   }, new Map());
   const groupNodes = [...groups.entries()].map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent) }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
-  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available elements (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), groupNodes.length ? el("div", { className: "project-parent-groups" }, ...groupNodes) : el("p", { className: "hint", textContent: query ? "No available element matches this filter." : "No projects in the sandbox yet. Import one in Repositories." }));
+  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available projects and folders (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), groupNodes.length ? el("div", { className: "project-parent-groups" }, ...groupNodes) : el("p", { className: "hint", textContent: query ? "No project or folder matches this filter." : "No projects or folders in the sandbox yet. Import a repository in Repositories." }));
   requestAnimationFrame(drawConnections);
 }
 
@@ -837,12 +786,12 @@ function renderWorkspaceInspector(report: ProbeReport): void {
   workspaceInspectorTitle.textContent = workspace.name;
   workspaceInspectorState.textContent = drafts.length ? `${drafts.length} planned change${drafts.length === 1 ? "" : "s"}` : "No pending changes";
   workspaceInspectorMetrics.replaceChildren(
-    el("span", { textContent: `${workspace.projects.length} elements` }),
+    el("span", { textContent: `${workspace.projects.length} connections` }),
     el("span", { textContent: `${worktrees} worktrees` }),
     el("span", { textContent: `${mounts} mounts` }),
     el("span", { className: dirty || missing ? "warn" : "", textContent: dirty ? `${dirty} dirty` : missing ? `${missing} missing` : "ready" }),
   );
-  workspaceInspectorAgent.textContent = `After applying the plan and running sync, the agent sees: ${names.length ? names.slice(0, 6).join(" · ") + (names.length > 6 ? ` · +${names.length - 6} more` : "") : "no elements yet"}.`;
+  workspaceInspectorAgent.textContent = `After applying the plan and running sync, the agent sees: ${names.length ? names.slice(0, 6).join(" · ") + (names.length > 6 ? ` · +${names.length - 6} more` : "") : "no projects or mounts yet"}.`;
   workspaceInspectorDiscard.hidden = drafts.length === 0;
   workspaceInspectorWorktree.disabled = !canEditContext(report);
 }
@@ -994,7 +943,7 @@ function queueConflicts(changes: QueuedChange[]): Map<string, string> {
   }
   for (const entries of relationships.values()) {
     if (new Set(entries.map((change) => change.action)).size > 1) {
-      for (const change of entries) conflicts.set(change.id, "Conflicts with an attach/detach draft for the same workspace and element.");
+      for (const change of entries) conflicts.set(change.id, "Conflicts with an attach/detach draft for the same workspace and project or folder.");
     }
   }
   for (const entries of worktrees.values()) {
@@ -1309,6 +1258,19 @@ function renderWorktreeChoices(report: ProbeReport): void {
   renderWorktreeExisting();
 }
 
+function renderImportChoices(report: ProbeReport): void {
+  const previous = importParent.value;
+  const directories = report.context.managed_projects
+    .filter((project) => project.kind === "directory")
+    .map((project) => ({ path: project.path, name: project.path.split("/").filter(Boolean).at(-1) ?? project.path }));
+  const choices = [{ path: report.paths.projects_root, name: "Sandbox root (default)" }, ...directories];
+  importParent.replaceChildren(...choices.map((choice) => new Option(choice.name, choice.path)));
+  importParent.value = choices.some((choice) => choice.path === previous) ? previous : report.paths.projects_root;
+  const auth = report.control?.settings?.find((setting) => setting.id === "git_auth");
+  importAuth.textContent = auth?.detail ?? "Git authentication is resolved by Orcan on this machine; Studio never receives SSH keys or their contents.";
+  importDestination.textContent = `Orcan will clone into ${importParent.options[importParent.selectedIndex]?.text ?? "the selected folder"}/<repository name>.`;
+}
+
 function renderSnapshot(report: ProbeReport): void {
   report = normalizeProbeReport(report);
   currentReport = report;
@@ -1332,7 +1294,7 @@ function renderSnapshot(report: ProbeReport): void {
   if (!canEditContext(report)) settingsResult.textContent = contextEditMessage();
   setting("setting-access").textContent = accessExposure(report.runtime.launch);
   renderEnclaveConfiguration(report);
-  renderParentRepositories(report);
+  renderImportChoices(report);
   renderWorktreeChoices(report);
   const resources = report.runtime.resources;
   settingResources.textContent = resources ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"} · SHM ${resources.shm_size ?? "—"}` : "Not reported";
@@ -1409,12 +1371,47 @@ function renderContextWorkspaceList(report: ProbeReport): void {
     const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
     detach.title = editable ? `Detach ${projectName(project)} from ${workspace.name}` : contextEditMessage();
     detach.disabled = !editable;
-    return el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", {}, el("strong", { textContent: projectName(project) }), el("small", { textContent: [project.branch, project.dirty && "dirty", project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind })), detach);
+    const parent = parentForProject(report, project);
+    const parentState = parent
+      ? parent.dirty
+        ? `parent ${parent.branch ?? "branch"} dirty`
+        : parent.behind
+          ? `parent ${parent.branch ?? "branch"} · ${parent.behind} behind`
+          : `parent ${parent.branch ?? "branch"} · up to date`
+      : undefined;
+    let update: HTMLButtonElement | undefined;
+    if (parent) {
+      update = actionButton("↻", () => void updateProjectParent(parent, workspace.name, projectName(project)), "context-project-update");
+      update.title = parent.dirty ? "Parent has changes; update is blocked" : `Check and update ${parent.branch ?? "parent"}`;
+      update.disabled = parent.dirty || !parent.branch || currentReport?.control?.operations?.parent_update?.available === false;
+    }
+    return el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", {}, el("strong", { textContent: projectName(project) }), el("small", { textContent: [project.branch, project.dirty && "dirty", parentState, project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind })), ...(update ? [update] : []), detach);
   });
   const open = actionButton("⌁", () => { showView("overview"); renderEnclaveMap(report); enclaveMap.scrollIntoView({ behavior: "smooth", block: "start" }); });
   open.title = "Open relationship map";
   contextWorkspaceNotice.textContent = editable ? "" : `Read-only · ${contextSourceLabel(report)}. ${contextEditMessage()}`;
   contextWorkspaceDetail.replaceChildren(el("header", {}, el("div", {}, el("p", { className: "eyebrow", textContent: "WORKSPACE" }), el("h3", { textContent: workspace.name })), open), el("div", { className: "actions compact" }, add, worktree, rename, remove), contextWorkspaceNotice, el("div", { className: "context-project-list" }, ...(projects.length ? projects : [el("p", { className: "hint", textContent: "Empty workspace — add its first project." })])));
+}
+
+async function updateProjectParent(parent: ParentCandidate, workspace: string, project: string): Promise<void> {
+  if (!current || !parent.branch || parent.dirty) return;
+  setContextNotice(`Checking ${project}'s parent ${parent.branch}…`);
+  try {
+    const response = await invoke<{ plan: { head: string; remote_head?: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch });
+    if (!response.plan.ready) {
+      setContextNotice(response.plan.blockers.join(" · "));
+      return;
+    }
+    const remote = response.plan.remote_head?.slice(0, 8) ?? "origin";
+    if (!window.confirm(`Update ${project}'s parent ${parent.branch}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`)) return;
+    setContextNotice(`Updating ${parent.branch}…`);
+    await invoke("parent_apply", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch, expectedHead: response.plan.head });
+    rememberParentRun(parent.path, parent.branch);
+    setContextNotice(`Updated ${project}'s parent ${parent.branch} for ${workspace}.`);
+    await connect(current);
+  } catch (error) {
+    setContextNotice(`Parent update failed: ${String(error)}`);
+  }
 }
 
 async function manageWorkspace(action: "rename" | "remove", workspace: string): Promise<void> {
@@ -1964,6 +1961,12 @@ for (const item of navigationItems) item.addEventListener("click", () => showVie
 settingsRefresh.addEventListener("click", () => { if (current) void connect(current, settingsResult).catch(() => undefined); });
 for (const [action, selector] of Object.entries(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.addEventListener("click", () => void runRuntimeAction(action as RuntimeAction));
 settingsSync.addEventListener("click", async () => { if (!current || !canEditContext()) { settingsResult.textContent = contextEditMessage(); return; } const job = addJob("Orcan sync", current.label); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { enclave: enclaveInput(current) }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
+importParent.addEventListener("change", () => {
+  importReady = false;
+  importApplyButton.disabled = true;
+  importDestination.textContent = `Orcan will clone into ${importParent.options[importParent.selectedIndex]?.text ?? "the selected folder"}/<repository name>.`;
+  importResult.textContent = "Preview the import before cloning.";
+});
 worktreeRepo.addEventListener("change", renderWorktreeExisting);
 worktreeWorkspaces.addEventListener("change", renderWorktreeExisting);
 worktreePlan.addEventListener("click", async () => {
@@ -2056,7 +2059,7 @@ importPlanButton.addEventListener("click", async () => {
   if (!current || !latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check an Enclave first."; return; }
   importPlanButton.disabled = true; importResult.textContent = "Building import plan…";
   try {
-    const response = await invoke<{ plan: { destination: string; destination_state: string; ready: boolean; blockers: string[] } }>("import_plan", { enclave: enclaveInput(current), source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined });
+    const response = await invoke<{ plan: { destination: string; destination_state: string; ready: boolean; blockers: string[] } }>("import_plan", { enclave: enclaveInput(current), source: importSource.value, projectsRoot: snapshotRoot.textContent, parent: importParent.value || undefined });
     importReady = response.plan.ready; importApplyButton.disabled = !importReady;
     importResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination} · ${response.plan.destination_state}` : response.plan.blockers.join(" · ");
   } catch (error) { importReady = false; importApplyButton.disabled = true; importResult.textContent = `Plan failed: ${String(error)}`; }
@@ -2066,47 +2069,9 @@ importApplyButton.addEventListener("click", async () => {
   if (!importReady) return;
   importApplyButton.disabled = true; importResult.textContent = "Cloning repository…";
   const job = addJob("Repository import", importSource.value);
-  try { const response = await invoke<{ result: { destination: string } }>("import_apply", { enclave: enclaveInput(current!), source: importSource.value, projectsRoot: snapshotRoot.textContent, destination: importDestination.value || undefined }); importResult.textContent = `Imported: ${response.result.destination}`; importReady = false; finishJob(job, "succeeded", response.result.destination); }
+  try { const response = await invoke<{ result: { destination: string } }>("import_apply", { enclave: enclaveInput(current!), source: importSource.value, projectsRoot: snapshotRoot.textContent, parent: importParent.value || undefined }); importResult.textContent = `Imported: ${response.result.destination}`; importReady = false; finishJob(job, "succeeded", response.result.destination); }
   catch (error) { importResult.textContent = `Import failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
 });
-parentRepository.addEventListener("change", () => {
-  const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === parentRepository.value);
-  parentPath.hidden = true;
-  parentPath.value = parentRepository.value;
-  if (candidate?.branch) parentBranch.value = candidate.branch;
-  parentHead = undefined;
-  parentApplyButton.disabled = true;
-  renderParentSourceState(candidate);
-  parentResult.textContent = "Preview before applying an update.";
-});
-parentPlanButton.addEventListener("click", async () => {
-  parentPlanButton.disabled = true; parentResult.textContent = "Checking parent repository…";
-  try {
-    if (!current) return;
-    const response = await invoke<{ plan: { head: string; remote_head?: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(current), path: parentPath.value, branch: parentBranch.value });
-    parentHead = response.plan.head;
-    parentApplyButton.disabled = !response.plan.ready;
-    parentResult.textContent = response.plan.ready
-      ? `Ready: ${parentBranch.value} ${parentHead.slice(0, 8)} → origin ${response.plan.remote_head?.slice(0, 8) ?? "checked"}. Confirm pull to update this source.`
-      : response.plan.blockers.join(" · ");
-  } catch (error) { parentHead = undefined; parentApplyButton.disabled = true; parentResult.textContent = `Plan failed: ${String(error)}`; }
-  finally { parentPlanButton.disabled = false; }
-});
-parentApplyButton.addEventListener("click", async () => {
-  if (!parentHead) return;
-  parentApplyButton.disabled = true; parentResult.textContent = "Applying approved fast-forward…";
-  const job = addJob("Parent update", parentBranch.value);
-  try {
-    await invoke("parent_apply", { enclave: enclaveInput(current!), path: parentPath.value, branch: parentBranch.value, expectedHead: parentHead });
-    rememberParentRun(parentPath.value, parentBranch.value);
-    parentResult.textContent = `Updated ${parentBranch.value}. Worktrees keep their own branches; rebase them only when you choose to.`;
-    finishJob(job, "succeeded", "Fast-forward applied");
-    await connect(current!);
-  }
-  catch (error) { parentResult.textContent = `Update failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
-  finally { parentApplyButton.disabled = false; }
-});
-
 renderJobs();
 if (demoMode) {
   demoBanner.hidden = false;

@@ -80,6 +80,7 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
         "agents",
         "environment",
         "access",
+        "git_auth",
     ]
 
 

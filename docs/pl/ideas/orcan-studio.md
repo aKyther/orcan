@@ -44,12 +44,18 @@ chronionych wartości środowiska, ścieżek zarządzanych i ekspozycji startowe
 Zablokowane wartości środowiska celowo nie są ani wyświetlane, ani edytowane w
 Studio.
 
-Contexts pokazuje też źródła branchy zgłoszone przez Orcan, niezależnie od
-tego, w którym zarządzanym rootcie projektów się znajdują. Studio pokazuje ich
-stan clean/dirty i ahead/behind, sprawdza śledzony branch względem `origin`, a
-następnie wymaga potwierdzenia przed `git pull --ff-only`. Aktualizacja parenta
-nigdy nie przepisuje zależnych worktree; ich branche można później zrebase'ować
-ręcznie lub przez agenta.
+Każdy projekt Git w Contexts ma przy sobie stan parenta zgłoszonego przez
+Orcan. Studio pokazuje clean/dirty i ahead/behind bezpośrednio przy projekcie,
+sprawdza śledzony branch parenta względem `origin`, a następnie wymaga
+potwierdzenia przed `git pull --ff-only`. Aktualizacja parenta nigdy nie
+przepisuje zależnych worktree; ich branche można później zrebase'ować ręcznie
+lub przez agenta.
+
+Import repozytorium przyjmuje URL Git i parent directory zgłoszony przez Orcan
+pod zarządzanym projects rootem. Orcan wyprowadza nazwę nowego checkoutu z URL
+i waliduje cel; Studio nigdy nie przyjmuje dowolnej ścieżki. Uwierzytelnienie
+Git pozostaje na hoście Orcan (na przykład jego agencie SSH), a Studio pokazuje
+jego dostępność bez odczytywania kluczy ani sekretów.
 
 Studio zapisuje profile ponownego połączenia w natywnym katalogu danych
 aplikacji. Profil ma nazwę, metadane transportu oraz dane SSH, takie jak

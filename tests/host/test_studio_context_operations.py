@@ -36,6 +36,30 @@ def test_import_plan_proposes_managed_root(tmp_path: Path) -> None:
     assert plan["destination"].endswith("sandbox/demo")
 
 
+def test_import_plan_uses_an_orcan_reported_parent_under_the_managed_root(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "sandbox"
+    parent = root / "new"
+    parent.mkdir(parents=True)
+
+    report = studio_script(
+        "studio-import.py",
+        "plan",
+        "--source",
+        "https://example.test/team/demo.git",
+        "--projects-root",
+        str(root),
+        "--parent",
+        str(parent),
+    )
+
+    plan = report["plan"]
+    assert plan["ready"] is True
+    assert plan["parent"] == str(parent)
+    assert plan["destination"] == str(parent / "demo")
+
+
 def test_worktree_plan_refuses_existing_destination(tmp_path: Path) -> None:
     repo = tmp_path / "parent"
     repo.mkdir()
