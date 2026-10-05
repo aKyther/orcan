@@ -124,6 +124,7 @@ function parentForProject(report: ProbeReport, project: ContextProject): ParentC
     ?? parentCandidates(report).find((candidate) => candidate.path === project.path);
 }
 const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
+importSource.placeholder = "repository-url";
 const importParent = document.querySelector<HTMLSelectElement>("#import-parent")!;
 const importDestination = document.querySelector<HTMLElement>("#import-destination")!;
 const importAuth = document.querySelector<HTMLElement>("#import-auth")!;
@@ -165,6 +166,7 @@ const cleanupApply = document.querySelector<HTMLButtonElement>("#cleanup-apply")
 const cleanupResult = document.querySelector<HTMLOutputElement>("#cleanup-result")!;
 const worktreeRepo = document.querySelector<HTMLSelectElement>("#worktree-repo")!;
 const worktreeBranch = document.querySelector<HTMLInputElement>("#worktree-branch")!;
+worktreeBranch.placeholder = "branch-name";
 const worktreeWorkspaces = document.querySelector<HTMLSelectElement>("#worktree-workspaces")!;
 const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")!;
 const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;

@@ -56,9 +56,9 @@
             <form method="dialog">
               <p class="eyebrow">REVIEW CHANGE</p>
               <h2 id="plan-title">Attach to workspace</h2>
-              <div id="plan-name-field" class="field" hidden><label for="plan-workspace-name">New workspace name</label><input id="plan-workspace-name" autocomplete="off" placeholder="review" pattern="[A-Za-z0-9._-]{1,64}" /><p class="hint">Letters, digits, dots, hyphens, or underscores.</p></div>
+              <div id="plan-name-field" class="field" hidden><label for="plan-workspace-name">New workspace name</label><input id="plan-workspace-name" autocomplete="off" placeholder="workspace-name" pattern="[A-Za-z0-9._-]{1,64}" /><p class="hint">Letters, digits, dots, hyphens, or underscores.</p></div>
               <fieldset id="relationship-mode-field" class="field"><legend>Connection</legend><div class="choice-grid two"><label class="choice"><input type="radio" name="relationship-mode" value="share" checked /><strong>Share this directory</strong><span>Same files can belong to many workspaces.</span></label><label class="choice"><input type="radio" name="relationship-mode" value="worktree" /><strong>New Git worktree</strong><span>Independent branch for this workspace.</span></label></div></fieldset>
-              <div id="worktree-branch-field" class="field" hidden><label for="worktree-branch-name">Branch</label><input id="worktree-branch-name" autocomplete="off" placeholder="feature/workspace" /></div>
+              <div id="worktree-branch-field" class="field" hidden><label for="worktree-branch-name">Branch</label><input id="worktree-branch-name" autocomplete="off" placeholder="branch-name" /></div>
               <fieldset id="plan-mode-field" class="field"><legend>Attach as</legend><div class="choice-grid two"><label class="choice"><input type="radio" name="project-mode" value="git" checked /><strong>Git project</strong><span>Repository or worktree with branch state.</span></label><label class="choice"><input type="radio" name="project-mode" value="mount" /><strong>Directory mount</strong><span>Share the same non-Git files in this workspace.</span></label></div></fieldset>
               <ul id="plan-changes" class="plan-changes"></ul>
               <p id="plan-status" class="hint"></p>
