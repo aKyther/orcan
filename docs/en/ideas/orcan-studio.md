@@ -53,6 +53,16 @@ URL and validates the destination; Studio never accepts an arbitrary path.
 Git authentication remains on the Orcan host (for example its SSH agent), and
 Studio reports its availability without reading keys or secrets.
 
+The same compact import form can create a managed child folder after a preview.
+Its name is portable across Windows, macOS, and Linux: it starts with a letter
+or digit and may then use letters, digits, dots, underscores, or hyphens.
+Orcan validates the planned `mkdir` destination under the selected parent.
+
+Worktree creation only offers eligible Git parents, reports whether the source
+branch is clean and up to date, and can run a confirmed `git pull --ff-only`
+before creation. A new worktree starts in one selected workspace; it can be
+attached to further workspaces from the relationship map.
+
 The Enclave map keeps projects directly under the managed sandbox root flat.
 Only real child folders become groups, so `sandbox/STARE/*` and
 `sandbox/NOWE/*` are easier to scan without adding a redundant `sandbox`

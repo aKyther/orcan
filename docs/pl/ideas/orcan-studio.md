@@ -57,6 +57,17 @@ i waliduje cel; Studio nigdy nie przyjmuje dowolnej ścieżki. Uwierzytelnienie
 Git pozostaje na hoście Orcan (na przykład jego agencie SSH), a Studio pokazuje
 jego dostępność bez odczytywania kluczy ani sekretów.
 
+W tym samym kompaktowym formularzu importu można po podglądzie utworzyć
+zarządzany podkatalog. Jego nazwa jest przenośna między Windowsem, macOS i
+Linuksem: zaczyna się literą albo cyfrą, a dalej może zawierać litery, cyfry,
+kropki, podkreślenia i myślniki. Orcan waliduje planowany cel `mkdir` pod
+wybranym parentem.
+
+Tworzenie worktree pokazuje tylko kwalifikujące się parenty Git, podaje, czy
+branch źródłowy jest clean i aktualny, oraz może wykonać potwierdzone
+`git pull --ff-only` przed utworzeniem. Nowy worktree zaczyna w jednym
+wybranym workspace; kolejne workspace'y można dołączyć z mapy relacji.
+
 Mapa Enclave pozostawia projekty bezpośrednio pod zarządzanym sandbox rootem
 bez grupy. Grupami stają się tylko prawdziwe podkatalogi, więc
 `sandbox/STARE/*` i `sandbox/NOWE/*` łatwiej skanować bez zbędnego wrappera

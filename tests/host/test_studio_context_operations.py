@@ -60,6 +60,24 @@ def test_import_plan_uses_an_orcan_reported_parent_under_the_managed_root(
     assert plan["destination"] == str(parent / "demo")
 
 
+def test_directory_plan_allows_one_named_child_of_an_orcan_parent(tmp_path: Path) -> None:
+    root = tmp_path / "sandbox"
+    root.mkdir()
+    report = studio_script(
+        "studio-directory.py",
+        "plan",
+        "--projects-root",
+        str(root),
+        "--parent",
+        str(root),
+        "--name",
+        "NEW",
+    )
+
+    assert report["plan"]["ready"] is True
+    assert report["plan"]["destination"] == str(root / "NEW")
+
+
 def test_worktree_plan_refuses_existing_destination(tmp_path: Path) -> None:
     repo = tmp_path / "parent"
     repo.mkdir()

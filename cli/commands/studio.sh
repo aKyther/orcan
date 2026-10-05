@@ -53,6 +53,15 @@ orcan_cmd_studio() {
             orcan_require_python
             orcan_host_python "${ORCAN_SCRIPTS}/studio-import.py" "$@"
             ;;
+        directory)
+            if [[ "${1:-}" != "plan" && "${1:-}" != "apply" ]]; then
+                orcan_usage_error 'usage: orcan studio directory plan|apply --projects-root PATH --parent PATH --name NAME [--yes]'
+                return
+            fi
+            shift
+            orcan_require_python
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-directory.py" "$@"
+            ;;
         worktree)
             if [[ "${1:-}" != "list" && "${1:-}" != "plan" && "${1:-}" != "apply" && "${1:-}" != "remove-plan" && "${1:-}" != "remove-apply" ]]; then orcan_usage_error 'usage: orcan studio worktree list|plan|apply|remove-plan|remove-apply …'; return; fi
             shift; orcan_require_python
@@ -68,6 +77,7 @@ orcan_cmd_studio() {
         -h | --help | "")
             printf 'usage: orcan studio probe --json\n'
             printf '       orcan studio parent plan|apply --path PATH --branch BRANCH [--expected-head SHA --yes]\n'
+            printf '       orcan studio directory plan|apply --projects-root PATH --parent PATH --name NAME [--yes]\n'
             printf '  Read-only, versioned Sandbox capability report for Orcan Studio.\n'
             ;;
         *)

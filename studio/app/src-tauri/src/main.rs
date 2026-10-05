@@ -401,6 +401,65 @@ async fn import_apply(
 }
 
 #[tauri::command]
+async fn directory_plan(
+    enclave: EnclaveInput,
+    projects_root: String,
+    parent: String,
+    name: String,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    studio_json(
+        enclave,
+        vec![
+            "studio",
+            "directory",
+            "plan",
+            "--projects-root",
+            &projects_root,
+            "--parent",
+            &parent,
+            "--name",
+            &name,
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect(),
+        state,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn directory_apply(
+    enclave: EnclaveInput,
+    projects_root: String,
+    parent: String,
+    name: String,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    studio_json(
+        enclave,
+        vec![
+            "studio",
+            "directory",
+            "apply",
+            "--projects-root",
+            &projects_root,
+            "--parent",
+            &parent,
+            "--name",
+            &name,
+            "--yes",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect(),
+        state,
+    )
+    .await
+}
+
+#[tauri::command]
 async fn worktree_cleanup(
     enclave: EnclaveInput,
     path: String,
@@ -667,6 +726,8 @@ fn main() {
             parent_apply,
             import_plan,
             import_apply,
+            directory_plan,
+            directory_apply,
             worktree_cleanup,
             worktree_plan,
             worktree_inventory,

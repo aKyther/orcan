@@ -130,7 +130,12 @@ const importAuth = document.querySelector<HTMLElement>("#import-auth")!;
 const importPlanButton = document.querySelector<HTMLButtonElement>("#import-plan")!;
 const importApplyButton = document.querySelector<HTMLButtonElement>("#import-apply")!;
 const importResult = document.querySelector<HTMLOutputElement>("#import-result")!;
+const folderName = document.querySelector<HTMLInputElement>("#folder-name")!;
+const folderPlanButton = document.querySelector<HTMLButtonElement>("#folder-plan")!;
+const folderApplyButton = document.querySelector<HTMLButtonElement>("#folder-apply")!;
+const folderResult = document.querySelector<HTMLOutputElement>("#folder-result")!;
 let importReady = false;
+let folderReady = false;
 const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")!;
 const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
 const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
@@ -151,7 +156,6 @@ const overviewRuntime = document.querySelector<HTMLElement>("#overview-runtime")
 const overviewConfig = document.querySelector<HTMLElement>("#overview-config")!;
 const overviewAgents = document.querySelector<HTMLElement>("#overview-agents")!;
 const overviewAccess = document.querySelector<HTMLElement>("#overview-access")!;
-const nextAction = document.querySelector<HTMLElement>("#next-action")!;
 const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
 const cleanupPath = document.querySelector<HTMLInputElement>("#cleanup-path")!;
 cleanupPath.readOnly = true;
@@ -169,6 +173,8 @@ const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")
 const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;
 const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
 const worktreeExisting = document.querySelector<HTMLElement>("#worktree-existing")!;
+const worktreeSourceState = document.querySelector<HTMLElement>("#worktree-source-state")!;
+const worktreeSourceUpdate = document.querySelector<HTMLButtonElement>("#worktree-source-update")!;
 const jobsList = document.querySelector<HTMLElement>("#jobs-list")!;
 type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string };
 const jobs: Job[] = JSON.parse(localStorage.getItem("orcan-studio:jobs") ?? "[]");
@@ -352,8 +358,6 @@ function showView(name: string): void {
 }
 
 const healthPanel = document.querySelector<HTMLElement>(".health-panel")!;
-const focusTitle = document.querySelector<HTMLElement>("#focus-title")!;
-const initialFocus = { title: focusTitle.textContent, action: nextAction.textContent };
 const needsManagedProjects = new Set(["repositories", "worktrees"]);
 
 function lockStudio(): void {
@@ -368,8 +372,6 @@ function lockStudio(): void {
   enclaveMap.hidden = true;
   snapshot.hidden = true;
   sandboxSettings.hidden = true;
-  focusTitle.textContent = initialFocus.title;
-  nextAction.textContent = initialFocus.action;
   renderEnclaveStatus();
 }
 
@@ -380,15 +382,12 @@ function unlockStudio(report: ProbeReport): void {
     item.hidden = needsManagedProjects.has(item.dataset.viewTarget ?? "") && !report.capabilities.managed_projects;
   }
   healthPanel.hidden = false;
-  const step = nextStep(report);
-  focusTitle.textContent = step.title;
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   healthTitle.textContent = report.runtime.docker.container.state === "running" ? "Ready" : "Attention needed";
   overviewRuntime.textContent = report.runtime.docker.container.state;
   overviewConfig.textContent = contextSourceLabel(report);
   overviewAgents.textContent = agents.length ? agents.join(", ") : "Not reported";
   overviewAccess.textContent = accessExposure(report.runtime.launch);
-  nextAction.textContent = step.action;
 }
 
 const launchSummary = document.querySelector<HTMLElement>("#launch-summary")!;
@@ -1236,9 +1235,16 @@ function renderWorktreeExisting(): void {
   const candidate = report && parentCandidates(report).find((item) => item.path === worktreeRepo.value);
   const selected = selectedWorkspaces();
   if (!report || !candidate || !selected.length) {
-    worktreeExisting.textContent = "Choose a source repository and one or more workspace families to inspect existing branches.";
+    worktreeExisting.textContent = "Choose a Git source and first workspace to inspect existing branches.";
+    worktreeSourceState.textContent = "Choose a Git source to inspect its branch.";
+    worktreeSourceUpdate.hidden = true;
     return;
   }
+  const status = candidate.dirty ? "has uncommitted changes" : candidate.behind ? `${candidate.behind} commit${candidate.behind === 1 ? "" : "s"} behind ${candidate.upstream ?? "upstream"}` : "up to date";
+  worktreeSourceState.textContent = `${candidate.branch ?? "detached HEAD"} · ${status}`;
+  worktreeSourceUpdate.hidden = !candidate.branch;
+  worktreeSourceUpdate.disabled = Boolean(candidate.dirty) || report.control?.operations?.parent_update?.available === false;
+  worktreeSourceUpdate.title = candidate.dirty ? "Commit or stash changes before updating this parent." : "Preview and run git pull --ff-only before creating a worktree.";
   const branches = selected.flatMap((workspaceName) => {
     const workspace = report.context.workspaces.find((item) => item.name === workspaceName);
     return (workspace?.projects ?? [])
@@ -1247,7 +1253,7 @@ function renderWorktreeExisting(): void {
   });
   worktreeExisting.textContent = branches.length
     ? `Already connected from this source: ${branches.join(" · ")}.`
-    : "No managed branches from this source are connected to the selected workspace families.";
+    : "No managed branches from this source are connected to the first workspace.";
 }
 
 function renderWorktreeChoices(report: ProbeReport): void {
@@ -1974,11 +1980,43 @@ settingsSync.addEventListener("click", async () => { if (!current || !canEditCon
 importParent.addEventListener("change", () => {
   importReady = false;
   importApplyButton.disabled = true;
+  folderReady = false;
+  folderApplyButton.disabled = true;
   importDestination.textContent = `Orcan will clone into ${importParent.options[importParent.selectedIndex]?.text ?? "the selected folder"}/<repository name>.`;
   importResult.textContent = "Preview the import before cloning.";
 });
+folderName.addEventListener("input", () => { folderReady = false; folderApplyButton.disabled = true; });
+folderPlanButton.addEventListener("click", async () => {
+  if (!current || !latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { folderResult.textContent = "Check an Enclave first."; return; }
+  folderPlanButton.disabled = true;
+  folderResult.textContent = "Checking folder plan…";
+  try {
+    const response = await invoke<{ plan: { destination: string; ready: boolean; blockers: string[] } }>("directory_plan", { enclave: enclaveInput(current), projectsRoot: snapshotRoot.textContent, parent: importParent.value, name: folderName.value.trim() });
+    folderReady = response.plan.ready;
+    folderApplyButton.disabled = !folderReady;
+    folderResult.textContent = response.plan.ready ? `Ready: ${response.plan.destination}` : response.plan.blockers.join(" · ");
+  } catch (error) { folderReady = false; folderApplyButton.disabled = true; folderResult.textContent = `Plan failed: ${String(error)}`; }
+  finally { folderPlanButton.disabled = false; }
+});
+folderApplyButton.addEventListener("click", async () => {
+  if (!folderReady || !current) return;
+  folderApplyButton.disabled = true;
+  const job = addJob("Create managed folder", folderName.value.trim());
+  try {
+    const response = await invoke<{ result: { path: string } }>("directory_apply", { enclave: enclaveInput(current), projectsRoot: snapshotRoot.textContent, parent: importParent.value, name: folderName.value.trim() });
+    folderResult.textContent = `Created: ${response.result.path}`;
+    folderName.value = "";
+    folderReady = false;
+    finishJob(job, "succeeded", response.result.path);
+    await connect(current);
+  } catch (error) { folderResult.textContent = `Create failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
+});
 worktreeRepo.addEventListener("change", renderWorktreeExisting);
 worktreeWorkspaces.addEventListener("change", renderWorktreeExisting);
+worktreeSourceUpdate.addEventListener("click", () => {
+  const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === worktreeRepo.value);
+  if (candidate) void updateProjectParent(candidate, "new worktree", candidate.name);
+});
 worktreePlan.addEventListener("click", async () => {
   if (!current) return;
   if (!canEditContext()) { worktreeResult.textContent = contextEditMessage(); return; }
