@@ -68,6 +68,19 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
     assert repository["bindings"][0]["workspace"] == "dev"
     assert report["paths"]["managed_worktrees_root"].endswith("sandbox/.worktrees")
     assert report["runtime"]["launch"] == {"recorded": False}
+    assert report["control"]["operations"]["context_edit"] == {
+        "available": True,
+        "reason": "Orcan configuration is available for planned context changes.",
+    }
+    assert report["control"]["operations"]["parent_update"]["available"] is True
+    assert [setting["id"] for setting in report["control"]["settings"]] == [
+        "context",
+        "lifecycle",
+        "resources",
+        "agents",
+        "environment",
+        "access",
+    ]
 
 
 def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None:
@@ -157,6 +170,8 @@ def test_probe_uses_the_last_synced_workspace_index_when_config_is_missing(
     assert report["context"]["configuration"]["state"] == "runtime_index"
     assert report["context"]["configuration"]["source"] == "runtime_index"
     assert report["context"]["configuration"]["editable"] is False
+    assert report["control"]["operations"]["context_edit"]["available"] is False
+    assert report["control"]["settings"][0]["state"] == "locked"
     assert report["paths"]["workspace_metadata_root"] == str(index.parent)
     workspace = report["context"]["workspaces"]
     assert workspace[0]["name"] == "existing"

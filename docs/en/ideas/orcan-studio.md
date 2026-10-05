@@ -24,6 +24,12 @@ each reconnect instead of treating a cached desktop default as the truth.
 Studio requires its declared `orcan-studio` protocol version before it offers
 any future context-editing action.
 
+The probe is a versioned control contract, not a file browser. Alongside the
+snapshot, Orcan returns `control.operations` (whether an action is available
+and why) and `control.settings` (a safe display value, `editable` or `locked`,
+and an optional Studio action). Studio renders that contract; it never searches
+for remote configuration files or assumes that a Docker change is live.
+
 Studio edits context only when the probe reports the live `orcan.config.json`
 as its source. A synced workspace index remains useful for inspection, but is
 read-only: Studio disables rename, detach, and worktree actions until it can

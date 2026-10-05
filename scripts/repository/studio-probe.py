@@ -358,6 +358,122 @@ def launch_flags(path: Path) -> dict[str, object]:
     }
 
 
+def studio_control(
+    context: dict[str, object],
+    docker: dict[str, object],
+    runtime_data: dict[str, object],
+    launch: dict[str, object],
+) -> dict[str, object]:
+    """Describe Studio controls; the desktop app never infers write authority."""
+    configuration = context["configuration"]
+    editable = bool(configuration.get("editable"))
+    context_source = "orcan.config.json" if editable else "synced workspace index"
+    context_reason = (
+        "Orcan configuration is available for planned context changes."
+        if editable
+        else "Reconnect to the Orcan instance that owns orcan.config.json."
+    )
+    docker_available = bool(docker.get("available"))
+    container = docker.get("container") or {}
+    agents = docker.get("agents") or {}
+    resources = runtime_data.get("resources") or {}
+    resource_value = (
+        " · ".join(
+            part
+            for part in (
+                f"CPU {resources.get('cpus')}"
+                if resources.get("cpus") is not None
+                else None,
+                f"RAM {resources.get('memory')}" if resources.get("memory") else None,
+            )
+            if part
+        )
+        or "Not reported"
+    )
+    agent_value = (
+        " · ".join(name for name, enabled in agents.items() if enabled)
+        or "Not reported"
+    )
+    terminal = (
+        "ttyd protected"
+        if launch.get("ttyd_auth")
+        else "ttyd public"
+        if launch.get("ttyd")
+        else "local only"
+    )
+    access_value = " · ".join(
+        (
+            terminal,
+            "Docker socket" if launch.get("docker") else "no Docker socket",
+            "Git/SSH access" if launch.get("git") else "no Git/SSH access",
+        )
+    )
+    return {
+        "operations": {
+            "context_edit": {"available": editable, "reason": context_reason},
+            "context_sync": {"available": editable, "reason": context_reason},
+            "parent_update": {
+                "available": shutil.which("git") is not None,
+                "reason": "Orcan rechecks branch, cleanliness, and origin before git pull --ff-only.",
+            },
+            "runtime_lifecycle": {
+                "available": docker_available,
+                "reason": "Docker is unavailable on this Orcan instance."
+                if not docker_available
+                else "Start, stop, and restart use Orcan's recorded launch flags.",
+            },
+        },
+        "settings": [
+            {
+                "id": "context",
+                "label": "Workspace context",
+                "state": "editable" if editable else "locked",
+                "value": context_source,
+                "detail": context_reason,
+                "action": "contexts",
+            },
+            {
+                "id": "lifecycle",
+                "label": "Container lifecycle",
+                "state": "editable" if docker_available else "locked",
+                "value": str(container.get("state") or "unavailable"),
+                "detail": "Start, stop, and restart are available. Restart reuses Orcan's recorded launch flags."
+                if docker_available
+                else "Docker is unavailable on this Orcan instance.",
+                "action": "runtime",
+            },
+            {
+                "id": "resources",
+                "label": "Container resources",
+                "state": "locked",
+                "value": resource_value,
+                "detail": "CPU and memory are supplied at container creation; Studio reports them but does not rewrite Docker start configuration.",
+            },
+            {
+                "id": "agents",
+                "label": "Agent tools",
+                "state": "locked",
+                "value": agent_value,
+                "detail": "The tool set belongs to the Orcan image and changes only when that image is built.",
+            },
+            {
+                "id": "environment",
+                "label": "Environment values",
+                "state": "locked",
+                "value": "Protected",
+                "detail": "Environment is read when the container starts. Values, including possible secrets, are never displayed or edited here.",
+            },
+            {
+                "id": "access",
+                "label": "Access exposure",
+                "state": "locked",
+                "value": access_value,
+                "detail": "Access flags come from the recorded Orcan launch. Studio can replay them, but does not silently change exposure.",
+            },
+        ],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--protocol", type=int, required=True)
@@ -377,6 +493,10 @@ def main() -> None:
         os.environ.get("ORCAN_STUDIO_DOCKER", "docker"), args.image, args.container
     )
     runtime_data = read_json(Path(args.runtime))
+    launch = launch_flags(Path(args.last_up)) if args.last_up else {"recorded": False}
+    context = context_snapshot(
+        Path(args.config), Path(args.projects_root), Path(args.workspace_index)
+    )
     report = {
         "protocol": {
             "name": "orcan-studio",
@@ -406,15 +526,10 @@ def main() -> None:
             "generated": "present" if Path(args.runtime).is_file() else "missing",
             "docker": docker,
             "resources": runtime_data.get("resources", {}),
-            "launch": launch_flags(Path(args.last_up))
-            if args.last_up
-            else {"recorded": False},
+            "launch": launch,
         },
-        "context": context_snapshot(
-            Path(args.config),
-            Path(args.projects_root),
-            Path(args.workspace_index),
-        ),
+        "context": context,
+        "control": studio_control(context, docker, runtime_data, launch),
     }
     print(json.dumps(report, separators=(",", ":"), sort_keys=True))
 

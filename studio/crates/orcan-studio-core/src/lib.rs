@@ -827,6 +827,35 @@ pub struct ProbeReport {
     pub capabilities: Capabilities,
     pub runtime: Runtime,
     pub context: ContextSnapshot,
+    #[serde(default)]
+    pub control: StudioControl,
+}
+
+/// Server-declared Studio actions and configuration presentation.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct StudioControl {
+    #[serde(default)]
+    pub operations: BTreeMap<String, StudioOperation>,
+    #[serde(default)]
+    pub settings: Vec<StudioSetting>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct StudioOperation {
+    pub available: bool,
+    #[serde(default)]
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StudioSetting {
+    pub id: String,
+    pub label: String,
+    pub state: String,
+    pub value: String,
+    pub detail: String,
+    #[serde(default)]
+    pub action: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

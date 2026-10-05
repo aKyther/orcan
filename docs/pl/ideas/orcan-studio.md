@@ -24,6 +24,13 @@ mounty i stan runtime'u zamiast uznawać zapamiętany domyślny katalog desktopo
 za prawdę. Studio wymaga obsługiwanej wersji deklarowanego protokołu
 `orcan-studio`, zanim udostępni przyszłe akcje edycji kontekstu.
 
+Probe jest wersjonowanym kontraktem sterowania, a nie przeglądarką plików.
+Oprócz snapshotu Orcan zwraca `control.operations` (czy akcja jest dostępna i
+dlaczego) oraz `control.settings` (bezpieczną wartość do wyświetlenia, stan
+`editable` albo `locked` i opcjonalną akcję Studio). Studio renderuje ten
+kontrakt; nie szuka zdalnych plików konfiguracji ani nie zakłada, że zmiana
+Dockera jest już aktywna.
+
 Studio edytuje kontekst tylko wtedy, gdy probe wskazuje aktywny
 `orcan.config.json` jako źródło. Zsynchronizowany indeks workspace'ów nadal
 jest przydatny do podglądu, ale pozostaje tylko do odczytu: Studio blokuje

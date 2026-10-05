@@ -16,6 +16,10 @@ type ProbeReport = {
     launch?: { recorded: boolean; docker?: boolean; git?: boolean; network?: string | null; ttyd?: boolean; ttyd_auth?: boolean };
   };
   paths: { home: string; data: string; projects_root: string; workspace_metadata_root: string; managed_worktrees_root: string };
+  control?: {
+    operations?: Record<string, { available: boolean; reason?: string }>;
+    settings?: Array<{ id: string; label: string; state: "editable" | "locked"; value: string; detail: string; action?: "contexts" | "runtime" }>;
+  };
   context: {
     workspaces: Array<{
       name: string;
@@ -468,29 +472,30 @@ function renderRuntime(report: ProbeReport): void {
 }
 
 function renderEnclaveConfiguration(report: ProbeReport): void {
-  const contextEditable = canEditContext(report);
-  const contextButton = actionButton("Manage", () => showView("contexts"), "secondary");
-  contextButton.disabled = !contextEditable;
-  contextButton.title = contextEditable ? "Manage workspace context" : contextEditMessage();
-  const lifecycleButton = actionButton("Controls", () => {
-    showView("overview");
-    document.querySelector<HTMLElement>(".runtime-controls")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, "secondary");
-  const resources = report.runtime.resources;
-  const resourceSummary = resources
-    ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"}`
-    : "Not reported";
-  const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
+  const fallback: Array<{ id: string; label: string; state: "editable" | "locked"; value: string; detail: string; action?: "contexts" | "runtime" }> = [
+    { id: "context", label: "Workspace context", state: canEditContext(report) ? "editable" : "locked", value: contextSourceLabel(report), detail: canEditContext(report) ? "Workspaces and project membership are planned, confirmed, then reconciled." : contextEditMessage(), action: "contexts" as const },
+    { id: "lifecycle", label: "Container lifecycle", state: "editable", value: report.runtime.docker.container.state, detail: "Start, stop, and restart are available. Restart reuses Orcan's recorded launch flags.", action: "runtime" as const },
+    { id: "resources", label: "Container resources", state: "locked", value: report.runtime.resources ? `CPU ${report.runtime.resources.cpus ?? "—"} · RAM ${report.runtime.resources.memory ?? "—"}` : "Not reported", detail: "CPU and memory are supplied at container creation; Studio reports them but does not rewrite Docker start configuration." },
+  ];
+  const settings = report.control?.settings?.length ? report.control.settings : fallback;
   const option = (title: string, value: string, detail: string, state: "editable" | "locked", button?: HTMLButtonElement): HTMLElement =>
     el("div", { className: `enclave-config-option ${state}` }, el("div", {}, el("strong", { textContent: title }), el("span", { textContent: value }), el("small", { textContent: detail })), el("span", { className: "config-state", textContent: state === "editable" ? "Editable" : "Locked" }), ...(button ? [button] : []));
-  enclaveConfigOptions.replaceChildren(
-    option("Workspace context", contextEditable ? "orcan.config.json" : contextSourceLabel(report), contextEditable ? "Workspaces and project membership are planned, confirmed, then reconciled." : contextEditMessage(), contextEditable ? "editable" : "locked", contextButton),
-    option("Container lifecycle", report.runtime.docker.container.state, "Start, stop, and restart are available. Restart reuses Orcan's recorded launch flags.", "editable", lifecycleButton),
-    option("Container resources", resourceSummary, "CPU and memory are supplied at container creation; Studio reports them but does not rewrite Docker start configuration.", "locked"),
-    option("Agent tools", agents.length ? agents.join(" · ") : "Not reported", "The tool set belongs to the Orcan image and changes only when that image is built.", "locked"),
-    option("Environment values", "Protected", "Environment is read when the container starts. Values, including possible secrets, are never displayed or edited here.", "locked"),
-    option("Access exposure", accessExposure(report.runtime.launch), "Access flags come from the recorded Orcan launch. Studio can replay them, but does not silently change exposure.", "locked"),
-  );
+  enclaveConfigOptions.replaceChildren(...settings.map((setting) => {
+    let button: HTMLButtonElement | undefined;
+    if (setting.action === "contexts") {
+      button = actionButton("Manage", () => showView("contexts"), "secondary");
+    } else if (setting.action === "runtime") {
+      button = actionButton("Controls", () => {
+        showView("overview");
+        document.querySelector<HTMLElement>(".runtime-controls")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, "secondary");
+    }
+    if (button && setting.state === "locked") {
+      button.disabled = true;
+      button.title = setting.detail;
+    }
+    return option(setting.label, setting.value, setting.detail, setting.state, button);
+  }));
 }
 
 async function runRuntimeAction(action: RuntimeAction): Promise<void> {
@@ -1242,6 +1247,8 @@ function nextStep(report: ProbeReport): { title: string; action: string } {
 let currentReport: ProbeReport | undefined;
 
 function canEditContext(report = currentReport): boolean {
+  const declared = report?.control?.operations?.context_edit;
+  if (declared) return declared.available;
   const configuration = report?.context.configuration;
   return Boolean(configuration && (configuration.editable ?? (configuration.source === "config" || (!configuration.source && configuration.state === "present"))));
 }
@@ -1252,7 +1259,8 @@ function contextSourceLabel(report: ProbeReport): string {
 }
 
 function contextEditMessage(): string {
-  return "This Enclave reports only its last synced workspace index. Reconnect where orcan.config.json is available before changing context.";
+  return currentReport?.control?.operations?.context_edit?.reason
+    ?? "This Enclave reports only its last synced workspace index. Reconnect where orcan.config.json is available before changing context.";
 }
 
 function setContextNotice(message: string): void {
