@@ -9,7 +9,8 @@ use russh::ChannelMsg;
 use russh::client;
 use russh::keys::{self, PublicKeyOrCertificate};
 use serde::Deserialize;
-use std::process::Command;
+use std::io;
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::Manager;
@@ -47,6 +48,164 @@ struct EnclaveInput {
     profile_id: Option<String>,
     credential_id: Option<String>,
     username: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WslImageInput {
+    distribution: String,
+    image: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WslImageTransfer {
+    distribution: String,
+    image: String,
+    destination: String,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ImageInventory {
+    image: String,
+    id: String,
+    size: String,
+}
+
+fn valid_image_reference(image: &str) -> bool {
+    !image.is_empty()
+        && image.len() <= 255
+        && image
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"._/-:@+".contains(&byte))
+}
+
+fn validate_wsl_distribution(distribution: &str) -> Result<(), String> {
+    Target::Wsl2 {
+        distribution: distribution.to_owned(),
+    }
+    .probe_request()
+    .map(|_| ())
+    .map_err(|error| error.to_string())
+}
+
+fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> {
+    validate_wsl_distribution(&input.distribution)?;
+    if !valid_image_reference(&input.image) {
+        return Err("invalid Docker image reference".to_owned());
+    }
+    let output = Command::new("wsl.exe")
+        .args([
+            "--distribution",
+            &input.distribution,
+            "--exec",
+            "docker",
+            "image",
+            "inspect",
+            "--format",
+            "{{.Id}}\t{{.Size}}",
+            &input.image,
+        ])
+        .output()
+        .map_err(|error| format!("could not start WSL Docker: {error}"))?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
+    }
+    let mut fields = String::from_utf8_lossy(&output.stdout).trim().split('\t');
+    let id = fields.next().unwrap_or_default();
+    let size = fields.next().unwrap_or_default();
+    if id.is_empty() || size.is_empty() {
+        return Err("WSL Docker returned an incomplete image inventory".to_owned());
+    }
+    Ok(ImageInventory {
+        image: input.image.clone(),
+        id: id.to_owned(),
+        size: size.to_owned(),
+    })
+}
+
+#[tauri::command]
+async fn wsl_image_inventory_command(input: WslImageInput) -> Result<ImageInventory, String> {
+    tauri::async_runtime::spawn_blocking(move || wsl_image_inventory(&input))
+        .await
+        .map_err(|error| format!("image inventory stopped: {error}"))?
+}
+
+/// Streams a Docker image from a local WSL distribution to a system-SSH target.
+/// The image is never buffered or written by Studio.
+#[tauri::command]
+async fn transfer_wsl_image(input: WslImageTransfer) -> Result<ImageInventory, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let inventory = wsl_image_inventory(&WslImageInput {
+            distribution: input.distribution.clone(),
+            image: input.image.clone(),
+        })?;
+        Target::Ssh {
+            destination: input.destination.clone(),
+        }
+        .probe_request()
+        .map_err(|error| error.to_string())?;
+        let mut source = Command::new("wsl.exe")
+            .args([
+                "--distribution",
+                &input.distribution,
+                "--exec",
+                "docker",
+                "save",
+                &input.image,
+            ])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| format!("could not start WSL Docker export: {error}"))?;
+        let mut target = Command::new("ssh")
+            .args([
+                "-o",
+                "BatchMode=yes",
+                "--",
+                &input.destination,
+                "docker",
+                "load",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| format!("could not start SSH image import: {error}"))?;
+        let mut input_stream = source
+            .stdout
+            .take()
+            .ok_or_else(|| "WSL image export has no stdout".to_owned())?;
+        let mut output_stream = target
+            .stdin
+            .take()
+            .ok_or_else(|| "SSH image import has no stdin".to_owned())?;
+        io::copy(&mut input_stream, &mut output_stream)
+            .map_err(|error| format!("image transfer interrupted: {error}"))?;
+        drop(output_stream);
+        let source_result = source
+            .wait_with_output()
+            .map_err(|error| format!("could not finish WSL image export: {error}"))?;
+        let target_result = target
+            .wait_with_output()
+            .map_err(|error| format!("could not finish SSH image import: {error}"))?;
+        if !source_result.status.success() {
+            return Err(format!(
+                "WSL Docker export failed: {}",
+                String::from_utf8_lossy(&source_result.stderr).trim()
+            ));
+        }
+        if !target_result.status.success() {
+            return Err(format!(
+                "remote Docker import failed: {}",
+                String::from_utf8_lossy(&target_result.stderr).trim()
+            ));
+        }
+        Ok(inventory)
+    })
+    .await
+    .map_err(|error| format!("image transfer stopped: {error}"))?
 }
 
 /// Native SSH options when the Enclave signs in with a saved key or password.
@@ -763,6 +922,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             list_wsl_distributions,
+            wsl_image_inventory_command,
+            transfer_wsl_image,
             probe,
             sync,
             runtime_action,
