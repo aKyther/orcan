@@ -1,4 +1,5 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
 import { normalizeProbeReport } from "./probe";
 import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, SshAuthentication, Target } from "./types";
 import "./style.css";
@@ -1534,25 +1535,11 @@ function newId(): string {
   return crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...children: (Node | string)[]): HTMLElementTagNameMap[K] {
-  const node = Object.assign(document.createElement(tag), props);
-  node.append(...children);
-  return node;
-}
-
 function showPane(name: string): void {
   const pane = document.querySelector<HTMLElement>(`[data-pane="${name}"]`);
   if (!pane) return;
   for (const sibling of pane.parentElement!.querySelectorAll<HTMLElement>(":scope > [data-pane]")) sibling.hidden = sibling !== pane;
   pane.querySelector<HTMLElement>("input:not([type=radio]):not([hidden])")?.focus();
-}
-
-function radioValue(name: string): string {
-  return document.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)!.value;
-}
-
-function setRadio(name: string, value: string): void {
-  for (const input of document.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)) input.checked = input.value === value;
 }
 
 function authLabel(authentication: SshAuthentication): string {
@@ -1569,22 +1556,6 @@ function describeProfile(profile: ConnectionProfile): string {
   const user = profile.credential_id ? profile.ssh?.username : undefined;
   const signIn = credential ? credential.name : profile.ssh?.authentication.kind && profile.ssh.authentication.kind !== "agent" ? "saved in profile" : "system SSH";
   return `SSH · ${user ? `${user}@` : ""}${profile.target.destination} · ${signIn}`;
-}
-
-function emptyState(text: string, action: string, onClick: () => void): HTMLElement {
-  const button = el("button", { type: "button", textContent: action });
-  button.addEventListener("click", onClick);
-  return el("div", { className: "empty-state" }, el("p", { textContent: text }), button);
-}
-
-function listItem(title: string, detail: string, ...actions: HTMLElement[]): HTMLElement {
-  return el("div", { className: "list-item" }, el("div", {}, el("strong", { textContent: title }), el("span", { textContent: detail })), ...actions);
-}
-
-function actionButton(text: string, onClick: () => void, className = "secondary"): HTMLButtonElement {
-  const button = el("button", { type: "button", className, textContent: text });
-  button.addEventListener("click", onClick);
-  return button;
 }
 
 // Credentials & keys
