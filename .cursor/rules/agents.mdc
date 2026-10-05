@@ -3,64 +3,17 @@ description: Agent instructions for developing the Orcan product repository
 alwaysApply: true
 ---
 
-# Agent guide (Orcan product)
+# Agent orientation (Orcan product)
 
-**Orcan** = Docker **work-context orchestrator** (workspaces, path parity, context pack).
-Agent CLIs (`agent`, `claude`, `codex`) are tools inside it — **models are out of scope**.
-
-Display name: **Orcan**. Ids: `orcan`, `ORCAN_*`. Only product name in docs/UI text.
+**Orcan** is a Docker work-context orchestrator: workspaces, path parity, and
+context packs. Agent CLIs are tools inside it; model routing is out of scope.
 
 ## Read order
 
-1. This rule (always on) — compact orientation
-2. Root [`AGENTS.md`](../../AGENTS.md) (= [`CLAUDE.md`](../../CLAUDE.md)) — full SoT; keep identical
-3. [`docs/llms.txt`](../../docs/llms.txt) — public care / non-goals index
-4. [`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md) / [`change-map.md`](../../docs/en/change-map.md)
+1. Root [`AGENTS.md`](../../AGENTS.md) (= [`CLAUDE.md`](../../CLAUDE.md)) — product and repository SoT.
+2. [`docs/en/llms.txt`](../../docs/en/llms.txt) — public care / non-goals index.
+3. [`docs/en/ai/project-context.md`](../../docs/en/ai/project-context.md) or [`change-map.md`](../../docs/en/change-map.md) only when needed.
 
-In workspace `orcan-dev`: honour the workspace context pack, then `cd orcan/` and follow **this repo’s** `AGENTS.md`.
-
-## 30-second map
-
-| | |
-| --- | --- |
-| **Product** | Workspaces + path parity + context pack — **not** model routing |
-| **API** | `orcan` CLI — not Make; not deprecated user targets |
-| **Config** | JSON `orcan.config.json` in **`ORCAN_HOME`**; tool data in **`ORCAN_DATA`** (both default `~/.config/orcan`); `orcan sync` after edits (`up` does **not** sync) |
-| **Runtime** | enter → cockpit → tmux → zsh; CMD `orcan-supervisord` (`keepalive` or `ttyd`) |
-| **Cockpit** | `🌀 orcan` (About) + Help \| workspaces + glance \| tmux; **F4** · **F1**/? · **F5** brief · **`i`** · **`lg`** (no F3) |
-| **UX work** | `make dev-*` → `orcan:dev-ux` — not the user’s daily install |
-| **Image FS** | `docker/rootfs/` — repo `.cursor/rules/` ≠ image `cursor-defaults/` |
-| **Checks** | `make validate` · `test-host` · `docs-check`; UX: `dev-checklist` |
-
-## Ritual (host)
-
-```bash
-orcan init            # or context add / tui / edit orcan.config.json
-orcan sync            # ALWAYS after config changes
-orcan build           # after Dockerfile / docker/rootfs / cockpit image inputs
-orcan up              # daily; --with-ttyd for browser
-orcan sync --context  # inbox compile only (host)
-```
-
-Live reconcile often avoids recreate — `docs/en/ideas/runtime-reconcile.md`.
-When overlays need it: `orcan down && orcan up`. **`orcan sync`** = host workspace
-reconcile always + live in-container reconcile when running.
-
-## Non-goals (do not invent)
-
-- Model selection / provider routing
-- CI image publish; registry-as-product
-- YAML user profiles / host-deps
-- Deprecated user Make targets as the primary UX
-- Drive-by refactors or speculative layers
-
-## Done checklist
-
-- [ ] Surgical diff only
-- [ ] `make validate` · `make test-host`
-- [ ] `make docs-check` when docs/interface changed
-- [ ] UX: `make dev-restart` + `dev-smoke` / `dev-a11y` / `dev-visual` as needed
-- [ ] If you change `AGENTS.md`, copy to `CLAUDE.md`
-- [ ] No secrets; report what ran / skipped; no AI commit trailers
-
-Pitfalls (Textual box-model, Alt+1..9, F1 vs `?`, browser Alt+arrows/`BROWSER_KEY_LIMIT`, …): see **Cockpit / Textual pitfalls** in `AGENTS.md`.
+In `orcan-dev`, honour the workspace context pack first. Use the `orcan` CLI
+as the public interface; do not invent model routing, YAML user profiles,
+deprecated Make-based user workflows, or speculative layers.

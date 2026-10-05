@@ -71,9 +71,7 @@ GitHub → Settings → Pages → Deploy from branch → **`gh-pages`** / `(root
 
 Do **not** use orphan wipe deploys; mike keeps all versions on that branch.
 
-### Version × language
-
-Use the header **version dropdown** together with **Language**:
+### Version navigation
 
 - **Docs version dropdown** — lists `latest`, SemVer folders, and their `YY.Q` aliases from
   [versions.json](https://akyther.github.io/orcan/versions.json). Works on
@@ -84,11 +82,6 @@ Use the header **version dropdown** together with **Language**:
 Nested pages keep their relative links under `/latest/` and `/X.Y.Z/`.
 
 If a page is missing in an older version, you may land on a 404 or that version’s home — there is no smart cross-version remap.
-
-## TODO
-
-- [ ] Official Helm / cloud marketplace packaging — not planned
-- [ ] GHCR official images — out of scope (see architecture)
 
 ## See also
 

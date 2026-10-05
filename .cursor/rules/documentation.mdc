@@ -9,10 +9,9 @@ alwaysApply: false
 - Official product display name: **Orcan**. Technical ids stay lowercase (`orcan`, `ORCAN_*`).
 - **Orcan** is the only product name in documentation — do not mention alternate or historical product names.
 - **Cursor** means the Cursor editor / CLI — not the product.
-- Docs are bilingual: `docs/en/` (default) and `docs/pl/` (same relative paths). Update both (or mark PL TODO) when behaviour changes.
-- User docs: simple B1–B2 English / clear Polish. Keep `README.md` short.
-- Canonical AI map: root `AGENTS.md` / `CLAUDE.md` (identical) + `docs/en/ai/project-context.md` (+ PL).
-- Public care / non-goals: `docs/llms.txt` via `scripts/repository/generate-llms-txt.py` (`make docs-llms`).
+- Docs are English-only under `docs/en/`. Keep user docs at B1–B2 and `README.md` short.
+- Canonical AI map: root `AGENTS.md` / `CLAUDE.md` (identical) + `docs/en/ai/project-context.md`.
+- Public care / non-goals: `docs/en/llms.txt` via `scripts/repository/generate-llms-txt.py` (`make docs-llms`).
 - Reflect CLI / Compose / config interface changes in `docs/` (and a one-line README pointer if needed).
 - Do not document Make as the end-user interface; public API is `orcan` ([reference/cli.md](../../docs/en/reference/cli.md)). Maintainer `make dev-*` is documented under Testing / Makefile.
 - Do not document commands that do not exist.

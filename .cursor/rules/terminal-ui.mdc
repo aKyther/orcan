@@ -8,7 +8,7 @@ alwaysApply: false
 
 # Terminal UI
 
-Canonical guide: [`docs/en/guides/terminal-ui.md`](../../docs/en/guides/terminal-ui.md) (PL twin under `docs/pl/`).
+Canonical guide: [`docs/en/guides/terminal-ui.md`](../../docs/en/guides/terminal-ui.md).
 
 ## Palette (keep in sync)
 
@@ -51,5 +51,5 @@ Dark navy / near-black / subtle cyan — hex used across ttyd, tmux, starship, f
 6. When changing cockpit PTY or ttyd: keep **Alt/Meta** (`M-1`… binds) and **resize/SIGWINCH** working — see Terminal UI `#cockpit-browser`.
 7. When changing shortcuts: update `shortcuts.py` **and** `keybindings.conf` together (host test enforces tokens).
 8. After rootfs/Dockerfile UI changes: `orcan build` then recreate (`orcan down && orcan up`).
-9. Update **EN + PL** docs (`guides/terminal-ui.md`, `guides/workflows.md`, CHANGELOG) when behaviour or paths change.
+9. Update relevant English docs and `CHANGELOG.md` when behaviour or paths change.
 10. Run `make validate` and `make docs-check` before claiming done.
