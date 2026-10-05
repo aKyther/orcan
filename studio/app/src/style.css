@@ -29,7 +29,7 @@ html { scrollbar-gutter: stable; }
 .app-content { max-width: 96rem; padding: 1.5rem 2rem 3rem; }
 .topbar { margin-bottom: 1.25rem; padding-bottom: 1rem; }
 .panel { border-radius: .75rem; gap: .75rem; padding: 1rem; }
-.context-canvas { display: grid; gap: .65rem; position: relative; }
+.context-canvas { column-gap: 1.35rem; display: grid; position: relative; row-gap: .65rem; }
 .connection-lines, .trace-lines { height: 100%; left: 0; overflow: visible; pointer-events: none; position: absolute; top: 0; width: 100%; }.connection-lines { z-index: 0; }.trace-lines { z-index: 2; }
 .context-link { fill: none; opacity: .72; stroke: #8ca980; stroke-width: 1.6; transition: opacity .12s, stroke-width .12s; }.context-link.muted { opacity: .16; }.context-link.highlight { opacity: 1; stroke-width: 2.8; }.context-link.planned { stroke: #e6a94c; stroke-dasharray: 4 4; }.context-link.removing { stroke: #dd7770; stroke-dasharray: 2 4; opacity: .8; }
 .workspace-cards, .sandbox-tray { position: relative; z-index: 1; }
