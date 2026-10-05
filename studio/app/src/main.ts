@@ -1771,14 +1771,14 @@ function renderImageTransfer(): void {
   const target = selectedProfile(imageTransferTarget)?.id;
   const wslProfiles = profiles.filter((profile) => profile.target.kind === "wsl2");
   const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh" && !profile.credential_id);
-  imageTransferSource.replaceChildren(new Option(wslProfiles.length ? "Choose WSL2 source…" : "No WSL2 profiles", ""), ...wslProfiles.map((profile) => new Option(profile.name, profile.id)));
-  imageTransferTarget.replaceChildren(new Option(sshProfiles.length ? "Choose system-SSH target…" : "No system-SSH profiles", ""), ...sshProfiles.map((profile) => new Option(profile.name, profile.id)));
+  imageTransferSource.replaceChildren(new Option(wslProfiles.length ? "Choose source profile…" : "No WSL2 source profiles", ""), ...wslProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
+  imageTransferTarget.replaceChildren(new Option(sshProfiles.length ? "Choose destination profile…" : "No system-SSH destination profiles", ""), ...sshProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
   imageTransferSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
   imageTransferTarget.value = sshProfiles.some((profile) => profile.id === target) ? target! : sshProfiles[0]?.id ?? "";
   const ready = Boolean(wslProfiles.length && sshProfiles.length);
   imageTransferInspect.disabled = !ready;
   imageTransferRun.disabled = true;
-  if (!ready) imageTransferResult.textContent = "Create a WSL2 profile and a remote profile using System SSH before transferring an image.";
+  if (!ready) imageTransferResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH before transferring an image.";
 }
 
 async function inspectTransferImage(): Promise<void> {
