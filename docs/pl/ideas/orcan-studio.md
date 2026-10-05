@@ -67,6 +67,8 @@ Tworzenie worktree pokazuje tylko kwalifikujące się parenty Git, podaje, czy
 branch źródłowy jest clean i aktualny, oraz może wykonać potwierdzone
 `git pull --ff-only` przed utworzeniem. Nowy worktree zaczyna w jednym
 wybranym workspace; kolejne workspace'y można dołączyć z mapy relacji.
+Studio odczytuje też lokalne nazwy branchy źródła, pokazuje ich krótki zestaw
+i blokuje proponowaną nazwę nowego brancha, jeśli już istnieje.
 
 Mapa Enclave pozostawia projekty bezpośrednio pod zarządzanym sandbox rootem
 bez grupy. Grupami stają się tylko prawdziwe podkatalogi, więc

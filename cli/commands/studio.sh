@@ -63,7 +63,7 @@ orcan_cmd_studio() {
             orcan_host_python "${ORCAN_SCRIPTS}/studio-directory.py" "$@"
             ;;
         worktree)
-            if [[ "${1:-}" != "list" && "${1:-}" != "plan" && "${1:-}" != "apply" && "${1:-}" != "remove-plan" && "${1:-}" != "remove-apply" ]]; then orcan_usage_error 'usage: orcan studio worktree list|plan|apply|remove-plan|remove-apply …'; return; fi
+            if [[ "${1:-}" != "list" && "${1:-}" != "branches" && "${1:-}" != "plan" && "${1:-}" != "apply" && "${1:-}" != "remove-plan" && "${1:-}" != "remove-apply" ]]; then orcan_usage_error 'usage: orcan studio worktree list|branches|plan|apply|remove-plan|remove-apply …'; return; fi
             shift; orcan_require_python
             orcan_host_python "${ORCAN_SCRIPTS}/studio-worktree.py" "$@"
             ;;

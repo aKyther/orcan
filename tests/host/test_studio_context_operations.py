@@ -60,7 +60,9 @@ def test_import_plan_uses_an_orcan_reported_parent_under_the_managed_root(
     assert plan["destination"] == str(parent / "demo")
 
 
-def test_directory_plan_allows_one_named_child_of_an_orcan_parent(tmp_path: Path) -> None:
+def test_directory_plan_allows_one_named_child_of_an_orcan_parent(
+    tmp_path: Path,
+) -> None:
     root = tmp_path / "sandbox"
     root.mkdir()
     report = studio_script(
@@ -109,6 +111,39 @@ def test_worktree_plan_refuses_existing_destination(tmp_path: Path) -> None:
 
     assert report["plan"]["ready"] is False
     assert "already exists" in report["plan"]["blockers"][0]
+
+
+def test_worktree_branches_lists_existing_local_branches(tmp_path: Path) -> None:
+    repo = tmp_path / "parent"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.test",
+            "commit",
+            "--allow-empty",
+            "-qm",
+            "initial",
+        ],
+        check=True,
+    )
+    subprocess.run(["git", "-C", str(repo), "branch", "feature/existing"], check=True)
+    report = studio_script(
+        "studio-worktree.py",
+        "branches",
+        "--repo",
+        str(repo),
+        "--worktrees-root",
+        str(tmp_path / "worktrees"),
+    )
+
+    assert "feature/existing" in report["branches"]
 
 
 def test_worktree_plan_names_multiple_branches_of_one_repo_in_one_workspace(

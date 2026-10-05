@@ -59,7 +59,8 @@ def worktree_project_name(root: Path, workspace: str, repo: Path, branch: str) -
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "mode", choices=("list", "plan", "apply", "remove-plan", "remove-apply")
+        "mode",
+        choices=("list", "branches", "plan", "apply", "remove-plan", "remove-apply"),
     )
     parser.add_argument("--repo")
     parser.add_argument("--branch")
@@ -70,6 +71,26 @@ def main() -> None:
     parser.add_argument("--workspace", action="append", default=[])
     args = parser.parse_args()
     root = Path(args.worktrees_root).resolve()
+    if args.mode == "branches":
+        if not args.repo:
+            parser.error("--repo is required for branches")
+        repo = Path(args.repo).resolve()
+        if run(repo, "rev-parse", "--is-inside-work-tree") != "true":
+            print(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "branches": [],
+                        "blockers": ["source is not a Git repository"],
+                    }
+                )
+            )
+            return
+        branches = (
+            run(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads") or ""
+        ).splitlines()
+        print(json.dumps({"ok": True, "branches": branches}, separators=(",", ":")))
+        return
     if args.mode == "list":
         entries = []
         registered = registry_entries(root)
@@ -204,6 +225,13 @@ def main() -> None:
     blockers = []
     if run(repo, "rev-parse", "--is-inside-work-tree") != "true":
         blockers.append("parent is not a Git repository")
+    existing_branches = (
+        run(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads") or ""
+    ).splitlines()
+    if args.branch in existing_branches:
+        blockers.append(
+            "branch already exists in this Git source; choose a new name or attach its existing worktree"
+        )
     if destination.exists():
         blockers.append("managed worktree destination already exists")
     plan = {

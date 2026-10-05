@@ -460,6 +460,32 @@ async fn directory_apply(
 }
 
 #[tauri::command]
+async fn worktree_branches(
+    enclave: EnclaveInput,
+    repo: String,
+    worktrees_root: String,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    studio_json(
+        enclave,
+        vec![
+            "studio",
+            "worktree",
+            "branches",
+            "--repo",
+            &repo,
+            "--worktrees-root",
+            &worktrees_root,
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect(),
+        state,
+    )
+    .await
+}
+
+#[tauri::command]
 async fn worktree_cleanup(
     enclave: EnclaveInput,
     path: String,
@@ -728,6 +754,7 @@ fn main() {
             import_apply,
             directory_plan,
             directory_apply,
+            worktree_branches,
             worktree_cleanup,
             worktree_plan,
             worktree_inventory,

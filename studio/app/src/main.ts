@@ -183,6 +183,7 @@ function addJob(name: string, detail: string): Job { const job = { name, detail,
 function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
 function renderJobs(): void { jobsList.replaceChildren(...(jobs.length ? jobs.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${new Date(job.at).toLocaleString()} · ${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No jobs yet." })])); }
 let worktreeReady = false;
+let sourceBranches: string[] = [];
 let cleanupReady = false;
 let profiles: ConnectionProfile[] = [];
 let savedCredentials: Credential[] = [];
@@ -1251,9 +1252,32 @@ function renderWorktreeExisting(): void {
       .filter((project) => project.repository_id === candidate.repositoryId && project.path.startsWith(report.paths.managed_worktrees_root))
       .map((project) => `${workspaceName} · ${project.branch ?? project.name ?? "detached"}`);
   });
-  worktreeExisting.textContent = branches.length
+  const connected = branches.length
     ? `Already connected from this source: ${branches.join(" · ")}.`
     : "No managed branches from this source are connected to the first workspace.";
+  const preview = sourceBranches.length
+    ? ` Existing local branches (${sourceBranches.length}): ${sourceBranches.slice(0, 8).join(" · ")}${sourceBranches.length > 8 ? ` · +${sourceBranches.length - 8} more` : ""}.`
+    : " No local branches reported yet.";
+  worktreeExisting.textContent = `${connected}${preview}`;
+}
+
+async function refreshWorktreeBranches(): Promise<void> {
+  if (!current || !worktreeRepo.value) {
+    sourceBranches = [];
+    renderWorktreeExisting();
+    return;
+  }
+  worktreeExisting.textContent = "Reading local branches from the Git source…";
+  try {
+    const response = await invoke<{ branches: string[] }>("worktree_branches", {
+      enclave: enclaveInput(current), repo: worktreeRepo.value,
+      worktreesRoot: setting("setting-worktrees-root").textContent,
+    });
+    sourceBranches = response.branches;
+  } catch {
+    sourceBranches = [];
+  }
+  renderWorktreeExisting();
 }
 
 function renderWorktreeChoices(report: ProbeReport): void {
@@ -1271,7 +1295,7 @@ function renderWorktreeChoices(report: ProbeReport): void {
     ? previousRepository
     : sources[0]?.path ?? "";
   worktreeWorkspaces.replaceChildren(...report.context.workspaces.map((workspace) => new Option(`${workspace.name} · ${workspace.projects.length} projects`, workspace.name, false, previousWorkspaces.has(workspace.name) || focusedWorkspace === workspace.name)));
-  renderWorktreeExisting();
+  void refreshWorktreeBranches();
 }
 
 function renderImportChoices(report: ProbeReport): void {
@@ -1448,16 +1472,24 @@ async function refreshWorktreeInventory(root: string): Promise<void> {
   if (!current) return;
   try {
     const response = await invoke<{ worktrees: Array<{ path: string; project: string; branch?: string; dirty: boolean }> }>("worktree_inventory", { enclave: enclaveInput(current), worktreesRoot: root });
-    if (!response.worktrees.length) return;
-    cleanupSuggestions.replaceChildren(...response.worktrees.map((worktree) => {
-      const review = actionButton("Review", () => { cleanupPath.value = worktree.path; cleanupResult.textContent = `Selected ${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}.`; });
+    if (!response.worktrees.length) {
+      cleanupSuggestions.replaceChildren(el("p", { className: "hint", textContent: "No managed worktrees to remove." }));
+      return;
+    }
+    const choices = response.worktrees.map((worktree) => {
       const bindings = currentReport?.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.path === worktree.path).map(() => workspace.name)) ?? [];
-      const actions: HTMLElement[] = [review];
-      for (const workspace of bindings) {
-        actions.push(actionButton(`Detach ${workspace}`, () => void reviewChange("detach", workspace, { name: worktree.project, path: worktree.path, kind: "git_worktree" })));
-      }
-      return el("div", { className: `cleanup-item ${bindings.length ? "bound" : "orphan"}` }, el("span", { textContent: `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""} · ${bindings.length ? bindings.join(", ") : "orphan"}` }), ...actions);
-    }));
+      return { worktree, bindings };
+    });
+    const selector = el("select", { ariaLabel: "Worktree to remove" }) as HTMLSelectElement;
+    selector.append(new Option("Choose a worktree…", ""), ...choices.map(({ worktree, bindings }) => new Option(`${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""}${bindings.length ? ` · attached to ${bindings.join(", ")}` : " · ready to remove"}`, worktree.path)));
+    selector.value = choices.some(({ worktree }) => worktree.path === cleanupPath.value) ? cleanupPath.value : "";
+    selector.addEventListener("change", () => {
+      cleanupPath.value = selector.value;
+      resetCleanupPlan();
+      const selected = choices.find(({ worktree }) => worktree.path === selector.value);
+      if (selected) cleanupResult.textContent = selected.bindings.length ? `Detach from ${selected.bindings.join(", ")} before removing this worktree.` : `Ready to preview removal of ${selected.worktree.project}${selected.worktree.branch ? ` · ${selected.worktree.branch}` : ""}.`;
+    });
+    cleanupSuggestions.replaceChildren(el("label", { textContent: "Worktree to remove" }), selector);
   } catch { /* The current context map remains usable if inventory is unavailable. */ }
 }
 
@@ -2011,8 +2043,14 @@ folderApplyButton.addEventListener("click", async () => {
     await connect(current);
   } catch (error) { folderResult.textContent = `Create failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
 });
-worktreeRepo.addEventListener("change", renderWorktreeExisting);
+worktreeRepo.addEventListener("change", () => void refreshWorktreeBranches());
 worktreeWorkspaces.addEventListener("change", renderWorktreeExisting);
+worktreeBranch.addEventListener("input", () => {
+  const exists = sourceBranches.includes(worktreeBranch.value.trim());
+  worktreeReady = false;
+  worktreeApply.disabled = true;
+  if (exists) worktreeResult.textContent = `Branch ${worktreeBranch.value.trim()} already exists in this Git source. Choose a new name.`;
+});
 worktreeSourceUpdate.addEventListener("click", () => {
   const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === worktreeRepo.value);
   if (candidate) void updateProjectParent(candidate, "new worktree", candidate.name);
