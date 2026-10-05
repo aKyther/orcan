@@ -5,7 +5,7 @@ Cursor also applies `.cursor/rules/agents.mdc` (always on).
 **Keep `AGENTS.md` and `CLAUDE.md` identical** — Cursor loads `AGENTS.md`; Claude Code loads `CLAUDE.md`.
 
 Public agent index: `docs/llms.txt` (`make docs-llms`).
-Longer maps: `docs/en/ai/project-context.md`, `docs/en/change-map.md` (+ PL).
+Longer maps: `docs/en/ai/project-context.md`, `docs/en/change-map.md`.
 
 In a live **orcan workspace** (e.g. `orcan-dev`), honour that root’s context pack
 (`.manifest.json`, session brief) first. After `cd orcan/`,
@@ -42,7 +42,7 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 | **Cockpit** | Top: `🌀 orcan` (About) + workspace pill + metrics · Overlay: workspaces + glance · Center: tmux · Bottom: status. Keys: **F4** · **F1**/? · **F5** brief · **`i`** · **`lg`** |
 | **UX preview** | `make dev-*` / `scripts/dev/` → isolated `orcan:dev-ux` — **never** the user’s `orcan:latest` |
 | **Image ≠ repo rules** | Image defaults: `docker/rootfs/` (+ `opt/cursor-defaults/`). Repo rules: `.cursor/rules/` + this file |
-| **Done** | Surgical diff; EN+PL docs if behaviour changed; `make validate` · `test-host` · `docs-check`; UX → `dev-checklist` |
+| **Done** | Surgical diff; English docs if behaviour changed; `make validate` · `test-host` · `docs-check`; UX → `dev-checklist` |
 
 ---
 
@@ -70,9 +70,9 @@ container CMD → orcan-supervisord → keepalive|ttyd
 - Shortcut SoT: `cockpit/src/orcan_cockpit/shortcuts.py` (+ tmux `keybindings.conf`)
 - First-run tip: `first_run.py` / `onboarding.py` (flag under `~/.local/share/orcan/`)
 - Chrome: `top_bar.py`, `rail.py`, `status_bar.py`, `tmux_chrome.py`, `session_glance.py`
-- Terminal UI guide: `docs/en/guides/terminal-ui.md` (+ PL); rule `.cursor/rules/terminal-ui.mdc`
+- Terminal UI guide: `docs/en/guides/terminal-ui.md`; rule `.cursor/rules/terminal-ui.mdc`
 - Version SoT: `cockpit/pyproject.toml` → `version`; root `VERSION` is a mirror
-- Docs: **EN + PL** together; B1–B2; story before commands; `docs/STYLE_GUIDE.md`
+- Docs: English; B1–B2; story before commands; `docs/STYLE_GUIDE.md`
 
 ### Agent inbox
 
@@ -98,7 +98,7 @@ Details: `docs/en/development/testing.md`.
 ### Definition of done
 
 1. Small, surgical diff — only what the request needs
-2. Behaviour/interface change → update **EN + PL** docs (+ `CHANGELOG.md` `[Unreleased]` when user-visible)
+2. Behaviour/interface change → update English docs (+ `CHANGELOG.md` `[Unreleased]` when user-visible)
 3. UX/cockpit → prefer `make dev-restart`; verify with `dev-smoke` / `dev-a11y` / `dev-visual`
 4. `llms.txt` care/non-goals changed → edit `scripts/repository/generate-llms-txt.py`, then `make docs-llms`
 5. If you change this file → copy the same content to `CLAUDE.md`

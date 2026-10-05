@@ -4,7 +4,7 @@
 
 Models are out of scope — each CLI picks its own.
 
-[Documentation (EN)](https://akyther.github.io/orcan/latest/) · [Dokumentacja (PL)](https://akyther.github.io/orcan/latest/pl/) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Documentation](https://akyther.github.io/orcan/latest/) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ## Status
 
@@ -19,7 +19,7 @@ Version **4.0.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the i
 - Optional browser terminal (`orcan up --with-ttyd` → ttyd → launcher → tmux → zsh)
 - Host data under `~/.config/orcan` (`ORCAN_DATA`)
 - JSON config + wizard (`orcan.config.json`)
-- Docs in **English** and **Polish** (language switcher on the site)
+- Documentation in clear English
 
 ## Requirements
 
@@ -73,7 +73,6 @@ Config lives in `~/.config/orcan/` by default (install clone: `~/.local/share/or
 | Topic | Link |
 | --- | --- |
 | Full docs (EN) | https://akyther.github.io/orcan/latest/ |
-| Full docs (PL) | https://akyther.github.io/orcan/latest/pl/ |
 | Why Orcan? | [docs/en/why-orcan.md](docs/en/why-orcan.md) |
 | Core Ideas | [docs/en/ideas/core-ideas.md](docs/en/ideas/core-ideas.md) |
 | Mental Model | [docs/en/ideas/mental-model.md](docs/en/ideas/mental-model.md) |

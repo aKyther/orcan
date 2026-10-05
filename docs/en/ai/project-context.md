@@ -82,4 +82,4 @@ Prefer live reconcile via `orcan sync` when possible; recreate when overlays req
 
 ## Definition of done
 
-Incomplete without matching docs when behaviour or interface changes (EN + PL). Prefer `make dev-restart` for cockpit/ttyd UX checks; use `make dev-smoke` / `dev-a11y` / `dev-visual` (see `make dev-checklist`) when layout or browser chrome changed. Before claiming done: `make validate`, `make test-host`, and `make docs-check` when docs/public surface changed.
+Incomplete without matching English docs when behaviour or interface changes. Prefer `make dev-restart` for cockpit/ttyd UX checks; use `make dev-smoke` / `dev-a11y` / `dev-visual` (see `make dev-checklist`) when layout or browser chrome changed. Before claiming done: `make validate`, `make test-host`, and `make docs-check` when docs/public surface changed.

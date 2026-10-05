@@ -126,6 +126,5 @@ jobs:
 
             - Latest: https://akyther.github.io/orcan/latest/
             - This version: https://akyther.github.io/orcan/${{ steps.ver.outputs.version }}/
-            - Polish: https://akyther.github.io/orcan/${{ steps.ver.outputs.version }}/pl/
 
             See [CHANGELOG.md](https://github.com/aKyther/orcan/blob/v${{ steps.ver.outputs.version }}/CHANGELOG.md).

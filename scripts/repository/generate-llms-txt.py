@@ -42,7 +42,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 | **Ritual** | `orcan init` → `orcan sync` → `orcan build` (if needed) → `orcan up` (does **not** sync) |
 | **UX preview** | `make dev-restart` / `dev-doctor` / `dev-smoke` / `dev-visual` under isolated `orcan:dev-ux` |
 | **Where** | CLI `bin/orcan`+`cli/`; cockpit `cockpit/`; image `docker/rootfs/`; helpers `scripts/repository/`; previews `scripts/dev/` |
-| **Done** | Surgical diff; EN+PL docs; `make validate` · `test-host` · `docs-check` |
+| **Done** | Surgical diff; English docs; `make validate` · `test-host` · `docs-check` |
 
 ## Pay attention to (core product)
 
@@ -55,7 +55,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 - **Runtime stack** — cockpit (`agent-launcher`: About, Help, workspaces + glance | tmux; **F1**/? shortcuts; **F4** workspace toggle; **F5** session brief; **`lg`**, not F3) → tmux 3.6a → zsh; CMD `orcan-supervisord` (keepalive|ttyd)
 - **Known key limit** — under ttyd/xterm.js and some desktop terminals, **Alt+←/→/↑/↓** often arrives as Ctrl+arrow. Cockpit: Ctrl/Alt+arrows = focus pane, Ctrl+Shift+arrows = split (`pty_tmux_nav.py`, `BROWSER_KEY_LIMIT` in F1); raw `--tmux` keeps conf — see [Terminal UI — nav mix]({SITE}/guides/terminal-ui/#cockpit-nav-mix)
 - **Version SoT** — `cockpit/pyproject.toml` `version`; root `VERSION` is a CLI/image mirror
-- **Docs** — EN + PL must stay in sync; B1–B2; story before commands; [STYLE_GUIDE]({REPO}/docs/STYLE_GUIDE.md)
+- **Docs** — English, B1–B2; story before commands; [STYLE_GUIDE]({REPO}/docs/STYLE_GUIDE.md)
 
 ## Do not invent / out of scope (non-goals)
 
@@ -70,7 +70,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 
 ## Care about when changing the Orcan repo
 
-- Surgical diffs; match existing style; update EN **and** PL docs when behaviour changes
+- Surgical diffs; match existing style; update English docs when behaviour changes
 - After UX/cockpit/ttyd edits: `make dev-restart` (isolated; loads checkout cockpit) — not the user’s daily `orcan:latest`; verify with `make dev-doctor` / `dev-smoke` / `dev-a11y` / `dev-visual` (see `make dev-checklist`)
 - Fast tmux-only chrome: `./scripts/dev/terminal-ui-preview`
 - Optional Docker isolation smoke: `make dev-test` (skips cleanly if image/daemon missing)
@@ -124,7 +124,6 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 
 ## Optional
 
-- [Polish docs root]({SITE}/pl/): Same content in Polish
 - [FAQ]({SITE}/faq/)
 - [Changelog]({SITE}/changelog/)
 - [Deployment]({SITE}/deployment/)

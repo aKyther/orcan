@@ -25,7 +25,7 @@ Short index for **finding the right place to edit** — and the doc that explain
 | Global agent defaults in image | `docker/rootfs/opt/cursor-defaults/` | [Cursor and Claude](reference/cursor-and-claude.md) |
 | Rules while developing Orcan | `.cursor/rules/`, `AGENTS.md` / `CLAUDE.md` | [AI project context](ai/project-context.md) |
 | User-facing docs / site theme | `docs/`, `mkdocs.yml`, `overrides/` | [STYLE_GUIDE](https://github.com/aKyther/orcan/blob/main/docs/STYLE_GUIDE.md), this site |
-| Docs palette / favicon | `docs/assets/stylesheets/orcan.css`, `docs/assets/images/favicon.svg` | [Terminal UI](guides/terminal-ui.md) (product colours) |
+| Docs palette / favicon | `docs/en/assets/stylesheets/orcan.css`, `docs/en/assets/images/favicon.svg` | [Terminal UI](guides/terminal-ui.md) (product colours) |
 | Public agent docs index | `docs/llms.txt` (generated; 30s map + care / non-goals) | [llms.txt](https://akyther.github.io/orcan/latest/llms.txt) |
 
 ## Idea pages (read before Make)

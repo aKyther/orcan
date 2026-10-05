@@ -46,7 +46,7 @@ their cursor.
 | Accent | `#e8b76c`, `#f5c988`, `#a8824f` | focus and interactive identity |
 | Status | `#8fbc6a`, `#e06c75`, `#e5c07b`, `#736a5e`, `#7a9b8e` | running, error, warning, idle, completed |
 
-The **MkDocs site** reuses these tokens (`docs/assets/stylesheets/orcan.css`, favicon). Light docs mode uses a darker teal accent for readable links on white.
+The **MkDocs site** reuses these tokens (`docs/en/assets/stylesheets/orcan.css`, favicon). Light docs mode uses a darker teal accent for readable links on white.
 
 Presets in `cursor-ttyd`:
 
@@ -322,7 +322,7 @@ Details, flags, and isolation rules: [Testing — maintainer previews](../develo
 2. Keep the palette hex values aligned (or update this doc + all layers together).
 3. Do **not** add TPM / Catppuccin-tmux / Oh My Zsh / Powerlevel10k unless product decision says so.
 4. Iterate with `./scripts/dev/terminal-ui-preview` (tmux) or `make dev-restart` (full UX); verify with `make dev-smoke` / `make dev-visual` as needed.
-5. Update **EN + PL** docs and `CHANGELOG.md` `[Unreleased]`.
+5. Update English docs and `CHANGELOG.md` `[Unreleased]`.
 6. `make validate` and `make docs-check`.
 7. For Dockerfile / rootfs that ships in the image: `orcan build && orcan down && orcan up`.
 

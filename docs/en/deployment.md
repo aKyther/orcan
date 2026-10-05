@@ -31,7 +31,7 @@ On each host: `orcan build --agent codex` (or `--all-agents`; build is local and
 
 ## Documentation site (versioned, mike)
 
-Docs use [mike](https://github.com/jimporter/mike) + Material’s version selector, with English + Polish inside each version.
+Docs use [mike](https://github.com/jimporter/mike) + Material’s version selector.
 
 | Alias / version | Meaning | Typical URL |
 | --- | --- | --- |
@@ -42,8 +42,8 @@ Docs use [mike](https://github.com/jimporter/mike) + Material’s version select
 
 `latest` here means "what's on `main` right now", not "last release" —
 see [Release process](development/release.md) for the full `make tag` /
-`make release` split. Polish pages live under the same version prefix,
-e.g. `/latest/pl/`, `/0.1.0/pl/`.
+`make release` keeps the English documentation under the same version prefix,
+for example `/latest/` and `/0.1.0/`.
 
 ### What publishes what
 
@@ -81,7 +81,7 @@ Use the header **version dropdown** together with **Language**:
   Keeps the current page path when switching (e.g. Installation → same page on `2.0.0`).
 - **`vX.Y.Z` chip** — product SemVer from `extra.orcan_version`; links to Changelog.
 
-Nested pages keep relative language links; `mike-i18n.js` fixes absolute homepage language links under `/latest/` and `/X.Y.Z/`.
+Nested pages keep their relative links under `/latest/` and `/X.Y.Z/`.
 
 If a page is missing in an older version, you may land on a 404 or that version’s home — there is no smart cross-version remap.
 

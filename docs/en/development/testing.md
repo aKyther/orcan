@@ -13,7 +13,7 @@ make docs-check
 | `make validate` | Required files, shell/Python syntax, pyproject version, product-name, Compose `config` if Docker is up |
 | `make test-host` | Pytest host tests for config I/O, `apply-config`, version / release check, preview script checks |
 | `make format` / `make format-check` | Apply / verify Ruff formatting for host helpers, cockpit, and host tests |
-| `make docs-check` | Strict MkDocs (EN+PL) + product-name check |
+| `make docs-check` | Strict MkDocs build + product-name check |
 
 ## Smoke tests (Codex selection — local)
 
@@ -198,7 +198,6 @@ GitHub Actions (`.github/workflows/ci.yml`) on `main` / PRs:
 
 Versioned docs URLs: https://akyther.github.io/orcan/latest/ — see [Deployment](../deployment.md).
 
-Polish search uses the English lunr analyzer (lunr has no Polish stemmer).
 
 ## See also
 

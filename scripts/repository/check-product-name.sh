@@ -15,7 +15,7 @@ trap 'rm -f "${scan_list}"' EXIT
 
 {
     printf '%s\n' README.md AGENTS.md CLAUDE.md CONTRIBUTING.md CHANGELOG.md LICENSE mkdocs.yml
-    find docs/en docs/pl docs/assets .cursor/rules -type f \( -name '*.md' -o -name '*.mdc' -o -name '*.yml' -o -name '*.svg' \) 2>/dev/null || true
+    find docs/en .cursor/rules -type f \( -name '*.md' -o -name '*.mdc' -o -name '*.yml' -o -name '*.svg' \) 2>/dev/null || true
 } > "${scan_list}"
 
 mapfile -t files < "${scan_list}"
@@ -30,7 +30,7 @@ if hits="$(grep -nF 'Cursor CLI Dev Container' "${files[@]}" 2>/dev/null || true
     fail=1
 fi
 
-if grep -nE '^# orcan[[:space:]]*$' README.md docs/en/index.md docs/pl/index.md 2>/dev/null; then
+if grep -nE '^# orcan[[:space:]]*$' README.md docs/en/index.md 2>/dev/null; then
     printf 'Use display name "# Orcan" in README/docs index titles\n' >&2
     fail=1
 fi

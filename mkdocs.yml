@@ -5,7 +5,8 @@ site_url: https://akyther.github.io/orcan/
 
 repo_url: https://github.com/aKyther/orcan
 repo_name: aKyther/orcan
-edit_uri: edit/main/docs/
+edit_uri: edit/main/docs/en/
+docs_dir: docs/en
 
 # Maintainer-only; not part of the published site nav
 exclude_docs: |
@@ -80,7 +81,6 @@ theme:
         icon: material/brightness-4
         name: Switch to system preference
   features:
-    # navigation.instant is incompatible with the i18n language switcher
     - navigation.tracking
     - navigation.tabs
     - navigation.tabs.sticky
@@ -99,71 +99,12 @@ theme:
     - toc.follow
 
 plugins:
-  # lunr.js has no Polish stemmer; EN analyzer is used for both locales
   - search:
       lang: en
   - tags
   - mike:
       version_selector: true
       canonical_version: latest
-  # i18n must be defined before git-revision-date-localized (locale on pages)
-  - i18n:
-      docs_structure: folder
-      fallback_to_default: true
-      reconfigure_material: true
-      languages:
-        - locale: en
-          default: true
-          name: English
-          build: true
-          site_name: Orcan
-        - locale: pl
-          name: Polski
-          build: true
-          site_name: Orcan
-          nav_translations:
-            Home: Start
-            Get started: Pierwsze kroki
-            Understand: Zrozum
-            Guides: Przewodniki
-            Why Orcan?: Dlaczego Orcan?
-            Core Ideas: Idee podstawowe
-            Mental Model: Model mentalny
-            Agent inbox: Skrzynka agentów
-            Runtime reconcile: Runtime reconcile
-            Orcan Studio: Orcan Studio
-            Ideas: Idee
-            Concepts: Koncepcje
-            Workspaces: Workspaces
-            Path parity: Path parity
-            Change map: Mapa zmian
-            Tags: Tagi
-            Quick Start: Szybki start
-            Installation: Instalacja
-            Config guide: Przewodnik po konfiguracji
-            Workflows: Przepływy pracy
-            User dotfiles: Dotfiles użytkownika
-            Terminal UI: Terminal UI
-            Troubleshooting: Rozwiązywanie problemów
-            Architecture: Architektura
-            Reference: Referencja
-            Configuration: Konfiguracja
-            Config reference: Referencja konfiguracji
-            Environment variables: Zmienne środowiskowe
-            Makefile: Makefile
-            Docker: Docker
-            Cursor and Claude: Cursor i Claude
-            Security: Bezpieczeństwo
-            Host and container interface: Interfejs hosta i kontenera
-            Development: Rozwój
-            Develop: Rozwijaj
-            Overview: Przegląd
-            Testing: Testy
-            Release process: Proces wydania
-            AI context: Kontekst AI
-            Deployment: Wdrożenie
-            FAQ: FAQ
-            Changelog: Changelog
   - git-revision-date-localized:
       enable_creation_date: true
       type: date
@@ -199,7 +140,6 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra_javascript:
-  - assets/javascripts/mike-i18n.js
   - assets/javascripts/orcan-version.js
   - assets/javascripts/orcan-mermaid.js
 

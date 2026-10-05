@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Documentation:** the site is now English-only. The retired Polish tree and
+  i18n layer no longer add duplicate maintenance work; CI fetches full history
+  so strict documentation checks can read revision dates reliably.
+
 - **Runtime:** `orcan up --resume` restarts with the flags of the last
   `orcan up`, which now survive `orcan down`. A password-protected ttyd start
   requires `--with-ttyd-auth USER:PASS` again instead of silently dropping the

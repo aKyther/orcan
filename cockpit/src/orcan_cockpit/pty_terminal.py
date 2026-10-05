@@ -13,7 +13,7 @@ unchanged for raw ``tmux attach``.
 expects xterm bytes on a PTY; pyte only emulates the visible screen. Each
 input/output path needs an explicit translator — see sibling modules
 ``pty_keys``, ``pty_mouse``, ``pty_colors``, ``pty_tmux_nav``, ``pty_links`` and docs
-``docs/pl/guides/terminal-ui.md`` (section *Cockpit + przeglądarka*).
+``docs/en/guides/terminal-ui.md`` (section *Cockpit + browser*).
 
 Written in-repo rather than depending on the third-party `textual-terminal`
 PyPI package: that package is unmaintained (~70 weekly downloads at time of

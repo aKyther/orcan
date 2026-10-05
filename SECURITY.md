@@ -1,8 +1,8 @@
 # Security policy
 
 Orcan's intended threat model — what it isolates and what it deliberately does
-not — is documented at [docs/en/reference/security.md](docs/en/reference/security.md)
-([Polish](docs/pl/reference/security.md)). Read that first: some things listed
+not — is documented at [docs/en/reference/security.md](docs/en/reference/security.md).
+Read that first: some things listed
 below as "risk" are known, intentional trade-offs (e.g. `orcan up
 --with-docker`), not bugs.
 

@@ -124,7 +124,7 @@ cmd_bump() {
     write_version "${new}"
     sync_version_displays "${old}" "${new}"
     printf 'Bumped (pyproject): %s → %s\n' "${old}" "${new}"
-    printf 'Synced: cockpit/uv.lock, VERSION, mkdocs.yml, README.md, docs/en/index.md, docs/pl/index.md\n'
+    printf 'Synced: cockpit/uv.lock, VERSION, mkdocs.yml, README.md, docs/en/index.md\n'
     printf '(Low-level — usually you want: make tag)\n'
 }
 
@@ -214,7 +214,7 @@ cmd_checkpoint() {
     today="$(date +%F)"
     changelog_checkpoint "${new}" "${today}"
     git add cockpit/pyproject.toml cockpit/uv.lock VERSION CHANGELOG.md \
-        mkdocs.yml README.md docs/en/index.md docs/pl/index.md
+        mkdocs.yml README.md docs/en/index.md
     git commit -m "chore: checkpoint v${new}" >/dev/null
     git tag -a "checkpoint/v${new}" -m "orcan checkpoint v${new}"
     git push origin "$(current_branch)"
@@ -279,7 +279,6 @@ sync_version_displays() {
     local mkdocs="${ROOT_DIR}/mkdocs.yml"
     local readme="${ROOT_DIR}/README.md"
     local en_home="${ROOT_DIR}/docs/en/index.md"
-    local pl_home="${ROOT_DIR}/docs/pl/index.md"
 
     if grep -qE "orcan_version: \"${old}\"" "${mkdocs}"; then
         sed -i "s/orcan_version: \"${old}\"/orcan_version: \"${new}\"/" "${mkdocs}"
@@ -305,13 +304,6 @@ sync_version_displays() {
         die "docs/en/index.md: missing Version **X.Y.Z** to sync"
     fi
 
-    if grep -qE "Wersja \\*\\*${old}\\*\\*" "${pl_home}"; then
-        sed -i "s/Wersja \\*\\*${old}\\*\\*/Wersja **${new}**/" "${pl_home}"
-    elif grep -qE 'Wersja \*\*[0-9]+\.[0-9]+\.[0-9]+\*\*' "${pl_home}"; then
-        sed -i -E "s/Wersja \\*\\*[0-9]+\\.[0-9]+\\.[0-9]+\\*\\*/Wersja **${new}**/" "${pl_home}"
-    else
-        die "docs/pl/index.md: missing Wersja **X.Y.Z** to sync"
-    fi
 }
 
 require_clean_tree() {

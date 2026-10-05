@@ -72,10 +72,8 @@ class VersionTests(unittest.TestCase):
         ver = read_pyproject_version()
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         en_home = (ROOT / "docs" / "en" / "index.md").read_text(encoding="utf-8")
-        pl_home = (ROOT / "docs" / "pl" / "index.md").read_text(encoding="utf-8")
         self.assertIn(f"Version **{ver}**", readme)
         self.assertIn(f"Version **{ver}**", en_home)
-        self.assertIn(f"Wersja **{ver}**", pl_home)
 
     def test_uv_lock_package_version_matches(self) -> None:
         ver = read_pyproject_version()

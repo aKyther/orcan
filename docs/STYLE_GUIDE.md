@@ -1,6 +1,6 @@
 # Documentation style guide
 
-Rules for people and agents editing Orcan docs under `docs/en/` and `docs/pl/`.
+Rules for people and agents editing Orcan documentation under `docs/en/`.
 
 ## Story first
 
@@ -44,8 +44,7 @@ Do not reintroduce Material stock indigo. Keep light-mode accents darker teal fo
 
 - Prefer extending an existing page over creating a new one.
 - New page only when the topic has a clear audience and nav slot.
-- Mirror every new English page in Polish (`docs/pl/…` same relative path).
-- Register the page once in `mkdocs.yml` `nav` (English titles; Polish via `nav_translations`).
+- Register each new page in `mkdocs.yml` `nav`.
 
 ## File and heading names
 
@@ -68,7 +67,7 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 
 ## Language level
 
-- User-facing docs: B1–B2 English / clear Polish.
+- User-facing docs: clear B1–B2 English.
 - Short paragraphs. Prefer tables for commands and options.
 - No marketing fluff. No invented features or Make targets.
 - Product name is **Orcan** only (technical ids: `orcan`, `ORCAN_*`). Do not invent or use other product names in docs.
@@ -79,7 +78,6 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 - Prefer multi-repo / multi-org stories over single-path demos when teaching ideas.
 - Only document commands that exist (`make help`, container binaries under `docker/rootfs/usr/local/bin/`).
 - Prefer fenced bash blocks with copy-friendly commands.
-- Translate comments inside code blocks when the page language is Polish.
 - In command signatures, `|` inside `[…]` means **pick one** (mutually exclusive options) — documentation notation, not a literal shell pipeline. Example: `[--with-docker | --with-network NAME]`, `[--with-ttyd | --with-ttyd-auth USER:PASS]`.
 
 ## Tabs and admonitions
@@ -96,18 +94,10 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 - Keep node labels short; avoid secrets or host-specific real usernames.
 - ASCII remains fine for tiny sketches.
 
-## EN ↔ PL
-
-- Same relative path and section structure.
-- Same external URLs (GitHub, Pages). Prefer Pages links with `/latest/` (or `/dev/` when documenting unreleased docs).
-- Update both languages in the same PR when behaviour or narrative changes.
-- `nav_translations` in `mkdocs.yml` must cover every English nav label.
-
 ## Linking
 
-- Inside one language tree: relative Markdown links.
-- Do not link `docs/en/…` from Polish pages (or the reverse).
-- After renaming a page, update nav, both languages, and greppable references.
+- Use relative Markdown links inside `docs/en/`.
+- After renaming a page, update nav and greppable references.
 
 ## Version numbers
 
@@ -120,7 +110,7 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 ## Makefile reference
 
 - Document every Make target that has a `##` help string.
-- When adding a target, update `docs/en/reference/makefile.md` and `docs/pl/reference/makefile.md`.
+- When adding a target, update `docs/en/reference/makefile.md`.
 - Keep a two-sentence “when you need this page” intro on Reference pages.
 
 ## Social / community links
@@ -130,8 +120,8 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 
 ## Checklist before merge
 
-- [ ] EN + PL updated (or N/A)
-- [ ] `nav` / `nav_translations` if new page
+- [ ] English documentation updated (or N/A)
+- [ ] `nav` if new page
 - [ ] Terms defined or linked before use
 - [ ] Diagrams have captions
 - [ ] No dead relative links

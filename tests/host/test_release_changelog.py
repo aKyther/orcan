@@ -44,7 +44,6 @@ class ReleaseFixture:
         (self.root / "scripts" / "repository").mkdir(parents=True)
         (self.root / "cockpit").mkdir()
         (self.root / "docs" / "en").mkdir(parents=True)
-        (self.root / "docs" / "pl").mkdir(parents=True)
 
         shutil.copy(RELEASE_SH, self.root / "scripts" / "repository" / "release.sh")
         (self.root / "cockpit" / "pyproject.toml").write_text('version = "3.0.5"\n')
@@ -55,7 +54,6 @@ class ReleaseFixture:
         (self.root / "mkdocs.yml").write_text('orcan_version: "3.0.5"\n')
         (self.root / "README.md").write_text("Version **3.0.5**\n")
         (self.root / "docs" / "en" / "index.md").write_text("Version **3.0.5**\n")
-        (self.root / "docs" / "pl" / "index.md").write_text("Wersja **3.0.5**\n")
         (self.root / "CHANGELOG.md").write_text(
             "# Changelog\n\n## [Unreleased]\n\n## [3.0.5] - 2026-08-27\n\n### Fixed\n\n- prior fix\n"
         )
