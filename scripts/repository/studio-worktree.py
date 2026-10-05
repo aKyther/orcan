@@ -228,21 +228,21 @@ def main() -> None:
     existing_branches = (
         run(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads") or ""
     ).splitlines()
-    if args.branch in existing_branches:
-        blockers.append(
-            "branch already exists in this Git source; choose a new name or attach its existing worktree"
-        )
+    branch_exists = args.branch in existing_branches
     if destination.exists():
         blockers.append("managed worktree destination already exists")
     plan = {
         "operation": "worktree_create",
         "repo": str(repo),
         "branch": args.branch,
+        "branch_exists": branch_exists,
         "project": project,
         "destination": str(destination),
         "workspaces": args.workspace,
         "changes": [
-            f"create worktree {destination}",
+            f"check out existing branch {args.branch} in {destination}"
+            if branch_exists
+            else f"create branch {args.branch} in {destination}",
             *[f"bind to {x}" for x in args.workspace],
         ],
         "blockers": blockers,

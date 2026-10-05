@@ -62,8 +62,9 @@ Worktree creation only offers eligible Git parents, reports whether the source
 branch is clean and up to date, and can run a confirmed `git pull --ff-only`
 before creation. A new worktree starts in one selected workspace; it can be
 attached to further workspaces from the relationship map.
-Studio also reads the source's local branch names, displays a compact sample,
-and blocks a proposed new branch name that already exists.
+Studio also reads the source's local branch names and displays a compact sample.
+An existing name is valid: the plan says that the new worktree will check out
+that branch instead of creating it again.
 
 The Enclave map keeps projects directly under the managed sandbox root flat.
 Only real child folders become groups, so `sandbox/STARE/*` and

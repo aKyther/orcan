@@ -145,6 +145,21 @@ def test_worktree_branches_lists_existing_local_branches(tmp_path: Path) -> None
 
     assert "feature/existing" in report["branches"]
 
+    plan = studio_script(
+        "studio-worktree.py",
+        "plan",
+        "--repo",
+        str(repo),
+        "--branch",
+        "feature/existing",
+        "--worktrees-root",
+        str(tmp_path / "worktrees"),
+        "--workspace",
+        "review",
+    )
+    assert plan["plan"]["ready"] is True
+    assert plan["plan"]["branch_exists"] is True
+
 
 def test_worktree_plan_names_multiple_branches_of_one_repo_in_one_workspace(
     tmp_path: Path,

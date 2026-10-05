@@ -2057,7 +2057,7 @@ worktreeBranch.addEventListener("input", () => {
   const exists = sourceBranches.includes(worktreeBranch.value.trim());
   worktreeReady = false;
   worktreeApply.disabled = true;
-  if (exists) worktreeResult.textContent = `Branch ${worktreeBranch.value.trim()} already exists in this Git source. Choose a new name.`;
+  if (exists) worktreeResult.textContent = `Existing branch: ${worktreeBranch.value.trim()}. The new worktree will check it out after you preview the plan.`;
 });
 worktreeSourceUpdate.addEventListener("click", () => {
   const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === worktreeRepo.value);
@@ -2072,11 +2072,11 @@ worktreePlan.addEventListener("click", async () => {
     return;
   }
   try {
-    const response = await invoke<{ plan: { project?: string; destination: string; ready: boolean; blockers: string[] } }>("worktree_plan", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces });
+    const response = await invoke<{ plan: { project?: string; destination: string; branch_exists?: boolean; ready: boolean; blockers: string[] } }>("worktree_plan", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces });
     worktreeReady = response.plan.ready;
     worktreeApply.disabled = !worktreeReady;
     worktreeResult.textContent = response.plan.ready
-      ? `Ready: ${response.plan.project ?? "worktree"} → ${response.plan.destination} · attach to ${workspaces.join(", ")}.`
+      ? `Ready: ${response.plan.project ?? "worktree"} → ${response.plan.destination} · ${response.plan.branch_exists ? "check out the existing branch" : "create a new branch"} · attach to ${workspaces.join(", ")}.`
       : response.plan.blockers.join(" · ");
   } catch (error) {
     worktreeReady = false;
