@@ -1,4 +1,5 @@
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
+import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { normalizeProbeReport } from "./probe";
 import { cacheKey, demoMode, describeTarget, enclaveInput, invokeTauri } from "./transport";
 import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, SshAuthentication, Target } from "./types";
@@ -47,25 +48,10 @@ const contextWorkspaceNotice = el("output", { className: "context-workspace-noti
 contextManager.append(contextWorkspaceList, contextWorkspaceDetail);
 snapshot.insertBefore(contextManager, snapshotList);
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
-type ParentRun = { path: string; branch: string; at: string };
-const PARENT_RUNS_KEY = "orcan-studio:parent-runs";
-const parentRuns: ParentRun[] = (() => {
-  try {
-    const saved: unknown = JSON.parse(localStorage.getItem(PARENT_RUNS_KEY) ?? "[]");
-    return Array.isArray(saved) ? saved.filter((item): item is ParentRun => Boolean(item) && typeof item === "object" && typeof (item as ParentRun).path === "string" && typeof (item as ParentRun).branch === "string" && typeof (item as ParentRun).at === "string") : [];
-  } catch { return []; }
-})();
+const parentRuns = loadParentRuns();
 
 type ParentCandidate = { path: string; name: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; readOnly: boolean; eligible: boolean; repositoryId?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
 type ContextProject = ProbeReport["context"]["workspaces"][number]["projects"][number];
-
-function rememberParentRun(path: string, branch: string): void {
-  const existing = parentRuns.findIndex((run) => run.path === path && run.branch === branch);
-  if (existing >= 0) parentRuns.splice(existing, 1);
-  parentRuns.unshift({ path, branch, at: new Date().toISOString() });
-  parentRuns.splice(20);
-  localStorage.setItem(PARENT_RUNS_KEY, JSON.stringify(parentRuns));
-}
 
 function parentCandidates(report: ProbeReport): ParentCandidate[] {
   return report.context.update_targets.map((target) => ({
@@ -1447,7 +1433,7 @@ async function updateProjectParent(parent: ParentCandidate, workspace: string, p
     if (!window.confirm(`Update ${project}'s parent ${parent.branch}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`)) return;
     setContextNotice(`Updating ${parent.branch}…`);
     await invoke("parent_apply", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch, expectedHead: response.plan.head });
-    rememberParentRun(parent.path, parent.branch);
+    rememberParentRun(parentRuns, parent.path, parent.branch);
     setContextNotice(`Updated ${project}'s parent ${parent.branch} for ${workspace}.`);
     await connect(current);
   } catch (error) {
