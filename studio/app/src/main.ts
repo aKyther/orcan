@@ -1,6 +1,6 @@
-import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
 import { normalizeProbeReport } from "./probe";
+import { cacheKey, demoMode, describeTarget, enclaveInput, invokeTauri } from "./transport";
 import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, SshAuthentication, Target } from "./types";
 import "./style.css";
 
@@ -183,9 +183,6 @@ let savedCredentials: Credential[] = [];
 let current: Connection | undefined;
 let latestProbe = 0;
 let connected = false;
-// Outside the Tauri window there is no backend to invoke, so a plain browser always gets the UX preview.
-const demoMode = new URLSearchParams(window.location.search).has("demo") || !("__TAURI_INTERNALS__" in window);
-
 const demoReport: ProbeReport = {
   sandbox: { version: "0.1.0-dev" },
   host: { os: "Linux", architecture: "x86_64" },
@@ -272,7 +269,7 @@ function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
 }
 
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
-  if (!demoMode) return tauriInvoke<T>(command, _args as never);
+  if (!demoMode) return invokeTauri<T>(command, _args);
   await new Promise((resolve) => window.setTimeout(resolve, 180));
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
   const enclave = (_args as { enclave?: { target: Target } } | undefined)?.enclave;
@@ -292,21 +289,6 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     runtime_action: null,
   };
   return (responses[command] ?? {}) as T;
-}
-
-/** What the backend needs to run a command on an Enclave. */
-function enclaveInput(connection: Connection): { target: Target; profileId?: string; credentialId?: string; username?: string } {
-  return { target: connection.target, profileId: connection.profileId, credentialId: connection.credentialId, username: connection.username };
-}
-
-function describeTarget(value: Target): string {
-  if (value.kind === "local") return "This computer";
-  if (value.kind === "wsl2") return `WSL2 · ${value.distribution}`;
-  return `SSH · ${value.destination}`;
-}
-
-function cacheKey(targetValue: Target): string {
-  return `orcan-studio:snapshot:${JSON.stringify(targetValue)}`;
 }
 
 const viewTitles: Record<string, string> = { credentials: "Credentials & keys" };
