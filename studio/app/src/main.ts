@@ -158,10 +158,7 @@ const overviewAgents = document.querySelector<HTMLElement>("#overview-agents")!;
 const overviewAccess = document.querySelector<HTMLElement>("#overview-access")!;
 const setting = (id: string) => document.querySelector<HTMLElement>(`#${id}`)!;
 const cleanupPath = document.querySelector<HTMLInputElement>("#cleanup-path")!;
-cleanupPath.readOnly = true;
-cleanupPath.placeholder = "Choose a listed worktree above";
 const cleanupSuggestions = $("#cleanup-suggestions");
-const cleanupConfirm = document.querySelector<HTMLInputElement>("#cleanup-confirm")!;
 const cleanupRemoveBranch = document.querySelector<HTMLInputElement>("#cleanup-remove-branch")!;
 const cleanupPlan = document.querySelector<HTMLButtonElement>("#cleanup-plan")!;
 const cleanupApply = document.querySelector<HTMLButtonElement>("#cleanup-apply")!;
@@ -2099,7 +2096,6 @@ function resetCleanupPlan(): void {
   cleanupApply.disabled = true;
 }
 
-cleanupPath.addEventListener("input", resetCleanupPlan);
 cleanupRemoveBranch.addEventListener("change", resetCleanupPlan);
 cleanupPlan.addEventListener("click", async () => {
   if (!current) return;
@@ -2113,28 +2109,27 @@ cleanupPlan.addEventListener("click", async () => {
   try {
     const response = await invoke<{ plan: { branch?: string; ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(current), path: cleanupPath.value, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: cleanupRemoveBranch.checked, apply: false });
     cleanupReady = response.plan.ready;
-    cleanupApply.disabled = !cleanupReady || cleanupConfirm.value !== "REMOVE";
+    cleanupApply.disabled = !cleanupReady;
     cleanupResult.textContent = response.plan.ready
-      ? `Ready to remove ${response.plan.branch ?? "the worktree"}${cleanupRemoveBranch.checked ? " and its merged branch" : ""}. Type REMOVE to enable deletion.`
+      ? `Ready to remove ${response.plan.branch ?? "the worktree"}${cleanupRemoveBranch.checked ? " and its merged branch" : ""}.`
       : response.plan.blockers.join(" · ");
   } catch (error) {
     resetCleanupPlan();
     cleanupResult.textContent = `Plan failed: ${String(error)}`;
   }
 });
-cleanupConfirm.addEventListener("input", () => { cleanupApply.disabled = !cleanupReady || cleanupConfirm.value !== "REMOVE"; });
 cleanupApply.addEventListener("click", async () => {
-  if (!current || !cleanupReady || cleanupConfirm.value !== "REMOVE") return;
+  if (!current || !cleanupReady) return;
   if (!canEditContext()) { cleanupResult.textContent = contextEditMessage(); return; }
   const connection = current;
   const path = cleanupPath.value;
+  if (!window.confirm(`Remove this worktree?\n${path}${cleanupRemoveBranch.checked ? "\n\nIts merged local branch will also be deleted." : ""}`)) return;
   const job = addJob("Worktree cleanup", path);
   try {
     await invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: cleanupRemoveBranch.checked, apply: true });
     await connect(connection);
     cleanupResult.textContent = "Worktree removed and Studio refreshed the context map.";
     resetCleanupPlan();
-    cleanupConfirm.value = "";
     finishJob(job, "succeeded", path);
   } catch (error) {
     cleanupResult.textContent = `Removal failed: ${String(error)}`;
