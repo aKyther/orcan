@@ -138,6 +138,9 @@ const folderResult = document.querySelector<HTMLOutputElement>("#folder-result")
 let importReady = false;
 let folderReady = false;
 const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")!;
+const connectionDoctor = document.createElement("section");
+connectionDoctor.className = "connection-doctor";
+sandboxSettings.prepend(connectionDoctor);
 const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
 const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
 const settingsSync = document.querySelector<HTMLButtonElement>("#settings-sync")!;
@@ -188,10 +191,10 @@ const activityFilter = document.createElement("select");
 activityFilter.className = "activity-filter";
 activityFilter.setAttribute("aria-label", "Filter activity by Enclave");
 jobsList.before(activityFilter);
-type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string; enclave?: string };
+type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string; enclave?: string; profileId?: string };
 const jobs: Job[] = JSON.parse(localStorage.getItem("orcan-studio:jobs") ?? "[]");
 function saveJobs(): void { localStorage.setItem("orcan-studio:jobs", JSON.stringify(jobs.slice(0, 50))); }
-function addJob(name: string, detail: string, enclave = current?.label): Job { const job = { name, detail, enclave, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); saveJobs(); renderJobs(); return job; }
+function addJob(name: string, detail: string, enclave = current?.label, profileId = current?.profileId): Job { const job = { name, detail, enclave, profileId, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); saveJobs(); renderJobs(); return job; }
 function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
 function renderJobs(): void {
   const selected = activityFilter.value;
@@ -199,7 +202,16 @@ function renderJobs(): void {
   activityFilter.replaceChildren(new Option("All Enclaves", ""), ...enclaves.map((enclave) => new Option(enclave, enclave)));
   activityFilter.value = enclaves.includes(selected) ? selected : "";
   const visible = selected ? jobs.filter((job) => (job.enclave ?? "Other") === selected) : jobs;
-  jobsList.replaceChildren(...(visible.length ? visible.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${new Date(job.at).toLocaleString()} · ${job.enclave ?? "Other"} · ${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No activity for this Enclave." })]));
+  jobsList.replaceChildren(...(visible.length ? visible.map((job) => {
+    const row = document.createElement("div");
+    row.className = `job ${job.state}`;
+    const profile = profiles.find((item) => item.id === job.profileId) ?? profiles.find((item) => item.name === job.enclave);
+    const actions: HTMLElement[] = [];
+    if (profile) actions.push(actionButton("Open", () => void openEnclave(profile), "secondary"));
+    if (job.state === "failed" && profile) actions.push(actionButton("Retry check", () => void checkEnclave(profile), "secondary"));
+    row.append(el("span", { textContent: `${new Date(job.at).toLocaleString()} · ${job.enclave ?? "Other"} · ${job.name} · ${job.state} · ${job.detail}` }), ...actions);
+    return row;
+  }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No activity for this Enclave." })]));
 }
 activityFilter.addEventListener("change", renderJobs);
 let worktreeReady = false;
@@ -512,6 +524,8 @@ const projectInspectorActions = $("#project-inspector-actions");
 let focusedWorkspace: string | undefined;
 let tracedPath: string | undefined;
 let inspectedProject: { path: string; workspace?: string } | undefined;
+const MAP_STATE_KEY = "orcan-studio:map-state";
+let restoredMapFor: string | undefined;
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
 const applyDialog = $<HTMLDialogElement>("#apply-dialog");
@@ -722,6 +736,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     card.addEventListener("click", (event) => {
       if ((event.target as HTMLElement).closest("button, select, input, .project-chip")) return;
       focusedWorkspace = focusedWorkspace === workspace.name ? undefined : workspace.name;
+      saveMapState();
       renderEnclaveMap(report);
     });
     const list = el("div", { className: "workspace-parent-groups" });
@@ -882,15 +897,36 @@ function renderProjectInspector(report: ProbeReport): void {
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
 type MapFilter = "attention" | "git" | "worktree" | "mount" | "unassigned" | "dirty" | "planned" | "orphan";
 const activeMapFilters = new Set<MapFilter>();
+function restoreMapState(): void {
+  const key = current ? enclaveChangeKey(current) : undefined;
+  if (!key || restoredMapFor === key) return;
+  restoredMapFor = key;
+  try {
+    const all = JSON.parse(localStorage.getItem(MAP_STATE_KEY) ?? "{}") as Record<string, { filters?: MapFilter[]; workspace?: string }>;
+    const saved = all[key];
+    activeMapFilters.clear();
+    for (const filter of saved?.filters ?? []) activeMapFilters.add(filter);
+    focusedWorkspace = saved?.workspace;
+  } catch { activeMapFilters.clear(); }
+}
+function saveMapState(): void {
+  if (!current) return;
+  try {
+    const all = JSON.parse(localStorage.getItem(MAP_STATE_KEY) ?? "{}") as Record<string, unknown>;
+    all[enclaveChangeKey(current)] = { filters: [...activeMapFilters], workspace: focusedWorkspace };
+    localStorage.setItem(MAP_STATE_KEY, JSON.stringify(all));
+  } catch { /* Browser storage is an enhancement only. */ }
+}
 for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) {
   button.addEventListener("click", () => {
     const filter = button.dataset.mapFilter as MapFilter;
     activeMapFilters.has(filter) ? activeMapFilters.delete(filter) : activeMapFilters.add(filter);
     button.classList.toggle("active", activeMapFilters.has(filter));
+    saveMapState();
     if (currentReport) renderEnclaveMap(currentReport);
   });
 }
-mapFocusClear.addEventListener("click", () => { focusedWorkspace = undefined; if (currentReport) renderEnclaveMap(currentReport); });
+mapFocusClear.addEventListener("click", () => { focusedWorkspace = undefined; saveMapState(); if (currentReport) renderEnclaveMap(currentReport); });
 workspaceInspectorAdd.addEventListener("click", () => sandboxTray.scrollIntoView({ behavior: "smooth", block: "nearest" }));
 workspaceInspectorWorktree.addEventListener("click", () => {
   if (!focusedWorkspace) return;
@@ -1224,6 +1260,23 @@ function nextStep(report: ProbeReport): { title: string; action: string } {
 
 let currentReport: ProbeReport | undefined;
 
+function renderConnectionDoctor(report: ProbeReport): void {
+  const target = current?.target.kind === "ssh" ? "SSH" : current?.target.kind === "wsl2" ? "WSL2" : "Local";
+  const editable = canEditContext(report);
+  const reconnect = actionButton("Reconnect", () => { if (current) void connect(current, settingsResult); }, "secondary");
+  const profile = actionButton("Open profile", () => { showView("profiles"); const selected = profiles.find((item) => item.id === current?.profileId); if (selected) openProfileForm(selected); }, "secondary");
+  connectionDoctor.replaceChildren(
+    el("header", {}, el("div", {}, el("p", { className: "eyebrow", textContent: "CONNECTION DOCTOR" }), el("h3", { textContent: editable ? "Context is writable" : "Context is read-only" })), el("div", { className: "actions compact" }, reconnect, profile)),
+    el("dl", {},
+      el("div", {}, el("dt", { textContent: "Target" }), el("dd", { textContent: target })),
+      el("div", {}, el("dt", { textContent: "User" }), el("dd", { textContent: report.host.user ?? "Not reported" })),
+      el("div", {}, el("dt", { textContent: "Configuration" }), el("dd", { textContent: report.context.configuration.path ?? "Not reported" })),
+      el("div", {}, el("dt", { textContent: "Workspace index" }), el("dd", { textContent: report.paths.workspace_metadata_root })),
+    ),
+    el("p", { className: "hint", textContent: editable ? "Orcan confirmed that this profile can plan and apply context changes." : contextEditMessage() }),
+  );
+}
+
 function canEditContext(report = currentReport): boolean {
   const declared = report?.control?.operations?.context_edit;
   if (declared) return declared.available;
@@ -1357,6 +1410,8 @@ function renderSnapshot(report: ProbeReport): void {
   // The navigation is the essential connection result.  Map decorations and
   // inventories below are helpful, but must never keep a valid report locked.
   unlockStudio(report);
+  restoreMapState();
+  for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) button.classList.toggle("active", activeMapFilters.has(button.dataset.mapFilter as MapFilter));
   renderEnclaveMap(report);
   snapshot.hidden = false;
   snapshotRoot.textContent = report.paths.projects_root;
@@ -1364,6 +1419,7 @@ function renderSnapshot(report: ProbeReport): void {
   snapshotProjects.textContent = String(report.context.managed_projects.length);
   renderContextWorkspaceList(report);
   sandboxSettings.hidden = false;
+  renderConnectionDoctor(report);
   setting("setting-home").textContent = report.paths.home;
   setting("setting-data").textContent = report.paths.data;
   setting("setting-projects-root").textContent = report.paths.projects_root;
@@ -1422,7 +1478,7 @@ function renderContextWorkspaceList(report: ProbeReport): void {
     const dirty = workspace.projects.filter((project) => project.dirty).length;
     const button = el("button", { type: "button", className: "context-workspace-item" }, el("span", { className: "context-workspace-icon", textContent: "◫" }), el("span", {}, el("strong", { textContent: workspace.name }), el("small", { textContent: `${workspace.projects.length} · ${dirty ? `${dirty} dirty` : "clean"}` })));
     button.classList.toggle("active", workspace.name === selected);
-    button.addEventListener("click", () => { focusedWorkspace = workspace.name; renderContextWorkspaceList(report); });
+    button.addEventListener("click", () => { focusedWorkspace = workspace.name; saveMapState(); renderContextWorkspaceList(report); });
     return button;
   }));
   const workspace = report.context.workspaces.find((item) => item.name === selected);

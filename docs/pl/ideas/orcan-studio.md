@@ -74,13 +74,22 @@ ten branch zamiast tworzyć go ponownie.
 Znacznik połączonej Enclave pokazuje typ targetu, użytkownika targetu, dokładną
 ścieżkę konfiguracji Orcan i to, czy zmiany kontekstu są zapisywalne. Activity
 jest zapisywane na urządzeniu Studio i można je filtrować po Enclave, która
-uruchomiła operację.
+uruchomiła operację; nieudany check Enclave można bezpiecznie ponowić, a z jego
+wiersza przejść do właściwej Enclave. Connection doctor w Settings powtarza
+target, użytkownika, ścieżkę konfiguracji i indeksu workspace'ów oraz ma akcje
+ponownego połączenia i otwarcia profilu.
+
+Przy prawdziwym SSH lub WSL otwórz zapisany profil w Studio, użyj Check i przed
+zmianą kontekstu potwierdź w Connection doctor właściwego użytkownika targetu
+oraz ścieżkę konfiguracji.
 
 Mapa Enclave pozostawia projekty bezpośrednio pod zarządzanym sandbox rootem
 bez grupy. Grupami stają się tylko prawdziwe podkatalogi, więc
 `sandbox/STARE/*` i `sandbox/NOWE/*` łatwiej skanować bez zbędnego wrappera
 `sandbox`. Na węższych oknach kolumny workspace'ów i dostępnych projektów
 przechodzą do jednego pionowego widoku.
+Wybrany workspace i filtry mapy są zapamiętywane osobno dla każdej Enclave na
+urządzeniu Studio.
 
 Studio zapisuje profile ponownego połączenia w natywnym katalogu danych
 aplikacji. Profil ma nazwę, metadane transportu oraz dane SSH, takie jak

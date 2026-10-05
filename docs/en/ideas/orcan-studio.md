@@ -69,13 +69,22 @@ that branch instead of creating it again.
 The connected-Enclave badge reports the target type, target user, exact Orcan
 configuration path, and whether context changes are writable. Activity is
 stored per Studio device and can be filtered by the Enclave that started each
-operation.
+operation; a failed Enclave check can be safely retried and an affected
+Enclave can be reopened from its activity row. The Connection doctor in
+Settings repeats the target, user, configuration path, and workspace-index
+path, with reconnect and profile actions.
+
+For a real SSH or WSL verification, open that saved profile in Studio, run
+Check, and confirm that Connection doctor reports the intended target user and
+configuration path before changing context.
 
 The Enclave map keeps projects directly under the managed sandbox root flat.
 Only real child folders become groups, so `sandbox/STARE/*` and
 `sandbox/NOWE/*` are easier to scan without adding a redundant `sandbox`
 wrapper. On narrower windows the workspace and available-project columns flow
 into one vertical view.
+Selected workspace focus and map filters are remembered separately for each
+Enclave on the Studio device.
 
 Studio saves reconnect profiles in its native application-data directory. A
 profile contains a display name, transport metadata, and SSH metadata such as a
