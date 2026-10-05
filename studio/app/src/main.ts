@@ -87,6 +87,8 @@ const parentBranch = document.querySelector<HTMLInputElement>("#parent-branch")!
 const parentPlanButton = document.querySelector<HTMLButtonElement>("#parent-plan")!;
 const parentApplyButton = document.querySelector<HTMLButtonElement>("#parent-apply")!;
 const parentResult = document.querySelector<HTMLOutputElement>("#parent-result")!;
+const parentSourceState = document.querySelector<HTMLElement>("#parent-source-state")!;
+parentBranch.title = "Reported by Orcan; switch branches outside Studio before updating a different branch.";
 let parentHead: string | undefined;
 type ParentRun = { path: string; branch: string; at: string };
 const PARENT_RUNS_KEY = "orcan-studio:parent-runs";
@@ -121,6 +123,30 @@ function parentCandidates(report: ProbeReport): ParentCandidate[] {
   });
 }
 
+function renderParentSourceState(candidate?: ParentCandidate): void {
+  if (!candidate) {
+    parentSourceState.replaceChildren(el("span", { textContent: "No branch source reported by Orcan." }));
+    parentPlanButton.disabled = true;
+    parentApplyButton.disabled = true;
+    return;
+  }
+  const state = candidate.dirty
+    ? "Dirty — update blocked"
+    : !candidate.upstream
+      ? "No configured upstream — Studio will check origin"
+      : candidate.behind
+        ? `${candidate.behind} commit${candidate.behind === 1 ? "" : "s"} behind`
+        : "Up to date at last probe";
+  const source = candidate.role === "worktree_parent"
+    ? `Worktree parent · ${candidate.worktree_count} linked worktree${candidate.worktree_count === 1 ? "" : "s"}`
+    : "Mounted Git source · update only while clean";
+  parentSourceState.replaceChildren(
+    el("span", { className: candidate.dirty || !candidate.upstream ? "blocked" : "ready", textContent: state }),
+    el("span", { textContent: `${source} · ${candidate.branch ?? "detached"}` }),
+  );
+  parentPlanButton.disabled = Boolean(candidate.dirty || !candidate.branch);
+}
+
 function renderParentRepositories(report: ProbeReport): void {
   const candidates = parentCandidates(report);
   const previousPath = parentPath.value;
@@ -131,11 +157,16 @@ function renderParentRepositories(report: ProbeReport): void {
     return new Option(`${candidate.name} · ${status}`, candidate.path);
   }));
   const selected = candidates.find((candidate) => candidate.path === previousPath) ?? candidates[0];
-  if (!selected) return;
+  if (!selected) {
+    parentPath.value = "";
+    renderParentSourceState();
+    return;
+  }
   parentRepository.value = selected.path;
   parentPath.hidden = true;
   parentPath.value = selected.path;
   if (!parentBranch.value || previousPath !== selected.path) parentBranch.value = selected.branch ?? "main";
+  renderParentSourceState(selected);
 }
 const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
 const importDestination = document.querySelector<HTMLInputElement>("#import-destination")!;
@@ -151,6 +182,7 @@ const sandboxSettings = document.querySelector<HTMLElement>("#sandbox-settings")
 const settingsResult = document.querySelector<HTMLOutputElement>("#settings-result")!;
 const settingsRefresh = document.querySelector<HTMLButtonElement>("#settings-refresh")!;
 const settingsSync = document.querySelector<HTMLButtonElement>("#settings-sync")!;
+const enclaveConfigOptions = document.querySelector<HTMLElement>("#enclave-config-options")!;
 const settingResources = document.querySelector<HTMLElement>("#setting-resources")!;
 const settingAgents = document.querySelector<HTMLElement>("#setting-agents")!;
 const demoBanner = document.querySelector<HTMLElement>("#demo-banner")!;
@@ -433,6 +465,32 @@ function renderRuntime(report: ProbeReport): void {
   document.querySelector<HTMLButtonElement>(runtimeButtons.start)!.disabled = running || !launch.recorded || !!launch.ttyd_auth;
   document.querySelector<HTMLButtonElement>(runtimeButtons.restart)!.disabled = !running || !launch.recorded || !!launch.ttyd_auth;
   document.querySelector<HTMLButtonElement>(runtimeButtons.stop)!.disabled = !running;
+}
+
+function renderEnclaveConfiguration(report: ProbeReport): void {
+  const contextEditable = canEditContext(report);
+  const contextButton = actionButton("Manage", () => showView("contexts"), "secondary");
+  contextButton.disabled = !contextEditable;
+  contextButton.title = contextEditable ? "Manage workspace context" : contextEditMessage();
+  const lifecycleButton = actionButton("Controls", () => {
+    showView("overview");
+    document.querySelector<HTMLElement>(".runtime-controls")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, "secondary");
+  const resources = report.runtime.resources;
+  const resourceSummary = resources
+    ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"}`
+    : "Not reported";
+  const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
+  const option = (title: string, value: string, detail: string, state: "editable" | "locked", button?: HTMLButtonElement): HTMLElement =>
+    el("div", { className: `enclave-config-option ${state}` }, el("div", {}, el("strong", { textContent: title }), el("span", { textContent: value }), el("small", { textContent: detail })), el("span", { className: "config-state", textContent: state === "editable" ? "Editable" : "Locked" }), ...(button ? [button] : []));
+  enclaveConfigOptions.replaceChildren(
+    option("Workspace context", contextEditable ? "orcan.config.json" : contextSourceLabel(report), contextEditable ? "Workspaces and project membership are planned, confirmed, then reconciled." : contextEditMessage(), contextEditable ? "editable" : "locked", contextButton),
+    option("Container lifecycle", report.runtime.docker.container.state, "Start, stop, and restart are available. Restart reuses Orcan's recorded launch flags.", "editable", lifecycleButton),
+    option("Container resources", resourceSummary, "CPU and memory are supplied at container creation; Studio reports them but does not rewrite Docker start configuration.", "locked"),
+    option("Agent tools", agents.length ? agents.join(" · ") : "Not reported", "The tool set belongs to the Orcan image and changes only when that image is built.", "locked"),
+    option("Environment values", "Protected", "Environment is read when the container starts. Values, including possible secrets, are never displayed or edited here.", "locked"),
+    option("Access exposure", accessExposure(report.runtime.launch), "Access flags come from the recorded Orcan launch. Studio can replay them, but does not silently change exposure.", "locked"),
+  );
 }
 
 async function runRuntimeAction(action: RuntimeAction): Promise<void> {
@@ -1265,6 +1323,7 @@ function renderSnapshot(report: ProbeReport): void {
   settingsSync.disabled = !canEditContext(report);
   if (!canEditContext(report)) settingsResult.textContent = contextEditMessage();
   setting("setting-access").textContent = accessExposure(report.runtime.launch);
+  renderEnclaveConfiguration(report);
   renderParentRepositories(report);
   renderWorktreeChoices(report);
   const resources = report.runtime.resources;
@@ -1758,12 +1817,32 @@ async function openEnclave(profile: ConnectionProfile): Promise<void> {
   }
 }
 
+async function openEnclaveSettings(profile: ConnectionProfile): Promise<void> {
+  const connection = profileConnection(profile);
+  const report = enclaveStatus.get(profile.id)?.report ?? cachedEnclaveReport(profile);
+  if (report) {
+    activate(connection, report);
+    showView("settings");
+    void checkEnclave(profile);
+    return;
+  }
+  result.textContent = `Connecting to ${profile.name}…`;
+  const status = await checkEnclave(profile);
+  if (status.report) {
+    activate(connection, status.report);
+    showView("settings");
+  }
+}
+
 function renderEnclaves(): void {
   enclaveList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
     const status = enclaveStatus.get(profile.id);
     const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
     const active = connected && current?.profileId === profile.id;
-    const actions: HTMLElement[] = [actionButton("Check", () => void checkEnclave(profile))];
+    const gear = actionButton("⚙", () => void openEnclaveSettings(profile), "secondary");
+    gear.title = `Configure ${profile.name}`;
+    gear.setAttribute("aria-label", `Configure ${profile.name}`);
+    const actions: HTMLElement[] = [actionButton("Check", () => void checkEnclave(profile)), gear];
     if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
     else actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
     const access = status?.report ? ` · ${accessExposure(status.report.runtime.launch)}` : "";
@@ -1989,16 +2068,19 @@ parentRepository.addEventListener("change", () => {
   if (candidate?.branch) parentBranch.value = candidate.branch;
   parentHead = undefined;
   parentApplyButton.disabled = true;
+  renderParentSourceState(candidate);
   parentResult.textContent = "Preview before applying an update.";
 });
 parentPlanButton.addEventListener("click", async () => {
   parentPlanButton.disabled = true; parentResult.textContent = "Checking parent repository…";
   try {
     if (!current) return;
-    const response = await invoke<{ plan: { head: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(current), path: parentPath.value, branch: parentBranch.value });
+    const response = await invoke<{ plan: { head: string; remote_head?: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(current), path: parentPath.value, branch: parentBranch.value });
     parentHead = response.plan.head;
     parentApplyButton.disabled = !response.plan.ready;
-    parentResult.textContent = response.plan.ready ? `Ready to fast-forward from ${parentHead}.` : response.plan.blockers.join(" · ");
+    parentResult.textContent = response.plan.ready
+      ? `Ready: ${parentBranch.value} ${parentHead.slice(0, 8)} → origin ${response.plan.remote_head?.slice(0, 8) ?? "checked"}. Confirm pull to update this source.`
+      : response.plan.blockers.join(" · ");
   } catch (error) { parentHead = undefined; parentApplyButton.disabled = true; parentResult.textContent = `Plan failed: ${String(error)}`; }
   finally { parentPlanButton.disabled = false; }
 });
@@ -2009,9 +2091,9 @@ parentApplyButton.addEventListener("click", async () => {
   try {
     await invoke("parent_apply", { enclave: enclaveInput(current!), path: parentPath.value, branch: parentBranch.value, expectedHead: parentHead });
     rememberParentRun(parentPath.value, parentBranch.value);
-    if (currentReport) renderParentRepositories(currentReport);
-    parentResult.textContent = "Parent updated.";
+    parentResult.textContent = `Updated ${parentBranch.value}. Worktrees keep their own branches; rebase them only when you choose to.`;
     finishJob(job, "succeeded", "Fast-forward applied");
+    await connect(current!);
   }
   catch (error) { parentResult.textContent = `Update failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
   finally { parentApplyButton.disabled = false; }

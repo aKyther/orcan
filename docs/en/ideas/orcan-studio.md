@@ -29,6 +29,19 @@ as its source. A synced workspace index remains useful for inspection, but is
 read-only: Studio disables rename, detach, and worktree actions until it can
 reconnect to the Orcan instance that owns the configuration.
 
+Each Enclave has a configuration gear. Its panel separates the actions Studio
+can safely operate (context plans and container lifecycle) from reported,
+locked facts: container resources, image-provided agent tools, protected
+environment values, managed paths, and launch exposure. Locked environment
+values are intentionally neither displayed nor editable in Studio.
+
+Contexts also lists the branch sources that Orcan reports, regardless of which
+managed project root contains them. Studio shows their clean/dirty and
+ahead/behind state, checks the selected tracked branch against `origin`, then
+requires confirmation before a `git pull --ff-only`. Updating a parent never
+rewrites its dependent worktrees; their branches can be rebased later by the
+user or an agent.
+
 Studio saves reconnect profiles in its native application-data directory. A
 profile contains a display name, transport metadata, and SSH metadata such as a
 username or private-key path. Passwords and key passphrases are not written to

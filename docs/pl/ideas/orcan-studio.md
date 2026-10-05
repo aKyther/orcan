@@ -30,6 +30,20 @@ jest przydatny do podglądu, ale pozostaje tylko do odczytu: Studio blokuje
 zmianę nazwy, odłączanie i tworzenie worktree, dopóki nie połączy się z
 instancją Orcan, która posiada konfigurację.
 
+Każda Enclave ma zębatkę konfiguracji. Panel rozdziela akcje, które Studio może
+bezpiecznie wykonać (plany kontekstu i cykl życia kontenera), od raportowanych,
+zablokowanych faktów: zasobów kontenera, narzędzi agentów z obrazu,
+chronionych wartości środowiska, ścieżek zarządzanych i ekspozycji startowej.
+Zablokowane wartości środowiska celowo nie są ani wyświetlane, ani edytowane w
+Studio.
+
+Contexts pokazuje też źródła branchy zgłoszone przez Orcan, niezależnie od
+tego, w którym zarządzanym rootcie projektów się znajdują. Studio pokazuje ich
+stan clean/dirty i ahead/behind, sprawdza śledzony branch względem `origin`, a
+następnie wymaga potwierdzenia przed `git pull --ff-only`. Aktualizacja parenta
+nigdy nie przepisuje zależnych worktree; ich branche można później zrebase'ować
+ręcznie lub przez agenta.
+
 Studio zapisuje profile ponownego połączenia w natywnym katalogu danych
 aplikacji. Profil ma nazwę, metadane transportu oraz dane SSH, takie jak
 użytkownik albo ścieżka klucza prywatnego. Hasła i passphrase kluczy nie trafiają
