@@ -53,6 +53,12 @@ URL and validates the destination; Studio never accepts an arbitrary path.
 Git authentication remains on the Orcan host (for example its SSH agent), and
 Studio reports its availability without reading keys or secrets.
 
+The Enclave map keeps projects directly under the managed sandbox root flat.
+Only real child folders become groups, so `sandbox/STARE/*` and
+`sandbox/NOWE/*` are easier to scan without adding a redundant `sandbox`
+wrapper. On narrower windows the workspace and available-project columns flow
+into one vertical view.
+
 Studio saves reconnect profiles in its native application-data directory. A
 profile contains a display name, transport metadata, and SSH metadata such as a
 username or private-key path. Passwords and key passphrases are not written to

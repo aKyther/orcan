@@ -569,6 +569,11 @@ function parentLabel(path: string): string {
   return path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1) || path;
 }
 
+function projectGroup(report: ProbeReport, path: string): string | undefined {
+  const parent = parentDirectory(path);
+  return parent === report.paths.projects_root ? undefined : parent;
+}
+
 function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string, state: "current" | "planned" | "removing" = "current"): HTMLElement {
   const chip = el("span", { className: `project-chip ${state}`, draggable: true, title: `${project.path}\nDrag onto a workspace to add it` }, el("span", { className: "connection-anchor", ariaHidden: "true" }), el("span", { className: "grip", textContent: "⠿" }), projectKindIcon(project), el("span", { className: "project-name", textContent: project.name }), ...extra);
   chip.dataset.projectPath = project.path;
@@ -607,9 +612,9 @@ function drawConnections(): void {
       const targetBox = targetAnchor.getBoundingClientRect();
       const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
       const startX = sourceBox.left - bounds.left + sourceBox.width / 2;
-      const startY = sourceBox.top - bounds.top;
+      const startY = sourceBox.top - bounds.top + sourceBox.height / 2;
       const endX = targetBox.left - bounds.left + targetBox.width / 2;
-      const endY = targetBox.bottom - bounds.top;
+      const endY = targetBox.top - bounds.top + targetBox.height / 2;
       const horizontal = window.matchMedia("(min-width: 761px)").matches;
       const middleX = (startX + endX) / 2;
       const middleY = (startY + endY) / 2;
@@ -701,6 +706,7 @@ function renderEnclaveMap(report: ProbeReport): void {
       renderEnclaveMap(report);
     });
     const list = el("div", { className: "workspace-parent-groups" });
+    const rootProjects = el("ul", { className: "workspace-root-projects" });
     const projectGroups = new Map<string, HTMLUListElement>();
     for (const project of projects) {
       const ref = { name: projectName(project), path: project.path, kind: project.kind };
@@ -710,10 +716,13 @@ function renderEnclaveMap(report: ProbeReport): void {
       const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), ...alertTags.map((alert) => el("span", { className: "tag warn", textContent: alert })), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` }), removing && el("span", { className: "tag removing", textContent: "detach planned" })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
       const remove = actionButton("✕", () => void reviewChange("detach", workspace.name, ref), "chip-remove");
       remove.title = `Remove ${ref.name} from ${workspace.name} (files stay)`;
-      const parent = parentDirectory(project.path);
-      const projectList = projectGroups.get(parent) ?? projectGroups.set(parent, el("ul")).get(parent)!;
+      const parent = projectGroup(report, project.path);
+      const projectList = parent
+        ? projectGroups.get(parent) ?? projectGroups.set(parent, el("ul")).get(parent)!
+        : rootProjects;
       projectList.append(el("li", {}, projectChip(ref, tags, workspace.name, removing ? "removing" : "current"), remove, el("small", { textContent: project.path })));
     }
+    if (rootProjects.children.length) list.append(rootProjects);
     for (const [parent, projectList] of [...projectGroups.entries()].sort(([left], [right]) => left.localeCompare(right))) {
       list.append(el("details", { className: "workspace-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent) }), el("small", { textContent: `${projectList.children.length} project${projectList.children.length === 1 ? "" : "s"}` })), projectList));
     }
@@ -760,16 +769,17 @@ function renderEnclaveMap(report: ProbeReport): void {
         : actionButton("+", () => void reviewChange("attach", focusedWorkspace, ref), "attach-to-focus")
       : addToMenu(ref, report);
     if (action instanceof HTMLButtonElement) action.title = `Add ${ref.name} to ${focusedWorkspace}`;
-    return { parent: parentDirectory(project.path), item: el("span", { className: "tray-item" }, chip, action) };
+    return { parent: projectGroup(report, project.path), item: el("span", { className: "tray-item" }, chip, action) };
     });
   const showCreate = !focusedWorkspace && activeMapFilters.size === 0;
   workspaceCards.replaceChildren(...(cards.length ? cards : [el("p", { className: "hint map-empty", textContent: "No workspace or planned relation matches this filter." })]), ...(showCreate ? [create] : []));
-  const groups = chips.reduce<Map<string, HTMLElement[]>>((all, chip) => {
+  const groups = chips.reduce<Map<string | undefined, HTMLElement[]>>((all, chip) => {
     (all.get(chip.parent) ?? all.set(chip.parent, []).get(chip.parent)!).push(chip.item);
     return all;
   }, new Map());
-  const groupNodes = [...groups.entries()].map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent) }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
-  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available projects and folders (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), groupNodes.length ? el("div", { className: "project-parent-groups" }, ...groupNodes) : el("p", { className: "hint", textContent: query ? "No project or folder matches this filter." : "No projects or folders in the sandbox yet. Import a repository in Repositories." }));
+  const rootItems = groups.get(undefined) ?? [];
+  const groupNodes = [...groups.entries()].filter(([parent]) => parent).sort(([left], [right]) => left!.localeCompare(right!)).map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent!) }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
+  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available projects and folders (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), chips.length ? el("div", { className: "project-parent-groups" }, ...(rootItems.length ? [el("div", { className: "tray-chips root-projects" }, ...rootItems)] : []), ...groupNodes) : el("p", { className: "hint", textContent: query ? "No project or folder matches this filter." : "No projects or folders in the sandbox yet. Import a repository in Repositories." }));
   requestAnimationFrame(drawConnections);
 }
 

@@ -57,6 +57,12 @@ i waliduje cel; Studio nigdy nie przyjmuje dowolnej ścieżki. Uwierzytelnienie
 Git pozostaje na hoście Orcan (na przykład jego agencie SSH), a Studio pokazuje
 jego dostępność bez odczytywania kluczy ani sekretów.
 
+Mapa Enclave pozostawia projekty bezpośrednio pod zarządzanym sandbox rootem
+bez grupy. Grupami stają się tylko prawdziwe podkatalogi, więc
+`sandbox/STARE/*` i `sandbox/NOWE/*` łatwiej skanować bez zbędnego wrappera
+`sandbox`. Na węższych oknach kolumny workspace'ów i dostępnych projektów
+przechodzą do jednego pionowego widoku.
+
 Studio zapisuje profile ponownego połączenia w natywnym katalogu danych
 aplikacji. Profil ma nazwę, metadane transportu oraz dane SSH, takie jak
 użytkownik albo ścieżka klucza prywatnego. Hasła i passphrase kluczy nie trafiają
