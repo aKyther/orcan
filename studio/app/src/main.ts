@@ -1244,20 +1244,6 @@ $("#sync-now").addEventListener("click", async () => {
   finally { button.disabled = false; }
 });
 
-/** One sentence that says what to look at first. */
-function nextStep(report: ProbeReport): { title: string; action: string } {
-  const projects = report.context.workspaces.flatMap((workspace) => workspace.projects);
-  const dirty = projects.filter((project) => project.dirty).length;
-  const missing = projects.filter((project) => project.kind === "missing").length;
-  const loose = unassignedProjects(report).length;
-  const summary = `${report.context.workspaces.length} workspace${report.context.workspaces.length === 1 ? "" : "s"} · ${report.context.managed_projects.length} project${report.context.managed_projects.length === 1 ? "" : "s"} in the sandbox`;
-  if (report.runtime.docker.container.state !== "running") return { title: "Container is not running", action: `${summary}. Start the Enclave to let agents work; the map below is read from its configuration.` };
-  if (missing) return { title: `${missing} project path${missing === 1 ? " is" : "s are"} missing`, action: `${summary}. A workspace points at a path that does not exist on this machine; fix or detach it in Repositories.` };
-  if (!report.context.workspaces.length) return { title: "No workspaces yet", action: `${summary}. Create a workspace so agents get a focused set of projects.` };
-  if (loose) return { title: summary, action: `${loose} project${loose === 1 ? " is" : "s are"} in the sandbox but in no workspace. ${dirty ? `${dirty} project${dirty === 1 ? " has" : "s have"} uncommitted changes.` : "Everything else is committed."}` };
-  return { title: summary, action: dirty ? `${dirty} project${dirty === 1 ? " has" : "s have"} uncommitted changes; review them before starting new work.` : "Every project is committed. Pick a workspace below or create a worktree for parallel work." };
-}
-
 let currentReport: ProbeReport | undefined;
 
 function renderConnectionDoctor(report: ProbeReport): void {
