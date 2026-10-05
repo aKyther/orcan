@@ -405,7 +405,10 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
     runtimeResult.textContent = `${label} failed: ${String(error)}`;
     finishJob(job, "failed", String(error));
   }
-  void connect(current);
+  void connect(current).catch(() => {
+    if (current?.profileId) enclaveStatus.set(current.profileId, { state: "offline", at: Date.now() });
+    renderStore();
+  });
 }
 
 const enclaveMap = $("#enclave-map");
