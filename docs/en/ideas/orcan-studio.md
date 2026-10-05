@@ -66,6 +66,11 @@ Studio also reads the source's local branch names and displays a compact sample.
 An existing name is valid: the plan says that the new worktree will check out
 that branch instead of creating it again.
 
+The connected-Enclave badge reports the target type, target user, exact Orcan
+configuration path, and whether context changes are writable. Activity is
+stored per Studio device and can be filtered by the Enclave that started each
+operation.
+
 The Enclave map keeps projects directly under the managed sandbox root flat.
 Only real child folders become groups, so `sandbox/STARE/*` and
 `sandbox/NOWE/*` are easier to scan without adding a redundant `sandbox`

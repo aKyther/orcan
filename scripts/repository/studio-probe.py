@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import hashlib
 import json
 import os
@@ -244,6 +245,7 @@ def context_snapshot(
             else "missing",
             "source": source,
             "editable": source == "config",
+            "path": str(config_path),
             "revision": hashlib.sha256(raw).hexdigest()
             if config_path.is_file()
             else None,
@@ -517,6 +519,7 @@ def main() -> None:
         "host": {
             "os": platform.system().lower(),
             "architecture": platform.machine().lower(),
+            "user": getpass.getuser(),
         },
         "paths": {
             "home": str(Path(args.home)),

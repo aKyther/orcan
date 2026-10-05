@@ -71,6 +71,11 @@ Studio odczytuje też lokalne nazwy branchy źródła i pokazuje ich krótki zes
 Istniejąca nazwa jest poprawna: plan podaje wtedy, że nowy worktree checkoutuje
 ten branch zamiast tworzyć go ponownie.
 
+Znacznik połączonej Enclave pokazuje typ targetu, użytkownika targetu, dokładną
+ścieżkę konfiguracji Orcan i to, czy zmiany kontekstu są zapisywalne. Activity
+jest zapisywane na urządzeniu Studio i można je filtrować po Enclave, która
+uruchomiła operację.
+
 Mapa Enclave pozostawia projekty bezpośrednio pod zarządzanym sandbox rootem
 bez grupy. Grupami stają się tylko prawdziwe podkatalogi, więc
 `sandbox/STARE/*` i `sandbox/NOWE/*` łatwiej skanować bez zbędnego wrappera

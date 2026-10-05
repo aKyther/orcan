@@ -8,7 +8,7 @@ type Target =
 
 type ProbeReport = {
   sandbox: { version: string };
-  host: { os: string; architecture: string };
+  host: { os: string; architecture: string; user?: string };
   capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean };
   runtime: {
     docker: { container: { state: string }; agents?: Record<string, boolean> };
@@ -28,7 +28,7 @@ type ProbeReport = {
     managed_projects: Array<{ path: string; kind: string; writable?: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
     update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }>;
-    configuration: { state: string; revision?: string; source?: "config" | "runtime_index" | "none"; editable?: boolean };
+    configuration: { state: string; revision?: string; source?: "config" | "runtime_index" | "none"; editable?: boolean; path?: string };
   };
 };
 
@@ -172,15 +172,36 @@ const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")
 const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;
 const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
 const worktreeExisting = document.querySelector<HTMLElement>("#worktree-existing")!;
+const branchBrowser = document.createElement("details");
+branchBrowser.className = "branch-browser";
+const branchSummary = document.createElement("summary");
+const branchSearch = document.createElement("input");
+branchSearch.placeholder = "filter branches";
+const branchList = document.createElement("div");
+branchList.className = "branch-list";
+branchBrowser.append(branchSummary, branchSearch, branchList);
+worktreeExisting.after(branchBrowser);
 const worktreeSourceState = document.querySelector<HTMLElement>("#worktree-source-state")!;
 const worktreeSourceUpdate = document.querySelector<HTMLButtonElement>("#worktree-source-update")!;
 const jobsList = document.querySelector<HTMLElement>("#jobs-list")!;
-type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string };
+const activityFilter = document.createElement("select");
+activityFilter.className = "activity-filter";
+activityFilter.setAttribute("aria-label", "Filter activity by Enclave");
+jobsList.before(activityFilter);
+type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string; enclave?: string };
 const jobs: Job[] = JSON.parse(localStorage.getItem("orcan-studio:jobs") ?? "[]");
 function saveJobs(): void { localStorage.setItem("orcan-studio:jobs", JSON.stringify(jobs.slice(0, 50))); }
-function addJob(name: string, detail: string): Job { const job = { name, detail, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); saveJobs(); renderJobs(); return job; }
+function addJob(name: string, detail: string, enclave = current?.label): Job { const job = { name, detail, enclave, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); saveJobs(); renderJobs(); return job; }
 function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
-function renderJobs(): void { jobsList.replaceChildren(...(jobs.length ? jobs.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${new Date(job.at).toLocaleString()} · ${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No jobs yet." })])); }
+function renderJobs(): void {
+  const selected = activityFilter.value;
+  const enclaves = [...new Set(jobs.map((job) => job.enclave ?? "Other"))];
+  activityFilter.replaceChildren(new Option("All Enclaves", ""), ...enclaves.map((enclave) => new Option(enclave, enclave)));
+  activityFilter.value = enclaves.includes(selected) ? selected : "";
+  const visible = selected ? jobs.filter((job) => (job.enclave ?? "Other") === selected) : jobs;
+  jobsList.replaceChildren(...(visible.length ? visible.map((job) => { const row = document.createElement("div"); row.className = `job ${job.state}`; row.textContent = `${new Date(job.at).toLocaleString()} · ${job.enclave ?? "Other"} · ${job.name} · ${job.state} · ${job.detail}`; return row; }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No activity for this Enclave." })]));
+}
+activityFilter.addEventListener("change", renderJobs);
 let worktreeReady = false;
 let sourceBranches: string[] = [];
 let profiles: ConnectionProfile[] = [];
@@ -1270,6 +1291,14 @@ function renderWorktreeBranchState(): void {
   worktreeBranchState.classList.toggle("existing", exists);
 }
 
+function renderBranchBrowser(): void {
+  const query = branchSearch.value.trim().toLowerCase();
+  const visible = sourceBranches.filter((branch) => branch.toLowerCase().includes(query));
+  branchSummary.textContent = `Local branches (${sourceBranches.length})`;
+  branchBrowser.hidden = sourceBranches.length === 0;
+  branchList.replaceChildren(...visible.slice(0, 40).map((branch) => actionButton(branch, () => { worktreeBranch.value = branch; worktreeReady = false; worktreeApply.disabled = true; renderWorktreeBranchState(); }, "secondary")));
+}
+
 async function refreshWorktreeBranches(): Promise<void> {
   if (!current || !worktreeRepo.value) {
     sourceBranches = [];
@@ -1288,6 +1317,7 @@ async function refreshWorktreeBranches(): Promise<void> {
   }
   renderWorktreeExisting();
   renderWorktreeBranchState();
+  renderBranchBrowser();
 }
 
 function renderWorktreeChoices(report: ProbeReport): void {
@@ -1934,7 +1964,7 @@ function renderEnclaveStatus(): void {
   const access = report ? (editable ? "Editable" : "Read-only") : "Checking";
   activeLabel.textContent = connected && current ? `${current.label} · ${target} · ${access}` : profiles.length ? "Choose an Enclave" : "No Enclaves yet";
   activeInstance.title = report
-    ? `${target} · ${report.paths.home}/orcan.config.json · ${editable ? "context changes available" : contextEditMessage()}`
+    ? `${target} · ${report.host.user ?? "unknown user"} · ${report.context.configuration.path ?? `${report.paths.home}/orcan.config.json`} · ${editable ? "context changes available" : contextEditMessage()}`
     : "Open Enclaves to reconnect or edit this profile";
   const online = profiles.filter((profile) => enclaveStatus.get(profile.id)?.state === "online").length;
   const checking = profiles.some((profile) => enclaveStatus.get(profile.id)?.state === "checking");
@@ -2068,6 +2098,7 @@ worktreeBranch.addEventListener("input", () => {
   if (exists) worktreeResult.textContent = `Existing branch: ${worktreeBranch.value.trim()}. The new worktree will check it out after you preview the plan.`;
   renderWorktreeBranchState();
 });
+branchSearch.addEventListener("input", renderBranchBrowser);
 worktreeSourceUpdate.addEventListener("click", () => {
   const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === worktreeRepo.value);
   if (candidate) void updateProjectParent(candidate, "new worktree", candidate.name);

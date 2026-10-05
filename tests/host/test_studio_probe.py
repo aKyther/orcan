@@ -67,6 +67,8 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
     assert repository["origin_url"] == "git@example.test:team/app.git"
     assert repository["bindings"][0]["workspace"] == "dev"
     assert report["paths"]["managed_worktrees_root"].endswith("sandbox/.worktrees")
+    assert report["host"]["user"]
+    assert report["context"]["configuration"]["path"] == str(home / "orcan.config.json")
     assert report["runtime"]["launch"] == {"recorded": False}
     assert report["control"]["operations"]["context_edit"] == {
         "available": True,
