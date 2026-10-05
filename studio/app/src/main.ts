@@ -1844,12 +1844,14 @@ async function transferImage(): Promise<void> {
   const target = selectedProfile(imageTransferTarget);
   if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh" || !inspectedImage) return;
   if (!window.confirm(`Transfer ${inspectedImage.image} (${inspectedImage.id}) from ${source.name} to ${target.name}? The remote Docker daemon will import the image.`)) return;
+  const job = addJob("Image transfer", `${inspectedImage.image}: ${source.name} → ${target.name}`, target.name, target.id);
   imageTransferRun.disabled = true;
   imageTransferResult.textContent = `Transferring ${inspectedImage.image}; keep Studio open until Docker import completes…`;
   try {
     await invoke<ImageInventory>("transfer_wsl_image", { input: { distribution: source.target.distribution, image: inspectedImage.image, destination: target.target.destination } });
     imageTransferResult.textContent = `Transferred ${inspectedImage.image} to ${target.name}. Reconnect to verify Docker and provision Orcan on the remote host.`;
-  } catch (error) { imageTransferResult.textContent = `Transfer failed: ${String(error)}`; }
+    finishJob(job, "succeeded", `Imported ${inspectedImage.image} on ${target.name}`);
+  } catch (error) { imageTransferResult.textContent = `Transfer failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
   finally { imageTransferRun.disabled = false; }
 }
 
