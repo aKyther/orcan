@@ -60,12 +60,17 @@ def main() -> None:
     artifacts = [runtime, output / "install-orcan-cli.sh"]
     if args.image:
         image = output / "orcan-image.tar"
-        subprocess.run(["docker", "save", "--output", str(image), args.image], check=True)
+        subprocess.run(
+            ["docker", "save", "--output", str(image), args.image], check=True
+        )
         artifacts.append(image)
     manifest = {
         "format": 1,
         "version": (root / "VERSION").read_text().strip(),
-        "artifacts": [{"name": item.name, "sha256": digest(item), "bytes": item.stat().st_size} for item in artifacts],
+        "artifacts": [
+            {"name": item.name, "sha256": digest(item), "bytes": item.stat().st_size}
+            for item in artifacts
+        ],
         "contains_user_configuration": False,
         "contains_projects": False,
         "contains_secrets": False,
