@@ -1904,6 +1904,7 @@ function renderEnclaveStatus(): void {
 }
 
 function failureHint(error: string): string {
+  if (/execvpe\(orcan\).*no such file|orcan: not found|command not found/i.test(error)) return "Orcan CLI is not available on this target. Provision Orcan CLI first; Studio checks ~/.local/bin and the target PATH.";
   if (/host-key|known_hosts|Host key verification/i.test(error)) return "The server's host key is not trusted yet. Connect once from a terminal (ssh <server>) to confirm its fingerprint, then test again.";
   if (/authentication|Permission denied|rejected/i.test(error)) return "The server rejected the sign-in. Check the user and the credential.";
   if (/no (password|key-passphrase) is stored/i.test(error)) return "The secret for this credential is missing from the vault. Edit the credential and enter it again.";
