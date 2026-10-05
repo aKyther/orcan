@@ -1,4 +1,5 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+import { normalizeProbeReport } from "./probe";
 import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, SshAuthentication, Target } from "./types";
 import "./style.css";
 
@@ -237,24 +238,6 @@ function demoStoreCommand(command: string, args: Record<string, unknown>): unkno
 const previewSnapshot: Promise<ProbeReport | undefined> = demoMode
   ? fetch("/preview-probe.json", { cache: "no-store" }).then((response) => (response.ok ? response.json() : undefined)).catch(() => undefined)
   : Promise.resolve(undefined);
-
-/**
- * Preview snapshots can outlive the Studio that reads them.  Keep an older
- * Orcan report useful when a newly-added collection was emitted as null.
- */
-function normalizeProbeReport(report: ProbeReport): ProbeReport {
-  const context = report.context;
-  return {
-    ...report,
-    context: {
-      ...context,
-      workspaces: Array.isArray(context.workspaces) ? context.workspaces : [],
-      managed_projects: Array.isArray(context.managed_projects) ? context.managed_projects : [],
-      repositories: Array.isArray(context.repositories) ? context.repositories : [],
-      update_targets: Array.isArray(context.update_targets) ? context.update_targets : [],
-    },
-  };
-}
 
 const demoReports = new Map<string, ProbeReport>();
 
