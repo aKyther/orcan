@@ -20,6 +20,15 @@ const imageTransferTarget = $<HTMLSelectElement>("#image-transfer-target");
 const imageTransferInspect = $<HTMLButtonElement>("#image-transfer-inspect");
 const imageTransferRun = $<HTMLButtonElement>("#image-transfer-run");
 const imageTransferResult = $<HTMLOutputElement>("#image-transfer-result");
+const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
+const enclaveCreateGit = $<HTMLInputElement>("#enclave-create-git");
+const enclaveCreateDocker = $<HTMLInputElement>("#enclave-create-docker");
+const enclaveCreateTtyd = $<HTMLInputElement>("#enclave-create-ttyd");
+const enclaveCreateTtydAuth = $<HTMLInputElement>("#enclave-create-ttyd-auth");
+const enclaveCreatePlan = $<HTMLButtonElement>("#enclave-create-plan");
+const enclaveCreateApply = $<HTMLButtonElement>("#enclave-create-apply");
+const enclaveCreateResult = $<HTMLOutputElement>("#enclave-create-result");
+$("#enclave-creator-slot").append($("#enclave-creator"));
 const credentialList = $("#credential-list");
 const setupPanel = $("#setup-panel");
 const activeGroup = $("#active-group");
@@ -1519,7 +1528,11 @@ async function discoverWslDistributions(): Promise<void> {
   if (knownWslDistributions) return;
   wslDistribution.disabled = true;
   try {
-    const distributions = await invoke<string[]>("list_wsl_distributions");
+    const response = await invoke<unknown>("list_wsl_distributions");
+    if (!Array.isArray(response) || !response.every((item) => typeof item === "string")) {
+      throw new Error("WSL discovery is available only in the Windows Studio application.");
+    }
+    const distributions = response;
     knownWslDistributions = distributions;
     const selected = wslDistribution.value;
     wslDistribution.replaceChildren(
@@ -1533,7 +1546,9 @@ async function discoverWslDistributions(): Promise<void> {
       : "No WSL2 distributions were found. Install one with `wsl --install`, then reopen this profile.";
   } catch (error) {
     wslDistribution.replaceChildren(new Option("WSL2 discovery unavailable", ""));
-    wslDistributionHint.textContent = `Studio could not query WSL: ${String(error)}`;
+    wslDistributionHint.textContent = String(error).includes("available only")
+      ? String(error)
+      : `Studio could not query WSL: ${String(error)}`;
   }
 }
 
@@ -1781,6 +1796,26 @@ function renderImageTransfer(): void {
   if (!ready) imageTransferResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH before transferring an image.";
 }
 
+function renderEnclaveCreator(): void {
+  const previous = enclaveCreateProfile.value;
+  enclaveCreateProfile.replaceChildren(new Option("Choose destination profile…", ""), ...profiles.map((profile) => new Option(profile.name, profile.id)));
+  enclaveCreateProfile.value = profiles.some((profile) => profile.id === previous) ? previous : "";
+  enclaveCreatePlan.disabled = profiles.length === 0;
+  enclaveCreateApply.disabled = true;
+}
+
+async function planEmptyEnclave(apply = false): Promise<void> {
+  const profile = selectedProfile(enclaveCreateProfile);
+  if (!profile) return;
+  enclaveCreateResult.textContent = apply ? "Creating empty Enclave…" : "Reading creation plan…";
+  try {
+    await invoke("enclave_action", { enclave: enclaveInput(profileConnection(profile)), apply, withGit: enclaveCreateGit.checked, withDocker: enclaveCreateDocker.checked, withTtyd: enclaveCreateTtyd.checked, withTtydAuth: enclaveCreateTtydAuth.checked });
+    enclaveCreateResult.textContent = apply ? "Enclave created. Checking it now…" : "Plan ready: create empty config, sync it, then start the selected runtime access.";
+    enclaveCreateApply.disabled = apply;
+    if (apply) await openEnclave(profile);
+  } catch (error) { enclaveCreateResult.textContent = `Enclave setup failed: ${String(error)}`; }
+}
+
 async function inspectTransferImage(): Promise<void> {
   const source = selectedProfile(imageTransferSource);
   if (!source || source.target.kind !== "wsl2") return;
@@ -1820,6 +1855,12 @@ function renderEnclaves(): void {
     gear.title = `Configure ${profile.name}`;
     gear.setAttribute("aria-label", `Configure ${profile.name}`);
     const actions: HTMLElement[] = [actionButton("Check", () => void checkEnclave(profile)), gear];
+    if (status?.report?.runtime.docker.container.state === "running") {
+      actions.push(actionButton("Remove container", () => {
+        current = profileConnection(profile);
+        void runRuntimeAction("stop");
+      }, "secondary"));
+    }
     if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
     else actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
     const access = status?.report ? ` · ${accessExposure(status.report.runtime.launch)}` : "";
@@ -1830,6 +1871,7 @@ function renderEnclaves(): void {
     return item;
   }) : [emptyState("Enclaves appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
   renderImageTransfer();
+  renderEnclaveCreator();
 }
 
 /** Per-Enclave state everywhere it is shown: list, sidebar, topbar chip, summary. */
@@ -1919,6 +1961,10 @@ imageTransferRun.addEventListener("click", () => void transferImage());
 imageTransferSource.addEventListener("change", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
 imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled = true; });
 imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
+enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
+enclaveCreateApply.addEventListener("click", () => { if (window.confirm("Create this empty Enclave?")) void planEmptyEnclave(true); });
+for (const input of [enclaveCreateProfile, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth]) input.addEventListener("change", () => { enclaveCreateApply.disabled = true; });
+enclaveCreateTtyd.addEventListener("change", () => { enclaveCreateTtydAuth.disabled = !enclaveCreateTtyd.checked; if (!enclaveCreateTtyd.checked) enclaveCreateTtydAuth.checked = false; });
 $("#new-credential").addEventListener("click", () => openCredentialForm());
 $("#credential-back").addEventListener("click", () => leaveCredentialForm());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="location"]')) input.addEventListener("change", refreshProfileForm);

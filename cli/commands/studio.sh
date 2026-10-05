@@ -74,6 +74,25 @@ orcan_cmd_studio() {
             # Orcan resolves its own config so Studio never guesses a path on the instance.
             orcan_host_python "${ORCAN_SCRIPTS}/studio-settings.py" "${mode}" --config "${ORCAN_CONFIG_FILE}" "$@"
             ;;
+        enclave)
+            local mode="${1:-}"; shift || true
+            [[ "$mode" == "plan" || "$mode" == "apply" ]] || orcan_usage_error 'usage: orcan studio enclave plan|apply --empty [--with-git] [--with-docker] [--yes]'
+            local up_args=() apply_args=("$mode" --config "${ORCAN_CONFIG_FILE}")
+            while (($#)); do
+                case "$1" in
+                    --empty) shift ;;
+                    --with-git|--with-docker|--with-ttyd|--with-ttyd-auth) up_args+=("$1"); shift ;;
+                    --yes) apply_args+=(--yes); shift ;;
+                    *) orcan_usage_error "unknown enclave option: $1" ;;
+                esac
+            done
+            orcan_require_python
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}" || return
+            if [[ "$mode" == "apply" ]]; then
+                source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync.sh"; orcan_cmd_sync
+                source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/up.sh"; orcan_cmd_up "${up_args[@]}"
+            fi
+            ;;
         -h | --help | "")
             printf 'usage: orcan studio probe --json\n'
             printf '       orcan studio parent plan|apply --path PATH --branch BRANCH [--expected-head SHA --yes]\n'

@@ -297,6 +297,28 @@ async fn sync(enclave: EnclaveInput, state: tauri::State<'_, ProfileState>) -> R
 }
 
 #[tauri::command]
+async fn enclave_action(
+    enclave: EnclaveInput,
+    apply: bool,
+    with_git: bool,
+    with_docker: bool,
+    with_ttyd: bool,
+    ttyd_credential: Option<String>,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    let mut args = vec!["studio".to_owned(), "enclave".to_owned(), if apply { "apply" } else { "plan" }.to_owned(), "--empty".to_owned()];
+    if with_git { args.push("--with-git".to_owned()); }
+    if with_docker { args.push("--with-docker".to_owned()); }
+    if with_ttyd { args.push("--with-ttyd".to_owned()); }
+    if let Some(credential) = ttyd_credential.filter(|value| !value.is_empty()) {
+        args.extend(["--with-ttyd-auth".to_owned(), credential]);
+    }
+    if apply { args.push("--yes".to_owned()); }
+    let stdout = run_on_enclave(enclave, args, state).await?;
+    serde_json::from_str(&stdout).map_err(|error| format!("invalid enclave response: {error}"))
+}
+
+#[tauri::command]
 async fn runtime_action(
     enclave: EnclaveInput,
     action: RuntimeAction,
@@ -925,6 +947,7 @@ fn main() {
             wsl_image_inventory_command,
             transfer_wsl_image,
             probe,
+            enclave_action,
             sync,
             runtime_action,
             list_profiles,
