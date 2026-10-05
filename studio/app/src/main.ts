@@ -1809,6 +1809,10 @@ async function planEmptyEnclave(apply = false): Promise<void> {
   if (!profile) return;
   enclaveCreateResult.textContent = apply ? "Creating empty Enclave…" : "Reading creation plan…";
   try {
+    if (!apply) {
+      const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(profileConnection(profile)) });
+      if (!report.capabilities.docker) throw new Error("Docker is not available on this destination profile.");
+    }
     await invoke("enclave_action", { enclave: enclaveInput(profileConnection(profile)), apply, withGit: enclaveCreateGit.checked, withDocker: enclaveCreateDocker.checked, withTtyd: enclaveCreateTtyd.checked, withTtydAuth: enclaveCreateTtydAuth.checked });
     enclaveCreateResult.textContent = apply ? "Enclave created. Checking it now…" : "Plan ready: create empty config, sync it, then start the selected runtime access.";
     enclaveCreateApply.disabled = apply;
