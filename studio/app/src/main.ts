@@ -1,8 +1,13 @@
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
+import { loadJobs, persistJobs, type Job } from "./activity";
+import { draftConflicts, loadQueuedChanges, persistQueuedChanges, type QueuedChange } from "./context-drafts";
+import { parentCandidates, parentDirectory, parentForProject, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, unassignedProjects, type ContextProject, type HealthProject, type ParentCandidate } from "./context-model";
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
+import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
+import { loadCachedReport, persistCachedReport } from "./report-cache";
 import { cacheKey, demoMode, describeTarget, enclaveInput, invokeTauri } from "./transport";
-import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, SshAuthentication, Target } from "./types";
+import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, ProjectRef, SshAuthentication, Target } from "./types";
 import "./style.css";
 
 const result = document.querySelector<HTMLOutputElement>("#result")!;
@@ -50,27 +55,6 @@ snapshot.insertBefore(contextManager, snapshotList);
 const contextMap = document.querySelector<HTMLElement>("#context-map")!;
 const parentRuns = loadParentRuns();
 
-type ParentCandidate = { path: string; name: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; readOnly: boolean; eligible: boolean; repositoryId?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number };
-type ContextProject = ProbeReport["context"]["workspaces"][number]["projects"][number];
-
-function parentCandidates(report: ProbeReport): ParentCandidate[] {
-  return report.context.update_targets.map((target) => ({
-    path: target.path, name: target.name, role: target.role,
-    worktree_count: target.worktree_count, readOnly: target.read_only,
-    eligible: target.eligible, repositoryId: target.repository_id, branch: target.branch, dirty: target.dirty,
-    upstream: target.upstream, ahead: target.ahead, behind: target.behind,
-  })).sort((left, right) => {
-    if (left.role !== right.role) return left.role === "worktree_parent" ? -1 : 1;
-    const leftRun = parentRuns.find((run) => run.path === left.path)?.at ?? "";
-    const rightRun = parentRuns.find((run) => run.path === right.path)?.at ?? "";
-    return rightRun.localeCompare(leftRun) || left.name.localeCompare(right.name);
-  });
-}
-
-function parentForProject(report: ProbeReport, project: ContextProject): ParentCandidate | undefined {
-  return parentCandidates(report).find((candidate) => candidate.repositoryId && candidate.repositoryId === project.repository_id)
-    ?? parentCandidates(report).find((candidate) => candidate.path === project.path);
-}
 const importSource = document.querySelector<HTMLInputElement>("#import-source")!;
 importSource.placeholder = "repository-url";
 const importParent = document.querySelector<HTMLSelectElement>("#import-parent")!;
@@ -139,9 +123,8 @@ const activityFilter = document.createElement("select");
 activityFilter.className = "activity-filter";
 activityFilter.setAttribute("aria-label", "Filter activity by Enclave");
 jobsList.before(activityFilter);
-type Job = { name: string; state: "running" | "succeeded" | "failed"; detail: string; at: string; enclave?: string; profileId?: string };
-const jobs: Job[] = JSON.parse(localStorage.getItem("orcan-studio:jobs") ?? "[]");
-function saveJobs(): void { localStorage.setItem("orcan-studio:jobs", JSON.stringify(jobs.slice(0, 50))); }
+const jobs = loadJobs();
+function saveJobs(): void { persistJobs(jobs); }
 function addJob(name: string, detail: string, enclave = current?.label, profileId = current?.profileId): Job { const job = { name, detail, enclave, profileId, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); saveJobs(); renderJobs(); return job; }
 function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
 function renderJobs(): void {
@@ -435,7 +418,6 @@ const projectInspectorActions = $("#project-inspector-actions");
 let focusedWorkspace: string | undefined;
 let tracedPath: string | undefined;
 let inspectedProject: { path: string; workspace?: string } | undefined;
-const MAP_STATE_KEY = "orcan-studio:map-state";
 let restoredMapFor: string | undefined;
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
@@ -460,33 +442,6 @@ const changeSetClear = $<HTMLButtonElement>("#change-set-clear");
 const changeSetApply = $<HTMLButtonElement>("#change-set-apply");
 const DRAG_TYPE = "application/x-orcan-project";
 
-function projectName(project: { name?: string; path: string }): string {
-  return project.name ?? project.path.split("/").pop() ?? project.path;
-}
-
-/** Sandbox projects that no workspace references. */
-function unassignedProjects(report: ProbeReport): Array<{ path: string; kind: string }> {
-  const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
-  return report.context.managed_projects.filter((project) => !used.has(project.path));
-}
-
-type ProjectRef = { name: string; path: string; kind?: string };
-
-type HealthProject = { path: string; kind?: string; writable?: boolean; dirty?: boolean; repository_id?: string };
-
-function projectAlerts(report: ProbeReport, project: HealthProject, orphan = false): string[] {
-  const alerts: string[] = [];
-  if (project.kind === "missing") alerts.push("missing");
-  else if (project.writable === false) alerts.push("read-only");
-  if (project.dirty) alerts.push("uncommitted");
-  if (orphan) alerts.push("orphan worktree");
-  const source = project.repository_id
-    ? report.context.update_targets.find((target) => target.repository_id === project.repository_id)
-    : undefined;
-  if (source?.behind) alerts.push(`source ${source.behind} behind`);
-  return alerts;
-}
-
 function selectedProjectMode(): "git" | "mount" {
   return radioValue("project-mode") === "mount" ? "mount" : "git";
 }
@@ -502,20 +457,6 @@ function projectKindIcon(project: ProjectRef): HTMLElement {
   const icon = el("span", { className: "project-kind", textContent: mount ? "▣" : worktree ? "⑂" : "⎇", title: label, ariaLabel: label });
   icon.dataset.tooltip = label;
   return icon;
-}
-
-function parentDirectory(path: string): string {
-  const separator = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
-  return separator > 0 ? path.slice(0, separator) : path;
-}
-
-function parentLabel(path: string): string {
-  return path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1) || path;
-}
-
-function projectGroup(report: ProbeReport, path: string): string | undefined {
-  const parent = parentDirectory(path);
-  return parent === report.paths.projects_root ? undefined : parent;
 }
 
 function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string, state: "current" | "planned" | "removing" = "current"): HTMLElement {
@@ -584,7 +525,8 @@ function dropZone(zone: HTMLElement, onDrop: (project: ProjectRef) => void): voi
     event.preventDefault();
     zone.classList.remove("drop-target");
     const raw = event.dataTransfer?.getData(DRAG_TYPE);
-    if (raw) onDrop(JSON.parse(raw) as ProjectRef);
+    const project = raw ? parseDraggedProject(raw) : undefined;
+    if (project) onDrop(project);
   });
 }
 
@@ -791,7 +733,7 @@ function renderProjectInspector(report: ProbeReport): void {
   if ((project.kind === "git_repository" || project.kind === "git_worktree") && canEditContext(report)) {
     actions.push(actionButton("New worktree", () => {
       showView("worktrees");
-      const source = parentCandidates(report).find((candidate) => candidate.repositoryId === project.repository_id && candidate.eligible);
+      const source = parentCandidates(report, parentRuns).find((candidate) => candidate.repositoryId === project.repository_id && candidate.eligible);
       if (source) worktreeRepo.value = source.path;
       for (const option of worktreeWorkspaces.options) option.selected = option.value === (reference.workspace ?? focusedWorkspace);
       renderWorktreeExisting();
@@ -806,27 +748,19 @@ function renderProjectInspector(report: ProbeReport): void {
 }
 
 window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
-type MapFilter = "attention" | "git" | "worktree" | "mount" | "unassigned" | "dirty" | "planned" | "orphan";
 const activeMapFilters = new Set<MapFilter>();
 function restoreMapState(): void {
   const key = current ? enclaveChangeKey(current) : undefined;
   if (!key || restoredMapFor === key) return;
   restoredMapFor = key;
-  try {
-    const all = JSON.parse(localStorage.getItem(MAP_STATE_KEY) ?? "{}") as Record<string, { filters?: MapFilter[]; workspace?: string }>;
-    const saved = all[key];
-    activeMapFilters.clear();
-    for (const filter of saved?.filters ?? []) activeMapFilters.add(filter);
-    focusedWorkspace = saved?.workspace;
-  } catch { activeMapFilters.clear(); }
+  const saved = loadMapState(key);
+  activeMapFilters.clear();
+  for (const filter of saved?.filters ?? []) activeMapFilters.add(filter);
+  focusedWorkspace = saved?.workspace;
 }
 function saveMapState(): void {
   if (!current) return;
-  try {
-    const all = JSON.parse(localStorage.getItem(MAP_STATE_KEY) ?? "{}") as Record<string, unknown>;
-    all[enclaveChangeKey(current)] = { filters: [...activeMapFilters], workspace: focusedWorkspace };
-    localStorage.setItem(MAP_STATE_KEY, JSON.stringify(all));
-  } catch { /* Browser storage is an enhancement only. */ }
+  persistMapState(enclaveChangeKey(current), { filters: [...activeMapFilters], workspace: focusedWorkspace });
 }
 for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) {
   button.addEventListener("click", () => {
@@ -849,36 +783,11 @@ workspaceInspectorWorktree.addEventListener("click", () => {
 workspaceInspectorDiscard.addEventListener("click", () => { if (focusedWorkspace) discardWorkspaceDraft(focusedWorkspace); });
 
 type PendingChange = { action: MembershipArgs["action"]; workspace?: string; project: ProjectRef };
-type QueuedChange = PendingChange & {
-  id: string;
-  enclave: string;
-  workspace: string;
-  projectMode: "git" | "mount";
-  relationship: "share" | "worktree";
-  branch?: string;
-  changes: string[];
-  error?: string;
-};
-
 let pendingChange: PendingChange | undefined;
 let pendingPlan: { ready: boolean; changes: string[] } | undefined;
-const DRAFT_STORAGE_KEY = "orcan-studio:context-drafts";
-
-function isQueuedChange(value: unknown): value is QueuedChange {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Partial<QueuedChange>;
-  return typeof item.id === "string" && typeof item.enclave === "string" && (item.action === "attach" || item.action === "detach") && typeof item.workspace === "string" && typeof item.project?.path === "string" && typeof item.project?.name === "string" && (item.projectMode === "git" || item.projectMode === "mount") && (item.relationship === "share" || item.relationship === "worktree") && Array.isArray(item.changes);
-}
-
-function loadQueuedChanges(): QueuedChange[] {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) ?? "[]");
-    return Array.isArray(value) ? value.filter(isQueuedChange) : [];
-  } catch { return []; }
-}
 
 function saveQueuedChanges(): void {
-  localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(queuedChanges));
+  persistQueuedChanges(queuedChanges);
   renderEnclaveStatus();
 }
 
@@ -905,31 +814,6 @@ function workspaceDrafts(workspace: string): QueuedChange[] {
   return groupWorkspaceDrafts()[workspace] ?? [];
 }
 
-function queueConflicts(changes: QueuedChange[]): Map<string, string> {
-  const conflicts = new Map<string, string>();
-  const relationships = new Map<string, QueuedChange[]>();
-  const worktrees = new Map<string, QueuedChange[]>();
-  for (const change of changes) {
-    const relationship = `${change.workspace}\u0000${change.project.path}`;
-    (relationships.get(relationship) ?? relationships.set(relationship, []).get(relationship)!).push(change);
-    if (change.action === "attach" && change.relationship === "worktree" && change.branch) {
-      const worktree = `${change.project.path}\u0000${change.branch}`;
-      (worktrees.get(worktree) ?? worktrees.set(worktree, []).get(worktree)!).push(change);
-    }
-  }
-  for (const entries of relationships.values()) {
-    if (new Set(entries.map((change) => change.action)).size > 1) {
-      for (const change of entries) conflicts.set(change.id, "Conflicts with an attach/detach draft for the same workspace and project or folder.");
-    }
-  }
-  for (const entries of worktrees.values()) {
-    if (entries.length > 1) {
-      for (const change of entries) conflicts.set(change.id, "Another draft creates a worktree from this repository with the same branch.");
-    }
-  }
-  return conflicts;
-}
-
 function discardWorkspaceDraft(workspace: string): void {
   const drafts = workspaceDrafts(workspace);
   if (!drafts.length || !current) return;
@@ -952,7 +836,7 @@ function changeTitle(change: QueuedChange): string {
 
 function renderChangeSet(): void {
   const changes = queuedForCurrent();
-  const conflicts = queueConflicts(changes);
+  const conflicts = draftConflicts(changes);
   changeSet.hidden = changes.length === 0;
   changeSetCount.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"}${conflicts.size ? ` · ${conflicts.size} conflict${conflicts.size === 1 ? "" : "s"}` : ""}`;
   changeSetApply.textContent = `Apply ${changes.length} change${changes.length === 1 ? "" : "s"}`;
@@ -1046,7 +930,7 @@ async function applyQueuedChanges(selectedIds?: Set<string>): Promise<void> {
   const enclave = enclaveChangeKey(connection);
   const changes = queuedChanges.filter((change) => change.enclave === enclave && (!selectedIds || selectedIds.has(change.id)));
   if (!changes.length) return;
-  if (queueConflicts(changes).size) {
+  if (draftConflicts(changes).size) {
     result.textContent = "Resolve the conflicting planned changes before applying them.";
     renderChangeSet();
     return;
@@ -1085,7 +969,7 @@ async function applyQueuedChanges(selectedIds?: Set<string>): Promise<void> {
 
 function openApplyReview(): void {
   const changes = queuedForCurrent();
-  if (!changes.length || queueConflicts(changes).size) return;
+  if (!changes.length || draftConflicts(changes).size) return;
   applyChanges.replaceChildren(...changes.map((change) => {
     const checkbox = el("input", { type: "checkbox", checked: true, value: change.id });
     return el("li", { className: "apply-choice" }, el("label", {}, checkbox, el("span", { textContent: changeTitle(change) })));
@@ -1202,7 +1086,7 @@ function selectedWorkspaces(): string[] {
 
 function renderWorktreeExisting(): void {
   const report = currentReport;
-  const candidate = report && parentCandidates(report).find((item) => item.path === worktreeRepo.value);
+  const candidate = report && parentCandidates(report, parentRuns).find((item) => item.path === worktreeRepo.value);
   const selected = selectedWorkspaces();
   if (!report || !candidate || !selected.length) {
     worktreeExisting.textContent = "Choose a Git source and first workspace to inspect existing branches.";
@@ -1273,7 +1157,7 @@ async function refreshWorktreeBranches(): Promise<void> {
 function renderWorktreeChoices(report: ProbeReport): void {
   const previousRepository = worktreeRepo.value;
   const previousWorkspaces = new Set(selectedWorkspaces());
-  const sources = parentCandidates(report).filter((candidate) => candidate.eligible);
+  const sources = parentCandidates(report, parentRuns).filter((candidate) => candidate.eligible);
   worktreeRepo.replaceChildren(
     new Option("Choose a clean Git source…", ""),
     ...sources.map((candidate) => new Option(
@@ -1398,7 +1282,7 @@ function renderContextWorkspaceList(report: ProbeReport): void {
     const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
     detach.title = editable ? `Detach ${projectName(project)} from ${workspace.name}` : contextEditMessage();
     detach.disabled = !editable;
-    const parent = parentForProject(report, project);
+    const parent = parentForProject(report, project, parentRuns);
     const parentState = parent
       ? parent.dirty
         ? `parent ${parent.branch ?? "branch"} dirty`
@@ -1758,7 +1642,7 @@ async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatu
   let status: EnclaveStatus;
   try {
     const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(profileConnection(profile)) });
-    localStorage.setItem(cacheKey(profile.target), JSON.stringify(report));
+    persistCachedReport(cacheKey(profile.target), report);
     status = { state: "online", report, at: Date.now() };
   } catch (error) {
     status = {
@@ -1802,12 +1686,7 @@ function activate(connection: Connection, report: ProbeReport): void {
 }
 
 function cachedEnclaveReport(profile: ConnectionProfile): ProbeReport | undefined {
-  try {
-    const raw = localStorage.getItem(cacheKey(profile.target));
-    return raw ? JSON.parse(raw) as ProbeReport : undefined;
-  } catch {
-    return undefined;
-  }
+  return loadCachedReport(cacheKey(profile.target));
 }
 
 /** Makes an Enclave active immediately, then verifies it in the background. */
@@ -1930,7 +1809,7 @@ async function connect(connection: Connection, output: HTMLOutputElement = resul
   try {
     const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
     if (request !== latestProbe) return undefined;
-    localStorage.setItem(cacheKey(connection.target), JSON.stringify(report));
+    persistCachedReport(cacheKey(connection.target), report);
     if (connection.profileId) enclaveStatus.set(connection.profileId, { state: "online", report, at: Date.now() });
     activate(connection, report);
     output.textContent = `Connected · ${report.host.os}/${report.host.architecture} · Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;
@@ -2023,7 +1902,7 @@ worktreeBranch.addEventListener("input", () => {
 });
 branchSearch.addEventListener("input", renderBranchBrowser);
 worktreeSourceUpdate.addEventListener("click", () => {
-  const candidate = currentReport && parentCandidates(currentReport).find((item) => item.path === worktreeRepo.value);
+  const candidate = currentReport && parentCandidates(currentReport, parentRuns).find((item) => item.path === worktreeRepo.value);
   if (candidate) void updateProjectParent(candidate, "new worktree", candidate.name);
 });
 worktreePlan.addEventListener("click", async () => {

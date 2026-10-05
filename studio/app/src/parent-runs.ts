@@ -18,5 +18,9 @@ export function rememberParentRun(runs: ParentRun[], path: string, branch: strin
   if (existing >= 0) runs.splice(existing, 1);
   runs.unshift({ path, branch, at: new Date().toISOString() });
   runs.splice(20);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+  } catch {
+    // Browser storage is an enhancement only.
+  }
 }

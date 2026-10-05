@@ -38,3 +38,4 @@ export type ConnectionProfile = { id: string; name: string; target: Target; ssh?
 export type Credential = { id: string; name: string; authentication: SshAuthentication };
 export type Connection = { target: Target; label: string; profileId?: string; credentialId?: string; username?: string };
 export type MembershipArgs = { action: "attach" | "detach"; workspace: string; project: string; apply: boolean };
+export type ProjectRef = { name: string; path: string; kind?: string };
