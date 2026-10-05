@@ -14,6 +14,12 @@ const result = document.querySelector<HTMLOutputElement>("#result")!;
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const profileList = $("#profile-list");
 const enclaveList = $("#enclave-list");
+const imageTransferSource = $<HTMLSelectElement>("#image-transfer-source");
+const imageTransferName = $<HTMLInputElement>("#image-transfer-name");
+const imageTransferTarget = $<HTMLSelectElement>("#image-transfer-target");
+const imageTransferInspect = $<HTMLButtonElement>("#image-transfer-inspect");
+const imageTransferRun = $<HTMLButtonElement>("#image-transfer-run");
+const imageTransferResult = $<HTMLOutputElement>("#image-transfer-result");
 const credentialList = $("#credential-list");
 const setupPanel = $("#setup-panel");
 const activeGroup = $("#active-group");
@@ -1753,6 +1759,58 @@ async function openEnclaveSettings(profile: ConnectionProfile): Promise<void> {
   }
 }
 
+type ImageInventory = { image: string; id: string; size: string };
+let inspectedImage: ImageInventory | undefined;
+
+function selectedProfile(select: HTMLSelectElement): ConnectionProfile | undefined {
+  return profiles.find((profile) => profile.id === select.value);
+}
+
+function renderImageTransfer(): void {
+  const source = selectedProfile(imageTransferSource)?.id;
+  const target = selectedProfile(imageTransferTarget)?.id;
+  const wslProfiles = profiles.filter((profile) => profile.target.kind === "wsl2");
+  const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh" && !profile.credential_id);
+  imageTransferSource.replaceChildren(new Option(wslProfiles.length ? "Choose WSL2 source…" : "No WSL2 profiles", ""), ...wslProfiles.map((profile) => new Option(profile.name, profile.id)));
+  imageTransferTarget.replaceChildren(new Option(sshProfiles.length ? "Choose system-SSH target…" : "No system-SSH profiles", ""), ...sshProfiles.map((profile) => new Option(profile.name, profile.id)));
+  imageTransferSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
+  imageTransferTarget.value = sshProfiles.some((profile) => profile.id === target) ? target! : sshProfiles[0]?.id ?? "";
+  const ready = Boolean(wslProfiles.length && sshProfiles.length);
+  imageTransferInspect.disabled = !ready;
+  imageTransferRun.disabled = true;
+  if (!ready) imageTransferResult.textContent = "Create a WSL2 profile and a remote profile using System SSH before transferring an image.";
+}
+
+async function inspectTransferImage(): Promise<void> {
+  const source = selectedProfile(imageTransferSource);
+  if (!source || source.target.kind !== "wsl2") return;
+  inspectedImage = undefined;
+  imageTransferRun.disabled = true;
+  imageTransferInspect.disabled = true;
+  imageTransferResult.textContent = `Checking ${imageTransferName.value.trim()} in ${source.name}…`;
+  try {
+    const inventory = await invoke<ImageInventory>("wsl_image_inventory_command", { input: { distribution: source.target.distribution, image: imageTransferName.value.trim() } });
+    inspectedImage = inventory;
+    imageTransferResult.textContent = `Ready: ${inventory.image} · ${inventory.id} · ${inventory.size} bytes. Transfer streams this image directly to the selected remote Docker daemon.`;
+    imageTransferRun.disabled = !selectedProfile(imageTransferTarget);
+  } catch (error) { imageTransferResult.textContent = `Image check failed: ${String(error)}`; }
+  finally { imageTransferInspect.disabled = false; }
+}
+
+async function transferImage(): Promise<void> {
+  const source = selectedProfile(imageTransferSource);
+  const target = selectedProfile(imageTransferTarget);
+  if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh" || !inspectedImage) return;
+  if (!window.confirm(`Transfer ${inspectedImage.image} (${inspectedImage.id}) from ${source.name} to ${target.name}? The remote Docker daemon will import the image.`)) return;
+  imageTransferRun.disabled = true;
+  imageTransferResult.textContent = `Transferring ${inspectedImage.image}; keep Studio open until Docker import completes…`;
+  try {
+    await invoke<ImageInventory>("transfer_wsl_image", { input: { distribution: source.target.distribution, image: inspectedImage.image, destination: target.target.destination } });
+    imageTransferResult.textContent = `Transferred ${inspectedImage.image} to ${target.name}. Reconnect to verify Docker and provision Orcan on the remote host.`;
+  } catch (error) { imageTransferResult.textContent = `Transfer failed: ${String(error)}`; }
+  finally { imageTransferRun.disabled = false; }
+}
+
 function renderEnclaves(): void {
   enclaveList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
     const status = enclaveStatus.get(profile.id);
@@ -1771,6 +1829,7 @@ function renderEnclaves(): void {
     item.classList.toggle("active", active);
     return item;
   }) : [emptyState("Enclaves appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
+  renderImageTransfer();
 }
 
 /** Per-Enclave state everywhere it is shown: list, sidebar, topbar chip, summary. */
@@ -1855,6 +1914,11 @@ async function connect(connection: Connection, output: HTMLOutputElement = resul
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-go]")) button.addEventListener("click", () => showView(button.dataset.go!));
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-pane-target]")) button.addEventListener("click", () => showPane(button.dataset.paneTarget!));
 $("#new-profile").addEventListener("click", () => openProfileForm());
+imageTransferInspect.addEventListener("click", () => void inspectTransferImage());
+imageTransferRun.addEventListener("click", () => void transferImage());
+imageTransferSource.addEventListener("change", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
+imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled = true; });
+imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
 $("#new-credential").addEventListener("click", () => openCredentialForm());
 $("#credential-back").addEventListener("click", () => leaveCredentialForm());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="location"]')) input.addEventListener("change", refreshProfileForm);
