@@ -1473,21 +1473,32 @@ async function refreshWorktreeInventory(root: string): Promise<void> {
       cleanupSuggestions.replaceChildren(el("p", { className: "hint", textContent: "No managed worktrees to remove." }));
       return;
     }
-    const choices = response.worktrees.map((worktree) => {
+    const rows = response.worktrees.map((worktree) => {
       const bindings = currentReport?.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.path === worktree.path).map(() => workspace.name)) ?? [];
-      return { worktree, bindings };
+      const label = `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""}`;
+      const actions = bindings.length
+        ? bindings.map((workspace) => actionButton(`Detach ${workspace}`, () => void reviewChange("detach", workspace, { name: worktree.project, path: worktree.path, kind: "git_worktree" }), "secondary"))
+        : [actionButton("Delete", () => void deleteWorktree(worktree.path, label), "danger-link")];
+      return el("div", { className: `cleanup-item ${bindings.length ? "bound" : "orphan"}` }, el("div", {}, el("strong", { textContent: label }), el("small", { textContent: bindings.length ? `Attached to ${bindings.join(", ")} · detach before deleting` : "Ready to delete · local branch is kept" }), el("small", { textContent: worktree.path })), ...actions);
     });
-    const selector = el("select", { ariaLabel: "Worktree to remove" }) as HTMLSelectElement;
-    selector.append(new Option("Choose a worktree…", ""), ...choices.map(({ worktree, bindings }) => new Option(`${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""}${bindings.length ? ` · attached to ${bindings.join(", ")}` : " · ready to remove"}`, worktree.path)));
-    selector.value = choices.some(({ worktree }) => worktree.path === cleanupPath.value) ? cleanupPath.value : "";
-    selector.addEventListener("change", () => {
-      cleanupPath.value = selector.value;
-      resetCleanupPlan();
-      const selected = choices.find(({ worktree }) => worktree.path === selector.value);
-      if (selected) cleanupResult.textContent = selected.bindings.length ? `Detach from ${selected.bindings.join(", ")} before removing this worktree.` : `Ready to preview removal of ${selected.worktree.project}${selected.worktree.branch ? ` · ${selected.worktree.branch}` : ""}.`;
-    });
-    cleanupSuggestions.replaceChildren(el("label", { textContent: "Worktree to remove" }), selector);
+    cleanupSuggestions.replaceChildren(...rows);
   } catch { /* The current context map remains usable if inventory is unavailable. */ }
+}
+
+async function deleteWorktree(path: string, label: string): Promise<void> {
+  if (!current || !canEditContext()) { cleanupResult.textContent = contextEditMessage(); return; }
+  cleanupResult.textContent = `Checking removal of ${label}…`;
+  try {
+    const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(current), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: false });
+    if (!response.plan.ready) { cleanupResult.textContent = response.plan.blockers.join(" · "); return; }
+    if (!window.confirm(`Delete worktree ${label}?\n\nThis removes only this checkout:\n${path}\n\nIts local Git branch is kept in the source repository.`)) return;
+    const connection = current;
+    const job = addJob("Worktree cleanup", label);
+    await invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: true });
+    finishJob(job, "succeeded", path);
+    cleanupResult.textContent = `Deleted ${label}.`;
+    await connect(connection);
+  } catch (error) { cleanupResult.textContent = `Removal failed: ${String(error)}`; }
 }
 
 function worktreeBindings(path: string): string[] {
