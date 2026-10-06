@@ -8,7 +8,7 @@ use orcan_studio_core::{
 use russh::ChannelMsg;
 use russh::client;
 use russh::keys::{self, PublicKeyOrCertificate};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::io;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -113,6 +113,23 @@ struct DockerReadiness {
     available: bool,
     version: Option<String>,
     detail: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+enum HostKeyStatus {
+    Trusted,
+    Unknown,
+    Changed,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HostKeyOffer {
+    destination: String,
+    algorithm: String,
+    fingerprint: String,
+    status: HostKeyStatus,
 }
 
 const ONLINE_INSTALL_SCRIPT: &str = "set -Eeuo pipefail; command -v curl >/dev/null || { echo 'curl is required for online installation' >&2; exit 127; }; curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
@@ -1084,6 +1101,26 @@ struct KnownHostsHandler {
     port: u16,
 }
 
+/// Captures a server key during SSH handshake but never accepts it. The UI
+/// displays the exact fingerprint and requires a deliberate user decision.
+struct HostKeyCaptureHandler {
+    observed: Arc<Mutex<Option<keys::PublicKey>>>,
+}
+
+impl client::Handler for HostKeyCaptureHandler {
+    type Error = russh::Error;
+
+    async fn check_server_key(
+        &mut self,
+        server_public_key: &PublicKeyOrCertificate,
+    ) -> Result<bool, Self::Error> {
+        if let Ok(mut observed) = self.observed.lock() {
+            *observed = Some(server_public_key.public_key().clone());
+        }
+        Ok(false)
+    }
+}
+
 impl client::Handler for KnownHostsHandler {
     type Error = russh::Error;
 
@@ -1103,6 +1140,10 @@ impl client::Handler for KnownHostsHandler {
 }
 
 fn ssh_endpoint(destination: &str) -> Result<(String, u16), String> {
+    let destination = destination
+        .rsplit_once('@')
+        .map(|(_, host)| host)
+        .unwrap_or(destination);
     if let Some(bracketed) = destination.strip_prefix('[') {
         let (host, port) = bracketed
             .split_once("]:")
@@ -1121,6 +1162,69 @@ fn ssh_endpoint(destination: &str) -> Result<(String, u16), String> {
         }
     }
     Ok((destination.to_owned(), 22))
+}
+
+async fn observed_ssh_host_key(
+    destination: &str,
+) -> Result<(HostKeyOffer, keys::PublicKey), String> {
+    let (host, port) = ssh_endpoint(destination)?;
+    let observed = Arc::new(Mutex::new(None));
+    let handler = HostKeyCaptureHandler {
+        observed: Arc::clone(&observed),
+    };
+    // Rejection is expected: the handler captures the key and stops before
+    // authentication or command execution.
+    let _ = client::connect(
+        Arc::new(client::Config::default()),
+        (host.as_str(), port),
+        handler,
+    )
+    .await;
+    let public_key = observed
+        .lock()
+        .map_err(|_| "SSH host-key inspection state is unavailable".to_owned())?
+        .clone()
+        .ok_or_else(|| "Studio could not read an SSH host key from this destination".to_owned())?;
+    let status = match keys::known_hosts::check_known_hosts(&host, port, &public_key) {
+        Ok(true) => HostKeyStatus::Trusted,
+        Ok(false) => HostKeyStatus::Unknown,
+        Err(keys::Error::KeyChanged { .. }) => HostKeyStatus::Changed,
+        Err(error) => return Err(format!("could not verify SSH host key: {error}")),
+    };
+    let offer = HostKeyOffer {
+        destination: if port == 22 {
+            host.clone()
+        } else {
+            format!("[{host}]:{port}")
+        },
+        algorithm: format!("{:?}", public_key.algorithm()),
+        fingerprint: public_key.fingerprint(Default::default()).to_string(),
+        status,
+    };
+    Ok((offer, public_key))
+}
+
+#[tauri::command]
+async fn ssh_host_key(destination: String) -> Result<HostKeyOffer, String> {
+    observed_ssh_host_key(&destination)
+        .await
+        .map(|(offer, _)| offer)
+}
+
+#[tauri::command]
+async fn trust_ssh_host_key(destination: String, fingerprint: String) -> Result<(), String> {
+    let (offer, public_key) = observed_ssh_host_key(&destination).await?;
+    match offer.status {
+        HostKeyStatus::Trusted => return Ok(()),
+        HostKeyStatus::Changed => return Err("The SSH host key differs from the saved key. Studio will not replace it automatically.".to_owned()),
+        HostKeyStatus::Unknown => {}
+    }
+    if offer.fingerprint != fingerprint {
+        return Err("The SSH host key changed while awaiting confirmation. Inspect it again before trusting it.".to_owned());
+    }
+    let (host, port) = ssh_endpoint(&destination)?;
+    keys::known_hosts::learn_known_hosts(&host, port, &public_key)
+        .map_err(|error| format!("could not save SSH host key: {error}"))
 }
 
 fn required_vault_secret(owner: &str, kind: &str) -> Result<String, String> {
@@ -1766,6 +1870,8 @@ fn main() {
             provision_wsl_cli,
             check_online_provision,
             provision_online,
+            ssh_host_key,
+            trust_ssh_host_key,
             probe,
             test_connection,
             check_docker,

@@ -17,6 +17,7 @@
           <button type="button" class="nav-item" data-view-target="enclaves"><span>◌</span>Enclaves</button>
           <div id="nav-enclaves" class="nav-enclaves" aria-label="Your Enclaves"></div>
           <p id="active-group" class="nav-group" hidden>ACTIVE ENCLAVE</p>
+          <button type="button" class="nav-item gated" data-view-target="sandbox" hidden><span>▣</span>Sandbox</button>
           <button type="button" class="nav-item gated" data-view-target="contexts" hidden><span>◫</span>Contexts</button>
           <button type="button" class="nav-item gated" data-view-target="repositories" hidden><span>◇</span>Repositories</button>
           <button type="button" class="nav-item gated" data-view-target="worktrees" hidden><span>⑂</span>Worktrees</button>
@@ -85,6 +86,8 @@
             <output id="result" aria-live="polite"></output>
           </section>
         </section>
+
+        <section class="view" data-view="sandbox" hidden><div class="view-intro"><p class="eyebrow">SANDBOX</p><h2>Projects and folders reported by this Enclave.</h2><p>Git parents on <code>main</code> or <code>master</code> can be safely refreshed here. Studio always previews and confirms a fast-forward-only pull.</p></div><section class="panel" aria-labelledby="sandbox-projects-title"><div class="panel-heading"><div><h2 id="sandbox-projects-title">Managed contents</h2><p id="sandbox-path" class="muted">Connect to an Enclave to inspect its managed root.</p></div><button id="sandbox-refresh" type="button" class="secondary">Refresh from Orcan</button></div><div id="sandbox-projects" class="sandbox-project-list"><p class="hint">No Enclave connected.</p></div><output id="sandbox-result" aria-live="polite"></output></section></section>
 
         <section class="view" data-view="contexts" hidden><div class="view-intro"><p class="eyebrow">CONTEXTS</p><h2>What each instance gives an agent.</h2><p>Workspace families are the unit of context. A repository can belong to more than one family.</p></div><section id="snapshot" class="panel snapshot" hidden aria-live="polite"><div class="snapshot-metrics"><div><span id="snapshot-workspaces">—</span><small>workspace families</small></div><div><span id="snapshot-projects">—</span><small>managed repositories</small></div><div><span id="snapshot-root">—</span><small>managed root</small></div></div><div id="snapshot-list"></div><div id="context-map" class="context-map" aria-label="Repository to context family map"></div></section></section>
 

@@ -7,7 +7,7 @@ import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
 import { loadCachedReport, persistCachedReport } from "./report-cache";
 import { cacheKey, demoMode, describeTarget, enclaveInput, invokeTauri } from "./transport";
-import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, ProjectRef, SshAuthentication, Target } from "./types";
+import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, ProjectRef, SshAuthentication, SshHostKeyOffer, Target } from "./types";
 import "./style.css";
 
 const result = document.querySelector<HTMLOutputElement>("#result")!;
@@ -77,6 +77,10 @@ const snapshotRoot = document.querySelector<HTMLElement>("#snapshot-root")!;
 const snapshotWorkspaces = document.querySelector<HTMLElement>("#snapshot-workspaces")!;
 const snapshotProjects = document.querySelector<HTMLElement>("#snapshot-projects")!;
 const snapshotList = document.querySelector<HTMLElement>("#snapshot-list")!;
+const sandboxPath = $("#sandbox-path");
+const sandboxProjects = $("#sandbox-projects");
+const sandboxRefresh = $<HTMLButtonElement>("#sandbox-refresh");
+const sandboxResult = $<HTMLOutputElement>("#sandbox-result");
 const contextManager = el("div", { className: "context-manager" });
 const contextWorkspaceList = el("div", { className: "context-workspace-list" });
 const contextWorkspaceDetail = el("section", { className: "context-workspace-detail" });
@@ -290,6 +294,8 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     worktree_cleanup: { plan: { ready: true, blockers: [] } },
     workspace_action: { plan: { ready: true, blockers: [], changes: ["update workspace", "run orcan sync"] } },
     runtime_action: null,
+    ssh_host_key: { destination: "demo.example", algorithm: "ssh-ed25519", fingerprint: "SHA256:demo", status: "trusted" },
+    trust_ssh_host_key: null,
     check_online_provision: { user: "developer", installedVersion: "orcan demo" },
     check_docker: { available: true, version: "27.5.1", detail: "Docker daemon is ready" },
     provision_online: { version: "orcan demo" },
@@ -321,7 +327,7 @@ function showView(name: string): void {
 }
 
 const healthPanel = document.querySelector<HTMLElement>(".health-panel")!;
-const needsManagedProjects = new Set(["repositories", "worktrees"]);
+const needsManagedProjects = new Set(["sandbox", "repositories", "worktrees"]);
 
 function lockStudio(): void {
   if (!connected) return;
@@ -1239,6 +1245,7 @@ function renderSnapshot(report: ProbeReport): void {
   snapshotWorkspaces.textContent = String(report.context.workspaces.length);
   snapshotProjects.textContent = String(report.context.managed_projects.length);
   renderContextWorkspaceList(report);
+  renderSandboxProjects(report);
   sandboxSettings.hidden = false;
   renderConnectionDoctor(report);
   setting("setting-home").textContent = report.paths.home;
@@ -1288,6 +1295,50 @@ function renderSnapshot(report: ProbeReport): void {
     node.textContent = `${repository.origin_url ?? repository.repository_id}  →  ${repository.bindings.map((binding) => binding.workspace).join(" · ")}`;
     return node;
   }));
+}
+
+function isPrimaryBranch(branch?: string): boolean {
+  return branch === "main" || branch === "master";
+}
+
+function renderSandboxProjects(report: ProbeReport): void {
+  sandboxPath.textContent = report.paths.projects_root;
+  const parents = new Map(parentCandidates(report, parentRuns).map((parent) => [parent.path, parent]));
+  const projects = new Map(report.context.managed_projects.map((project) => [project.path, project]));
+  for (const parent of parents.values()) {
+    if (!projects.has(parent.path)) projects.set(parent.path, { path: parent.path, kind: "git_repository" });
+  }
+  const rows = [...projects.values()]
+    .sort((left, right) => left.path.localeCompare(right.path))
+    .map((project) => {
+      const parent = parents.get(project.path);
+      const name = projectName(project);
+      const branch = parent?.branch ?? project.branch;
+      const dirty = parent?.dirty ?? project.dirty;
+      const state = [
+        branch,
+        dirty ? "uncommitted changes" : undefined,
+        parent?.upstream ?? project.upstream,
+        parent?.behind || project.behind ? `${parent?.behind ?? project.behind} behind` : undefined,
+        parent?.ahead || project.ahead ? `${parent?.ahead ?? project.ahead} ahead` : undefined,
+        parent?.worktree_count ? `${parent.worktree_count} worktrees` : undefined,
+        project.writable === false || parent?.readOnly ? "read-only" : undefined,
+      ].filter(Boolean).join(" · ") || project.kind;
+      const update = parent && isPrimaryBranch(parent.branch)
+        ? actionButton("Update", () => void updateSandboxParent(parent), "secondary")
+        : undefined;
+      if (update && parent) {
+        update.disabled = !parent.eligible || Boolean(parent.dirty) || currentReport?.control?.operations?.parent_update?.available === false;
+        update.title = update.disabled
+          ? parent.dirty ? "Parent has uncommitted changes; update is blocked" : "Orcan reports this parent cannot be updated"
+          : `Preview and update ${parent.branch} with git pull --ff-only`;
+      }
+      const branchLabel = parent && !isPrimaryBranch(parent.branch) && branch
+        ? ` · ${branch} is not a main/master parent`
+        : "";
+      return el("article", { className: "sandbox-project-row" }, projectKindIcon({ name, path: project.path, kind: project.kind }), el("div", { className: "sandbox-project-info" }, el("strong", { textContent: name }), el("small", { textContent: `${state}${branchLabel}` }), el("code", { textContent: project.path })), ...(update ? [update] : []));
+    });
+  sandboxProjects.replaceChildren(...(rows.length ? rows : [el("p", { className: "hint", textContent: "No projects or folders are reported under this Sandbox root." })]));
 }
 
 function renderContextWorkspaceList(report: ProbeReport): void {
@@ -1345,23 +1396,31 @@ function renderContextWorkspaceList(report: ProbeReport): void {
 }
 
 async function updateProjectParent(parent: ParentCandidate, workspace: string, project: string): Promise<void> {
+  await updateParent(parent, `${project}'s parent ${parent.branch}`, (message) => setContextNotice(message), `for ${workspace}`);
+}
+
+async function updateSandboxParent(parent: ParentCandidate): Promise<void> {
+  await updateParent(parent, `${parent.name} ${parent.branch}`, (message) => { sandboxResult.textContent = message; setContextNotice(message); });
+}
+
+async function updateParent(parent: ParentCandidate, label: string, reportStatus: (message: string) => void, completion = ""): Promise<void> {
   if (!current || !parent.branch || parent.dirty) return;
-  setContextNotice(`Checking ${project}'s parent ${parent.branch}…`);
+  reportStatus(`Checking ${label}…`);
   try {
     const response = await invoke<{ plan: { head: string; remote_head?: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch });
     if (!response.plan.ready) {
-      setContextNotice(response.plan.blockers.join(" · "));
+      reportStatus(response.plan.blockers.join(" · "));
       return;
     }
     const remote = response.plan.remote_head?.slice(0, 8) ?? "origin";
-    if (!window.confirm(`Update ${project}'s parent ${parent.branch}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`)) return;
-    setContextNotice(`Updating ${parent.branch}…`);
+    if (!window.confirm(`Update ${label}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`)) return;
+    reportStatus(`Updating ${parent.branch}…`);
     await invoke("parent_apply", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch, expectedHead: response.plan.head });
     rememberParentRun(parentRuns, parent.path, parent.branch);
-    setContextNotice(`Updated ${project}'s parent ${parent.branch} for ${workspace}.`);
+    reportStatus(`Updated ${label}${completion ? ` ${completion}` : ""}.`);
     await connect(current);
   } catch (error) {
-    setContextNotice(`Parent update failed: ${String(error)}`);
+    reportStatus(`Parent update failed: ${String(error)}`);
   }
 }
 
@@ -1660,6 +1719,7 @@ async function testProfile(): Promise<void> {
   profileTest.disabled = true;
   profileTestResult.textContent = `Testing connection to ${connection.label}…`;
   try {
+    if (!(await confirmSshHostKey(connection))) return;
     const user = await invoke<string>("test_connection", { enclave: enclaveInput(connection) });
     profileTestResult.textContent = `✓ Reached ${connection.label}${user ? ` as ${user}` : ""}. Orcan is optional at this stage; install or update it later from Provisioning.`;
   } catch (error) {
@@ -1667,6 +1727,26 @@ async function testProfile(): Promise<void> {
     profileTestHint.textContent = failureHint(String(error));
     profileTestHint.hidden = false;
   } finally { profileTest.disabled = false; }
+}
+
+async function confirmSshHostKey(connection: Connection): Promise<boolean> {
+  if (connection.target.kind !== "ssh") return true;
+  const offer = await invoke<SshHostKeyOffer>("ssh_host_key", { destination: connection.target.destination });
+  if (offer.status === "trusted") return true;
+  if (offer.status === "changed") {
+    profileTestResult.textContent = `✕ The SSH host key for ${offer.destination} changed.`;
+    profileTestHint.textContent = "Studio blocked the connection. Confirm the new fingerprint with the server owner, then remove the stale host entry from this computer's SSH known-hosts file before trying again.";
+    profileTestHint.hidden = false;
+    return false;
+  }
+  const message = `Trust this SSH host?\n\n${offer.destination}\n${offer.algorithm}\n${offer.fingerprint}\n\nStudio will save this public host key in your SSH known-hosts file and then test the connection.`;
+  if (!window.confirm(message)) {
+    profileTestResult.textContent = "SSH host key was not trusted; no connection was made.";
+    return false;
+  }
+  await invoke("trust_ssh_host_key", { destination: connection.target.destination, fingerprint: offer.fingerprint });
+  profileTestResult.textContent = `Trusted ${offer.destination}; testing connection…`;
+  return true;
 }
 
 async function saveProfile(): Promise<void> {
@@ -2188,7 +2268,7 @@ function renderEnclaveStatus(): void {
 function failureHint(error: string): string {
   if (needsStudioUpdate(error)) return "This Orcan CLI is older than Studio's control protocol. Select Update Orcan to update it in place; your profile, configuration, projects, and sandbox data stay untouched.";
   if (/execvpe\(orcan\).*no such file|orcan: not found|command not found/i.test(error)) return "Orcan CLI is not available on this target. Provision Orcan CLI first; Studio checks ~/.local/bin and the target PATH.";
-  if (/host-key|known_hosts|Host key verification/i.test(error)) return "The server's host key is not trusted yet. Connect once from a terminal (ssh <server>) to confirm its fingerprint, then test again.";
+  if (/host-key|known_hosts|Host key verification/i.test(error)) return "Open the profile and use Test connection. Studio will show the host fingerprint and can save your explicit trust decision.";
   if (/authentication|Permission denied|rejected/i.test(error)) return "The server rejected the sign-in. Check the user and the credential.";
   if (/no (password|key-passphrase) is stored/i.test(error)) return "The secret for this credential is missing from the vault. Edit the credential and enter it again.";
   if (/command not found|No such file|orcan: not found/i.test(error)) return "The machine was reached, but Orcan is not installed there or not on PATH.";
@@ -2298,6 +2378,7 @@ credentialDelete.addEventListener("click", async () => {
 });
 for (const item of navigationItems) item.addEventListener("click", () => showView(item.dataset.viewTarget ?? "overview"));
 settingsRefresh.addEventListener("click", () => { if (current) void connect(current, settingsResult).catch(() => undefined); });
+sandboxRefresh.addEventListener("click", () => { if (current) void connect(current, sandboxResult).catch(() => undefined); });
 for (const [action, selector] of Object.entries(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.addEventListener("click", () => void runRuntimeAction(action as RuntimeAction));
 settingsSync.addEventListener("click", async () => { if (!current || !canEditContext()) { settingsResult.textContent = contextEditMessage(); return; } const job = addJob("Orcan sync", current.label); settingsSync.disabled = true; settingsResult.textContent = "Reconciling Orcan context…"; try { await invoke("sync", { enclave: enclaveInput(current) }); settingsResult.textContent = "Sync completed. Restart is required only if Orcan reports a Compose-level change."; finishJob(job, "succeeded", "Context reconciled"); } catch (error) { settingsResult.textContent = `Sync failed: ${String(error)}`; finishJob(job, "failed", String(error)); } finally { settingsSync.disabled = false; } });
 importParent.addEventListener("change", () => {

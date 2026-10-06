@@ -18,6 +18,10 @@ Studio has three transport modes:
   OpenSSH configuration.
 
 Profiles are transport records, not proof that Orcan is already installed.
+For a new SSH destination, Studio fetches the public host key before sign-in,
+shows its algorithm and SHA-256 fingerprint, and saves it to the user's
+OpenSSH-compatible `known_hosts` file only after explicit approval. A changed
+key is blocked and never replaced automatically.
 Studio can use the official online installer on a saved local, WSL2, or SSH
 profile; it requires Internet access plus Bash, Git, and Python 3. For
 isolated or on-premise hosts, Provisioning can build a minimal CLI kit in
@@ -70,6 +74,12 @@ Studio shows clean/dirty and ahead/behind inline, checks that parent's tracked
 branch against `origin`, then requires confirmation before a `git pull
 --ff-only`. Updating a parent never rewrites its dependent worktrees; their
 branches can be rebased later by the user or an agent.
+
+Sandbox is the corresponding inventory view. It lists only projects and
+folders reported by Orcan below the managed projects root, rather than browsing
+the host filesystem. A clean, eligible parent on `main` or `master` gets an
+Update button; it previews the remote state and then runs the same confirmed
+`git pull --ff-only` operation.
 
 Repository import accepts a Git URL and an Orcan-reported parent directory
 under the managed projects root. Orcan derives the new checkout name from the

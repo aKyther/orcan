@@ -37,5 +37,6 @@ export type SshOptions = { username?: string; authentication: SshAuthentication 
 export type ConnectionProfile = { id: string; name: string; target: Target; ssh?: SshOptions; credential_id?: string };
 export type Credential = { id: string; name: string; username: string; authentication: SshAuthentication };
 export type Connection = { target: Target; label: string; profileId?: string; credentialId?: string; username?: string };
+export type SshHostKeyOffer = { destination: string; algorithm: string; fingerprint: string; status: "trusted" | "unknown" | "changed" };
 export type MembershipArgs = { action: "attach" | "detach"; workspace: string; project: string; apply: boolean };
 export type ProjectRef = { name: string; path: string; kind?: string };
