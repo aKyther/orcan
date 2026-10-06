@@ -410,9 +410,26 @@ pub trait ProcessRunner {
 
 pub struct SystemRunner;
 
+/// Starts a helper process without flashing a console window on Windows.
+/// Studio always captures the helper's output, so an inherited console is
+/// neither useful nor appropriate for background work.
+#[cfg(windows)]
+fn system_command(program: &str) -> Command {
+    let mut command = Command::new(program);
+    use std::os::windows::process::CommandExt;
+
+    command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    command
+}
+
+#[cfg(not(windows))]
+fn system_command(program: &str) -> Command {
+    Command::new(program)
+}
+
 impl ProcessRunner for SystemRunner {
     fn run(&self, request: &ProcessRequest) -> Result<ProcessOutput, StudioError> {
-        let output = Command::new(&request.program)
+        let output = system_command(&request.program)
             .args(&request.arguments)
             .output()
             .map_err(|error| StudioError::Launch {

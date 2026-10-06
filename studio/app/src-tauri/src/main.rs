@@ -123,6 +123,37 @@ fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
+/// Studio owns the output of its helper processes. On Windows, suppress their
+/// transient console windows so WSL, OpenSSH, and Docker tasks remain native
+/// background work instead of visibly interrupting the desktop.
+#[cfg(windows)]
+fn background_command(program: &str) -> Command {
+    let mut command = Command::new(program);
+    use std::os::windows::process::CommandExt;
+
+    command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    command
+}
+
+#[cfg(not(windows))]
+fn background_command(program: &str) -> Command {
+    Command::new(program)
+}
+
+#[cfg(windows)]
+fn background_tokio_command(program: &str) -> TokioCommand {
+    let mut command = TokioCommand::new(program);
+    use std::os::windows::process::CommandExt;
+
+    command.as_std_mut().creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    command
+}
+
+#[cfg(not(windows))]
+fn background_tokio_command(program: &str) -> TokioCommand {
+    TokioCommand::new(program)
+}
+
 fn decode_wsl_output(bytes: &[u8]) -> String {
     let utf16le = bytes.starts_with(&[0xff, 0xfe])
         || (bytes.len() > 1
@@ -171,7 +202,7 @@ fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> 
     if !valid_image_reference(&input.image) {
         return Err("invalid Docker image reference".to_owned());
     }
-    let output = Command::new("wsl.exe")
+    let output = background_command("wsl.exe")
         .args([
             "--distribution",
             &input.distribution,
@@ -223,7 +254,7 @@ async fn transfer_wsl_image(input: WslImageTransfer) -> Result<ImageInventory, S
         }
         .probe_request()
         .map_err(|error| error.to_string())?;
-        let mut source = Command::new("wsl.exe")
+        let mut source = background_command("wsl.exe")
             .args([
                 "--distribution",
                 &input.distribution,
@@ -236,7 +267,7 @@ async fn transfer_wsl_image(input: WslImageTransfer) -> Result<ImageInventory, S
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|error| format!("could not start WSL Docker export: {error}"))?;
-        let mut target = Command::new("ssh")
+        let mut target = background_command("ssh")
             .args([
                 "-o",
                 "BatchMode=yes",
@@ -305,7 +336,7 @@ async fn check_wsl_cli_provision(
             } else {
                 "set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null".to_owned()
             };
-            command_output({ let mut command = Command::new("wsl.exe"); command.args(["--distribution", &source.distribution, "--exec", "bash", "-lc"]).arg(source_script); command }, "WSL provisioning requirements check")
+            command_output({ let mut command = background_command("wsl.exe"); command.args(["--distribution", &source.distribution, "--exec", "bash", "-lc"]).arg(source_script); command }, "WSL provisioning requirements check")
         })
         .await
         .map_err(|error| format!("WSL provisioning check stopped: {error}"))??;
@@ -348,7 +379,7 @@ async fn check_wsl_cli_provision(
         };
         command_output(
             {
-                let mut command = Command::new("wsl.exe");
+                let mut command = background_command("wsl.exe");
                 command
                     .args(["--distribution", &input.distribution, "--exec", "bash", "-lc"])
                     .arg(source_script);
@@ -363,7 +394,7 @@ async fn check_wsl_cli_provision(
         };
         command_output(
             {
-                let mut command = Command::new("ssh");
+                let mut command = background_command("ssh");
                 command
                     .args(["-o", "BatchMode=yes", "--", &input.destination])
                     .arg(format!("bash -lc {}", shell_quote(remote_script)));
@@ -448,14 +479,14 @@ async fn provision_wsl_cli(
         let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
         let remote_command = format!("bash -lc {}", shell_quote(remote_script));
 
-        let mut source = Command::new("wsl.exe")
+        let mut source = background_command("wsl.exe")
             .args(["--distribution", &input.distribution, "--exec", "bash", "-lc"])
             .arg(source_script)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|error| format!("could not create a WSL CLI kit: {error}"))?;
-        let mut target = Command::new("ssh")
+        let mut target = background_command("ssh")
             .args(["-o", "BatchMode=yes", "--", &input.destination])
             .arg(remote_command)
             .stdin(Stdio::piped())
@@ -547,7 +578,7 @@ async fn provision_online(
         let stdout = match target {
             Target::Local => command_output(
                 {
-                    let mut command = Command::new("bash");
+                    let mut command = background_command("bash");
                     command.args(["-lc", ONLINE_INSTALL_SCRIPT]);
                     command
                 },
@@ -557,7 +588,7 @@ async fn provision_online(
                 validate_wsl_distribution(&distribution)?;
                 command_output(
                     {
-                        let mut command = Command::new("wsl.exe");
+                        let mut command = background_command("wsl.exe");
                         command
                             .args(["--distribution", &distribution, "--exec", "bash", "-lc"])
                             .arg(ONLINE_INSTALL_SCRIPT);
@@ -568,7 +599,7 @@ async fn provision_online(
             }
             Target::Ssh { destination } => command_output(
                 {
-                    let mut command = Command::new("ssh");
+                    let mut command = background_command("ssh");
                     command
                         .args(["-o", "BatchMode=yes", "--", &destination])
                         .arg(format!("bash -lc {}", shell_quote(ONLINE_INSTALL_SCRIPT)));
@@ -659,7 +690,7 @@ async fn probe(
 #[tauri::command]
 async fn list_wsl_distributions() -> Result<Vec<String>, String> {
     tauri::async_runtime::spawn_blocking(|| {
-        let output = Command::new("wsl.exe")
+        let output = background_command("wsl.exe")
             .args(["--list", "--quiet"])
             .output()
             .map_err(|error| format!("could not start wsl.exe: {error}"))?;
@@ -689,7 +720,7 @@ async fn wsl_default_user(distribution: String) -> Result<String, String> {
         validate_wsl_distribution(&distribution)?;
         command_output(
             {
-                let mut command = Command::new("wsl.exe");
+                let mut command = background_command("wsl.exe");
                 command.args(["--distribution", &distribution, "--exec", "id", "-un"]);
                 command
             },
@@ -1023,7 +1054,7 @@ async fn native_ssh_install_wsl_kit(
     source_script: String,
     remote_command: String,
 ) -> Result<String, String> {
-    let mut source = TokioCommand::new("wsl.exe")
+    let mut source = background_tokio_command("wsl.exe")
         .args(["--distribution", distribution, "--exec", "bash", "-lc"])
         .arg(source_script)
         .stdout(Stdio::piped())
