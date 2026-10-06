@@ -24,8 +24,11 @@ verifies `orcan version`. The optional Docker image is streamed in the same
 operation. Before transfer, Studio checks the WSL source and destination shell
 for the required commands, including Docker only when an image is selected.
 Kits intentionally exclude profiles, configuration, projects,
-sandbox data, and credentials. This flow requires system OpenSSH, a remote
-shell and `tar`; Docker is required only when an image is included.
+sandbox data, and credentials. It requires a remote shell and `tar`; Docker is
+required only when an image is included. SSH-agent profiles use system OpenSSH.
+Profiles that use a Studio-managed password or private key use Studio's native
+SSH transport for the same check and transfer, with the saved `known_hosts`
+verification policy.
 
 The first protocol operation is `orcan studio probe --json`. It is read-only.
 It is the authoritative Sandbox snapshot: Studio refreshes paths, configuration

@@ -1802,7 +1802,7 @@ function renderCliProvision(): void {
   const source = selectedProfile(cliProvisionSource)?.id;
   const target = selectedProfile(cliProvisionTarget)?.id;
   const wslProfiles = profiles.filter((profile) => profile.target.kind === "wsl2");
-  const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh" && !profile.credential_id);
+  const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh");
   const option = (profile: ConnectionProfile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id);
   cliProvisionSource.replaceChildren(new Option(wslProfiles.length ? "Choose source profile…" : "No WSL2 source profiles", ""), ...wslProfiles.map(option));
   cliProvisionTarget.replaceChildren(new Option(sshProfiles.length ? "Choose destination profile…" : "No system-SSH destination profiles", ""), ...sshProfiles.map(option));
@@ -1815,13 +1815,20 @@ function renderCliProvision(): void {
   if (cliProvisionCheck.disabled) cliProvisionResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH. The remote needs a shell, tar, and Docker only when including an image.";
 }
 
-function cliProvisionInput(): { distribution: string; destination: string; image?: string } | undefined {
+function cliProvisionInput(): { distribution: string; destination: string; destinationProfileId: string; destinationCredentialId?: string; destinationUsername?: string; image?: string } | undefined {
   const source = selectedProfile(cliProvisionSource);
   const target = selectedProfile(cliProvisionTarget);
   if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh") return undefined;
   const image = cliProvisionImage.checked ? cliProvisionImageName.value.trim() : undefined;
   if (cliProvisionImage.checked && !image) throw new Error("Choose a Docker image to include.");
-  return { distribution: source.target.distribution, destination: target.target.destination, image };
+  return {
+    distribution: source.target.distribution,
+    destination: target.target.destination,
+    destinationProfileId: target.id,
+    destinationCredentialId: target.credential_id,
+    destinationUsername: target.ssh?.username,
+    image,
+  };
 }
 
 async function checkCliProvision(): Promise<void> {
@@ -1848,7 +1855,7 @@ async function provisionCli(): Promise<void> {
   const target = selectedProfile(cliProvisionTarget);
   if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh") return;
   if (!cliProvisionReady) return;
-  let input: { distribution: string; destination: string; image?: string };
+  let input: { distribution: string; destination: string; destinationProfileId: string; destinationCredentialId?: string; destinationUsername?: string; image?: string };
   try { input = cliProvisionInput()!; } catch (error) { cliProvisionResult.textContent = String(error); return; }
   const { image } = input;
   const contents = image ? `the Orcan CLI and ${image}` : "the Orcan CLI";

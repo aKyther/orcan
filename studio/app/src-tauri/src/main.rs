@@ -14,6 +14,7 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::Manager;
+use tokio::process::Command as TokioCommand;
 
 #[derive(Clone, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -41,7 +42,7 @@ impl From<TargetInput> for Target {
 }
 
 /// Identifies the Enclave a command runs on; credentials resolve from the store.
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct EnclaveInput {
     target: TargetInput,
@@ -65,11 +66,14 @@ struct WslImageTransfer {
     destination: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct WslCliProvision {
     distribution: String,
     destination: String,
+    destination_profile_id: Option<String>,
+    destination_credential_id: Option<String>,
+    destination_username: Option<String>,
     image: Option<String>,
 }
 
@@ -115,6 +119,17 @@ fn validate_wsl_distribution(distribution: &str) -> Result<(), String> {
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
+fn provision_destination(input: &WslCliProvision) -> EnclaveInput {
+    EnclaveInput {
+        target: TargetInput::Ssh {
+            destination: input.destination.clone(),
+        },
+        profile_id: input.destination_profile_id.clone(),
+        credential_id: input.destination_credential_id.clone(),
+        username: input.destination_username.clone(),
+    }
 }
 
 fn command_output(mut command: Command, label: &str) -> Result<String, String> {
@@ -249,7 +264,45 @@ async fn transfer_wsl_image(input: WslImageTransfer) -> Result<ImageInventory, S
 
 /// Checks the fixed dependencies needed by offline WSL-to-SSH CLI provisioning.
 #[tauri::command]
-async fn check_wsl_cli_provision(input: WslCliProvision) -> Result<CliProvisionCheck, String> {
+async fn check_wsl_cli_provision(
+    input: WslCliProvision,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<CliProvisionCheck, String> {
+    let destination = provision_destination(&input);
+    let target = Target::from(destination.target.clone());
+    if let Some(resolved) = native_ssh(&destination, &target, &state)? {
+        let source = input.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            validate_wsl_distribution(&source.distribution)?;
+            let source_script = if let Some(image) = &source.image {
+                if !valid_image_reference(image) {
+                    return Err("invalid Docker image reference".to_owned());
+                }
+                format!("set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null; docker image inspect {} >/dev/null", shell_quote(image))
+            } else {
+                "set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null".to_owned()
+            };
+            command_output({ let mut command = Command::new("wsl.exe"); command.args(["--distribution", &source.distribution, "--exec", "bash", "-lc"]).arg(source_script); command }, "WSL provisioning requirements check")
+        })
+        .await
+        .map_err(|error| format!("WSL provisioning check stopped: {error}"))??;
+        let remote_script = if input.image.is_some() {
+            "set -Eeuo pipefail; command -v tar >/dev/null; docker info >/dev/null"
+        } else {
+            "set -Eeuo pipefail; command -v tar >/dev/null"
+        };
+        native_ssh_exec(
+            &input.destination,
+            resolved,
+            &format!("bash -lc {}", shell_quote(remote_script)),
+        )
+        .await?;
+        return Ok(CliProvisionCheck {
+            source: input.distribution,
+            destination: input.destination,
+            image: input.image,
+        });
+    }
     tauri::async_runtime::spawn_blocking(move || {
         validate_wsl_distribution(&input.distribution)?;
         Target::Ssh {
@@ -308,7 +361,46 @@ async fn check_wsl_cli_provision(input: WslCliProvision) -> Result<CliProvisionC
 /// Builds a minimal CLI kit in WSL and streams it to a system-SSH destination.
 /// The kit excludes configuration, projects, sandbox data, and credentials.
 #[tauri::command]
-async fn provision_wsl_cli(input: WslCliProvision) -> Result<CliProvisionResult, String> {
+async fn provision_wsl_cli(
+    input: WslCliProvision,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<CliProvisionResult, String> {
+    let destination = provision_destination(&input);
+    let target = Target::from(destination.target.clone());
+    let native = native_ssh(&destination, &target, &state)?;
+    if let Some(resolved) = native {
+        validate_wsl_distribution(&input.distribution)?;
+        if let Some(image) = &input.image {
+            if !valid_image_reference(image) {
+                return Err("invalid Docker image reference".to_owned());
+            }
+        }
+        let image_arg = input
+            .image
+            .as_deref()
+            .map(|image| format!(" --image {}", shell_quote(image)))
+            .unwrap_or_default();
+        let source_script = format!(
+            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit\"{image_arg}; tar -C \"$kit\" -czf - ."
+        );
+        let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
+        let stdout = native_ssh_install_wsl_kit(
+            &input.distribution,
+            &input.destination,
+            resolved,
+            source_script,
+            format!("bash -lc {}", shell_quote(remote_script)),
+        )
+        .await?;
+        let version = stdout.lines().last().unwrap_or_default().trim().to_owned();
+        if version.is_empty() {
+            return Err("remote CLI installation did not report an Orcan version".to_owned());
+        }
+        return Ok(CliProvisionResult {
+            version,
+            image: input.image,
+        });
+    }
     tauri::async_runtime::spawn_blocking(move || {
         validate_wsl_distribution(&input.distribution)?;
         Target::Ssh {
@@ -635,6 +727,59 @@ fn required_vault_secret(owner: &str, kind: &str) -> Result<String, String> {
         .map_err(|_| format!("no {kind} is stored for this connection"))
 }
 
+async fn native_ssh_connect(
+    destination: &str,
+    resolved: ResolvedSsh,
+) -> Result<client::Handle<KnownHostsHandler>, String> {
+    let ResolvedSsh { vault_owner, ssh } = resolved;
+    let username = ssh
+        .username
+        .as_deref()
+        .ok_or_else(|| "SSH username is required for this authentication method".to_owned())?;
+    let (host, port) = ssh_endpoint(destination)?;
+    let handler = KnownHostsHandler {
+        host: host.clone(),
+        port,
+    };
+    let mut session = client::connect(
+        Arc::new(client::Config::default()),
+        (host.as_str(), port),
+        handler,
+    )
+    .await
+    .map_err(|error| format!("SSH connection or host-key verification failed: {error}"))?;
+    let authenticated = match &ssh.authentication {
+        SshAuthentication::Password => session
+            .authenticate_password(username, required_vault_secret(&vault_owner, "password")?)
+            .await
+            .map_err(|error| format!("password authentication failed: {error}"))?,
+        SshAuthentication::PrivateKey {
+            path,
+            has_passphrase,
+        } => {
+            let passphrase = has_passphrase
+                .then(|| required_vault_secret(&vault_owner, "key-passphrase"))
+                .transpose()?;
+            let key = keys::load_secret_key(path, passphrase.as_deref())
+                .map_err(|error| format!("could not read private key: {error}"))?;
+            session
+                .authenticate_publickey(
+                    username,
+                    keys::PrivateKeyWithHashAlg::new(Arc::new(key), None),
+                )
+                .await
+                .map_err(|error| format!("private-key authentication failed: {error}"))?
+        }
+        SshAuthentication::Agent => {
+            return Err("SSH agent profiles use the system SSH transport".to_owned());
+        }
+    };
+    if !authenticated.success() {
+        return Err("SSH authentication was rejected by the remote host".to_owned());
+    }
+    Ok(session)
+}
+
 /// Runs one command over native SSH (host key checked against known_hosts).
 async fn native_ssh_exec(
     destination: &str,
@@ -717,6 +862,73 @@ async fn native_ssh_exec(
     if exit_status.unwrap_or(1) != 0 {
         return Err(format!(
             "`{command}` failed on the Enclave: {}",
+            String::from_utf8_lossy(&stderr).trim()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&stdout).into_owned())
+}
+
+async fn native_ssh_install_wsl_kit(
+    distribution: &str,
+    destination: &str,
+    resolved: ResolvedSsh,
+    source_script: String,
+    remote_command: String,
+) -> Result<String, String> {
+    let mut source = TokioCommand::new("wsl.exe")
+        .args(["--distribution", distribution, "--exec", "bash", "-lc"])
+        .arg(source_script)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("could not create a WSL CLI kit: {error}"))?;
+    let source_stdout = source
+        .stdout
+        .take()
+        .ok_or_else(|| "WSL CLI kit has no stdout".to_owned())?;
+    let mut session = native_ssh_connect(destination, resolved).await?;
+    let mut channel = session
+        .channel_open_session()
+        .await
+        .map_err(|error| format!("could not open SSH installation channel: {error}"))?;
+    channel
+        .exec(true, &remote_command)
+        .await
+        .map_err(|error| format!("could not start remote CLI installation: {error}"))?;
+    channel
+        .data(source_stdout)
+        .await
+        .map_err(|error| format!("CLI kit transfer interrupted: {error}"))?;
+    channel
+        .eof()
+        .await
+        .map_err(|error| format!("could not finish CLI kit transfer: {error}"))?;
+    let source_result = source
+        .wait_with_output()
+        .await
+        .map_err(|error| format!("could not finish WSL CLI kit: {error}"))?;
+    if !source_result.status.success() {
+        return Err(format!(
+            "WSL CLI kit creation failed: {}",
+            String::from_utf8_lossy(&source_result.stderr).trim()
+        ));
+    }
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let mut exit_status = None;
+    while let Some(message) = channel.wait().await {
+        match message {
+            ChannelMsg::Data { data } => stdout.extend_from_slice(&data),
+            ChannelMsg::ExtendedData { data, .. } => stderr.extend_from_slice(&data),
+            ChannelMsg::ExitStatus {
+                exit_status: status,
+            } => exit_status = Some(status),
+            _ => {}
+        }
+    }
+    if exit_status.unwrap_or(1) != 0 {
+        return Err(format!(
+            "remote CLI installation failed: {}",
             String::from_utf8_lossy(&stderr).trim()
         ));
     }
