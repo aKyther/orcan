@@ -1008,7 +1008,7 @@ function openApplyReview(): void {
   if (!changes.length || draftConflicts(changes).size) return;
   applyChanges.replaceChildren(...changes.map((change) => {
     const checkbox = el("input", { type: "checkbox", checked: true, value: change.id });
-    return el("li", { className: "apply-choice" }, el("label", {}, checkbox, el("span", { textContent: changeTitle(change) })));
+    return el("li", { className: "apply-choice" }, el("label", { className: "toggle" }, el("span", { textContent: changeTitle(change) }), checkbox));
   }));
   applyStatus.textContent = `${changes.length} change${changes.length === 1 ? "" : "s"} will be rechecked with Orcan immediately before execution. Nothing has changed yet.`;
   applyDialog.showModal();
@@ -1685,7 +1685,7 @@ async function saveProfile(): Promise<void> {
 }
 
 function renderProfiles(): void {
-  profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => listItem(profile.name, describeProfile(profile), actionButton("Provision", () => openProvisioning(profile), "secondary"), actionButton("Edit", () => openProfileForm(profile))))
+  profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => listItem(profile.name, describeProfile(profile), actionButton("Install / update", () => openProvisioning(profile), "secondary"), actionButton("Edit", () => openProfileForm(profile))))
     : [emptyState("No profiles yet. A profile records how Studio reaches a local, WSL2, or SSH destination; Orcan can be installed later.", "Create a profile", () => openProfileForm())]));
 }
 
@@ -1847,15 +1847,15 @@ function renderOnlineProvision(): void {
 async function provisionOnline(): Promise<void> {
   const profile = selectedProfile(onlineProvisionTarget);
   if (!profile) { onlineProvisionResult.textContent = "Choose a destination profile."; return; }
-  if (!window.confirm(`Install Orcan on ${profile.name}? Studio will run the official online installer on that destination. Existing Orcan files may be updated; no Studio profile, project, configuration, or credential is transferred.`)) return;
-  const job = addJob("Online Orcan provisioning", profile.name, profile.name, profile.id);
+  if (!window.confirm(`Install or update Orcan on ${profile.name}? Studio will run the official online installer on that destination. Existing Orcan source files may be updated; no Studio profile, project, configuration, or credential is transferred.`)) return;
+  const job = addJob("Install or update Orcan", profile.name, profile.name, profile.id);
   onlineProvisionRun.disabled = true;
-  onlineProvisionResult.textContent = `Installing Orcan on ${profile.name}…`;
+  onlineProvisionResult.textContent = `Installing or updating Orcan on ${profile.name}…`;
   try {
     const installed = await invoke<CliProvisionResult>("provision_online", { enclave: enclaveInput(profileConnection(profile)) });
     enclaveStatus.delete(profile.id);
-    onlineProvisionResult.textContent = `Installed ${installed.version} on ${profile.name}. You can now create or connect an Enclave.`;
-    finishJob(job, "succeeded", `Installed ${installed.version}`);
+    onlineProvisionResult.textContent = `Orcan ${installed.version} is ready on ${profile.name}. You can now create or connect an Enclave.`;
+    finishJob(job, "succeeded", `Ready: ${installed.version}`);
     await checkEnclave(profile);
   } catch (error) {
     onlineProvisionResult.textContent = `Installation failed: ${String(error)}`;
@@ -2042,7 +2042,7 @@ function renderEnclaves(): void {
     gear.title = `Configure ${profile.name}`;
     gear.setAttribute("aria-label", `Configure ${profile.name}`);
     const actions: HTMLElement[] = [actionButton("Check Orcan", () => void checkEnclave(profile)), gear];
-    if (!status?.report) actions.unshift(actionButton("Provision Orcan", () => openProvisioning(profile), "secondary"));
+    if (!status?.report) actions.unshift(actionButton(needsStudioUpdate(status?.error ?? "") ? "Update Orcan" : "Provision Orcan", () => openProvisioning(profile), "secondary"));
     if (status?.report?.runtime.docker.container.state === "running") {
       actions.push(actionButton("Remove container", () => {
         current = profileConnection(profile);
@@ -2090,6 +2090,7 @@ function renderEnclaveStatus(): void {
 }
 
 function failureHint(error: string): string {
+  if (needsStudioUpdate(error)) return "This Orcan CLI is older than Studio's control protocol. Select Update Orcan to update it in place; your profile, configuration, projects, and sandbox data stay untouched.";
   if (/execvpe\(orcan\).*no such file|orcan: not found|command not found/i.test(error)) return "Orcan CLI is not available on this target. Provision Orcan CLI first; Studio checks ~/.local/bin and the target PATH.";
   if (/host-key|known_hosts|Host key verification/i.test(error)) return "The server's host key is not trusted yet. Connect once from a terminal (ssh <server>) to confirm its fingerprint, then test again.";
   if (/authentication|Permission denied|rejected/i.test(error)) return "The server rejected the sign-in. Check the user and the credential.";
@@ -2097,6 +2098,10 @@ function failureHint(error: string): string {
   if (/command not found|No such file|orcan: not found/i.test(error)) return "The machine was reached, but Orcan is not installed there or not on PATH.";
   if (/timed out|Connection refused|resolve|unreachable/i.test(error)) return "The machine could not be reached. Check the address, port, VPN, or Tailscale.";
   return "Adjust the details and test again; the Activity view keeps the full error.";
+}
+
+function needsStudioUpdate(error: string): boolean {
+  return /unknown command:\s*studio|unknown command.*\bstudio\b/i.test(error);
 }
 
 function renderSetup(): void {

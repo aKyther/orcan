@@ -43,7 +43,10 @@ It is the authoritative Sandbox snapshot: Studio refreshes paths, configuration
 revision, managed roots, workspaces, projects, mounts, and runtime state on
 each reconnect instead of treating a cached desktop default as the truth.
 Studio requires its declared `orcan-studio` protocol version before it offers
-any future context-editing action.
+any future context-editing action. If an installed CLI predates that protocol,
+Studio marks the saved destination as needing an update and offers the same
+idempotent official installer in place; it does not transfer or replace
+configuration, projects, sandbox data, profiles, or credentials.
 
 The probe is a versioned control contract, not a file browser. Alongside the
 snapshot, Orcan returns `control.operations` (whether an action is available

@@ -153,10 +153,10 @@
                   <h2>New Enclave</h2>
                   <p class="muted">Starts Orcan without projects. Add repositories and folders later from Studio.</p>
                   <label>Destination profile<select id="enclave-create-profile"></select></label>
-                  <label><input id="enclave-create-git" type="checkbox" /> Git access</label>
-                  <label><input id="enclave-create-docker" type="checkbox" /> Docker access</label>
-                  <label><input id="enclave-create-ttyd" type="checkbox" /> Browser terminal</label>
-                  <label><input id="enclave-create-ttyd-auth" type="checkbox" disabled /> Protect browser terminal</label>
+                  <label class="toggle"><span>Git access</span><input id="enclave-create-git" type="checkbox" /></label>
+                  <label class="toggle"><span>Docker access</span><input id="enclave-create-docker" type="checkbox" /></label>
+                  <label class="toggle"><span>Browser terminal</span><input id="enclave-create-ttyd" type="checkbox" /></label>
+                  <label class="toggle"><span>Protect browser terminal</span><input id="enclave-create-ttyd-auth" type="checkbox" disabled /></label>
                   <div id="enclave-create-ttyd-fields" class="form-row" hidden>
                     <label>Browser-terminal user<input id="enclave-create-ttyd-user" autocomplete="username" /></label>
                     <label>Browser-terminal password<input id="enclave-create-ttyd-password" type="password" autocomplete="new-password" /></label>
@@ -172,7 +172,7 @@
             <h2 id="online-provision-title">Install Orcan online</h2>
             <p class="muted">Use the official installer on a saved local, WSL2, or SSH profile. It needs internet access, Bash, Git, and Python 3; it does not transfer Studio profiles, projects, configuration, or credentials.</p>
             <div class="form-row"><label>Destination profile<select id="online-provision-target"></select></label></div>
-            <div class="actions compact"><button id="online-provision-run" type="button">Install Orcan</button></div>
+            <div class="actions compact"><button id="online-provision-run" type="button">Install or update Orcan</button></div>
             <output id="online-provision-result" aria-live="polite"></output>
           </section>
           <section class="panel" aria-labelledby="cli-provision-title">
@@ -181,7 +181,7 @@
             <div class="form-row three">
               <label>Source profile<select id="cli-provision-source"></select></label>
               <label>Destination profile<select id="cli-provision-target"></select></label>
-              <label><input id="cli-provision-image" type="checkbox" /> Include Docker image</label>
+              <label class="toggle"><span>Include Docker image</span><input id="cli-provision-image" type="checkbox" /></label>
             </div>
             <label id="cli-provision-image-field" hidden>Docker image<input id="cli-provision-image-name" value="orcan:latest" /></label>
             <div class="actions compact"><button id="cli-provision-check" type="button" class="secondary">Check requirements</button><button id="cli-provision-run" type="button" disabled>Install offline kit</button></div>
