@@ -496,12 +496,15 @@ fn validate_record(id: &str, name: &str) -> Result<(), StudioError> {
 }
 
 /// Proof of identity (a key file or a password) that several profiles can
-/// share; the profile supplies the user. Secrets live in the operating system
-/// credential vault under [`SshCredential::vault_owner`].
+/// share. It includes the usual remote user; a profile may override that user
+/// for an exceptional target. Secrets live in the operating system credential
+/// vault under [`SshCredential::vault_owner`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SshCredential {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub username: String,
     pub authentication: SshAuthentication,
 }
 
@@ -515,7 +518,10 @@ impl SshCredential {
             SshAuthentication::Agent => Err(StudioError::InvalidProfile(
                 "the SSH agent needs no saved credential".to_owned(),
             )),
-            _ => Ok(()),
+            _ if self.username.is_empty() => Err(StudioError::InvalidProfile(
+                "SSH credential username cannot be empty".to_owned(),
+            )),
+            _ => validate_identifier("SSH credential username", &self.username),
         }
     }
 
@@ -566,8 +572,8 @@ pub struct ConnectionProfile {
     /// Inline SSH options, kept for profiles saved before shared credentials.
     #[serde(default)]
     pub ssh: SshProfileOptions,
-    /// Shared [`SshCredential`] used with `ssh.username` instead of
-    /// `ssh.authentication` when set.
+    /// Shared [`SshCredential`] used instead of `ssh.authentication` when set.
+    /// `ssh.username`, when present, overrides the credential's default user.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub credential_id: Option<String>,
 }
@@ -585,9 +591,15 @@ impl ConnectionProfile {
                         authentication: SshAuthentication::Agent,
                     },
                 ) => validate_identifier("SSH username", username),
+                (
+                    Target::Ssh { .. },
+                    SshProfileOptions {
+                        username: None,
+                        authentication: SshAuthentication::Agent,
+                    },
+                ) => Ok(()),
                 (Target::Ssh { .. }, _) => Err(StudioError::InvalidProfile(
-                    "a profile with a shared credential needs a username and no inline authentication"
-                        .to_owned(),
+                    "a profile with a shared credential may only override its username".to_owned(),
                 )),
                 _ => Err(StudioError::InvalidProfile(
                     "shared credentials require an SSH target".to_owned(),
@@ -672,7 +684,8 @@ impl ProfileStore {
     }
 
     /// Resolves the SSH options for a saved profile, or for an unsaved
-    /// `username` + shared credential pair (connection test before saving).
+    /// Optional `username` override + shared credential pair (connection test
+    /// before saving).
     pub fn resolve_ssh(
         &self,
         profile_id: Option<&str>,
@@ -707,11 +720,16 @@ impl ProfileStore {
                             "selected credential no longer exists".to_owned(),
                         )
                     })?;
-                let username = username.map(str::to_owned).or_else(|| {
-                    profile
-                        .as_ref()
-                        .and_then(|profile| profile.ssh.username.clone())
-                });
+                let username = username
+                    .map(str::to_owned)
+                    .or_else(|| {
+                        profile
+                            .as_ref()
+                            .and_then(|profile| profile.ssh.username.clone())
+                    })
+                    .or_else(|| {
+                        (!credential.username.is_empty()).then(|| credential.username.clone())
+                    });
                 ResolvedSsh {
                     vault_owner: credential.vault_owner(),
                     ssh: SshProfileOptions {
@@ -732,15 +750,19 @@ impl ProfileStore {
     pub fn upsert(&self, profile: ConnectionProfile) -> Result<(), StudioError> {
         profile.validate()?;
         let mut document = self.read()?;
-        if let Some(id) = &profile.credential_id
-            && !document
+        if let Some(id) = &profile.credential_id {
+            let credential = document
                 .credentials
                 .iter()
-                .any(|credential| &credential.id == id)
-        {
-            return Err(StudioError::InvalidProfile(
-                "selected credential no longer exists".to_owned(),
-            ));
+                .find(|credential| &credential.id == id)
+                .ok_or_else(|| {
+                    StudioError::InvalidProfile("selected credential no longer exists".to_owned())
+                })?;
+            if profile.ssh.username.is_none() && credential.username.is_empty() {
+                return Err(StudioError::InvalidProfile(
+                    "the shared credential needs a username, or set a profile override".to_owned(),
+                ));
+            }
         }
         if let Some(existing) = document
             .profiles
@@ -1259,6 +1281,7 @@ mod tests {
         let credential = SshCredential {
             id: "work-key".to_owned(),
             name: "Work key".to_owned(),
+            username: "developer".to_owned(),
             authentication: SshAuthentication::Password,
         };
         let profile = |id: &str, host: &str| ConnectionProfile {
@@ -1267,10 +1290,7 @@ mod tests {
             target: Target::Ssh {
                 destination: host.to_owned(),
             },
-            ssh: SshProfileOptions {
-                username: Some(format!("{id}-user")),
-                authentication: SshAuthentication::Agent,
-            },
+            ssh: SshProfileOptions::default(),
             credential_id: Some("work-key".to_owned()),
         };
 
@@ -1293,7 +1313,7 @@ mod tests {
             .expect("resolves")
             .expect("has SSH options");
         assert_eq!(resolved.vault_owner, "credential:work-key");
-        assert_eq!(resolved.ssh.username.as_deref(), Some("b-user"));
+        assert_eq!(resolved.ssh.username.as_deref(), Some("developer"));
         assert_eq!(resolved.ssh.authentication, SshAuthentication::Password);
         let (_, unsaved) = store
             .resolve_ssh(None, Some("work-key"), Some("tester"))

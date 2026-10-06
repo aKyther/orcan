@@ -100,6 +100,8 @@ struct CliProvisionCheck {
     image: Option<String>,
 }
 
+const ONLINE_INSTALL_SCRIPT: &str = "set -Eeuo pipefail; command -v curl >/dev/null || { echo 'curl is required for online installation' >&2; exit 127; }; curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
+
 fn valid_image_reference(image: &str) -> bool {
     !image.is_empty()
         && image.len() <= 255
@@ -508,6 +510,92 @@ async fn provision_wsl_cli(
     .map_err(|error| format!("CLI provisioning stopped: {error}"))?
 }
 
+/// Installs the public Orcan CLI on a saved profile. Profiles deliberately do
+/// not require Orcan to exist, so this is the first provisioning step for a
+/// new WSL, local, or SSH destination with internet access.
+#[tauri::command]
+async fn provision_online(
+    enclave: EnclaveInput,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<CliProvisionResult, String> {
+    let target = Target::from(enclave.target.clone());
+    if let (Some(resolved), Target::Ssh { destination }) =
+        (native_ssh(&enclave, &target, &state)?, &target)
+    {
+        let stdout = native_ssh_exec(
+            destination,
+            resolved,
+            &format!("bash -lc {}", shell_quote(ONLINE_INSTALL_SCRIPT)),
+        )
+        .await?;
+        let version = stdout
+            .lines()
+            .rev()
+            .find(|line| !line.trim().is_empty())
+            .unwrap_or_default()
+            .trim()
+            .to_owned();
+        if version.is_empty() {
+            return Err("online installation did not report an Orcan version".to_owned());
+        }
+        return Ok(CliProvisionResult {
+            version,
+            image: None,
+        });
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let stdout = match target {
+            Target::Local => command_output(
+                {
+                    let mut command = Command::new("bash");
+                    command.args(["-lc", ONLINE_INSTALL_SCRIPT]);
+                    command
+                },
+                "local Orcan installation",
+            )?,
+            Target::Wsl2 { distribution } => {
+                validate_wsl_distribution(&distribution)?;
+                command_output(
+                    {
+                        let mut command = Command::new("wsl.exe");
+                        command
+                            .args(["--distribution", &distribution, "--exec", "bash", "-lc"])
+                            .arg(ONLINE_INSTALL_SCRIPT);
+                        command
+                    },
+                    "WSL Orcan installation",
+                )?
+            }
+            Target::Ssh { destination } => command_output(
+                {
+                    let mut command = Command::new("ssh");
+                    command
+                        .args(["-o", "BatchMode=yes", "--", &destination])
+                        .arg(format!("bash -lc {}", shell_quote(ONLINE_INSTALL_SCRIPT)));
+                    command
+                },
+                "remote Orcan installation",
+            )?,
+        };
+        let version = stdout
+            .lines()
+            .rev()
+            .find(|line| !line.trim().is_empty())
+            .unwrap_or_default()
+            .trim()
+            .to_owned();
+        if version.is_empty() {
+            return Err("online installation did not report an Orcan version".to_owned());
+        }
+        Ok(CliProvisionResult {
+            version,
+            image: None,
+        })
+    })
+    .await
+    .map_err(|error| format!("online provisioning stopped: {error}"))?
+}
+
 /// Native SSH options when the Enclave signs in with a saved key or password.
 fn native_ssh(
     enclave: &EnclaveInput,
@@ -591,6 +679,22 @@ async fn list_wsl_distributions() -> Result<Vec<String>, String> {
     })
     .await
     .map_err(|error| format!("WSL discovery stopped: {error}"))?
+}
+
+/// A convenience value only: the remote credential form remains editable
+/// because an SSH server may use a different account than this device.
+#[tauri::command]
+fn current_user() -> String {
+    ["USERNAME", "USER"]
+        .into_iter()
+        .filter_map(|name| std::env::var(name).ok())
+        .find(|user| {
+            !user.is_empty()
+                && user
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character))
+        })
+        .unwrap_or_default()
 }
 
 #[tauri::command]
@@ -1386,10 +1490,12 @@ fn main() {
             transfer_wsl_image,
             check_wsl_cli_provision,
             provision_wsl_cli,
+            provision_online,
             probe,
             enclave_action,
             sync,
             runtime_action,
+            current_user,
             list_profiles,
             save_profile,
             delete_profile,

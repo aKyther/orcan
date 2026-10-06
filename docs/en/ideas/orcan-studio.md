@@ -17,7 +17,10 @@ Studio has three transport modes:
 - **SSH**: runs the same versioned Orcan Studio protocol through the user's
   OpenSSH configuration.
 
-For isolated or on-premise hosts, Provisioning can build a minimal CLI kit in
+Profiles are transport records, not proof that Orcan is already installed.
+Studio can use the official online installer on a saved local, WSL2, or SSH
+profile; it requires Internet access plus Bash, Git, and Python 3. For
+isolated or on-premise hosts, Provisioning can build a minimal CLI kit in
 a WSL2 source profile and stream it to a system-SSH destination. The remote
 host needs no Internet access: it extracts the kit, installs the host CLI, and
 verifies `orcan version`. The optional Docker image is streamed in the same
@@ -88,7 +91,7 @@ Settings repeats the target, user, configuration path, and workspace-index
 path, with reconnect and profile actions.
 
 For a real SSH or WSL verification, open that saved profile in Studio, run
-Check, and confirm that Connection doctor reports the intended target user and
+**Check Orcan**, and confirm that Connection doctor reports the intended target user and
 configuration path before changing context.
 
 The Enclave map keeps projects directly under the managed sandbox root flat.
@@ -100,13 +103,14 @@ Selected workspace focus and map filters are remembered separately for each
 Enclave on the Studio device.
 
 Studio saves reconnect profiles in its native application-data directory. A
-profile contains a display name, transport metadata, and SSH metadata such as a
-username or private-key path. Passwords and key passphrases are not written to
+profile contains a display name, transport metadata, and an optional SSH user
+override. Passwords and key passphrases are not written to
 the profile file; they belong in the operating system credential vault.
 
 Credentials are separate, reusable records: a named private-key path or
-password that several profiles can reference, while each profile keeps its own
-address and username. A credential cannot be deleted while a profile uses it.
+password, together with its usual remote username, that several profiles can
+reference. A profile can override that user for an exceptional target. A
+credential cannot be deleted while a profile uses it.
 Studio's UI calls each connected Sandbox an **Enclave** (an isolated Orcan
 environment) and walks through Credentials & keys → Profiles → Enclaves; no
 instance view is shown until a probe succeeds.

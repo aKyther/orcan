@@ -79,8 +79,8 @@
             <div class="panel-heading"><div><p class="eyebrow">GET CONNECTED</p><h2 id="setup-title">Three steps to your first Enclave</h2></div></div>
             <ol class="setup-steps">
               <li id="setup-credential"><div><strong>Add a credential or key</strong><span>A key file or password Studio uses to sign in to a remote server. Not needed for this computer or WSL2 (Orcan runs as you), or when your SSH agent already holds the key.</span></div><button type="button" class="secondary" data-go="credentials">Credentials &amp; keys</button></li>
-              <li id="setup-profile"><div><strong>Create a profile</strong><span>Where Orcan runs, the user, and the credential that signs in.</span></div><button type="button" class="secondary" data-go="profiles">Profiles</button></li>
-              <li id="setup-enclave"><div><strong>Connect an Enclave</strong><span>Studio asks Orcan what this environment offers, then unlocks its views.</span></div><button type="button" class="secondary" data-go="enclaves">Enclaves</button></li>
+              <li id="setup-profile"><div><strong>Create a profile</strong><span>Save a local, WSL2, or SSH destination and its sign-in method.</span></div><button type="button" class="secondary" data-go="profiles">Profiles</button></li>
+              <li id="setup-enclave"><div><strong>Provision or connect an Enclave</strong><span>Install Orcan when needed, then let Studio read what the destination offers.</span></div><button type="button" class="secondary" data-go="enclaves">Enclaves</button></li>
             </ol>
             <output id="result" aria-live="polite"></output>
           </section>
@@ -102,6 +102,7 @@
                 <button type="button" class="back-link" id="credential-back">← Credentials &amp; keys</button>
                 <h2 id="credential-form-title">New credential</h2>
                 <div class="field"><label for="credential-name">Name</label><input id="credential-name" autocomplete="off" placeholder="Work laptop key" /></div>
+                <div class="field"><label for="credential-user">Remote user</label><input id="credential-user" autocomplete="username" placeholder="developer" /><p class="hint">Stored with this key or password, not as a secret. A profile can override it for an exceptional server.</p></div>
                 <fieldset class="field"><legend>Type</legend>
                   <div class="choice-grid two">
                     <label class="choice"><input type="radio" name="credential-kind" value="private_key" checked /><strong>Private key file</strong><span>Recommended. Studio reads the key on this computer.</span></label>
@@ -117,7 +118,7 @@
 
         <section class="view" data-view="profiles" hidden>
           <div class="pane-stack"><section data-pane="profiles" class="pane">
-                <div class="pane-header"><div><p class="muted">A profile tells Studio how to reach a machine running Orcan: where it is, which user to sign in as, and which credential proves it.</p></div><button id="new-profile" type="button">New profile</button></div>
+                <div class="pane-header"><div><p class="muted">A profile is only a saved route to a machine: local, WSL2, or SSH. Orcan may be installed later during provisioning.</p></div><button id="new-profile" type="button">New profile</button></div>
                 <div id="profile-list" class="item-list"></div>
               </section><section data-pane="profile-form" class="pane" hidden>
                 <button type="button" class="back-link" data-pane-target="profiles">← Profiles</button>
@@ -125,22 +126,22 @@
                 <div class="field"><label for="profile-name">Name</label><input id="profile-name" autocomplete="off" placeholder="Build server" /></div>
                 <fieldset class="field"><legend>Where does it run?</legend>
                   <div class="choice-grid">
-                    <label class="choice"><input type="radio" name="location" value="local" checked /><strong>This computer</strong><span>Orcan is installed here, on Linux or macOS.</span></label>
-                    <label class="choice"><input type="radio" name="location" value="wsl2" /><strong>Windows WSL2</strong><span>Orcan runs in a WSL2 distribution on this PC.</span></label>
-                    <label class="choice"><input type="radio" name="location" value="ssh" /><strong>Remote server</strong><span>Orcan runs on a machine you reach over SSH.</span></label>
+                    <label class="choice"><input type="radio" name="location" value="local" checked /><strong>This computer</strong><span>Save this machine as a destination for Orcan.</span></label>
+                    <label class="choice"><input type="radio" name="location" value="wsl2" /><strong>Windows WSL2</strong><span>Save a local WSL2 distribution; provision Orcan later if needed.</span></label>
+                    <label class="choice"><input type="radio" name="location" value="ssh" /><strong>Remote server</strong><span>Save an SSH destination and its sign-in method.</span></label>
                   </div>
                 </fieldset>
                 <div id="wsl-fields" class="field" hidden><label for="wsl-distribution">WSL2 distribution</label><select id="wsl-distribution" disabled><option value="">Looking for WSL2 distributions…</option></select><p id="wsl-distribution-hint" class="hint">Studio checks <code>wsl --list --quiet</code> in the background.</p></div>
                 <div id="ssh-fields" class="field-stack" hidden>
                   <div class="connection-grid">
                     <div class="field"><label for="ssh-host">Server address</label><input id="ssh-host" autocomplete="off" placeholder="orcan.example.com or 100.64.0.5:2222" /><p class="hint">Hostname, IP address, or a Host alias from <code>~/.ssh/config</code>.</p></div>
-                    <div class="field"><label for="ssh-user">User on the server</label><input id="ssh-user" autocomplete="username" placeholder="developer" /><p class="hint">Optional with system SSH when <code>~/.ssh/config</code> sets it.</p></div>
+                    <div class="field"><label for="ssh-user">Remote user override</label><input id="ssh-user" autocomplete="username" placeholder="Uses the selected credential" /><p class="hint">Optional. Saved credentials carry their own user; system SSH may use <code>~/.ssh/config</code>.</p></div>
                   </div>
                   <div class="field"><label for="credential-select">Sign in with</label><select id="credential-select"></select><p id="credential-hint" class="hint"></p></div>
                 </div>
                 <output id="profile-test-result" aria-live="polite"></output>
                 <p id="profile-test-hint" class="hint" hidden></p>
-                <div class="form-actions"><button id="profile-delete" type="button" class="danger-link" hidden>Delete profile</button><span></span><button id="profile-test" type="button" class="secondary">Test connection</button><button id="profile-save" type="button">Save profile</button></div>
+                <div class="form-actions"><button id="profile-delete" type="button" class="danger-link" hidden>Delete profile</button><span></span><button id="profile-test" type="button" class="secondary">Check Orcan</button><button id="profile-save" type="button">Save profile</button></div>
               </section></div>
         </section>
 
@@ -166,7 +167,14 @@
               </section></div>
         </section>
         <section class="view" data-view="provisioning" hidden>
-          <div class="view-intro"><p class="eyebrow">PROVISIONING</p><h2>Prepare a destination profile from a source profile.</h2></div>
+          <div class="view-intro"><p class="eyebrow">PROVISIONING</p><h2>Install or move Orcan to a saved profile.</h2></div>
+          <section class="panel" aria-labelledby="online-provision-title">
+            <h2 id="online-provision-title">Install Orcan online</h2>
+            <p class="muted">Use the official installer on a saved local, WSL2, or SSH profile. It needs internet access, Bash, Git, and Python 3; it does not transfer Studio profiles, projects, configuration, or credentials.</p>
+            <div class="form-row"><label>Destination profile<select id="online-provision-target"></select></label></div>
+            <div class="actions compact"><button id="online-provision-run" type="button">Install Orcan</button></div>
+            <output id="online-provision-result" aria-live="polite"></output>
+          </section>
           <section class="panel" aria-labelledby="cli-provision-title">
             <h2 id="cli-provision-title">Install Orcan CLI offline</h2>
             <p class="muted">Build a clean kit in WSL2 and stream it through SSH. The kit never includes profiles, configuration, projects, sandbox data, or credentials.</p>

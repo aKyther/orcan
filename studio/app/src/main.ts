@@ -28,6 +28,9 @@ const cliProvisionImageName = $<HTMLInputElement>("#cli-provision-image-name");
 const cliProvisionCheck = $<HTMLButtonElement>("#cli-provision-check");
 const cliProvisionRun = $<HTMLButtonElement>("#cli-provision-run");
 const cliProvisionResult = $<HTMLOutputElement>("#cli-provision-result");
+const onlineProvisionTarget = $<HTMLSelectElement>("#online-provision-target");
+const onlineProvisionRun = $<HTMLButtonElement>("#online-provision-run");
+const onlineProvisionResult = $<HTMLOutputElement>("#online-provision-result");
 const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
 const enclaveCreateGit = $<HTMLInputElement>("#enclave-create-git");
 const enclaveCreateDocker = $<HTMLInputElement>("#enclave-create-docker");
@@ -59,6 +62,7 @@ const profileTest = $<HTMLButtonElement>("#profile-test");
 const profileSave = $<HTMLButtonElement>("#profile-save");
 const credentialFormTitle = $("#credential-form-title");
 const credentialName = $<HTMLInputElement>("#credential-name");
+const credentialUser = $<HTMLInputElement>("#credential-user");
 const keyPathField = $("#key-path-field");
 const keyPath = $<HTMLInputElement>("#key-path");
 const secret = $<HTMLInputElement>("#secret");
@@ -266,6 +270,7 @@ function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) return invokeTauri<T>(command, _args);
   await new Promise((resolve) => window.setTimeout(resolve, 180));
+  if (command === "current_user") return "developer" as T;
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
   const enclave = (_args as { enclave?: { target: Target } } | undefined)?.enclave;
   if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
@@ -282,6 +287,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     worktree_cleanup: { plan: { ready: true, blockers: [] } },
     workspace_action: { plan: { ready: true, blockers: [], changes: ["update workspace", "run orcan sync"] } },
     runtime_action: null,
+    provision_online: { version: "orcan demo" },
   };
   return (responses[command] ?? {}) as T;
 }
@@ -1434,7 +1440,7 @@ function profileUsers(credentialId: string): string[] {
 function describeProfile(profile: ConnectionProfile): string {
   const credential = savedCredentials.find((item) => item.id === profile.credential_id);
   if (profile.target.kind !== "ssh") return describeTarget(profile.target);
-  const user = profile.credential_id ? profile.ssh?.username : undefined;
+  const user = profile.ssh?.username || credential?.username;
   const signIn = credential ? credential.name : profile.ssh?.authentication.kind && profile.ssh.authentication.kind !== "agent" ? "saved in profile" : "system SSH";
   return `SSH · ${user ? `${user}@` : ""}${profile.target.destination} · ${signIn}`;
 }
@@ -1455,6 +1461,7 @@ function openCredentialForm(credential?: Credential, fromProfile = false): void 
   showView("credentials");
   credentialFormTitle.textContent = credential ? `Edit ${credential.name}` : "New credential";
   credentialName.value = credential?.name ?? "";
+  credentialUser.value = credential?.username ?? "";
   setRadio("credential-kind", credential?.authentication.kind === "password" ? "password" : "private_key");
   keyPath.value = credential?.authentication.kind === "private_key" ? credential.authentication.path : "";
   secret.value = "";
@@ -1465,6 +1472,11 @@ function openCredentialForm(credential?: Credential, fromProfile = false): void 
   credentialDelete.title = users.length ? `Used by ${users.join(", ")}` : "";
   refreshCredentialForm();
   showPane("credential-form");
+  if (!credential) {
+    void invoke<string>("current_user").then((user) => {
+      if (!credentialUser.value) credentialUser.value = user;
+    }).catch(() => undefined);
+  }
 }
 
 function leaveCredentialForm(selectId?: string): void {
@@ -1479,8 +1491,10 @@ function leaveCredentialForm(selectId?: string): void {
 
 async function saveCredential(): Promise<void> {
   const name = credentialName.value.trim();
+  const username = credentialUser.value.trim();
   const kind = radioValue("credential-kind");
   if (!name) { credentialResult.textContent = "Give the credential a name you will recognise, e.g. “Work laptop key”."; return; }
+  if (!username || /\s/.test(username)) { credentialResult.textContent = "Enter the remote user without spaces, e.g. “developer”."; credentialUser.focus(); return; }
   const sameKind = editingCredential?.authentication.kind === kind;
   let authentication: SshAuthentication;
   if (kind === "private_key") {
@@ -1492,7 +1506,7 @@ async function saveCredential(): Promise<void> {
     if (!secret.value && !sameKind) { credentialResult.textContent = "Enter the password."; return; }
     authentication = { kind: "password" };
   }
-  const credential: Credential = { id: editingCredential?.id ?? newId(), name, authentication };
+  const credential: Credential = { id: editingCredential?.id ?? newId(), name, username, authentication };
   credentialSave.disabled = true;
   try {
     await invoke("save_credential", { credential, secret: secret.value || null });
@@ -1506,14 +1520,14 @@ async function saveCredential(): Promise<void> {
 function renderCredentials(): void {
   credentialList.replaceChildren(...(savedCredentials.length ? savedCredentials.map((credential) => {
     const users = profileUsers(credential.id);
-    return listItem(credential.name, `${authLabel(credential.authentication)} · ${users.length ? `used by ${users.join(", ")}` : "not used yet"}`, actionButton("Edit", () => openCredentialForm(credential)));
-  }) : [emptyState("No credentials yet. You need one only when Studio itself signs in to a remote server with a key file or a password. This computer and WSL2 run Orcan directly as your user, and with an SSH agent your system ssh already holds the key, so none of those needs a credential here.", "Add a credential or key", () => openCredentialForm())]));
+    return listItem(credential.name, `${credential.username} · ${authLabel(credential.authentication)} · ${users.length ? `used by ${users.join(", ")}` : "not used yet"}`, actionButton("Edit", () => openCredentialForm(credential)));
+  }) : [emptyState("No credentials yet. Add one only when Studio itself signs in to a remote server with a key file or password. It stores the remote user plus the secret in the system vault; local, WSL2, and SSH-agent profiles do not need one.", "Add a credential or key", () => openCredentialForm())]));
 }
 
 // Profiles
 
 function renderCredentialOptions(selected: string): void {
-  const options = [new Option("System SSH — SSH agent or ~/.ssh/config", SYSTEM_SSH), ...savedCredentials.map((item) => new Option(`${item.name} · ${authLabel(item.authentication)}`, item.id))];
+  const options = [new Option("System SSH — SSH agent or ~/.ssh/config", SYSTEM_SSH), ...savedCredentials.map((item) => new Option(`${item.name} · ${item.username} · ${authLabel(item.authentication)}`, item.id))];
   const inline = editingProfile?.target.kind === "ssh" && !editingProfile.credential_id && editingProfile.ssh && editingProfile.ssh.authentication.kind !== "agent";
   if (inline) options.push(new Option("Saved in this profile (older format)", INLINE_SSH));
   options.push(new Option("＋ Add a credential or key…", NEW_CREDENTIAL));
@@ -1531,7 +1545,7 @@ function refreshProfileForm(): void {
   credentialHint.textContent = value === SYSTEM_SSH
     ? "Signs in like ssh in a terminal: your SSH agent and ~/.ssh/config. For a custom port, add a Host alias there."
     : value === INLINE_SSH ? "Kept as saved. Choose a shared credential to reuse it across profiles."
-    : "Studio signs in natively with this credential; the user field is required.";
+    : `Studio signs in natively as ${savedCredentials.find((item) => item.id === value)?.username ?? "the credential user"}. Add an override only when this server uses another account.`;
   profileTestResult.textContent = "";
   profileTestHint.hidden = true;
 }
@@ -1580,6 +1594,7 @@ function openProfileForm(profile?: ConnectionProfile): void {
   }
   sshHost.value = host;
   sshUser.value = user;
+  sshUser.placeholder = savedCredentials.find((item) => item.id === profile?.credential_id)?.username ? `Uses ${savedCredentials.find((item) => item.id === profile?.credential_id)?.username}` : "Uses the selected credential";
   profileDelete.hidden = !profile;
   renderCredentialOptions(profile?.credential_id ?? (profile?.ssh && profile.ssh.authentication.kind !== "agent" ? INLINE_SSH : SYSTEM_SSH));
   showPane("profile-form");
@@ -1611,9 +1626,8 @@ function profileFromForm(): { profile: ConnectionProfile; connection: Connection
   if (choice === INLINE_SSH && editingProfile) {
     return { profile: { id, name, target, ssh: { ...editingProfile.ssh!, username: user || undefined } }, connection: { target, label, profileId: editingProfile.id } };
   }
-  if (!user) throw new Error("Enter the user on the server; a saved credential proves who you are, but not which account.");
   return {
-    profile: { id, name, target, ssh: { username: user, authentication: { kind: "agent" } }, credential_id: choice },
+    profile: { id, name, target, ssh: { username: user || undefined, authentication: { kind: "agent" } }, credential_id: choice },
     connection: { target, label, credentialId: choice, username: user },
   };
 }
@@ -1624,7 +1638,7 @@ async function testProfile(): Promise<void> {
   try { connection = profileFromForm().connection; }
   catch (error) { profileTestResult.textContent = error instanceof Error ? error.message : String(error); return; }
   profileTest.disabled = true;
-  profileTestResult.textContent = `Testing ${connection.label}: connecting → asking Orcan for its report…`;
+  profileTestResult.textContent = `Checking Orcan on ${connection.label}…`;
   try {
     const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
     const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
@@ -1647,17 +1661,16 @@ async function saveProfile(): Promise<void> {
     if (current?.profileId === built.profile.id) lockStudio();
     enclaveStatus.delete(built.profile.id);
     await loadStore();
-    void checkEnclave(built.profile);
-    result.textContent = `Profile “${built.profile.name}” saved. Connect its Enclave below.`;
+    result.textContent = `Profile “${built.profile.name}” saved. Install Orcan from Provisioning when this destination is new.`;
     showPane("profiles");
-    showView("enclaves");
+    showView("profiles");
   } catch (error) { profileTestResult.textContent = `Could not save: ${String(error)}`; }
   finally { profileSave.disabled = false; }
 }
 
 function renderProfiles(): void {
-  profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => listItem(profile.name, describeProfile(profile), actionButton("Edit", () => openProfileForm(profile))))
-    : [emptyState("No profiles yet. A profile says where Orcan runs and how Studio signs in.", "Create a profile", () => openProfileForm())]));
+  profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => listItem(profile.name, describeProfile(profile), actionButton("Provision", () => openProvisioning(profile), "secondary"), actionButton("Edit", () => openProfileForm(profile))))
+    : [emptyState("No profiles yet. A profile records how Studio reaches a local, WSL2, or SSH destination; Orcan can be installed later.", "Create a profile", () => openProfileForm())]));
 }
 
 // Enclaves
@@ -1797,6 +1810,44 @@ function selectedProfile(select: HTMLSelectElement): ConnectionProfile | undefin
 type CliProvisionResult = { version: string; image?: string };
 type CliProvisionCheck = { source: string; destination: string; image?: string };
 let cliProvisionReady = false;
+
+function openProvisioning(profile?: ConnectionProfile): void {
+  showView("provisioning");
+  if (profile) onlineProvisionTarget.value = profile.id;
+  renderOnlineProvision();
+}
+
+function renderOnlineProvision(): void {
+  const selected = onlineProvisionTarget.value;
+  onlineProvisionTarget.replaceChildren(
+    new Option(profiles.length ? "Choose destination profile…" : "No saved profiles", ""),
+    ...profiles.map((profile) => new Option(`${profile.name} · ${describeProfile(profile)}`, profile.id)),
+  );
+  onlineProvisionTarget.value = profiles.some((profile) => profile.id === selected) ? selected : "";
+  onlineProvisionRun.disabled = !profiles.length;
+  if (!profiles.length) onlineProvisionResult.textContent = "Save a local, WSL2, or SSH profile first. A profile does not need Orcan installed yet.";
+}
+
+async function provisionOnline(): Promise<void> {
+  const profile = selectedProfile(onlineProvisionTarget);
+  if (!profile) { onlineProvisionResult.textContent = "Choose a destination profile."; return; }
+  if (!window.confirm(`Install Orcan on ${profile.name}? Studio will run the official online installer on that destination. Existing Orcan files may be updated; no Studio profile, project, configuration, or credential is transferred.`)) return;
+  const job = addJob("Online Orcan provisioning", profile.name, profile.name, profile.id);
+  onlineProvisionRun.disabled = true;
+  onlineProvisionResult.textContent = `Installing Orcan on ${profile.name}…`;
+  try {
+    const installed = await invoke<CliProvisionResult>("provision_online", { enclave: enclaveInput(profileConnection(profile)) });
+    enclaveStatus.delete(profile.id);
+    onlineProvisionResult.textContent = `Installed ${installed.version} on ${profile.name}. You can now create or connect an Enclave.`;
+    finishJob(job, "succeeded", `Installed ${installed.version}`);
+    await checkEnclave(profile);
+  } catch (error) {
+    onlineProvisionResult.textContent = `Installation failed: ${String(error)}`;
+    finishJob(job, "failed", String(error));
+  } finally {
+    onlineProvisionRun.disabled = false;
+  }
+}
 
 function renderCliProvision(): void {
   const source = selectedProfile(cliProvisionSource)?.id;
@@ -1974,7 +2025,8 @@ function renderEnclaves(): void {
     const gear = actionButton("⚙", () => void openEnclaveSettings(profile), "secondary");
     gear.title = `Configure ${profile.name}`;
     gear.setAttribute("aria-label", `Configure ${profile.name}`);
-    const actions: HTMLElement[] = [actionButton("Check", () => void checkEnclave(profile)), gear];
+    const actions: HTMLElement[] = [actionButton("Check Orcan", () => void checkEnclave(profile)), gear];
+    if (!status?.report) actions.unshift(actionButton("Provision Orcan", () => openProvisioning(profile), "secondary"));
     if (status?.report?.runtime.docker.container.state === "running") {
       actions.push(actionButton("Remove container", () => {
         current = profileConnection(profile);
@@ -1991,6 +2043,7 @@ function renderEnclaves(): void {
     return item;
   }) : [emptyState("Enclaves appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
   renderCliProvision();
+  renderOnlineProvision();
   renderImageTransfer();
   renderEnclaveCreator();
 }
@@ -2080,6 +2133,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-pane-ta
 $("#new-profile").addEventListener("click", () => openProfileForm());
 imageTransferInspect.addEventListener("click", () => void inspectTransferImage());
 imageTransferRun.addEventListener("click", () => void transferImage());
+onlineProvisionRun.addEventListener("click", () => void provisionOnline());
 imageTransferSource.addEventListener("change", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
 imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled = true; });
 imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
@@ -2239,6 +2293,6 @@ if (demoMode) {
   });
 }
 activeInstance.addEventListener("click", () => showView("enclaves"));
-void loadStore().then(() => checkAll(true)).catch((error) => {
+void loadStore().catch((error) => {
   result.textContent = `Could not load saved Enclaves: ${String(error)}`;
 });
