@@ -21,7 +21,9 @@ For isolated or on-premise hosts, Provisioning can build a minimal CLI kit in
 a WSL2 source profile and stream it to a system-SSH destination. The remote
 host needs no Internet access: it extracts the kit, installs the host CLI, and
 verifies `orcan version`. The optional Docker image is streamed in the same
-operation. Kits intentionally exclude profiles, configuration, projects,
+operation. Before transfer, Studio checks the WSL source and destination shell
+for the required commands, including Docker only when an image is selected.
+Kits intentionally exclude profiles, configuration, projects,
 sandbox data, and credentials. This flow requires system OpenSSH, a remote
 shell and `tar`; Docker is required only when an image is included.
 

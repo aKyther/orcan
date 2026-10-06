@@ -25,6 +25,7 @@ const cliProvisionTarget = $<HTMLSelectElement>("#cli-provision-target");
 const cliProvisionImage = $<HTMLInputElement>("#cli-provision-image");
 const cliProvisionImageField = $("#cli-provision-image-field");
 const cliProvisionImageName = $<HTMLInputElement>("#cli-provision-image-name");
+const cliProvisionCheck = $<HTMLButtonElement>("#cli-provision-check");
 const cliProvisionRun = $<HTMLButtonElement>("#cli-provision-run");
 const cliProvisionResult = $<HTMLOutputElement>("#cli-provision-result");
 const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
@@ -1794,6 +1795,8 @@ function selectedProfile(select: HTMLSelectElement): ConnectionProfile | undefin
 }
 
 type CliProvisionResult = { version: string; image?: string };
+type CliProvisionCheck = { source: string; destination: string; image?: string };
+let cliProvisionReady = false;
 
 function renderCliProvision(): void {
   const source = selectedProfile(cliProvisionSource)?.id;
@@ -1806,26 +1809,55 @@ function renderCliProvision(): void {
   cliProvisionSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
   cliProvisionTarget.value = sshProfiles.some((profile) => profile.id === target) ? target! : sshProfiles[0]?.id ?? "";
   cliProvisionImageField.hidden = !cliProvisionImage.checked;
-  cliProvisionRun.disabled = !wslProfiles.length || !sshProfiles.length;
-  if (cliProvisionRun.disabled) cliProvisionResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH. The remote needs a shell, tar, and Docker only when including an image.";
+  cliProvisionCheck.disabled = !wslProfiles.length || !sshProfiles.length;
+  cliProvisionRun.disabled = true;
+  cliProvisionReady = false;
+  if (cliProvisionCheck.disabled) cliProvisionResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH. The remote needs a shell, tar, and Docker only when including an image.";
+}
+
+function cliProvisionInput(): { distribution: string; destination: string; image?: string } | undefined {
+  const source = selectedProfile(cliProvisionSource);
+  const target = selectedProfile(cliProvisionTarget);
+  if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh") return undefined;
+  const image = cliProvisionImage.checked ? cliProvisionImageName.value.trim() : undefined;
+  if (cliProvisionImage.checked && !image) throw new Error("Choose a Docker image to include.");
+  return { distribution: source.target.distribution, destination: target.target.destination, image };
+}
+
+async function checkCliProvision(): Promise<void> {
+  try {
+    const input = cliProvisionInput();
+    if (!input) return;
+    cliProvisionReady = false;
+    cliProvisionRun.disabled = true;
+    cliProvisionCheck.disabled = true;
+    cliProvisionResult.textContent = "Checking WSL, SSH, and remote requirements…";
+    const checked = await invoke<CliProvisionCheck>("check_wsl_cli_provision", { input });
+    cliProvisionReady = true;
+    cliProvisionRun.disabled = false;
+    cliProvisionResult.textContent = `Ready: WSL Orcan and tar are available; ${checked.destination} accepts SSH and has tar${checked.image ? " and Docker" : ""}.`;
+  } catch (error) {
+    cliProvisionResult.textContent = `Requirements check failed: ${String(error)}`;
+  } finally {
+    cliProvisionCheck.disabled = false;
+  }
 }
 
 async function provisionCli(): Promise<void> {
   const source = selectedProfile(cliProvisionSource);
   const target = selectedProfile(cliProvisionTarget);
   if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh") return;
-  const image = cliProvisionImage.checked ? cliProvisionImageName.value.trim() : undefined;
-  if (cliProvisionImage.checked && !image) {
-    cliProvisionResult.textContent = "Choose a Docker image to include.";
-    return;
-  }
+  if (!cliProvisionReady) return;
+  let input: { distribution: string; destination: string; image?: string };
+  try { input = cliProvisionInput()!; } catch (error) { cliProvisionResult.textContent = String(error); return; }
+  const { image } = input;
   const contents = image ? `the Orcan CLI and ${image}` : "the Orcan CLI";
   if (!window.confirm(`Install ${contents} from ${source.name} on ${target.name}? The remote installation replaces only its Orcan CLI files; no profile, project, sandbox, or credential is transferred.`)) return;
   const job = addJob("Offline CLI provisioning", `${source.name} → ${target.name}${image ? ` · ${image}` : ""}`, target.name, target.id);
   cliProvisionRun.disabled = true;
   cliProvisionResult.textContent = "Building the clean kit in WSL and streaming it through SSH…";
   try {
-    const installed = await invoke<CliProvisionResult>("provision_wsl_cli", { input: { distribution: source.target.distribution, destination: target.target.destination, image } });
+    const installed = await invoke<CliProvisionResult>("provision_wsl_cli", { input });
     cliProvisionResult.textContent = `Installed ${installed.version} on ${target.name}${installed.image ? ` and imported ${installed.image}` : ""}. Use New Enclave to configure and start it.`;
     finishJob(job, "succeeded", `Installed ${installed.version}${installed.image ? ` · ${installed.image}` : ""}`);
   } catch (error) {
@@ -2044,7 +2076,9 @@ imageTransferRun.addEventListener("click", () => void transferImage());
 imageTransferSource.addEventListener("change", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
 imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled = true; });
 imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
+cliProvisionCheck.addEventListener("click", () => void checkCliProvision());
 cliProvisionRun.addEventListener("click", () => void provisionCli());
+for (const input of [cliProvisionSource, cliProvisionTarget, cliProvisionImage, cliProvisionImageName]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; });
 cliProvisionImage.addEventListener("change", () => { cliProvisionImageField.hidden = !cliProvisionImage.checked; });
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
 enclaveCreateApply.addEventListener("click", () => { if (window.confirm("Create this empty Enclave?")) void planEmptyEnclave(true); });

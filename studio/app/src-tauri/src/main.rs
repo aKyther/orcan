@@ -88,6 +88,14 @@ struct CliProvisionResult {
     image: Option<String>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CliProvisionCheck {
+    source: String,
+    destination: String,
+    image: Option<String>,
+}
+
 fn valid_image_reference(image: &str) -> bool {
     !image.is_empty()
         && image.len() <= 255
@@ -107,6 +115,17 @@ fn validate_wsl_distribution(distribution: &str) -> Result<(), String> {
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
+fn command_output(mut command: Command, label: &str) -> Result<String, String> {
+    let output = command
+        .output()
+        .map_err(|error| format!("could not start {label}: {error}"))?;
+    if output.status.success() {
+        return Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned());
+    }
+    let detail = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+    Err(format!("{label} failed: {detail}"))
 }
 
 fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> {
@@ -226,6 +245,64 @@ async fn transfer_wsl_image(input: WslImageTransfer) -> Result<ImageInventory, S
     })
     .await
     .map_err(|error| format!("image transfer stopped: {error}"))?
+}
+
+/// Checks the fixed dependencies needed by offline WSL-to-SSH CLI provisioning.
+#[tauri::command]
+async fn check_wsl_cli_provision(input: WslCliProvision) -> Result<CliProvisionCheck, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        validate_wsl_distribution(&input.distribution)?;
+        Target::Ssh {
+            destination: input.destination.clone(),
+        }
+        .probe_request()
+        .map_err(|error| error.to_string())?;
+        if let Some(image) = &input.image {
+            if !valid_image_reference(image) {
+                return Err("invalid Docker image reference".to_owned());
+            }
+        }
+        let source_script = if let Some(image) = &input.image {
+            format!(
+                "set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null; docker image inspect {} >/dev/null",
+                shell_quote(image)
+            )
+        } else {
+            "set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null".to_owned()
+        };
+        command_output(
+            {
+                let mut command = Command::new("wsl.exe");
+                command
+                    .args(["--distribution", &input.distribution, "--exec", "bash", "-lc"])
+                    .arg(source_script);
+                command
+            },
+            "WSL provisioning requirements check",
+        )?;
+        let remote_script = if input.image.is_some() {
+            "set -Eeuo pipefail; command -v tar >/dev/null; docker info >/dev/null"
+        } else {
+            "set -Eeuo pipefail; command -v tar >/dev/null"
+        };
+        command_output(
+            {
+                let mut command = Command::new("ssh");
+                command
+                    .args(["-o", "BatchMode=yes", "--", &input.destination])
+                    .arg(format!("bash -lc {}", shell_quote(remote_script)));
+                command
+            },
+            "remote provisioning requirements check",
+        )?;
+        Ok(CliProvisionCheck {
+            source: input.distribution,
+            destination: input.destination,
+            image: input.image,
+        })
+    })
+    .await
+    .map_err(|error| format!("CLI provisioning check stopped: {error}"))?
 }
 
 /// Builds a minimal CLI kit in WSL and streams it to a system-SSH destination.
@@ -1070,6 +1147,7 @@ fn main() {
             list_wsl_distributions,
             wsl_image_inventory_command,
             transfer_wsl_image,
+            check_wsl_cli_provision,
             provision_wsl_cli,
             probe,
             enclave_action,
