@@ -291,6 +291,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     workspace_action: { plan: { ready: true, blockers: [], changes: ["update workspace", "run orcan sync"] } },
     runtime_action: null,
     check_online_provision: { user: "developer", installedVersion: "orcan demo" },
+    check_docker: { available: true, version: "27.5.1", detail: "Docker daemon is ready" },
     provision_online: { version: "orcan demo" },
   };
   return (responses[command] ?? {}) as T;
@@ -1686,8 +1687,48 @@ async function saveProfile(): Promise<void> {
   finally { profileSave.disabled = false; }
 }
 
+type DockerReadiness = { available: boolean; version?: string; detail: string };
+const dockerReadiness = new Map<string, DockerReadiness>();
+const dockerChecks = new Map<string, Promise<void>>();
+
+function profileReadiness(profile: ConnectionProfile): string {
+  const status = enclaveStatus.get(profile.id);
+  const docker = dockerReadiness.get(profile.id);
+  const orcan = status?.report ? `Orcan ${status.report.sandbox.version}` : status?.error && needsStudioUpdate(status.error) ? "Orcan update required" : "Orcan unchecked";
+  const dockerLabel = docker ? (docker.available ? `Docker ${docker.version ?? "ready"}` : "Docker unavailable") : status?.report?.capabilities.docker ? "Docker ready" : "Docker unchecked";
+  const enclave = profileHasEnclave(profile) ? "Enclave exists" : "Enclave not created";
+  return `${describeProfile(profile)} · ${orcan} · ${dockerLabel} · ${enclave}`;
+}
+
+async function checkDocker(profile: ConnectionProfile): Promise<void> {
+  const pending = dockerChecks.get(profile.id);
+  if (pending) return pending;
+  const check = (async () => {
+    dockerReadiness.set(profile.id, { available: false, detail: "Checking Docker…" });
+    renderProfiles();
+    try {
+      const readiness = await invoke<DockerReadiness>("check_docker", { enclave: enclaveInput(profileConnection(profile)) });
+      if (!readiness.available && profile.target.kind === "wsl2") {
+        readiness.detail = `${readiness.detail} Enable Docker Desktop WSL integration for this distribution, or install and start Docker Engine inside it.`;
+      }
+      dockerReadiness.set(profile.id, readiness);
+    } catch (error) {
+      dockerReadiness.set(profile.id, { available: false, detail: String(error) });
+    }
+    renderProfiles();
+    renderEnclaveCreator();
+  })().finally(() => dockerChecks.delete(profile.id));
+  dockerChecks.set(profile.id, check);
+  return check;
+}
+
 function renderProfiles(): void {
-  profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => listItem(profile.name, describeProfile(profile), actionButton("Install / update", () => openProvisioning(profile), "secondary"), actionButton("Edit", () => openProfileForm(profile))))
+  profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
+    const check = actionButton("Check Docker", () => void checkDocker(profile), "secondary");
+    check.disabled = dockerChecks.has(profile.id);
+    check.title = dockerReadiness.get(profile.id)?.detail ?? "Check whether Docker is usable on this profile";
+    return listItem(profile.name, profileReadiness(profile), actionButton("Install / update", () => openProvisioning(profile), "secondary"), check, actionButton("Edit", () => openProfileForm(profile)));
+  })
     : [emptyState("No profiles yet. A profile records how Studio reaches a local, WSL2, or SSH destination; Orcan can be installed later.", "Create a profile", () => openProfileForm())]));
 }
 
@@ -1991,7 +2032,11 @@ function profileHasEnclave(profile: ConnectionProfile): boolean {
 }
 
 function profileCanCreateEnclave(profile: ConnectionProfile): boolean {
-  return enclaveStatus.get(profile.id)?.state === "online" && !profileHasEnclave(profile);
+  const status = enclaveStatus.get(profile.id);
+  const docker = dockerReadiness.get(profile.id);
+  return status?.state === "online"
+    && !profileHasEnclave(profile)
+    && (docker?.available ?? Boolean(status.report?.capabilities.docker));
 }
 
 function renderEnclaveCreator(): void {
@@ -2008,7 +2053,7 @@ function renderEnclaveCreator(): void {
     const used = profiles.filter(profileHasEnclave).length;
     enclaveCreateResult.textContent = used
       ? "Every checked profile already owns an Enclave. One profile can create one Enclave."
-      : "Check Orcan on a provisioned profile before creating its Enclave.";
+      : "Check Orcan and Docker on a provisioned profile before creating its Enclave.";
   }
 }
 

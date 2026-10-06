@@ -107,6 +107,14 @@ struct OnlineProvisionCheck {
     installed_version: Option<String>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DockerReadiness {
+    available: bool,
+    version: Option<String>,
+    detail: String,
+}
+
 const ONLINE_INSTALL_SCRIPT: &str = "set -Eeuo pipefail; command -v curl >/dev/null || { echo 'curl is required for online installation' >&2; exit 127; }; curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
 const ONLINE_PROVISION_CHECK_SCRIPT: &str = "set -Eeuo pipefail; for tool in bash curl git python3; do command -v \"$tool\" >/dev/null || { echo \"$tool is required for online installation\" >&2; exit 127; }; done; curl -fsSI --connect-timeout 5 --max-time 15 https://raw.githubusercontent.com/aKyther/orcan/main/install.sh >/dev/null || { echo 'official Orcan installer is unreachable' >&2; exit 69; }; version=$(export PATH=\"$HOME/.local/bin:$PATH\"; if command -v orcan >/dev/null; then orcan version 2>/dev/null | head -n 1; else printf '%s' not-installed; fi); user=\"${USER:-${USERNAME:-unknown}}\"; printf '%s\\t%s\\n' \"$user\" \"$version\"";
 
@@ -218,6 +226,26 @@ fn parse_online_provision_check(output: String) -> Result<OnlineProvisionCheck, 
         installed_version: (version != "not-installed" && !version.is_empty())
             .then(|| version.to_owned()),
     })
+}
+
+fn docker_readiness(result: Result<String, String>) -> DockerReadiness {
+    match result {
+        Ok(version) if !version.trim().is_empty() => DockerReadiness {
+            available: true,
+            version: Some(version.trim().to_owned()),
+            detail: "Docker daemon is ready".to_owned(),
+        },
+        Ok(_) => DockerReadiness {
+            available: false,
+            version: None,
+            detail: "Docker did not report a server version".to_owned(),
+        },
+        Err(error) => DockerReadiness {
+            available: false,
+            version: None,
+            detail: error,
+        },
+    }
 }
 
 fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> {
@@ -812,6 +840,73 @@ async fn test_connection(
     .await
     .map_err(|error| format!("connection test stopped: {error}"))?
     .map(|user| user.trim().to_owned())
+}
+
+/// Asks the selected host's Docker client for a daemon version without
+/// changing Docker state. An unavailable daemon is a readiness result, not a
+/// transport failure: Studio can then guide the user before Enclave creation.
+#[tauri::command]
+async fn check_docker(
+    enclave: EnclaveInput,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<DockerReadiness, String> {
+    let target = Target::from(enclave.target.clone());
+    if let (Some(resolved), Target::Ssh { destination }) =
+        (native_ssh(&enclave, &target, &state)?, &target)
+    {
+        return Ok(docker_readiness(
+            native_ssh_exec(
+                destination,
+                resolved,
+                "docker version --format '{{.Server.Version}}'",
+            )
+            .await,
+        ));
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = match target {
+            Target::Local => command_output(
+                {
+                    let mut command = background_command("docker");
+                    command.args(["version", "--format", "{{.Server.Version}}"]);
+                    command
+                },
+                "local Docker check",
+            ),
+            Target::Wsl2 { distribution } => {
+                validate_wsl_distribution(&distribution)?;
+                command_output(
+                    {
+                        let mut command = background_command("wsl.exe");
+                        command.args([
+                            "--distribution",
+                            &distribution,
+                            "--exec",
+                            "docker",
+                            "version",
+                            "--format",
+                            "{{.Server.Version}}",
+                        ]);
+                        command
+                    },
+                    "WSL Docker check",
+                )
+            }
+            Target::Ssh { destination } => command_output(
+                {
+                    let mut command = background_command("ssh");
+                    command
+                        .args(["-o", "BatchMode=yes", "--", &destination])
+                        .arg("docker version --format '{{.Server.Version}}'");
+                    command
+                },
+                "remote Docker check",
+            ),
+        };
+        Ok(docker_readiness(result))
+    })
+    .await
+    .map_err(|error| format!("Docker check stopped: {error}"))?
 }
 
 /// Lists distributions that the Windows WSL launcher exposes to Studio.
@@ -1673,6 +1768,7 @@ fn main() {
             provision_online,
             probe,
             test_connection,
+            check_docker,
             enclave_action,
             sync,
             runtime_action,

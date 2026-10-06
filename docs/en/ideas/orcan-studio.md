@@ -103,6 +103,10 @@ For a real SSH or WSL verification, open that saved profile in Studio and run
 requiring Orcan. Provisioning then has a separate requirements check for Bash,
 cURL, Git, Python 3, and reachability of the official installer; it also
 reports whether it found an existing Orcan CLI.
+Profiles also expose a read-only Docker readiness check. New Enclave is enabled
+only after Orcan reports a usable Docker daemon for that profile; on WSL this
+means Docker Desktop integration or a Docker Engine must already be available
+inside the selected distribution.
 After provisioning, open its Enclave and use **Check Orcan** to read the
 configuration path before changing context.
 
