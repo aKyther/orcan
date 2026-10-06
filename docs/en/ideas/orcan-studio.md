@@ -123,9 +123,11 @@ Credentials are separate, reusable records: a named private-key path or
 password, together with its usual remote username, that several profiles can
 reference. A profile can override that user for an exceptional target. A
 credential cannot be deleted while a profile uses it.
-Studio's UI calls each connected Sandbox an **Enclave** (an isolated Orcan
+Studio's UI calls the current Sandbox runtime an **Enclave** (an isolated Orcan
 environment) and walks through Credentials & keys → Profiles → Enclaves; no
-instance view is shown until a probe succeeds.
+instance view is shown until a probe succeeds. Today one checked profile owns
+at most one Enclave, so Studio excludes profiles that already report an
+`orcan.config.json` from the New Enclave chooser.
 
 Workspace membership is edited on the Enclave map: dragging a project onto a
 workspace (or onto "New workspace") asks Orcan for a plan through

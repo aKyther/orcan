@@ -1984,12 +1984,32 @@ function renderImageTransfer(): void {
   if (!ready) imageTransferResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH before transferring an image.";
 }
 
+/** One profile owns one current Enclave until Orcan gains multi-runtime support. */
+function profileHasEnclave(profile: ConnectionProfile): boolean {
+  const report = enclaveStatus.get(profile.id)?.report ?? cachedEnclaveReport(profile);
+  return report?.context.configuration.source === "config" || report?.context.configuration.state === "present";
+}
+
+function profileCanCreateEnclave(profile: ConnectionProfile): boolean {
+  return enclaveStatus.get(profile.id)?.state === "online" && !profileHasEnclave(profile);
+}
+
 function renderEnclaveCreator(): void {
   const previous = enclaveCreateProfile.value;
-  enclaveCreateProfile.replaceChildren(new Option("Choose destination profile…", ""), ...profiles.map((profile) => new Option(profile.name, profile.id)));
-  enclaveCreateProfile.value = profiles.some((profile) => profile.id === previous) ? previous : "";
-  enclaveCreatePlan.disabled = profiles.length === 0;
+  const available = profiles.filter(profileCanCreateEnclave);
+  enclaveCreateProfile.replaceChildren(
+    new Option(available.length ? "Choose available profile…" : "No available profiles", ""),
+    ...available.map((profile) => new Option(profile.name, profile.id)),
+  );
+  enclaveCreateProfile.value = available.some((profile) => profile.id === previous) ? previous : "";
+  enclaveCreatePlan.disabled = available.length === 0;
   enclaveCreateApply.disabled = true;
+  if (!available.length) {
+    const used = profiles.filter(profileHasEnclave).length;
+    enclaveCreateResult.textContent = used
+      ? "Every checked profile already owns an Enclave. One profile can create one Enclave."
+      : "Check Orcan on a provisioned profile before creating its Enclave.";
+  }
 }
 
 function enclaveTtydCredential(): string | undefined {
@@ -2005,6 +2025,10 @@ function enclaveTtydCredential(): string | undefined {
 async function planEmptyEnclave(apply = false): Promise<void> {
   const profile = selectedProfile(enclaveCreateProfile);
   if (!profile) return;
+  if (!profileCanCreateEnclave(profile)) {
+    enclaveCreateResult.textContent = "This profile is not available for a new Enclave. Check Orcan first, or use its existing Enclave.";
+    return;
+  }
   enclaveCreateResult.textContent = apply ? "Creating empty Enclave…" : "Reading creation plan…";
   try {
     if (!apply) {
