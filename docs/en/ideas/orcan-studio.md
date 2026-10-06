@@ -98,8 +98,12 @@ Enclave can be reopened from its activity row. The Connection doctor in
 Settings repeats the target, user, configuration path, and workspace-index
 path, with reconnect and profile actions.
 
-For a real SSH or WSL verification, open that saved profile in Studio, run
-**Check Orcan**, and confirm that Connection doctor reports the intended target user and
+For a real SSH or WSL verification, open that saved profile in Studio and run
+**Test connection**. It verifies the selected transport and system user without
+requiring Orcan. Provisioning then has a separate requirements check for Bash,
+cURL, Git, Python 3, and reachability of the official installer; it also
+reports whether it found an existing Orcan CLI.
+After provisioning, open its Enclave and use **Check Orcan** to read the
 configuration path before changing context.
 
 The Enclave map keeps projects directly under the managed sandbox root flat.

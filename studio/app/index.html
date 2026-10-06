@@ -141,7 +141,7 @@
                 </div>
                 <output id="profile-test-result" aria-live="polite"></output>
                 <p id="profile-test-hint" class="hint" hidden></p>
-                <div class="form-actions"><button id="profile-delete" type="button" class="danger-link" hidden>Delete profile</button><span></span><button id="profile-test" type="button" class="secondary">Check Orcan</button><button id="profile-save" type="button">Save profile</button></div>
+                <div class="form-actions"><button id="profile-delete" type="button" class="danger-link" hidden>Delete profile</button><span></span><button id="profile-test" type="button" class="secondary">Test connection</button><button id="profile-save" type="button">Save profile</button></div>
               </section></div>
         </section>
 
@@ -172,8 +172,8 @@
             <h2 id="online-provision-title">Install Orcan online</h2>
             <p class="muted">Use the official installer on a saved local, WSL2, or SSH profile. It needs internet access, Bash, Git, and Python 3; it does not transfer Studio profiles, projects, configuration, or credentials.</p>
             <div class="form-row"><label>Destination profile<select id="online-provision-target"></select></label></div>
-            <div class="actions compact"><button id="online-provision-run" type="button">Install or update Orcan</button></div>
-            <output id="online-provision-result" aria-live="polite"></output>
+            <div class="actions compact"><button id="online-provision-check" type="button" class="secondary">Check requirements</button><button id="online-provision-run" type="button" disabled>Install or update Orcan</button></div>
+            <output id="online-provision-result" aria-live="polite">Check the destination before installing or updating Orcan.</output>
           </section>
           <section class="panel" aria-labelledby="cli-provision-title">
             <h2 id="cli-provision-title">Install Orcan CLI offline</h2>

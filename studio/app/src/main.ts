@@ -29,6 +29,7 @@ const cliProvisionCheck = $<HTMLButtonElement>("#cli-provision-check");
 const cliProvisionRun = $<HTMLButtonElement>("#cli-provision-run");
 const cliProvisionResult = $<HTMLOutputElement>("#cli-provision-result");
 const onlineProvisionTarget = $<HTMLSelectElement>("#online-provision-target");
+const onlineProvisionCheck = $<HTMLButtonElement>("#online-provision-check");
 const onlineProvisionRun = $<HTMLButtonElement>("#online-provision-run");
 const onlineProvisionResult = $<HTMLOutputElement>("#online-provision-result");
 const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
@@ -272,6 +273,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   await new Promise((resolve) => window.setTimeout(resolve, 180));
   if (command === "current_user") return "developer" as T;
   if (command === "wsl_default_user") return "developer" as T;
+  if (command === "test_connection") return "developer" as T;
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
   const enclave = (_args as { enclave?: { target: Target } } | undefined)?.enclave;
   if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
@@ -288,6 +290,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     worktree_cleanup: { plan: { ready: true, blockers: [] } },
     workspace_action: { plan: { ready: true, blockers: [], changes: ["update workspace", "run orcan sync"] } },
     runtime_action: null,
+    check_online_provision: { user: "developer", installedVersion: "orcan demo" },
     provision_online: { version: "orcan demo" },
   };
   return (responses[command] ?? {}) as T;
@@ -1654,11 +1657,10 @@ async function testProfile(): Promise<void> {
   try { connection = profileFromForm().connection; }
   catch (error) { profileTestResult.textContent = error instanceof Error ? error.message : String(error); return; }
   profileTest.disabled = true;
-  profileTestResult.textContent = `Checking Orcan on ${connection.label}…`;
+  profileTestResult.textContent = `Testing connection to ${connection.label}…`;
   try {
-    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
-    const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
-    profileTestResult.textContent = `✓ Reached Orcan ${report.sandbox.version} on ${report.host.os} · container ${report.runtime.docker.container.state} · ${report.context.workspaces.length} workspace families${agents.length ? ` · agents: ${agents.join(", ")}` : ""}`;
+    const user = await invoke<string>("test_connection", { enclave: enclaveInput(connection) });
+    profileTestResult.textContent = `✓ Reached ${connection.label}${user ? ` as ${user}` : ""}. Orcan is optional at this stage; install or update it later from Provisioning.`;
   } catch (error) {
     profileTestResult.textContent = `✕ ${String(error)}`;
     profileTestHint.textContent = failureHint(String(error));
@@ -1825,7 +1827,9 @@ function selectedProfile(select: HTMLSelectElement): ConnectionProfile | undefin
 
 type CliProvisionResult = { version: string; image?: string };
 type CliProvisionCheck = { source: string; destination: string; image?: string };
+type OnlineProvisionCheck = { user: string; installedVersion?: string };
 let cliProvisionReady = false;
+let onlineProvisionReadyProfileId: string | undefined;
 
 function openProvisioning(profile?: ConnectionProfile): void {
   showView("provisioning");
@@ -1840,13 +1844,35 @@ function renderOnlineProvision(): void {
     ...profiles.map((profile) => new Option(`${profile.name} · ${describeProfile(profile)}`, profile.id)),
   );
   onlineProvisionTarget.value = profiles.some((profile) => profile.id === selected) ? selected : "";
-  onlineProvisionRun.disabled = !profiles.length;
+  const profile = selectedProfile(onlineProvisionTarget);
+  onlineProvisionCheck.disabled = !profile;
+  onlineProvisionRun.disabled = !profile || onlineProvisionReadyProfileId !== profile.id;
   if (!profiles.length) onlineProvisionResult.textContent = "Save a local, WSL2, or SSH profile first. A profile does not need Orcan installed yet.";
+}
+
+async function checkOnlineProvision(): Promise<void> {
+  const profile = selectedProfile(onlineProvisionTarget);
+  if (!profile) { onlineProvisionResult.textContent = "Choose a destination profile."; return; }
+  onlineProvisionReadyProfileId = undefined;
+  onlineProvisionCheck.disabled = true;
+  onlineProvisionRun.disabled = true;
+  onlineProvisionResult.textContent = `Checking ${profile.name} for online installation…`;
+  try {
+    const check = await invoke<OnlineProvisionCheck>("check_online_provision", { enclave: enclaveInput(profileConnection(profile)) });
+    onlineProvisionReadyProfileId = profile.id;
+    onlineProvisionRun.disabled = false;
+    onlineProvisionResult.textContent = `Ready as ${check.user}. Bash, curl, Git, and Python 3 are available.${check.installedVersion ? ` Existing Orcan: ${check.installedVersion}.` : " Orcan is not installed yet."}`;
+  } catch (error) {
+    onlineProvisionResult.textContent = `Requirements check failed: ${String(error)}`;
+  } finally {
+    onlineProvisionCheck.disabled = false;
+  }
 }
 
 async function provisionOnline(): Promise<void> {
   const profile = selectedProfile(onlineProvisionTarget);
   if (!profile) { onlineProvisionResult.textContent = "Choose a destination profile."; return; }
+  if (onlineProvisionReadyProfileId !== profile.id) { onlineProvisionResult.textContent = "Check requirements before installing or updating Orcan."; return; }
   if (!window.confirm(`Install or update Orcan on ${profile.name}? Studio will run the official online installer on that destination. Existing Orcan source files may be updated; no Studio profile, project, configuration, or credential is transferred.`)) return;
   const job = addJob("Install or update Orcan", profile.name, profile.name, profile.id);
   onlineProvisionRun.disabled = true;
@@ -1861,7 +1887,8 @@ async function provisionOnline(): Promise<void> {
     onlineProvisionResult.textContent = `Installation failed: ${String(error)}`;
     finishJob(job, "failed", String(error));
   } finally {
-    onlineProvisionRun.disabled = false;
+    onlineProvisionReadyProfileId = undefined;
+    onlineProvisionRun.disabled = true;
   }
 }
 
@@ -2154,7 +2181,9 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-pane-ta
 $("#new-profile").addEventListener("click", () => openProfileForm());
 imageTransferInspect.addEventListener("click", () => void inspectTransferImage());
 imageTransferRun.addEventListener("click", () => void transferImage());
+onlineProvisionCheck.addEventListener("click", () => void checkOnlineProvision());
 onlineProvisionRun.addEventListener("click", () => void provisionOnline());
+onlineProvisionTarget.addEventListener("change", () => { onlineProvisionReadyProfileId = undefined; renderOnlineProvision(); });
 imageTransferSource.addEventListener("change", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
 imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled = true; });
 imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });

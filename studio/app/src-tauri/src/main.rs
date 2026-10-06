@@ -100,7 +100,15 @@ struct CliProvisionCheck {
     image: Option<String>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OnlineProvisionCheck {
+    user: String,
+    installed_version: Option<String>,
+}
+
 const ONLINE_INSTALL_SCRIPT: &str = "set -Eeuo pipefail; command -v curl >/dev/null || { echo 'curl is required for online installation' >&2; exit 127; }; curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
+const ONLINE_PROVISION_CHECK_SCRIPT: &str = "set -Eeuo pipefail; for tool in bash curl git python3; do command -v \"$tool\" >/dev/null || { echo \"$tool is required for online installation\" >&2; exit 127; }; done; curl -fsSI --connect-timeout 5 --max-time 15 https://raw.githubusercontent.com/aKyther/orcan/main/install.sh >/dev/null || { echo 'official Orcan installer is unreachable' >&2; exit 69; }; version=$(export PATH=\"$HOME/.local/bin:$PATH\"; if command -v orcan >/dev/null; then orcan version 2>/dev/null | head -n 1; else printf '%s' not-installed; fi); user=\"${USER:-${USERNAME:-unknown}}\"; printf '%s\\t%s\\n' \"$user\" \"$version\"";
 
 fn valid_image_reference(image: &str) -> bool {
     !image.is_empty()
@@ -195,6 +203,21 @@ fn command_output(mut command: Command, label: &str) -> Result<String, String> {
     }
     let detail = String::from_utf8_lossy(&output.stderr).trim().to_owned();
     Err(format!("{label} failed: {detail}"))
+}
+
+fn parse_online_provision_check(output: String) -> Result<OnlineProvisionCheck, String> {
+    let (user, version) = output
+        .trim()
+        .split_once('\t')
+        .ok_or_else(|| "online provisioning check returned an incomplete result".to_owned())?;
+    if user.is_empty() {
+        return Err("online provisioning check did not report a user".to_owned());
+    }
+    Ok(OnlineProvisionCheck {
+        user: user.to_owned(),
+        installed_version: (version != "not-installed" && !version.is_empty())
+            .then(|| version.to_owned()),
+    })
 }
 
 fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> {
@@ -545,6 +568,67 @@ async fn provision_wsl_cli(
 /// not require Orcan to exist, so this is the first provisioning step for a
 /// new WSL, local, or SSH destination with internet access.
 #[tauri::command]
+async fn check_online_provision(
+    enclave: EnclaveInput,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<OnlineProvisionCheck, String> {
+    let target = Target::from(enclave.target.clone());
+    if let (Some(resolved), Target::Ssh { destination }) =
+        (native_ssh(&enclave, &target, &state)?, &target)
+    {
+        return native_ssh_exec(
+            destination,
+            resolved,
+            &format!("bash -lc {}", shell_quote(ONLINE_PROVISION_CHECK_SCRIPT)),
+        )
+        .await
+        .and_then(parse_online_provision_check);
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let output = match target {
+            Target::Local => command_output(
+                {
+                    let mut command = background_command("bash");
+                    command.args(["-lc", ONLINE_PROVISION_CHECK_SCRIPT]);
+                    command
+                },
+                "local provisioning requirements check",
+            ),
+            Target::Wsl2 { distribution } => {
+                validate_wsl_distribution(&distribution)?;
+                command_output(
+                    {
+                        let mut command = background_command("wsl.exe");
+                        command
+                            .args(["--distribution", &distribution, "--exec", "bash", "-lc"])
+                            .arg(ONLINE_PROVISION_CHECK_SCRIPT);
+                        command
+                    },
+                    "WSL provisioning requirements check",
+                )
+            }
+            Target::Ssh { destination } => command_output(
+                {
+                    let mut command = background_command("ssh");
+                    command
+                        .args(["-o", "BatchMode=yes", "--", &destination])
+                        .arg(format!(
+                            "bash -lc {}",
+                            shell_quote(ONLINE_PROVISION_CHECK_SCRIPT)
+                        ));
+                    command
+                },
+                "remote provisioning requirements check",
+            ),
+        }?;
+        parse_online_provision_check(output)
+    })
+    .await
+    .map_err(|error| format!("online provisioning check stopped: {error}"))?
+}
+
+/// Installs or updates the public Orcan CLI after a successful preflight.
+#[tauri::command]
 async fn provision_online(
     enclave: EnclaveInput,
     state: tauri::State<'_, ProfileState>,
@@ -684,6 +768,50 @@ async fn probe(
     let args = ["studio", "probe", "--json"].map(str::to_owned).to_vec();
     let stdout = run_on_enclave(enclave, args, state).await?;
     parse_probe_report(&stdout).map_err(|error| error.to_string())
+}
+
+/// Verifies only the saved transport. A profile can be valid before Orcan is
+/// installed, so this deliberately does not call the Studio protocol.
+#[tauri::command]
+async fn test_connection(
+    enclave: EnclaveInput,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<String, String> {
+    let target = Target::from(enclave.target.clone());
+    if let (Some(resolved), Target::Ssh { destination }) =
+        (native_ssh(&enclave, &target, &state)?, &target)
+    {
+        return native_ssh_exec(destination, resolved, "id -un")
+            .await
+            .map(|user| user.trim().to_owned());
+    }
+    tauri::async_runtime::spawn_blocking(move || match target {
+        Target::Local => Ok(current_user()),
+        Target::Wsl2 { distribution } => {
+            validate_wsl_distribution(&distribution)?;
+            command_output(
+                {
+                    let mut command = background_command("wsl.exe");
+                    command.args(["--distribution", &distribution, "--exec", "id", "-un"]);
+                    command
+                },
+                "WSL connection test",
+            )
+        }
+        Target::Ssh { destination } => command_output(
+            {
+                let mut command = background_command("ssh");
+                command
+                    .args(["-o", "BatchMode=yes", "--", &destination])
+                    .arg("id -un");
+                command
+            },
+            "SSH connection test",
+        ),
+    })
+    .await
+    .map_err(|error| format!("connection test stopped: {error}"))?
+    .map(|user| user.trim().to_owned())
 }
 
 /// Lists distributions that the Windows WSL launcher exposes to Studio.
@@ -1541,8 +1669,10 @@ fn main() {
             transfer_wsl_image,
             check_wsl_cli_provision,
             provision_wsl_cli,
+            check_online_provision,
             provision_online,
             probe,
+            test_connection,
             enclave_action,
             sync,
             runtime_action,
