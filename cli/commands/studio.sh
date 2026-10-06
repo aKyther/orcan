@@ -99,9 +99,15 @@ orcan_cmd_studio() {
             # progress deliberately goes to stderr so it cannot corrupt that response.
             orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}" >/dev/null || return
             source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync.sh"
-            orcan_cmd_sync >&2 || return
+            if ! orcan_cmd_sync >&2; then
+                orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" rollback --config "${ORCAN_CONFIG_FILE}" --yes >&2 || true
+                return 1
+            fi
             source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/up.sh"
-            orcan_cmd_up "${up_args[@]}" >&2 || return
+            if ! orcan_cmd_up "${up_args[@]}" >&2; then
+                orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" rollback --config "${ORCAN_CONFIG_FILE}" --yes >&2 || true
+                return 1
+            fi
             printf '%s\n' '{"ok":true,"result":{"operation":"empty_enclave"}}'
             ;;
         -h | --help | "")

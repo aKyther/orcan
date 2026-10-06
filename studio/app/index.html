@@ -167,7 +167,18 @@
         </section>
         <section class="view" data-view="provisioning" hidden>
           <div class="view-intro"><p class="eyebrow">PROVISIONING</p><h2>Prepare a destination profile from a source profile.</h2></div>
-          <section class="panel"><h2>Host Orcan CLI</h2><p class="muted">The destination needs a host Orcan CLI before Studio can create or manage an Enclave. Images are transferred separately and never include profiles, projects, configuration, or secrets.</p></section>
+          <section class="panel" aria-labelledby="cli-provision-title">
+            <h2 id="cli-provision-title">Install Orcan CLI offline</h2>
+            <p class="muted">Build a clean kit in WSL2 and stream it through SSH. The kit never includes profiles, configuration, projects, sandbox data, or credentials.</p>
+            <div class="form-row three">
+              <label>Source profile<select id="cli-provision-source"></select></label>
+              <label>Destination profile<select id="cli-provision-target"></select></label>
+              <label><input id="cli-provision-image" type="checkbox" /> Include Docker image</label>
+            </div>
+            <label id="cli-provision-image-field" hidden>Docker image<input id="cli-provision-image-name" value="orcan:latest" /></label>
+            <div class="actions compact"><button id="cli-provision-run" type="button">Install offline kit</button></div>
+            <output id="cli-provision-result" aria-live="polite"></output>
+          </section>
           <section class="panel" aria-labelledby="image-transfer-title"><h2 id="image-transfer-title">Transfer an Orcan image</h2><div class="form-row three"><label>Source profile<select id="image-transfer-source"></select></label><label>Docker image<input id="image-transfer-name" value="orcan:latest" /></label><label>Destination profile<select id="image-transfer-target"></select></label></div><div class="actions compact"><button id="image-transfer-inspect" type="button" class="secondary">Inspect source image</button><button id="image-transfer-run" type="button" disabled>Transfer to destination</button></div><output id="image-transfer-result" aria-live="polite"></output></section>
         </section>
 

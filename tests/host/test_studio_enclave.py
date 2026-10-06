@@ -52,3 +52,22 @@ def test_empty_enclave_apply_requires_confirmation_and_never_overwrites(
     existing = invoke("apply", "--config", str(config), "--yes", check=False)
     assert existing.returncode != 0
     assert json.loads(config.read_text(encoding="utf-8")) == {"workspaces": []}
+
+
+def test_empty_enclave_rollback_only_removes_the_empty_studio_configuration(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "orcan.config.json"
+    invoke("apply", "--config", str(config), "--yes")
+
+    report = json.loads(invoke("rollback", "--config", str(config), "--yes").stdout)
+    assert report["ok"] is True
+    assert not config.exists()
+
+    config.write_text('{"workspaces":[{"name":"keep"}]}\n', encoding="utf-8")
+    rejected = invoke("rollback", "--config", str(config), "--yes", check=False)
+    assert rejected.returncode != 0
+    assert (
+        json.loads(config.read_text(encoding="utf-8"))["workspaces"][0]["name"]
+        == "keep"
+    )

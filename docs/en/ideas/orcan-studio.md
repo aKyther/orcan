@@ -17,6 +17,14 @@ Studio has three transport modes:
 - **SSH**: runs the same versioned Orcan Studio protocol through the user's
   OpenSSH configuration.
 
+For isolated or on-premise hosts, Provisioning can build a minimal CLI kit in
+a WSL2 source profile and stream it to a system-SSH destination. The remote
+host needs no Internet access: it extracts the kit, installs the host CLI, and
+verifies `orcan version`. The optional Docker image is streamed in the same
+operation. Kits intentionally exclude profiles, configuration, projects,
+sandbox data, and credentials. This flow requires system OpenSSH, a remote
+shell and `tar`; Docker is required only when an image is included.
+
 The first protocol operation is `orcan studio probe --json`. It is read-only.
 It is the authoritative Sandbox snapshot: Studio refreshes paths, configuration
 revision, managed roots, workspaces, projects, mounts, and runtime state on

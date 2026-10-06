@@ -65,12 +65,27 @@ struct WslImageTransfer {
     destination: String,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WslCliProvision {
+    distribution: String,
+    destination: String,
+    image: Option<String>,
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ImageInventory {
     image: String,
     id: String,
     size: String,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CliProvisionResult {
+    version: String,
+    image: Option<String>,
 }
 
 fn valid_image_reference(image: &str) -> bool {
@@ -88,6 +103,10 @@ fn validate_wsl_distribution(distribution: &str) -> Result<(), String> {
     .probe_request()
     .map(|_| ())
     .map_err(|error| error.to_string())
+}
+
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
 fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> {
@@ -207,6 +226,96 @@ async fn transfer_wsl_image(input: WslImageTransfer) -> Result<ImageInventory, S
     })
     .await
     .map_err(|error| format!("image transfer stopped: {error}"))?
+}
+
+/// Builds a minimal CLI kit in WSL and streams it to a system-SSH destination.
+/// The kit excludes configuration, projects, sandbox data, and credentials.
+#[tauri::command]
+async fn provision_wsl_cli(input: WslCliProvision) -> Result<CliProvisionResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        validate_wsl_distribution(&input.distribution)?;
+        Target::Ssh {
+            destination: input.destination.clone(),
+        }
+        .probe_request()
+        .map_err(|error| error.to_string())?;
+        if let Some(image) = &input.image {
+            if !valid_image_reference(image) {
+                return Err("invalid Docker image reference".to_owned());
+            }
+        }
+
+        let image_arg = input
+            .image
+            .as_deref()
+            .map(|image| format!(" --image {}", shell_quote(image)))
+            .unwrap_or_default();
+        let source_script = format!(
+            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit\"{image_arg}; tar -C \"$kit\" -czf - ."
+        );
+        let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
+        let remote_command = format!("bash -lc {}", shell_quote(remote_script));
+
+        let mut source = Command::new("wsl.exe")
+            .args(["--distribution", &input.distribution, "--exec", "bash", "-lc"])
+            .arg(source_script)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| format!("could not create a WSL CLI kit: {error}"))?;
+        let mut target = Command::new("ssh")
+            .args(["-o", "BatchMode=yes", "--", &input.destination])
+            .arg(remote_command)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| format!("could not start SSH CLI installation: {error}"))?;
+        let mut input_stream = source
+            .stdout
+            .take()
+            .ok_or_else(|| "WSL CLI kit has no stdout".to_owned())?;
+        let mut output_stream = target
+            .stdin
+            .take()
+            .ok_or_else(|| "SSH CLI installation has no stdin".to_owned())?;
+        io::copy(&mut input_stream, &mut output_stream)
+            .map_err(|error| format!("CLI kit transfer interrupted: {error}"))?;
+        drop(output_stream);
+        let source_result = source
+            .wait_with_output()
+            .map_err(|error| format!("could not finish WSL CLI kit: {error}"))?;
+        let target_result = target
+            .wait_with_output()
+            .map_err(|error| format!("could not finish SSH CLI installation: {error}"))?;
+        if !source_result.status.success() {
+            return Err(format!(
+                "WSL CLI kit creation failed: {}",
+                String::from_utf8_lossy(&source_result.stderr).trim()
+            ));
+        }
+        if !target_result.status.success() {
+            return Err(format!(
+                "remote CLI installation failed: {}",
+                String::from_utf8_lossy(&target_result.stderr).trim()
+            ));
+        }
+        let version = String::from_utf8_lossy(&target_result.stdout)
+            .lines()
+            .last()
+            .unwrap_or_default()
+            .trim()
+            .to_owned();
+        if version.is_empty() {
+            return Err("remote CLI installation did not report an Orcan version".to_owned());
+        }
+        Ok(CliProvisionResult {
+            version,
+            image: input.image,
+        })
+    })
+    .await
+    .map_err(|error| format!("CLI provisioning stopped: {error}"))?
 }
 
 /// Native SSH options when the Enclave signs in with a saved key or password.
@@ -961,6 +1070,7 @@ fn main() {
             list_wsl_distributions,
             wsl_image_inventory_command,
             transfer_wsl_image,
+            provision_wsl_cli,
             probe,
             enclave_action,
             sync,
