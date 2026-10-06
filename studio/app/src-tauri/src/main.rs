@@ -892,7 +892,7 @@ async fn native_ssh_install_wsl_kit(
         .await
         .map_err(|error| format!("could not open SSH installation channel: {error}"))?;
     channel
-        .exec(true, &remote_command)
+        .exec(true, remote_command.as_str())
         .await
         .map_err(|error| format!("could not start remote CLI installation: {error}"))?;
     channel
