@@ -12,6 +12,8 @@ use std::process::Command;
 
 pub const PROTOCOL_NAME: &str = "orcan-studio";
 pub const PROTOCOL_VERSION: u32 = 1;
+const WSL_ORCAN_LAUNCHER: &str = "export PATH=\"$HOME/.local/bin:$PATH\"; exec orcan \"$@\"";
+const REMOTE_ORCAN_PATH_PREFIX: &str = "export PATH=\"$HOME/.local/bin:$PATH\"; exec ";
 
 /// A UI-safe lifecycle shared by every asynchronous Studio operation.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -212,10 +214,13 @@ fn shell_word(value: &str) -> String {
 
 /// The command line an SSH session runs for `orcan <args>`.
 pub fn remote_orcan_command(args: &[String]) -> String {
-    std::iter::once("orcan".to_owned())
-        .chain(args.iter().map(|argument| shell_word(argument)))
-        .collect::<Vec<_>>()
-        .join(" ")
+    format!(
+        "{REMOTE_ORCAN_PATH_PREFIX}{}",
+        std::iter::once("orcan".to_owned())
+            .chain(args.iter().map(|argument| shell_word(argument)))
+            .collect::<Vec<_>>()
+            .join(" ")
+    )
 }
 
 impl Target {
@@ -224,9 +229,17 @@ impl Target {
             Self::Local => vec![],
             Self::Wsl2 { distribution } => {
                 validate_identifier("WSL distribution", distribution)?;
-                ["--distribution", distribution, "--exec", "orcan"]
-                    .map(str::to_owned)
-                    .to_vec()
+                [
+                    "--distribution",
+                    distribution,
+                    "--exec",
+                    "bash",
+                    "-lc",
+                    WSL_ORCAN_LAUNCHER,
+                    "orcan",
+                ]
+                .map(str::to_owned)
+                .to_vec()
             }
             Self::Ssh { destination } => {
                 validate_identifier("SSH destination", destination)?;
@@ -286,6 +299,9 @@ impl Target {
                         "--distribution",
                         distribution,
                         "--exec",
+                        "bash",
+                        "-lc",
+                        WSL_ORCAN_LAUNCHER,
                         "orcan",
                         "studio",
                         "probe",
@@ -295,19 +311,16 @@ impl Target {
             }
             Self::Ssh { destination } => {
                 validate_identifier("SSH destination", destination)?;
-                Ok(ProcessRequest::new(
-                    "ssh",
-                    &[
-                        "-o",
-                        "BatchMode=yes",
-                        "--",
-                        destination,
-                        "orcan",
-                        "studio",
-                        "probe",
-                        "--json",
-                    ],
-                ))
+                Ok(ProcessRequest {
+                    program: "ssh".to_owned(),
+                    arguments: ["-o", "BatchMode=yes", "--", destination]
+                        .map(str::to_owned)
+                        .into_iter()
+                        .chain(std::iter::once(remote_orcan_command(
+                            &orcan_args.map(str::to_owned),
+                        )))
+                        .collect(),
+                })
             }
         }
     }
@@ -1098,6 +1111,9 @@ mod tests {
                 "--distribution",
                 "Ubuntu-24.04",
                 "--exec",
+                "bash",
+                "-lc",
+                WSL_ORCAN_LAUNCHER,
                 "orcan",
                 "studio",
                 "probe",
@@ -1122,10 +1138,7 @@ mod tests {
                 "BatchMode=yes",
                 "--",
                 "build-host",
-                "orcan",
-                "studio",
-                "probe",
-                "--json",
+                "export PATH=\"$HOME/.local/bin:$PATH\"; exec orcan studio probe --json",
             ]
         );
     }
@@ -1145,7 +1158,7 @@ mod tests {
                 "BatchMode=yes",
                 "--",
                 "build-host",
-                "orcan up --resume"
+                "export PATH=\"$HOME/.local/bin:$PATH\"; exec orcan up --resume"
             ]
         );
         assert_eq!(
@@ -1165,6 +1178,9 @@ mod tests {
                 "--distribution",
                 "Ubuntu",
                 "--exec",
+                "bash",
+                "-lc",
+                WSL_ORCAN_LAUNCHER,
                 "orcan",
                 "up",
                 "--resume"
@@ -1184,7 +1200,7 @@ mod tests {
         .expect("valid membership change");
         assert_eq!(
             remote_orcan_command(&args),
-            "orcan studio settings project-add-apply --workspace org-dev --project '/srv/My Repo'\\''s' --project-mode git --yes"
+            "export PATH=\"$HOME/.local/bin:$PATH\"; exec orcan studio settings project-add-apply --workspace org-dev --project '/srv/My Repo'\\''s' --project-mode git --yes"
         );
         assert!(
             membership_args(

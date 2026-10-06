@@ -45,7 +45,10 @@ bash --version
 curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
 ```
 
-`install.sh` puts the launcher in `~/.local/bin` and appends that directory to your shell rc (idempotent; skip with `ORCAN_SKIP_PATH=1`). A `curl | bash` install **cannot** change the parent shell’s `PATH`, so before `orcan doctor`:
+`install.sh` puts the launcher in `~/.local/bin` and adds that directory to
+`~/.profile` plus the active Bash or Zsh rc file (idempotent; skip with
+`ORCAN_SKIP_PATH=1`). A `curl | bash` install **cannot** change the parent
+shell’s `PATH`, so before `orcan doctor`:
 
 1. Confirm `~/.local/bin` is on `PATH` (`echo "$PATH"` or `command -v orcan`).
 2. If the installer added the rc line but this session still lacks it, reload the shell — e.g. `exec bash -l`, `exec zsh -l`, or open a new terminal. One-shot: `export PATH="$HOME/.local/bin:$PATH"`.

@@ -681,6 +681,25 @@ async fn list_wsl_distributions() -> Result<Vec<String>, String> {
     .map_err(|error| format!("WSL discovery stopped: {error}"))?
 }
 
+/// Returns the Linux account used when Studio starts commands in a WSL
+/// distribution without an explicit `--user` override.
+#[tauri::command]
+async fn wsl_default_user(distribution: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        validate_wsl_distribution(&distribution)?;
+        command_output(
+            {
+                let mut command = Command::new("wsl.exe");
+                command.args(["--distribution", &distribution, "--exec", "id", "-un"]);
+                command
+            },
+            "WSL default-user check",
+        )
+    })
+    .await
+    .map_err(|error| format!("WSL default-user check stopped: {error}"))?
+}
+
 /// A convenience value only: the remote credential form remains editable
 /// because an SSH server may use a different account than this device.
 #[tauri::command]
@@ -1486,6 +1505,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             list_wsl_distributions,
+            wsl_default_user,
             wsl_image_inventory_command,
             transfer_wsl_image,
             check_wsl_cli_provision,

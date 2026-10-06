@@ -271,6 +271,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) return invokeTauri<T>(command, _args);
   await new Promise((resolve) => window.setTimeout(resolve, 180));
   if (command === "current_user") return "developer" as T;
+  if (command === "wsl_default_user") return "developer" as T;
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
   const enclave = (_args as { enclave?: { target: Target } } | undefined)?.enclave;
   if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
@@ -1551,6 +1552,20 @@ function refreshProfileForm(): void {
 }
 
 let knownWslDistributions: string[] | undefined;
+let wslUserRequest = 0;
+
+async function showWslDefaultUser(): Promise<void> {
+  const distribution = wslDistribution.value;
+  if (!distribution) return;
+  const request = ++wslUserRequest;
+  try {
+    const user = await invoke<string>("wsl_default_user", { distribution });
+    if (request === wslUserRequest) wslDistributionHint.textContent = `Detected locally by Studio. WSL starts Orcan as its default Linux user: ${user}. No password is needed for local WSL access.`;
+  } catch (error) {
+    if (request === wslUserRequest) wslDistributionHint.textContent = `WSL distribution selected. Studio could not read its default Linux user: ${String(error)}`;
+  }
+}
+
 async function discoverWslDistributions(): Promise<void> {
   if (knownWslDistributions) return;
   wslDistribution.disabled = true;
@@ -1571,6 +1586,7 @@ async function discoverWslDistributions(): Promise<void> {
     wslDistributionHint.textContent = distributions.length
       ? "Detected locally by Studio. Orcan must be installed inside the selected distribution."
       : "No WSL2 distributions were found. Install one with `wsl --install`, then reopen this profile.";
+    if (distributions.length) void showWslDefaultUser();
   } catch (error) {
     wslDistribution.replaceChildren(new Option("WSL2 discovery unavailable", ""));
     wslDistributionHint.textContent = String(error).includes("available only")
@@ -2156,6 +2172,7 @@ enclaveCreateTtydAuth.addEventListener("change", () => {
 $("#new-credential").addEventListener("click", () => openCredentialForm());
 $("#credential-back").addEventListener("click", () => leaveCredentialForm());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="location"]')) input.addEventListener("change", refreshProfileForm);
+wslDistribution.addEventListener("change", () => void showWslDefaultUser());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="credential-kind"]')) input.addEventListener("change", refreshCredentialForm);
 credentialSelect.addEventListener("change", () => {
   if (credentialSelect.value === NEW_CREDENTIAL) { openCredentialForm(undefined, true); return; }

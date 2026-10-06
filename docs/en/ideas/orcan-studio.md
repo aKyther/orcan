@@ -33,6 +33,11 @@ Profiles that use a Studio-managed password or private key use Studio's native
 SSH transport for the same check and transfer, with the saved `known_hosts`
 verification policy.
 
+The Studio transport explicitly prepends `~/.local/bin` on WSL2 and SSH
+commands, so a newly provisioned CLI works even before a non-interactive
+remote shell has read its rc files. The installers also persist that path in
+`~/.profile` and the active Bash or Zsh rc file for later human terminals.
+
 The first protocol operation is `orcan studio probe --json`. It is read-only.
 It is the authoritative Sandbox snapshot: Studio refreshes paths, configuration
 revision, managed roots, workspaces, projects, mounts, and runtime state on

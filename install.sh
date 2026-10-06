@@ -62,6 +62,23 @@ ensure_path_rc() {
     return 0
 }
 
+ensure_user_path() {
+    # `.profile` covers POSIX login shells (including `sh`); the selected
+    # interactive shell gets its own rc file as well. Studio itself does not
+    # depend on either file: remote commands set PATH explicitly.
+    ensure_path_rc "${HOME}/.profile" || true
+    shell_name="$(basename "${SHELL:-sh}")"
+    case "${shell_name}" in
+        zsh) ensure_path_rc "${HOME}/.zshrc" || true ;;
+        bash) ensure_path_rc "${HOME}/.bashrc" || true ;;
+        sh) ;;
+        *)
+            ensure_path_rc "${HOME}/.bashrc" || true
+            ensure_path_rc "${HOME}/.zshrc" || true
+            ;;
+    esac
+}
+
 info "${bold}orcan installer${reset}"
 info "${dim}Install clone: ${INSTALL_DIR}${reset}"
 info "${dim}Launcher:      ${BIN_HOME}/orcan${reset}"
@@ -125,36 +142,10 @@ if [[ -n "${ORCAN_SKIP_PATH:-}" ]]; then
     note "ORCAN_SKIP_PATH set — skipping shell rc"
 elif [[ ":${PATH}:" == *":${BIN_HOME}:"* ]]; then
     ok "current PATH already includes ${BIN_HOME}"
-    shell_name="$(basename "${SHELL:-bash}")"
-    case "${shell_name}" in
-        zsh) ensure_path_rc "${HOME}/.zshrc" || true ;;
-        bash)
-            ensure_path_rc "${HOME}/.bashrc" || true
-            [[ -f "${HOME}/.bash_profile" ]] && ensure_path_rc "${HOME}/.bash_profile" || true
-            ;;
-        *)
-            ensure_path_rc "${HOME}/.zshrc" || true
-            ensure_path_rc "${HOME}/.bashrc" || true
-            ;;
-    esac
+    ensure_user_path
 else
     note "adding ${BIN_HOME} to your shell rc so new terminals find orcan"
-    shell_name="$(basename "${SHELL:-bash}")"
-    case "${shell_name}" in
-        zsh)
-            ensure_path_rc "${HOME}/.zshrc"
-            ;;
-        bash)
-            ensure_path_rc "${HOME}/.bashrc"
-            if [[ -f "${HOME}/.bash_profile" ]]; then
-                ensure_path_rc "${HOME}/.bash_profile"
-            fi
-            ;;
-        *)
-            ensure_path_rc "${HOME}/.zshrc" || true
-            ensure_path_rc "${HOME}/.bashrc" || true
-            ;;
-    esac
+    ensure_user_path
     export PATH="${BIN_HOME}:${PATH}"
     info ""
     info "  This terminal still needs PATH once (curl|bash cannot change the parent shell):"
