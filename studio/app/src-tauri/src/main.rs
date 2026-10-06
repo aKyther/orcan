@@ -319,10 +319,11 @@ async fn enclave_action(
     if with_docker {
         args.push("--with-docker".to_owned());
     }
-    if with_ttyd {
+    let ttyd_credential = ttyd_credential.filter(|value| !value.is_empty());
+    if with_ttyd && ttyd_credential.is_none() {
         args.push("--with-ttyd".to_owned());
     }
-    if let Some(credential) = ttyd_credential.filter(|value| !value.is_empty()) {
+    if let Some(credential) = ttyd_credential {
         args.extend(["--with-ttyd-auth".to_owned(), credential]);
     }
     if apply {

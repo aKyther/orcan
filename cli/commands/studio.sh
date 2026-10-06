@@ -76,22 +76,33 @@ orcan_cmd_studio() {
             ;;
         enclave)
             local mode="${1:-}"; shift || true
-            [[ "$mode" == "plan" || "$mode" == "apply" ]] || orcan_usage_error 'usage: orcan studio enclave plan|apply --empty [--with-git] [--with-docker] [--yes]'
+            [[ "$mode" == "plan" || "$mode" == "apply" ]] || orcan_usage_error 'usage: orcan studio enclave plan|apply --empty [--with-git] [--with-docker] [--with-ttyd | --with-ttyd-auth USER:PASS] [--yes]'
             local up_args=() apply_args=("$mode" --config "${ORCAN_CONFIG_FILE}")
             while (($#)); do
                 case "$1" in
                     --empty) shift ;;
-                    --with-git|--with-docker|--with-ttyd|--with-ttyd-auth) up_args+=("$1"); shift ;;
+                    --with-git|--with-docker|--with-ttyd) up_args+=("$1"); shift ;;
+                    --with-ttyd-auth)
+                        [[ $# -ge 2 && "$2" != -* ]] || orcan_usage_error '--with-ttyd-auth requires user:password'
+                        up_args+=("$1" "$2"); shift 2
+                        ;;
                     --yes) apply_args+=(--yes); shift ;;
                     *) orcan_usage_error "unknown enclave option: $1" ;;
                 esac
             done
             orcan_require_python
-            orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}" || return
-            if [[ "$mode" == "apply" ]]; then
-                source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync.sh"; orcan_cmd_sync
-                source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/up.sh"; orcan_cmd_up "${up_args[@]}"
+            if [[ "$mode" == "plan" ]]; then
+                orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}"
+                return
             fi
+            # Studio consumes one JSON document on stdout. Runtime command
+            # progress deliberately goes to stderr so it cannot corrupt that response.
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}" >/dev/null || return
+            source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync.sh"
+            orcan_cmd_sync >&2 || return
+            source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/up.sh"
+            orcan_cmd_up "${up_args[@]}" >&2 || return
+            printf '%s\n' '{"ok":true,"result":{"operation":"empty_enclave"}}'
             ;;
         -h | --help | "")
             printf 'usage: orcan studio probe --json\n'

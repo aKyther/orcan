@@ -25,10 +25,12 @@ const enclaveCreateGit = $<HTMLInputElement>("#enclave-create-git");
 const enclaveCreateDocker = $<HTMLInputElement>("#enclave-create-docker");
 const enclaveCreateTtyd = $<HTMLInputElement>("#enclave-create-ttyd");
 const enclaveCreateTtydAuth = $<HTMLInputElement>("#enclave-create-ttyd-auth");
+const enclaveCreateTtydFields = $("#enclave-create-ttyd-fields");
+const enclaveCreateTtydUser = $<HTMLInputElement>("#enclave-create-ttyd-user");
+const enclaveCreateTtydPassword = $<HTMLInputElement>("#enclave-create-ttyd-password");
 const enclaveCreatePlan = $<HTMLButtonElement>("#enclave-create-plan");
 const enclaveCreateApply = $<HTMLButtonElement>("#enclave-create-apply");
 const enclaveCreateResult = $<HTMLOutputElement>("#enclave-create-result");
-$("#enclave-creator-slot").append($("#enclave-creator"));
 const credentialList = $("#credential-list");
 const setupPanel = $("#setup-panel");
 const activeGroup = $("#active-group");
@@ -1807,6 +1809,16 @@ function renderEnclaveCreator(): void {
   enclaveCreateApply.disabled = true;
 }
 
+function enclaveTtydCredential(): string | undefined {
+  if (!enclaveCreateTtydAuth.checked) return undefined;
+  const user = enclaveCreateTtydUser.value.trim();
+  const password = enclaveCreateTtydPassword.value;
+  if (!user || !password || user.includes(":")) {
+    throw new Error("Browser-terminal auth needs a user without ':' and a password.");
+  }
+  return `${user}:${password}`;
+}
+
 async function planEmptyEnclave(apply = false): Promise<void> {
   const profile = selectedProfile(enclaveCreateProfile);
   if (!profile) return;
@@ -1816,10 +1828,20 @@ async function planEmptyEnclave(apply = false): Promise<void> {
       const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(profileConnection(profile)) });
       if (!report.capabilities.docker) throw new Error("Docker is not available on this destination profile.");
     }
-    await invoke("enclave_action", { enclave: enclaveInput(profileConnection(profile)), apply, withGit: enclaveCreateGit.checked, withDocker: enclaveCreateDocker.checked, withTtyd: enclaveCreateTtyd.checked, withTtydAuth: enclaveCreateTtydAuth.checked });
+    await invoke("enclave_action", {
+      enclave: enclaveInput(profileConnection(profile)),
+      apply,
+      withGit: enclaveCreateGit.checked,
+      withDocker: enclaveCreateDocker.checked,
+      withTtyd: enclaveCreateTtyd.checked,
+      ttydCredential: enclaveTtydCredential(),
+    });
     enclaveCreateResult.textContent = apply ? "Enclave created. Checking it now…" : "Plan ready: create empty config, sync it, then start the selected runtime access.";
     enclaveCreateApply.disabled = apply;
-    if (apply) await openEnclave(profile);
+    if (apply) {
+      enclaveCreateTtydPassword.value = "";
+      await openEnclave(profile);
+    }
   } catch (error) { enclaveCreateResult.textContent = `Enclave setup failed: ${String(error)}`; }
 }
 
@@ -1973,8 +1995,16 @@ imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled
 imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
 enclaveCreateApply.addEventListener("click", () => { if (window.confirm("Create this empty Enclave?")) void planEmptyEnclave(true); });
-for (const input of [enclaveCreateProfile, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth]) input.addEventListener("change", () => { enclaveCreateApply.disabled = true; });
-enclaveCreateTtyd.addEventListener("change", () => { enclaveCreateTtydAuth.disabled = !enclaveCreateTtyd.checked; if (!enclaveCreateTtyd.checked) enclaveCreateTtydAuth.checked = false; });
+for (const input of [enclaveCreateProfile, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("change", () => { enclaveCreateApply.disabled = true; });
+enclaveCreateTtyd.addEventListener("change", () => {
+  enclaveCreateTtydAuth.disabled = !enclaveCreateTtyd.checked;
+  if (!enclaveCreateTtyd.checked) enclaveCreateTtydAuth.checked = false;
+  enclaveCreateTtydFields.hidden = !enclaveCreateTtyd.checked || !enclaveCreateTtydAuth.checked;
+});
+enclaveCreateTtydAuth.addEventListener("change", () => {
+  enclaveCreateTtydFields.hidden = !enclaveCreateTtydAuth.checked;
+  if (!enclaveCreateTtydAuth.checked) enclaveCreateTtydPassword.value = "";
+});
 $("#new-credential").addEventListener("click", () => openCredentialForm());
 $("#credential-back").addEventListener("click", () => leaveCredentialForm());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="location"]')) input.addEventListener("change", refreshProfileForm);

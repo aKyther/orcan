@@ -148,23 +148,26 @@
           <div class="pane-stack"><section data-pane="enclaves" class="pane">
                 <div class="pane-header"><div><p class="muted">An Enclave is an isolated Orcan environment: a container where agents work on your code without reaching the rest of the machine. Studio lists one for every profile and shows what it last saw there.</p></div><button type="button" class="secondary" data-go="profiles">Manage profiles</button></div>
                 <div id="enclave-list" class="item-list"></div>
-                <section id="enclave-creator-slot"></section>
+                <section class="panel" id="enclave-creator">
+                  <h2>New Enclave</h2>
+                  <p class="muted">Starts Orcan without projects. Add repositories and folders later from Studio.</p>
+                  <label>Destination profile<select id="enclave-create-profile"></select></label>
+                  <label><input id="enclave-create-git" type="checkbox" /> Git access</label>
+                  <label><input id="enclave-create-docker" type="checkbox" /> Docker access</label>
+                  <label><input id="enclave-create-ttyd" type="checkbox" /> Browser terminal</label>
+                  <label><input id="enclave-create-ttyd-auth" type="checkbox" disabled /> Protect browser terminal</label>
+                  <div id="enclave-create-ttyd-fields" class="form-row" hidden>
+                    <label>Browser-terminal user<input id="enclave-create-ttyd-user" autocomplete="username" /></label>
+                    <label>Browser-terminal password<input id="enclave-create-ttyd-password" type="password" autocomplete="new-password" /></label>
+                  </div>
+                  <div class="actions compact"><button id="enclave-create-plan" type="button" class="secondary">Preview plan</button><button id="enclave-create-apply" type="button" disabled>Create Enclave</button></div>
+                  <output id="enclave-create-result" aria-live="polite"></output>
+                </section>
               </section></div>
         </section>
         <section class="view" data-view="provisioning" hidden>
           <div class="view-intro"><p class="eyebrow">PROVISIONING</p><h2>Prepare a destination profile from a source profile.</h2></div>
           <section class="panel"><h2>Host Orcan CLI</h2><p class="muted">The destination needs a host Orcan CLI before Studio can create or manage an Enclave. Images are transferred separately and never include profiles, projects, configuration, or secrets.</p></section>
-          <section class="panel" id="enclave-creator">
-            <h2>New Enclave</h2>
-            <p class="muted">Starts Orcan without projects. Add repositories and folders later from Studio.</p>
-            <label>Destination profile<select id="enclave-create-profile"></select></label>
-            <label><input id="enclave-create-git" type="checkbox" /> Git access</label>
-            <label><input id="enclave-create-docker" type="checkbox" /> Docker access</label>
-            <label><input id="enclave-create-ttyd" type="checkbox" /> Browser terminal</label>
-            <label><input id="enclave-create-ttyd-auth" type="checkbox" disabled /> Browser terminal auth</label>
-            <div class="actions compact"><button id="enclave-create-plan" type="button" class="secondary">Preview plan</button><button id="enclave-create-apply" type="button" disabled>Create Enclave</button></div>
-            <output id="enclave-create-result" aria-live="polite"></output>
-          </section>
           <section class="panel" aria-labelledby="image-transfer-title"><h2 id="image-transfer-title">Transfer an Orcan image</h2><div class="form-row three"><label>Source profile<select id="image-transfer-source"></select></label><label>Docker image<input id="image-transfer-name" value="orcan:latest" /></label><label>Destination profile<select id="image-transfer-target"></select></label></div><div class="actions compact"><button id="image-transfer-inspect" type="button" class="secondary">Inspect source image</button><button id="image-transfer-run" type="button" disabled>Transfer to destination</button></div><output id="image-transfer-result" aria-live="polite"></output></section>
         </section>
 
