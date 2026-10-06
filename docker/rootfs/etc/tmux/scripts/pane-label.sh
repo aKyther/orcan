@@ -22,11 +22,12 @@ else
     pid="${2:-}"
     cmdline=""
     if [[ -n "${pid}" && -r "/proc/${pid}/cmdline" ]]; then
-        # /proc cmdline is NUL-separated.  Use read directly: readarray -d ''
-        # differs between bash builds used by local images and CI runners.
-        while IFS= read -r -d $'\0' argument; do
-            cmdline+=" ${argument}"
-        done <"/proc/${pid}/cmdline" 2>/dev/null || true
+        # /proc cmdline is NUL-separated.  mapfile keeps every argument in a
+        # Bash array; command substitution would discard NUL bytes.
+        argv=()
+        if mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null; then
+            cmdline="${argv[*]}"
+        fi
     fi
 fi
 
