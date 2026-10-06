@@ -24,8 +24,16 @@ else
     if [[ -n "${pid}" && -r "/proc/${pid}/cmdline" ]]; then
         # /proc cmdline is NUL-separated.  mapfile keeps every argument in a
         # Bash array; command substitution would discard NUL bytes.
-        argv=()
-        if mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null; then
+        # A process can briefly expose an empty cmdline while it crosses exec.
+        # Retry in-process; a border redraw must not fork or sleep for this.
+        for _ in {1..64}; do
+            argv=()
+            # Some Bash builds report EOF as a non-zero mapfile status even
+            # after storing all fields. The array, not that status, is authoritative.
+            mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
+            ((${#argv[@]})) && break
+        done
+        if ((${#argv[@]})); then
             cmdline="${argv[*]}"
         fi
     fi
