@@ -121,6 +121,27 @@ fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
+fn decode_wsl_output(bytes: &[u8]) -> String {
+    let utf16le = bytes.starts_with(&[0xff, 0xfe])
+        || (bytes.len() > 1
+            && bytes
+                .iter()
+                .skip(1)
+                .step_by(2)
+                .filter(|byte| **byte == 0)
+                .count()
+                * 2
+                > bytes.len() / 2);
+    if utf16le {
+        let units = bytes
+            .chunks_exact(2)
+            .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
+            .collect::<Vec<_>>();
+        return String::from_utf16_lossy(units.strip_prefix(&[0xfeff]).unwrap_or(&units));
+    }
+    String::from_utf8_lossy(bytes).into_owned()
+}
+
 fn provision_destination(input: &WslCliProvision) -> EnclaveInput {
     EnclaveInput {
         target: TargetInput::Ssh {
@@ -557,9 +578,13 @@ async fn list_wsl_distributions() -> Result<Vec<String>, String> {
         if !output.status.success() {
             return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
         }
-        Ok(String::from_utf8_lossy(&output.stdout)
-            .lines()
-            .map(str::trim)
+        Ok(decode_wsl_output(&output.stdout)
+            .split(['\n', '\0'])
+            .map(|name| {
+                name.trim_matches(|character: char| {
+                    character.is_whitespace() || character == '\u{feff}'
+                })
+            })
             .filter(|name| !name.is_empty())
             .map(str::to_owned)
             .collect())
