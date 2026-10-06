@@ -911,7 +911,7 @@ async fn native_ssh_install_wsl_kit(
         .stdout
         .take()
         .ok_or_else(|| "WSL CLI kit has no stdout".to_owned())?;
-    let mut session = native_ssh_connect(destination, resolved).await?;
+    let session = native_ssh_connect(destination, resolved).await?;
     let mut channel = session
         .channel_open_session()
         .await
