@@ -6,37 +6,37 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
+        <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
       
       
         <meta name="author" content="Orcan contributors">
       
       
-        <link rel="canonical" href="https://akyther.github.io/orcan/latest/architecture/">
+        <link rel="canonical" href="https://akyther.github.io/orcan/latest/ideas/orcan-studio-roadmap/">
       
       
-        <link rel="prev" href="../guides/troubleshooting/">
+        <link rel="prev" href="../orcan-studio/">
       
       
-        <link rel="next" href="../faq/">
+        <link rel="next" href="../../concepts/workspaces/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.svg">
+      <link rel="icon" href="../../assets/images/favicon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Architecture - Orcan</title>
+        <title>Studio and Enclave roadmap - Orcan</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -100,9 +100,9 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/orcan.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/orcan.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -110,15 +110,15 @@
     
   
   
-  <meta name="description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
+  <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Architecture — Orcan">
-  <meta property="og:description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
-  <meta property="og:url" content="https://akyther.github.io/orcan/latest/architecture/">
+  <meta property="og:title" content="Studio and Enclave roadmap — Orcan">
+  <meta property="og:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
+  <meta property="og:url" content="https://akyther.github.io/orcan/latest/ideas/orcan-studio-roadmap/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Architecture — Orcan">
-  <meta name="twitter:description" content="Why Orcan’s architecture looks this way — host orchestration, path parity, context pack, and session entry (local or browser).">
+  <meta name="twitter:title" content="Studio and Enclave roadmap — Orcan">
+  <meta name="twitter:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
 
   </head>
   
@@ -139,7 +139,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture" class="md-skip">
+        <a href="#orcan-studio-and-enclave-roadmap" class="md-skip">
           Skip to content
         </a>
       
@@ -154,12 +154,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest release documentation.
-  <a href="../..">
+  <a href="../../..">
     <strong>Switch to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL(".."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -173,7 +173,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-header__button md-logo" aria-label="Orcan" data-md-component="logo">
       
-  <img src="../assets/images/favicon.svg" alt="logo">
+  <img src="../../assets/images/favicon.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -190,7 +190,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture
+              Studio and Enclave roadmap
             
           </span>
         </div>
@@ -204,7 +204,7 @@
         </button>
         <ul class="orcan-version-select__list" role="listbox" hidden></ul>
       </div>
-      <a class="orcan-header-version" href="../changelog/" title="Product SemVer — open changelog">
+      <a class="orcan-header-version" href="../../changelog/" title="Product SemVer — open changelog">
         <span class="orcan-header-version__label">v4.0.0</span>
       </a>
     
@@ -324,7 +324,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -345,31 +345,11 @@
     
     
       <li class="md-tabs__item">
-        <a href="../getting-started/installation/" class="md-tabs__link">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
           
   
   
   Get started
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../why-orcan/" class="md-tabs__link">
-          
-  
-  
-  Understand
 
         </a>
       </li>
@@ -387,7 +367,27 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../guides/workflows/" class="md-tabs__link">
+        <a href="../../why-orcan/" class="md-tabs__link">
+          
+  
+  
+  Understand
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/workflows/" class="md-tabs__link">
           
   
   
@@ -407,7 +407,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../reference/cli/" class="md-tabs__link">
+        <a href="../../reference/cli/" class="md-tabs__link">
           
   
   
@@ -427,7 +427,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../development/overview/" class="md-tabs__link">
+        <a href="../../development/overview/" class="md-tabs__link">
           
   
   
@@ -469,7 +469,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://akyther.github.io/orcan/" title="Orcan" class="md-nav__button md-logo" aria-label="Orcan" data-md-component="logo">
       
-  <img src="../assets/images/favicon.svg" alt="logo">
+  <img src="../../assets/images/favicon.svg" alt="logo">
 
     </a>
     Orcan
@@ -496,7 +496,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -577,7 +577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/installation/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -605,7 +605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -633,7 +633,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/configuration/" class="md-nav__link">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -641,499 +641,6 @@
     
   
     Config guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Understand
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Understand
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../why-orcan/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Why Orcan?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Ideas
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Ideas
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ideas/core-ideas/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Core Ideas
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ideas/mental-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Mental Model
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ideas/agent-inbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent inbox
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ideas/runtime-reconcile/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Runtime reconcile
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ideas/orcan-studio/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Orcan Studio
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ideas/orcan-studio-roadmap/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Studio and Enclave roadmap
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concepts
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Concepts
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/workspaces/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Workspaces
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/path-parity/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Path parity
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../change-map/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Change map
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../tags/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tags
   
 
     
@@ -1179,17 +686,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    Guides
+    Understand
   
 
     
@@ -1200,12 +707,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Guides
+    Understand
   
 
           </label>
@@ -1218,14 +725,99 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/workflows/" class="md-nav__link">
+      <a href="../../why-orcan/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Workflows
+    Why Orcan?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ideas
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Ideas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core-ideas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Ideas
   
 
     
@@ -1246,14 +838,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/dotfiles/" class="md-nav__link">
+      <a href="../mental-model/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    User dotfiles
+    Mental Model
   
 
     
@@ -1274,14 +866,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/terminal-ui/" class="md-nav__link">
+      <a href="../agent-inbox/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Terminal UI
+    Agent inbox
   
 
     
@@ -1302,14 +894,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/troubleshooting/" class="md-nav__link">
+      <a href="../runtime-reconcile/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Troubleshooting
+    Runtime reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orcan-studio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orcan Studio
   
 
     
@@ -1346,7 +966,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    Studio and Enclave roadmap
   
 
     
@@ -1364,7 +984,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    Studio and Enclave roadmap
   
 
     
@@ -1390,10 +1010,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#design-problem" class="md-nav__link">
+  <a href="#product-direction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Design problem
+        Product direction
       
     </span>
   </a>
@@ -1401,22 +1021,44 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#layers" class="md-nav__link">
+  <a href="#terms-and-boundaries" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Layers
+        Terms and boundaries
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Layers">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-baseline-implemented-not-yet-fully-field-tested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current baseline: implemented, not yet fully field-tested
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-container-foundation-implementation-and-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-container foundation: implementation and verification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Single-container foundation: implementation and verification">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#why-the-host-owns-config" class="md-nav__link">
+  <a href="#1-guided-preparation-and-creation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the host owns config
+        1. Guided preparation and creation
       
     </span>
   </a>
@@ -1424,10 +1066,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#why-the-image-owns-the-toolchain" class="md-nav__link">
+  <a href="#2-compact-enclave-control-panel" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the image owns the toolchain
+        2. Compact Enclave control panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-correct-lifecycle-and-change-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Correct lifecycle and change impact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-context-as-the-main-working-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Context as the main working area
       
     </span>
   </a>
@@ -1440,10 +1104,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#path-parity-and-workspace-links" class="md-nav__link">
+  <a href="#later-isolate-multiple-containers-before-orchestrating-them" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Path parity and workspace links
+        Later: isolate multiple containers before orchestrating them
       
     </span>
   </a>
@@ -1451,10 +1115,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#entry-path" class="md-nav__link">
+  <a href="#later-a-2d-graph-for-agent-work" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Entry path
+        Later: a 2D graph for agent work
       
     </span>
   </a>
@@ -1462,10 +1126,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context-pack-vs-project-seeds" class="md-nav__link">
+  <a href="#contract-safety-and-maintenance-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context pack vs project seeds
+        Contract, safety and maintenance rules
       
     </span>
   </a>
@@ -1473,43 +1137,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#product-boundary" class="md-nav__link">
+  <a href="#small-code-map-for-the-next-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Product boundary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#non-goals-by-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Non-goals (by design)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-code-lives" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where code lives
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next
+        Small code map for the next agent
       
     </span>
   </a>
@@ -1525,6 +1156,71 @@
 
               
             
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
               
                 
   
@@ -1532,7 +1228,328 @@
   
   
     <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
+      <a href="../../concepts/workspaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/path-parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../change-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dotfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User dotfiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/terminal-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
         
   
   
@@ -1621,7 +1638,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/cli/" class="md-nav__link">
+      <a href="../../reference/cli/" class="md-nav__link">
         
   
   
@@ -1649,7 +1666,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/makefile/" class="md-nav__link">
+      <a href="../../reference/makefile/" class="md-nav__link">
         
   
   
@@ -1677,7 +1694,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/docker/" class="md-nav__link">
+      <a href="../../reference/docker/" class="md-nav__link">
         
   
   
@@ -1705,7 +1722,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/configuration/" class="md-nav__link">
+      <a href="../../reference/configuration/" class="md-nav__link">
         
   
   
@@ -1733,7 +1750,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/environment/" class="md-nav__link">
+      <a href="../../reference/environment/" class="md-nav__link">
         
   
   
@@ -1761,7 +1778,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/cursor-and-claude/" class="md-nav__link">
+      <a href="../../reference/cursor-and-claude/" class="md-nav__link">
         
   
   
@@ -1789,7 +1806,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/security/" class="md-nav__link">
+      <a href="../../reference/security/" class="md-nav__link">
         
   
   
@@ -1817,7 +1834,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../interface/" class="md-nav__link">
+      <a href="../../interface/" class="md-nav__link">
         
   
   
@@ -1906,7 +1923,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/overview/" class="md-nav__link">
+      <a href="../../development/overview/" class="md-nav__link">
         
   
   
@@ -1934,7 +1951,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/testing/" class="md-nav__link">
+      <a href="../../development/testing/" class="md-nav__link">
         
   
   
@@ -1962,7 +1979,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/release/" class="md-nav__link">
+      <a href="../../development/release/" class="md-nav__link">
         
   
   
@@ -1990,7 +2007,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ai/project-context/" class="md-nav__link">
+      <a href="../../ai/project-context/" class="md-nav__link">
         
   
   
@@ -2018,7 +2035,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../deployment/" class="md-nav__link">
+      <a href="../../deployment/" class="md-nav__link">
         
   
   
@@ -2046,7 +2063,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -2101,10 +2118,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#design-problem" class="md-nav__link">
+  <a href="#product-direction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Design problem
+        Product direction
       
     </span>
   </a>
@@ -2112,22 +2129,44 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#layers" class="md-nav__link">
+  <a href="#terms-and-boundaries" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Layers
+        Terms and boundaries
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Layers">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-baseline-implemented-not-yet-fully-field-tested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current baseline: implemented, not yet fully field-tested
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-container-foundation-implementation-and-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-container foundation: implementation and verification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Single-container foundation: implementation and verification">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#why-the-host-owns-config" class="md-nav__link">
+  <a href="#1-guided-preparation-and-creation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the host owns config
+        1. Guided preparation and creation
       
     </span>
   </a>
@@ -2135,10 +2174,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#why-the-image-owns-the-toolchain" class="md-nav__link">
+  <a href="#2-compact-enclave-control-panel" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the image owns the toolchain
+        2. Compact Enclave control panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-correct-lifecycle-and-change-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Correct lifecycle and change impact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-context-as-the-main-working-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Context as the main working area
       
     </span>
   </a>
@@ -2151,10 +2212,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#path-parity-and-workspace-links" class="md-nav__link">
+  <a href="#later-isolate-multiple-containers-before-orchestrating-them" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Path parity and workspace links
+        Later: isolate multiple containers before orchestrating them
       
     </span>
   </a>
@@ -2162,10 +2223,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#entry-path" class="md-nav__link">
+  <a href="#later-a-2d-graph-for-agent-work" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Entry path
+        Later: a 2D graph for agent work
       
     </span>
   </a>
@@ -2173,10 +2234,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context-pack-vs-project-seeds" class="md-nav__link">
+  <a href="#contract-safety-and-maintenance-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context pack vs project seeds
+        Contract, safety and maintenance rules
       
     </span>
   </a>
@@ -2184,43 +2245,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#product-boundary" class="md-nav__link">
+  <a href="#small-code-map-for-the-next-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Product boundary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#non-goals-by-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Non-goals (by design)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-code-lives" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where code lives
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next
+        Small code map for the next agent
       
     </span>
   </a>
@@ -2242,37 +2270,9 @@
                 
                   
 
-  <nav class="md-tags" >
-    
-      
-      
-      
-        
-        
-          
-        
-      
-      
-        <a href="../tags/#tag:concept" class="md-tag md-tag-icon md-tag--concept">concept</a>
-      
-    
-      
-      
-      
-        
-        
-          
-        
-      
-      
-        <a href="../tags/#tag:reference" class="md-tag md-tag-icon md-tag--reference">reference</a>
-      
-    
-  </nav>
-
 
   
-    <a href="https://github.com/aKyther/orcan/edit/main/docs/en/architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/aKyther/orcan/edit/main/docs/en/ideas/orcan-studio-roadmap.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -2281,160 +2281,273 @@
     
       
     
-    <a href="https://github.com/aKyther/orcan/raw/main/docs/en/architecture.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/aKyther/orcan/raw/main/docs/en/ideas/orcan-studio-roadmap.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
     </a>
   
 
 
-<h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
-<p>This page explains <strong>why</strong> the pieces exist. For Make targets and Compose file names, see <a href="../reference/makefile/">Reference</a>.</p>
-<h2 id="design-problem">Design problem<a class="headerlink" href="#design-problem" title="Permanent link">&para;</a></h2>
-<p>Orcan must:</p>
-<ol>
-<li>Describe multi-repo <strong>context</strong> on the host (JSON config).</li>
-<li>Run agents in an isolated <strong>container</strong> with heavy toolchains.</li>
-<li>Keep <strong>absolute paths</strong> identical when the host Docker daemon resolves binds.</li>
-<li>Give humans and agents a clear <strong>entry</strong> — locally (<code>orcan enter</code>) or optionally in the browser (<code>orcan up --with-ttyd</code> → session → shell).</li>
-</ol>
-<p>Those constraints force a split between <strong>host orchestration</strong> and <strong>container runtime</strong>.</p>
-<h2 id="layers">Layers<a class="headerlink" href="#layers" title="Permanent link">&para;</a></h2>
-<pre class="mermaid"><code>flowchart TB
-  subgraph host [Host]
-    cfg["orcan.config.json"]
-    make["Makefile + scripts"]
-    gen[".env + mounts/ generated files"]
-    enter["orcan enter"]
-  end
-  subgraph container [Container]
-    entry["entrypoint"]
-    session["launcher → tmux → zsh"]
-    ttyd["ttyd (--with-ttyd)"]
-    pack["workspace context pack"]
-    clis["agent / claude"]
-  end
-  cfg --&gt; make
-  make --&gt; gen
-  gen --&gt; entry
-  enter --&gt; session
-  entry --&gt; session
-  entry --&gt; ttyd
-  ttyd --&gt; session
-  entry --&gt; pack
-  session --&gt; clis
-  pack --&gt; clis</code></pre>
-<p><strong>Caption:</strong> The host turns config into mounts and env. Default access is <code>orcan enter</code> into the same session stack; <code>--with-ttyd</code> adds a browser path. Models stay inside each CLI.</p>
-<h3 id="why-the-host-owns-config">Why the host owns config<a class="headerlink" href="#why-the-host-owns-config" title="Permanent link">&para;</a></h3>
-<p>Config must run without the image (wizard, CI host tests, <code>orcan sync</code>). Stdlib JSON keeps the host side thin. Compose YAML remains for Docker only.</p>
-<h3 id="why-the-image-owns-the-toolchain">Why the image owns the toolchain<a class="headerlink" href="#why-the-image-owns-the-toolchain" title="Permanent link">&para;</a></h3>
-<p>Cursor CLI, Claude Code, language toolchains, and shell defaults are large and shared. Baking them into the image avoids polluting every developer laptop — while project <strong>source</strong> stays on the host via mounts.</p>
-<h2 id="path-parity-and-workspace-links">Path parity and workspace links<a class="headerlink" href="#path-parity-and-workspace-links" title="Permanent link">&para;</a></h2>
-<p>Two mechanisms, one reason:</p>
+<h1 id="orcan-studio-and-enclave-roadmap">Orcan Studio and Enclave roadmap<a class="headerlink" href="#orcan-studio-and-enclave-roadmap" title="Permanent link">&para;</a></h1>
+<p>This is a maintainer handoff and product direction, not a list of available
+features. It preserves decisions from the design session ending on 2026-10-08.
+Read <a href="../orcan-studio/">Orcan Studio</a> for the current implementation.</p>
+<h2 id="product-direction">Product direction<a class="headerlink" href="#product-direction" title="Permanent link">&para;</a></h2>
+<p>Orcan helps people build the context that agents need. Running agents and
+wrapping tmux are useful, but they are not the main product value.</p>
+<p>Studio should make context selection, composition, inspection, and changes
+simple and visual. A user should see which projects are available, which
+workspace uses them, and what a proposed change will do. The terminal cockpit
+stays available for daily work with an agent; Studio does not replace it.</p>
+<p>Later, an Enclave can group several Orcan containers on one machine. A 2D graph,
+inspired by the clarity of n8n, could describe work passing between their agent
+roles. This is a future direction, not permission to build a general automation
+engine now. First complete and test the single-container foundation.</p>
+<h2 id="terms-and-boundaries">Terms and boundaries<a class="headerlink" href="#terms-and-boundaries" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Mechanism</th>
-<th>Why</th>
+<th>Term</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Bind mount <code>host_abs:host_abs</code></td>
-<td>Host Docker daemon needs real host paths</td>
+<td>Credential</td>
+<td>Immutable SSH user plus password or key identity; secrets stay in the system vault.</td>
 </tr>
 <tr>
-<td>Symlinks under <code>/home/developer/workspaces/&lt;name&gt;/</code></td>
-<td>Short names for navigation and agent instructions</td>
+<td>Profile</td>
+<td>A connection to a local machine, WSL2 distribution, or SSH host. It must work without Orcan installed.</td>
+</tr>
+<tr>
+<td>Enclave, today</td>
+<td>One managed Orcan environment/container for a profile. Do not create a second one on that profile.</td>
+</tr>
+<tr>
+<td>Enclave, future</td>
+<td>A named group of isolated Orcan containers on one connected host. Its exact relationship to profiles still needs a migration design.</td>
+</tr>
+<tr>
+<td>Container</td>
+<td>Execution and access boundary; later a named role such as developer or tester.</td>
+</tr>
+<tr>
+<td>Sandbox / project root</td>
+<td>A host-side catalog of source projects and folders, mounted into the container. Not necessarily inside Orcan's config directory.</td>
+</tr>
+<tr>
+<td>Workspace</td>
+<td>A named working context, with project bindings and a corresponding tmux session.</td>
+</tr>
+<tr>
+<td>Binding</td>
+<td>One project's attachment to a workspace, as a worktree or mount-as-is, with its own local alias.</td>
 </tr>
 </tbody>
 </table>
-<p>See <a href="../ideas/mental-model/">Mental Model</a> and <a href="../concepts/path-parity/">Path parity</a>.</p>
-<h2 id="entry-path">Entry path<a class="headerlink" href="#entry-path" title="Permanent link">&para;</a></h2>
-<p>Default: start with plain <code>orcan up</code>, then <code>orcan enter</code> on the host — no published ttyd port. Optional remote/phone path: <code>orcan up --with-ttyd</code>, then open <code>orcan url</code>.</p>
-<pre class="mermaid"><code>flowchart LR
-  enter["orcan enter (host)"] --&gt; launcher[launcher]
-  browser[Browser] --&gt; ttyd[ttyd]
-  ttyd --&gt; launcher
-  launcher --&gt; tmux[tmux session per workspace]
-  tmux --&gt; zsh[zsh]
-  zsh --&gt; agent[agent or claude]</code></pre>
-<p><strong>Caption:</strong> Both paths converge on the same launcher → tmux → zsh stack. The launcher is where you pick a workspace. tmux keeps one session per workspace so context switches are explicit.</p>
-<p>Why tmux? Multiple panes/windows are how people juggle projects inside one context; Orcan standardises that instead of inventing a new multiplexer. Why optional ttyd? Remote and phone access without SSH tunneling — opt-in because it publishes a port.</p>
-<h2 id="context-pack-vs-project-seeds">Context pack vs project seeds<a class="headerlink" href="#context-pack-vs-project-seeds" title="Permanent link">&para;</a></h2>
-<p>At the <strong>workspace root</strong>, Orcan maintains a small pack (manifest, shared <code>AGENTS.md</code> / <code>CLAUDE.md</code>, ignores). That answers: “what is this context?”</p>
-<p>Mounted <strong>git checkouts</strong> are not rewritten on every start. Seeding files into each <code>projects[].path</code> is explicit (<code>orcan seed --all</code>). That protects customer repos from surprise diffs while still allowing shared context above them.</p>
-<h2 id="product-boundary">Product boundary<a class="headerlink" href="#product-boundary" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Orcan owns</th>
-<th>Orcan does not own</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Workspaces, mounts, path parity</td>
-<td>Which model a CLI uses</td>
-</tr>
-<tr>
-<td>Context pack</td>
-<td>Prompt engineering for a model</td>
-</tr>
-<tr>
-<td>Entry path (<code>orcan enter</code> or <code>--with-ttyd</code> → launcher → tmux → zsh)</td>
-<td>Auto-routing between CLIs</td>
-</tr>
-<tr>
-<td>Docker isolation and optional host socket</td>
-<td>Shared RAG outside workspace files</td>
-</tr>
-</tbody>
-</table>
-<h2 id="non-goals-by-design">Non-goals (by design)<a class="headerlink" href="#non-goals-by-design" title="Permanent link">&para;</a></h2>
+<p>Do not permanently encode <code>profile == enclave == container</code> in new storage.
+It is the current product limit, not the eventual data model. Do not introduce
+multiple containers until paths, lifecycle, and ownership are isolated.</p>
+<h2 id="current-baseline-implemented-not-yet-fully-field-tested">Current baseline: implemented, not yet fully field-tested<a class="headerlink" href="#current-baseline-implemented-not-yet-fully-field-tested" title="Permanent link">&para;</a></h2>
+<p>The transfer baseline before this roadmap is <code>138ce161</code> on <code>main</code>.</p>
 <ul>
-<li>UI or flags to pick / pin models  </li>
-<li>An <code>AgentProvider</code> abstraction over <code>agent</code> / <code>claude</code>  </li>
-<li>Auto-routing prompts between CLIs  </li>
-<li>A task queue (brief → CLI → result bus)</li>
+<li>Rust + Tauri desktop app, TypeScript + Vite UI, Windows/macOS/Linux packaging.</li>
+<li>Local, WSL2, and SSH profiles; separate immutable credentials with explicit
+  users; SSH identity approval inside Studio.</li>
+<li>Online CLI installation and offline CLI kits. The offline kit excludes
+  user configuration, sandbox/workspace data, and credentials.</li>
+<li>Separate image and CLI transfers between supported profiles. For an offline
+  server, use WSL image export, SSH transfer, and remote <code>docker load</code>, not build.
+  The online <code>install.sh</code> still needs GitHub; sending that script alone is not
+  an offline installation.</li>
+<li>Transfer phases, bytes, speed, estimated upload time, and cross-view status.
+  Image checks compare runtime configuration, ordered layers, and platform;
+  engine-specific IDs alone are not a portable equality check.</li>
+<li>Interrupted uploads offer Resume and Discard. SHA-256 checks the partial and
+  full payload. Resume requires the same Studio session; source export cannot
+  resume. Remote idle partials older than 24 hours are cleaned on a later
+  receiver operation, not by a continuous timer.</li>
+<li>Orcan supplies its paths, context, capabilities, and declared controls through
+  <code>orcan studio probe --json</code>. Studio should not guess host/container config paths.</li>
+<li>Context map, project/workspace bindings, worktree management, parent updates,
+  plans/drafts, settings inspection, and single-container creation exist.
+  Inspect their behavior before adding another implementation.</li>
 </ul>
-<h2 id="where-code-lives">Where code lives<a class="headerlink" href="#where-code-lives" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Concern</th>
-<th>Location</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Host orchestration</td>
-<td><code>Makefile</code>, <code>scripts/repository/</code>, Compose files</td>
-</tr>
-<tr>
-<td>Container filesystem</td>
-<td><code>docker/rootfs/</code></td>
-</tr>
-<tr>
-<td>Image build</td>
-<td><code>Dockerfile</code></td>
-</tr>
-<tr>
-<td>Global Cursor defaults (seeded missing-only)</td>
-<td><code>docker/rootfs/opt/cursor-defaults/</code></td>
-</tr>
-<tr>
-<td>This repo’s Cursor rules</td>
-<td><code>.cursor/rules/</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<p>Tests passed at the transfer baseline: 412 host tests, 19 native app tests,
+3 UI behavior tests, UI build, formatting, and docs checks. This is not proof of
+a real Windows → WSL → SSH end-to-end run; that still needs field verification.</p>
+<p>The single-container foundation is being extended alongside this roadmap.
+Check the current commit and tests before treating a planned block as complete.</p>
+<h2 id="single-container-foundation-implementation-and-verification">Single-container foundation: implementation and verification<a class="headerlink" href="#single-container-foundation-implementation-and-verification" title="Permanent link">&para;</a></h2>
+<p>The four blocks below now have an initial implementation: guided readiness
+and provisioning return, guarded creation, compact runtime cards, real
+existing-container lifecycle, and entry into context management. They are
+acceptance criteria for the next session, not a request to duplicate the work.
+Field-test Windows → WSL → SSH, failure recovery, and the creation UI before
+moving to multiple containers. Refine in verified blocks; no release, tag, or
+version bump is requested.</p>
+<h3 id="1-guided-preparation-and-creation">1. Guided preparation and creation<a class="headerlink" href="#1-guided-preparation-and-creation" title="Permanent link">&para;</a></h3>
+<p>Make New Enclave available from Enclaves, even when the selected profile does
+not yet have Orcan. A saved connection is not the same as a provisioned runtime.</p>
+<p>Show separate facts: connection, CLI/Studio protocol, Docker access, required
+image, existing configuration/container, and readiness to create. A failure
+must explain which layer failed, not call a reachable host "unreachable"
+because its CLI is missing.</p>
+<p>Offer existing provisioning actions only for missing or outdated components.
+Preselect the destination profile. Offer online CLI install explicitly, or an
+offline source profile and CLI kit. Offer image transfer separately. Never
+silently fetch/build on a network-restricted destination or install Docker
+without approval. WSL may use Docker Desktop integration or its own daemon.</p>
+<p>After provisioning, recheck and return to creation. Review paths reported by
+Orcan, Git/SSH access, Docker socket access, ttyd and optional user/password.
+Keep defaults local-only and least-privilege. Then show a real plan, confirm,
+create configuration, sync, start, and verify the actual result.</p>
+<p>Acceptance:</p>
 <ul>
-<li><a href="../ideas/core-ideas/">Core Ideas</a>  </li>
-<li><a href="../guides/workflows/">Typical workflows</a>  </li>
-<li><a href="../interface/">Host and container interface</a></li>
+<li>A profile without Orcan can enter preparation instead of disappearing.</li>
+<li>Existing configuration or an existing container blocks duplicate creation;
+  check again on the backend immediately before apply.</li>
+<li>Selection or option changes invalidate the plan. Late async responses do not
+  authorize a different profile. Background polling does not erase a ready plan.</li>
+<li>Errors preserve recovery actions; progress does not block navigation.</li>
+<li>Success opens the verified Enclave and offers context management.</li>
 </ul>
+<h3 id="2-compact-enclave-control-panel">2. Compact Enclave control panel<a class="headerlink" href="#2-compact-enclave-control-panel" title="Permanent link">&para;</a></h3>
+<p>Show container state/name, required image, Orcan version, last successful check,
+project/worktree/workspace roots, CPU/RAM, agent tools, and access exposure.
+Use Orcan-reported values; unknown and stale are valid states, not defaults.</p>
+<p>Keep the main view compact: summary, actions, paths, and optional details.
+Put configuration behind the Enclave gear. Locked image/start-time settings
+should remain visible with a short reason. Do not display environment secrets.</p>
+<p>Acceptance: the user can see what exists, where it lives, what is exposed, and
+what is actionable without scrolling through several forms. Failed refreshes
+mark old data stale and must not leave destructive controls enabled.</p>
+<h3 id="3-correct-lifecycle-and-change-impact">3. Correct lifecycle and change impact<a class="headerlink" href="#3-correct-lifecycle-and-change-impact" title="Permanent link">&para;</a></h3>
+<p>Provide Start / Stop / Restart for the selected container, with progress,
+state-based guards, and fresh status afterward. Preserve access flags, mounts,
+resource settings, and protected ttyd behavior. Stop/restart warns that active
+agent sessions may end; it does not remove project data.</p>
+<p>Existing containers now use Docker's actual start/stop/restart actions.
+The core fallback <code>runtime_args(Start)</code> and <code>runtime_args(Restart)</code> still both
+represent <code>orcan up --resume</code>, but Studio's native lifecycle layer selects that
+fallback only for Start after a container was removed. Field-test both paths;
+do not treat ordinary restart as recreation or configuration apply.</p>
+<p>Classify changes as context reconciliation, container restart, container
+recreation, or image replacement. Context changes under existing mounted roots
+can often reconcile live; new Docker mounts and creation-time resources may
+need recreation. Show Orcan's plan and impact, not a blanket "restart required".
+Keep unsupported resource edits locked rather than inventing an edit endpoint.</p>
+<p>Acceptance: controls affect only the intended runtime, replay/preserve its
+settings, and never claim success until the resulting state is checked.</p>
+<h3 id="4-context-as-the-main-working-area">4. Context as the main working area<a class="headerlink" href="#4-context-as-the-main-working-area" title="Permanent link">&para;</a></h3>
+<p>After connection/probe, offer projects, workspaces, and the existing relation
+map. Do not expose write actions before Orcan declares capabilities and paths.
+Keep the map central rather than adding another context inventory.</p>
+<p>Preserve these design decisions:</p>
+<ul>
+<li>Workspace column and available-project/folder column, clear anchors/lines,
+  active relations highlighted, compact cards, mount/worktree icons and tooltips.</li>
+<li>Projects directly under a root stay flat. Real child folders form natural
+  groups. Optional filters help with dozens of projects; avoid deep wrappers.</li>
+<li>Drag/drop asks a compact question: mount-as-is or worktree, branch, and alias.
+  Prefer choices from reported inventory over raw path textareas.</li>
+<li>One master repository can supply many worktrees; each can attach to several
+  workspaces. A workspace can contain multiple branches of the same repository
+  through unique aliases/mount paths. Preserve old single-binding behavior.</li>
+<li>Mount-as-is can appear in multiple workspaces, including non-Git folders;
+  shared writable access must be explicit, not presented as isolated copies.</li>
+<li>Keep drafts per workspace when switching views; Apply confirms the plan and
+  Discard drops edits without touching files. Do not silently apply on navigation.</li>
+<li>Detach removes a binding. Delete removes a specific managed worktree only
+  after inspection/confirmation. Track detached worktrees for later cleanup.</li>
+<li>Update the source parent with a button and cleanliness/upstream checks.
+  Do not automatically rebase worktrees. Existing branches are a choice with an
+  explanation, not automatically an error. Non-Git folders have no Git actions.</li>
+</ul>
+<p>Acceptance: adding, comparing, editing, detaching and cleaning contexts are
+clickable and understandable; sources, worktrees, aliases and mount paths are
+not confused, and no manual host/config path discovery is required.</p>
+<h2 id="later-isolate-multiple-containers-before-orchestrating-them">Later: isolate multiple containers before orchestrating them<a class="headerlink" href="#later-isolate-multiple-containers-before-orchestrating-them" title="Permanent link">&para;</a></h2>
+<p>Keep the first/default instance backward compatible. Add explicit runtime IDs
+and names, rather than relying on the connection profile as the runtime ID.
+Containers may use the same source catalog or separate roots such as a tester
+catalog outside Orcan home. A role is a user-facing name, not a hardcoded type.</p>
+<p>Each runtime must own its configuration, generated state, launch settings,
+container name, port allocation, workspace metadata, and worktree ownership.
+Workspace names may repeat in different runtimes, but host paths and lifecycle
+commands must remain unambiguous. Reusing sources must not mean reusing writable
+workspace/worktree directories by accident.</p>
+<p>Plan host-side worktree registration and bindings explicitly: reference shared
+worktrees rather than giving two runtimes independent deletion authority.
+Prefer small versioned JSON contracts over a new database or distributed
+coordination service. Do not introduce a ZooKeeper-like directory bureaucracy.</p>
+<p>Agent login/config directories may be shared only as an explicit access policy.
+Evaluate read/write requirements and concurrent token refresh per agent tool;
+do not blindly share every home directory writable. Keep role instructions and
+credentials separate. Orcan still does not choose or route AI models.</p>
+<p>Gate: prove two isolated containers on one host, independent lifecycle, safe
+shared source access, namespaced workspaces, and default-instance compatibility
+before building a pipeline editor.</p>
+<h2 id="later-a-2d-graph-for-agent-work">Later: a 2D graph for agent work<a class="headerlink" href="#later-a-2d-graph-for-agent-work" title="Permanent link">&para;</a></h2>
+<p>Use two graph layers, not one ambiguous canvas:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Context map:  source project → worktree/mount binding → workspace
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Work flow:    developer task → artifact/revision → tester task → review
+</span></code></pre></div>
+<p>The context graph defines what is available to an agent. The work graph defines
+what runs next and what is handed over. A line showing a shared project must
+not also mean "execute this task".</p>
+<p>Candidate nodes are container roles and explicit tasks using a selected
+workspace. Candidate edges carry a Git revision, artifact, or structured result,
+with declared inputs/outputs and clear status. Changes to a flow are drafts;
+running it is a separate confirmed action. A small first flow could be a
+developer producing a revision, then a tester consuming it read-only, followed
+by human review. Do not hand off a concurrently edited directory implicitly.</p>
+<p>Keep manual terminal entry into a container/workspace available. The graph
+supports that work; it should not force everyone into automation. Later task
+runs need IDs, logs, failures, retry/cancel rules, human approval, and explicit
+permissions. Prefer a local, inspectable runner over adopting a large workflow
+platform. Cross-host flows, arbitrary plugins, and automatic agent chains are
+not part of the next session.</p>
+<h2 id="contract-safety-and-maintenance-rules">Contract, safety and maintenance rules<a class="headerlink" href="#contract-safety-and-maintenance-rules" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Orcan owns configuration and resolves instance paths. Studio consumes a
+  versioned, capability-declared contract, with plan/apply and revisions. JSON
+  is a transport/storage format, not permission to hunt for files on the host.</li>
+<li>SSH is the current transport. A persistent server/HTTP API is optional later,
+  not required now. Profile readiness stays independent of Orcan availability.</li>
+<li>Host canonical paths matter for Docker bind mounts; navigation symlinks are
+  not substitutes. Context mounted under shared roots should remain live where
+  possible, without unnecessary restarts.</li>
+<li>Never auto-approve changed SSH keys, disable identity checks, log passwords,
+  expose a Docker socket by default, or write host SSH mounts to fix caching.</li>
+<li>Docker access is not full hostile-code isolation; filesystem, mounts and
+  network policy determine what each agent can reach.</li>
+<li>Updates/installers must preserve configuration, sandbox sources, workspaces,
+  credentials, and profile data. Do not transfer a user's Orcan home as a kit.</li>
+<li>Keep Rust + Tauri and existing adapters. No stack rewrite, speculative service
+  layer, generic plugin engine, or unrelated cleanup.</li>
+</ul>
+<h2 id="small-code-map-for-the-next-agent">Small code map for the next agent<a class="headerlink" href="#small-code-map-for-the-next-agent" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>studio/app/src/main.ts</code>: current creator, Enclave list, profile checks,
+  lifecycle controls, context UI and demo adapter. Avoid more monolithic growth.</li>
+<li><code>studio/app/src/types.ts</code>, <code>probe.ts</code>: report types/normalization; the current
+  UI Docker type omits image/name facts already present in the Rust report.</li>
+<li><code>studio/app/src-tauri/src/main.rs</code>: native commands, profile/vault integration,
+  probe, <code>enclave_action</code>, and <code>runtime_action</code>.</li>
+<li><code>studio/app/src-tauri/src/provisioning.rs</code>, <code>transfer_receiver.py</code>,
+  <code>transfer_cache.rs</code>, <code>transfer_progress.rs</code>: existing offline transfer/recovery.</li>
+<li><code>studio/crates/orcan-studio-core/src/lib.rs</code>: report model and argument helpers.</li>
+<li><code>cli/commands/studio.sh</code>, <code>scripts/repository/studio-enclave.py</code>,
+  <code>studio-probe.py</code>: Orcan-side contract, creation, reported capabilities/paths.</li>
+<li><code>cli/commands/up.sh</code>, <code>down.sh</code>, <code>cli/lib/runtime.sh</code>: actual lifecycle behavior.</li>
+<li><code>studio/app/tests/feedback.test.mjs</code>, <code>tests/host/test_studio_transfer_receiver.py</code>
+  and existing Studio probe/enclave tests: extend, do not duplicate.</li>
+</ul>
+<p>Start by inspecting and testing the four single-container blocks above. Keep
+this roadmap current as decisions change. Use the workspace session brief for
+short live handoffs, not additional PLAN/TODO/SUMMARY files.</p>
 
 
 
@@ -2457,7 +2570,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 25, 2026 15:55:14 UTC">August 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 17:45:46 UTC">October 8, 2026</span>
   </span>
 
     
@@ -2467,7 +2580,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:08:21 UTC">July 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 17:45:46 UTC">October 8, 2026</span>
   </span>
 
     
@@ -2504,7 +2617,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../guides/troubleshooting/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Troubleshooting">
+          <a href="../orcan-studio/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Orcan Studio">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2514,20 +2627,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Troubleshooting
+                Orcan Studio
               </div>
             </div>
           </a>
         
         
           
-          <a href="../faq/" class="md-footer__link md-footer__link--next" aria-label="Next: FAQ">
+          <a href="../../concepts/workspaces/" class="md-footer__link md-footer__link--next" aria-label="Next: Workspaces">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                FAQ
+                Workspaces
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -2598,14 +2711,14 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": {"concept": "concept", "develop": "develop", "guide": "guide", "reference": "reference", "security": "security"}, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.action.view", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": {"concept": "concept", "develop": "develop", "guide": "guide", "reference": "reference", "security": "security"}, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="../assets/javascripts/orcan-version.js"></script>
+        <script src="../../assets/javascripts/orcan-version.js"></script>
       
-        <script src="../assets/javascripts/orcan-mermaid.js"></script>
+        <script src="../../assets/javascripts/orcan-mermaid.js"></script>
       
     
   </body>
