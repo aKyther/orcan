@@ -29,7 +29,7 @@
     
     
       
-        <title>Studio and Enclave roadmap - Orcan</title>
+        <title>Studio server and container roadmap - Orcan</title>
       
     
     
@@ -112,12 +112,12 @@
   
   <meta name="description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Studio and Enclave roadmap — Orcan">
+  <meta property="og:title" content="Studio server and container roadmap — Orcan">
   <meta property="og:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
   <meta property="og:url" content="https://akyther.github.io/orcan/latest/ideas/orcan-studio-roadmap/">
   <meta property="og:site_name" content="Orcan">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Studio and Enclave roadmap — Orcan">
+  <meta name="twitter:title" content="Studio server and container roadmap — Orcan">
   <meta name="twitter:description" content="Work-context orchestrator for Cursor CLI and Claude Code across many repositories in Docker">
 
   </head>
@@ -139,7 +139,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#orcan-studio-and-enclave-roadmap" class="md-skip">
+        <a href="#orcan-studio-server-and-container-roadmap" class="md-skip">
           Skip to content
         </a>
       
@@ -190,7 +190,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Studio and Enclave roadmap
+              Studio server and container roadmap
             
           </span>
         </div>
@@ -966,7 +966,7 @@
   <span class="md-ellipsis">
     
   
-    Studio and Enclave roadmap
+    Studio server and container roadmap
   
 
     
@@ -984,7 +984,7 @@
   <span class="md-ellipsis">
     
   
-    Studio and Enclave roadmap
+    Studio server and container roadmap
   
 
     
@@ -1066,10 +1066,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-compact-enclave-control-panel" class="md-nav__link">
+  <a href="#2-compact-container-control-panel" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Compact Enclave control panel
+        2. Compact container control panel
       
     </span>
   </a>
@@ -2174,10 +2174,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-compact-enclave-control-panel" class="md-nav__link">
+  <a href="#2-compact-container-control-panel" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Compact Enclave control panel
+        2. Compact container control panel
       
     </span>
   </a>
@@ -2288,7 +2288,7 @@
   
 
 
-<h1 id="orcan-studio-and-enclave-roadmap">Orcan Studio and Enclave roadmap<a class="headerlink" href="#orcan-studio-and-enclave-roadmap" title="Permanent link">&para;</a></h1>
+<h1 id="orcan-studio-server-and-container-roadmap">Orcan Studio server and container roadmap<a class="headerlink" href="#orcan-studio-server-and-container-roadmap" title="Permanent link">&para;</a></h1>
 <p>This is a maintainer handoff and product direction, not a list of available
 features. It preserves decisions from the design session ending on 2026-10-08.
 Read <a href="../orcan-studio/">Orcan Studio</a> for the current implementation.</p>
@@ -2299,7 +2299,8 @@ then creation chooses name, CPU, RAM, access and browser-terminal host port.
 Servers report engine CPU/RAM capacity and project-filesystem free space.
 Configuration, workspace metadata and launch state are instance-scoped;
 worktrees are namespaced beneath the shared source catalog. Existing default
-instances are not migrated. Enclaves remain future groups, not host synonyms.
+instances are not migrated. The Enclave term is retired from the current product
+vocabulary; possible future grouping has no committed category name.
 Real Windows/WSL/SSH and concurrent-container operation still need field testing.</p>
 <h2 id="product-direction">Product direction<a class="headerlink" href="#product-direction" title="Permanent link">&para;</a></h2>
 <p>Orcan helps people build the context that agents need. Running agents and
@@ -2308,7 +2309,7 @@ wrapping tmux are useful, but they are not the main product value.</p>
 simple and visual. A user should see which projects are available, which
 workspace uses them, and what a proposed change will do. The terminal cockpit
 stays available for daily work with an agent; Studio does not replace it.</p>
-<p>Later, an Enclave can group several Orcan containers on one machine. A 2D graph,
+<p>Later, a group could coordinate several Orcan containers on one machine. A 2D graph,
 inspired by the clarity of n8n, could describe work passing between their agent
 roles. This is a future direction, not permission to build a general automation
 engine now. First complete and test the single-container foundation.</p>
@@ -2338,10 +2339,6 @@ engine now. First complete and test the single-container foundation.</p>
 <td>One Orcan container on a host, with its own Compose project, configuration, launch state and workspaces.</td>
 </tr>
 <tr>
-<td>Enclave, future</td>
-<td>A named group of isolated Orcan containers on one connected host. Its exact relationship to profiles still needs a migration design.</td>
-</tr>
-<tr>
 <td>Container</td>
 <td>Execution and access boundary; later a named role such as developer or tester.</td>
 </tr>
@@ -2359,9 +2356,9 @@ engine now. First complete and test the single-container foundation.</p>
 </tr>
 </tbody>
 </table>
-<p>Do not permanently encode <code>profile == enclave == container</code> in new storage.
+<p>Do not permanently encode profile and container as the same identity in new storage.
 Keep host identity separate from container identity. Named containers now isolate
-paths, lifecycle and ownership; Enclave grouping and task orchestration remain future work.</p>
+paths, lifecycle and ownership; grouping and task orchestration remain future work.</p>
 <h2 id="current-baseline-implemented-not-yet-fully-field-tested">Current baseline: implemented, not yet fully field-tested<a class="headerlink" href="#current-baseline-implemented-not-yet-fully-field-tested" title="Permanent link">&para;</a></h2>
 <p>The transfer baseline before this roadmap is <code>138ce161</code> on <code>main</code>.</p>
 <ul>
@@ -2401,7 +2398,7 @@ Field-test Windows → WSL → SSH, failure recovery, and the named creation UI.
 Refine in verified blocks; no release, tag, or
 version bump is requested.</p>
 <h3 id="1-guided-preparation-and-creation">1. Guided preparation and creation<a class="headerlink" href="#1-guided-preparation-and-creation" title="Permanent link">&para;</a></h3>
-<p>Make New Enclave available from Enclaves, even when the selected profile does
+<p>Make New container available from Servers, even when the selected profile does
 not yet have Orcan. A saved connection is not the same as a provisioned runtime.</p>
 <p>Show separate facts: connection, CLI/Studio protocol, Docker access, required
 image, existing configuration/container, and readiness to create. A failure
@@ -2424,14 +2421,14 @@ create configuration, sync, start, and verify the actual result.</p>
 <li>Selection or option changes invalidate the plan. Late async responses do not
   authorize a different profile. Background polling does not erase a ready plan.</li>
 <li>Errors preserve recovery actions; progress does not block navigation.</li>
-<li>Success opens the verified Enclave and offers context management.</li>
+<li>Success opens the verified container and offers context management.</li>
 </ul>
-<h3 id="2-compact-enclave-control-panel">2. Compact Enclave control panel<a class="headerlink" href="#2-compact-enclave-control-panel" title="Permanent link">&para;</a></h3>
+<h3 id="2-compact-container-control-panel">2. Compact container control panel<a class="headerlink" href="#2-compact-container-control-panel" title="Permanent link">&para;</a></h3>
 <p>Show container state/name, required image, Orcan version, last successful check,
 project/worktree/workspace roots, CPU/RAM, agent tools, and access exposure.
 Use Orcan-reported values; unknown and stale are valid states, not defaults.</p>
 <p>Keep the main view compact: summary, actions, paths, and optional details.
-Put configuration behind the Enclave gear. Locked image/start-time settings
+Put configuration behind the container gear. Locked image/start-time settings
 should remain visible with a short reason. Do not display environment secrets.</p>
 <p>Acceptance: the user can see what exists, where it lives, what is exposed, and
 what is actionable without scrolling through several forms. Failed refreshes
@@ -2585,7 +2582,7 @@ short live handoffs, not additional PLAN/TODO/SUMMARY files.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 18:40:49 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 20:15:56 UTC">October 8, 2026</span>
   </span>
 
     
