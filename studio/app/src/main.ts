@@ -1951,8 +1951,13 @@ let onlineProvisionReadyProfileId: string | undefined;
 
 function openProvisioning(profile?: ConnectionProfile): void {
   showView("provisioning");
-  if (profile) onlineProvisionTarget.value = profile.id;
   renderOnlineProvision();
+  renderCliProvision();
+  renderImageTransfer();
+  if (profile) {
+    onlineProvisionTarget.value = profile.id;
+    renderOnlineProvision();
+  }
 }
 
 function renderOnlineProvision(): void {
@@ -2364,7 +2369,10 @@ profileDelete.addEventListener("click", async () => {
   showPane("profiles");
 });
 credentialSave.addEventListener("click", () => void saveCredential());
-for (const item of navigationItems) item.addEventListener("click", () => showView(item.dataset.viewTarget ?? "overview"));
+for (const item of navigationItems) item.addEventListener("click", () => {
+  if (item.dataset.viewTarget === "provisioning") openProvisioning();
+  else showView(item.dataset.viewTarget ?? "overview");
+});
 settingsRefresh.addEventListener("click", () => { if (current) void connect(current, settingsResult).catch(() => undefined); });
 sandboxRefresh.addEventListener("click", () => { if (current) void connect(current, sandboxResult).catch(() => undefined); });
 for (const [action, selector] of Object.entries(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.addEventListener("click", () => void runRuntimeAction(action as RuntimeAction));
