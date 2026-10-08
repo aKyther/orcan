@@ -5,6 +5,7 @@ import { parentCandidates, parentDirectory, parentForProject, parentLabel, parse
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
+import { creationBlocker, lifecycleBlocker, ownsEnclave } from "./enclave-model";
 import { confirmAction, promptText } from "./dialog";
 import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
 import { loadCachedReport, persistCachedReport } from "./report-cache";
@@ -33,6 +34,9 @@ const onlineProvisionCheck = $<HTMLButtonElement>("#online-provision-check");
 const onlineProvisionRun = $<HTMLButtonElement>("#online-provision-run");
 const onlineProvisionResult = $<HTMLOutputElement>("#online-provision-result");
 const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
+const enclaveCreateCheck = $<HTMLButtonElement>("#enclave-create-check");
+const enclaveCreateReadiness = $("#enclave-create-readiness");
+const enclaveCreateOptions = $<HTMLFieldSetElement>("#enclave-create-options");
 const enclaveCreateGit = $<HTMLInputElement>("#enclave-create-git");
 const enclaveCreateDocker = $<HTMLInputElement>("#enclave-create-docker");
 const enclaveCreateTtyd = $<HTMLInputElement>("#enclave-create-ttyd");
@@ -192,7 +196,7 @@ const demoReport: ProbeReport = {
   host: { os: "Linux", architecture: "x86_64" },
   capabilities: { docker: true, managed_projects: true, live_reconcile: true },
   runtime: {
-    docker: { container: { state: "running" }, agents: { codex: true, claude: true, gemini: true, copilot: false, cursor: true } },
+    docker: { available: true, image: { name: "orcan:latest", present: true }, container: { name: "orcan-1", state: "running" }, agents: { codex: true, claude: true, gemini: true, copilot: false, cursor: true } },
     resources: { cpus: 4, memory: "8g", shm_size: "1g", tmpfs_size: "1g" },
     launch: { recorded: true, docker: false, git: true, network: null, ttyd: true, ttyd_auth: false },
   },
@@ -304,6 +308,25 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   const enclave = (_args as { enclave?: { target: Target } } | undefined)?.enclave;
   if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
   if (command === "probe") return structuredClone(await demoReportFor(enclave!.target)) as T;
+  if (command === "enclave_readiness") return { user: "developer", docker: { available: true, version: "demo", detail: "Docker ready" }, report: structuredClone(await demoReportFor(enclave!.target)), orcanError: null } as T;
+  if (command === "enclave_action") {
+    const report = await demoReportFor(enclave!.target);
+    const args = _args as { apply: boolean; withGit: boolean; withDocker: boolean; withTtyd: boolean; ttydCredential?: string };
+    const blocker = creationBlocker(report);
+    if (blocker) throw new Error(blocker);
+    if (args.apply) {
+      report.context.configuration = { state: "present", source: "config", editable: true };
+      report.runtime.docker.container.state = "running";
+      report.runtime.launch = { recorded: true, git: args.withGit, docker: args.withDocker, ttyd: args.withTtyd, ttyd_auth: Boolean(args.ttydCredential) };
+      return { ok: true } as T;
+    }
+    return { plan: { ready: true, changes: ["create empty configuration", "run orcan sync", "start Orcan with selected access"] } } as T;
+  }
+  if (command === "runtime_action") {
+    const report = await demoReportFor(enclave!.target);
+    report.runtime.docker.container.state = (_args as { action: string }).action === "stop" ? "exited" : "running";
+    return null as T;
+  }
   if (command === "membership_action") return demoMembership(await demoReportFor(enclave!.target), _args as MembershipArgs) as T;
   const root = demoReport.paths.projects_root;
   const worktrees = demoReport.paths.managed_worktrees_root;
@@ -393,6 +416,7 @@ const runtimeResult = document.querySelector<HTMLOutputElement>("#runtime-result
 const runtimeButtons = { start: "#runtime-start", restart: "#runtime-restart", stop: "#runtime-stop" } as const;
 type RuntimeAction = keyof typeof runtimeButtons;
 let launch: NonNullable<ProbeReport["runtime"]["launch"]> = { recorded: false };
+let runtimeBusy = false;
 
 function accessExposure(value: ProbeReport["runtime"]["launch"]): string {
   if (!value?.recorded) return "Not recorded";
@@ -404,22 +428,24 @@ function accessExposure(value: ProbeReport["runtime"]["launch"]): string {
 
 function renderRuntime(report: ProbeReport): void {
   launch = report.runtime.launch ?? { recorded: false };
-  const running = report.runtime.docker.container.state === "running";
   const flags = [launch.ttyd ? (launch.ttyd_auth ? "browser terminal (password)" : "browser terminal") : "local only", launch.docker && "Docker socket", launch.git && "git/SSH keys", launch.network && `network ${launch.network}`].filter(Boolean);
-  launchSummary.textContent = launch.recorded ? `Start/Restart reuse: ${flags.join(" · ")}` : "No recorded start flags — start this Enclave once with orcan up on the instance.";
+  launchSummary.textContent = `Existing container keeps its mounts, resources and access on Start/Restart.${launch.recorded ? ` Access: ${flags.join(" · ")}.` : " Saved launch options are not reported."}`;
   launchWarning.hidden = !launch.ttyd;
   launchWarning.innerHTML = launch.ttyd_auth
-    ? "Password-protected terminal: Studio does not store that password, so restart on the instance with <code>orcan up --resume --with-ttyd-auth USER:PASS</code>."
+    ? "Password-protected terminal: Start/Restart preserve the existing container. Recreating a removed container requires supplying the browser-terminal password again."
     : "The browser terminal is published without a password. Recommended: <code>orcan up --resume --with-ttyd-auth USER:PASS</code>.";
-  document.querySelector<HTMLButtonElement>(runtimeButtons.start)!.disabled = running || !launch.recorded || !!launch.ttyd_auth;
-  document.querySelector<HTMLButtonElement>(runtimeButtons.restart)!.disabled = !running || !launch.recorded || !!launch.ttyd_auth;
-  document.querySelector<HTMLButtonElement>(runtimeButtons.stop)!.disabled = !running;
+  for (const [action, selector] of Object.entries(runtimeButtons)) {
+    const button = document.querySelector<HTMLButtonElement>(selector)!;
+    const reason = lifecycleBlocker(report, action as RuntimeAction);
+    button.disabled = Boolean(reason) || runtimeBusy;
+    button.title = reason ?? `${action} this container without changing its configuration`;
+  }
 }
 
 function renderEnclaveConfiguration(report: ProbeReport): void {
   const fallback: Array<{ id: string; label: string; state: "editable" | "locked"; value: string; detail: string; action?: "contexts" | "runtime" }> = [
     { id: "context", label: "Workspace context", state: canEditContext(report) ? "editable" : "locked", value: contextSourceLabel(report), detail: canEditContext(report) ? "Workspaces and project membership are planned, confirmed, then reconciled." : contextEditMessage(), action: "contexts" as const },
-    { id: "lifecycle", label: "Container lifecycle", state: "editable", value: report.runtime.docker.container.state, detail: "Start, stop, and restart are available. Restart reuses Orcan's recorded launch flags.", action: "runtime" as const },
+    { id: "lifecycle", label: "Container lifecycle", state: "editable", value: report.runtime.docker.container.state, detail: "Start/Stop/Restart preserve the existing container. Recreating a removed container uses recorded Orcan launch flags.", action: "runtime" as const },
     { id: "resources", label: "Container resources", state: "locked", value: report.runtime.resources ? `CPU ${report.runtime.resources.cpus ?? "—"} · RAM ${report.runtime.resources.memory ?? "—"}` : "Not reported", detail: "CPU and memory are supplied at container creation; Studio reports them but does not rewrite Docker start configuration." },
   ];
   const settings = report.control?.settings?.length ? report.control.settings : fallback;
@@ -439,31 +465,47 @@ function renderEnclaveConfiguration(report: ProbeReport): void {
       button.disabled = true;
       button.title = setting.detail;
     }
-    return option(setting.label, setting.value, setting.detail, setting.state, button);
+    const impact = setting.id === "context" ? "Context plans are applied and reconciled with sync; new bind mounts can need recreation."
+      : ["resources", "environment", "access"].includes(setting.id) ? "Changing this requires container recreation; ordinary restart keeps existing settings."
+      : setting.id === "agents" ? "Changing the installed tools requires a different image and container recreation." : "";
+    return option(setting.label, setting.value, `${setting.detail}${impact ? ` ${impact}` : ""}`, setting.state, button);
   }));
 }
 
 async function runRuntimeAction(action: RuntimeAction): Promise<void> {
-  const privileged = [launch.docker && "the host Docker socket", launch.git && "your SSH keys"].filter(Boolean);
-  if (action !== "stop" && privileged.length && !await confirmAction(`This start gives agents access to ${privileged.join(" and ")}. Continue?`, { title: "Enable privileged access", confirmLabel: "Continue" })) return;
-  if (action === "stop" && !await confirmAction("Running agent sessions will end.", { title: "Stop Enclave", confirmLabel: "Stop", danger: true })) return;
+  if (!current || !currentReport || runtimeBusy) return;
+  const connection = { ...current };
+  const report = currentReport;
+  const blocker = lifecycleBlocker(report, action);
+  if (blocker) { runtimeResult.textContent = blocker; return; }
+  const privileged = [report.runtime.launch?.docker && "the host Docker socket", report.runtime.launch?.git && "your SSH keys"].filter(Boolean);
+  if (action === "start" && privileged.length && !await confirmAction(`Start ${connection.label} with access to ${privileged.join(" and ")}?`, { title: "Enable privileged access", confirmLabel: "Start" })) return;
+  if (action !== "start" && !await confirmAction(`Running agent sessions in ${connection.label} may end. Project files, context and container settings are preserved.`, { title: `${action === "stop" ? "Stop" : "Restart"} Enclave`, confirmLabel: action === "stop" ? "Stop" : "Restart", danger: true })) return;
   const label = action[0].toUpperCase() + action.slice(1);
-  if (!current) return;
-  const job = addJob(`Enclave ${action}`, current.label);
+  if (runtimeBusy) return;
+  runtimeBusy = true;
+  const job = addJob(`Enclave ${action}`, connection.label);
   for (const selector of Object.values(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.disabled = true;
   runtimeResult.textContent = `${label} in progress…`;
   try {
-    await invoke("runtime_action", { enclave: enclaveInput(current), action });
-    runtimeResult.textContent = `${label} finished. Refreshing instance…`;
+    await invoke("runtime_action", { enclave: enclaveInput(connection), action });
+    runtimeResult.textContent = `${label} finished. Verifying instance…`;
+    const profile = profiles.find((profile) => profile.id === connection.profileId);
+    if (!profile || JSON.stringify(enclaveInput(profileConnection(profile))) !== JSON.stringify(enclaveInput(connection))) throw new Error("Profile changed during the operation. Check the destination again.");
+    await enclaveChecks.get(profile.id);
+    const status = await checkEnclave(profile);
+    const expected = action === "stop" ? "exited" : "running";
+    if (status.state !== "online" || status.report?.runtime.docker.container.state !== expected) throw new Error(status.error ?? `Expected container state ${expected}; check the destination again.`);
+    runtimeResult.textContent = `${label} verified · container ${expected}.`;
     finishJob(job, "succeeded", label);
   } catch (error) {
     runtimeResult.textContent = `${label} failed: ${String(error)}`;
     finishJob(job, "failed", String(error));
   }
-  void connect(current).catch(() => {
-    if (current?.profileId) enclaveStatus.set(current.profileId, { state: "offline", at: Date.now() });
-    renderStore();
-  });
+  finally {
+    runtimeBusy = false;
+    if (currentReport) renderRuntime(currentReport);
+  }
 }
 
 const enclaveMap = $("#enclave-map");
@@ -1910,7 +1952,7 @@ function ago(at?: number): string {
 function statusText(status?: EnclaveStatus): string {
   if (!status) return "Not checked yet";
   if (status.state === "checking") return status.report ? `Checking… (last: container ${status.report.runtime.docker.container.state})` : "Checking…";
-  if (status.state === "offline") return `Unreachable · checked ${ago(status.at)}`;
+  if (status.state === "offline") return `Check failed · ${status.report ? "last report is stale · " : ""}checked ${ago(status.at)}`;
   return `Orcan ${status.report!.sandbox.version} · container ${status.report!.runtime.docker.container.state} · checked ${ago(status.at)}`;
 }
 
@@ -1936,8 +1978,8 @@ async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatu
   }
   enclaveStatus.set(profile.id, status);
   if (connected && current?.profileId === profile.id) {
-    if (status.report) renderSnapshot(status.report);
-    else lockStudio();
+    if (status.state === "online" && status.report) renderSnapshot(status.report);
+    else { currentReport = undefined; lockStudio(); }
   }
   renderEnclaveStatus();
   return status;
@@ -1971,15 +2013,14 @@ function cachedEnclaveReport(profile: ConnectionProfile): ProbeReport | undefine
   return loadCachedReport(cacheKey(profile.target));
 }
 
-/** Makes an Enclave active immediately, then verifies it in the background. */
+/** Only a successful check in this session unlocks operations; cache is history. */
+let enclaveOpenSequence = 0;
 async function openEnclave(profile: ConnectionProfile): Promise<void> {
+  const sequence = ++enclaveOpenSequence;
   const connection = profileConnection(profile);
-  const report = enclaveStatus.get(profile.id)?.report ?? cachedEnclaveReport(profile);
-  if (report) {
-    if (!enclaveStatus.get(profile.id)?.report) {
-      enclaveStatus.set(profile.id, { state: "online", report, at: Date.now() });
-    }
-    activate(connection, report);
+  const checked = enclaveStatus.get(profile.id);
+  if (checked?.state === "online" && checked.report) {
+    activate(connection, checked.report);
     showView("overview");
     void checkEnclave(profile);
     return;
@@ -1987,25 +2028,15 @@ async function openEnclave(profile: ConnectionProfile): Promise<void> {
   result.textContent = `Connecting to ${profile.name}…`;
   showView("enclaves");
   const status = await checkEnclave(profile);
-  if (status.report) {
+  if (sequence === enclaveOpenSequence && status.state === "online" && status.report) {
     activate(connection, status.report);
     showView("overview");
   }
 }
 
 async function openEnclaveSettings(profile: ConnectionProfile): Promise<void> {
-  const connection = profileConnection(profile);
-  const report = enclaveStatus.get(profile.id)?.report ?? cachedEnclaveReport(profile);
-  if (report) {
-    activate(connection, report);
-    showView("settings");
-    void checkEnclave(profile);
-    return;
-  }
-  result.textContent = `Connecting to ${profile.name}…`;
-  const status = await checkEnclave(profile);
-  if (status.report) {
-    activate(connection, status.report);
+  await openEnclave(profile);
+  if (connected && current?.profileId === profile.id) {
     showView("settings");
   }
 }
@@ -2081,9 +2112,9 @@ async function offerTransferResume(output: HTMLElement, token: string | undefine
 }
 
 function provisioningSucceeded(output: HTMLElement, message: string, profile: ConnectionProfile): void {
-  output.replaceChildren(el("span", { textContent: message }), actionButton("Go to Enclaves", () => {
-    showView("enclaves");
-    void checkEnclave(profile);
+  output.replaceChildren(el("span", { textContent: message }), actionButton("Continue Enclave setup", () => {
+    openEnclaveCreator(profile);
+    void checkCreatorDestination();
   }));
 }
 
@@ -2281,31 +2312,114 @@ function renderImageTransfer(): void {
 /** One profile owns one current Enclave until Orcan gains multi-runtime support. */
 function profileHasEnclave(profile: ConnectionProfile): boolean {
   const report = enclaveStatus.get(profile.id)?.report ?? cachedEnclaveReport(profile);
-  return report?.context.configuration.source === "config" || report?.context.configuration.state === "present";
+  return ownsEnclave(report);
 }
 
-function profileCanCreateEnclave(profile: ConnectionProfile): boolean {
-  const status = enclaveStatus.get(profile.id);
-  return status?.state === "online"
-    && !profileHasEnclave(profile)
-    && Boolean(status.report?.capabilities.docker);
+type EnclaveReadiness = { user: string; docker: { available: boolean; version?: string; detail: string }; report?: ProbeReport; orcanError?: string };
+let creatorReadiness: { connection: string; result: EnclaveReadiness } | undefined;
+let creatorBusy = false;
+let creatorRevision = 0;
+let creatorPlanRevision = -1;
+
+function creatorConnection(profile: ConnectionProfile): string {
+  return JSON.stringify(enclaveInput(profileConnection(profile)));
+}
+
+function creatorReport(profile: ConnectionProfile): ProbeReport | undefined {
+  return creatorReadiness?.connection === creatorConnection(profile) && creatorReadiness.result.docker.available ? creatorReadiness.result.report : undefined;
+}
+
+function creatorCanApply(profile: ConnectionProfile): boolean {
+  return !creatorBusy && creatorPlanRevision === creatorRevision && !creationBlocker(creatorReport(profile));
+}
+
+function openEnclaveCreator(profile: ConnectionProfile): void {
+  creatorPlanRevision = -1;
+  creatorRevision += 1;
+  renderEnclaveCreator();
+  enclaveCreateProfile.value = profile.id;
+  showView("enclaves");
+  renderEnclaveCreator();
+  $("#enclave-creator").scrollIntoView({ block: "start" });
 }
 
 function renderEnclaveCreator(): void {
+  if (creatorBusy) return;
   const previous = enclaveCreateProfile.value;
-  const available = profiles.filter(profileCanCreateEnclave);
   enclaveCreateProfile.replaceChildren(
-    new Option(available.length ? "Choose available profile…" : "No available profiles", ""),
-    ...available.map((profile) => new Option(profile.name, profile.id)),
+    new Option(profiles.length ? "Choose destination profile…" : "Create a profile first", ""),
+    ...profiles.map((profile) => new Option(profile.name, profile.id)),
   );
-  enclaveCreateProfile.value = available.some((profile) => profile.id === previous) ? previous : "";
-  enclaveCreatePlan.disabled = available.length === 0;
+  enclaveCreateProfile.value = profiles.some((profile) => profile.id === previous) ? previous : "";
+  const profile = selectedProfile(enclaveCreateProfile);
+  const ready = Boolean(profile && !creationBlocker(creatorReport(profile)));
+  enclaveCreateCheck.disabled = !profile;
+  enclaveCreateOptions.disabled = !ready;
+  enclaveCreatePlan.disabled = !ready;
+  enclaveCreateApply.disabled = !profile || !creatorCanApply(profile);
+  if (!profile) enclaveCreateReadiness.textContent = "Choose a profile. Orcan does not need to be installed yet.";
+}
+
+function prepareProfile(profile: ConnectionProfile, image = false): void {
+  openProvisioning(profile);
+  if (image) {
+    const name = creatorReport(profile)?.runtime.docker.image?.name;
+    imageTransferTarget.value = profile.id;
+    if (name) imageTransferName.value = name;
+    inspectedImage = undefined;
+    imageTransferRun.disabled = true;
+    imageTransferResult.textContent = "Choose a source profile with the required image, then check source and destination.";
+    $("#image-transfer-run").closest(".panel")?.scrollIntoView({ block: "start" });
+  }
+}
+
+async function checkCreatorDestination(): Promise<void> {
+  const profile = selectedProfile(enclaveCreateProfile);
+  if (!profile || creatorBusy) return;
+  creatorBusy = true;
+  creatorPlanRevision = -1;
+  creatorReadiness = undefined;
+  enclaveCreateProfile.disabled = true;
+  enclaveCreateCheck.disabled = true;
+  enclaveCreateOptions.disabled = true;
+  enclaveCreatePlan.disabled = true;
   enclaveCreateApply.disabled = true;
-  if (!available.length) {
-    const used = profiles.filter(profileHasEnclave).length;
-    enclaveCreateResult.textContent = used
-      ? "Every checked profile already owns an Enclave. One profile can create one Enclave."
-      : "Check Orcan and Docker on a provisioned profile before creating its Enclave.";
+  enclaveCreateReadiness.textContent = `Checking connection, Orcan, Docker and image on ${profile.name}…`;
+  enclaveCreateResult.textContent = "";
+  const connection = creatorConnection(profile);
+  try {
+    const readiness = await invoke<EnclaveReadiness>("enclave_readiness", { enclave: enclaveInput(profileConnection(profile)) });
+    const selected = selectedProfile(enclaveCreateProfile);
+    if (!selected || connection !== creatorConnection(selected)) return;
+    creatorReadiness = { connection, result: readiness };
+    const report = readiness.report;
+    if (report) {
+      enclaveStatus.set(profile.id, { state: "online", report, at: Date.now() });
+      persistCachedReport(cacheKey(profile.target), report);
+    }
+    const fact = (label: string, value: string, okay: boolean) => el("div", { className: `enclave-readiness-row ${okay ? "ready" : "attention"}` }, el("span", { textContent: okay ? "✓" : "!", ariaHidden: "true" }), el("strong", { textContent: label }), el("span", { textContent: value }));
+    const image = report?.runtime.docker.image;
+    enclaveCreateReadiness.replaceChildren(
+      fact("Connection", `Signed in as ${readiness.user}`, true),
+      fact("Orcan CLI", report ? report.sandbox.version : needsStudioUpdate(readiness.orcanError ?? "") ? "Update required" : "Not ready", Boolean(report)),
+      fact("Docker", readiness.docker.available ? readiness.docker.version ?? "Ready" : "Not ready for this user", readiness.docker.available),
+      fact("Image", image ? `${image.name} · ${image.present ? "available" : "missing"}` : "Check after CLI installation", Boolean(image?.present)),
+    );
+    const actions = el("div", { className: "actions compact" });
+    if (!report) actions.append(actionButton(needsStudioUpdate(readiness.orcanError ?? "") ? "Update CLI" : "Install CLI", () => prepareProfile(profile)));
+    if (image && !image.present) actions.append(actionButton("Transfer image", () => prepareProfile(profile, true)));
+    if (report && ownsEnclave(report)) actions.append(actionButton("Open existing Enclave", () => void openEnclave(profile)));
+    enclaveCreateReadiness.append(actions);
+    if (readiness.orcanError) enclaveCreateReadiness.append(technicalDetail(readiness.orcanError));
+    if (!readiness.docker.available) enclaveCreateReadiness.append(el("p", { className: "muted", textContent: "Start Docker and grant this user access. On WSL2, enable Docker Desktop integration or prepare Docker Engine in this distribution." }), technicalDetail(readiness.docker.detail));
+    enclaveCreateResult.textContent = creationBlocker(report) ?? "Ready. Review access options and preview the creation plan.";
+    renderEnclaveStatus();
+  } catch (error) {
+    enclaveCreateReadiness.replaceChildren(el("strong", { textContent: "Could not connect to this profile." }), el("span", { textContent: failureHint(String(error)) }), technicalDetail(String(error)));
+  } finally {
+    creatorBusy = false;
+    enclaveCreateProfile.disabled = false;
+    renderEnclaveCreator();
   }
 }
 
@@ -2322,17 +2436,20 @@ function enclaveTtydCredential(): string | undefined {
 async function planEmptyEnclave(apply = false): Promise<void> {
   const profile = selectedProfile(enclaveCreateProfile);
   if (!profile) return;
-  if (!profileCanCreateEnclave(profile)) {
-    enclaveCreateResult.textContent = "This profile is not available for a new Enclave. Check Orcan first, or use its existing Enclave.";
+  if (creatorBusy || creationBlocker(creatorReport(profile)) || (apply && !creatorCanApply(profile))) {
+    enclaveCreateResult.textContent = "Check the destination and preview the current plan before creating this Enclave.";
     return;
   }
+  const revision = creatorRevision;
+  creatorBusy = true;
+  enclaveCreateProfile.disabled = true;
+  enclaveCreateCheck.disabled = true;
+  enclaveCreateOptions.disabled = true;
+  enclaveCreatePlan.disabled = true;
+  enclaveCreateApply.disabled = true;
   enclaveCreateResult.textContent = apply ? "Creating empty Enclave…" : "Reading creation plan…";
   try {
-    if (!apply) {
-      const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(profileConnection(profile)) });
-      if (!report.capabilities.docker) throw new Error("Docker is not available on this destination profile.");
-    }
-    await invoke("enclave_action", {
+    const response = await invoke<{ plan?: { ready: boolean; changes: string[]; config: string } }>("enclave_action", {
       enclave: enclaveInput(profileConnection(profile)),
       apply,
       withGit: enclaveCreateGit.checked,
@@ -2340,13 +2457,24 @@ async function planEmptyEnclave(apply = false): Promise<void> {
       withTtyd: enclaveCreateTtyd.checked,
       ttydCredential: enclaveTtydCredential(),
     });
-    enclaveCreateResult.textContent = apply ? "Enclave created. Checking it now…" : "Plan ready: create empty config, sync it, then start the selected runtime access.";
-    enclaveCreateApply.disabled = apply;
-    if (apply) {
-      enclaveCreateTtydPassword.value = "";
-      await openEnclave(profile);
+    if (!apply && response.plan?.ready && revision === creatorRevision) {
+      creatorPlanRevision = revision;
+      enclaveCreateResult.replaceChildren(el("strong", { textContent: "Creation plan" }), el("ul", {}, ...response.plan.changes.map((change) => el("li", { textContent: change }))));
     }
-  } catch (error) { enclaveCreateResult.textContent = `Enclave setup failed: ${String(error)}`; }
+    if (apply) {
+      creatorPlanRevision = -1;
+      enclaveCreateResult.textContent = "Enclave created. Verifying and opening context…";
+      enclaveCreateTtydPassword.value = "";
+      await enclaveChecks.get(profile.id);
+      const status = await checkEnclave(profile);
+      if (status.state !== "online" || !status.report || status.report.runtime.docker.container.state !== "running") throw new Error(status.error ?? "Container is not running after creation. Refresh its status before continuing.");
+      creatorReadiness = undefined;
+      activate(profileConnection(profile), status.report);
+      showView("contexts");
+      enclaveCreateResult.textContent = "Enclave is running. Add projects to its context.";
+    }
+  } catch (error) { creatorPlanRevision = -1; enclaveCreateResult.textContent = `Enclave setup failed: ${String(error)}`; }
+  finally { creatorBusy = false; enclaveCreateProfile.disabled = false; renderEnclaveCreator(); }
 }
 
 async function inspectTransferImage(): Promise<void> {
@@ -2429,20 +2557,34 @@ function renderEnclaves(): void {
     const gear = actionButton("⚙", () => void openEnclaveSettings(profile), "secondary");
     gear.title = `Configure ${profile.name}`;
     gear.setAttribute("aria-label", `Configure ${profile.name}`);
-    const actions: HTMLElement[] = [actionButton("Check Orcan", () => void checkEnclave(profile)), gear];
-    if (!status?.report) actions.unshift(actionButton(needsStudioUpdate(status?.error ?? "") ? "Update Orcan" : "Provision Orcan", () => openProvisioning(profile), "secondary"));
-    if (status?.report?.runtime.docker.container.state === "running") {
-      actions.push(actionButton("Remove container", () => {
-        current = profileConnection(profile);
-        void runRuntimeAction("stop");
-      }, "secondary"));
-    }
+    const actions: HTMLElement[] = [actionButton("Refresh", () => void checkEnclave(profile), "secondary")];
+    gear.disabled = status?.state !== "online" || !status.report;
+    actions.push(gear);
+    if (!status?.report || !ownsEnclave(status.report)) actions.unshift(actionButton("Set up", () => openEnclaveCreator(profile)));
     if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
-    else actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
+    else if (status?.report && ownsEnclave(status.report)) actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
     const access = status?.report ? ` · ${accessExposure(status.report.runtime.launch)}` : "";
     const text = el("div", {}, el("strong", {}, dot(statusTone(status)), profile.name), el("span", { textContent: `${describeProfile(profile)} · ${statusText(status)}${access}${drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}` }));
     if (status?.state === "offline") text.append(el("span", { className: "status-hint", textContent: failureHint(status.error ?? "") }));
     const item = el("div", { className: "list-item enclave-item" }, text, el("div", { className: "item-actions" }, ...actions));
+    if (status?.report) {
+      const report = status.report;
+      const facts = el("dl", { className: "enclave-facts" });
+      for (const [label, value] of [
+        ["Container", `${report.runtime.docker.container.name ?? "Not reported"} · ${report.runtime.docker.container.state}`],
+        ["Image", report.runtime.docker.image ? `${report.runtime.docker.image.name} · ${report.runtime.docker.image.present ? "available" : "missing"}` : "Not reported"],
+        ["Configured resources", `CPU ${report.runtime.resources?.cpus ?? "not reported"} · RAM ${report.runtime.resources?.memory ?? "not reported"}`],
+        ["Projects", report.paths.projects_root],
+        ["Worktrees", report.paths.managed_worktrees_root],
+        ["Workspaces", `${report.context.workspaces.length} · ${report.paths.workspace_metadata_root}`],
+      ]) facts.append(el("div", {}, el("dt", { textContent: label }), el("dd", { textContent: value, title: value })));
+      text.append(facts);
+      if (status.state === "online") {
+        const enter = actionButton("Manage context", async () => { await openEnclave(profile); if (current?.profileId === profile.id && connected) showView("contexts"); }, "secondary");
+        enter.disabled = !ownsEnclave(report);
+        item.children[1].append(enter);
+      }
+    }
     item.classList.toggle("active", active);
     return item;
   }) : [emptyState("Enclaves appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
@@ -2552,8 +2694,14 @@ cliProvisionRun.addEventListener("click", () => void provisionCli());
 for (const input of [cliProvisionSource, cliProvisionTarget]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; renderProvisionIdentity(); cliProvisionResult.textContent = "Selection changed. Check requirements again before installing."; });
 for (const select of [imageTransferSource, imageTransferTarget]) select.addEventListener("change", renderProvisionIdentity);
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
+enclaveCreateCheck.addEventListener("click", () => void checkCreatorDestination());
 enclaveCreateApply.addEventListener("click", async () => { if (await confirmAction("Create this Enclave with the selected runtime access?", { title: "New Enclave", confirmLabel: "Create" })) void planEmptyEnclave(true); });
-for (const input of [enclaveCreateProfile, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("change", () => { enclaveCreateApply.disabled = true; });
+for (const input of [enclaveCreateProfile, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("input", () => {
+  creatorRevision += 1;
+  creatorPlanRevision = -1;
+  if (input === enclaveCreateProfile) { creatorReadiness = undefined; enclaveCreateReadiness.textContent = "Check this destination before reviewing access options."; enclaveCreateResult.textContent = ""; }
+  renderEnclaveCreator();
+});
 enclaveCreateTtyd.addEventListener("change", () => {
   enclaveCreateTtydAuth.disabled = !enclaveCreateTtyd.checked;
   if (!enclaveCreateTtyd.checked) enclaveCreateTtydAuth.checked = false;
@@ -2597,7 +2745,7 @@ importParent.addEventListener("change", () => {
 });
 folderName.addEventListener("input", () => { folderReady = false; folderApplyButton.disabled = true; });
 folderPlanButton.addEventListener("click", async () => {
-  if (!current || !latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { folderResult.textContent = "Check an Enclave first."; return; }
+  if (!current || !connected || !currentReport || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { folderResult.textContent = "Check an Enclave first."; return; }
   folderPlanButton.disabled = true;
   folderResult.textContent = "Checking folder plan…";
   try {
@@ -2675,7 +2823,7 @@ worktreeApply.addEventListener("click", async () => {
   }
 });
 importPlanButton.addEventListener("click", async () => {
-  if (!current || !latestProbe || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check an Enclave first."; return; }
+  if (!current || !connected || !currentReport || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check an Enclave first."; return; }
   importPlanButton.disabled = true; importResult.textContent = "Building import plan…";
   try {
     const response = await invoke<{ plan: { destination: string; destination_state: string; ready: boolean; blockers: string[] } }>("import_plan", { enclave: enclaveInput(current), source: importSource.value, projectsRoot: snapshotRoot.textContent, parent: importParent.value || undefined });

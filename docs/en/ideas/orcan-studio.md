@@ -5,6 +5,10 @@ tags:
 
 # Orcan Studio
 
+For the next development phases, see the
+[Studio and Enclave roadmap](orcan-studio-roadmap.md). It separates the current
+single-container foundation from future multi-container and visual-flow work.
+
 Orcan Studio is the native desktop companion for composing and inspecting Orcan
 context. Orcan Sandbox remains the runtime that owns Docker, managed project
 roots, mounts, workspaces, and live reconcile.
@@ -197,12 +201,33 @@ changed-server-identity failures in plain language, with the original technical
 detail available on demand. Provisioning then has a separate requirements check for Bash,
 cURL, Git, Python 3, and reachability of the official installer; it also
 reports whether it found an existing Orcan CLI.
-The Enclave check reports Docker readiness after Orcan is available. New Enclave
-is enabled only after that check reports a usable Docker daemon; on WSL this
-means Docker Desktop integration or a Docker Engine must already be available
-inside the selected distribution.
-After provisioning, open its Enclave and use **Check Orcan** to read the
-configuration path before changing context.
+New Enclave accepts any saved profile, including a host without Orcan. **Check
+destination** separates connection, Orcan CLI, Docker and the required image.
+Missing components offer targeted CLI installation/update or image transfer;
+the provisioning result returns to the selected destination's setup. Docker
+Desktop integration or Docker Engine must already be ready inside the selected
+WSL distribution; setup does not silently install Docker.
+Access options and creation are enabled only after readiness checks succeed.
+Preview the actual Orcan plan, then confirm creation; changing options invalidates
+the plan. The backend checks again for an existing configuration or container
+and a usable local image. It does not build an image on an offline destination.
+After creation, Studio verifies the running container and opens Contexts.
+
+Enclave cards show container state/name, image, configured CPU/RAM, source and
+worktree paths, workspace count and access exposure. Settings remain behind the
+gear, with locked creation-time values and change-impact explanations. A cached
+or failed report is history, not authority to unlock operations; the current
+session needs a successful probe before opening a runtime for changes.
+
+For an existing container, Start, Stop and Restart use Docker's matching action.
+Restart is a real restart, not a possibly unchanged Compose `up`. These actions
+preserve container mounts, resources, environment and protected ttyd settings;
+Stop does not remove the container. If the container was removed, Start uses
+`orcan up --resume` only when saved options and the image are available. Removed
+containers with protected ttyd require supplying credentials on the host to
+recreate them. Studio checks resulting state before recording success.
+Ordinary restart does not apply new creation-time settings: new mounts,
+environment, resources or agent images may require explicit recreation.
 
 The Enclave map keeps projects directly under the managed sandbox root flat.
 Only real child folders become groups, so `sandbox/STARE/*` and
@@ -235,7 +260,8 @@ Studio's UI calls the current Sandbox runtime an **Enclave** (an isolated Orcan
 environment) and walks through Credentials & keys → Profiles → Enclaves; no
 instance view is shown until a probe succeeds. Today one checked profile owns
 at most one Enclave, so Studio excludes profiles that already report an
-`orcan.config.json` from the New Enclave chooser.
+`orcan.config.json` or an existing container from creating another Enclave.
+The destination remains selectable for inspection and opening the existing one.
 
 Workspace membership is edited on the Enclave map: dragging a project onto a
 workspace (or onto "New workspace") asks Orcan for a plan through

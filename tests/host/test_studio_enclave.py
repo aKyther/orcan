@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "repository" / "studio-enclave.py"
@@ -71,3 +71,18 @@ def test_empty_enclave_rollback_only_removes_the_empty_studio_configuration(
         json.loads(config.read_text(encoding="utf-8"))["workspaces"][0]["name"]
         == "keep"
     )
+
+
+def test_concurrent_apply_creates_configuration_exactly_once(tmp_path: Path) -> None:
+    config = tmp_path / "orcan.config.json"
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        attempts = list(
+            pool.map(
+                lambda _: invoke(
+                    "apply", "--config", str(config), "--yes", check=False
+                ),
+                range(4),
+            )
+        )
+    assert sum(result.returncode == 0 for result in attempts) == 1
+    assert json.loads(config.read_text(encoding="utf-8")) == {"workspaces": []}

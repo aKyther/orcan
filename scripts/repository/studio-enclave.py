@@ -2,7 +2,9 @@
 """Plan or create an empty Orcan configuration for Studio."""
 
 from __future__ import annotations
-import argparse, json
+
+import argparse
+import json
 from pathlib import Path
 
 
@@ -43,7 +45,9 @@ def main() -> None:
     if not args.yes or not plan["ready"]:
         raise SystemExit("apply requires --yes and an absent configuration")
     config.parent.mkdir(parents=True, exist_ok=True)
-    config.write_text(json.dumps(empty_config, indent=2) + "\n")
+    # Exclusive creation closes the race between two Studio apply requests.
+    with config.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(empty_config, indent=2) + "\n")
     print(json.dumps({"ok": True, "result": {"config": str(config)}}))
 
 

@@ -77,6 +77,49 @@ test("workspace name uses an inline selected field, not a browser prompt", async
   assert.equal(await pending, "updated");
 });
 
+function enclaveFixture(state = "missing") {
+  return {
+    capabilities: { docker: true },
+    runtime: { docker: { image: { name: "orcan:latest", present: true }, container: { name: "orcan-1", state } }, launch: { recorded: true, ttyd_auth: false } },
+    context: { configuration: { state: "missing", source: "none" } },
+  };
+}
+
+test("enclave setup distinguishes missing CLI, Docker, image and existing ownership", async () => {
+  const { ownsEnclave, creationBlocker } = await load("enclave-model");
+  assert.match(creationBlocker(), /CLI/);
+  const report = enclaveFixture();
+  assert.equal(creationBlocker(report), undefined);
+  assert.equal(ownsEnclave(report), false);
+  report.runtime.docker.image.present = false;
+  assert.match(creationBlocker(report), /Transfer orcan:latest/);
+  delete report.runtime.docker.image;
+  assert.match(creationBlocker(report), /Update/);
+  report.capabilities.docker = false;
+  assert.match(creationBlocker(report), /Docker/);
+  report.context.configuration = { state: "present", source: "config" };
+  assert.equal(ownsEnclave(report), true);
+  assert.match(creationBlocker(report), /already owns/);
+  assert.equal(ownsEnclave(enclaveFixture("exited")), true);
+});
+
+test("existing protected containers can restart and start without recreating", async () => {
+  const { lifecycleBlocker } = await load("enclave-model");
+  const report = enclaveFixture("running");
+  report.runtime.launch.ttyd_auth = true;
+  assert.equal(lifecycleBlocker(report, "restart"), undefined);
+  assert.equal(lifecycleBlocker(report, "stop"), undefined);
+  assert.match(lifecycleBlocker(report, "start"), /already running/);
+  report.runtime.docker.container.state = "exited";
+  assert.equal(lifecycleBlocker(report, "start"), undefined);
+  report.runtime.docker.container.state = "missing";
+  assert.match(lifecycleBlocker(report, "start"), /credentials/);
+  report.runtime.launch.ttyd_auth = false;
+  assert.equal(lifecycleBlocker(report, "start"), undefined);
+  report.control = { operations: { runtime_lifecycle: { available: false, reason: "Host denied" } } };
+  assert.equal(lifecycleBlocker(report, "start"), "Host denied");
+});
+
 test("progress is scoped, counts remaining bytes, blocks re-entry, and disposes on error", async () => {
   const status = setup();
   const listeners = [];

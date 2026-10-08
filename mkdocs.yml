@@ -160,6 +160,7 @@ nav:
           - Agent inbox: ideas/agent-inbox.md
           - Runtime reconcile: ideas/runtime-reconcile.md
           - Orcan Studio: ideas/orcan-studio.md
+          - Studio and Enclave roadmap: ideas/orcan-studio-roadmap.md
       - Concepts:
           - Workspaces: concepts/workspaces.md
           - Path parity: concepts/path-parity.md

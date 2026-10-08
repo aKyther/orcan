@@ -150,8 +150,11 @@
                 <div id="enclave-list" class="item-list"></div>
                 <section class="panel" id="enclave-creator">
                   <h2>New Enclave</h2>
-                  <p class="muted">Starts Orcan without projects. Add repositories and folders later from Studio.</p>
+                  <p class="muted">One profile, one Orcan container. Prepare the destination, review access, then add context.</p>
                   <label>Destination profile<select id="enclave-create-profile"></select></label>
+                  <div class="actions compact"><button id="enclave-create-check" type="button" class="secondary">Check destination</button></div>
+                  <div id="enclave-create-readiness" class="enclave-readiness" aria-live="polite"></div>
+                  <fieldset id="enclave-create-options" disabled><legend>Container access <span title="Applied when the container is created. Git exposes SSH credentials; Docker access exposes the host Docker socket.">ⓘ</span></legend>
                   <label class="toggle"><span>Git access</span><input id="enclave-create-git" type="checkbox" /></label>
                   <label class="toggle"><span>Docker access</span><input id="enclave-create-docker" type="checkbox" /></label>
                   <label class="toggle"><span>Browser terminal</span><input id="enclave-create-ttyd" type="checkbox" /></label>
@@ -160,6 +163,7 @@
                     <label>Browser-terminal user<input id="enclave-create-ttyd-user" autocomplete="username" /></label>
                     <label>Browser-terminal password<input id="enclave-create-ttyd-password" type="password" autocomplete="new-password" /></label>
                   </div>
+                  </fieldset>
                   <div class="actions compact"><button id="enclave-create-plan" type="button" class="secondary">Preview plan</button><button id="enclave-create-apply" type="button" disabled>Create Enclave</button></div>
                   <output id="enclave-create-result" aria-live="polite"></output>
                 </section>

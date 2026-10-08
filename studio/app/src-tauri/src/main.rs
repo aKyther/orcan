@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
+mod enclave;
 mod provisioning;
 mod transfer_cache;
 mod transfer_progress;
@@ -1263,6 +1264,10 @@ async fn enclave_action(
     ttyd_credential: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
+    let report = probe(enclave.clone(), state.clone()).await?;
+    if let Some(reason) = enclave::creation_blocker(&report) {
+        return Err(reason);
+    }
     let mut args = vec![
         "studio".to_owned(),
         "enclave".to_owned(),
@@ -1295,9 +1300,15 @@ async fn runtime_action(
     action: RuntimeAction,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<(), String> {
-    run_on_enclave(enclave, runtime_args(action), state)
-        .await
-        .map(|_| ())
+    let report = probe(enclave.clone(), state.clone()).await?;
+    match enclave::lifecycle_command(&report, action)? {
+        Some(command) => provisioning::execute(&enclave, &command, &state)
+            .await
+            .map(|_| ()),
+        None => run_on_enclave(enclave, runtime_args(action), state)
+            .await
+            .map(|_| ()),
+    }
 }
 
 /// Plans or applies a workspace membership change on the Enclave.
@@ -2429,6 +2440,7 @@ fn main() {
             test_connection,
             check_docker,
             enclave_action,
+            enclave::enclave_readiness,
             sync,
             runtime_action,
             open_terminal,

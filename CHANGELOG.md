@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio single-container Enclaves:** destination preparation separates
+  connection, CLI, Docker and required-image readiness, with targeted provisioning
+  and a return to setup. Creation rechecks ownership and image availability;
+  configuration creation is exclusive. Compact cards report paths, image,
+  configured resources and access, and lead into context management.
+- **Studio container lifecycle:** existing containers use actual Docker
+  Start/Stop/Restart without recreation, preserving mounts, resources and ttyd
+  authentication. Removed-container Start still uses saved Orcan launch options.
+  Results are checked afterward; stale/failed reports do not unlock operations.
 - **Studio resumable transfers:** interrupted CLI/image uploads offer Resume
   and Discard in the persistent status area. Resume reuses the exported local
   payload and sends only bytes missing on the destination, after checking the

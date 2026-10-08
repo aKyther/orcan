@@ -8,7 +8,7 @@ export type ProbeReport = {
   host: { os: string; architecture: string; user?: string };
   capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean };
   runtime: {
-    docker: { container: { state: string }; agents?: Record<string, boolean> };
+    docker: { available?: boolean; image?: { name: string; present: boolean }; container: { name?: string; state: string }; agents?: Record<string, boolean> };
     resources?: { cpus?: string | number; memory?: string; shm_size?: string; tmpfs_size?: string };
     launch?: { recorded: boolean; docker?: boolean; git?: boolean; network?: string | null; ttyd?: boolean; ttyd_auth?: boolean };
   };
