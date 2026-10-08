@@ -44,11 +44,15 @@ explicit approval in that dialog; Studio first rechecks the fingerprint and
 backs up the previous known-hosts file using `ssh-keygen`.
 Studio can use the official online installer on a saved local, WSL2, or SSH
 profile; it requires Internet access plus Bash, Git, and Python 3. For
-isolated or on-premise hosts, Provisioning can build a minimal CLI kit in
-a WSL2 source profile and stream it to an SSH destination. The remote
-host needs no Internet access: it extracts the kit, installs the host CLI, and
-verifies `orcan version`. The optional Docker image is streamed in the same
-operation. Before transfer, Studio checks the WSL source and destination shell
+isolated or on-premise hosts, Provisioning can copy a minimal CLI kit between
+local Linux/macOS, WSL2, and SSH profiles in either direction, including SSH
+server to SSH server. Local Windows must use a WSL2 profile. Studio stores the
+export in a private temporary file, then sends it to the destination; leave
+enough disk space for the entire kit or image and keep Studio open. The file
+is removed when the operation finishes or fails. Hosts need no Internet or
+direct connection to each other. The destination extracts the kit, installs
+the host CLI, and verifies `orcan version`. An optional Docker image is loaded
+in the same operation. Before transfer, Studio checks source and destination
 for the required commands, including Docker only when an image is selected.
 The offline CLI readiness result reports the destination user, Bash, tar,
 Python 3, and permission to write to the user's home. When including an image,
@@ -56,7 +60,12 @@ it also verifies Docker access and requires its architecture to match the
 destination. Each provisioning profile selector shows the destination address
 and the user and sign-in method supplied by the selected profile or credential.
 The image-only transfer also checks destination Docker access and architecture
-before enabling transfer. After installation Studio reads the CLI version and
+before enabling transfer. It reports an existing CLI version and image ID;
+identical images need no transfer. Updating CLI does not require uninstalling
+it first. Image checks offer separate, confirmed actions to remove the Orcan
+container or selected image. Images used by containers cannot be removed;
+neither action deletes CLI, configuration, projects, or workspace data.
+After installation Studio reads the CLI version and
 checks any included image on the destination. Image-only transfer compares the
 destination image ID with the inspected source ID. A verified result offers
 **Go to Enclaves**; failed operations show a short recovery hint and expandable

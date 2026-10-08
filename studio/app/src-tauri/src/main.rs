@@ -16,6 +16,8 @@ use std::sync::Mutex;
 use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
+mod provisioning;
+
 #[derive(Clone, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum TargetInput {
@@ -441,8 +443,11 @@ async fn provisioning_ssh_command(
     state: &tauri::State<'_, ProfileState>,
 ) -> Result<String, String> {
     let target = Target::from(enclave.target.clone());
+    if !matches!(target, Target::Ssh { .. }) {
+        return provisioning::execute(&enclave, &command, state).await;
+    }
     let Target::Ssh { destination } = &target else {
-        return Err("Choose a remote SSH destination".to_owned());
+        unreachable!()
     };
     target.probe_request().map_err(|error| error.to_string())?;
     if let Some(resolved) = native_ssh(&enclave, &target, state)? {
@@ -2389,6 +2394,10 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            provisioning::check_transfer,
+            provisioning::transfer_profiles,
+            provisioning::profile_image_inventory,
+            provisioning::remove_destination_image,
             list_wsl_distributions,
             wsl_default_user,
             wsl_image_inventory_command,

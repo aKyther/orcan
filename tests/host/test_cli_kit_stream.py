@@ -13,11 +13,16 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_studio_cli_kit_exports_a_clean_archive():
-    source = (ROOT / "studio/app/src-tauri/src/main.rs").read_text()
-    scripts = re.findall(
-        r'"(set -Eeuo pipefail; kit=.*?orcan bundle create.*?)"\n', source
+    source_dir = ROOT / "studio/app/src-tauri/src"
+    source = "\n".join(
+        (source_dir / name).read_text() for name in ("main.rs", "provisioning.rs")
     )
-    assert len(scripts) == 2
+    scripts = [
+        encoded
+        for encoded in re.findall(r'"((?:\\.|[^"\\])*)"', source)
+        if "orcan bundle create --output" in encoded
+    ]
+    assert len(scripts) == 3
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         (root / "VERSION").write_text("test\n")

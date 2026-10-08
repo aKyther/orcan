@@ -279,9 +279,15 @@ function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
 
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) {
-    const args = _args as { enclave?: ReturnType<typeof enclaveInput>; input?: { destination?: string; destinationProfileId?: string; destinationCredentialId?: string } } | undefined;
+    const args = _args as { enclave?: ReturnType<typeof enclaveInput>; input?: { source?: ReturnType<typeof enclaveInput>; destination?: string | ReturnType<typeof enclaveInput>; destinationProfileId?: string; destinationCredentialId?: string } } | undefined;
+    for (const endpoint of [args?.input?.source, typeof args?.input?.destination === "object" ? args.input.destination : undefined]) {
+      if (endpoint?.target.kind !== "ssh") continue;
+      const profile = profiles.find((item) => item.id === endpoint.profileId);
+      const systemSsh = !endpoint.credentialId && (!profile?.ssh || profile.ssh.authentication.kind === "agent");
+      if (!(await ensureSshHostTrust(endpoint.target.destination, systemSsh))) throw new Error("Server identity was not approved. No connection was made.");
+    }
     const target = args?.enclave?.target;
-    const destination = target?.kind === "ssh" ? target.destination : args?.input?.destination;
+    const destination = target?.kind === "ssh" ? target.destination : typeof args?.input?.destination === "string" ? args.input.destination : undefined;
     if (destination) {
       const profileId = args?.enclave?.profileId ?? args?.input?.destinationProfileId;
       const profile = profiles.find((profile) => profile.id === profileId);
@@ -314,7 +320,9 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     ssh_host_key: { destination: "demo.example", algorithm: "ssh-ed25519", fingerprint: "SHA256:demo", status: "trusted" },
     trust_ssh_host_key: null,
     check_online_provision: { user: "developer", installedVersion: "orcan demo" },
-    check_wsl_cli_provision: { source: "Ubuntu", destination: "demo.example", destinationUser: "developer", destinationArchitecture: "amd64" },
+    check_transfer: { installedVersion: "orcan demo", destinationUser: "developer", sourceImage: { image: "orcan:latest", id: "sha256:demo", size: "1024", architecture: "amd64" }, destinationImageId: "sha256:previous" },
+    transfer_profiles: "Demo installation verified on destination.",
+    remove_destination_image: "Demo image removed.",
     wsl_image_inventory_command: { image: "orcan:latest", id: "sha256:demo", size: "1024", architecture: "amd64" },
     check_image_destination: "amd64",
     verify_provision: "Demo destination verified.",
@@ -1868,7 +1876,7 @@ const navEnclaves = $("#nav-enclaves");
 let lastCheckAll = 0;
 
 function profileConnection(profile: ConnectionProfile): Connection {
-  return { target: profile.target, label: profile.name, profileId: profile.id };
+  return { target: profile.target, label: profile.name, profileId: profile.id, credentialId: profile.credential_id, username: profile.ssh?.username };
 }
 
 async function openWorkspaceTerminal(workspace: string): Promise<void> {
@@ -2005,7 +2013,8 @@ function selectedProfile(select: HTMLSelectElement): ConnectionProfile | undefin
 }
 
 type CliProvisionResult = { version: string; image?: string };
-type CliProvisionCheck = { source: string; destination: string; image?: string; destinationUser: string; imageArchitecture?: string; destinationArchitecture: string };
+type TransferInput = { source: ReturnType<typeof enclaveInput>; destination: ReturnType<typeof enclaveInput>; cli: boolean; image?: string };
+type TransferCheck = { installedVersion?: string; destinationImageId?: string; sourceImage?: ImageInventory; destinationUser: string };
 type OnlineProvisionCheck = { user: string; installedVersion?: string };
 let cliProvisionReady = false;
 let onlineProvisionReadyProfileId: string | undefined;
@@ -2121,36 +2130,38 @@ async function provisionOnline(): Promise<void> {
   }
 }
 
-function renderCliProvision(): void {
-  const source = selectedProfile(cliProvisionSource)?.id;
-  const target = selectedProfile(cliProvisionTarget)?.id;
-  const wslProfiles = profiles.filter((profile) => profile.target.kind === "wsl2");
-  const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh");
+function populateTransferProfiles(sourceSelect: HTMLSelectElement, targetSelect: HTMLSelectElement): boolean {
+  const source = sourceSelect.value;
+  const target = targetSelect.value;
   const option = (profile: ConnectionProfile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id);
-  cliProvisionSource.replaceChildren(new Option(wslProfiles.length ? "Choose source profile…" : "No WSL2 source profiles", ""), ...wslProfiles.map(option));
-  cliProvisionTarget.replaceChildren(new Option(sshProfiles.length ? "Choose remote SSH destination…" : "No remote SSH destination profiles", ""), ...sshProfiles.map(option));
-  cliProvisionSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
-  cliProvisionTarget.value = sshProfiles.some((profile) => profile.id === target) ? target! : sshProfiles[0]?.id ?? "";
+  sourceSelect.replaceChildren(new Option("Choose source profile…", ""), ...profiles.map(option));
+  targetSelect.replaceChildren(new Option("Choose destination profile…", ""), ...profiles.map(option));
+  sourceSelect.value = profiles.some((profile) => profile.id === source) ? source : profiles[0]?.id ?? "";
+  targetSelect.value = profiles.some((profile) => profile.id === target) ? target : profiles.find((profile) => profile.id !== sourceSelect.value)?.id ?? "";
+  return profiles.length >= 2;
+}
+
+function renderCliProvision(): void {
+  const ready = populateTransferProfiles(cliProvisionSource, cliProvisionTarget);
   cliProvisionImageField.hidden = !cliProvisionImage.checked;
-  cliProvisionCheck.disabled = !wslProfiles.length || !sshProfiles.length;
+  cliProvisionCheck.disabled = !ready;
   cliProvisionRun.disabled = true;
   cliProvisionReady = false;
-  if (cliProvisionCheck.disabled) cliProvisionResult.textContent = "Create a WSL2 source profile and a remote SSH destination profile. The destination needs Bash, tar, Python 3, and Docker when including an image.";
+  if (cliProvisionCheck.disabled) cliProvisionResult.textContent = "Save source and destination profiles: local Linux/macOS, WSL2, or SSH. Local Windows needs a WSL2 profile.";
   renderProvisionIdentity();
 }
 
-function cliProvisionInput(): { distribution: string; destination: string; destinationProfileId: string; destinationCredentialId?: string; destinationUsername?: string; image?: string } | undefined {
+function cliProvisionInput(): TransferInput | undefined {
   const source = selectedProfile(cliProvisionSource);
   const target = selectedProfile(cliProvisionTarget);
-  if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh") return undefined;
+  if (!source || !target) return undefined;
+  if (source.id === target.id) throw new Error("Choose different source and destination profiles.");
   const image = cliProvisionImage.checked ? cliProvisionImageName.value.trim() : undefined;
   if (cliProvisionImage.checked && !image) throw new Error("Choose a Docker image to include.");
   return {
-    distribution: source.target.distribution,
-    destination: target.target.destination,
-    destinationProfileId: target.id,
-    destinationCredentialId: target.credential_id,
-    destinationUsername: target.ssh?.username,
+    source: enclaveInput(profileConnection(source)),
+    destination: enclaveInput(profileConnection(target)),
+    cli: true,
     image,
   };
 }
@@ -2162,19 +2173,20 @@ async function checkCliProvision(): Promise<void> {
     cliProvisionReady = false;
     cliProvisionRun.disabled = true;
     cliProvisionCheck.disabled = true;
-    cliProvisionResult.textContent = "Checking WSL, SSH, and remote requirements…";
-    const checked = await invoke<CliProvisionCheck>("check_wsl_cli_provision", { input });
+    cliProvisionResult.textContent = "Checking source tools and existing destination installation…";
+    const checked = await invoke<TransferCheck>("check_transfer", { input });
     if (JSON.stringify(input) !== JSON.stringify(cliProvisionInput())) {
       cliProvisionResult.textContent = "Selection changed during the check. Check requirements again.";
       return;
     }
     cliProvisionReady = true;
     cliProvisionRun.disabled = false;
-    cliProvisionResult.replaceChildren(el("strong", { textContent: "Ready to install" }), el("ul", {},
-      el("li", { textContent: `Source: Orcan CLI and tar available in ${checked.source}.` }),
+    cliProvisionRun.textContent = checked.installedVersion ? "Update offline kit" : "Install offline kit";
+    cliProvisionResult.replaceChildren(el("strong", { textContent: checked.installedVersion ? `Existing Orcan: ${checked.installedVersion}. Transfer only if you want to update it.` : "Orcan is not installed. Ready to install." }), el("ul", {},
+      el("li", { textContent: "Source: Orcan CLI and tar available." }),
       el("li", { textContent: `Destination: connected as ${checked.destinationUser}; Bash, tar and Python 3 available.` }),
       el("li", { textContent: "Permissions: destination home is writable." }),
-      el("li", { textContent: checked.image ? `Docker: accessible; image ${checked.image} matches destination architecture ${checked.destinationArchitecture}.` : "Docker image: not selected; Docker is not required for CLI installation." }),
+      el("li", { textContent: checked.sourceImage ? `Image: ${checked.sourceImage.image}. ${checked.destinationImageId === checked.sourceImage.id ? "Same image already installed." : checked.destinationImageId ? "Destination has a different image; transfer will update its tag." : "Not installed on destination."}` : "No Docker image selected." }),
     ));
   } catch (error) {
     provisioningFailure(cliProvisionResult, error);
@@ -2186,22 +2198,20 @@ async function checkCliProvision(): Promise<void> {
 async function provisionCli(): Promise<void> {
   const source = selectedProfile(cliProvisionSource);
   const target = selectedProfile(cliProvisionTarget);
-  if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh") return;
+  if (!source || !target) return;
   if (!cliProvisionReady) return;
-  let input: { distribution: string; destination: string; destinationProfileId: string; destinationCredentialId?: string; destinationUsername?: string; image?: string };
+  let input: TransferInput;
   try { input = cliProvisionInput()!; } catch (error) { cliProvisionResult.textContent = String(error); return; }
   const { image } = input;
   const contents = image ? `the Orcan CLI and ${image}` : "the Orcan CLI";
   if (!window.confirm(`Install ${contents} from ${source.name} on ${target.name}? The remote installation replaces only its Orcan CLI files; no profile, project, sandbox, or credential is transferred.`)) return;
   const job = addJob("Offline CLI provisioning", `${source.name} → ${target.name}${image ? ` · ${image}` : ""}`, target.name, target.id);
   cliProvisionRun.disabled = true;
-  cliProvisionResult.textContent = "Building the clean kit in WSL and streaming it through SSH…";
+  cliProvisionResult.textContent = "Exporting the clean kit to a private temporary file in Studio, then installing on destination…";
   try {
-    const installed = await invoke<CliProvisionResult>("provision_wsl_cli", { input });
-    cliProvisionResult.textContent = "Installation finished. Verifying CLI and selected image on the destination…";
-    const verified = await invoke<string>("verify_provision", { enclave: enclaveInput(profileConnection(target)), cli: true, image: installed.image ?? null, expectedId: null });
+    const verified = await invoke<string>("transfer_profiles", { input });
     provisioningSucceeded(cliProvisionResult, verified, target);
-    finishJob(job, "succeeded", `Installed ${installed.version}${installed.image ? ` · ${installed.image}` : ""}`);
+    finishJob(job, "succeeded", verified);
   } catch (error) {
     provisioningFailure(cliProvisionResult, error);
     finishJob(job, "failed", String(error));
@@ -2212,18 +2222,10 @@ async function provisionCli(): Promise<void> {
 }
 
 function renderImageTransfer(): void {
-  const source = selectedProfile(imageTransferSource)?.id;
-  const target = selectedProfile(imageTransferTarget)?.id;
-  const wslProfiles = profiles.filter((profile) => profile.target.kind === "wsl2");
-  const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh");
-  imageTransferSource.replaceChildren(new Option(wslProfiles.length ? "Choose source profile…" : "No WSL2 source profiles", ""), ...wslProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
-  imageTransferTarget.replaceChildren(new Option(sshProfiles.length ? "Choose remote SSH destination…" : "No remote SSH destination profiles", ""), ...sshProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
-  imageTransferSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
-  imageTransferTarget.value = sshProfiles.some((profile) => profile.id === target) ? target! : sshProfiles[0]?.id ?? "";
-  const ready = Boolean(wslProfiles.length && sshProfiles.length);
+  const ready = populateTransferProfiles(imageTransferSource, imageTransferTarget);
   imageTransferInspect.disabled = !ready;
   imageTransferRun.disabled = true;
-  if (!ready) imageTransferResult.textContent = "Create a WSL2 source profile and a remote SSH destination profile before transferring an image.";
+  if (!ready) imageTransferResult.textContent = "Save source and destination profiles: local Linux/macOS, WSL2, or SSH.";
   renderProvisionIdentity();
 }
 
@@ -2301,22 +2303,45 @@ async function planEmptyEnclave(apply = false): Promise<void> {
 async function inspectTransferImage(): Promise<void> {
   const source = selectedProfile(imageTransferSource);
   const target = selectedProfile(imageTransferTarget);
-  if (!source || source.target.kind !== "wsl2" || !target) return;
+  if (!source || !target) return;
+  if (source.id === target.id) { imageTransferResult.textContent = "Choose different source and destination profiles."; return; }
   const selectedImage = imageTransferName.value.trim();
   inspectedImage = undefined;
   imageTransferRun.disabled = true;
   imageTransferInspect.disabled = true;
   imageTransferResult.textContent = `Checking ${imageTransferName.value.trim()} in ${source.name}…`;
   try {
-    const inventory = await invoke<ImageInventory>("wsl_image_inventory_command", { input: { distribution: source.target.distribution, image: imageTransferName.value.trim() } });
-    await invoke<string>("check_image_destination", { enclave: enclaveInput(profileConnection(target)), architecture: inventory.architecture });
+    const checked = await invoke<TransferCheck>("check_transfer", { input: { source: enclaveInput(profileConnection(source)), destination: enclaveInput(profileConnection(target)), cli: false, image: selectedImage } });
+    const inventory = checked.sourceImage!;
     if (selectedProfile(imageTransferSource)?.id !== source.id || selectedProfile(imageTransferTarget)?.id !== target.id || imageTransferName.value.trim() !== selectedImage) {
       imageTransferResult.textContent = "Selection changed. Check requirements again.";
       return;
     }
     inspectedImage = inventory;
-    imageTransferResult.textContent = `Ready: ${inventory.image} · ${inventory.size} bytes · ${inventory.architecture}. Destination Docker is accessible and architecture matches.`;
-    imageTransferRun.disabled = !selectedProfile(imageTransferTarget);
+    const same = checked.destinationImageId === inventory.id;
+    imageTransferResult.textContent = `${inventory.image} · ${inventory.size} bytes · ${inventory.architecture}. ${same ? "Destination already has this exact image. No transfer needed." : checked.destinationImageId ? "Destination has a different image. Transfer will update the image tag; running containers are unchanged." : "Image is not installed on destination."}`;
+    imageTransferRun.disabled = same || !selectedProfile(imageTransferTarget);
+    if (checked.destinationImageId) {
+      imageTransferResult.append(actionButton("Remove destination container", async () => {
+        if (!window.confirm(`Stop and remove the Orcan container on ${target.name}? Projects, workspaces and configuration will remain.`)) return;
+        imageTransferRun.disabled = true; inspectedImage = undefined;
+        imageTransferResult.textContent = `Removing the Orcan container on ${target.name}…`;
+        try {
+          await invoke("runtime_action", { enclave: enclaveInput(profileConnection(target)), action: "stop" });
+          imageTransferResult.textContent = "Container removed. Check again before removing its image.";
+          inspectedImage = undefined; imageTransferRun.disabled = true;
+        } catch (error) { provisioningFailure(imageTransferResult, error); }
+      }, "secondary"), actionButton("Remove destination image", async () => {
+        if (!window.confirm(`Remove only Docker image ${selectedImage} from ${target.name}? Containers using it must be removed first. Projects, workspaces, configuration and CLI will remain.`)) return;
+        imageTransferRun.disabled = true; inspectedImage = undefined;
+        imageTransferResult.textContent = `Removing ${selectedImage} on ${target.name}…`;
+        try {
+          await invoke("remove_destination_image", { enclave: enclaveInput(profileConnection(target)), image: selectedImage, expectedId: checked.destinationImageId, confirmed: true });
+          imageTransferResult.textContent = "Image removed. Check requirements again before transferring.";
+          inspectedImage = undefined; imageTransferRun.disabled = true;
+        } catch (error) { provisioningFailure(imageTransferResult, error); }
+      }, "secondary"));
+    }
   } catch (error) { provisioningFailure(imageTransferResult, error); }
   finally { imageTransferInspect.disabled = false; }
 }
@@ -2324,23 +2349,19 @@ async function inspectTransferImage(): Promise<void> {
 async function transferImage(): Promise<void> {
   const source = selectedProfile(imageTransferSource);
   const target = selectedProfile(imageTransferTarget);
-  if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh" || !inspectedImage) return;
+  if (!source || !target || !inspectedImage) return;
   if (!window.confirm(`Transfer ${inspectedImage.image} (${inspectedImage.id}) from ${source.name} to ${target.name}? The remote Docker daemon will import the image.`)) return;
   const job = addJob("Image transfer", `${inspectedImage.image}: ${source.name} → ${target.name}`, target.name, target.id);
   const image = inspectedImage;
   imageTransferRun.disabled = true;
   imageTransferResult.textContent = `Transferring ${image.image}; keep Studio open until Docker import completes…`;
   try {
-    await invoke<ImageInventory>("transfer_wsl_image", { input: {
-      distribution: source.target.distribution,
+    const verified = await invoke<string>("transfer_profiles", { input: {
+      source: enclaveInput(profileConnection(source)),
+      destination: enclaveInput(profileConnection(target)),
+      cli: false,
       image: image.image,
-      destination: target.target.destination,
-      destinationProfileId: target.id,
-      destinationCredentialId: target.credential_id,
-      destinationUsername: target.ssh?.username,
     } });
-    imageTransferResult.textContent = "Transfer finished. Verifying the image on the destination…";
-    const verified = await invoke<string>("verify_provision", { enclave: enclaveInput(profileConnection(target)), cli: false, image: image.image, expectedId: image.id });
     provisioningSucceeded(imageTransferResult, verified, target);
     finishJob(job, "succeeded", `Imported ${image.image} on ${target.name}`);
   } catch (error) { provisioningFailure(imageTransferResult, error); finishJob(job, "failed", String(error)); }
@@ -2471,9 +2492,8 @@ imageTransferRun.addEventListener("click", () => void transferImage());
 onlineProvisionCheck.addEventListener("click", () => void checkOnlineProvision());
 onlineProvisionRun.addEventListener("click", () => void provisionOnline());
 onlineProvisionTarget.addEventListener("change", () => { onlineProvisionReadyProfileId = undefined; renderOnlineProvision(); });
-imageTransferSource.addEventListener("change", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
-imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled = true; });
-imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
+for (const input of [imageTransferSource, imageTransferTarget]) input.addEventListener("change", () => { inspectedImage = undefined; imageTransferRun.disabled = true; imageTransferResult.textContent = "Selection changed. Check source and destination again."; });
+imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; imageTransferResult.textContent = "Image changed. Check source and destination again."; });
 cliProvisionCheck.addEventListener("click", () => void checkCliProvision());
 cliProvisionRun.addEventListener("click", () => void provisionCli());
 for (const input of [cliProvisionSource, cliProvisionTarget, cliProvisionImage, cliProvisionImageName]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; renderProvisionIdentity(); cliProvisionResult.textContent = "Selection changed. Check requirements again before installing."; });

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio profile transfers:** offline CLI and image provisioning now supports
+  local Linux/macOS, WSL2, and SSH profiles in either direction, including
+  SSH-to-SSH, using a private temporary file on Studio. Destination checks show
+  existing CLI/images, skip identical images, and offer confirmed container/image
+  removal without deleting project data.
 - **Studio offline provisioning:** WSL CLI exports use a new bundle directory
   inside the temporary directory and keep export messages out of the archive
   stream, for both password/key credentials and system SSH.
