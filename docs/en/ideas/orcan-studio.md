@@ -31,7 +31,7 @@ key is blocked and never replaced automatically.
 Studio can use the official online installer on a saved local, WSL2, or SSH
 profile; it requires Internet access plus Bash, Git, and Python 3. For
 isolated or on-premise hosts, Provisioning can build a minimal CLI kit in
-a WSL2 source profile and stream it to a system-SSH destination. The remote
+a WSL2 source profile and stream it to an SSH destination. The remote
 host needs no Internet access: it extracts the kit, installs the host CLI, and
 verifies `orcan version`. The optional Docker image is streamed in the same
 operation. Before transfer, Studio checks the WSL source and destination shell
@@ -40,8 +40,8 @@ Kits intentionally exclude profiles, configuration, projects,
 sandbox data, and credentials. It requires a remote shell and `tar`; Docker is
 required only when an image is included. SSH-agent profiles use system OpenSSH.
 Profiles that use a Studio-managed password or private key use Studio's native
-SSH transport for the same check and transfer, with the saved `known_hosts`
-verification policy.
+SSH transport for the same check, CLI-kit transfer, and Docker-image transfer,
+with the saved `known_hosts` verification policy.
 
 The Studio transport explicitly prepends `~/.local/bin` on WSL2 and SSH
 commands, so a newly provisioned CLI works even before a non-interactive

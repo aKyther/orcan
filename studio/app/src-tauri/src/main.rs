@@ -64,6 +64,9 @@ struct WslImageTransfer {
     distribution: String,
     image: String,
     destination: String,
+    destination_profile_id: Option<String>,
+    destination_credential_id: Option<String>,
+    destination_username: Option<String>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -308,10 +311,39 @@ async fn wsl_image_inventory_command(input: WslImageInput) -> Result<ImageInvent
         .map_err(|error| format!("image inventory stopped: {error}"))?
 }
 
-/// Streams a Docker image from a local WSL distribution to a system-SSH target.
+/// Streams a Docker image from a local WSL distribution to an SSH target.
 /// The image is never buffered or written by Studio.
 #[tauri::command]
-async fn transfer_wsl_image(input: WslImageTransfer) -> Result<ImageInventory, String> {
+async fn transfer_wsl_image(
+    input: WslImageTransfer,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<ImageInventory, String> {
+    let destination = EnclaveInput {
+        target: TargetInput::Ssh {
+            destination: input.destination.clone(),
+        },
+        profile_id: input.destination_profile_id.clone(),
+        credential_id: input.destination_credential_id.clone(),
+        username: input.destination_username.clone(),
+    };
+    let target = Target::from(destination.target.clone());
+    if let Some(resolved) = native_ssh(&destination, &target, &state)? {
+        let inventory = wsl_image_inventory(&WslImageInput {
+            distribution: input.distribution.clone(),
+            image: input.image.clone(),
+        })?;
+        validate_wsl_distribution(&input.distribution)?;
+        native_ssh_stream_wsl(
+            &input.distribution,
+            &input.destination,
+            resolved,
+            format!("docker save {}", shell_quote(&input.image)),
+            "docker load".to_owned(),
+            "Docker image transfer",
+        )
+        .await?;
+        return Ok(inventory);
+    }
     tauri::async_runtime::spawn_blocking(move || {
         let inventory = wsl_image_inventory(&WslImageInput {
             distribution: input.distribution.clone(),
@@ -506,12 +538,13 @@ async fn provision_wsl_cli(
             "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit\"{image_arg}; tar -C \"$kit\" -czf - ."
         );
         let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
-        let stdout = native_ssh_install_wsl_kit(
+        let stdout = native_ssh_stream_wsl(
             &input.distribution,
             &input.destination,
             resolved,
             source_script,
             format!("bash -lc {}", shell_quote(remote_script)),
+            "CLI kit transfer",
         )
         .await?;
         let version = stdout.lines().last().unwrap_or_default().trim().to_owned();
@@ -1374,12 +1407,13 @@ async fn native_ssh_exec(
     Ok(String::from_utf8_lossy(&stdout).into_owned())
 }
 
-async fn native_ssh_install_wsl_kit(
+async fn native_ssh_stream_wsl(
     distribution: &str,
     destination: &str,
     resolved: ResolvedSsh,
     source_script: String,
     remote_command: String,
+    operation: &str,
 ) -> Result<String, String> {
     let mut source = background_tokio_command("wsl.exe")
         .args(["--distribution", distribution, "--exec", "bash", "-lc"])
@@ -1387,35 +1421,35 @@ async fn native_ssh_install_wsl_kit(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|error| format!("could not create a WSL CLI kit: {error}"))?;
+        .map_err(|error| format!("could not start WSL export for {operation}: {error}"))?;
     let source_stdout = source
         .stdout
         .take()
-        .ok_or_else(|| "WSL CLI kit has no stdout".to_owned())?;
+        .ok_or_else(|| format!("WSL export for {operation} has no stdout"))?;
     let session = native_ssh_connect(destination, resolved).await?;
     let mut channel = session
         .channel_open_session()
         .await
-        .map_err(|error| format!("could not open SSH installation channel: {error}"))?;
+        .map_err(|error| format!("could not open SSH channel for {operation}: {error}"))?;
     channel
         .exec(true, remote_command.as_str())
         .await
-        .map_err(|error| format!("could not start remote CLI installation: {error}"))?;
+        .map_err(|error| format!("could not start remote {operation}: {error}"))?;
     channel
         .data(source_stdout)
         .await
-        .map_err(|error| format!("CLI kit transfer interrupted: {error}"))?;
+        .map_err(|error| format!("{operation} interrupted: {error}"))?;
     channel
         .eof()
         .await
-        .map_err(|error| format!("could not finish CLI kit transfer: {error}"))?;
+        .map_err(|error| format!("could not finish {operation}: {error}"))?;
     let source_result = source
         .wait_with_output()
         .await
-        .map_err(|error| format!("could not finish WSL CLI kit: {error}"))?;
+        .map_err(|error| format!("could not finish WSL export for {operation}: {error}"))?;
     if !source_result.status.success() {
         return Err(format!(
-            "WSL CLI kit creation failed: {}",
+            "WSL export for {operation} failed: {}",
             String::from_utf8_lossy(&source_result.stderr).trim()
         ));
     }
@@ -1434,7 +1468,7 @@ async fn native_ssh_install_wsl_kit(
     }
     if exit_status.unwrap_or(1) != 0 {
         return Err(format!(
-            "remote CLI installation failed: {}",
+            "remote {operation} failed: {}",
             String::from_utf8_lossy(&stderr).trim()
         ));
     }
@@ -1747,15 +1781,19 @@ fn create_credential(
         }
         SshAuthentication::PrivateKey {
             has_passphrase: true,
+            ..
         } if secret.is_some() => Some(("key-passphrase", secret)),
         SshAuthentication::PrivateKey {
             has_passphrase: true,
+            ..
         } => return Err("this private key requires its passphrase".to_owned()),
         SshAuthentication::PrivateKey {
             has_passphrase: false,
+            ..
         } if secret.is_none() => None,
         SshAuthentication::PrivateKey {
             has_passphrase: false,
+            ..
         } => {
             return Err(
                 "mark the key as passphrase-protected before supplying a passphrase".to_owned(),

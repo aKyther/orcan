@@ -1821,6 +1821,16 @@ function profileConnection(profile: ConnectionProfile): Connection {
   return { target: profile.target, label: profile.name, profileId: profile.id };
 }
 
+async function openWorkspaceTerminal(workspace: string): Promise<void> {
+  if (!current) return;
+  try {
+    await invoke("open_terminal", { enclave: enclaveInput(current), workspace, launcher: terminalLauncher.value });
+    result.textContent = `Opened a native terminal for ${workspace}.`;
+  } catch (error) {
+    result.textContent = `Could not open terminal: ${String(error)}`;
+  }
+}
+
 /** online = container running, warn = Orcan reachable but container not running. */
 function statusTone(status?: EnclaveStatus): string {
   if (!status) return "idle";
@@ -2022,7 +2032,7 @@ function renderCliProvision(): void {
   const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh");
   const option = (profile: ConnectionProfile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id);
   cliProvisionSource.replaceChildren(new Option(wslProfiles.length ? "Choose source profile…" : "No WSL2 source profiles", ""), ...wslProfiles.map(option));
-  cliProvisionTarget.replaceChildren(new Option(sshProfiles.length ? "Choose destination profile…" : "No system-SSH destination profiles", ""), ...sshProfiles.map(option));
+  cliProvisionTarget.replaceChildren(new Option(sshProfiles.length ? "Choose remote SSH destination…" : "No remote SSH destination profiles", ""), ...sshProfiles.map(option));
   cliProvisionSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
   cliProvisionTarget.value = sshProfiles.some((profile) => profile.id === target) ? target! : sshProfiles[0]?.id ?? "";
   cliProvisionImageField.hidden = !cliProvisionImage.checked;
@@ -2096,7 +2106,7 @@ function renderImageTransfer(): void {
   const source = selectedProfile(imageTransferSource)?.id;
   const target = selectedProfile(imageTransferTarget)?.id;
   const wslProfiles = profiles.filter((profile) => profile.target.kind === "wsl2");
-  const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh" && !profile.credential_id);
+  const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh");
   imageTransferSource.replaceChildren(new Option(wslProfiles.length ? "Choose source profile…" : "No WSL2 source profiles", ""), ...wslProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
   imageTransferTarget.replaceChildren(new Option(sshProfiles.length ? "Choose destination profile…" : "No system-SSH destination profiles", ""), ...sshProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
   imageTransferSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
@@ -2104,7 +2114,7 @@ function renderImageTransfer(): void {
   const ready = Boolean(wslProfiles.length && sshProfiles.length);
   imageTransferInspect.disabled = !ready;
   imageTransferRun.disabled = true;
-  if (!ready) imageTransferResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH before transferring an image.";
+  if (!ready) imageTransferResult.textContent = "Create a WSL2 source profile and a remote SSH destination profile before transferring an image.";
 }
 
 /** One profile owns one current Enclave until Orcan gains multi-runtime support. */
@@ -2203,7 +2213,14 @@ async function transferImage(): Promise<void> {
   imageTransferRun.disabled = true;
   imageTransferResult.textContent = `Transferring ${inspectedImage.image}; keep Studio open until Docker import completes…`;
   try {
-    await invoke<ImageInventory>("transfer_wsl_image", { input: { distribution: source.target.distribution, image: inspectedImage.image, destination: target.target.destination } });
+    await invoke<ImageInventory>("transfer_wsl_image", { input: {
+      distribution: source.target.distribution,
+      image: inspectedImage.image,
+      destination: target.target.destination,
+      destinationProfileId: target.id,
+      destinationCredentialId: target.credential_id,
+      destinationUsername: target.ssh?.username,
+    } });
     imageTransferResult.textContent = `Transferred ${inspectedImage.image} to ${target.name}. Reconnect to verify Docker and provision Orcan on the remote host.`;
     finishJob(job, "succeeded", `Imported ${inspectedImage.image} on ${target.name}`);
   } catch (error) { imageTransferResult.textContent = `Transfer failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
