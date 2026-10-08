@@ -53,8 +53,8 @@ fi
 
 ensure_git_identity() {
     if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config user.name "aKyther"
+        git config user.email "160825158+aKyther@users.noreply.github.com"
     fi
     if ! git config user.name >/dev/null && ! git config user.email >/dev/null; then
         die "git user.name / user.email must be set for mike commits"
