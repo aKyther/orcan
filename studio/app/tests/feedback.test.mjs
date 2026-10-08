@@ -43,6 +43,17 @@ async function load(name, imports = {}) {
   return import(dataModule(`${source}\n// isolated test ${Math.random()}`));
 }
 
+test("container cards distinguish fresh, pending, stale and unchecked states", async () => {
+  const { containerStateLabel } = await load("server-model");
+  const report = { runtime: { docker: { container: { state: "running" } } } };
+  assert.equal(containerStateLabel(), "not checked");
+  assert.equal(containerStateLabel({ state: "offline" }), "not checked");
+  assert.equal(containerStateLabel({ state: "offline", report }), "stale");
+  assert.equal(containerStateLabel({ state: "checking", report }), "checking…");
+  assert.equal(containerStateLabel({ state: "online", report }), "running");
+  assert.equal(containerStateLabel({ state: "online" }), "unknown");
+});
+
 test("confirmation is centered, defaults to Cancel, restores focus, and queues dialogs", async () => {
   setup();
   const previous = document.activeElement;

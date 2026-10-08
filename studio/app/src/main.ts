@@ -6,6 +6,7 @@ import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
 import { creationBlocker, lifecycleBlocker, ownsEnclave } from "./enclave-model";
+import { containerStateLabel } from "./server-model";
 import { confirmAction, promptText } from "./dialog";
 import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
 import { loadCachedReport, persistCachedReport } from "./report-cache";
@@ -2669,16 +2670,24 @@ function renderEnclaves(): void {
         capacity.memoryBytes ? `${(capacity.memoryBytes / 1024 ** 3).toFixed(1)} GiB RAM total` : undefined,
         typeof capacity.diskFreeBytes === "number" ? `${(capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB disk free` : undefined,
       ].filter(Boolean);
-      if (facts.length) text.append(el("small", { className: "muted", textContent: facts.join(" · "), title: `CPU/RAM: total Docker engine capacity, not unallocated capacity. Disk: ${capacity.diskPath ?? "profile user's home filesystem"}. Refresh to update.` }));
+      if (facts.length) text.append(el("div", { className: "server-capacity", ariaLabel: "Server capacity", title: `CPU/RAM: total Docker engine capacity, not unallocated capacity. Disk: ${capacity.diskPath ?? "profile user's home filesystem"}. Refresh to update.` }, ...facts.map((fact) => el("span", { textContent: fact }))));
     }
     const instances = instanceInventory.get(profile.id);
     if (instances) {
-      const select = el("select", {}, ...instances.map((runtime) => el("option", { value: runtime.instance ?? "", textContent: runtime.container })));
-      select.setAttribute("aria-label", `Container on ${profile.name}`);
-      select.value = selectedInstances.get(profile.id) ?? "";
-      select.disabled = runtimeBusy;
-      select.addEventListener("change", () => selectInstance(profile, select.value));
-      text.append(el("label", { textContent: "Container" }, select));
+      const containers = el("div", { className: "server-containers", role: "group", ariaLabel: `Containers on ${profile.name}` });
+      for (const runtime of instances) {
+        const selected = (runtime.instance ?? "") === (selectedInstances.get(profile.id) ?? "");
+        const checked = enclaveStatus.get(runtimeKey(profile, runtime.instance ?? ""));
+        const state = containerStateLabel(checked);
+        const button = actionButton(runtime.container, () => selectInstance(profile, runtime.instance ?? ""), "secondary container-choice");
+        button.append(el("small", { textContent: state }));
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-pressed", String(selected));
+        button.disabled = runtimeBusy;
+        button.title = `${runtime.home}\nSelect to check status and manage this container`;
+        containers.append(button);
+      }
+      text.append(containers);
     }
     if (status?.report) {
       const report = status.report;
@@ -2724,7 +2733,7 @@ function renderEnclaveStatus(): void {
   navEnclaves.replaceChildren(...profiles.map((profile) => {
     const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
     const button = el("button", { type: "button", className: "nav-enclave", title: `${statusText(enclaveStatus.get(runtimeKey(profile)))}${drafts ? ` · ${drafts} drafts` : ""}` }, dot(statusTone(enclaveStatus.get(runtimeKey(profile)))), el("span", { textContent: profileConnection(profile).label }), ...(drafts ? [el("small", { className: "draft-count", textContent: String(drafts) })] : []));
-    button.classList.toggle("active", connected && current?.profileId === profile.id);
+    button.classList.toggle("active", connected && current?.profileId === profile.id && current.instance === profileConnection(profile).instance);
     button.addEventListener("click", () => void openEnclave(profile));
     return button;
   }));

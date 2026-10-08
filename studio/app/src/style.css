@@ -42,6 +42,12 @@ html { scrollbar-gutter: stable; }
 button.topbar-instance { background: #1f231d; border: 1px solid #3c4339; border-radius: 999px; color: #d8ddd2; font-size: .82rem; font-weight: 600; padding: .45rem .85rem; }button.topbar-instance:hover { border-color: #e6a94c; }
 .enclave-item strong { align-items: center; display: flex; gap: .55rem; }.item-actions { align-items: center; display: flex; gap: .5rem; }.badge { border: 1px solid #e6a94c; border-radius: 999px; color: #e6a94c; font-size: .72rem; font-weight: 750; padding: .3rem .65rem; }.list-item span.status-hint { color: #e3a69e; white-space: normal; }
 .enclave-item { align-items: start; }.enclave-item > div { min-width: 0; }.enclave-item .item-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 13rem; }.enclave-item .item-actions button { padding: .32rem .5rem; font-size: .72rem; }
+.server-capacity { display: flex; flex-wrap: wrap; gap: .35rem .8rem; margin-top: .5rem; color: #aab4a2; font-size: .72rem; }
+.server-containers { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .65rem; }
+button.container-choice { display: grid; gap: .15rem; padding: .4rem .6rem; text-align: left; font-size: .75rem; }
+button.container-choice small { color: #929b8c; font-size: .65rem; }
+button.container-choice.active { background: #353e30; border-color: #9bb18d; color: #f7f3eb; }
+button.container-choice.active small { color: #c4d2bb; }
 .enclave-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .8rem; margin: .65rem 0 0; }.enclave-facts dt { font-size: .65rem; letter-spacing: 0; }.enclave-facts dd { font-size: .72rem; margin-top: .1rem; }
 .enclave-readiness { display: grid; gap: .35rem; margin: .65rem 0; font-size: .75rem; }.enclave-readiness-row { display: grid; grid-template-columns: 1rem 6rem minmax(0, 1fr); gap: .4rem; align-items: baseline; }.enclave-readiness-row.ready > span:first-child { color: #a9c69b; }.enclave-readiness-row.attention > span:first-child { color: #e6a94c; }.enclave-readiness-row > span:last-child { color: #aab4a2; overflow-wrap: anywhere; }
 #enclave-create-options { border: 1px solid #343a32; border-radius: .55rem; padding: .65rem; margin: .75rem 0; display: grid; gap: .4rem; }#enclave-create-options legend { color: #aab4a2; font-size: .75rem; padding: 0 .3rem; }#enclave-create-options:disabled { opacity: .5; }

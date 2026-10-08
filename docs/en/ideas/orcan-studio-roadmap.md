@@ -1,4 +1,4 @@
-# Orcan Studio and Enclave roadmap
+# Orcan Studio server and container roadmap
 
 This is a maintainer handoff and product direction, not a list of available
 features. It preserves decisions from the design session ending on 2026-10-08.
@@ -11,7 +11,8 @@ then creation chooses name, CPU, RAM, access and browser-terminal host port.
 Servers report engine CPU/RAM capacity and project-filesystem free space.
 Configuration, workspace metadata and launch state are instance-scoped;
 worktrees are namespaced beneath the shared source catalog. Existing default
-instances are not migrated. Enclaves remain future groups, not host synonyms.
+instances are not migrated. The Enclave term is retired from the current product
+vocabulary; possible future grouping has no committed category name.
 Real Windows/WSL/SSH and concurrent-container operation still need field testing.
 
 ## Product direction
@@ -24,7 +25,7 @@ simple and visual. A user should see which projects are available, which
 workspace uses them, and what a proposed change will do. The terminal cockpit
 stays available for daily work with an agent; Studio does not replace it.
 
-Later, an Enclave can group several Orcan containers on one machine. A 2D graph,
+Later, a group could coordinate several Orcan containers on one machine. A 2D graph,
 inspired by the clarity of n8n, could describe work passing between their agent
 roles. This is a future direction, not permission to build a general automation
 engine now. First complete and test the single-container foundation.
@@ -37,15 +38,14 @@ engine now. First complete and test the single-container foundation.
 | Profile | A connection to a local machine, WSL2 distribution, or SSH host. It must work without Orcan installed. |
 | Server / host | Local machine, WSL2 distribution or remote VM reached by a profile; owns installed CLI, Docker images and shared data. |
 | Named instance | One Orcan container on a host, with its own Compose project, configuration, launch state and workspaces. |
-| Enclave, future | A named group of isolated Orcan containers on one connected host. Its exact relationship to profiles still needs a migration design. |
 | Container | Execution and access boundary; later a named role such as developer or tester. |
 | Sandbox / project root | A host-side catalog of source projects and folders, mounted into the container. Not necessarily inside Orcan's config directory. |
 | Workspace | A named working context, with project bindings and a corresponding tmux session. |
 | Binding | One project's attachment to a workspace, as a worktree or mount-as-is, with its own local alias. |
 
-Do not permanently encode `profile == enclave == container` in new storage.
+Do not permanently encode profile and container as the same identity in new storage.
 Keep host identity separate from container identity. Named containers now isolate
-paths, lifecycle and ownership; Enclave grouping and task orchestration remain future work.
+paths, lifecycle and ownership; grouping and task orchestration remain future work.
 
 ## Current baseline: implemented, not yet fully field-tested
 
@@ -92,7 +92,7 @@ version bump is requested.
 
 ### 1. Guided preparation and creation
 
-Make New Enclave available from Enclaves, even when the selected profile does
+Make New container available from Servers, even when the selected profile does
 not yet have Orcan. A saved connection is not the same as a provisioned runtime.
 
 Show separate facts: connection, CLI/Studio protocol, Docker access, required
@@ -119,16 +119,16 @@ Acceptance:
 - Selection or option changes invalidate the plan. Late async responses do not
   authorize a different profile. Background polling does not erase a ready plan.
 - Errors preserve recovery actions; progress does not block navigation.
-- Success opens the verified Enclave and offers context management.
+- Success opens the verified container and offers context management.
 
-### 2. Compact Enclave control panel
+### 2. Compact container control panel
 
 Show container state/name, required image, Orcan version, last successful check,
 project/worktree/workspace roots, CPU/RAM, agent tools, and access exposure.
 Use Orcan-reported values; unknown and stale are valid states, not defaults.
 
 Keep the main view compact: summary, actions, paths, and optional details.
-Put configuration behind the Enclave gear. Locked image/start-time settings
+Put configuration behind the container gear. Locked image/start-time settings
 should remain visible with a short reason. Do not display environment secrets.
 
 Acceptance: the user can see what exists, where it lives, what is exposed, and

@@ -6,8 +6,8 @@ tags:
 # Orcan Studio
 
 For the next development phases, see the
-[Studio and Enclave roadmap](orcan-studio-roadmap.md). It separates host/container
-management from future Enclave groups and visual task flows.
+[Studio server and container roadmap](orcan-studio-roadmap.md). It separates host/container
+management from possible future container groups and visual task flows.
 
 ## Servers and named containers
 
@@ -20,7 +20,10 @@ The image is reused; it is not transferred again for each container.
 Choose a name such as `developer` or `tester`; Docker names become
 `orcan-developer` and `orcan-tester`. Use lowercase letters, digits and hyphens,
 starting with a letter, up to 48 characters. Names are unique on the host.
-The server card offers a container selector. Context, settings, drafts, cached
+The server card offers compact clickable container cards, with the last checked
+state (or an explicit not-checked/stale label). Selecting one checks it before
+management. Host capacity is separate from the selected container's configured
+limits; it is not a count of free CPU or RAM. Context, settings, drafts, cached
 reports and lifecycle actions are scoped to that selected container.
 Studio discovers configured instances from Orcan, not a second desktop registry.
 
@@ -60,8 +63,11 @@ shared data, projects or worktrees. Start recreates a removed container using
 saved flags; protected ttyd recreation still needs its credentials on the host.
 Existing-container Start/Stop/Restart preserve its settings and ttyd auth.
 
-**Enclave** is reserved for a future group of cooperating containers; creating
-named containers does not implement an agent workflow engine.
+The current terms are **profile → server/host → container → workspace**.
+A profile supplies the connection, a host owns images and shared data, and each
+container owns its configuration and workspaces. “Enclave” is no longer a UI
+category. Existing internal command and storage identifiers stay compatible.
+Named containers do not implement an agent workflow engine.
 
 Orcan Studio is the native desktop companion for composing and inspecting Orcan
 context. Orcan Sandbox remains the runtime that owns Docker, managed project
@@ -75,7 +81,7 @@ Studio has three transport modes:
 - **SSH**: runs the same versioned Orcan Studio protocol through the user's
   OpenSSH configuration.
 
-For a running Enclave using system SSH, each workspace offers **Open terminal**.
+For a running container using system SSH, each workspace offers **Open terminal**.
 Studio opens its tmux session through SSH in Windows Terminal, PowerShell,
 Command Prompt, macOS Terminal, or the default Linux terminal
 (`x-terminal-emulator`). The terminal choice is remembered on this device.
@@ -83,7 +89,7 @@ Configure SSH host aliases and ports in `~/.ssh/config`. Profiles using Studio's
 credential vault cannot launch this external terminal; select a system-SSH
 profile for this action. Closing or detaching the terminal leaves tmux running.
 
-For a system-SSH Enclave, Studio can open a selected workspace in the user's
+For a system-SSH container, Studio can open a selected workspace in the user's
 native terminal application. It launches `ssh -tt HOST 'orcan attach WORKSPACE'`
 so tmux keeps its normal keyboard shortcuts, clipboard, and scrollback. Studio
 does not pass a saved password or private-key credential to another terminal
@@ -167,7 +173,7 @@ the source. Docker engines can report different IDs for the same content, so ID
 differences alone do not fail verification. Incomplete inspection or different
 content still fails; mismatches show both IDs. If source content changes during
 export, Studio stops before uploading. A verified result offers
-**Go to Enclaves**; failed operations show a short recovery hint and expandable
+**Go to Servers**; failed operations show a short recovery hint and expandable
 technical detail.
 Kits intentionally exclude profiles, configuration, projects,
 sandbox data, and credentials. It requires a remote shell and `tar`; Docker is
@@ -202,7 +208,7 @@ as its source. A synced workspace index remains useful for inspection, but is
 read-only: Studio disables rename, detach, and worktree actions until it can
 reconnect to the Orcan instance that owns the configuration.
 
-Each Enclave has a configuration gear. Its panel separates the actions Studio
+Each container has a configuration gear. Its panel separates the actions Studio
 can safely operate (context plans and container lifecycle) from reported,
 locked facts: container resources, image-provided agent tools, protected
 environment values, managed paths, and launch exposure. Locked environment
@@ -239,11 +245,11 @@ Studio also reads the source's local branch names and displays a compact sample.
 An existing name is valid: the plan says that the new worktree will check out
 that branch instead of creating it again.
 
-The connected-Enclave badge reports the target type, target user, exact Orcan
+The connected-container badge reports the target type, target user, exact Orcan
 configuration path, and whether context changes are writable. Activity is
-stored per Studio device and can be filtered by the Enclave that started each
-operation; a failed Enclave check can be safely retried and an affected
-Enclave can be reopened from its activity row. The Connection doctor in
+stored per Studio device and can be filtered by the container that started each
+operation; a failed container check can be safely retried and an affected
+container can be reopened from its activity row. The Connection doctor in
 Settings repeats the target, user, configuration path, and workspace-index
 path, with reconnect and profile actions.
 
@@ -283,13 +289,13 @@ recreate them. Studio checks resulting state before recording success.
 Ordinary restart does not apply new creation-time settings: new mounts,
 environment, resources or agent images may require explicit recreation.
 
-The Enclave map keeps projects directly under the managed sandbox root flat.
+The container map keeps projects directly under the managed sandbox root flat.
 Only real child folders become groups, so `sandbox/STARE/*` and
 `sandbox/NOWE/*` are easier to scan without adding a redundant `sandbox`
 wrapper. On narrower windows the workspace and available-project columns flow
 into one vertical view.
 Selected workspace focus and map filters are remembered separately for each
-Enclave on the Studio device.
+container on the Studio device.
 
 Studio saves reconnect profiles in its native application-data directory. A
 profile contains a display name and transport metadata; system-SSH profiles may
@@ -315,9 +321,9 @@ and named containers. Context editing is enabled only after a successful probe
 for the selected container. An existing configuration/container reserves that
 name, not the whole profile: choose a different name to create another instance.
 
-Workspace membership is edited on the Enclave map: dragging a project onto a
+Workspace membership is edited on the container map: dragging a project onto a
 workspace (or onto "New workspace") asks Orcan for a plan through
-`orcan studio settings`, shows it for confirmation, applies it on that Enclave
+`orcan studio settings`, shows it for confirmation, applies it on that container
 (system SSH or native SSH with a saved credential), and then offers
 `orcan sync`. Removing a project from a workspace never deletes files.
 
