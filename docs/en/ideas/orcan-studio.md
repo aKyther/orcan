@@ -17,6 +17,14 @@ Studio has three transport modes:
 - **SSH**: runs the same versioned Orcan Studio protocol through the user's
   OpenSSH configuration.
 
+For a running Enclave using system SSH, each workspace offers **Open terminal**.
+Studio opens its tmux session through SSH in Windows Terminal, PowerShell,
+Command Prompt, macOS Terminal, or the default Linux terminal
+(`x-terminal-emulator`). The terminal choice is remembered on this device.
+Configure SSH host aliases and ports in `~/.ssh/config`. Profiles using Studio's
+credential vault cannot launch this external terminal; select a system-SSH
+profile for this action. Closing or detaching the terminal leaves tmux running.
+
 For a system-SSH Enclave, Studio can open a selected workspace in the user's
 native terminal application. It launches `ssh -tt HOST 'orcan attach WORKSPACE'`
 so tmux keeps its normal keyboard shortcuts, clipboard, and scrollback. Studio

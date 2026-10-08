@@ -47,6 +47,7 @@ require_file "cli/commands/uninstall.sh"
 require_file "scripts/repository/uninstall_data.py"
 require_file "cli/commands/context.sh"
 require_file "cli/commands/enter.sh"
+require_file "cli/commands/attach.sh"
 require_file "VERSION"
 require_file "cockpit/pyproject.toml"
 require_file "cockpit/uv.lock"
@@ -260,6 +261,7 @@ bash_scripts=(
     cli/commands/publish.sh
     cli/commands/context.sh
     cli/commands/enter.sh
+    cli/commands/attach.sh
     cli/commands/settings.sh
     cli/commands/migrate.sh
     cli/commands/update.sh

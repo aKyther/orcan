@@ -50,6 +50,8 @@ Commands:
   enter [--launcher|--shell|--tmux [SESSION]]
                            Local terminal into the running container
                            (default: agent-launcher; alias: go-in)
+  attach WORKSPACE         Create or resume a workspace tmux session
+                           (works through SSH: ssh -tt HOST 'orcan attach WORKSPACE')
   update                   Dev channel: fast-forward to origin/main
   upgrade [--to VERSION]   Release channel: newest release tag (default), or pin VERSION
   downgrade [--to VERSION] Previous SemVer release, or pin an older VERSION

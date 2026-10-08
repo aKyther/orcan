@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Image size:** omit sbt native clients for other operating systems and
   architectures while keeping the matching Linux client and documentation.
 
+- **Native remote terminal:** added `orcan attach WORKSPACE`, which creates or
+  resumes a configured workspace's tmux session in the running container. Use
+  it through a host SSH session, for example `ssh -tt HOST 'orcan attach WORKSPACE'`,
+  without publishing ttyd. Studio can open a selected workspace in a native
+  terminal through a system-SSH profile (Windows Terminal, PowerShell, Command
+  Prompt, macOS Terminal, or the default Linux terminal).
+
 - **Documentation:** the site is now English-only. The retired Polish tree and
   i18n layer no longer add duplicate maintenance work; CI fetches full history
   so strict documentation checks can read revision dates reliably.

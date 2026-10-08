@@ -65,6 +65,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan publish` | Push an all-agents `orcan:latest` (**manual**; partial images are refused) |
 | `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
 | `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
+| `orcan attach WORKSPACE` | Create or resume one configured workspace's tmux session and attach the current terminal. For a remote native terminal: `ssh -tt HOST 'orcan attach WORKSPACE'` |
 | `orcan update` | Dev channel: fast-forward this checkout to `origin/main` |
 | `orcan upgrade [--to VERSION]` | Release channel: newest release tag `vX.Y.Z` (default), or `--to` pins one (up or down) |
 | `orcan downgrade [--to VERSION]` | Previous SemVer release, or pin an older `--to` (refuses newer targets) |

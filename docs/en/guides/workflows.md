@@ -34,6 +34,24 @@ docker exec -it orcan-1 agent-launcher
 
 Alias: `orcan go-in` (same as `enter`). Default container name is `orcan-1` (`ORCAN_INSTANCE`). Detach tmux with prefix + `d` — the session keeps running for ttyd and other clients.
 
+## Scenario: remote native terminal
+
+**When:** Orcan runs on another machine and you want the native terminal's
+shortcuts, clipboard, and scrollback rather than a browser terminal.
+
+Connect to the machine over SSH and attach the configured workspace by name:
+
+```bash
+ssh -tt my-enclave 'orcan attach orcan-dev'
+```
+
+`orcan attach` creates the workspace's tmux session when needed, then resumes
+it. It uses the same session as local clients, so detach with the tmux prefix
+plus `d` without stopping agents. Configure `my-enclave` as an SSH host alias
+in `~/.ssh/config`; Orcan Studio can later use that profile to open this command
+in a native terminal. This needs SSH access to the **host** running Orcan — it
+does not publish ttyd or add an SSH server to the container.
+
 If ttyd disconnects or the browser page is refreshed, the new cockpit process
 automatically reattaches to its last workspace. tmux restores that session's
 active window and pane. This reconnect hint lives only in `/tmp`, so restarting

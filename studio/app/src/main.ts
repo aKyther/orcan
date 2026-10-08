@@ -459,6 +459,19 @@ const workspaceInspectorAgent = $("#workspace-inspector-agent");
 const workspaceInspectorAdd = $<HTMLButtonElement>("#workspace-inspector-add");
 const workspaceInspectorWorktree = $<HTMLButtonElement>("#workspace-inspector-worktree");
 const workspaceInspectorDiscard = $<HTMLButtonElement>("#workspace-inspector-discard");
+const terminalLauncher = $<HTMLSelectElement>("#terminal-launcher");
+if (/Windows/i.test(navigator.userAgent)) terminalLauncher.value = "windows_terminal";
+else if (/Macintosh|Mac OS X/i.test(navigator.userAgent)) terminalLauncher.value = "mac_terminal";
+else terminalLauncher.value = "linux_terminal";
+const terminalOptions = /Windows/i.test(navigator.userAgent) ? ["windows_terminal", "power_shell", "command_prompt"] : /Macintosh|Mac OS X/i.test(navigator.userAgent) ? ["mac_terminal"] : ["linux_terminal"];
+for (const option of Array.from(terminalLauncher.options)) if (!terminalOptions.includes(option.value)) option.remove();
+try {
+  const saved = localStorage.getItem("orcan-terminal-launcher");
+  if (saved && terminalOptions.includes(saved)) terminalLauncher.value = saved;
+} catch { /* Storage may be unavailable. */ }
+terminalLauncher.addEventListener("change", () => {
+  try { localStorage.setItem("orcan-terminal-launcher", terminalLauncher.value); } catch { /* Storage may be unavailable. */ }
+});
 const projectInspector = $("#project-inspector");
 const projectInspectorTitle = $("#project-inspector-title");
 const projectInspectorState = $("#project-inspector-state");
@@ -633,7 +646,12 @@ function renderEnclaveMap(report: ProbeReport): void {
     if ((query || activeMapFilters.size) && !projects.length && !visibleDrafts.length) return [];
     const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
     if (drafts.length) meta.append(el("span", { className: "tag draft", textContent: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` }), actionButton("Discard", () => discardWorkspaceDraft(workspace.name), "workspace-draft-discard"));
-    const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), meta));
+    const attach = actionButton("Open terminal", () => void openWorkspaceTerminal(workspace.name), "secondary");
+    attach.hidden = current?.target.kind !== "ssh";
+    const terminalProfile = profiles.find((profile) => profile.id === current?.profileId);
+    attach.disabled = report.runtime.docker.container.state !== "running" || Boolean(terminalProfile?.credential_id) || (terminalProfile?.ssh?.authentication.kind ?? "agent") !== "agent";
+    attach.title = attach.disabled ? "Start the Enclave and use a system-SSH profile to open a native terminal." : `Attach to ${workspace.name} in your native terminal`;
+    const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), meta, attach));
     card.classList.toggle("focused", focusedWorkspace === workspace.name);
     card.title = "Click empty space to focus this workspace";
     card.addEventListener("click", (event) => {
@@ -1823,6 +1841,7 @@ function profileConnection(profile: ConnectionProfile): Connection {
 
 async function openWorkspaceTerminal(workspace: string): Promise<void> {
   if (!current) return;
+  if (demoMode) { result.textContent = "Native terminals are available in the desktop application."; return; }
   try {
     await invoke("open_terminal", { enclave: enclaveInput(current), workspace, launcher: terminalLauncher.value });
     result.textContent = `Opened a native terminal for ${workspace}.`;

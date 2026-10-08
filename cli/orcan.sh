@@ -32,6 +32,7 @@ Commands:
   url          Print browser terminal URL
   logs         Follow container logs
   enter        Local terminal into the container (alias: go-in)
+  attach       Create or resume one workspace tmux session
   update       Dev channel: fast-forward to origin/main
   upgrade      Release channel: checkout newest release tag (or --to VERSION)
   downgrade    Previous release (or --to VERSION)
@@ -69,7 +70,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | migrate | context | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | go-in)
+        init | sync | migrate | context | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;
