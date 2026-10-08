@@ -111,6 +111,108 @@ struct CliProvisionCheck {
     source: String,
     destination: String,
     image: Option<String>,
+    destination_user: String,
+    image_architecture: Option<String>,
+    destination_architecture: String,
+}
+
+fn offline_source_check(image: Option<&str>) -> Result<String, String> {
+    let base = "set -Eeuo pipefail; export PATH=\"$HOME/.local/bin:$PATH\"; for tool in orcan tar; do command -v \"$tool\" >/dev/null || { echo \"Source needs $tool\" >&2; exit 1; }; done; orcan version >/dev/null;";
+    match image {
+        Some(image) if valid_image_reference(image) => Ok(format!(
+            "{base} docker image inspect --format '{{{{.Architecture}}}}' {}",
+            shell_quote(image)
+        )),
+        Some(_) => Err("invalid Docker image reference".to_owned()),
+        None => Ok(format!("{base} printf none")),
+    }
+}
+
+fn offline_destination_check(image: bool) -> String {
+    let docker = if image { "docker info >/dev/null;" } else { "" };
+    format!(
+        "set -Eeuo pipefail; for tool in bash tar python3; do command -v \"$tool\" >/dev/null || {{ echo \"Destination needs $tool\" >&2; exit 1; }}; done; test -w \"$HOME\" || {{ echo 'Destination home is not writable' >&2; exit 1; }}; {docker} printf '%s\\t%s' \"$(id -un)\" \"$(uname -m)\""
+    )
+}
+
+fn offline_check_result(
+    input: WslCliProvision,
+    source: String,
+    destination: String,
+) -> Result<CliProvisionCheck, String> {
+    let (user, architecture) = destination
+        .trim()
+        .split_once('\t')
+        .ok_or("Destination did not report its user and architecture")?;
+    let architecture = match architecture {
+        "x86_64" => "amd64",
+        "aarch64" => "arm64",
+        other => other,
+    }
+    .to_owned();
+    let image_architecture = input.image.as_ref().map(|_| source.trim().to_owned());
+    if let Some(image_arch) = &image_architecture {
+        if image_arch != &architecture {
+            return Err(format!(
+                "Image architecture {image_arch} does not match destination {architecture}. Choose or build an image for {architecture}."
+            ));
+        }
+    }
+    Ok(CliProvisionCheck {
+        source: input.distribution,
+        destination: input.destination,
+        image: input.image,
+        destination_user: user.to_owned(),
+        image_architecture,
+        destination_architecture: architecture,
+    })
+}
+
+#[cfg(test)]
+mod provisioning_tests {
+    use super::*;
+
+    fn input(image: Option<&str>) -> WslCliProvision {
+        WslCliProvision {
+            distribution: "Ubuntu".into(),
+            destination: "server".into(),
+            destination_profile_id: None,
+            destination_credential_id: None,
+            destination_username: None,
+            image: image.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn image_requires_matching_destination_architecture() {
+        assert!(
+            offline_check_result(
+                input(Some("orcan:latest")),
+                "amd64".into(),
+                "alice\tx86_64".into()
+            )
+            .is_ok()
+        );
+        assert!(
+            offline_check_result(
+                input(Some("orcan:latest")),
+                "amd64".into(),
+                "alice\taarch64".into()
+            )
+            .err()
+            .unwrap()
+            .contains("does not match")
+        );
+    }
+
+    #[test]
+    fn cli_without_image_accepts_other_architectures() {
+        let check =
+            offline_check_result(input(None), "none".into(), "alice\taarch64".into()).unwrap();
+        assert_eq!(check.destination_user, "alice");
+        assert_eq!(check.destination_architecture, "arm64");
+        assert!(check.image_architecture.is_none());
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -436,36 +538,36 @@ async fn check_wsl_cli_provision(
     let target = Target::from(destination.target.clone());
     if let Some(resolved) = native_ssh(&destination, &target, &state)? {
         let source = input.clone();
-        tauri::async_runtime::spawn_blocking(move || {
+        let source_output = tauri::async_runtime::spawn_blocking(move || {
             validate_wsl_distribution(&source.distribution)?;
-            let source_script = if let Some(image) = &source.image {
-                if !valid_image_reference(image) {
-                    return Err("invalid Docker image reference".to_owned());
-                }
-                format!("set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null; docker image inspect {} >/dev/null", shell_quote(image))
-            } else {
-                "set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null".to_owned()
-            };
-            command_output({ let mut command = background_command("wsl.exe"); command.args(["--distribution", &source.distribution, "--exec", "bash", "-lc"]).arg(source_script); command }, "WSL provisioning requirements check")
+            let source_script = offline_source_check(source.image.as_deref())?;
+            command_output(
+                {
+                    let mut command = background_command("wsl.exe");
+                    command
+                        .args([
+                            "--distribution",
+                            &source.distribution,
+                            "--exec",
+                            "bash",
+                            "-lc",
+                        ])
+                        .arg(source_script);
+                    command
+                },
+                "WSL provisioning requirements check",
+            )
         })
         .await
         .map_err(|error| format!("WSL provisioning check stopped: {error}"))??;
-        let remote_script = if input.image.is_some() {
-            "set -Eeuo pipefail; command -v tar >/dev/null; docker info >/dev/null"
-        } else {
-            "set -Eeuo pipefail; command -v tar >/dev/null"
-        };
-        native_ssh_exec(
+        let remote_script = offline_destination_check(input.image.is_some());
+        let destination_output = native_ssh_exec(
             &input.destination,
             resolved,
-            &format!("bash -lc {}", shell_quote(remote_script)),
+            &format!("bash -lc {}", shell_quote(&remote_script)),
         )
         .await?;
-        return Ok(CliProvisionCheck {
-            source: input.distribution,
-            destination: input.destination,
-            image: input.image,
-        });
+        return offline_check_result(input, source_output, destination_output);
     }
     tauri::async_runtime::spawn_blocking(move || {
         validate_wsl_distribution(&input.distribution)?;
@@ -479,44 +581,35 @@ async fn check_wsl_cli_provision(
                 return Err("invalid Docker image reference".to_owned());
             }
         }
-        let source_script = if let Some(image) = &input.image {
-            format!(
-                "set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null; docker image inspect {} >/dev/null",
-                shell_quote(image)
-            )
-        } else {
-            "set -Eeuo pipefail; command -v orcan >/dev/null; command -v tar >/dev/null".to_owned()
-        };
-        command_output(
+        let source_script = offline_source_check(input.image.as_deref())?;
+        let source_output = command_output(
             {
                 let mut command = background_command("wsl.exe");
                 command
-                    .args(["--distribution", &input.distribution, "--exec", "bash", "-lc"])
+                    .args([
+                        "--distribution",
+                        &input.distribution,
+                        "--exec",
+                        "bash",
+                        "-lc",
+                    ])
                     .arg(source_script);
                 command
             },
             "WSL provisioning requirements check",
         )?;
-        let remote_script = if input.image.is_some() {
-            "set -Eeuo pipefail; command -v tar >/dev/null; docker info >/dev/null"
-        } else {
-            "set -Eeuo pipefail; command -v tar >/dev/null"
-        };
-        command_output(
+        let remote_script = offline_destination_check(input.image.is_some());
+        let destination_output = command_output(
             {
                 let mut command = background_command("ssh");
                 command
                     .args(["-o", "BatchMode=yes", "--", &input.destination])
-                    .arg(format!("bash -lc {}", shell_quote(remote_script)));
+                    .arg(format!("bash -lc {}", shell_quote(&remote_script)));
                 command
             },
             "remote provisioning requirements check",
         )?;
-        Ok(CliProvisionCheck {
-            source: input.distribution,
-            destination: input.destination,
-            image: input.image,
-        })
+        offline_check_result(input, source_output, destination_output)
     })
     .await
     .map_err(|error| format!("CLI provisioning check stopped: {error}"))?

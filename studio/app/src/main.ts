@@ -301,6 +301,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     ssh_host_key: { destination: "demo.example", algorithm: "ssh-ed25519", fingerprint: "SHA256:demo", status: "trusted" },
     trust_ssh_host_key: null,
     check_online_provision: { user: "developer", installedVersion: "orcan demo" },
+    check_wsl_cli_provision: { source: "Ubuntu", destination: "demo.example", destinationUser: "developer", destinationArchitecture: "amd64" },
     check_docker: { available: true, version: "27.5.1", detail: "Docker daemon is ready" },
     provision_online: { version: "orcan demo" },
   };
@@ -1973,10 +1974,29 @@ function selectedProfile(select: HTMLSelectElement): ConnectionProfile | undefin
 }
 
 type CliProvisionResult = { version: string; image?: string };
-type CliProvisionCheck = { source: string; destination: string; image?: string };
+type CliProvisionCheck = { source: string; destination: string; image?: string; destinationUser: string; imageArchitecture?: string; destinationArchitecture: string };
 type OnlineProvisionCheck = { user: string; installedVersion?: string };
 let cliProvisionReady = false;
 let onlineProvisionReadyProfileId: string | undefined;
+
+function renderProvisionIdentity(): void {
+  for (const select of [onlineProvisionTarget, cliProvisionSource, cliProvisionTarget, imageTransferSource, imageTransferTarget]) {
+    const id = `${select.id}-identity`;
+    let hint = document.getElementById(id);
+    if (!hint) {
+      hint = el("p", { id, className: "hint" });
+      select.parentElement!.append(hint);
+    }
+    const profile = selectedProfile(select);
+    if (!profile) { hint.textContent = "Choose a saved profile."; continue; }
+    const credential = savedCredentials.find((item) => item.id === profile.credential_id);
+    const login = credential ? `${credential.username} · ${credential.name} · ${authLabel(credential.authentication)}`
+      : profile.target.kind === "wsl2" ? "Default Linux user · local Windows access"
+      : profile.target.kind === "local" ? "Current user · local access"
+      : `${profile.ssh?.username ?? "User chosen by SSH configuration"} · System SSH`;
+    hint.textContent = `${describeTarget(profile.target)} · ${login}`;
+  }
+}
 
 function openProvisioning(profile?: ConnectionProfile): void {
   showView("provisioning");
@@ -2000,6 +2020,7 @@ function renderOnlineProvision(): void {
   onlineProvisionCheck.disabled = !profile;
   onlineProvisionRun.disabled = !profile || onlineProvisionReadyProfileId !== profile.id;
   if (!profiles.length) onlineProvisionResult.textContent = "Save a local, WSL2, or SSH profile first. A profile does not need Orcan installed yet.";
+  renderProvisionIdentity();
 }
 
 async function checkOnlineProvision(): Promise<void> {
@@ -2058,7 +2079,8 @@ function renderCliProvision(): void {
   cliProvisionCheck.disabled = !wslProfiles.length || !sshProfiles.length;
   cliProvisionRun.disabled = true;
   cliProvisionReady = false;
-  if (cliProvisionCheck.disabled) cliProvisionResult.textContent = "Create a WSL2 source profile and a remote destination profile using System SSH. The remote needs a shell, tar, and Docker only when including an image.";
+  if (cliProvisionCheck.disabled) cliProvisionResult.textContent = "Create a WSL2 source profile and a remote SSH destination profile. The destination needs Bash, tar, Python 3, and Docker when including an image.";
+  renderProvisionIdentity();
 }
 
 function cliProvisionInput(): { distribution: string; destination: string; destinationProfileId: string; destinationCredentialId?: string; destinationUsername?: string; image?: string } | undefined {
@@ -2086,9 +2108,18 @@ async function checkCliProvision(): Promise<void> {
     cliProvisionCheck.disabled = true;
     cliProvisionResult.textContent = "Checking WSL, SSH, and remote requirements…";
     const checked = await invoke<CliProvisionCheck>("check_wsl_cli_provision", { input });
+    if (JSON.stringify(input) !== JSON.stringify(cliProvisionInput())) {
+      cliProvisionResult.textContent = "Selection changed during the check. Check requirements again.";
+      return;
+    }
     cliProvisionReady = true;
     cliProvisionRun.disabled = false;
-    cliProvisionResult.textContent = `Ready: WSL Orcan and tar are available; ${checked.destination} accepts SSH and has tar${checked.image ? " and Docker" : ""}.`;
+    cliProvisionResult.replaceChildren(el("strong", { textContent: "Ready to install" }), el("ul", {},
+      el("li", { textContent: `Source: Orcan CLI and tar available in ${checked.source}.` }),
+      el("li", { textContent: `Destination: connected as ${checked.destinationUser}; Bash, tar and Python 3 available.` }),
+      el("li", { textContent: "Permissions: destination home is writable." }),
+      el("li", { textContent: checked.image ? `Docker: accessible; image ${checked.image} matches destination architecture ${checked.destinationArchitecture}.` : "Docker image: not selected; Docker is not required for CLI installation." }),
+    ));
   } catch (error) {
     cliProvisionResult.textContent = `Requirements check failed: ${String(error)}`;
   } finally {
@@ -2127,13 +2158,14 @@ function renderImageTransfer(): void {
   const wslProfiles = profiles.filter((profile) => profile.target.kind === "wsl2");
   const sshProfiles = profiles.filter((profile) => profile.target.kind === "ssh");
   imageTransferSource.replaceChildren(new Option(wslProfiles.length ? "Choose source profile…" : "No WSL2 source profiles", ""), ...wslProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
-  imageTransferTarget.replaceChildren(new Option(sshProfiles.length ? "Choose destination profile…" : "No system-SSH destination profiles", ""), ...sshProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
+  imageTransferTarget.replaceChildren(new Option(sshProfiles.length ? "Choose remote SSH destination…" : "No remote SSH destination profiles", ""), ...sshProfiles.map((profile) => new Option(`${profile.name} · ${describeTarget(profile.target)}`, profile.id)));
   imageTransferSource.value = wslProfiles.some((profile) => profile.id === source) ? source! : wslProfiles[0]?.id ?? "";
   imageTransferTarget.value = sshProfiles.some((profile) => profile.id === target) ? target! : sshProfiles[0]?.id ?? "";
   const ready = Boolean(wslProfiles.length && sshProfiles.length);
   imageTransferInspect.disabled = !ready;
   imageTransferRun.disabled = true;
   if (!ready) imageTransferResult.textContent = "Create a WSL2 source profile and a remote SSH destination profile before transferring an image.";
+  renderProvisionIdentity();
 }
 
 /** One profile owns one current Enclave until Orcan gains multi-runtime support. */
@@ -2375,7 +2407,8 @@ imageTransferTarget.addEventListener("change", () => { imageTransferRun.disabled
 imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; });
 cliProvisionCheck.addEventListener("click", () => void checkCliProvision());
 cliProvisionRun.addEventListener("click", () => void provisionCli());
-for (const input of [cliProvisionSource, cliProvisionTarget, cliProvisionImage, cliProvisionImageName]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; });
+for (const input of [cliProvisionSource, cliProvisionTarget, cliProvisionImage, cliProvisionImageName]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; renderProvisionIdentity(); cliProvisionResult.textContent = "Selection changed. Check requirements again before installing."; });
+for (const select of [imageTransferSource, imageTransferTarget]) select.addEventListener("change", renderProvisionIdentity);
 cliProvisionImage.addEventListener("change", () => { cliProvisionImageField.hidden = !cliProvisionImage.checked; });
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
 enclaveCreateApply.addEventListener("click", () => { if (window.confirm("Create this empty Enclave?")) void planEmptyEnclave(true); });

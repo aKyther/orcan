@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio provisioning:** show each selected profile's address, user, and sign-in
+  method. Offline CLI readiness checks destination tools and write access, and
+  verifies Docker access and matching architecture when an image is included.
+
 - **Image size:** omit sbt native clients for other operating systems and
   architectures while keeping the matching Linux client and documentation.
 

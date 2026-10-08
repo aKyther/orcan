@@ -44,6 +44,11 @@ host needs no Internet access: it extracts the kit, installs the host CLI, and
 verifies `orcan version`. The optional Docker image is streamed in the same
 operation. Before transfer, Studio checks the WSL source and destination shell
 for the required commands, including Docker only when an image is selected.
+The offline CLI readiness result reports the destination user, Bash, tar,
+Python 3, and permission to write to the user's home. When including an image,
+it also verifies Docker access and requires its architecture to match the
+destination. Each provisioning profile selector shows the destination address
+and the user and sign-in method supplied by the selected profile or credential.
 Kits intentionally exclude profiles, configuration, projects,
 sandbox data, and credentials. It requires a remote shell and `tar`; Docker is
 required only when an image is included. SSH-agent profiles use system OpenSSH.
