@@ -2,11 +2,12 @@ import { listen } from "@tauri-apps/api/event";
 import { el } from "./dom";
 import { demoMode } from "./transport";
 
-type ProgressEvent = { operationId: string; stage: string; bytes: number; total?: number | null };
+type ProgressEvent = { operationId: string; stage: string; bytes: number; total?: number | null; offset?: number };
 const labels: Record<string, string> = {
   preparing: "Preparing connection",
   checking: "Checking requirements",
   exporting: "Exporting to Studio",
+  hashing: "Checking transfer integrity",
   transferring: "Sending to destination",
   installing: "Installing on destination",
   verifying: "Verifying installation",
@@ -61,7 +62,8 @@ export async function withProvisionProgress<T>(output: HTMLElement, title: strin
     const phaseSeconds = (Date.now() - phaseStarted) / 1000;
     const percent = update.total && update.total > 0 ? Math.min(100, Math.floor(100 * update.bytes / update.total)) : undefined;
     const remaining = update.total ? Math.max(0, update.total - update.bytes) : undefined;
-    const speed = phaseSeconds >= 2 && update.bytes > 0 ? update.bytes / phaseSeconds : undefined;
+    const sent = Math.max(0, update.bytes - (update.offset ?? 0));
+    const speed = phaseSeconds >= 2 && sent > 0 ? sent / phaseSeconds : undefined;
     const eta = remaining !== undefined && remaining > 0 && speed ? Math.ceil(remaining / speed) : undefined;
     if (percent === undefined) bar.removeAttribute("value"); else bar.value = percent;
     percentage.textContent = percent === undefined ? duration(elapsed) : `${percent}%`;

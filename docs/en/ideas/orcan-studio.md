@@ -63,6 +63,20 @@ average throughput, and an estimated transfer time after the first two seconds.
 The estimate excludes destination installation/verification and can change with
 network speed. Sending all bytes is not
 installation success: Studio waits for the destination and verifies the result.
+Interrupted uploads show **Resume** and **Discard** in the status area, even
+after navigating to another view. Keep Studio open: recovery currently works
+only in the same application session. Resume uses the original profiles and
+exported payload, verifies the destination's partial-file SHA-256, then sends
+only missing bytes. Transfer speed excludes bytes already present. The whole
+payload is verified before installation; installation failures can retry using
+the uploaded file without exporting it again. Source export cannot resume.
+Discard removes only this transfer's cached files and requires connection to
+the destination. Successful transfers remove their local and remote payloads.
+Remote partials are private (directory 700, file 600) and guarded by file locks;
+recognized idle leftovers older than 24 hours are removed during a later
+receiver operation. Closing Studio removes local session payloads; it does not
+guarantee immediate deletion on an unreachable destination. Allow enough disk
+space on both Studio and the destination for the complete exported archive.
 Elapsed time stays visible while a kit is being prepared or Docker is importing
 it. A compact status remains visible across views. Keep Studio open until the
 operation finishes; source/destination controls stay locked during transfer.

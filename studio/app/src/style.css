@@ -112,6 +112,8 @@ button.context-project-update { background: none; border: 0; color: #9fba8d; fon
 @media (prefers-reduced-motion: reduce) { .transfer-progress progress:indeterminate { animation: none; } .transfer-progress progress::-webkit-progress-value { transition: none; } }
 .transfer-status { position: sticky; top: .5rem; z-index: 6; display: grid; gap: .3rem; margin-bottom: .7rem; }
 .transfer-status-item { background: #20271d; border: 1px solid #3c4a34; border-left: 2px solid #9fbd90; border-radius: .5rem; padding: .45rem .7rem; color: #c5d2bb; font-size: .72rem; line-height: 1.45; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.transfer-recovery { align-items: center; display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; border-left-color: #e6a94c; }
+.transfer-recovery .actions { margin: 0; }.transfer-recovery button { padding: .3rem .55rem; font-size: .72rem; }
 .studio-dialog { max-width: 30rem; max-height: calc(100dvh - 2rem); overflow-y: auto; box-shadow: 0 1.5rem 5rem #0008; }
 .studio-dialog .dialog-message { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; font-size: .85rem; color: #c4cdbd; margin: 0; }
 .studio-dialog .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }

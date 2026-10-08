@@ -2399,6 +2399,7 @@ fn main() {
                 }
             });
             app.manage(cache);
+            app.manage(provisioning::PendingTransfers::default());
             app.manage(ProfileState(Mutex::new(ProfileStore::new(
                 data_dir.join("profiles.json"),
             ))));
@@ -2407,6 +2408,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             provisioning::check_transfer,
             provisioning::transfer_profiles,
+            provisioning::has_pending_transfer,
+            provisioning::resume_transfer,
+            provisioning::discard_transfer,
             provisioning::profile_image_inventory,
             provisioning::remove_destination_image,
             list_wsl_distributions,

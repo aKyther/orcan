@@ -2,7 +2,57 @@
 //! temporary file on Studio, not buffered in RAM or copied between servers.
 use super::transfer_progress::{ProgressReader, TransferProgress};
 use super::*;
-use tokio::io::AsyncWriteExt;
+use sha2::{Digest, Sha256};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+
+pub(super) struct PendingTransfers(Mutex<std::collections::HashMap<String, PendingTransfer>>);
+
+impl Default for PendingTransfers {
+    fn default() -> Self {
+        Self(Mutex::new(std::collections::HashMap::new()))
+    }
+}
+
+struct PendingTransfer {
+    input: TransferInput,
+    payload: transfer_cache::TransferPayload,
+    expected: Option<ImageContent>,
+    install: String,
+    digest: String,
+}
+
+fn receiver(mode: &str, token: &str, args: &[String]) -> Result<String, String> {
+    if token.len() != 36 || !token.bytes().all(|c| c.is_ascii_hexdigit() || c == b'-') {
+        return Err("Invalid transfer token".into());
+    }
+    Ok(format!(
+        "python3 -c {} {} {} {}",
+        shell_quote(include_str!("transfer_receiver.py")),
+        shell_quote(mode),
+        shell_quote(token),
+        args.iter()
+            .map(|arg| shell_quote(arg))
+            .collect::<Vec<_>>()
+            .join(" ")
+    ))
+}
+
+async fn payload_digest(path: &std::path::Path, limit: u64) -> Result<String, String> {
+    let mut reader = tokio::fs::File::open(path)
+        .await
+        .map_err(|e| e.to_string())?
+        .take(limit);
+    let mut digest = Sha256::new();
+    let mut buffer = vec![0; 1024 * 1024];
+    loop {
+        let count = reader.read(&mut buffer).await.map_err(|e| e.to_string())?;
+        if count == 0 {
+            break;
+        }
+        digest.update(&buffer[..count]);
+    }
+    Ok(format!("{:x}", digest.finalize()))
+}
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -294,6 +344,7 @@ async fn move_file(
     script: &str,
     file: &tempfile::NamedTempFile,
     upload: bool,
+    offset: u64,
     state: &tauri::State<'_, ProfileState>,
     progress: &mut TransferProgress,
 ) -> Result<String, String> {
@@ -303,6 +354,9 @@ async fn move_file(
         None
     };
     progress.stage(if upload { "transferring" } else { "exporting" }, total);
+    if upload {
+        progress.resume_at(offset);
+    }
     if let (TargetInput::Ssh { destination }, Some(resolved)) = (
         &enclave.target,
         native_ssh(enclave, &Target::from(enclave.target.clone()), state)?,
@@ -321,7 +375,11 @@ async fn move_file(
             .await
             .map_err(|e| e.to_string())?;
         if upload {
-            let reader = tokio::fs::File::open(file.path())
+            let mut reader = tokio::fs::File::open(file.path())
+                .await
+                .map_err(|e| e.to_string())?;
+            reader
+                .seek(std::io::SeekFrom::Start(offset))
                 .await
                 .map_err(|e| e.to_string())?;
             channel
@@ -384,7 +442,8 @@ async fn move_file(
     let stdout = if upload { None } else { child.stdout.take() };
     let copy = async {
         if upload {
-            let reader = tokio::fs::File::open(file.path()).await?;
+            let mut reader = tokio::fs::File::open(file.path()).await?;
+            reader.seek(std::io::SeekFrom::Start(offset)).await?;
             let mut reader = ProgressReader::new(reader, |bytes| progress.advance(bytes));
             let mut stdin =
                 stdin.ok_or_else(|| io::Error::other("Destination has no input stream"))?;
@@ -418,10 +477,13 @@ pub(super) async fn transfer_profiles(
     app: tauri::AppHandle,
     state: tauri::State<'_, ProfileState>,
     cache: tauri::State<'_, transfer_cache::TransferCache>,
+    pending: tauri::State<'_, PendingTransfers>,
 ) -> Result<String, String> {
-    let mut progress = TransferProgress::new(app, operation_id);
+    receiver("inspect", &operation_id, &[])?;
+    let mut progress = TransferProgress::new(app, operation_id.clone());
     progress.stage("checking", None);
-    let result = transfer_profiles_inner(input, state, cache, &mut progress).await;
+    let result =
+        transfer_profiles_inner(input, state, cache, &pending, &operation_id, &mut progress).await;
     progress.stage(
         if result.is_ok() {
             "completed"
@@ -437,6 +499,8 @@ async fn transfer_profiles_inner(
     input: TransferInput,
     state: tauri::State<'_, ProfileState>,
     cache: tauri::State<'_, transfer_cache::TransferCache>,
+    pending: &PendingTransfers,
+    token: &str,
     progress: &mut TransferProgress,
 ) -> Result<String, String> {
     let check = check_transfer(input.clone(), state.clone()).await?;
@@ -470,6 +534,7 @@ async fn transfer_profiles_inner(
         &source,
         &payload.file,
         false,
+        0,
         &state,
         progress,
     )
@@ -480,36 +545,188 @@ async fn transfer_profiles_inner(
             return Err("Source image changed during export. Check the source and retry.".into());
         }
     }
-    move_file(
-        &input.destination,
-        &destination,
-        &payload.file,
-        true,
-        &state,
-        progress,
+    progress.stage("hashing", None);
+    let digest = payload_digest(payload.file.path(), u64::MAX).await?;
+    let transfer = PendingTransfer {
+        input,
+        payload,
+        expected: source_content,
+        install: destination,
+        digest,
+    };
+    complete_or_retain(token, transfer, &state, pending, progress).await
+}
+
+async fn complete_or_retain(
+    token: &str,
+    transfer: PendingTransfer,
+    state: &tauri::State<'_, ProfileState>,
+    pending: &PendingTransfers,
+    progress: &mut TransferProgress,
+) -> Result<String, String> {
+    let result = finish_transfer(token, &transfer, state, progress).await;
+    if result.is_err() {
+        pending
+            .0
+            .lock()
+            .map_err(|_| "Pending transfer store is unavailable")?
+            .insert(token.into(), transfer);
+    }
+    result
+}
+
+async fn finish_transfer(
+    token: &str,
+    transfer: &PendingTransfer,
+    state: &tauri::State<'_, ProfileState>,
+    progress: &mut TransferProgress,
+) -> Result<String, String> {
+    let destination = &transfer.input.destination;
+    let total = transfer
+        .payload
+        .file
+        .as_file()
+        .metadata()
+        .map_err(|e| e.to_string())?
+        .len();
+    progress.stage("hashing", None);
+    let inspection = execute(destination, &receiver("inspect", token, &[])?, state).await?;
+    let (offset, prefix) = inspection
+        .split_once('\t')
+        .ok_or("Destination did not report its transfer offset")?;
+    let offset: u64 = offset.parse().map_err(|_| "Invalid destination offset")?;
+    if offset > total || payload_digest(transfer.payload.file.path(), offset).await? != prefix {
+        return Err("Destination partial file does not match this transfer. Discard it and start a new transfer.".into());
+    }
+    let args = vec![
+        offset.to_string(),
+        total.to_string(),
+        transfer.digest.clone(),
+    ];
+    if offset < total {
+        move_file(
+            destination,
+            &receiver("append", token, &args)?,
+            &transfer.payload.file,
+            true,
+            offset,
+            state,
+            progress,
+        )
+        .await
+        .map_err(|e| {
+            format!("Upload interrupted. Resume this transfer without exporting again: {e}")
+        })?;
+    }
+    progress.stage("installing", None);
+    execute(
+        destination,
+        &receiver(
+            "install",
+            token,
+            &[
+                total.to_string(),
+                transfer.digest.clone(),
+                transfer.install.clone(),
+            ],
+        )?,
+        state,
     )
     .await
-    .map_err(|e| format!("Destination installation failed: {e}"))?;
-    progress.stage("verifying", None);
-    if input.cli {
-        execute(&input.destination, "orcan version", &state).await?;
-    }
-    if let Some(image) = &check.source_image {
-        let installed = profile_image_inventory(
-            input.destination.clone(),
-            image.image.clone(),
-            state.clone(),
+    .map_err(|e| {
+        format!(
+            "Destination installation did not finish. Retry will reuse the verified payload: {e}"
         )
-        .await?;
-        let installed_content = image_content(&input.destination, &image.image, &state).await?;
-        if source_content.as_ref() != Some(&installed_content) {
+    })?;
+    progress.stage("verifying", None);
+    if transfer.input.cli {
+        execute(destination, "orcan version", state).await?;
+    }
+    if let Some(image) = &transfer.input.image {
+        let installed =
+            profile_image_inventory(destination.clone(), image.clone(), state.clone()).await?;
+        let installed_content = image_content(destination, image, state).await?;
+        if transfer.expected.as_ref() != Some(&installed_content) {
             return Err(format!(
-                "Destination image content differs from source (configuration, layers or platform). Source ID: {}; destination ID: {}. Check the selected image and Docker endpoints.",
-                image.id, installed.id
+                "Destination image content differs from exported source (configuration, layers or platform). Destination ID: {}. Check the selected image and Docker endpoints.",
+                installed.id
             ));
         }
     }
+    execute(destination, &receiver("remove", token, &[])?, state)
+        .await
+        .map_err(|e| {
+            format!(
+                "Installation verified, but transfer cleanup failed. Retry to finish cleanup: {e}"
+            )
+        })?;
     Ok("Installation verified on destination. Existing configuration and projects were not transferred.".into())
+}
+
+#[tauri::command]
+pub(super) fn has_pending_transfer(
+    token: String,
+    pending: tauri::State<'_, PendingTransfers>,
+) -> Result<bool, String> {
+    Ok(pending
+        .0
+        .lock()
+        .map_err(|_| "Pending transfer store is unavailable")?
+        .contains_key(&token))
+}
+
+#[tauri::command]
+pub(super) async fn resume_transfer(
+    token: String,
+    operation_id: String,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, ProfileState>,
+    pending: tauri::State<'_, PendingTransfers>,
+) -> Result<String, String> {
+    let transfer = pending.0.lock().map_err(|_| "Pending transfer store is unavailable")?
+        .remove(&token).ok_or("This transfer is not available or is already running. Resume requires the same Studio session.")?;
+    let mut progress = TransferProgress::new(app, operation_id);
+    let result = complete_or_retain(&token, transfer, &state, &pending, &mut progress).await;
+    progress.stage(
+        if result.is_ok() {
+            "completed"
+        } else {
+            "failed"
+        },
+        None,
+    );
+    result
+}
+
+#[tauri::command]
+pub(super) async fn discard_transfer(
+    token: String,
+    state: tauri::State<'_, ProfileState>,
+    pending: tauri::State<'_, PendingTransfers>,
+) -> Result<(), String> {
+    let transfer = pending
+        .0
+        .lock()
+        .map_err(|_| "Pending transfer store is unavailable")?
+        .remove(&token)
+        .ok_or("Transfer is not available or is already running")?;
+    if let Err(error) = execute(
+        &transfer.input.destination,
+        &receiver("remove", &token, &[])?,
+        &state,
+    )
+    .await
+    {
+        pending
+            .0
+            .lock()
+            .map_err(|_| "Pending transfer store is unavailable")?
+            .insert(token, transfer);
+        return Err(format!(
+            "Could not remove the destination partial file. Reconnect and discard again: {error}"
+        ));
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -536,6 +753,26 @@ pub(super) async fn remove_destination_image(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn resume_hash_matches_only_the_requested_prefix() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(file.path(), b"abcdef").unwrap();
+        assert_eq!(
+            payload_digest(file.path(), 3).await.unwrap(),
+            format!("{:x}", Sha256::digest(b"abc"))
+        );
+        assert_eq!(
+            payload_digest(file.path(), u64::MAX).await.unwrap(),
+            format!("{:x}", Sha256::digest(b"abcdef"))
+        );
+    }
+
+    #[test]
+    fn receiver_tokens_cannot_escape_private_directory() {
+        assert!(receiver("inspect", "../../path", &[]).is_err());
+        assert!(receiver("inspect", "12345678-1234-1234-1234-123456789abc", &[]).is_ok());
+    }
 
     fn inspect_fixture() -> serde_json::Value {
         serde_json::json!([{

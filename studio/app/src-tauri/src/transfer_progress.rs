@@ -12,6 +12,7 @@ struct ProgressEvent<'a> {
     stage: &'a str,
     bytes: u64,
     total: Option<u64>,
+    offset: u64,
 }
 
 pub(super) struct TransferProgress {
@@ -20,6 +21,7 @@ pub(super) struct TransferProgress {
     stage: &'static str,
     bytes: u64,
     total: Option<u64>,
+    offset: u64,
     last: Instant,
 }
 
@@ -31,6 +33,7 @@ impl TransferProgress {
             stage: "checking",
             bytes: 0,
             total: None,
+            offset: 0,
             last: Instant::now(),
         }
     }
@@ -38,6 +41,7 @@ impl TransferProgress {
     pub fn stage(&mut self, stage: &'static str, total: Option<u64>) {
         self.stage = stage;
         self.bytes = 0;
+        self.offset = 0;
         self.total = total;
         self.flush();
     }
@@ -49,6 +53,12 @@ impl TransferProgress {
         }
     }
 
+    pub fn resume_at(&mut self, offset: u64) {
+        self.bytes = offset;
+        self.offset = offset;
+        self.flush();
+    }
+
     pub fn flush(&mut self) {
         let _ = self.app.emit(
             "provision-progress",
@@ -57,6 +67,7 @@ impl TransferProgress {
                 stage: self.stage,
                 bytes: self.bytes,
                 total: self.total,
+                offset: self.offset,
             },
         );
         self.last = Instant::now();

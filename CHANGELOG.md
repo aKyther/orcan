@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio resumable transfers:** interrupted CLI/image uploads offer Resume
+  and Discard in the persistent status area. Resume reuses the exported local
+  payload and sends only bytes missing on the destination, after checking the
+  partial file's SHA-256. Installation requires a complete, verified payload.
+  Recovery currently requires the same Studio session; source export is not
+  resumable. Remote partial files use private directories and idle leftovers
+  older than 24 hours are cleaned on subsequent receiver operations.
 - **Studio transfer UI:** a slim, consistently styled progress track replaces
   the browser-default bar. Compact phase headings, separate percentages and
   secondary metrics reduce clutter; explanatory details use tooltips. Unknown

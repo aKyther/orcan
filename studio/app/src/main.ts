@@ -2037,6 +2037,49 @@ function provisioningFailure(output: HTMLElement, error: unknown): void {
   output.replaceChildren(el("strong", { textContent: "Could not complete provisioning. " }), el("span", { textContent: hint }), technicalDetail(detail));
 }
 
+/** Recovery controls remain visible across views and use the original endpoints. */
+async function offerTransferResume(output: HTMLElement, token: string | undefined, title: string, profile: ConnectionProfile): Promise<void> {
+  if (!token || !await invoke<boolean>("has_pending_transfer", { token })) return;
+  const status = $<HTMLElement>("#transfer-status");
+  const row = el("div", { className: "transfer-status-item transfer-recovery" });
+  const label = el("span", { textContent: `${title} · Paused. Keep Studio open to resume.` });
+  const resume = actionButton("Resume", () => void runResume());
+  const discard = actionButton("Discard", () => void runDiscard(), "secondary");
+  row.append(label, el("div", { className: "actions compact" }, resume, discard));
+  status.append(row);
+  status.hidden = false;
+  const remove = () => { row.remove(); status.hidden = status.childElementCount === 0; };
+  const busy = (value: boolean) => { resume.disabled = value; discard.disabled = value; };
+  async function runResume(): Promise<void> {
+    busy(true);
+    label.textContent = `${title} · Resuming…`;
+    const job = addJob("Resume transfer", title, profile.name, profile.id);
+    try {
+      const result = await withProvisionProgress(output, title, (operationId) => invoke<string>("resume_transfer", { token, operationId }));
+      provisioningSucceeded(output, result, profile);
+      finishJob(job, "succeeded", result);
+      remove();
+    } catch (error) {
+      provisioningFailure(output, error);
+      label.textContent = `${title} · Retry failed. Check the connection and resume again.`;
+      finishJob(job, "failed", String(error));
+    } finally { busy(false); }
+  }
+  async function runDiscard(): Promise<void> {
+    if (!await confirmAction("Remove this transfer’s cached files from Studio and its destination? Existing installations and projects are unchanged.", { title: "Discard paused transfer", confirmLabel: "Discard", danger: true })) return;
+    if (resume.disabled) return;
+    busy(true);
+    try {
+      await invoke("discard_transfer", { token });
+      output.textContent = "Paused transfer discarded. Existing installations and projects are unchanged.";
+      remove();
+    } catch (error) {
+      provisioningFailure(output, error);
+      label.textContent = `${title} · Reconnect to the destination to discard its partial file.`;
+    } finally { busy(false); }
+  }
+}
+
 function provisioningSucceeded(output: HTMLElement, message: string, profile: ConnectionProfile): void {
   output.replaceChildren(el("span", { textContent: message }), actionButton("Go to Enclaves", () => {
     showView("enclaves");
@@ -2211,13 +2254,15 @@ async function provisionCli(): Promise<void> {
   const job = addJob("Offline CLI provisioning", `${source.name} → ${target.name}`, target.name, target.id);
   cliProvisionRun.disabled = true;
   cliProvisionResult.textContent = "Exporting the clean kit to a private temporary file in Studio, then installing on destination…";
+  let transferToken: string | undefined;
   try {
-    const verified = await withProvisionProgress(cliProvisionResult, `${source.name} → ${target.name}`, (operationId) => invoke<string>("transfer_profiles", { input, operationId }));
+    const verified = await withProvisionProgress(cliProvisionResult, `${source.name} → ${target.name}`, (operationId) => { transferToken = operationId; return invoke<string>("transfer_profiles", { input, operationId }); });
     provisioningSucceeded(cliProvisionResult, verified, target);
     finishJob(job, "succeeded", verified);
   } catch (error) {
     provisioningFailure(cliProvisionResult, error);
     finishJob(job, "failed", String(error));
+    await offerTransferResume(cliProvisionResult, transferToken, `CLI: ${source.name} → ${target.name}`, target);
   } finally {
     cliProvisionReady = false;
     cliProvisionRun.disabled = true;
@@ -2362,16 +2407,17 @@ async function transferImage(): Promise<void> {
   const job = addJob("Image transfer", `${image.image}: ${source.name} → ${target.name}`, target.name, target.id);
   imageTransferRun.disabled = true;
   imageTransferResult.textContent = `Transferring ${image.image}; keep Studio open until Docker import completes…`;
+  let transferToken: string | undefined;
   try {
-    const verified = await withProvisionProgress(imageTransferResult, `${source.name} → ${target.name}`, (operationId) => invoke<string>("transfer_profiles", { operationId, input: {
+    const verified = await withProvisionProgress(imageTransferResult, `${source.name} → ${target.name}`, (operationId) => { transferToken = operationId; return invoke<string>("transfer_profiles", { operationId, input: {
       source: enclaveInput(profileConnection(source)),
       destination: enclaveInput(profileConnection(target)),
       cli: false,
       image: image.image,
-    } }));
+    } }); });
     provisioningSucceeded(imageTransferResult, verified, target);
     finishJob(job, "succeeded", `Imported ${image.image} on ${target.name}`);
-  } catch (error) { provisioningFailure(imageTransferResult, error); finishJob(job, "failed", String(error)); }
+  } catch (error) { provisioningFailure(imageTransferResult, error); finishJob(job, "failed", String(error)); await offerTransferResume(imageTransferResult, transferToken, `${image.image}: ${source.name} → ${target.name}`, target); }
   finally { imageTransferRun.disabled = true; inspectedImage = undefined; }
 }
 
