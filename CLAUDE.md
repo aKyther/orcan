@@ -74,6 +74,20 @@ container CMD → orcan-supervisord → keepalive|ttyd
 - Version SoT: `cockpit/pyproject.toml` → `version`; root `VERSION` is a mirror
 - Docs: English; B1–B2; story before commands; `docs/STYLE_GUIDE.md`
 
+### Python test dependencies
+
+Use `make test-host`: its runner requires `uv` and loads `requirements-test.txt`
+into a uv-managed environment with `--no-project`, without changing the checkout's
+`.venv` or creating a project lockfile. Do not install test packages into system
+Python. If `pytest` is missing from a direct Python invocation, use the runner
+instead of reporting a blocker. Install `uv` first if it is unavailable.
+
+For a focused test, use:
+
+```bash
+uv run --no-project --with-requirements requirements-test.txt python -m pytest tests/host/test_attach_cli.py
+```
+
 ### Agent inbox
 
 `<workspace>/.orcan/tasks/` and `orcan-inbox` provide structured task handoff without copying chat transcripts. See `docs/en/ideas/agent-inbox.md`.

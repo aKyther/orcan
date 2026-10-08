@@ -2,6 +2,11 @@
 
 ## Host checks (fast — CI)
 
+Install `uv` before running host tests. `make test-host` automatically loads
+`requirements-test.txt` into a uv-managed environment, then runs Pytest and the
+release checks. It does not need global Python packages and does not modify the
+checkout's `.venv` or create a project lockfile.
+
 ```bash
 make validate
 make test-host

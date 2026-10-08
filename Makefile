@@ -43,7 +43,7 @@ help: ## Show maintainer targets (+ CLI pointer)
 validate: ## Validate repository layout and script syntax
 	@./scripts/repository/validate.sh
 
-test-host: ## Host unit tests (config/apply/version; no Docker image)
+test-host: ## Host unit tests via uv (automatic test dependencies; no Docker image)
 	@./tests/host/run.sh
 
 test-coverage: ## Python host/cockpit coverage report (requires coverage)
