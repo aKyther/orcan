@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -86,3 +87,88 @@ def test_concurrent_apply_creates_configuration_exactly_once(tmp_path: Path) -> 
         )
     assert sum(result.returncode == 0 for result in attempts) == 1
     assert json.loads(config.read_text(encoding="utf-8")) == {"workspaces": []}
+
+
+def test_custom_resources_and_port_are_saved_and_rollback_matches(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "orcan.config.json"
+    options = (
+        "--config",
+        str(config),
+        "--cpus",
+        "1.5",
+        "--memory-gb",
+        "8",
+        "--ttyd-host-port",
+        "17682",
+    )
+    invoke("apply", *options, "--yes")
+    assert json.loads(config.read_text()) == {
+        "workspaces": [],
+        "resources": {"cpus": 1.5, "memory": "8g"},
+        "ttyd": {"host_port": 17682},
+    }
+    invoke("rollback", *options, "--yes")
+    assert not config.exists()
+
+
+def test_invalid_resources_do_not_create_configuration(tmp_path: Path) -> None:
+    config = tmp_path / "orcan.config.json"
+    for args in [
+        ("--cpus", "nan"),
+        ("--cpus", "0"),
+        ("--memory-gb", "0"),
+        ("--ttyd-host-port", "65536"),
+    ]:
+        result = invoke("apply", "--config", str(config), *args, "--yes", check=False)
+        assert result.returncode != 0
+        assert not config.exists()
+
+
+def test_empty_container_first_sync_honors_selected_limits_and_port(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "orcan.config.json"
+    invoke(
+        "apply",
+        "--config",
+        str(config),
+        "--cpus",
+        "1.5",
+        "--memory-gb",
+        "8",
+        "--ttyd-host-port",
+        "17682",
+        "--yes",
+    )
+    (tmp_path / ".env.example").write_text(
+        "CPUS=99\nMEMORY=99g\nTTYD_HOST_PORT=9999\n", encoding="utf-8"
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts/repository/apply-config.py"),
+            "--root",
+            str(tmp_path),
+            "--config",
+            str(config),
+        ],
+        env={
+            **os.environ,
+            "ORCAN_STUDIO_CREATE_RUNTIME": "1",
+            "ORCAN_PROJECTS_ROOT": str(tmp_path / "sandbox"),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    runtime = json.loads((tmp_path / "mounts/runtime-config.json").read_text())
+    assert runtime["workspaces"] == []
+    assert runtime["resources"]["cpus"] == 1.5
+    assert runtime["resources"]["memory"] == "8g"
+    generated = (tmp_path / ".env").read_text()
+    assert "CPUS=1.5\n" in generated
+    assert "MEMORY=8g\n" in generated
+    assert "TTYD_HOST_PORT=17682\n" in generated

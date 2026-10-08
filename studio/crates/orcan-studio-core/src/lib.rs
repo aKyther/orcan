@@ -116,6 +116,7 @@ pub enum RuntimeAction {
     Start,
     Stop,
     Restart,
+    Down,
 }
 
 /// Workspace membership changes Studio plans before applying.
@@ -141,7 +142,7 @@ pub fn sync_args() -> Vec<String> {
 
 pub fn runtime_args(action: RuntimeAction) -> Vec<String> {
     match action {
-        RuntimeAction::Stop => vec!["down".to_owned()],
+        RuntimeAction::Stop | RuntimeAction::Down => vec!["down".to_owned()],
         RuntimeAction::Start | RuntimeAction::Restart => {
             vec!["up".to_owned(), "--resume".to_owned()]
         }
@@ -957,6 +958,8 @@ pub struct Runtime {
     pub docker: Docker,
     #[serde(default)]
     pub resources: Resources,
+    #[serde(default)]
+    pub defaults: serde_json::Value,
     #[serde(default)]
     pub launch: Launch,
 }

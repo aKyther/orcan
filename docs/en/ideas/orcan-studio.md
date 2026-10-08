@@ -6,8 +6,62 @@ tags:
 # Orcan Studio
 
 For the next development phases, see the
-[Studio and Enclave roadmap](orcan-studio-roadmap.md). It separates the current
-single-container foundation from future multi-container and visual-flow work.
+[Studio and Enclave roadmap](orcan-studio-roadmap.md). It separates host/container
+management from future Enclave groups and visual task flows.
+
+## Servers and named containers
+
+A profile connects to a **server/host**: local Linux/macOS, a WSL2 distribution,
+or a remote VM. Provisioning installs the CLI and transfers a Docker image to
+that host. It does not create one container per profile. After provisioning,
+**Servers → New container** creates named instances from the installed image.
+The image is reused; it is not transferred again for each container.
+
+Choose a name such as `developer` or `tester`; Docker names become
+`orcan-developer` and `orcan-tester`. Use lowercase letters, digits and hyphens,
+starting with a letter, up to 48 characters. Names are unique on the host.
+The server card offers a container selector. Context, settings, drafts, cached
+reports and lifecycle actions are scoped to that selected container.
+Studio discovers configured instances from Orcan, not a second desktop registry.
+
+Set CPU and RAM limits in the creation form. Orcan supplies its defaults; the
+user can override them before reviewing the plan. Studio reports Docker engine
+CPU/RAM capacity and free disk space on the project filesystem. These are
+read-only snapshots: total engine capacity is not free or reserved capacity,
+and limits on separate containers do not reserve that amount of RAM in advance.
+Refresh to update the facts. Each published browser terminal needs a different
+host port; Studio rejects a port already published by a running Docker container.
+An unrelated host process can still take that port after the check.
+
+Named instances use separate configuration, generated mounts, workspace metadata,
+launch options and Compose project names. **Sandbox, cache, agent directories,
+history and dotfiles are shared through `ORCAN_DATA` on that host.** Worktree
+storage is namespaced beneath the shared sandbox. A mount-as-is edit changes
+the shared source seen by every container; use separate worktrees for isolated
+changes. Shared agent directories are not a security boundary and concurrent
+login/token refresh depends on the agent tool's own behavior.
+
+The legacy default `orcan-1` and ordinary CLI commands keep their existing layout.
+No existing configuration or data is migrated. For named instances:
+
+```bash
+orcan --instance developer studio probe --json
+orcan --instance developer sync
+orcan --instance developer up --resume
+orcan --instance developer down
+orcan studio instances --json
+```
+
+Default named configuration lives under `~/.config/orcan/instances/NAME` (or
+`$ORCAN_INSTANCES_ROOT/instances/NAME`). Shared data remains the base Orcan data
+directory; `ORCAN_DATA` and `ORCAN_PROJECTS_ROOT` can select explicit host paths.
+Down removes only the selected Compose stack, without deleting configuration,
+shared data, projects or worktrees. Start recreates a removed container using
+saved flags; protected ttyd recreation still needs its credentials on the host.
+Existing-container Start/Stop/Restart preserve its settings and ttyd auth.
+
+**Enclave** is reserved for a future group of cooperating containers; creating
+named containers does not implement an agent workflow engine.
 
 Orcan Studio is the native desktop companion for composing and inspecting Orcan
 context. Orcan Sandbox remains the runtime that owns Docker, managed project
@@ -201,7 +255,7 @@ changed-server-identity failures in plain language, with the original technical
 detail available on demand. Provisioning then has a separate requirements check for Bash,
 cURL, Git, Python 3, and reachability of the official installer; it also
 reports whether it found an existing Orcan CLI.
-New Enclave accepts any saved profile, including a host without Orcan. **Check
+New container accepts any saved profile, including a host without Orcan. **Check
 destination** separates connection, Orcan CLI, Docker and the required image.
 Missing components offer targeted CLI installation/update or image transfer;
 the provisioning result returns to the selected destination's setup. Docker
@@ -209,11 +263,11 @@ Desktop integration or Docker Engine must already be ready inside the selected
 WSL distribution; setup does not silently install Docker.
 Access options and creation are enabled only after readiness checks succeed.
 Preview the actual Orcan plan, then confirm creation; changing options invalidates
-the plan. The backend checks again for an existing configuration or container
+the plan. The backend checks again for the selected name's existing configuration or container
 and a usable local image. It does not build an image on an offline destination.
 After creation, Studio verifies the running container and opens Contexts.
 
-Enclave cards show container state/name, image, configured CPU/RAM, source and
+Server cards show the selected container's state/name, image, configured CPU/RAM, source and
 worktree paths, workspace count and access exposure. Settings remain behind the
 gear, with locked creation-time values and change-impact explanations. A cached
 or failed report is history, not authority to unlock operations; the current
@@ -256,12 +310,10 @@ remain in the platform credential vault; a hash cannot replace a password here
 because native SSH must retrieve the password to authenticate. The installation
 directory is intentionally not used: it is commonly read-only or shared on
 Windows, macOS, and packaged Linux installations.
-Studio's UI calls the current Sandbox runtime an **Enclave** (an isolated Orcan
-environment) and walks through Credentials & keys → Profiles → Enclaves; no
-instance view is shown until a probe succeeds. Today one checked profile owns
-at most one Enclave, so Studio excludes profiles that already report an
-`orcan.config.json` or an existing container from creating another Enclave.
-The destination remains selectable for inspection and opening the existing one.
+Studio walks through Credentials & keys → Profiles → Provisioning → Servers
+and named containers. Context editing is enabled only after a successful probe
+for the selected container. An existing configuration/container reserves that
+name, not the whole profile: choose a different name to create another instance.
 
 Workspace membership is edited on the Enclave map: dragging a project onto a
 workspace (or onto "New workspace") asks Orcan for a plan through

@@ -44,9 +44,11 @@ class NormalizeWorkspacesTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             apply_config.normalize_workspaces_raw({"projects_dir": "/x"})
 
-    def test_empty_workspaces_dies(self) -> None:
-        with self.assertRaises(SystemExit):
-            apply_config.normalize_workspaces_raw({"workspaces": []})
+    def test_empty_workspaces_supports_a_container_before_context_is_added(
+        self,
+    ) -> None:
+        self.assertEqual(apply_config.normalize_workspaces_raw({"workspaces": []}), [])
+        self.assertEqual(apply_config.primary_workspace([])["root"], "/home/developer")
 
 
 class EnsureEnvKeyTests(unittest.TestCase):

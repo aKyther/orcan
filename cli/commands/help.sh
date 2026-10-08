@@ -32,6 +32,8 @@ Commands:
   context worktree prune   Reconcile worktrees/registry.json against disk
                            (+ config); dry-run by default, --force to clean
   studio probe --json      Machine-readable host/runtime capabilities for Orcan Studio
+  studio instances --json List default and configured named runtimes on this host
+  --instance NAME <cmd>    Named container/config/Compose project; shared sandbox/cache
   studio parent plan       Read-only parent update plan (Git fast-forward safety checks)
   studio parent apply      Apply an approved parent update (--expected-head SHA --yes)
 

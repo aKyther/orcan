@@ -110,7 +110,7 @@ orcan_write_network_overlay() {
     printf '%s\n' "${netf}"
 }
 
-# Always use Compose project "orcan" (container: orcan-1 via docker-compose.yml).
+# Default project stays "orcan"; --instance selects its own named project.
 orcan_compose_project_args() {
     local -n _out="$1"
     _out=(--project-name "${COMPOSE_PROJECT_NAME:-orcan}")

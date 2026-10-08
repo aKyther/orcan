@@ -50,6 +50,7 @@ impl From<TargetInput> for Target {
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct EnclaveInput {
+    instance: Option<String>,
     target: TargetInput,
     profile_id: Option<String>,
     credential_id: Option<String>,
@@ -347,6 +348,7 @@ fn decode_wsl_output(bytes: &[u8]) -> String {
 
 fn provision_destination(input: &WslCliProvision) -> EnclaveInput {
     EnclaveInput {
+        instance: None,
         target: TargetInput::Ssh {
             destination: input.destination.clone(),
         },
@@ -555,6 +557,7 @@ async fn transfer_wsl_image(
     state: tauri::State<'_, ProfileState>,
 ) -> Result<ImageInventory, String> {
     let destination = EnclaveInput {
+        instance: None,
         target: TargetInput::Ssh {
             destination: input.destination.clone(),
         },
@@ -1049,9 +1052,13 @@ fn native_ssh(
 /// Runs `orcan <args>` on the Enclave and returns its stdout.
 async fn run_on_enclave(
     enclave: EnclaveInput,
-    args: Vec<String>,
+    mut args: Vec<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<String, String> {
+    if let Some(instance) = &enclave.instance {
+        enclave::validate_instance(instance)?;
+        args.splice(0..0, ["--instance".to_owned(), instance.clone()]);
+    }
     let target = Target::from(enclave.target.clone());
     if let (Some(resolved), Target::Ssh { destination }) =
         (native_ssh(&enclave, &target, &state)?, &target)
@@ -1262,11 +1269,29 @@ async fn enclave_action(
     with_docker: bool,
     with_ttyd: bool,
     ttyd_credential: Option<String>,
+    ttyd_host_port: Option<u16>,
+    cpus: Option<f64>,
+    memory_gb: Option<u32>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
     let report = probe(enclave.clone(), state.clone()).await?;
     if let Some(reason) = enclave::creation_blocker(&report) {
         return Err(reason);
+    }
+    if enclave.instance.is_some()
+        && (with_ttyd || ttyd_credential.is_some())
+        && ttyd_host_port.is_none()
+    {
+        return Err("Choose a browser-terminal host port for this named container".into());
+    }
+    if let Some(port) = ttyd_host_port {
+        let ports =
+            provisioning::execute(&enclave, "docker ps --format '{{.Ports}}'", &state).await?;
+        if ports.contains(&format!(":{port}->")) {
+            return Err(format!(
+                "Host port {port} is already published by a running container. Choose another port."
+            ));
+        }
     }
     let mut args = vec![
         "studio".to_owned(),
@@ -1275,6 +1300,7 @@ async fn enclave_action(
         "--empty".to_owned(),
     ];
     if with_git {
+        // Access options are independent of the selected runtime name.
         args.push("--with-git".to_owned());
     }
     if with_docker {
@@ -1290,6 +1316,24 @@ async fn enclave_action(
     if apply {
         args.push("--yes".to_owned());
     }
+    if let Some(port) = ttyd_host_port {
+        if port < 1024 {
+            return Err("Browser-terminal host port must be 1024–65535".into());
+        }
+        args.extend(["--ttyd-host-port".into(), port.to_string()]);
+    }
+    if let Some(cpus) = cpus {
+        if !cpus.is_finite() || cpus <= 0.0 || cpus > 1024.0 {
+            return Err("CPU limit must be greater than zero and at most 1024".into());
+        }
+        args.extend(["--cpus".into(), cpus.to_string()]);
+    }
+    if let Some(memory) = memory_gb {
+        if memory == 0 || memory > 65536 {
+            return Err("RAM must be 1–65536 GiB".into());
+        }
+        args.extend(["--memory-gb".into(), memory.to_string()]);
+    }
     let stdout = run_on_enclave(enclave, args, state).await?;
     serde_json::from_str(&stdout).map_err(|error| format!("invalid enclave response: {error}"))
 }
@@ -1301,6 +1345,7 @@ async fn runtime_action(
     state: tauri::State<'_, ProfileState>,
 ) -> Result<(), String> {
     let report = probe(enclave.clone(), state.clone()).await?;
+    enclave::verify_container_owner(&enclave, &report, &state).await?;
     match enclave::lifecycle_command(&report, action)? {
         Some(command) => provisioning::execute(&enclave, &command, &state)
             .await
@@ -1875,7 +1920,12 @@ fn open_terminal(
             "use a hostname, IP address, or SSH Host alias for native terminal access".to_owned(),
         );
     }
-    let remote = remote_orcan_command(&["attach".to_owned(), workspace]);
+    let mut args = vec!["attach".to_owned(), workspace];
+    if let Some(instance) = enclave.instance {
+        enclave::validate_instance(&instance)?;
+        args.splice(0..0, ["--instance".into(), instance]);
+    }
+    let remote = remote_orcan_command(&args);
     #[cfg(windows)]
     let mut command = match launcher {
         TerminalLauncher::WindowsTerminal => {
@@ -2441,6 +2491,8 @@ fn main() {
             check_docker,
             enclave_action,
             enclave::enclave_readiness,
+            enclave::list_instances,
+            enclave::server_capacity,
             sync,
             runtime_action,
             open_terminal,

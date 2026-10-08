@@ -13,6 +13,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from defaults import RESOURCE_DEFAULTS, TTYD_DEFAULTS
+
 
 def read_json(path: Path) -> dict[str, object]:
     try:
@@ -499,6 +501,7 @@ def main() -> None:
     parser.add_argument("--image", required=True)
     parser.add_argument("--container", required=True)
     parser.add_argument("--last-up", default="")
+    parser.add_argument("--instance", default="")
     args = parser.parse_args()
 
     docker = docker_probe(
@@ -509,6 +512,10 @@ def main() -> None:
     context = context_snapshot(
         Path(args.config), Path(args.projects_root), Path(args.workspace_index)
     )
+    worktrees_root = Path(args.projects_root) / ".worktrees"
+    if args.instance:
+        worktrees_root = worktrees_root / "instances" / args.instance
+    context["paths"]["managed_worktrees_root"] = str(worktrees_root)
     report = {
         "protocol": {
             "name": "orcan-studio",
@@ -526,7 +533,7 @@ def main() -> None:
             "data": str(Path(args.data)),
             "projects_root": str(Path(args.projects_root)),
             "workspace_metadata_root": str(Path(args.workspace_index).parent),
-            "managed_worktrees_root": str(Path(args.projects_root) / ".worktrees"),
+            "managed_worktrees_root": str(worktrees_root),
         },
         "capabilities": {
             "docker": bool(docker["available"]),
@@ -539,6 +546,7 @@ def main() -> None:
             "generated": "present" if Path(args.runtime).is_file() else "missing",
             "docker": docker,
             "resources": runtime_data.get("resources", {}),
+            "defaults": {"resources": RESOURCE_DEFAULTS, "ttyd": TTYD_DEFAULTS},
             "launch": launch,
         },
         "context": context,

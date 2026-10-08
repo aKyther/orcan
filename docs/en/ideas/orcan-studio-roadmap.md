@@ -4,6 +4,16 @@ This is a maintainer handoff and product direction, not a list of available
 features. It preserves decisions from the design session ending on 2026-10-08.
 Read [Orcan Studio](orcan-studio.md) for the current implementation.
 
+The follow-up decision is to develop named containers now, with shared sandbox
+and cache. The implemented first management layer is **server/host → named
+containers**: profiles connect to WSL2 or a VM, provisioning prepares CLI/image,
+then creation chooses name, CPU, RAM, access and browser-terminal host port.
+Servers report engine CPU/RAM capacity and project-filesystem free space.
+Configuration, workspace metadata and launch state are instance-scoped;
+worktrees are namespaced beneath the shared source catalog. Existing default
+instances are not migrated. Enclaves remain future groups, not host synonyms.
+Real Windows/WSL/SSH and concurrent-container operation still need field testing.
+
 ## Product direction
 
 Orcan helps people build the context that agents need. Running agents and
@@ -25,7 +35,8 @@ engine now. First complete and test the single-container foundation.
 | --- | --- |
 | Credential | Immutable SSH user plus password or key identity; secrets stay in the system vault. |
 | Profile | A connection to a local machine, WSL2 distribution, or SSH host. It must work without Orcan installed. |
-| Enclave, today | One managed Orcan environment/container for a profile. Do not create a second one on that profile. |
+| Server / host | Local machine, WSL2 distribution or remote VM reached by a profile; owns installed CLI, Docker images and shared data. |
+| Named instance | One Orcan container on a host, with its own Compose project, configuration, launch state and workspaces. |
 | Enclave, future | A named group of isolated Orcan containers on one connected host. Its exact relationship to profiles still needs a migration design. |
 | Container | Execution and access boundary; later a named role such as developer or tester. |
 | Sandbox / project root | A host-side catalog of source projects and folders, mounted into the container. Not necessarily inside Orcan's config directory. |
@@ -33,8 +44,8 @@ engine now. First complete and test the single-container foundation.
 | Binding | One project's attachment to a workspace, as a worktree or mount-as-is, with its own local alias. |
 
 Do not permanently encode `profile == enclave == container` in new storage.
-It is the current product limit, not the eventual data model. Do not introduce
-multiple containers until paths, lifecycle, and ownership are isolated.
+Keep host identity separate from container identity. Named containers now isolate
+paths, lifecycle and ownership; Enclave grouping and task orchestration remain future work.
 
 ## Current baseline: implemented, not yet fully field-tested
 
@@ -75,8 +86,8 @@ The four blocks below now have an initial implementation: guided readiness
 and provisioning return, guarded creation, compact runtime cards, real
 existing-container lifecycle, and entry into context management. They are
 acceptance criteria for the next session, not a request to duplicate the work.
-Field-test Windows → WSL → SSH, failure recovery, and the creation UI before
-moving to multiple containers. Refine in verified blocks; no release, tag, or
+Field-test Windows → WSL → SSH, failure recovery, and the named creation UI.
+Refine in verified blocks; no release, tag, or
 version bump is requested.
 
 ### 1. Guided preparation and creation
@@ -252,10 +263,10 @@ not part of the next session.
 
 ## Small code map for the next agent
 
-- `studio/app/src/main.ts`: current creator, Enclave list, profile checks,
+- `studio/app/src/main.ts`: current creator, server/container list, profile checks,
   lifecycle controls, context UI and demo adapter. Avoid more monolithic growth.
-- `studio/app/src/types.ts`, `probe.ts`: report types/normalization; the current
-  UI Docker type omits image/name facts already present in the Rust report.
+- `studio/app/src/types.ts`, `probe.ts`: report types/normalization, including
+  Docker image/name facts and Orcan-provided creation defaults.
 - `studio/app/src-tauri/src/main.rs`: native commands, profile/vault integration,
   probe, `enclave_action`, and `runtime_action`.
 - `studio/app/src-tauri/src/provisioning.rs`, `transfer_receiver.py`,
@@ -263,10 +274,12 @@ not part of the next session.
 - `studio/crates/orcan-studio-core/src/lib.rs`: report model and argument helpers.
 - `cli/commands/studio.sh`, `scripts/repository/studio-enclave.py`,
   `studio-probe.py`: Orcan-side contract, creation, reported capabilities/paths.
+- `cli/orcan.sh`, `scripts/repository/studio-instances.py`: named instance
+  scoping and host-side configured-instance discovery.
 - `cli/commands/up.sh`, `down.sh`, `cli/lib/runtime.sh`: actual lifecycle behavior.
 - `studio/app/tests/feedback.test.mjs`, `tests/host/test_studio_transfer_receiver.py`
   and existing Studio probe/enclave tests: extend, do not duplicate.
 
-Start by inspecting and testing the four single-container blocks above. Keep
+Start by verifying named-instance isolation, shared data and the four foundation blocks. Keep
 this roadmap current as decisions change. Use the workspace session brief for
 short live handoffs, not additional PLAN/TODO/SUMMARY files.

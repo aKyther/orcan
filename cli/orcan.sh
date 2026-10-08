@@ -6,6 +6,29 @@ ORCAN_CLI_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ORCAN_ROOT="$(cd -- "${ORCAN_CLI_DIR}/.." && pwd)"
 export ORCAN_ROOT
 
+# Select a named runtime before bootstrap resolves any paths or Compose files.
+if [[ "${1:-}" == "--instance" ]]; then
+    instance="${2:-}"
+    if [[ ! "$instance" =~ ^[a-z][a-z0-9-]{0,47}$ ]]; then
+        printf 'invalid instance name: use 1-48 lowercase letters, digits or hyphens, starting with a letter\n' >&2
+        exit 2
+    fi
+    base_home="${ORCAN_INSTANCES_ROOT:-${XDG_CONFIG_HOME:-${HOME}/.config}/orcan}"
+    if [[ -L "${base_home}/instances" || -L "${base_home}/instances/${instance}" ]]; then
+        printf 'refusing a symlinked instance configuration directory\n' >&2
+        exit 2
+    fi
+    export ORCAN_HOME="${base_home}/instances/${instance}"
+    export ORCAN_DATA="${ORCAN_DATA:-${base_home}}"
+    export ORCAN_INSTANCE="${instance}"
+    export ORCAN_NAMED_INSTANCE="${instance}"
+    export COMPOSE_PROJECT_NAME="orcan-${instance}"
+    export ORCAN_CONFIG_FILE="${ORCAN_HOME}/orcan.config.json"
+    export ORCAN_ENV_FILE="${ORCAN_HOME}/.env"
+    export ORCAN_RUNTIME_DIR="${ORCAN_HOME}/mounts"
+    shift 2
+fi
+
 # shellcheck source=lib/common.sh
 source "${ORCAN_CLI_DIR}/lib/common.sh"
 
@@ -15,6 +38,7 @@ orcan — work-context orchestrator for coding agents
 
 Usage:
   orcan <command> [arguments]
+  orcan --instance NAME <command> [arguments]
 
 Commands:
   init         No PATH: TUI to create/edit workspaces + sync + show

@@ -8,8 +8,8 @@ export function invokeTauri<T>(command: string, args?: unknown): Promise<T> {
 }
 
 /** The minimal connection descriptor accepted by the native Studio commands. */
-export function enclaveInput(connection: Connection): { target: Target; profileId?: string; credentialId?: string; username?: string } {
-  return { target: connection.target, profileId: connection.profileId, credentialId: connection.credentialId, username: connection.username };
+export function enclaveInput(connection: Connection): { target: Target; profileId?: string; credentialId?: string; username?: string; instance?: string } {
+  return { target: connection.target, profileId: connection.profileId, credentialId: connection.credentialId, username: connection.username, instance: connection.instance };
 }
 
 export function describeTarget(target: Target): string {
@@ -18,6 +18,6 @@ export function describeTarget(target: Target): string {
   return `SSH · ${target.destination}`;
 }
 
-export function cacheKey(target: Target): string {
-  return `orcan-studio:snapshot:${JSON.stringify(target)}`;
+export function cacheKey(target: Target, instance?: string): string {
+  return `orcan-studio:snapshot:${JSON.stringify(target)}${instance ? `:${instance}` : ""}`;
 }

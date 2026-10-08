@@ -99,7 +99,7 @@ test("enclave setup distinguishes missing CLI, Docker, image and existing owners
   assert.match(creationBlocker(report), /Docker/);
   report.context.configuration = { state: "present", source: "config" };
   assert.equal(ownsEnclave(report), true);
-  assert.match(creationBlocker(report), /already owns/);
+  assert.match(creationBlocker(report), /container name already/);
   assert.equal(ownsEnclave(enclaveFixture("exited")), true);
 });
 
@@ -112,7 +112,9 @@ test("existing protected containers can restart and start without recreating", a
   assert.match(lifecycleBlocker(report, "start"), /already running/);
   report.runtime.docker.container.state = "exited";
   assert.equal(lifecycleBlocker(report, "start"), undefined);
+  assert.equal(lifecycleBlocker(report, "down"), undefined);
   report.runtime.docker.container.state = "missing";
+  assert.match(lifecycleBlocker(report, "down"), /no container/);
   assert.match(lifecycleBlocker(report, "start"), /credentials/);
   report.runtime.launch.ttyd_auth = false;
   assert.equal(lifecycleBlocker(report, "start"), undefined);

@@ -1,5 +1,5 @@
-# Fixed Compose project name (avoids folder-based names like cind-orcan-1).
-# Container shows as orcan-1 (set ORCAN_INSTANCE=2 for orcan-2, etc.).
+# Legacy default project. `orcan --instance NAME` overrides the project name
+# and uses orcan-NAME with separate config/workspaces and shared sandbox/cache.
 name: orcan
 
 services:

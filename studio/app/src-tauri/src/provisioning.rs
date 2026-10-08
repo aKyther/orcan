@@ -842,6 +842,7 @@ mod tests {
 
     fn endpoint(target: TargetInput, id: &str) -> EnclaveInput {
         EnclaveInput {
+            instance: None,
             target,
             profile_id: Some(id.into()),
             credential_id: None,

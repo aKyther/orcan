@@ -1,6 +1,59 @@
 //! Single-runtime guards shared by creation and lifecycle commands.
 use super::*;
 
+pub(super) fn validate_instance(name: &str) -> Result<(), String> {
+    if name.is_empty()
+        || name.len() > 48
+        || !name.as_bytes()[0].is_ascii_lowercase()
+        || !name
+            .bytes()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
+    {
+        return Err(
+            "Use 1–48 lowercase letters, digits or hyphens, starting with a letter.".into(),
+        );
+    }
+    Ok(())
+}
+
+pub(super) async fn verify_container_owner(
+    enclave: &EnclaveInput,
+    report: &ProbeReport,
+    state: &tauri::State<'_, ProfileState>,
+) -> Result<(), String> {
+    if let Some(instance) = &enclave.instance {
+        validate_instance(instance)?;
+        if report.runtime.docker.container.name != format!("orcan-{instance}") {
+            return Err("The reported container does not match the selected instance".into());
+        }
+        if !matches!(
+            report.runtime.docker.container.state.as_str(),
+            "missing" | "unavailable"
+        ) {
+            let owner = provisioning::execute(enclave, &format!("docker inspect --format '{{{{index .Config.Labels \"com.docker.compose.project\"}}}}' -- {}", shell_quote(&report.runtime.docker.container.name)), state).await?;
+            if owner.trim() != format!("orcan-{instance}") {
+                return Err("This container is not owned by the selected Orcan Compose project. No action was taken.".into());
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub(super) async fn list_instances(
+    mut enclave: EnclaveInput,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    enclave.instance = None;
+    let output = run_on_enclave(
+        enclave,
+        vec!["studio".into(), "instances".into(), "--json".into()],
+        state,
+    )
+    .await?;
+    serde_json::from_str(&output).map_err(|error| format!("Invalid runtime inventory: {error}"))
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct Readiness {
@@ -8,6 +61,56 @@ pub(super) struct Readiness {
     docker: DockerReadiness,
     report: Option<ProbeReport>,
     orcan_error: Option<String>,
+    capacity: Option<serde_json::Value>,
+}
+
+#[tauri::command]
+pub(super) async fn server_capacity(
+    enclave: EnclaveInput,
+    path: Option<String>,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<serde_json::Value, String> {
+    let disk_command = match &path {
+        Some(path) if path.starts_with('/') => format!(
+            "p={}; while [ ! -d \"$p\" ] && [ \"$p\" != / ]; do p=$(dirname \"$p\"); done; df -Pk \"$p\"",
+            shell_quote(path)
+        ),
+        _ => "df -Pk \"$HOME\"".into(),
+    };
+    let (engine, disk) = tokio::join!(
+        provisioning::execute(
+            &enclave,
+            "docker info --format '{{.NCPU}} {{.MemTotal}}'",
+            &state
+        ),
+        provisioning::execute(&enclave, &disk_command, &state)
+    );
+    let mut capacity = serde_json::json!({"diskPath":path});
+    if let Ok(engine) = engine {
+        let fields = engine.split_whitespace().collect::<Vec<_>>();
+        if fields.len() == 2 {
+            capacity["cpus"] = fields[0].parse::<u64>().ok().into();
+            capacity["memoryBytes"] = fields[1].parse::<u64>().ok().into();
+        }
+    }
+    if let Ok(disk) = disk {
+        if let Some(line) = disk.lines().last() {
+            let fields = line.split_whitespace().collect::<Vec<_>>();
+            if fields.len() >= 6 {
+                capacity["diskTotalBytes"] = fields[1]
+                    .parse::<u64>()
+                    .ok()
+                    .and_then(|n| n.checked_mul(1024))
+                    .into();
+                capacity["diskFreeBytes"] = fields[3]
+                    .parse::<u64>()
+                    .ok()
+                    .and_then(|n| n.checked_mul(1024))
+                    .into();
+            }
+        }
+    }
+    Ok(capacity)
 }
 
 #[tauri::command]
@@ -28,11 +131,21 @@ pub(super) async fn enclave_readiness(
         Ok(report) => (Some(report), None),
         Err(error) => (None, Some(error)),
     };
+    let capacity = server_capacity(
+        enclave,
+        report
+            .as_ref()
+            .map(|report| report.paths.projects_root.clone()),
+        state,
+    )
+    .await
+    .ok();
     Ok(Readiness {
         user,
         docker: docker_readiness(docker),
         report,
         orcan_error,
+        capacity,
     })
 }
 
@@ -43,7 +156,7 @@ pub(super) fn creation_blocker(report: &ProbeReport) -> Option<String> {
             "missing" | "unavailable"
         )
     {
-        return Some("This destination already owns an Enclave or context. Open it instead of creating another.".into());
+        return Some("This container name already has a configuration or container. Choose another name or open it.".into());
     }
     if !report.runtime.docker.available {
         return Some("Docker is not ready for this user.".into());
@@ -70,6 +183,12 @@ pub(super) fn lifecycle_command(
         }
     }
     let container = &report.runtime.docker.container;
+    if action == RuntimeAction::Down {
+        if matches!(container.state.as_str(), "missing" | "unavailable") {
+            return Err("There is no container to remove".into());
+        }
+        return Ok(None); // Scoped Compose down; never removes shared data.
+    }
     if matches!(container.state.as_str(), "missing" | "unavailable") {
         if action != RuntimeAction::Start {
             return Err("There is no container to stop or restart".into());
@@ -98,6 +217,7 @@ pub(super) fn lifecycle_command(
         }
         RuntimeAction::Stop => "stop",
         RuntimeAction::Restart => "restart",
+        RuntimeAction::Down => unreachable!(),
     };
     if container.name.is_empty() {
         return Err("Orcan did not report a container name".into());
@@ -111,6 +231,38 @@ pub(super) fn lifecycle_command(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn instance_names_cannot_escape_paths_or_inject_commands() {
+        for name in ["developer", "tester-2", "a"] {
+            assert!(validate_instance(name).is_ok());
+        }
+        for name in [
+            "",
+            "../tester",
+            "DEV",
+            "-tester",
+            "tester;rm",
+            "with space",
+            "a/b",
+        ] {
+            assert!(validate_instance(name).is_err());
+        }
+        assert!(validate_instance(&"a".repeat(49)).is_err());
+    }
+
+    #[test]
+    fn down_removes_the_scoped_stack_even_when_stopped_but_keeps_data() {
+        let mut report = report();
+        report.runtime.docker.container.state = "exited".into();
+        assert_eq!(
+            lifecycle_command(&report, RuntimeAction::Down).unwrap(),
+            None
+        );
+        assert_eq!(runtime_args(RuntimeAction::Down), vec!["down"]);
+        report.runtime.docker.container.state = "missing".into();
+        assert!(lifecycle_command(&report, RuntimeAction::Down).is_err());
+    }
 
     fn report() -> ProbeReport {
         serde_json::from_value(serde_json::json!({

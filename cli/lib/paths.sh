@@ -56,6 +56,7 @@ orcan_ensure_home_env_example() {
 }
 
 orcan_load_env() {
+    local selected_instance="${ORCAN_NAMED_INSTANCE:-}"
     if [[ ! -r "${ORCAN_ENV_FILE}" ]]; then
         return 0
     fi
@@ -63,6 +64,10 @@ orcan_load_env() {
     # shellcheck disable=SC1090
     source "${ORCAN_ENV_FILE}" || true
     set +a
+    if [[ -n "${selected_instance}" ]]; then
+        export ORCAN_INSTANCE="${selected_instance}"
+        export COMPOSE_PROJECT_NAME="orcan-${selected_instance}"
+    fi
 }
 
 orcan_config_path() {

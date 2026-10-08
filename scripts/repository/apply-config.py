@@ -133,8 +133,8 @@ def normalize_workspaces_raw(cfg: dict) -> list[dict]:
 
     raw_list = cfg.get("workspaces")
     if raw_list is not None:
-        if not isinstance(raw_list, list) or not raw_list:
-            die("workspaces must be a non-empty array")
+        if not isinstance(raw_list, list):
+            die("workspaces must be an array")
         return raw_list
 
     ws_raw = cfg.get("workspace")
@@ -344,6 +344,8 @@ def build_workspace_entry(
 
 
 def primary_workspace(workspaces: list[dict]) -> dict:
+    if not workspaces:
+        return {"name": "", "root": "/home/developer", "meta_path": ""}
     for ws in workspaces:
         if ws.get("enabled") is not False:
             return ws
@@ -773,8 +775,16 @@ def main() -> None:
 
     ttyd = built["runtime"]["ttyd"]
     resources = built["runtime"]["resources"]
+    # Studio creates a new configuration exclusively before this first sync.
+    # Its explicit limits/port must win over copied example values; ordinary
+    # sync continues preserving existing host-specific overrides.
+    creation_setting = (
+        ensure_env_key
+        if os.environ.get("ORCAN_STUDIO_CREATE_RUNTIME") == "1"
+        else ensure_env_key_unless_set
+    )
     ensure_env_key_unless_set(env_path, "TTYD_PORT", str(ttyd["port"]))
-    ensure_env_key_unless_set(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
+    creation_setting(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
     ensure_env_key_unless_set(env_path, "TTYD_BIND", str(ttyd.get("bind", "0.0.0.0")))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
     ensure_env_key_unless_set(env_path, "TTYD_FONT_FAMILY", str(ttyd["font_family"]))
@@ -785,8 +795,8 @@ def main() -> None:
     )
     # Optional basic auth — set only in .env (never commit). Format: user:password
     # ensure_env_key_unless_set is NOT used: leave unset unless the user adds it.
-    ensure_env_key_unless_set(env_path, "CPUS", str(resources["cpus"]))
-    ensure_env_key_unless_set(env_path, "MEMORY", str(resources["memory"]))
+    creation_setting(env_path, "CPUS", str(resources["cpus"]))
+    creation_setting(env_path, "MEMORY", str(resources["memory"]))
     ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))
     ensure_env_key_unless_set(env_path, "TMPFS_SIZE", str(resources["tmpfs_size"]))
 

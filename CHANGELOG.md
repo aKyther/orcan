@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio servers and named containers:** provisioning prepares host CLI/image;
+  one profile can then manage several named Orcan containers. Each instance has
+  its own Compose project, config, workspace metadata, worktree namespace and
+  saved launch flags. Sandbox/cache and existing agent data remain shared.
+  Creation offers CPU/RAM limits and browser-terminal host port, while host
+  cards show engine capacity and project-filesystem free space. Start/Stop/
+  Restart/Down address the selected instance; Down keeps project/config data.
+  Default `orcan-1` keeps its existing layout without migration.
+
 - **Studio single-container Enclaves:** destination preparation separates
   connection, CLI, Docker and required-image readiness, with targeted provisioning
   and a return to setup. Creation rechecks ownership and image availability;

@@ -34,6 +34,11 @@ const onlineProvisionCheck = $<HTMLButtonElement>("#online-provision-check");
 const onlineProvisionRun = $<HTMLButtonElement>("#online-provision-run");
 const onlineProvisionResult = $<HTMLOutputElement>("#online-provision-result");
 const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
+const enclaveCreateName = $<HTMLInputElement>("#enclave-create-name");
+const enclaveCreatePort = $<HTMLInputElement>("#enclave-create-port");
+const enclaveCreateCpus = $<HTMLInputElement>("#enclave-create-cpus");
+const enclaveCreateMemory = $<HTMLInputElement>("#enclave-create-memory");
+const enclaveCreateContainer = $("#enclave-create-container");
 const enclaveCreateCheck = $<HTMLButtonElement>("#enclave-create-check");
 const enclaveCreateReadiness = $("#enclave-create-readiness");
 const enclaveCreateOptions = $<HTMLFieldSetElement>("#enclave-create-options");
@@ -160,7 +165,7 @@ const worktreeSourceUpdate = document.querySelector<HTMLButtonElement>("#worktre
 const jobsList = document.querySelector<HTMLElement>("#jobs-list")!;
 const activityFilter = document.createElement("select");
 activityFilter.className = "activity-filter";
-activityFilter.setAttribute("aria-label", "Filter activity by Enclave");
+activityFilter.setAttribute("aria-label", "Filter activity by container");
 jobsList.before(activityFilter);
 const jobs = loadJobs();
 function saveJobs(): void { persistJobs(jobs); }
@@ -169,7 +174,7 @@ function finishJob(job: Job, state: "succeeded" | "failed", detail: string): voi
 function renderJobs(): void {
   const selected = activityFilter.value;
   const enclaves = [...new Set(jobs.map((job) => job.enclave ?? "Other"))];
-  activityFilter.replaceChildren(new Option("All Enclaves", ""), ...enclaves.map((enclave) => new Option(enclave, enclave)));
+  activityFilter.replaceChildren(new Option("All Servers", ""), ...enclaves.map((enclave) => new Option(enclave, enclave)));
   activityFilter.value = enclaves.includes(selected) ? selected : "";
   const visible = selected ? jobs.filter((job) => (job.enclave ?? "Other") === selected) : jobs;
   jobsList.replaceChildren(...(visible.length ? visible.map((job) => {
@@ -181,7 +186,7 @@ function renderJobs(): void {
     if (job.state === "failed" && profile) actions.push(actionButton("Retry check", () => void checkEnclave(profile), "secondary"));
     row.append(el("span", { textContent: `${new Date(job.at).toLocaleString()} · ${job.enclave ?? "Other"} · ${job.name} · ${job.state} · ${job.detail}` }), ...actions);
     return row;
-  }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No activity for this Enclave." })]));
+  }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No activity for this container." })]));
 }
 activityFilter.addEventListener("change", renderJobs);
 let worktreeReady = false;
@@ -251,13 +256,22 @@ const previewSnapshot: Promise<ProbeReport | undefined> = demoMode
 
 const demoReports = new Map<string, ProbeReport>();
 
-/** Each demo Enclave keeps its own report so membership changes stick until reload. */
-async function demoReportFor(target: Target): Promise<ProbeReport> {
-  const key = JSON.stringify(target);
+/** Each demo container keeps its own report so membership changes stick until reload. */
+async function demoReportFor(target: Target, instance?: string): Promise<ProbeReport> {
+  const key = JSON.stringify(target) + (instance ? `:${instance}` : "");
   if (!demoReports.has(key)) {
     const snapshot = target.kind === "local" ? await previewSnapshot : undefined;
     const base = normalizeProbeReport(snapshot ?? (key.includes("gpu") ? { ...demoReport, runtime: { ...demoReport.runtime, docker: { ...demoReport.runtime.docker, container: { state: "exited" } } } } : demoReport));
     demoReports.set(key, structuredClone(base));
+    if (instance) {
+      const report = demoReports.get(key)!;
+      report.paths.home += `/instances/${instance}`;
+      report.paths.workspace_metadata_root = `${report.paths.home}/workspaces`;
+      report.paths.managed_worktrees_root += `/instances/${instance}`;
+      report.context.configuration = { state: "missing", source: "none", editable: false };
+      report.context.workspaces = [];
+      report.runtime.docker.container = { name: `orcan-${instance}`, state: "missing" };
+    }
   }
   return demoReports.get(key)!;
 }
@@ -305,12 +319,14 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (command === "wsl_default_user") return "developer" as T;
   if (command === "test_connection") return "developer" as T;
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
-  const enclave = (_args as { enclave?: { target: Target } } | undefined)?.enclave;
+  const enclave = (_args as { enclave?: { target: Target; instance?: string } } | undefined)?.enclave;
   if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
-  if (command === "probe") return structuredClone(await demoReportFor(enclave!.target)) as T;
-  if (command === "enclave_readiness") return { user: "developer", docker: { available: true, version: "demo", detail: "Docker ready" }, report: structuredClone(await demoReportFor(enclave!.target)), orcanError: null } as T;
+  if (command === "list_instances") return { instances: [{ instance: null, container: "orcan-1", home: demoReport.paths.home }, ...[...demoReports.entries()].filter(([key, report]) => key.startsWith(`${JSON.stringify(enclave!.target)}:`) && ownsEnclave(report)).map(([key, report]) => ({ instance: key.slice(JSON.stringify(enclave!.target).length + 1), container: report.runtime.docker.container.name, home: report.paths.home }))] } as T;
+  if (command === "server_capacity") return { cpus: 8, memoryBytes: 16 * 1024 ** 3, diskTotalBytes: 200 * 1024 ** 3, diskFreeBytes: 120 * 1024 ** 3, diskPath: (_args as { path?: string }).path } as T;
+  if (command === "probe") return structuredClone(await demoReportFor(enclave!.target, enclave!.instance)) as T;
+  if (command === "enclave_readiness") return { user: "developer", docker: { available: true, version: "demo", detail: "Docker ready" }, report: structuredClone(await demoReportFor(enclave!.target, enclave!.instance)), orcanError: null } as T;
   if (command === "enclave_action") {
-    const report = await demoReportFor(enclave!.target);
+    const report = await demoReportFor(enclave!.target, enclave!.instance);
     const args = _args as { apply: boolean; withGit: boolean; withDocker: boolean; withTtyd: boolean; ttydCredential?: string };
     const blocker = creationBlocker(report);
     if (blocker) throw new Error(blocker);
@@ -323,11 +339,12 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     return { plan: { ready: true, changes: ["create empty configuration", "run orcan sync", "start Orcan with selected access"] } } as T;
   }
   if (command === "runtime_action") {
-    const report = await demoReportFor(enclave!.target);
-    report.runtime.docker.container.state = (_args as { action: string }).action === "stop" ? "exited" : "running";
+    const report = await demoReportFor(enclave!.target, enclave!.instance);
+    const action = (_args as { action: string }).action;
+    report.runtime.docker.container.state = action === "down" ? "missing" : action === "stop" ? "exited" : "running";
     return null as T;
   }
-  if (command === "membership_action") return demoMembership(await demoReportFor(enclave!.target), _args as MembershipArgs) as T;
+  if (command === "membership_action") return demoMembership(await demoReportFor(enclave!.target, enclave!.instance), _args as MembershipArgs) as T;
   const root = demoReport.paths.projects_root;
   const worktrees = demoReport.paths.managed_worktrees_root;
   const responses: Record<string, unknown> = {
@@ -354,7 +371,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   return (responses[command] ?? {}) as T;
 }
 
-const viewTitles: Record<string, string> = { credentials: "Credentials & keys" };
+const viewTitles: Record<string, string> = { credentials: "Credentials & keys", enclaves: "Servers and containers" };
 const gatedViews = new Set(navigationItems.filter((item) => item.classList.contains("gated")).map((item) => item.dataset.viewTarget));
 gatedViews.add("settings");
 let currentView = "overview";
@@ -413,7 +430,8 @@ function unlockStudio(report: ProbeReport): void {
 const launchSummary = document.querySelector<HTMLElement>("#launch-summary")!;
 const launchWarning = document.querySelector<HTMLElement>("#launch-warning")!;
 const runtimeResult = document.querySelector<HTMLOutputElement>("#runtime-result")!;
-const runtimeButtons = { start: "#runtime-start", restart: "#runtime-restart", stop: "#runtime-stop" } as const;
+$("#runtime-stop").parentElement!.append(el("button", { id: "runtime-down", type: "button", className: "secondary", textContent: "Down", title: "Remove only this container. Keep configuration, sandbox and cache." }));
+const runtimeButtons = { start: "#runtime-start", restart: "#runtime-restart", stop: "#runtime-stop", down: "#runtime-down" } as const;
 type RuntimeAction = keyof typeof runtimeButtons;
 let launch: NonNullable<ProbeReport["runtime"]["launch"]> = { recorded: false };
 let runtimeBusy = false;
@@ -480,11 +498,12 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
   if (blocker) { runtimeResult.textContent = blocker; return; }
   const privileged = [report.runtime.launch?.docker && "the host Docker socket", report.runtime.launch?.git && "your SSH keys"].filter(Boolean);
   if (action === "start" && privileged.length && !await confirmAction(`Start ${connection.label} with access to ${privileged.join(" and ")}?`, { title: "Enable privileged access", confirmLabel: "Start" })) return;
-  if (action !== "start" && !await confirmAction(`Running agent sessions in ${connection.label} may end. Project files, context and container settings are preserved.`, { title: `${action === "stop" ? "Stop" : "Restart"} Enclave`, confirmLabel: action === "stop" ? "Stop" : "Restart", danger: true })) return;
+  if (action !== "start" && !await confirmAction(`${report.runtime.docker.container.name ?? connection.label}: running agent sessions may end. ${action === "down" ? "Remove this container; shared sandbox, cache and its configuration are kept. Browser-terminal credentials must be supplied again to recreate a protected terminal." : "Project files, context and container settings are preserved."}`, { title: `${action} container`, confirmLabel: action, danger: true })) return;
   const label = action[0].toUpperCase() + action.slice(1);
   if (runtimeBusy) return;
   runtimeBusy = true;
-  const job = addJob(`Enclave ${action}`, connection.label);
+  renderEnclaveStatus();
+  const job = addJob(`container ${action}`, connection.label);
   for (const selector of Object.values(runtimeButtons)) document.querySelector<HTMLButtonElement>(selector)!.disabled = true;
   runtimeResult.textContent = `${label} in progress…`;
   try {
@@ -492,9 +511,9 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
     runtimeResult.textContent = `${label} finished. Verifying instance…`;
     const profile = profiles.find((profile) => profile.id === connection.profileId);
     if (!profile || JSON.stringify(enclaveInput(profileConnection(profile))) !== JSON.stringify(enclaveInput(connection))) throw new Error("Profile changed during the operation. Check the destination again.");
-    await enclaveChecks.get(profile.id);
+    await enclaveChecks.get(runtimeKey(profile));
     const status = await checkEnclave(profile);
-    const expected = action === "stop" ? "exited" : "running";
+    const expected = action === "down" ? "missing" : action === "stop" ? "exited" : "running";
     if (status.state !== "online" || status.report?.runtime.docker.container.state !== expected) throw new Error(status.error ?? `Expected container state ${expected}; check the destination again.`);
     runtimeResult.textContent = `${label} verified · container ${expected}.`;
     finishJob(job, "succeeded", label);
@@ -505,6 +524,7 @@ async function runRuntimeAction(action: RuntimeAction): Promise<void> {
   finally {
     runtimeBusy = false;
     if (currentReport) renderRuntime(currentReport);
+    renderEnclaveStatus();
   }
 }
 
@@ -716,7 +736,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     attach.hidden = current?.target.kind !== "ssh";
     const terminalProfile = profiles.find((profile) => profile.id === current?.profileId);
     attach.disabled = report.runtime.docker.container.state !== "running" || Boolean(terminalProfile?.credential_id) || (terminalProfile?.ssh?.authentication.kind ?? "agent") !== "agent";
-    attach.title = attach.disabled ? "Start the Enclave and use a system-SSH profile to open a native terminal." : `Attach to ${workspace.name} in your native terminal`;
+    attach.title = attach.disabled ? "Start the container and use a system-SSH profile to open a native terminal." : `Attach to ${workspace.name} in your native terminal`;
     const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), meta, attach));
     card.classList.toggle("focused", focusedWorkspace === workspace.name);
     card.title = "Click empty space to focus this workspace";
@@ -929,7 +949,7 @@ const queuedChanges: QueuedChange[] = loadQueuedChanges();
 const restoredDraftIds = new Set(queuedChanges.map((change) => change.id));
 
 function enclaveChangeKey(connection: Connection): string {
-  return JSON.stringify({ target: connection.target, username: connection.username, credentialId: connection.credentialId });
+  return JSON.stringify({ target: connection.target, username: connection.username, credentialId: connection.credentialId, instance: connection.instance });
 }
 
 function queuedForCurrent(): QueuedChange[] {
@@ -1095,7 +1115,7 @@ async function applyQueuedChanges(selectedIds?: Set<string>): Promise<void> {
     renderChangeSet();
   }
   if (current && enclaveChangeKey(current) === enclave) {
-    result.textContent = queuedChanges.some((change) => change.enclave === enclave && change.error) ? "Some planned changes could not be applied; review the marked entries." : "Context changes applied. Run orcan sync to update the Enclave mounts.";
+    result.textContent = queuedChanges.some((change) => change.enclave === enclave && change.error) ? "Some planned changes could not be applied; review the marked entries." : "Context changes applied. Run orcan sync to update the container mounts.";
     await connect(connection).catch(() => undefined);
   }
   renderChangeSet();
@@ -1126,7 +1146,7 @@ async function revalidateQueuedChange(change: QueuedChange, connection: Connecti
 async function recheckQueuedChange(change: QueuedChange): Promise<void> {
   const connection = current;
   if (!connection || change.enclave !== enclaveChangeKey(connection)) {
-    change.error = "Open the Enclave this draft belongs to before rechecking it.";
+    change.error = "Open the container this draft belongs to before rechecking it.";
     saveQueuedChanges();
     renderChangeSet();
     return;
@@ -1167,7 +1187,7 @@ $("#sync-now").addEventListener("click", async () => {
     await invoke("sync", { enclave: enclaveInput(current) });
     finishJob(job, "succeeded", "Context reconciled");
     syncBanner.hidden = true;
-    result.textContent = "Sync finished; the Enclave now mounts the new workspace layout.";
+    result.textContent = "Sync finished; the container now mounts the new workspace layout.";
     await connect(current).catch(() => undefined);
   } catch (error) { finishJob(job, "failed", String(error)); result.textContent = `Sync failed: ${String(error)}`; }
   finally { button.disabled = false; }
@@ -1206,7 +1226,7 @@ function contextSourceLabel(report: ProbeReport): string {
 
 function contextEditMessage(): string {
   return currentReport?.control?.operations?.context_edit?.reason
-    ?? "This Enclave reports only its last synced workspace index. Reconnect where orcan.config.json is available before changing context.";
+    ?? "This container reports only its last synced workspace index. Reconnect where orcan.config.json is available before changing context.";
 }
 
 function setContextNotice(message: string): void {
@@ -1881,9 +1901,11 @@ async function saveProfile(): Promise<void> {
   try {
     await invoke("save_profile", { profile: built.profile });
     if (current?.profileId === built.profile.id) lockStudio();
-    enclaveStatus.delete(built.profile.id);
+    for (const key of enclaveStatus.keys()) if (key === built.profile.id || key.startsWith(`${built.profile.id}:`)) enclaveStatus.delete(key);
+    instanceInventory.delete(built.profile.id);
+    serverCapacity.delete(built.profile.id);
     await loadStore();
-    result.textContent = `Profile “${built.profile.name}” saved. Use Provisioning or Enclaves when you are ready to work with Orcan.`;
+    result.textContent = `Profile “${built.profile.name}” saved. Use Provisioning or Servers when you are ready to work with Orcan.`;
     showPane("profiles");
     showView("profiles");
   } catch (error) { profileTestResult.textContent = `Could not save: ${String(error)}`; }
@@ -1914,16 +1936,39 @@ function renderProfiles(): void {
     : [emptyState("No profiles yet. Create one to save how Studio reaches a local, WSL2, or SSH computer.", "Create a profile", () => openProfileForm())]));
 }
 
-// Enclaves
+// Servers
 
 type EnclaveStatus = { state: "checking" | "online" | "offline"; report?: ProbeReport; error?: string; at?: number };
 const enclaveStatus = new Map<string, EnclaveStatus>();
 const enclaveChecks = new Map<string, Promise<EnclaveStatus>>();
+type ManagedInstance = { instance: string | null; container: string; home: string };
+const instanceInventory = new Map<string, ManagedInstance[]>();
+type ServerCapacity = { cpus?: number; memoryBytes?: number; diskTotalBytes?: number; diskFreeBytes?: number; diskPath?: string };
+const serverCapacity = new Map<string, ServerCapacity>();
+const selectedInstances = new Map<string, string>();
+function runtimeKey(profile: ConnectionProfile, instance = selectedInstances.get(profile.id)): string {
+  return instance ? `${profile.id}:${instance}` : profile.id;
+}
+async function discoverInstances(profile: ConnectionProfile): Promise<void> {
+  const inventory = await invoke<{ instances: ManagedInstance[] }>("list_instances", { enclave: enclaveInput({ ...profileConnection(profile), instance: undefined }) });
+  if (sameHostProfile(profile)) instanceInventory.set(profile.id, inventory.instances);
+}
+function sameHostProfile(profile: ConnectionProfile): boolean {
+  const saved = profiles.find((item) => item.id === profile.id);
+  return Boolean(saved && JSON.stringify([saved.target, saved.credential_id, saved.ssh?.username]) === JSON.stringify([profile.target, profile.credential_id, profile.ssh?.username]));
+}
+function selectInstance(profile: ConnectionProfile, instance: string): void {
+  selectedInstances.set(profile.id, instance);
+  if (current?.profileId === profile.id && current.instance !== (instance || undefined)) { currentReport = undefined; lockStudio(); }
+  renderEnclaveStatus();
+  void openEnclave(profile);
+}
 const navEnclaves = $("#nav-enclaves");
 let lastCheckAll = 0;
 
 function profileConnection(profile: ConnectionProfile): Connection {
-  return { target: profile.target, label: profile.name, profileId: profile.id, credentialId: profile.credential_id, username: profile.ssh?.username };
+  const instance = selectedInstances.get(profile.id) || undefined;
+  return { target: profile.target, label: `${profile.name}${instance ? ` · orcan-${instance}` : ""}`, profileId: profile.id, credentialId: profile.credential_id, username: profile.ssh?.username, instance };
 }
 
 async function openWorkspaceTerminal(workspace: string): Promise<void> {
@@ -1961,23 +2006,32 @@ function dot(tone: string): HTMLElement {
 }
 
 async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatus> {
-  enclaveStatus.set(profile.id, { ...enclaveStatus.get(profile.id), state: "checking" });
+  const connection = profileConnection(profile);
+  const key = runtimeKey(profile);
+  enclaveStatus.set(key, { ...enclaveStatus.get(key), state: "checking" });
   renderEnclaveStatus();
   let status: EnclaveStatus;
   try {
-    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(profileConnection(profile)) });
-    persistCachedReport(cacheKey(profile.target), report);
+    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
+    persistCachedReport(cacheKey(profile.target, connection.instance), report);
+    void Promise.all([
+      discoverInstances(profile).catch(() => undefined), // Legacy CLI can still operate its default container.
+      invoke<ServerCapacity>("server_capacity", { enclave: enclaveInput(connection), path: report.paths.projects_root }).then((capacity) => { if (sameHostProfile(profile)) serverCapacity.set(profile.id, capacity); }).catch(() => { if (sameHostProfile(profile)) serverCapacity.delete(profile.id); }),
+    ]).then(() => renderEnclaveStatus());
+    const saved = profiles.find((item) => item.id === profile.id);
+    if (!saved || JSON.stringify(enclaveInput({ ...profileConnection(saved), instance: connection.instance })) !== JSON.stringify(enclaveInput(connection))) return { state: "offline", error: "Profile changed during the check. Check the destination again." };
     status = { state: "online", report, at: Date.now() };
   } catch (error) {
     status = {
       state: "offline",
-      report: enclaveStatus.get(profile.id)?.report,
+      report: enclaveStatus.get(key)?.report,
       error: String(error),
       at: Date.now(),
     };
+    void invoke<ServerCapacity>("server_capacity", { enclave: enclaveInput(connection), path: null }).then((capacity) => { if (sameHostProfile(profile)) serverCapacity.set(profile.id, capacity); }).catch(() => { if (sameHostProfile(profile)) serverCapacity.delete(profile.id); }).finally(() => renderEnclaveStatus());
   }
-  enclaveStatus.set(profile.id, status);
-  if (connected && current?.profileId === profile.id) {
+  enclaveStatus.set(key, status);
+  if (connected && current?.profileId === profile.id && current.instance === connection.instance) {
     if (status.state === "online" && status.report) renderSnapshot(status.report);
     else { currentReport = undefined; lockStudio(); }
   }
@@ -1986,14 +2040,15 @@ async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatu
 }
 
 function checkEnclave(profile: ConnectionProfile): Promise<EnclaveStatus> {
-  const inFlight = enclaveChecks.get(profile.id);
+  const key = runtimeKey(profile);
+  const inFlight = enclaveChecks.get(key);
   if (inFlight) return inFlight;
-  const pending = checkEnclaveNow(profile).finally(() => enclaveChecks.delete(profile.id));
-  enclaveChecks.set(profile.id, pending);
+  const pending = checkEnclaveNow(profile).finally(() => enclaveChecks.delete(key));
+  enclaveChecks.set(key, pending);
   return pending;
 }
 
-/** Checks every saved Enclave, at most once a minute unless forced. */
+/** Checks every saved container, at most once a minute unless forced. */
 function checkAll(force = false): void {
   if (!force && Date.now() - lastCheckAll < 60_000) return;
   lastCheckAll = Date.now();
@@ -2010,7 +2065,7 @@ function activate(connection: Connection, report: ProbeReport): void {
 }
 
 function cachedEnclaveReport(profile: ConnectionProfile): ProbeReport | undefined {
-  return loadCachedReport(cacheKey(profile.target));
+  return loadCachedReport(cacheKey(profile.target, selectedInstances.get(profile.id)));
 }
 
 /** Only a successful check in this session unlocks operations; cache is history. */
@@ -2018,7 +2073,7 @@ let enclaveOpenSequence = 0;
 async function openEnclave(profile: ConnectionProfile): Promise<void> {
   const sequence = ++enclaveOpenSequence;
   const connection = profileConnection(profile);
-  const checked = enclaveStatus.get(profile.id);
+  const checked = enclaveStatus.get(runtimeKey(profile));
   if (checked?.state === "online" && checked.report) {
     activate(connection, checked.report);
     showView("overview");
@@ -2112,7 +2167,7 @@ async function offerTransferResume(output: HTMLElement, token: string | undefine
 }
 
 function provisioningSucceeded(output: HTMLElement, message: string, profile: ConnectionProfile): void {
-  output.replaceChildren(el("span", { textContent: message }), actionButton("Continue Enclave setup", () => {
+  output.replaceChildren(el("span", { textContent: message }), actionButton("Continue container setup", () => {
     openEnclaveCreator(profile);
     void checkCreatorDestination();
   }));
@@ -2309,20 +2364,24 @@ function renderImageTransfer(): void {
   renderProvisionIdentity();
 }
 
-/** One profile owns one current Enclave until Orcan gains multi-runtime support. */
-function profileHasEnclave(profile: ConnectionProfile): boolean {
-  const report = enclaveStatus.get(profile.id)?.report ?? cachedEnclaveReport(profile);
-  return ownsEnclave(report);
-}
-
-type EnclaveReadiness = { user: string; docker: { available: boolean; version?: string; detail: string }; report?: ProbeReport; orcanError?: string };
+type EnclaveReadiness = { user: string; docker: { available: boolean; version?: string; detail: string }; report?: ProbeReport; orcanError?: string; capacity?: ServerCapacity };
 let creatorReadiness: { connection: string; result: EnclaveReadiness } | undefined;
 let creatorBusy = false;
 let creatorRevision = 0;
 let creatorPlanRevision = -1;
+let creatorResourcesEdited = false;
 
 function creatorConnection(profile: ConnectionProfile): string {
-  return JSON.stringify(enclaveInput(profileConnection(profile)));
+  return JSON.stringify(enclaveInput(creatorProfileConnection(profile)));
+}
+
+function creatorProfileConnection(profile: ConnectionProfile): Connection {
+  return { ...profileConnection(profile), instance: enclaveCreateName.value.trim() || undefined };
+}
+
+function creatorNameError(): string | undefined {
+  const name = enclaveCreateName.value.trim();
+  return name && !/^[a-z][a-z0-9-]{0,47}$/.test(name) ? "Use 1–48 lowercase letters, digits or hyphens; start with a letter." : undefined;
 }
 
 function creatorReport(profile: ConnectionProfile): ProbeReport | undefined {
@@ -2330,7 +2389,7 @@ function creatorReport(profile: ConnectionProfile): ProbeReport | undefined {
 }
 
 function creatorCanApply(profile: ConnectionProfile): boolean {
-  return !creatorBusy && creatorPlanRevision === creatorRevision && !creationBlocker(creatorReport(profile));
+  return !creatorBusy && !creatorNameError() && creatorPlanRevision === creatorRevision && !creationBlocker(creatorReport(profile));
 }
 
 function openEnclaveCreator(profile: ConnectionProfile): void {
@@ -2352,7 +2411,8 @@ function renderEnclaveCreator(): void {
   );
   enclaveCreateProfile.value = profiles.some((profile) => profile.id === previous) ? previous : "";
   const profile = selectedProfile(enclaveCreateProfile);
-  const ready = Boolean(profile && !creationBlocker(creatorReport(profile)));
+  const ready = Boolean(profile && !creatorNameError() && !creationBlocker(creatorReport(profile)));
+  enclaveCreateContainer.textContent = `Container: orcan-${enclaveCreateName.value.trim() || "1"} · shared sandbox and cache`;
   enclaveCreateCheck.disabled = !profile;
   enclaveCreateOptions.disabled = !ready;
   enclaveCreatePlan.disabled = !ready;
@@ -2376,9 +2436,14 @@ function prepareProfile(profile: ConnectionProfile, image = false): void {
 async function checkCreatorDestination(): Promise<void> {
   const profile = selectedProfile(enclaveCreateProfile);
   if (!profile || creatorBusy) return;
+  if (creatorNameError()) { enclaveCreateResult.textContent = creatorNameError()!; return; }
   creatorBusy = true;
   creatorPlanRevision = -1;
   creatorReadiness = undefined;
+  enclaveCreateName.disabled = true;
+  enclaveCreatePort.disabled = true;
+  enclaveCreateCpus.disabled = true;
+  enclaveCreateMemory.disabled = true;
   enclaveCreateProfile.disabled = true;
   enclaveCreateCheck.disabled = true;
   enclaveCreateOptions.disabled = true;
@@ -2388,14 +2453,19 @@ async function checkCreatorDestination(): Promise<void> {
   enclaveCreateResult.textContent = "";
   const connection = creatorConnection(profile);
   try {
-    const readiness = await invoke<EnclaveReadiness>("enclave_readiness", { enclave: enclaveInput(profileConnection(profile)) });
+    const readiness = await invoke<EnclaveReadiness>("enclave_readiness", { enclave: enclaveInput(creatorProfileConnection(profile)) });
     const selected = selectedProfile(enclaveCreateProfile);
     if (!selected || connection !== creatorConnection(selected)) return;
     creatorReadiness = { connection, result: readiness };
     const report = readiness.report;
+    const defaults = report?.runtime.defaults;
+    if (!creatorResourcesEdited && defaults?.resources?.cpus) enclaveCreateCpus.value = String(defaults.resources.cpus);
+    const memoryDefault = defaults?.resources?.memory?.match(/^(\d+)g$/i);
+    if (!creatorResourcesEdited && memoryDefault) enclaveCreateMemory.value = memoryDefault[1];
+    if (!creatorResourcesEdited && defaults?.ttyd?.host_port) enclaveCreatePort.value = String(defaults.ttyd.host_port);
     if (report) {
-      enclaveStatus.set(profile.id, { state: "online", report, at: Date.now() });
-      persistCachedReport(cacheKey(profile.target), report);
+      enclaveStatus.set(runtimeKey(profile, creatorProfileConnection(profile).instance ?? ""), { state: "online", report, at: Date.now() });
+      persistCachedReport(cacheKey(profile.target, creatorProfileConnection(profile).instance), report);
     }
     const fact = (label: string, value: string, okay: boolean) => el("div", { className: `enclave-readiness-row ${okay ? "ready" : "attention"}` }, el("span", { textContent: okay ? "✓" : "!", ariaHidden: "true" }), el("strong", { textContent: label }), el("span", { textContent: value }));
     const image = report?.runtime.docker.image;
@@ -2405,10 +2475,12 @@ async function checkCreatorDestination(): Promise<void> {
       fact("Docker", readiness.docker.available ? readiness.docker.version ?? "Ready" : "Not ready for this user", readiness.docker.available),
       fact("Image", image ? `${image.name} · ${image.present ? "available" : "missing"}` : "Check after CLI installation", Boolean(image?.present)),
     );
+    if (readiness.capacity?.memoryBytes) enclaveCreateReadiness.append(fact("VM capacity", `${readiness.capacity.cpus ?? "?"} CPUs · ${(readiness.capacity.memoryBytes / 1024 ** 3).toFixed(1)} GiB RAM total (not free capacity)${readiness.capacity.diskFreeBytes !== undefined ? ` · ${(readiness.capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB disk free` : ""}`, true));
+    else if (readiness.capacity?.diskFreeBytes !== undefined) enclaveCreateReadiness.append(fact("Disk", `${(readiness.capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB free`, true));
     const actions = el("div", { className: "actions compact" });
     if (!report) actions.append(actionButton(needsStudioUpdate(readiness.orcanError ?? "") ? "Update CLI" : "Install CLI", () => prepareProfile(profile)));
     if (image && !image.present) actions.append(actionButton("Transfer image", () => prepareProfile(profile, true)));
-    if (report && ownsEnclave(report)) actions.append(actionButton("Open existing Enclave", () => void openEnclave(profile)));
+    if (report && ownsEnclave(report)) actions.append(actionButton("Open existing container", () => selectInstance(profile, creatorProfileConnection(profile).instance ?? "")));
     enclaveCreateReadiness.append(actions);
     if (readiness.orcanError) enclaveCreateReadiness.append(technicalDetail(readiness.orcanError));
     if (!readiness.docker.available) enclaveCreateReadiness.append(el("p", { className: "muted", textContent: "Start Docker and grant this user access. On WSL2, enable Docker Desktop integration or prepare Docker Engine in this distribution." }), technicalDetail(readiness.docker.detail));
@@ -2418,6 +2490,10 @@ async function checkCreatorDestination(): Promise<void> {
     enclaveCreateReadiness.replaceChildren(el("strong", { textContent: "Could not connect to this profile." }), el("span", { textContent: failureHint(String(error)) }), technicalDetail(String(error)));
   } finally {
     creatorBusy = false;
+    enclaveCreateName.disabled = false;
+    enclaveCreatePort.disabled = false;
+    enclaveCreateCpus.disabled = false;
+    enclaveCreateMemory.disabled = false;
     enclaveCreateProfile.disabled = false;
     renderEnclaveCreator();
   }
@@ -2436,22 +2512,32 @@ function enclaveTtydCredential(): string | undefined {
 async function planEmptyEnclave(apply = false): Promise<void> {
   const profile = selectedProfile(enclaveCreateProfile);
   if (!profile) return;
-  if (creatorBusy || creationBlocker(creatorReport(profile)) || (apply && !creatorCanApply(profile))) {
-    enclaveCreateResult.textContent = "Check the destination and preview the current plan before creating this Enclave.";
+  if (creatorBusy || creatorNameError() || creationBlocker(creatorReport(profile)) || (apply && !creatorCanApply(profile))) {
+    enclaveCreateResult.textContent = "Check the destination and preview the current plan before creating this container.";
     return;
   }
   const revision = creatorRevision;
+  const connection = creatorProfileConnection(profile);
+  const ttydHostPort = enclaveCreateTtyd.checked ? Number(enclaveCreatePort.value) : undefined;
+  if (ttydHostPort !== undefined && (!Number.isInteger(ttydHostPort) || ttydHostPort < 1024 || ttydHostPort > 65535)) { enclaveCreateResult.textContent = "Choose a host port between 1024 and 65535."; return; }
   creatorBusy = true;
+  enclaveCreateName.disabled = true;
+  enclaveCreatePort.disabled = true;
+  enclaveCreateCpus.disabled = true;
+  enclaveCreateMemory.disabled = true;
   enclaveCreateProfile.disabled = true;
   enclaveCreateCheck.disabled = true;
   enclaveCreateOptions.disabled = true;
   enclaveCreatePlan.disabled = true;
   enclaveCreateApply.disabled = true;
-  enclaveCreateResult.textContent = apply ? "Creating empty Enclave…" : "Reading creation plan…";
+  enclaveCreateResult.textContent = apply ? "Creating empty container…" : "Reading creation plan…";
   try {
     const response = await invoke<{ plan?: { ready: boolean; changes: string[]; config: string } }>("enclave_action", {
-      enclave: enclaveInput(profileConnection(profile)),
+      enclave: enclaveInput(connection),
       apply,
+      ttydHostPort,
+      cpus: Number(enclaveCreateCpus.value),
+      memoryGb: Number(enclaveCreateMemory.value),
       withGit: enclaveCreateGit.checked,
       withDocker: enclaveCreateDocker.checked,
       withTtyd: enclaveCreateTtyd.checked,
@@ -2463,18 +2549,19 @@ async function planEmptyEnclave(apply = false): Promise<void> {
     }
     if (apply) {
       creatorPlanRevision = -1;
-      enclaveCreateResult.textContent = "Enclave created. Verifying and opening context…";
+      enclaveCreateResult.textContent = "container created. Verifying and opening context…";
       enclaveCreateTtydPassword.value = "";
-      await enclaveChecks.get(profile.id);
+      selectedInstances.set(profile.id, connection.instance ?? "");
+      await enclaveChecks.get(runtimeKey(profile));
       const status = await checkEnclave(profile);
       if (status.state !== "online" || !status.report || status.report.runtime.docker.container.state !== "running") throw new Error(status.error ?? "Container is not running after creation. Refresh its status before continuing.");
       creatorReadiness = undefined;
       activate(profileConnection(profile), status.report);
       showView("contexts");
-      enclaveCreateResult.textContent = "Enclave is running. Add projects to its context.";
+      enclaveCreateResult.textContent = "container is running. Add projects to its context.";
     }
-  } catch (error) { creatorPlanRevision = -1; enclaveCreateResult.textContent = `Enclave setup failed: ${String(error)}`; }
-  finally { creatorBusy = false; enclaveCreateProfile.disabled = false; renderEnclaveCreator(); }
+  } catch (error) { creatorPlanRevision = -1; enclaveCreateResult.textContent = `container setup failed: ${String(error)}`; }
+  finally { creatorBusy = false; enclaveCreateName.disabled = false; enclaveCreatePort.disabled = false; enclaveCreateCpus.disabled = false; enclaveCreateMemory.disabled = false; enclaveCreateProfile.disabled = false; renderEnclaveCreator(); }
 }
 
 async function inspectTransferImage(): Promise<void> {
@@ -2551,24 +2638,61 @@ async function transferImage(): Promise<void> {
 
 function renderEnclaves(): void {
   enclaveList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
-    const status = enclaveStatus.get(profile.id);
+    const status = enclaveStatus.get(runtimeKey(profile));
     const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
-    const active = connected && current?.profileId === profile.id;
+    const active = connected && current?.profileId === profile.id && current.instance === profileConnection(profile).instance;
     const gear = actionButton("⚙", () => void openEnclaveSettings(profile), "secondary");
     gear.title = `Configure ${profile.name}`;
     gear.setAttribute("aria-label", `Configure ${profile.name}`);
     const actions: HTMLElement[] = [actionButton("Refresh", () => void checkEnclave(profile), "secondary")];
     gear.disabled = status?.state !== "online" || !status.report;
     actions.push(gear);
-    if (!status?.report || !ownsEnclave(status.report)) actions.unshift(actionButton("Set up", () => openEnclaveCreator(profile)));
+    actions.unshift(actionButton("New container", () => {
+      if (creatorBusy) return;
+      const names = new Set((instanceInventory.get(profile.id) ?? []).map((item) => item.instance));
+      let name = "developer";
+      for (let suffix = 2; names.has(name); suffix += 1) name = `developer-${suffix}`;
+      enclaveCreateName.value = name;
+      creatorReadiness = undefined;
+      openEnclaveCreator(profile);
+    }));
     if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
     else if (status?.report && ownsEnclave(status.report)) actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
     const access = status?.report ? ` · ${accessExposure(status.report.runtime.launch)}` : "";
     const text = el("div", {}, el("strong", {}, dot(statusTone(status)), profile.name), el("span", { textContent: `${describeProfile(profile)} · ${statusText(status)}${access}${drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}` }));
     if (status?.state === "offline") text.append(el("span", { className: "status-hint", textContent: failureHint(status.error ?? "") }));
     const item = el("div", { className: "list-item enclave-item" }, text, el("div", { className: "item-actions" }, ...actions));
+    const capacity = serverCapacity.get(profile.id);
+    if (capacity) {
+      const facts = [
+        typeof capacity.cpus === "number" ? `${capacity.cpus} CPUs` : undefined,
+        capacity.memoryBytes ? `${(capacity.memoryBytes / 1024 ** 3).toFixed(1)} GiB RAM total` : undefined,
+        typeof capacity.diskFreeBytes === "number" ? `${(capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB disk free` : undefined,
+      ].filter(Boolean);
+      if (facts.length) text.append(el("small", { className: "muted", textContent: facts.join(" · "), title: `CPU/RAM: total Docker engine capacity, not unallocated capacity. Disk: ${capacity.diskPath ?? "profile user's home filesystem"}. Refresh to update.` }));
+    }
+    const instances = instanceInventory.get(profile.id);
+    if (instances) {
+      const select = el("select", {}, ...instances.map((runtime) => el("option", { value: runtime.instance ?? "", textContent: runtime.container })));
+      select.setAttribute("aria-label", `Container on ${profile.name}`);
+      select.value = selectedInstances.get(profile.id) ?? "";
+      select.disabled = runtimeBusy;
+      select.addEventListener("change", () => selectInstance(profile, select.value));
+      text.append(el("label", { textContent: "Container" }, select));
+    }
     if (status?.report) {
       const report = status.report;
+      for (const action of ["start", "stop", "restart", "down"] as const) {
+        const button = actionButton(action[0].toUpperCase() + action.slice(1), async () => {
+          const connection = profileConnection(profile);
+          await openEnclave(profile);
+          if (current && JSON.stringify(enclaveInput(current)) === JSON.stringify(enclaveInput(connection))) await runRuntimeAction(action);
+        }, "secondary");
+        const blocker = lifecycleBlocker(report, action);
+        button.disabled = runtimeBusy || status.state !== "online" || Boolean(blocker);
+        button.title = blocker ?? `${action} ${report.runtime.docker.container.name ?? "selected container"}${action === "down" ? "; keep sandbox, cache and configuration" : ""}`;
+        item.children[1].append(button);
+      }
       const facts = el("dl", { className: "enclave-facts" });
       for (const [label, value] of [
         ["Container", `${report.runtime.docker.container.name ?? "Not reported"} · ${report.runtime.docker.container.state}`],
@@ -2587,36 +2711,36 @@ function renderEnclaves(): void {
     }
     item.classList.toggle("active", active);
     return item;
-  }) : [emptyState("Enclaves appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
+  }) : [emptyState("Servers appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
   renderCliProvision();
   renderOnlineProvision();
   renderImageTransfer();
   renderEnclaveCreator();
 }
 
-/** Per-Enclave state everywhere it is shown: list, sidebar, topbar chip, summary. */
+/** Per-container state everywhere it is shown: list, sidebar, topbar chip, summary. */
 function renderEnclaveStatus(): void {
   renderEnclaves();
   navEnclaves.replaceChildren(...profiles.map((profile) => {
     const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
-    const button = el("button", { type: "button", className: "nav-enclave", title: `${statusText(enclaveStatus.get(profile.id))}${drafts ? ` · ${drafts} drafts` : ""}` }, dot(statusTone(enclaveStatus.get(profile.id))), el("span", { textContent: profile.name }), ...(drafts ? [el("small", { className: "draft-count", textContent: String(drafts) })] : []));
+    const button = el("button", { type: "button", className: "nav-enclave", title: `${statusText(enclaveStatus.get(runtimeKey(profile)))}${drafts ? ` · ${drafts} drafts` : ""}` }, dot(statusTone(enclaveStatus.get(runtimeKey(profile)))), el("span", { textContent: profileConnection(profile).label }), ...(drafts ? [el("small", { className: "draft-count", textContent: String(drafts) })] : []));
     button.classList.toggle("active", connected && current?.profileId === profile.id);
     button.addEventListener("click", () => void openEnclave(profile));
     return button;
   }));
-  const activeStatus = current?.profileId ? enclaveStatus.get(current.profileId) : undefined;
+  const activeStatus = current?.profileId ? enclaveStatus.get(current.instance ? `${current.profileId}:${current.instance}` : current.profileId) : undefined;
   activeDot.className = `state-dot ${connected ? statusTone(activeStatus) : "idle"}`;
   const report = activeStatus?.report;
   const editable = canEditContext(report);
   const target = current?.target.kind === "wsl2" ? "WSL2" : current?.target.kind === "ssh" ? "SSH" : "Local";
   const access = report ? (editable ? "Editable" : "Read-only") : "Checking";
-  activeLabel.textContent = connected && current ? `${current.label} · ${target} · ${access}` : profiles.length ? "Choose an Enclave" : "No Enclaves yet";
+  activeLabel.textContent = connected && current ? `${current.label} · ${target} · ${access}` : profiles.length ? "Choose a container" : "No servers yet";
   activeInstance.title = report
     ? `${target} · ${report.host.user ?? "unknown user"} · ${report.context.configuration.path ?? `${report.paths.home}/orcan.config.json`} · ${editable ? "context changes available" : contextEditMessage()}`
-    : "Open Enclaves to reconnect or edit this profile";
-  const online = profiles.filter((profile) => enclaveStatus.get(profile.id)?.state === "online").length;
-  const checking = profiles.some((profile) => enclaveStatus.get(profile.id)?.state === "checking");
-  instanceState.textContent = profiles.length ? `${online} of ${profiles.length} Enclave${profiles.length === 1 ? "" : "s"} online${checking ? " · checking…" : ""}` : "No Enclaves yet";
+    : "Open Servers to reconnect or edit this profile";
+  const online = profiles.filter((profile) => enclaveStatus.get(runtimeKey(profile))?.state === "online").length;
+  const checking = profiles.some((profile) => enclaveStatus.get(runtimeKey(profile))?.state === "checking");
+  instanceState.textContent = profiles.length ? `${online} of ${profiles.length} selected containers checked${checking ? " · checking…" : ""}` : "No servers yet";
 }
 
 function failureHint(error: string): string {
@@ -2631,7 +2755,7 @@ function failureHint(error: string): string {
 }
 
 function needsStudioUpdate(error: string): boolean {
-  return /unknown command:\s*studio|unknown command.*\bstudio\b/i.test(error);
+  return /unknown command:\s*studio|unknown command.*\bstudio\b|unknown command.*--instance/i.test(error);
 }
 
 function renderSetup(): void {
@@ -2653,24 +2777,24 @@ async function loadStore(): Promise<void> {
   renderStore();
 }
 
-/** Probes an Enclave and, on success, makes it the active one. */
+/** Probes a container and, on success, makes it the active one. */
 async function connect(connection: Connection, output: HTMLOutputElement = result): Promise<ProbeReport | undefined> {
   const request = ++latestProbe;
   output.textContent = `Connecting to ${connection.label} → reading Orcan report → checking runtime…`;
-  const job = addJob("Enclave check", connection.label);
+  const job = addJob("container check", connection.label);
   try {
     const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
     if (request !== latestProbe) return undefined;
-    persistCachedReport(cacheKey(connection.target), report);
-    if (connection.profileId) enclaveStatus.set(connection.profileId, { state: "online", report, at: Date.now() });
+    persistCachedReport(cacheKey(connection.target, connection.instance), report);
+    if (connection.profileId) enclaveStatus.set(connection.instance ? `${connection.profileId}:${connection.instance}` : connection.profileId, { state: "online", report, at: Date.now() });
     activate(connection, report);
     output.textContent = `Connected · ${report.host.os}/${report.host.architecture} · Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;
-    finishJob(job, "succeeded", "Enclave report refreshed");
+    finishJob(job, "succeeded", "container report refreshed");
     renderStore();
     return report;
   } catch (error) {
     if (request !== latestProbe) return undefined;
-    if (connection.profileId) enclaveStatus.set(connection.profileId, { state: "offline", error: String(error), at: Date.now() });
+    if (connection.profileId) enclaveStatus.set(connection.instance ? `${connection.profileId}:${connection.instance}` : connection.profileId, { state: "offline", error: String(error), at: Date.now() });
     lockStudio();
     output.textContent = `Connection failed: ${String(error)}`;
     finishJob(job, "failed", String(error));
@@ -2695,11 +2819,12 @@ for (const input of [cliProvisionSource, cliProvisionTarget]) input.addEventList
 for (const select of [imageTransferSource, imageTransferTarget]) select.addEventListener("change", renderProvisionIdentity);
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
 enclaveCreateCheck.addEventListener("click", () => void checkCreatorDestination());
-enclaveCreateApply.addEventListener("click", async () => { if (await confirmAction("Create this Enclave with the selected runtime access?", { title: "New Enclave", confirmLabel: "Create" })) void planEmptyEnclave(true); });
-for (const input of [enclaveCreateProfile, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("input", () => {
+enclaveCreateApply.addEventListener("click", async () => { if (await confirmAction("Create this container with the selected runtime access?", { title: "New container", confirmLabel: "Create" })) void planEmptyEnclave(true); });
+for (const input of [enclaveCreateProfile, enclaveCreateName, enclaveCreatePort, enclaveCreateCpus, enclaveCreateMemory, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("input", () => {
+  if ([enclaveCreateCpus, enclaveCreateMemory, enclaveCreatePort].includes(input as HTMLInputElement)) creatorResourcesEdited = true;
   creatorRevision += 1;
   creatorPlanRevision = -1;
-  if (input === enclaveCreateProfile) { creatorReadiness = undefined; enclaveCreateReadiness.textContent = "Check this destination before reviewing access options."; enclaveCreateResult.textContent = ""; }
+  if (input === enclaveCreateProfile || input === enclaveCreateName) { creatorReadiness = undefined; enclaveCreateReadiness.textContent = "Check this destination and container name before reviewing access options."; enclaveCreateResult.textContent = ""; }
   renderEnclaveCreator();
 });
 enclaveCreateTtyd.addEventListener("change", () => {
@@ -2745,7 +2870,7 @@ importParent.addEventListener("change", () => {
 });
 folderName.addEventListener("input", () => { folderReady = false; folderApplyButton.disabled = true; });
 folderPlanButton.addEventListener("click", async () => {
-  if (!current || !connected || !currentReport || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { folderResult.textContent = "Check an Enclave first."; return; }
+  if (!current || !connected || !currentReport || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { folderResult.textContent = "Check a container first."; return; }
   folderPlanButton.disabled = true;
   folderResult.textContent = "Checking folder plan…";
   try {
@@ -2815,7 +2940,7 @@ worktreeApply.addEventListener("click", async () => {
     const response = await invoke<{ result: { path: string } }>("worktree_apply", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces });
     worktreeReady = false;
     await connect(current);
-    worktreeResult.textContent = `Created: ${response.result.path}. Map refreshed; run Orcan sync when you want the Enclave mounts reconciled.`;
+    worktreeResult.textContent = `Created: ${response.result.path}. Map refreshed; run Orcan sync when you want the container mounts reconciled.`;
     finishJob(job, "succeeded", response.result.path);
   } catch (error) {
     worktreeResult.textContent = `Create failed: ${String(error)}`;
@@ -2823,7 +2948,7 @@ worktreeApply.addEventListener("click", async () => {
   }
 });
 importPlanButton.addEventListener("click", async () => {
-  if (!current || !connected || !currentReport || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check an Enclave first."; return; }
+  if (!current || !connected || !currentReport || !snapshotRoot.textContent || snapshotRoot.textContent === "—") { importResult.textContent = "Check a container first."; return; }
   importPlanButton.disabled = true; importResult.textContent = "Building import plan…";
   try {
     const response = await invoke<{ plan: { destination: string; destination_state: string; ready: boolean; blockers: string[] } }>("import_plan", { enclave: enclaveInput(current), source: importSource.value, projectsRoot: snapshotRoot.textContent, parent: importParent.value || undefined });
@@ -2844,10 +2969,10 @@ if (demoMode) {
   demoBanner.hidden = false;
   result.textContent = "UX preview: every action below uses sample data.";
   void previewSnapshot.then((snapshot) => {
-    if (snapshot) demoBanner.textContent = `UX preview · “Demo workstation” shows a read-only snapshot of this host (${snapshot.context.workspaces.map((workspace) => workspace.name).join(", ") || "no workspaces"}); other Enclaves and all actions use sample data.`;
+    if (snapshot) demoBanner.textContent = `UX preview · “Demo workstation” shows a read-only snapshot of this host (${snapshot.context.workspaces.map((workspace) => workspace.name).join(", ") || "no workspaces"}); other Servers and all actions use sample data.`;
   });
 }
 activeInstance.addEventListener("click", () => showView("enclaves"));
 void loadStore().catch((error) => {
-  result.textContent = `Could not load saved Enclaves: ${String(error)}`;
+  result.textContent = `Could not load saved Servers: ${String(error)}`;
 });
