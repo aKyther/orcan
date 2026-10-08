@@ -183,8 +183,8 @@ ARG SBT_VERSION=1.10.5
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     case "${arch}" in \
-        amd64) jdk_arch="x64" ;; \
-        arm64) jdk_arch="aarch64" ;; \
+        amd64) jdk_arch="x64"; sbt_other_arch="aarch64" ;; \
+        arm64) jdk_arch="aarch64"; sbt_other_arch="x86_64" ;; \
         *) echo "unsupported architecture for Temurin JDK: ${arch}" >&2; exit 1 ;; \
     esac; \
     mkdir -p /opt/java; \
@@ -198,8 +198,12 @@ RUN set -eux; \
     curl -fsSL "https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz" \
         | tar -xz -C /opt/scala3 --strip-components=1; \
     mkdir -p /opt/sbt; \
+    # Keep the native sbt client for this Linux architecture only. \
     curl -fsSL "https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz" \
-        | tar -xz -C /opt/sbt --strip-components=1; \
+        | tar -xz -C /opt/sbt --strip-components=1 \
+            --exclude="sbt/bin/sbtn-${sbt_other_arch}-pc-linux" \
+            --exclude='sbt/bin/sbtn-*-apple-darwin' \
+            --exclude='sbt/bin/sbtn-*-pc-win32.exe'; \
     tmp="$(mktemp -d)"; \
     curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o "${tmp}/gradle.zip"; \
     unzip -q "${tmp}/gradle.zip" -d "${tmp}"; \

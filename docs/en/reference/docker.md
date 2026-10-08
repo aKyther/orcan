@@ -9,6 +9,8 @@ Use this page for image tags, Compose overlays, and `$ORCAN_DATA` binds. For **w
 - tmux **3.6a** from `tmux/tmux-builds` (not the bookworm 3.3a package)
 - OpenSSH client and `sshpass` for explicitly password-authenticated SSH automation
 - Non-root user `developer`
+- sbt includes only the native client for the image's Linux architecture;
+  tool documentation is retained.
 - Entry: `docker-entrypoint`
 
 | Tag | Role |

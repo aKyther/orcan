@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Image size:** omit sbt native clients for other operating systems and
+  architectures while keeping the matching Linux client and documentation.
+
 - **Documentation:** the site is now English-only. The retired Polish tree and
   i18n layer no longer add duplicate maintenance work; CI fetches full history
   so strict documentation checks can read revision dates reliably.
