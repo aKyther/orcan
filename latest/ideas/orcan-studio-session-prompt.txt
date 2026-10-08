@@ -1,0 +1,35 @@
+Kontynuujemy rozwój Orcan Studio.
+
+Najpierw przeczytaj:
+1. AGENTS.md i .manifest.json w workspace.
+2. .orcan/session-brief.md — aktualny handoff.
+3. Instrukcje projektu Orcan.
+4. docs/en/ideas/orcan-studio-roadmap.md.
+5. docs/en/ideas/orcan-studio.md.
+
+Porównaj zapisane ustalenia z aktualnym kodem i testami. Dokumentacja
+opisuje kierunek, ale nie jest dowodem, że wszystko zostało wdrożone.
+
+Obecny fundament:
+- Profile definiują połączenie: lokalne, WSL2 lub SSH.
+- Serwer/host posiada CLI, obrazy Dockera i współdzielone dane.
+- Na jednym hoście może działać wiele nazwanych kontenerów Orcana.
+- Sandbox/cache są współdzielone; konfiguracja, workspace’y,
+  worktree’y i cykl życia są rozdzielone między kontenerami.
+- Provisioning CLI/obrazu jest osobny od tworzenia kontenerów.
+- Nie używamy obecnie kategorii „Enclave”.
+- Studio przede wszystkim pomaga zarządzać kontekstem dla agentów.
+- Pipeline’y i graf wykonywania zadań są przyszłym kierunkiem,
+  nie zakresem obecnego etapu.
+
+Zrób analizę:
+1. Co faktycznie działa i jakie testy to potwierdzają?
+2. Gdzie kod, UI, kontrakt CLI i dokumentacja są niespójne?
+3. Jakie ryzyka pozostają przy wielu kontenerach i wspólnych danych?
+4. Co trzeba zweryfikować na Windows → WSL2 → SSH?
+5. Jakie maksymalnie 3 działania najlepiej domkną obecny etap?
+
+Preferuj minimalizm, poprawki i deduplikację zamiast nowych warstw.
+Nie cofaj istniejących zmian ani nie przebudowuj/restartuj mojego
+kontenera. Na tym etapie tylko przeanalizuj i przedstaw krótki wynik;
+nie implementuj zmian bez kolejnego polecenia.
