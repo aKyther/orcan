@@ -1731,30 +1731,62 @@ fn list_credentials(state: tauri::State<'_, ProfileState>) -> Result<Vec<SshCred
         .map_err(|error| error.to_string())
 }
 
-/// Saves the credential and, when given, its secret in the OS vault.
+/// Creates an immutable credential and, when required, its vault secret.
 #[tauri::command]
-fn save_credential(
+fn create_credential(
     credential: SshCredential,
     secret: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<(), String> {
-    let kind = match credential.authentication {
-        SshAuthentication::Password => "password",
-        SshAuthentication::PrivateKey { .. } => "key-passphrase",
-        SshAuthentication::Agent => "",
+    credential.validate().map_err(|error| error.to_string())?;
+    let secret = secret.filter(|secret| !secret.is_empty());
+    let vault_secret = match &credential.authentication {
+        SshAuthentication::Password if secret.is_some() => Some(("password", secret)),
+        SshAuthentication::Password => {
+            return Err("a password credential requires a password".to_owned());
+        }
+        SshAuthentication::PrivateKey {
+            has_passphrase: true,
+        } if secret.is_some() => Some(("key-passphrase", secret)),
+        SshAuthentication::PrivateKey {
+            has_passphrase: true,
+        } => return Err("this private key requires its passphrase".to_owned()),
+        SshAuthentication::PrivateKey {
+            has_passphrase: false,
+        } if secret.is_none() => None,
+        SshAuthentication::PrivateKey {
+            has_passphrase: false,
+        } => {
+            return Err(
+                "mark the key as passphrase-protected before supplying a passphrase".to_owned(),
+            );
+        }
+        SshAuthentication::Agent => {
+            return Err("the SSH agent does not create a Studio credential".to_owned());
+        }
     };
     state
         .0
         .lock()
         .map_err(|_| "profile store is unavailable".to_owned())?
-        .upsert_credential(credential.clone())
+        .create_credential(credential.clone())
         .map_err(|error| error.to_string())?;
-    match secret.filter(|secret| !secret.is_empty()) {
-        Some(secret) if !kind.is_empty() => vault_entry(&credential.vault_owner(), kind)?
-            .set_password(&secret)
-            .map_err(|error| format!("could not store credential: {error}")),
-        _ => Ok(()),
+    if let Some((kind, Some(secret))) = vault_secret {
+        let stored = vault_entry(&credential.vault_owner(), kind).and_then(|entry| {
+            entry
+                .set_password(&secret)
+                .map_err(|error| error.to_string())
+        });
+        if let Err(error) = stored {
+            let _ = state
+                .0
+                .lock()
+                .map_err(|_| "profile store is unavailable".to_owned())?
+                .delete_credential(&credential.id);
+            return Err(format!("could not store credential: {error}"));
+        }
     }
+    Ok(())
 }
 
 #[tauri::command]
@@ -1884,7 +1916,7 @@ fn main() {
             delete_profile,
             save_secret,
             list_credentials,
-            save_credential,
+            create_credential,
             delete_credential,
             parent_plan,
             parent_apply,

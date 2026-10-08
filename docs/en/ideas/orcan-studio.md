@@ -129,14 +129,24 @@ Selected workspace focus and map filters are remembered separately for each
 Enclave on the Studio device.
 
 Studio saves reconnect profiles in its native application-data directory. A
-profile contains a display name, transport metadata, and an optional SSH user
-override. Passwords and key passphrases are not written to
-the profile file; they belong in the operating system credential vault.
+profile contains a display name and transport metadata; system-SSH profiles may
+optionally state their SSH user. Passwords and key passphrases are not written
+to the profile file; they belong in the operating system credential vault.
 
-Credentials are separate, reusable records: a named private-key path or
-password, together with its usual remote username, that several profiles can
-reference. A profile can override that user for an exceptional target. A
-credential cannot be deleted while a profile uses it.
+Credentials are separate, reusable, immutable records: a named password or
+private-key path together with its SSH user. Studio offers distinct creation
+flows for password and key credentials; changing any of those values means
+creating a replacement, moving profiles to it, and deleting the unused old
+record. A profile chooses exactly one sign-in method: system SSH or one
+credential. It cannot override the credential user, and a credential cannot be
+deleted while a profile uses it.
+
+Studio keeps reconnect metadata in a versioned JSON document in its per-user
+application-data directory. Secrets are deliberately absent from that file and
+remain in the platform credential vault; a hash cannot replace a password here
+because native SSH must retrieve the password to authenticate. The installation
+directory is intentionally not used: it is commonly read-only or shared on
+Windows, macOS, and packaged Linux installations.
 Studio's UI calls the current Sandbox runtime an **Enclave** (an isolated Orcan
 environment) and walks through Credentials & keys → Profiles → Enclaves; no
 instance view is shown until a probe succeeds. Today one checked profile owns
@@ -152,6 +162,7 @@ workspace (or onto "New workspace") asks Orcan for a plan through
 The application is Rust + Tauri. The UI has no arbitrary shell permission: the
 Rust connection layer owns fixed commands and validates target identifiers.
 Password and private-key profiles use native SSH and check the host key against
-the local `known_hosts` file. An unknown or changed key is rejected; Studio
-never trusts it automatically. Their destination is direct `host` or
+the local `known_hosts` file. Studio displays an unknown key's fingerprint and
+records it only after explicit user approval; a changed key is rejected and
+never replaced automatically. Their destination is direct `host` or
 `host:port`; SSH-agent profiles continue to use system OpenSSH configuration.

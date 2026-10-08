@@ -52,6 +52,7 @@ const wslFields = $("#wsl-fields");
 const wslDistribution = $<HTMLSelectElement>("#wsl-distribution");
 const wslDistributionHint = $("#wsl-distribution-hint");
 const sshFields = $("#ssh-fields");
+const sshSystemUserField = $("#ssh-system-user-field");
 const sshHost = $<HTMLInputElement>("#ssh-host");
 const sshUser = $<HTMLInputElement>("#ssh-user");
 const credentialSelect = $<HTMLSelectElement>("#credential-select");
@@ -70,7 +71,6 @@ const secret = $<HTMLInputElement>("#secret");
 const secretLabel = $<HTMLLabelElement>("#secret-label");
 const secretHint = $("#secret-hint");
 const credentialResult = $<HTMLOutputElement>("#credential-result");
-const credentialDelete = $<HTMLButtonElement>("#credential-delete");
 const credentialSave = $<HTMLButtonElement>("#credential-save");
 const snapshot = document.querySelector<HTMLElement>("#snapshot")!;
 const snapshotRoot = document.querySelector<HTMLElement>("#snapshot-root")!;
@@ -226,7 +226,11 @@ function demoStoreCommand(command: string, args: Record<string, unknown>): unkno
   if (command === "list_profiles") return demoStore.profiles;
   if (command === "list_credentials") return demoStore.credentials;
   if (command === "save_profile") demoStore.profiles = upsert(demoStore.profiles, args.profile as ConnectionProfile);
-  if (command === "save_credential") demoStore.credentials = upsert(demoStore.credentials, args.credential as Credential);
+  if (command === "create_credential") {
+    const credential = args.credential as Credential;
+    if (demoStore.credentials.some((item) => item.id === credential.id)) throw new Error("credential already exists; create a new credential instead");
+    demoStore.credentials.push(credential);
+  }
   if (command === "delete_profile") demoStore.profiles = demoStore.profiles.filter((item) => item.id !== args.id);
   if (command === "delete_credential") {
     const users = demoStore.profiles.filter((item) => item.credential_id === args.id).map((item) => item.name);
@@ -1474,12 +1478,11 @@ async function deleteWorktree(path: string, label: string): Promise<void> {
   } catch (error) { cleanupResult.textContent = `Removal failed: ${String(error)}`; }
 }
 
-const SYSTEM_SSH = "";
+const CHOOSE_SSH = "";
+const SYSTEM_SSH = "__system__";
 const INLINE_SSH = "__inline__";
-const NEW_CREDENTIAL = "__new__";
 let editingProfile: ConnectionProfile | undefined;
-let editingCredential: Credential | undefined;
-let returnToProfileForm = false;
+let credentialKind: "password" | "private_key" = "private_key";
 
 /** randomUUID needs a secure context; the Tailscale UX preview is plain HTTP. */
 function newId(): string {
@@ -1512,71 +1515,52 @@ function describeProfile(profile: ConnectionProfile): string {
 // Credentials & keys
 
 function refreshCredentialForm(): void {
-  const kind = radioValue("credential-kind");
-  keyPathField.hidden = kind !== "private_key";
-  secretLabel.textContent = kind === "private_key" ? "Key passphrase" : "Password";
-  const keepsSecret = editingCredential?.authentication.kind === kind && (kind === "password" || (editingCredential.authentication.kind === "private_key" && editingCredential.authentication.has_passphrase));
-  secretHint.textContent = keepsSecret ? "Leave empty to keep the stored secret." : kind === "private_key" ? "Leave empty if the key has no passphrase. Stored in the operating-system vault." : "Stored in the operating-system vault, never in Studio files.";
+  keyPathField.hidden = credentialKind !== "private_key";
+  secretLabel.textContent = credentialKind === "private_key" ? "Key passphrase" : "Password";
+  secretHint.textContent = credentialKind === "private_key"
+    ? "Leave empty only when this key has no passphrase. A supplied passphrase is stored in the operating-system vault."
+    : "Stored in the operating-system vault, never in Studio files.";
 }
 
-function openCredentialForm(credential?: Credential, fromProfile = false): void {
-  editingCredential = credential;
-  returnToProfileForm = fromProfile;
+function openCredentialForm(kind: "password" | "private_key"): void {
+  credentialKind = kind;
   showView("credentials");
-  credentialFormTitle.textContent = credential ? `Edit ${credential.name}` : "New credential";
-  credentialName.value = credential?.name ?? "";
-  credentialUser.value = credential?.username ?? "";
-  setRadio("credential-kind", credential?.authentication.kind === "password" ? "password" : "private_key");
-  keyPath.value = credential?.authentication.kind === "private_key" ? credential.authentication.path : "";
+  credentialFormTitle.textContent = kind === "password" ? "New password credential" : "New key credential";
+  credentialName.value = "";
+  credentialUser.value = "";
+  keyPath.value = "";
   secret.value = "";
   credentialResult.textContent = "";
-  const users = credential ? profileUsers(credential.id) : [];
-  credentialDelete.hidden = !credential;
-  credentialDelete.disabled = users.length > 0;
-  credentialDelete.title = users.length ? `Used by ${users.join(", ")}` : "";
   refreshCredentialForm();
   showPane("credential-form");
-  if (!credential) {
-    void invoke<string>("current_user").then((user) => {
-      if (!credentialUser.value) credentialUser.value = user;
-    }).catch(() => undefined);
-  }
 }
 
-function leaveCredentialForm(selectId?: string): void {
+function leaveCredentialForm(): void {
   secret.value = "";
-  if (returnToProfileForm) {
-    returnToProfileForm = false;
-    showView("profiles");
-    renderCredentialOptions(selectId ?? SYSTEM_SSH);
-    showPane("profile-form");
-  } else showPane("credentials");
+  showPane("credentials");
 }
 
 async function saveCredential(): Promise<void> {
   const name = credentialName.value.trim();
   const username = credentialUser.value.trim();
-  const kind = radioValue("credential-kind");
   if (!name) { credentialResult.textContent = "Give the credential a name you will recognise, e.g. “Work laptop key”."; return; }
   if (!username || /\s/.test(username)) { credentialResult.textContent = "Enter the remote user without spaces, e.g. “developer”."; credentialUser.focus(); return; }
-  const sameKind = editingCredential?.authentication.kind === kind;
   let authentication: SshAuthentication;
-  if (kind === "private_key") {
+  if (credentialKind === "private_key") {
     const path = keyPath.value.trim();
     if (!path) { credentialResult.textContent = "Enter the path to the private key file."; return; }
-    const kept = sameKind && editingCredential?.authentication.kind === "private_key" && editingCredential.authentication.has_passphrase;
-    authentication = { kind: "private_key", path, has_passphrase: secret.value.length > 0 || kept };
+    authentication = { kind: "private_key", path, has_passphrase: secret.value.length > 0 };
   } else {
-    if (!secret.value && !sameKind) { credentialResult.textContent = "Enter the password."; return; }
+    if (!secret.value) { credentialResult.textContent = "Enter the password."; return; }
     authentication = { kind: "password" };
   }
-  const credential: Credential = { id: editingCredential?.id ?? newId(), name, username, authentication };
+  const credential: Credential = { id: newId(), name, username, authentication };
   credentialSave.disabled = true;
   try {
-    await invoke("save_credential", { credential, secret: secret.value || null });
+    await invoke("create_credential", { credential, secret: secret.value || null });
     await loadStore();
-    result.textContent = `Credential “${name}” saved.`;
-    leaveCredentialForm(credential.id);
+    result.textContent = `Credential “${name}” created. It cannot be edited; create a replacement when it changes.`;
+    leaveCredentialForm();
   } catch (error) { credentialResult.textContent = `Could not save: ${String(error)}`; }
   finally { credentialSave.disabled = false; }
 }
@@ -1584,19 +1568,29 @@ async function saveCredential(): Promise<void> {
 function renderCredentials(): void {
   credentialList.replaceChildren(...(savedCredentials.length ? savedCredentials.map((credential) => {
     const users = profileUsers(credential.id);
-    return listItem(credential.name, `${credential.username} · ${authLabel(credential.authentication)} · ${users.length ? `used by ${users.join(", ")}` : "not used yet"}`, actionButton("Edit", () => openCredentialForm(credential)));
-  }) : [emptyState("No credentials yet. Add one only when Studio itself signs in to a remote server with a key file or password. It stores the remote user plus the secret in the system vault; local, WSL2, and SSH-agent profiles do not need one.", "Add a credential or key", () => openCredentialForm())]));
+    const remove = actionButton("Delete", () => void deleteCredential(credential), "danger-link");
+    remove.disabled = users.length > 0;
+    remove.title = users.length ? `Used by ${users.join(", ")}` : "Delete this unused credential";
+    return listItem(credential.name, `${credential.username} · ${authLabel(credential.authentication)} · permanent${users.length ? ` · used by ${users.join(", ")}` : ""}`, remove);
+  }) : [emptyState("No credentials yet. Create a password or key credential when Studio itself must sign in to a remote server.", "New password credential", () => openCredentialForm("password"))]));
+}
+
+async function deleteCredential(credential: Credential): Promise<void> {
+  if (!window.confirm(`Delete credential ${credential.name}? Its vault secret is removed too.`)) return;
+  try {
+    await invoke("delete_credential", { id: credential.id });
+    await loadStore();
+  } catch (error) { result.textContent = `Could not delete credential: ${String(error)}`; }
 }
 
 // Profiles
 
-function renderCredentialOptions(selected: string): void {
-  const options = [new Option("System SSH — SSH agent or ~/.ssh/config", SYSTEM_SSH), ...savedCredentials.map((item) => new Option(`${item.name} · ${item.username} · ${authLabel(item.authentication)}`, item.id))];
+function renderCredentialOptions(selected?: string): void {
+  const options = [new Option("Choose sign-in method…", CHOOSE_SSH), new Option("System SSH — SSH agent or ~/.ssh/config", SYSTEM_SSH), ...savedCredentials.map((item) => new Option(`${item.name} · ${item.username} · ${authLabel(item.authentication)}`, item.id))];
   const inline = editingProfile?.target.kind === "ssh" && !editingProfile.credential_id && editingProfile.ssh && editingProfile.ssh.authentication.kind !== "agent";
-  if (inline) options.push(new Option("Saved in this profile (older format)", INLINE_SSH));
-  options.push(new Option("＋ Add a credential or key…", NEW_CREDENTIAL));
+  if (inline) options.push(new Option("Legacy profile credential — replace it", INLINE_SSH));
   credentialSelect.replaceChildren(...options);
-  credentialSelect.value = options.some((option) => option.value === selected) ? selected : SYSTEM_SSH;
+  credentialSelect.value = options.some((option) => option.value === selected) ? selected ?? CHOOSE_SSH : CHOOSE_SSH;
   refreshProfileForm();
 }
 
@@ -1606,10 +1600,13 @@ function refreshProfileForm(): void {
   if (location === "wsl2") void discoverWslDistributions();
   sshFields.hidden = location !== "ssh";
   const value = credentialSelect.value;
+  const system = value === SYSTEM_SSH;
+  sshSystemUserField.hidden = !system;
+  sshUser.disabled = !system;
   credentialHint.textContent = value === SYSTEM_SSH
     ? "Signs in like ssh in a terminal: your SSH agent and ~/.ssh/config. For a custom port, add a Host alias there."
     : value === INLINE_SSH ? "Kept as saved. Choose a shared credential to reuse it across profiles."
-    : `Studio signs in natively as ${savedCredentials.find((item) => item.id === value)?.username ?? "the credential user"}. Add an override only when this server uses another account.`;
+    : value ? `Studio signs in natively as ${savedCredentials.find((item) => item.id === value)?.username ?? "the credential user"}. This user is fixed by the credential.` : "Choose system SSH or one immutable credential.";
   profileTestResult.textContent = "";
   profileTestHint.hidden = true;
 }
@@ -1666,16 +1663,16 @@ function openProfileForm(profile?: ConnectionProfile): void {
   setRadio("location", profile?.target.kind ?? "ssh");
   wslDistribution.value = profile?.target.kind === "wsl2" ? profile.target.distribution : "";
   let host = profile?.target.kind === "ssh" ? profile.target.destination : "";
-  let user = profile?.ssh?.username ?? "";
+  let user = profile?.credential_id ? "" : profile?.ssh?.username ?? "";
   if (profile?.target.kind === "ssh" && !profile.credential_id && host.includes("@")) {
     user = host.slice(0, host.lastIndexOf("@"));
     host = host.slice(host.lastIndexOf("@") + 1);
   }
   sshHost.value = host;
   sshUser.value = user;
-  sshUser.placeholder = savedCredentials.find((item) => item.id === profile?.credential_id)?.username ? `Uses ${savedCredentials.find((item) => item.id === profile?.credential_id)?.username}` : "Uses the selected credential";
+  sshUser.placeholder = "Optional; otherwise SSH config decides";
   profileDelete.hidden = !profile;
-  renderCredentialOptions(profile?.credential_id ?? (profile?.ssh && profile.ssh.authentication.kind !== "agent" ? INLINE_SSH : SYSTEM_SSH));
+  renderCredentialOptions(profile?.credential_id ?? (profile?.ssh && profile.ssh.authentication.kind !== "agent" ? INLINE_SSH : profile ? SYSTEM_SSH : undefined));
   showPane("profile-form");
 }
 
@@ -1696,7 +1693,10 @@ function profileFromForm(): { profile: ConnectionProfile; connection: Connection
   if (!host) throw new Error("Enter the server address.");
   if (/\s/.test(host) || /\s/.test(user)) throw new Error("The address and user cannot contain spaces.");
   const choice = credentialSelect.value;
-  const label = name || `${user ? `${user}@` : ""}${host}`;
+  if (choice === CHOOSE_SSH) throw new Error("Choose system SSH or a credential for this remote server.");
+  const selectedCredential = savedCredentials.find((credential) => credential.id === choice);
+  const labelUser = choice === SYSTEM_SSH ? user : selectedCredential?.username;
+  const label = name || `${labelUser ? `${labelUser}@` : ""}${host}`;
   if (choice === SYSTEM_SSH) {
     const target: Target = { kind: "ssh", destination: user ? `${user}@${host}` : host };
     return { profile: { id, name, target }, connection: { target, label } };
@@ -1706,8 +1706,8 @@ function profileFromForm(): { profile: ConnectionProfile; connection: Connection
     return { profile: { id, name, target, ssh: { ...editingProfile.ssh!, username: user || undefined } }, connection: { target, label, profileId: editingProfile.id } };
   }
   return {
-    profile: { id, name, target, ssh: { username: user || undefined, authentication: { kind: "agent" } }, credential_id: choice },
-    connection: { target, label, credentialId: choice, username: user },
+    profile: { id, name, target, credential_id: choice },
+    connection: { target, label, credentialId: choice },
   };
 }
 
@@ -2352,15 +2352,12 @@ enclaveCreateTtydAuth.addEventListener("change", () => {
   enclaveCreateTtydFields.hidden = !enclaveCreateTtydAuth.checked;
   if (!enclaveCreateTtydAuth.checked) enclaveCreateTtydPassword.value = "";
 });
-$("#new-credential").addEventListener("click", () => openCredentialForm());
+$("#new-password-credential").addEventListener("click", () => openCredentialForm("password"));
+$("#new-key-credential").addEventListener("click", () => openCredentialForm("private_key"));
 $("#credential-back").addEventListener("click", () => leaveCredentialForm());
 for (const input of document.querySelectorAll<HTMLInputElement>('input[name="location"]')) input.addEventListener("change", refreshProfileForm);
 wslDistribution.addEventListener("change", () => void showWslDefaultUser());
-for (const input of document.querySelectorAll<HTMLInputElement>('input[name="credential-kind"]')) input.addEventListener("change", refreshCredentialForm);
-credentialSelect.addEventListener("change", () => {
-  if (credentialSelect.value === NEW_CREDENTIAL) { openCredentialForm(undefined, true); return; }
-  refreshProfileForm();
-});
+credentialSelect.addEventListener("change", refreshProfileForm);
 profileTest.addEventListener("click", () => void testProfile());
 profileSave.addEventListener("click", () => void saveProfile());
 profileDelete.addEventListener("click", async () => {
@@ -2371,11 +2368,6 @@ profileDelete.addEventListener("click", async () => {
   showPane("profiles");
 });
 credentialSave.addEventListener("click", () => void saveCredential());
-credentialDelete.addEventListener("click", async () => {
-  if (!editingCredential || !window.confirm(`Delete the credential ${editingCredential.name}? Its secret is removed from the vault.`)) return;
-  try { await invoke("delete_credential", { id: editingCredential.id }); await loadStore(); leaveCredentialForm(); }
-  catch (error) { credentialResult.textContent = `Could not delete: ${String(error)}`; }
-});
 for (const item of navigationItems) item.addEventListener("click", () => showView(item.dataset.viewTarget ?? "overview"));
 settingsRefresh.addEventListener("click", () => { if (current) void connect(current, settingsResult).catch(() => undefined); });
 sandboxRefresh.addEventListener("click", () => { if (current) void connect(current, sandboxResult).catch(() => undefined); });

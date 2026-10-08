@@ -99,23 +99,17 @@
 
         <section class="view" data-view="credentials" hidden>
           <div class="pane-stack"><section data-pane="credentials" class="pane">
-                <div class="pane-header"><div><p class="muted">Keys and passwords Studio can use to sign in to your Enclaves. Secrets stay in the operating-system credential vault; one credential can serve many Enclaves.</p></div><button id="new-credential" type="button">New credential</button></div>
+                <div class="pane-header"><div><p class="muted">Credentials are permanent sign-in records. Create a new one when its user, password, or key changes; secrets stay in the operating-system vault.</p></div><div class="actions compact"><button id="new-password-credential" type="button" class="secondary">New password</button><button id="new-key-credential" type="button">New key</button></div></div>
                 <div id="credential-list" class="item-list"></div>
               </section><section data-pane="credential-form" class="pane" hidden>
                 <button type="button" class="back-link" id="credential-back">← Credentials &amp; keys</button>
                 <h2 id="credential-form-title">New credential</h2>
-                <div class="field"><label for="credential-name">Name</label><input id="credential-name" autocomplete="off" placeholder="Work laptop key" /></div>
-                <div class="field"><label for="credential-user">Remote user</label><input id="credential-user" autocomplete="username" placeholder="developer" /><p class="hint">Stored with this key or password, not as a secret. A profile can override it for an exceptional server.</p></div>
-                <fieldset class="field"><legend>Type</legend>
-                  <div class="choice-grid two">
-                    <label class="choice"><input type="radio" name="credential-kind" value="private_key" checked /><strong>Private key file</strong><span>Recommended. Studio reads the key on this computer.</span></label>
-                    <label class="choice"><input type="radio" name="credential-kind" value="password" /><strong>Password</strong><span>Use when the server allows only passwords.</span></label>
-                  </div>
-                </fieldset>
+                <div class="field"><label for="credential-name">Credential name</label><input id="credential-name" autocomplete="off" placeholder="Production deploy key" /></div>
+                <div class="field"><label for="credential-user">SSH user</label><input id="credential-user" autocomplete="username" placeholder="remote-user" /><p class="hint">This user is part of the credential and cannot be changed later.</p></div>
                 <div id="key-path-field" class="field"><label for="key-path">Private-key path on this computer</label><input id="key-path" autocomplete="off" placeholder="~/.ssh/id_ed25519" /></div>
                 <div class="field"><label id="secret-label" for="secret">Key passphrase</label><input id="secret" type="password" autocomplete="new-password" /><p id="secret-hint" class="hint"></p></div>
                 <output id="credential-result" aria-live="polite"></output>
-                <div class="form-actions"><button id="credential-delete" type="button" class="danger-link" hidden>Delete credential</button><span></span><button id="credential-save" type="button">Save credential</button></div>
+                <div class="form-actions"><span></span><button id="credential-save" type="button">Create credential</button></div>
               </section></div>
         </section>
 
@@ -138,7 +132,7 @@
                 <div id="ssh-fields" class="field-stack" hidden>
                   <div class="connection-grid">
                     <div class="field"><label for="ssh-host">Server address</label><input id="ssh-host" autocomplete="off" placeholder="orcan.example.com or 100.64.0.5:2222" /><p class="hint">Hostname, IP address, or a Host alias from <code>~/.ssh/config</code>.</p></div>
-                    <div class="field"><label for="ssh-user">Remote user override</label><input id="ssh-user" autocomplete="username" placeholder="Uses the selected credential" /><p class="hint">Optional. Saved credentials carry their own user; system SSH may use <code>~/.ssh/config</code>.</p></div>
+                    <div id="ssh-system-user-field" class="field"><label for="ssh-user">SSH user for system SSH</label><input id="ssh-user" autocomplete="username" placeholder="Optional; otherwise SSH config decides" /><p class="hint">Only used when you explicitly select system SSH below.</p></div>
                   </div>
                   <div class="field"><label for="credential-select">Sign in with</label><select id="credential-select"></select><p id="credential-hint" class="hint"></p></div>
                 </div>

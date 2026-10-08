@@ -526,9 +526,9 @@ fn validate_record(id: &str, name: &str) -> Result<(), StudioError> {
 }
 
 /// Proof of identity (a key file or a password) that several profiles can
-/// share. It includes the usual remote user; a profile may override that user
-/// for an exceptional target. Secrets live in the operating system credential
-/// vault under [`SshCredential::vault_owner`].
+/// share. It includes the exact remote user used for every profile that refers
+/// to it. Secrets live in the operating system credential vault under
+/// [`SshCredential::vault_owner`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SshCredential {
     pub id: String,
@@ -603,7 +603,8 @@ pub struct ConnectionProfile {
     #[serde(default)]
     pub ssh: SshProfileOptions,
     /// Shared [`SshCredential`] used instead of `ssh.authentication` when set.
-    /// `ssh.username`, when present, overrides the credential's default user.
+    /// New records leave `ssh` at its agent/default value so credential identity
+    /// cannot be overridden. Older records may retain legacy SSH fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub credential_id: Option<String>,
 }
@@ -679,12 +680,20 @@ impl ProfileStore {
         Ok(self.read()?.credentials)
     }
 
-    pub fn upsert_credential(&self, credential: SshCredential) -> Result<(), StudioError> {
+    /// Credential records are tokens: their identity details never change.
+    /// Replace one by creating a new record, moving profiles, then deleting it.
+    pub fn create_credential(&self, credential: SshCredential) -> Result<(), StudioError> {
         credential.validate()?;
         let mut document = self.read()?;
-        document
+        if document
             .credentials
-            .retain(|existing| existing.id != credential.id);
+            .iter()
+            .any(|existing| existing.id == credential.id)
+        {
+            return Err(StudioError::InvalidProfile(
+                "credential already exists; create a new credential instead".to_owned(),
+            ));
+        }
         document.credentials.push(credential);
         document
             .credentials
@@ -714,8 +723,8 @@ impl ProfileStore {
     }
 
     /// Resolves the SSH options for a saved profile, or for an unsaved
-    /// Optional `username` override + shared credential pair (connection test
-    /// before saving).
+    /// credential selected while testing before saving. Credential identity
+    /// is exact: profile and caller usernames never override it.
     pub fn resolve_ssh(
         &self,
         profile_id: Option<&str>,
@@ -750,20 +759,11 @@ impl ProfileStore {
                             "selected credential no longer exists".to_owned(),
                         )
                     })?;
-                let username = username
-                    .map(str::to_owned)
-                    .or_else(|| {
-                        profile
-                            .as_ref()
-                            .and_then(|profile| profile.ssh.username.clone())
-                    })
-                    .or_else(|| {
-                        (!credential.username.is_empty()).then(|| credential.username.clone())
-                    });
+                let _ = username;
                 ResolvedSsh {
                     vault_owner: credential.vault_owner(),
                     ssh: SshProfileOptions {
-                        username,
+                        username: Some(credential.username.clone()),
                         authentication: credential.authentication.clone(),
                     },
                 }
@@ -781,16 +781,21 @@ impl ProfileStore {
         profile.validate()?;
         let mut document = self.read()?;
         if let Some(id) = &profile.credential_id {
-            let credential = document
+            if profile.ssh.username.is_some()
+                || !matches!(profile.ssh.authentication, SshAuthentication::Agent)
+            {
+                return Err(StudioError::InvalidProfile(
+                    "a profile using a credential cannot override its user or authentication"
+                        .to_owned(),
+                ));
+            }
+            if document
                 .credentials
                 .iter()
-                .find(|credential| &credential.id == id)
-                .ok_or_else(|| {
-                    StudioError::InvalidProfile("selected credential no longer exists".to_owned())
-                })?;
-            if profile.ssh.username.is_none() && credential.username.is_empty() {
+                .all(|credential| &credential.id != id)
+            {
                 return Err(StudioError::InvalidProfile(
-                    "the shared credential needs a username, or set a profile override".to_owned(),
+                    "selected credential no longer exists".to_owned(),
                 ));
             }
         }
@@ -1332,8 +1337,12 @@ mod tests {
             "credential must exist"
         );
         store
-            .upsert_credential(credential.clone())
+            .create_credential(credential.clone())
             .expect("credential saves");
+        assert!(
+            store.create_credential(credential.clone()).is_err(),
+            "credentials cannot be overwritten"
+        );
         store
             .upsert(profile("a", "host-a"))
             .expect("first profile saves");
@@ -1352,7 +1361,13 @@ mod tests {
             .resolve_ssh(None, Some("work-key"), Some("tester"))
             .expect("resolves")
             .expect("has SSH options");
-        assert_eq!(unsaved.ssh.username.as_deref(), Some("tester"));
+        assert_eq!(unsaved.ssh.username.as_deref(), Some("developer"));
+        let mut override_profile = profile("override", "host-override");
+        override_profile.ssh.username = Some("tester".to_owned());
+        assert!(
+            store.upsert(override_profile).is_err(),
+            "profiles cannot override an immutable credential user"
+        );
         let error = store
             .delete_credential("work-key")
             .expect_err("still in use");
