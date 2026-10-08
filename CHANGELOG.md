@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio provisioning:** image-only transfers check destination Docker access
+  and architecture. Installation verifies CLI and image presence; image-only
+  transfer compares image IDs. Results offer an Enclaves shortcut and readable
+  error hints with expandable technical detail.
+
 - **Studio provisioning:** show each selected profile's address, user, and sign-in
   method. Offline CLI readiness checks destination tools and write access, and
   verifies Docker access and matching architecture when an image is included.

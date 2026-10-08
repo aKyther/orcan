@@ -49,6 +49,12 @@ Python 3, and permission to write to the user's home. When including an image,
 it also verifies Docker access and requires its architecture to match the
 destination. Each provisioning profile selector shows the destination address
 and the user and sign-in method supplied by the selected profile or credential.
+The image-only transfer also checks destination Docker access and architecture
+before enabling transfer. After installation Studio reads the CLI version and
+checks any included image on the destination. Image-only transfer compares the
+destination image ID with the inspected source ID. A verified result offers
+**Go to Enclaves**; failed operations show a short recovery hint and expandable
+technical detail.
 Kits intentionally exclude profiles, configuration, projects,
 sandbox data, and credentials. It requires a remote shell and `tar`; Docker is
 required only when an image is included. SSH-agent profiles use system OpenSSH.

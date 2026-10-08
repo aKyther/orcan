@@ -96,6 +96,7 @@ struct ImageInventory {
     image: String,
     id: String,
     size: String,
+    architecture: String,
 }
 
 #[derive(serde::Serialize)]
@@ -394,7 +395,7 @@ fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> 
             "image",
             "inspect",
             "--format",
-            "{{.Id}}\t{{.Size}}",
+            "{{.Id}}\t{{.Size}}\t{{.Architecture}}",
             &input.image,
         ])
         .output()
@@ -406,14 +407,113 @@ fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> 
     let mut fields = output_text.trim().split('\t');
     let id = fields.next().unwrap_or_default();
     let size = fields.next().unwrap_or_default();
-    if id.is_empty() || size.is_empty() {
+    let architecture = fields.next().unwrap_or_default();
+    if id.is_empty() || size.is_empty() || architecture.is_empty() {
         return Err("WSL Docker returned an incomplete image inventory".to_owned());
     }
     Ok(ImageInventory {
         image: input.image.clone(),
         id: id.to_owned(),
         size: size.to_owned(),
+        architecture: architecture.to_owned(),
     })
+}
+
+async fn provisioning_ssh_command(
+    enclave: EnclaveInput,
+    command: String,
+    state: &tauri::State<'_, ProfileState>,
+) -> Result<String, String> {
+    let target = Target::from(enclave.target.clone());
+    let Target::Ssh { destination } = &target else {
+        return Err("Choose a remote SSH destination".to_owned());
+    };
+    target.probe_request().map_err(|error| error.to_string())?;
+    if let Some(resolved) = native_ssh(&enclave, &target, state)? {
+        return native_ssh_exec(destination, resolved, &command).await;
+    }
+    let destination = destination.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        command_output(
+            {
+                let mut process = background_command("ssh");
+                process
+                    .args(["-o", "BatchMode=yes", "--", &destination])
+                    .arg(command);
+                process
+            },
+            "remote provisioning check",
+        )
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
+async fn check_image_destination(
+    enclave: EnclaveInput,
+    architecture: String,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<String, String> {
+    let output = provisioning_ssh_command(
+        enclave,
+        "docker info >/dev/null && uname -m".to_owned(),
+        &state,
+    )
+    .await?;
+    let remote = match output.trim() {
+        "x86_64" => "amd64",
+        "aarch64" => "arm64",
+        other => other,
+    };
+    if remote != architecture {
+        return Err(format!(
+            "Image architecture {architecture} does not match destination {remote}. Choose an image for {remote}."
+        ));
+    }
+    Ok(remote.to_owned())
+}
+
+#[tauri::command]
+async fn verify_provision(
+    enclave: EnclaveInput,
+    image: Option<String>,
+    expected_id: Option<String>,
+    cli: bool,
+    state: tauri::State<'_, ProfileState>,
+) -> Result<String, String> {
+    let version = if cli {
+        Some(run_on_enclave(enclave.clone(), vec!["version".to_owned()], state.clone()).await?)
+    } else {
+        None
+    };
+    if let Some(image) = image {
+        if !valid_image_reference(&image) {
+            return Err("invalid Docker image reference".to_owned());
+        }
+        let id = provisioning_ssh_command(
+            enclave,
+            format!(
+                "docker image inspect --format '{{{{.Id}}}}' {}",
+                shell_quote(&image)
+            ),
+            &state,
+        )
+        .await?;
+        if expected_id.is_some_and(|expected| expected != id.trim()) {
+            return Err("Destination image differs from the exported image".to_owned());
+        }
+        return Ok(format!(
+            "{}Image {image} verified on destination.",
+            version
+                .map(|v| format!("{} · ", v.trim()))
+                .unwrap_or_default()
+        ));
+    }
+    Ok(format!(
+        "{} verified on destination.",
+        version.unwrap_or_default().trim()
+    ))
 }
 
 #[tauri::command]
@@ -2171,6 +2271,8 @@ fn main() {
             wsl_default_user,
             wsl_image_inventory_command,
             transfer_wsl_image,
+            check_image_destination,
+            verify_provision,
             check_wsl_cli_provision,
             provision_wsl_cli,
             check_online_provision,

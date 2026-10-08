@@ -18,6 +18,7 @@ const imageTransferSource = $<HTMLSelectElement>("#image-transfer-source");
 const imageTransferName = $<HTMLInputElement>("#image-transfer-name");
 const imageTransferTarget = $<HTMLSelectElement>("#image-transfer-target");
 const imageTransferInspect = $<HTMLButtonElement>("#image-transfer-inspect");
+imageTransferInspect.textContent = "Check requirements";
 const imageTransferRun = $<HTMLButtonElement>("#image-transfer-run");
 const imageTransferResult = $<HTMLOutputElement>("#image-transfer-result");
 const cliProvisionSource = $<HTMLSelectElement>("#cli-provision-source");
@@ -302,6 +303,9 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     trust_ssh_host_key: null,
     check_online_provision: { user: "developer", installedVersion: "orcan demo" },
     check_wsl_cli_provision: { source: "Ubuntu", destination: "demo.example", destinationUser: "developer", destinationArchitecture: "amd64" },
+    wsl_image_inventory_command: { image: "orcan:latest", id: "sha256:demo", size: "1024", architecture: "amd64" },
+    check_image_destination: "amd64",
+    verify_provision: "Demo destination verified.",
     check_docker: { available: true, version: "27.5.1", detail: "Docker daemon is ready" },
     provision_online: { version: "orcan demo" },
   };
@@ -1966,7 +1970,7 @@ async function openEnclaveSettings(profile: ConnectionProfile): Promise<void> {
   }
 }
 
-type ImageInventory = { image: string; id: string; size: string };
+type ImageInventory = { image: string; id: string; size: string; architecture: string };
 let inspectedImage: ImageInventory | undefined;
 
 function selectedProfile(select: HTMLSelectElement): ConnectionProfile | undefined {
@@ -1978,6 +1982,26 @@ type CliProvisionCheck = { source: string; destination: string; image?: string; 
 type OnlineProvisionCheck = { user: string; installedVersion?: string };
 let cliProvisionReady = false;
 let onlineProvisionReadyProfileId: string | undefined;
+
+function provisioningFailure(output: HTMLElement, error: unknown): void {
+  const detail = String(error);
+  const hint = /architecture/i.test(detail) ? "Choose an image built for the destination computer’s architecture."
+    : /docker.*permission|permission.*docker|docker daemon|docker.*connect/i.test(detail) ? "Start Docker on the destination and allow the profile’s user to access it."
+    : /authentication|publickey|rejected|permission denied/i.test(detail) ? "Check the selected user and credential. Create a replacement credential if its password or key changed."
+    : /needs|required|not found|command not found/i.test(detail) ? "A required tool is missing. Install the tool named in the technical detail, then check again."
+    : /architecture|does not match|differs/i.test(detail) ? "The destination did not match the selected source. Check the selected profiles and image."
+    : /timed out|unreachable|refused|resolve/i.test(detail) ? "Check the address, network or VPN, and whether the destination is running."
+    : /host.key|known_hosts/i.test(detail) ? "Open the profile and test its connection to verify the server identity."
+    : "The operation did not finish. Review the detail below and check requirements before trying again.";
+  output.replaceChildren(el("strong", { textContent: "Could not complete provisioning. " }), el("span", { textContent: hint }), technicalDetail(detail));
+}
+
+function provisioningSucceeded(output: HTMLElement, message: string, profile: ConnectionProfile): void {
+  output.replaceChildren(el("span", { textContent: message }), actionButton("Go to Enclaves", () => {
+    showView("enclaves");
+    void checkEnclave(profile);
+  }));
+}
 
 function renderProvisionIdentity(): void {
   for (const select of [onlineProvisionTarget, cliProvisionSource, cliProvisionTarget, imageTransferSource, imageTransferTarget]) {
@@ -2032,11 +2056,15 @@ async function checkOnlineProvision(): Promise<void> {
   onlineProvisionResult.textContent = `Checking ${profile.name} for online installation…`;
   try {
     const check = await invoke<OnlineProvisionCheck>("check_online_provision", { enclave: enclaveInput(profileConnection(profile)) });
+    if (selectedProfile(onlineProvisionTarget)?.id !== profile.id) {
+      onlineProvisionResult.textContent = "Selection changed. Check requirements again.";
+      return;
+    }
     onlineProvisionReadyProfileId = profile.id;
     onlineProvisionRun.disabled = false;
     onlineProvisionResult.textContent = `Ready as ${check.user}. Bash, curl, Git, and Python 3 are available.${check.installedVersion ? ` Existing Orcan: ${check.installedVersion}.` : " Orcan is not installed yet."}`;
   } catch (error) {
-    onlineProvisionResult.textContent = `Requirements check failed: ${String(error)}`;
+    provisioningFailure(onlineProvisionResult, error);
   } finally {
     onlineProvisionCheck.disabled = false;
   }
@@ -2053,11 +2081,12 @@ async function provisionOnline(): Promise<void> {
   try {
     const installed = await invoke<CliProvisionResult>("provision_online", { enclave: enclaveInput(profileConnection(profile)) });
     enclaveStatus.delete(profile.id);
-    onlineProvisionResult.textContent = `Orcan ${installed.version} is ready on ${profile.name}. You can now create or connect an Enclave.`;
+    const verified = await invoke<string>("verify_provision", { enclave: enclaveInput(profileConnection(profile)), cli: true, image: null, expectedId: null });
+    provisioningSucceeded(onlineProvisionResult, verified, profile);
     finishJob(job, "succeeded", `Ready: ${installed.version}`);
     await checkEnclave(profile);
   } catch (error) {
-    onlineProvisionResult.textContent = `Installation failed: ${String(error)}`;
+    provisioningFailure(onlineProvisionResult, error);
     finishJob(job, "failed", String(error));
   } finally {
     onlineProvisionReadyProfileId = undefined;
@@ -2121,7 +2150,7 @@ async function checkCliProvision(): Promise<void> {
       el("li", { textContent: checked.image ? `Docker: accessible; image ${checked.image} matches destination architecture ${checked.destinationArchitecture}.` : "Docker image: not selected; Docker is not required for CLI installation." }),
     ));
   } catch (error) {
-    cliProvisionResult.textContent = `Requirements check failed: ${String(error)}`;
+    provisioningFailure(cliProvisionResult, error);
   } finally {
     cliProvisionCheck.disabled = false;
   }
@@ -2142,13 +2171,16 @@ async function provisionCli(): Promise<void> {
   cliProvisionResult.textContent = "Building the clean kit in WSL and streaming it through SSH…";
   try {
     const installed = await invoke<CliProvisionResult>("provision_wsl_cli", { input });
-    cliProvisionResult.textContent = `Installed ${installed.version} on ${target.name}${installed.image ? ` and imported ${installed.image}` : ""}. Use New Enclave to configure and start it.`;
+    cliProvisionResult.textContent = "Installation finished. Verifying CLI and selected image on the destination…";
+    const verified = await invoke<string>("verify_provision", { enclave: enclaveInput(profileConnection(target)), cli: true, image: installed.image ?? null, expectedId: null });
+    provisioningSucceeded(cliProvisionResult, verified, target);
     finishJob(job, "succeeded", `Installed ${installed.version}${installed.image ? ` · ${installed.image}` : ""}`);
   } catch (error) {
-    cliProvisionResult.textContent = `Offline installation failed: ${String(error)}`;
+    provisioningFailure(cliProvisionResult, error);
     finishJob(job, "failed", String(error));
   } finally {
-    cliProvisionRun.disabled = false;
+    cliProvisionReady = false;
+    cliProvisionRun.disabled = true;
   }
 }
 
@@ -2241,17 +2273,24 @@ async function planEmptyEnclave(apply = false): Promise<void> {
 
 async function inspectTransferImage(): Promise<void> {
   const source = selectedProfile(imageTransferSource);
-  if (!source || source.target.kind !== "wsl2") return;
+  const target = selectedProfile(imageTransferTarget);
+  if (!source || source.target.kind !== "wsl2" || !target) return;
+  const selectedImage = imageTransferName.value.trim();
   inspectedImage = undefined;
   imageTransferRun.disabled = true;
   imageTransferInspect.disabled = true;
   imageTransferResult.textContent = `Checking ${imageTransferName.value.trim()} in ${source.name}…`;
   try {
     const inventory = await invoke<ImageInventory>("wsl_image_inventory_command", { input: { distribution: source.target.distribution, image: imageTransferName.value.trim() } });
+    await invoke<string>("check_image_destination", { enclave: enclaveInput(profileConnection(target)), architecture: inventory.architecture });
+    if (selectedProfile(imageTransferSource)?.id !== source.id || selectedProfile(imageTransferTarget)?.id !== target.id || imageTransferName.value.trim() !== selectedImage) {
+      imageTransferResult.textContent = "Selection changed. Check requirements again.";
+      return;
+    }
     inspectedImage = inventory;
-    imageTransferResult.textContent = `Ready: ${inventory.image} · ${inventory.id} · ${inventory.size} bytes. Transfer streams this image directly to the selected remote Docker daemon.`;
+    imageTransferResult.textContent = `Ready: ${inventory.image} · ${inventory.size} bytes · ${inventory.architecture}. Destination Docker is accessible and architecture matches.`;
     imageTransferRun.disabled = !selectedProfile(imageTransferTarget);
-  } catch (error) { imageTransferResult.textContent = `Image check failed: ${String(error)}`; }
+  } catch (error) { provisioningFailure(imageTransferResult, error); }
   finally { imageTransferInspect.disabled = false; }
 }
 
@@ -2261,21 +2300,24 @@ async function transferImage(): Promise<void> {
   if (!source || source.target.kind !== "wsl2" || !target || target.target.kind !== "ssh" || !inspectedImage) return;
   if (!window.confirm(`Transfer ${inspectedImage.image} (${inspectedImage.id}) from ${source.name} to ${target.name}? The remote Docker daemon will import the image.`)) return;
   const job = addJob("Image transfer", `${inspectedImage.image}: ${source.name} → ${target.name}`, target.name, target.id);
+  const image = inspectedImage;
   imageTransferRun.disabled = true;
-  imageTransferResult.textContent = `Transferring ${inspectedImage.image}; keep Studio open until Docker import completes…`;
+  imageTransferResult.textContent = `Transferring ${image.image}; keep Studio open until Docker import completes…`;
   try {
     await invoke<ImageInventory>("transfer_wsl_image", { input: {
       distribution: source.target.distribution,
-      image: inspectedImage.image,
+      image: image.image,
       destination: target.target.destination,
       destinationProfileId: target.id,
       destinationCredentialId: target.credential_id,
       destinationUsername: target.ssh?.username,
     } });
-    imageTransferResult.textContent = `Transferred ${inspectedImage.image} to ${target.name}. Reconnect to verify Docker and provision Orcan on the remote host.`;
-    finishJob(job, "succeeded", `Imported ${inspectedImage.image} on ${target.name}`);
-  } catch (error) { imageTransferResult.textContent = `Transfer failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
-  finally { imageTransferRun.disabled = false; }
+    imageTransferResult.textContent = "Transfer finished. Verifying the image on the destination…";
+    const verified = await invoke<string>("verify_provision", { enclave: enclaveInput(profileConnection(target)), cli: false, image: image.image, expectedId: image.id });
+    provisioningSucceeded(imageTransferResult, verified, target);
+    finishJob(job, "succeeded", `Imported ${image.image} on ${target.name}`);
+  } catch (error) { provisioningFailure(imageTransferResult, error); finishJob(job, "failed", String(error)); }
+  finally { imageTransferRun.disabled = true; inspectedImage = undefined; }
 }
 
 function renderEnclaves(): void {
