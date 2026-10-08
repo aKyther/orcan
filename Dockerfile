@@ -488,6 +488,7 @@ Path("/opt/orcan/ttyd-index.html").write_text(
 PY
 
 RUN chmod 0755 \
+        /usr/local/bin/ssh \
         /usr/local/bin/docker-entrypoint \
         /usr/local/bin/init-cursor-home \
         /usr/local/bin/init-claude-home \

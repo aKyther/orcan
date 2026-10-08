@@ -94,10 +94,19 @@ orcan_image_build_local() {
     local agents="$1"
     local no_cache="${2:-0}"
     local prune="${3:-0}"
+    local remove_previous="${4:-0}" previous_images="" answer="" old_tag old_id current_id new_id
     local ver build_args image install_cursor=0 install_claude=0 install_codex=0 install_gemini=0 install_copilot=0 agent
 
     ver="$(orcan_image_version)"
     image="${IMAGE_LOCAL:-orcan:latest}"
+    if (( remove_previous )); then
+        previous_images="$(docker image ls --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}}' orcan)" || return
+        if [[ -n "${previous_images}" ]]; then
+            printf 'Previous local Orcan images:\n%s\nRemove these after a successful build? [y/n] ' "${previous_images}"
+            read -r answer || answer=n
+            case "${answer}" in y|Y|yes|YES) ;; *) remove_previous=0 ;; esac
+        fi
+    fi
     build_args=(build)
     if (( no_cache )); then
         build_args+=(--no-cache)
@@ -116,10 +125,28 @@ orcan_image_build_local() {
     ORCAN_VERSION="${ver}" IMAGE_LOCAL="${image}" \
         INSTALL_CURSOR="${install_cursor}" INSTALL_CLAUDE="${install_claude}" \
         INSTALL_CODEX="${install_codex}" INSTALL_GEMINI="${install_gemini}" INSTALL_COPILOT="${install_copilot}" \
-        orcan_compose_build "${build_args[@]}"
+        orcan_compose_build "${build_args[@]}" || return
     docker tag "${image}" "orcan:${ver}" 2>/dev/null || true
     docker tag "${image}" orcan:latest 2>/dev/null || true
     orcan_ok "built ${image} (manifest: /etc/orcan/agents.json)"
+    if (( remove_previous )) && [[ -n "${previous_images}" ]]; then
+        new_id="$(docker image inspect --format '{{.Id}}' "${image}")" || return
+        while read -r old_tag old_id; do
+            [[ "${old_id}" != "${new_id}" ]] || continue
+            if [[ -n "$(docker container ls -aq --filter "ancestor=${old_id}")" ]]; then
+                orcan_warn "kept ${old_id}: used by a container"
+                continue
+            fi
+            # Do not remove tags replaced by this build or by another process.
+            if [[ "${old_tag}" != 'orcan:<none>' ]]; then
+                current_id="$(docker image inspect --format '{{.Id}}' "${old_tag}" 2>/dev/null)" || current_id=""
+                [[ "${current_id}" == "${old_id}" ]] || old_tag="${old_id}"
+            else
+                old_tag="${old_id}"
+            fi
+            docker image rm "${old_tag}" || orcan_warn "kept ${old_tag}: still in use or referenced (no forced removal)"
+        done <<<"${previous_images}"
+    fi
     if (( prune )); then
         orcan_image_prune_dangling
     fi

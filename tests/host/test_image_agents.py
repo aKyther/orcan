@@ -88,6 +88,35 @@ class BuildAgentSelectionTests(unittest.TestCase):
 
 
 class ImageManifestTests(unittest.TestCase):
+    def test_cleanup_requires_confirmation_and_successful_build(self) -> None:
+        for answer, fail, expected in [
+            ("n", False, False),
+            ("y", True, False),
+            ("y", False, True),
+        ]:
+            with self.subTest(answer=answer, fail=fail):
+                result = run_shell(
+                    """
+                    source cli/lib/image.sh
+                    orcan_image_version() { echo test; }
+                    orcan_info() { :; }; orcan_ok() { :; }; orcan_warn() { :; }
+                    docker() {
+                        case "$*" in
+                            'image ls '*) echo 'orcan:old sha256:old' ;;
+                            'image inspect '*)
+                                if [[ "${*: -1}" == orcan:old ]]; then echo sha256:old; else echo sha256:new; fi ;;
+                            'image rm '*) echo REMOVED ;;
+                        esac
+                    }
+                    orcan_compose_build() { return BUILD_STATUS; }
+                    orcan_image_build_local codex 0 0 1 <<<'ANSWER'
+                    """.replace("BUILD_STATUS", "1" if fail else "0").replace(
+                        "ANSWER", answer
+                    )
+                )
+                self.assertEqual("REMOVED" in result.stdout, expected, result.stderr)
+                self.assertEqual(result.returncode, 1 if fail else 0, result.stderr)
+
     def test_complete_manifest_is_publishable(self) -> None:
         result = run_shell(
             """

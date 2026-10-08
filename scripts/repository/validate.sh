@@ -219,6 +219,7 @@ require_file "docker/rootfs/opt/cursor-defaults/templates/workspace/.cursor/rule
 
 bash_scripts=(
     docker/rootfs/usr/local/bin/docker-entrypoint
+    docker/rootfs/usr/local/bin/ssh
     docker/rootfs/usr/local/bin/init-cursor-home
     docker/rootfs/usr/local/bin/cursor-init-project
     docker/rootfs/usr/local/bin/orcan-init-projects

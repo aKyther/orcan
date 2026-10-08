@@ -5,6 +5,7 @@ orcan_cmd_build() {
     local agents=""
     local no_cache=0
     local prune=0
+    local remove_previous=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --agent)
@@ -27,6 +28,10 @@ orcan_cmd_build() {
                 prune=1
                 shift
                 ;;
+            --remove-previous)
+                remove_previous=1
+                shift
+                ;;
             --force | --no-pull)
                 shift
                 ;;
@@ -36,13 +41,15 @@ orcan_cmd_build() {
                 ;;
             -h | --help)
                 cat <<'EOF'
-usage: orcan build --agent NAME [--agent NAME ...] | --all-agents [--no-cache|--force] [--prune]
+usage: orcan build --agent NAME [--agent NAME ...] | --all-agents [--no-cache|--force] [--prune] [--remove-previous]
 
   NAME: cursor | claude | codex | gemini | copilot
   Builds the standard orcan:latest image. Its /etc/orcan/agents.json records
   the selected CLIs. Build selection is explicit; use --all-agents for all.
   --prune removes dangling Orcan images after a successful build. It never
   runs docker system prune or removes BuildKit cache.
+  --remove-previous asks [y/n] before removing old local orcan tags after a
+  successful build. Images used by containers are kept; no forced removal.
 EOF
                 return 0
                 ;;
@@ -59,5 +66,5 @@ EOF
     orcan_load_env
     orcan_runtime_warn_if_config_stale build
 
-    orcan_image_build_local "${agents}" "${no_cache}" "${prune}"
+    orcan_image_build_local "${agents}" "${no_cache}" "${prune}" "${remove_previous}"
 }

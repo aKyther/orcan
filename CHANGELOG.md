@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **SSH multiplexing:** container SSH stores control sockets under
+  `~/.cache/orcan/ssh` instead of the read-only host `~/.ssh` mount, while
+  preserving configured `ControlMaster` and `ControlPersist` settings.
+- **Build cleanup:** `orcan build --remove-previous` asks for confirmation and
+  removes previous local Orcan images only after a successful build, without
+  forced removal or deleting containers, workspaces, or sandbox data.
+
 - **Studio provisioning:** image-only transfers check destination Docker access
   and architecture. Installation verifies CLI and image presence; image-only
   transfer compares image IDs. Results offer an Enclaves shortcut and readable

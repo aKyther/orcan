@@ -62,6 +62,14 @@ command -v gh >/dev/null
 command -v sg >/dev/null
 command -v ast-grep >/dev/null
 command -v ssh >/dev/null
+[[ \"\$(command -v ssh)\" == /usr/local/bin/ssh ]]
+orcan_ssh_test_config=\"\$(ssh -F /dev/null -G -o ControlMaster=auto -o ControlPersist=60 \
+    -o ControlPath=/nonexistent/readonly/socket example.invalid \
+    2>/dev/null)\"
+[[ \"\${orcan_ssh_test_config}\" == *\"controlpath \${HOME}/.cache/orcan/ssh/\"* ]]
+[[ \"\${orcan_ssh_test_config}\" == *\"controlmaster auto\"* ]]
+[[ \"\${orcan_ssh_test_config}\" == *\"controlpersist 60\"* ]]
+[[ \"\$(stat -c %a \"\${HOME}/.cache/orcan/ssh\")\" == 700 ]]
 command -v sshpass >/dev/null
 command -v rsync >/dev/null
 command -v sqlite3 >/dev/null

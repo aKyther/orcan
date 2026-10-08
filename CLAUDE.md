@@ -74,6 +74,16 @@ container CMD → orcan-supervisord → keepalive|ttyd
 - Version SoT: `cockpit/pyproject.toml` → `version`; root `VERSION` is a mirror
 - Docs: English; B1–B2; story before commands; `docs/STYLE_GUIDE.md`
 
+### SSH inside the container
+
+`orcan up --with-git` mounts host `~/.ssh` read-only. Container
+`/usr/local/bin/ssh` delegates to OpenSSH with `ControlPath` set to
+`~/.cache/orcan/ssh/%C` (private directory, mode 700), so multiplexing sockets
+can be created and reused. `ControlMaster` and `ControlPersist` still follow
+user configuration. Use `ssh` via PATH; explicit `/usr/bin/ssh` bypasses this
+override. Do not make the host SSH mount writable or store runtime sockets
+under `~/.ssh`. Do not read keys or credentials while diagnosing SSH issues.
+
 ### Python test dependencies
 
 Use `make test-host`: its runner requires `uv` and loads `requirements-test.txt`

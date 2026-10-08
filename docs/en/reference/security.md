@@ -52,6 +52,13 @@ engine control. If you only need reachability, use `--with-network`.
 
 ## Mount layout tradeoffs
 
+Inside the container, the `ssh` launcher overrides `ControlPath` to
+`~/.cache/orcan/ssh/%C`. This private, writable directory lets SSH create and
+reuse connection sockets even when host `~/.ssh` is mounted read-only.
+`ControlMaster` and `ControlPersist` keep their configured values. Host and
+container control sockets are separate; keys and configuration remain read-only.
+Tools explicitly invoking `/usr/bin/ssh` bypass this launcher.
+
 Stable binds favour **dynamic workspace and project changes without recreating
 the container**. That is intentional:
 

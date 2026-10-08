@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Keep multiplexing sockets outside the read-only host SSH mount.
+set -Eeuo pipefail
+
+orcan_ssh_control_dir="${HOME}/.cache/orcan/ssh"
+if [[ -L "${orcan_ssh_control_dir}" ]]; then
+    printf 'SSH control directory must not be a symlink: %s\n' "${orcan_ssh_control_dir}" >&2
+    exit 1
+fi
+(umask 077; mkdir -p -- "${orcan_ssh_control_dir}")
+if [[ ! -O "${orcan_ssh_control_dir}" ]]; then
+    printf 'SSH control directory must belong to the current user: %s\n' "${orcan_ssh_control_dir}" >&2
+    exit 1
+fi
+chmod 700 -- "${orcan_ssh_control_dir}"
+
+# Command-line settings precede ~/.ssh/config, including its ControlPath.
+# ControlMaster and ControlPersist still come from the user's configuration.
+exec /usr/bin/ssh -o "ControlPath=${orcan_ssh_control_dir}/%C" "$@"
