@@ -18,6 +18,7 @@ use tokio::process::Command as TokioCommand;
 
 mod provisioning;
 mod transfer_cache;
+mod transfer_progress;
 
 #[derive(Clone, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio compact UI:** confirmations and workspace renaming use centered,
+  keyboard-accessible dialogs instead of browser prompts. Profiles use compact
+  cards with inline connection tests. Offline CLI and Docker-image transfer are
+  separate operations; CLI installation no longer includes an image option.
+- **Studio provisioning progress:** CLI/image transfers show the current phase,
+  real byte counts, elapsed time, and upload percentage when the payload size is
+  known. A compact status remains visible across views; each operation has its
+  own progress stream and input controls stay locked until it finishes.
 - **Studio transfer cleanup:** private transfer-cache directories use filesystem
   leases. Startup removes recognized crash leftovers, skips active transfers
   (including another Studio instance), and leaves unknown files and symlinks alone.

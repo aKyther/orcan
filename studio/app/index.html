@@ -31,6 +31,7 @@
       <section class="app-content">
         <header class="topbar"><div><p class="eyebrow">CONTEXT CONTROL PLANE</p><h1 id="view-title">Overview</h1></div><button id="active-instance" type="button" class="topbar-instance" title="Switch Enclave"><span id="active-dot" class="state-dot"></span><span id="active-label">Choose an Enclave</span></button></header>
         <p id="demo-banner" class="demo-banner" hidden>UX preview · sample data only · no Enclave, SSH, Docker, or credentials are contacted.</p>
+        <div id="transfer-status" class="transfer-status" aria-label="Running transfers" hidden></div>
 
         <section class="view active" data-view="overview">
           <section class="panel health-panel" hidden><div class="health-summary"><div><p class="eyebrow">INSTANCE HEALTH</p><h2 id="health-title">Not checked</h2></div><dl class="metric-list"><div><dt>Runtime</dt><dd id="overview-runtime">—</dd></div><div><dt>Configuration</dt><dd id="overview-config">—</dd></div><div><dt>Agent tools</dt><dd id="overview-agents">—</dd></div><div><dt>Access exposure</dt><dd id="overview-access">—</dd></div></dl></div><div class="runtime-controls"><p id="launch-summary" class="muted">Start flags not recorded yet.</p><p id="launch-warning" class="launch-warning" hidden></p><div class="actions compact"><button id="runtime-start" type="button" class="secondary">Start</button><button id="runtime-restart" type="button" class="secondary">Restart</button><button id="runtime-stop" type="button" class="secondary">Stop</button></div><output id="runtime-result" aria-live="polite"></output></div></section>
@@ -175,13 +176,11 @@
           </section>
           <section class="panel" aria-labelledby="cli-provision-title">
             <h2 id="cli-provision-title">Install Orcan CLI offline</h2>
-            <p class="muted">Copy CLI from a local Linux/macOS, WSL2, or SSH source to any Linux/macOS, WSL2, or SSH destination. Local Windows requires WSL2. Studio uses a private temporary file: allow disk space for the kit and keep Studio open. No internet or direct connection between servers is needed. Profiles, configuration, projects, sandbox data, and credentials are never copied. Existing CLI can be updated without uninstalling.</p>
-            <div class="form-row three">
+            <p class="muted">Install or update only the Orcan CLI. Choose local Linux/macOS, WSL2, or SSH profiles; local Windows uses WSL2. No internet is needed. Existing configuration and project data stay untouched. Docker images are transferred separately below.</p>
+            <div class="form-row">
               <label>Source profile<select id="cli-provision-source"></select></label>
               <label>Destination profile<select id="cli-provision-target"></select></label>
-              <label class="toggle"><span>Include Docker image</span><input id="cli-provision-image" type="checkbox" /></label>
             </div>
-            <label id="cli-provision-image-field" hidden>Docker image<input id="cli-provision-image-name" value="orcan:latest" /></label>
             <div class="actions compact"><button id="cli-provision-check" type="button" class="secondary">Check requirements</button><button id="cli-provision-run" type="button" disabled>Install offline kit</button></div>
             <output id="cli-provision-result" aria-live="polite"></output>
           </section>

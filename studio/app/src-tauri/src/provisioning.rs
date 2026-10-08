@@ -1,5 +1,6 @@
 //! Profile-to-profile provisioning. Binary payloads are spooled to a private
 //! temporary file on Studio, not buffered in RAM or copied between servers.
+use super::transfer_progress::{ProgressReader, TransferProgress};
 use super::*;
 use tokio::io::AsyncWriteExt;
 
@@ -117,6 +118,9 @@ pub(super) async fn execute(
 }
 
 fn validate(input: &TransferInput) -> Result<(), String> {
+    if input.cli && input.image.is_some() {
+        return Err("CLI and image transfers are separate. Use the image transfer panel.".into());
+    }
     if Target::from(input.source.target.clone()) == Target::from(input.destination.target.clone())
         && input.source.username == input.destination.username
     {
@@ -238,7 +242,14 @@ async fn move_file(
     file: &tempfile::NamedTempFile,
     upload: bool,
     state: &tauri::State<'_, ProfileState>,
+    progress: &mut TransferProgress,
 ) -> Result<String, String> {
+    let total = if upload {
+        Some(file.as_file().metadata().map_err(|e| e.to_string())?.len())
+    } else {
+        None
+    };
+    progress.stage(if upload { "transferring" } else { "exporting" }, total);
     if let (TargetInput::Ssh { destination }, Some(resolved)) = (
         &enclave.target,
         native_ssh(enclave, &Target::from(enclave.target.clone()), state)?,
@@ -260,9 +271,16 @@ async fn move_file(
             let reader = tokio::fs::File::open(file.path())
                 .await
                 .map_err(|e| e.to_string())?;
-            channel.data(reader).await.map_err(|e| e.to_string())?;
+            channel
+                .data(ProgressReader::new(reader, |bytes| progress.advance(bytes)))
+                .await
+                .map_err(|e| e.to_string())?;
+            progress.flush();
         }
         channel.eof().await.map_err(|e| e.to_string())?;
+        if upload {
+            progress.stage("installing", None);
+        }
         let mut writer = if upload {
             None
         } else {
@@ -280,6 +298,7 @@ async fn move_file(
                 ChannelMsg::Data { data } => {
                     if let Some(writer) = &mut writer {
                         writer.write_all(&data).await.map_err(|e| e.to_string())?;
+                        progress.advance(data.len());
                     } else {
                         stdout.extend_from_slice(&data);
                     }
@@ -291,6 +310,7 @@ async fn move_file(
         }
         if let Some(writer) = &mut writer {
             writer.flush().await.map_err(|e| e.to_string())?;
+            progress.flush();
         }
         if status != Some(0) {
             return Err(String::from_utf8_lossy(&stderr).trim().to_owned());
@@ -299,32 +319,72 @@ async fn move_file(
     }
     let mut command = profile_process(enclave, script, state)?;
     command.kill_on_drop(true);
-    if upload {
-        command.stdin(std::fs::File::open(file.path()).map_err(|e| e.to_string())?);
+    command.stdin(if upload {
+        Stdio::piped()
     } else {
-        command.stdout(std::fs::File::create(file.path()).map_err(|e| e.to_string())?);
-    }
+        Stdio::null()
+    });
+    command.stdout(Stdio::piped());
     command.stderr(Stdio::piped());
-    if upload {
-        command.stdout(Stdio::piped());
-    }
-    let output = command
-        .spawn()
-        .map_err(|e| e.to_string())?
-        .wait_with_output()
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut child = command.spawn().map_err(|e| e.to_string())?;
+    let stdin = child.stdin.take();
+    let stdout = if upload { None } else { child.stdout.take() };
+    let copy = async {
+        if upload {
+            let reader = tokio::fs::File::open(file.path()).await?;
+            let mut reader = ProgressReader::new(reader, |bytes| progress.advance(bytes));
+            let mut stdin =
+                stdin.ok_or_else(|| io::Error::other("Destination has no input stream"))?;
+            tokio::io::copy(&mut reader, &mut stdin).await?;
+            stdin.shutdown().await?;
+            progress.flush();
+            progress.stage("installing", None);
+        } else {
+            let reader = stdout.ok_or_else(|| io::Error::other("Source has no output stream"))?;
+            let mut reader = ProgressReader::new(reader, |bytes| progress.advance(bytes));
+            let mut writer = tokio::fs::File::create(file.path()).await?;
+            tokio::io::copy(&mut reader, &mut writer).await?;
+            writer.flush().await?;
+            progress.flush();
+        }
+        Ok::<_, io::Error>(())
+    };
+    let (copied, output) = tokio::join!(copy, child.wait_with_output());
+    let output = output.map_err(|e| e.to_string())?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
     }
+    copied.map_err(|e| e.to_string())?;
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
 #[tauri::command]
 pub(super) async fn transfer_profiles(
     input: TransferInput,
+    operation_id: String,
+    app: tauri::AppHandle,
     state: tauri::State<'_, ProfileState>,
     cache: tauri::State<'_, transfer_cache::TransferCache>,
+) -> Result<String, String> {
+    let mut progress = TransferProgress::new(app, operation_id);
+    progress.stage("checking", None);
+    let result = transfer_profiles_inner(input, state, cache, &mut progress).await;
+    progress.stage(
+        if result.is_ok() {
+            "completed"
+        } else {
+            "failed"
+        },
+        None,
+    );
+    result
+}
+
+async fn transfer_profiles_inner(
+    input: TransferInput,
+    state: tauri::State<'_, ProfileState>,
+    cache: tauri::State<'_, transfer_cache::TransferCache>,
+    progress: &mut TransferProgress,
 ) -> Result<String, String> {
     let check = check_transfer(input.clone(), state.clone()).await?;
     if !input.cli
@@ -335,14 +395,9 @@ pub(super) async fn transfer_profiles(
     {
         return Ok("Destination already has the same image. No transfer needed.".into());
     }
-    let image_arg = input
-        .image
-        .as_ref()
-        .map(|image| format!(" --image {}", shell_quote(image)))
-        .unwrap_or_default();
     let (source, destination): (String, String) = if input.cli {
-        (format!("set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\"{image_arg} >&2; tar -C \"$kit/bundle\" -czf - ."),
-        "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; if [[ -f \"$kit/orcan-image.tar\" ]]; then docker load -i \"$kit/orcan-image.tar\"; fi; orcan version".into())
+        ("set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\" >&2; tar -C \"$kit/bundle\" -czf - .".into(),
+        "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; orcan version".into())
     } else {
         (
             format!("docker save {}", shell_quote(input.image.as_ref().unwrap())),
@@ -352,18 +407,27 @@ pub(super) async fn transfer_profiles(
     let payload = cache
         .create()
         .map_err(|e| format!("Could not create private transfer file: {e}"))?;
-    move_file(&input.source, &source, &payload.file, false, &state)
-        .await
-        .map_err(|e| format!("Source export failed: {e}"))?;
+    move_file(
+        &input.source,
+        &source,
+        &payload.file,
+        false,
+        &state,
+        progress,
+    )
+    .await
+    .map_err(|e| format!("Source export failed: {e}"))?;
     move_file(
         &input.destination,
         &destination,
         &payload.file,
         true,
         &state,
+        progress,
     )
     .await
     .map_err(|e| format!("Destination installation failed: {e}"))?;
+    progress.stage("verifying", None);
     if input.cli {
         execute(&input.destination, "orcan version", &state).await?;
     }
@@ -468,6 +532,9 @@ mod tests {
         assert!(validate(&input).is_err());
         input.image = Some("orcan:latest".into());
         assert!(validate(&input).is_ok());
+        input.cli = true;
+        assert!(validate(&input).is_err(), "CLI installation must not bundle an image");
+        input.cli = false;
         input.destination.profile_id = input.source.profile_id.clone();
         assert!(validate(&input).is_err());
     }

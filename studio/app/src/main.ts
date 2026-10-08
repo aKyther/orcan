@@ -5,6 +5,8 @@ import { parentCandidates, parentDirectory, parentForProject, parentLabel, parse
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
+import { confirmAction, promptText } from "./dialog";
+import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
 import { loadCachedReport, persistCachedReport } from "./report-cache";
 import { cacheKey, demoMode, describeTarget, enclaveInput, invokeTauri } from "./transport";
 import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, ProjectRef, SshAuthentication, SshHostKeyOffer, Target } from "./types";
@@ -18,14 +20,11 @@ const imageTransferSource = $<HTMLSelectElement>("#image-transfer-source");
 const imageTransferName = $<HTMLInputElement>("#image-transfer-name");
 const imageTransferTarget = $<HTMLSelectElement>("#image-transfer-target");
 const imageTransferInspect = $<HTMLButtonElement>("#image-transfer-inspect");
-imageTransferInspect.textContent = "Check requirements";
+imageTransferInspect.textContent = "Check source and destination";
 const imageTransferRun = $<HTMLButtonElement>("#image-transfer-run");
 const imageTransferResult = $<HTMLOutputElement>("#image-transfer-result");
 const cliProvisionSource = $<HTMLSelectElement>("#cli-provision-source");
 const cliProvisionTarget = $<HTMLSelectElement>("#cli-provision-target");
-const cliProvisionImage = $<HTMLInputElement>("#cli-provision-image");
-const cliProvisionImageField = $("#cli-provision-image-field");
-const cliProvisionImageName = $<HTMLInputElement>("#cli-provision-image-name");
 const cliProvisionCheck = $<HTMLButtonElement>("#cli-provision-check");
 const cliProvisionRun = $<HTMLButtonElement>("#cli-provision-run");
 const cliProvisionResult = $<HTMLOutputElement>("#cli-provision-result");
@@ -446,8 +445,8 @@ function renderEnclaveConfiguration(report: ProbeReport): void {
 
 async function runRuntimeAction(action: RuntimeAction): Promise<void> {
   const privileged = [launch.docker && "the host Docker socket", launch.git && "your SSH keys"].filter(Boolean);
-  if (action !== "stop" && privileged.length && !window.confirm(`This start gives agents access to ${privileged.join(" and ")}. Continue?`)) return;
-  if (action === "stop" && !window.confirm("Stop the Enclave container? Running agent sessions will end.")) return;
+  if (action !== "stop" && privileged.length && !await confirmAction(`This start gives agents access to ${privileged.join(" and ")}. Continue?`, { title: "Enable privileged access", confirmLabel: "Continue" })) return;
+  if (action === "stop" && !await confirmAction("Running agent sessions will end.", { title: "Stop Enclave", confirmLabel: "Stop", danger: true })) return;
   const label = action[0].toUpperCase() + action.slice(1);
   if (!current) return;
   const job = addJob(`Enclave ${action}`, current.label);
@@ -907,11 +906,11 @@ function workspaceDrafts(workspace: string): QueuedChange[] {
   return groupWorkspaceDrafts()[workspace] ?? [];
 }
 
-function discardWorkspaceDraft(workspace: string): void {
+async function discardWorkspaceDraft(workspace: string): Promise<void> {
   const drafts = workspaceDrafts(workspace);
   if (!drafts.length || !current) return;
   const noun = drafts.length === 1 ? "change" : "changes";
-  if (!window.confirm(`Discard ${drafts.length} planned ${noun} for ${workspace}? Nothing has been applied to Orcan.`)) return;
+  if (!await confirmAction(`Discard ${drafts.length} planned ${noun} for ${workspace}? Nothing has been applied to Orcan.`, { title: "Discard planned changes", confirmLabel: "Discard", danger: true })) return;
   const key = enclaveChangeKey(current);
   for (let index = queuedChanges.length - 1; index >= 0; index -= 1) {
     if (queuedChanges[index].enclave === key && queuedChanges[index].workspace === workspace) restoredDraftIds.delete(queuedChanges.splice(index, 1)[0].id);
@@ -1460,7 +1459,7 @@ async function updateParent(parent: ParentCandidate, label: string, reportStatus
       return;
     }
     const remote = response.plan.remote_head?.slice(0, 8) ?? "origin";
-    if (!window.confirm(`Update ${label}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`)) return;
+    if (!await confirmAction(`Update ${label}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`, { title: "Update source repository", confirmLabel: "Update" })) return;
     reportStatus(`Updating ${parent.branch}…`);
     await invoke("parent_apply", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch, expectedHead: response.plan.head });
     rememberParentRun(parentRuns, parent.path, parent.branch);
@@ -1473,12 +1472,12 @@ async function updateParent(parent: ParentCandidate, label: string, reportStatus
 
 async function manageWorkspace(action: "rename" | "remove", workspace: string): Promise<void> {
   if (!current || !canEditContext()) { setContextNotice(contextEditMessage()); return; }
-  const newName = action === "rename" ? window.prompt(`New name for ${workspace}:`, workspace)?.trim() : undefined;
+  const newName = action === "rename" ? (await promptText(`Rename workspace ${workspace}.`, workspace, { title: "Rename workspace", confirmLabel: "Continue" }))?.trim() : undefined;
   if (action === "rename" && (!newName || newName === workspace)) return;
   try {
     const plan = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: false });
     if (!plan.plan.ready) { setContextNotice(plan.plan.blockers.join(" · ")); return; }
-    if (!window.confirm(`${plan.plan.changes.join("\n")}\n\nApply this Orcan plan?`)) return;
+    if (!await confirmAction(`${plan.plan.changes.join("\n")}\n\nApply this Orcan plan?`, { title: action === "rename" ? "Rename workspace" : "Remove workspace", confirmLabel: "Apply", danger: action === "remove" })) return;
     await invoke("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: true });
     setContextNotice(`${action === "rename" ? "Workspace renamed" : "Workspace removed"}. Run Orcan sync to reconcile mounts.`);
     await connect(current);
@@ -1511,7 +1510,7 @@ async function deleteWorktree(path: string, label: string): Promise<void> {
   try {
     const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(current), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: false });
     if (!response.plan.ready) { cleanupResult.textContent = response.plan.blockers.join(" · "); return; }
-    if (!window.confirm(`Delete worktree ${label}?\n\nThis removes only this checkout:\n${path}\n\nIts local Git branch is kept in the source repository.`)) return;
+    if (!await confirmAction(`Delete worktree ${label}?\n\nThis removes only this checkout:\n${path}\n\nIts local Git branch is kept in the source repository.`, { title: "Delete worktree", confirmLabel: "Delete", danger: true })) return;
     const connection = current;
     const job = addJob("Worktree cleanup", label);
     await invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: true });
@@ -1619,7 +1618,7 @@ function renderCredentials(): void {
 }
 
 async function deleteCredential(credential: Credential): Promise<void> {
-  if (!window.confirm(`Delete credential ${credential.name}? Its vault secret is removed too.`)) return;
+  if (!await confirmAction(`Delete credential ${credential.name}? Its vault secret is removed too.`, { title: "Delete credential", confirmLabel: "Delete", danger: true })) return;
   try {
     await invoke("delete_credential", { id: credential.id });
     await loadStore();
@@ -1794,20 +1793,9 @@ function ensureSshHostTrust(destination: string, systemSsh: boolean): Promise<bo
 }
 
 function requestHostTrust(offer: SshHostKeyOffer): Promise<boolean> {
-  return new Promise((resolve) => {
-    const changed = offer.status === "changed";
-    const dialog = el("dialog", { className: "plan-dialog", ariaLabel: "SSH server identity" });
-    const cancel = actionButton("Cancel", () => dialog.close("cancel"));
-    const approve = actionButton(changed ? "Replace saved identity and continue" : "Trust and continue", () => dialog.close("trust"), "");
-    dialog.append(el("h2", { textContent: changed ? "Server identity changed" : "First connection to this server" }),
-      el("p", { textContent: offer.destination }),
-      el("p", { textContent: changed ? "The server key differs from the saved identity. Verify this fingerprint with the server owner before replacing it. Studio saves a backup of the previous known-hosts file." : "Approve this server’s identity to save it on this computer and continue. You can compare the fingerprint with the server owner." }),
-      el("p", {}, el("code", { textContent: `${offer.algorithm} · ${offer.fingerprint}` })),
-      el("div", { className: "form-actions" }, cancel, approve));
-    dialog.addEventListener("close", () => { const approved = dialog.returnValue === "trust"; dialog.remove(); resolve(approved); }, { once: true });
-    document.body.append(dialog);
-    dialog.showModal();
-  });
+  const changed = offer.status === "changed";
+  const warning = changed ? "The server key differs from the saved identity. Verify this fingerprint with the server owner before replacing it. Studio saves a backup of the previous known-hosts file." : "Approve this server’s identity to save it on this computer and continue. You can compare the fingerprint with the server owner.";
+  return confirmAction(`${offer.destination}\n\n${warning}\n\n${offer.algorithm}\n${offer.fingerprint}`, { title: changed ? "Server identity changed" : "First connection to this server", confirmLabel: changed ? "Replace identity and continue" : "Trust and continue", danger: changed });
 }
 
 function technicalDetail(detail: string): HTMLDetailsElement {
@@ -1862,7 +1850,24 @@ async function saveProfile(): Promise<void> {
 
 function renderProfiles(): void {
   profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
-    return listItem(profile.name, describeProfile(profile), actionButton("Test connection", () => openProfileForm(profile), "secondary"), actionButton("Edit", () => openProfileForm(profile)));
+    const kind = profile.target.kind === "ssh" ? "SSH" : profile.target.kind === "wsl2" ? "WSL2" : "Local";
+    const description = describeProfile(profile);
+    const status = el("span", { className: "profile-card-status" });
+    status.setAttribute("aria-live", "polite");
+    const test = actionButton("Test", async () => {
+      test.disabled = true;
+      status.textContent = "Checking connection…";
+      try {
+        const user = await invoke<string>("test_connection", { enclave: enclaveInput(profileConnection(profile)) });
+        status.textContent = `✓ Connected${user ? ` as ${user}` : ""}`;
+        status.title = "Connection only. Orcan and Docker are not checked.";
+      } catch (error) { status.textContent = failureHint(String(error)); status.title = String(error); }
+      finally { test.disabled = false; }
+    });
+    test.title = "Test connection only; no Orcan or Docker check";
+    const edit = actionButton("Edit", () => openProfileForm(profile));
+    edit.title = `Edit ${profile.name}`;
+    return el("article", { className: "profile-card" }, el("header", {}, el("strong", { textContent: profile.name, title: profile.name }), el("span", { className: "profile-kind", textContent: kind })), el("p", { className: "profile-location", textContent: description, title: description }), el("footer", {}, status, el("div", { className: "item-actions" }, test, edit)));
   })
     : [emptyState("No profiles yet. Create one to save how Studio reaches a local, WSL2, or SSH computer.", "Create a profile", () => openProfileForm())]));
 }
@@ -2110,7 +2115,7 @@ async function provisionOnline(): Promise<void> {
   const profile = selectedProfile(onlineProvisionTarget);
   if (!profile) { onlineProvisionResult.textContent = "Choose a destination profile."; return; }
   if (onlineProvisionReadyProfileId !== profile.id) { onlineProvisionResult.textContent = "Check requirements before installing or updating Orcan."; return; }
-  if (!window.confirm(`Install or update Orcan on ${profile.name}? Studio will run the official online installer on that destination. Existing Orcan source files may be updated; no Studio profile, project, configuration, or credential is transferred.`)) return;
+  if (!await confirmAction(`Install or update Orcan on ${profile.name}? Studio will run the official online installer on that destination. Existing Orcan source files may be updated; no Studio profile, project, configuration, or credential is transferred.`, { title: "Install Orcan online", confirmLabel: "Install / update" })) return;
   const job = addJob("Install or update Orcan", profile.name, profile.name, profile.id);
   onlineProvisionRun.disabled = true;
   onlineProvisionResult.textContent = `Installing or updating Orcan on ${profile.name}…`;
@@ -2142,8 +2147,8 @@ function populateTransferProfiles(sourceSelect: HTMLSelectElement, targetSelect:
 }
 
 function renderCliProvision(): void {
+  if (isProvisionRunning(cliProvisionResult)) return;
   const ready = populateTransferProfiles(cliProvisionSource, cliProvisionTarget);
-  cliProvisionImageField.hidden = !cliProvisionImage.checked;
   cliProvisionCheck.disabled = !ready;
   cliProvisionRun.disabled = true;
   cliProvisionReady = false;
@@ -2156,17 +2161,15 @@ function cliProvisionInput(): TransferInput | undefined {
   const target = selectedProfile(cliProvisionTarget);
   if (!source || !target) return undefined;
   if (source.id === target.id) throw new Error("Choose different source and destination profiles.");
-  const image = cliProvisionImage.checked ? cliProvisionImageName.value.trim() : undefined;
-  if (cliProvisionImage.checked && !image) throw new Error("Choose a Docker image to include.");
   return {
     source: enclaveInput(profileConnection(source)),
     destination: enclaveInput(profileConnection(target)),
     cli: true,
-    image,
   };
 }
 
 async function checkCliProvision(): Promise<void> {
+  if (isProvisionRunning(cliProvisionResult)) return;
   try {
     const input = cliProvisionInput();
     if (!input) return;
@@ -2186,7 +2189,7 @@ async function checkCliProvision(): Promise<void> {
       el("li", { textContent: "Source: Orcan CLI and tar available." }),
       el("li", { textContent: `Destination: connected as ${checked.destinationUser}; Bash, tar and Python 3 available.` }),
       el("li", { textContent: "Permissions: destination home is writable." }),
-      el("li", { textContent: checked.sourceImage ? `Image: ${checked.sourceImage.image}. ${checked.destinationImageId === checked.sourceImage.id ? "Same image already installed." : checked.destinationImageId ? "Destination has a different image; transfer will update its tag." : "Not installed on destination."}` : "No Docker image selected." }),
+      el("li", { textContent: "CLI only. Transfer a Docker image separately below." }),
     ));
   } catch (error) {
     provisioningFailure(cliProvisionResult, error);
@@ -2196,20 +2199,20 @@ async function checkCliProvision(): Promise<void> {
 }
 
 async function provisionCli(): Promise<void> {
+  if (isProvisionRunning(cliProvisionResult)) return;
   const source = selectedProfile(cliProvisionSource);
   const target = selectedProfile(cliProvisionTarget);
   if (!source || !target) return;
   if (!cliProvisionReady) return;
   let input: TransferInput;
   try { input = cliProvisionInput()!; } catch (error) { cliProvisionResult.textContent = String(error); return; }
-  const { image } = input;
-  const contents = image ? `the Orcan CLI and ${image}` : "the Orcan CLI";
-  if (!window.confirm(`Install ${contents} from ${source.name} on ${target.name}? The remote installation replaces only its Orcan CLI files; no profile, project, sandbox, or credential is transferred.`)) return;
-  const job = addJob("Offline CLI provisioning", `${source.name} → ${target.name}${image ? ` · ${image}` : ""}`, target.name, target.id);
+  if (!await confirmAction(`Install the Orcan CLI from ${source.name} on ${target.name}? This replaces only CLI files. No Docker image, profile, project, sandbox, or credential is transferred.`, { title: "Install Orcan CLI offline", confirmLabel: "Install / update" })) return;
+  if (isProvisionRunning(cliProvisionResult) || !cliProvisionReady) return;
+  const job = addJob("Offline CLI provisioning", `${source.name} → ${target.name}`, target.name, target.id);
   cliProvisionRun.disabled = true;
   cliProvisionResult.textContent = "Exporting the clean kit to a private temporary file in Studio, then installing on destination…";
   try {
-    const verified = await invoke<string>("transfer_profiles", { input });
+    const verified = await withProvisionProgress(cliProvisionResult, `${source.name} → ${target.name}`, (operationId) => invoke<string>("transfer_profiles", { input, operationId }));
     provisioningSucceeded(cliProvisionResult, verified, target);
     finishJob(job, "succeeded", verified);
   } catch (error) {
@@ -2222,6 +2225,7 @@ async function provisionCli(): Promise<void> {
 }
 
 function renderImageTransfer(): void {
+  if (isProvisionRunning(imageTransferResult)) return;
   const ready = populateTransferProfiles(imageTransferSource, imageTransferTarget);
   imageTransferInspect.disabled = !ready;
   imageTransferRun.disabled = true;
@@ -2301,6 +2305,7 @@ async function planEmptyEnclave(apply = false): Promise<void> {
 }
 
 async function inspectTransferImage(): Promise<void> {
+  if (isProvisionRunning(imageTransferResult)) return;
   const source = selectedProfile(imageTransferSource);
   const target = selectedProfile(imageTransferTarget);
   if (!source || !target) return;
@@ -2323,7 +2328,7 @@ async function inspectTransferImage(): Promise<void> {
     imageTransferRun.disabled = same || !selectedProfile(imageTransferTarget);
     if (checked.destinationImageId) {
       imageTransferResult.append(actionButton("Remove destination container", async () => {
-        if (!window.confirm(`Stop and remove the Orcan container on ${target.name}? Projects, workspaces and configuration will remain.`)) return;
+        if (!await confirmAction(`Stop and remove the Orcan container on ${target.name}? Projects, workspaces and configuration will remain.`, { title: "Remove destination container", confirmLabel: "Remove", danger: true })) return;
         imageTransferRun.disabled = true; inspectedImage = undefined;
         imageTransferResult.textContent = `Removing the Orcan container on ${target.name}…`;
         try {
@@ -2332,7 +2337,7 @@ async function inspectTransferImage(): Promise<void> {
           inspectedImage = undefined; imageTransferRun.disabled = true;
         } catch (error) { provisioningFailure(imageTransferResult, error); }
       }, "secondary"), actionButton("Remove destination image", async () => {
-        if (!window.confirm(`Remove only Docker image ${selectedImage} from ${target.name}? Containers using it must be removed first. Projects, workspaces, configuration and CLI will remain.`)) return;
+        if (!await confirmAction(`Remove only Docker image ${selectedImage} from ${target.name}? Containers using it must be removed first. Projects, workspaces, configuration and CLI will remain.`, { title: "Remove destination image", confirmLabel: "Remove", danger: true })) return;
         imageTransferRun.disabled = true; inspectedImage = undefined;
         imageTransferResult.textContent = `Removing ${selectedImage} on ${target.name}…`;
         try {
@@ -2347,21 +2352,23 @@ async function inspectTransferImage(): Promise<void> {
 }
 
 async function transferImage(): Promise<void> {
+  if (isProvisionRunning(imageTransferResult)) return;
   const source = selectedProfile(imageTransferSource);
   const target = selectedProfile(imageTransferTarget);
   if (!source || !target || !inspectedImage) return;
-  if (!window.confirm(`Transfer ${inspectedImage.image} (${inspectedImage.id}) from ${source.name} to ${target.name}? The remote Docker daemon will import the image.`)) return;
-  const job = addJob("Image transfer", `${inspectedImage.image}: ${source.name} → ${target.name}`, target.name, target.id);
   const image = inspectedImage;
+  if (!await confirmAction(`Transfer ${image.image} (${image.id}) from ${source.name} to ${target.name}? The destination Docker daemon will import the image.`, { title: "Transfer Docker image", confirmLabel: "Transfer" })) return;
+  if (isProvisionRunning(imageTransferResult) || inspectedImage?.id !== image.id) return;
+  const job = addJob("Image transfer", `${image.image}: ${source.name} → ${target.name}`, target.name, target.id);
   imageTransferRun.disabled = true;
   imageTransferResult.textContent = `Transferring ${image.image}; keep Studio open until Docker import completes…`;
   try {
-    const verified = await invoke<string>("transfer_profiles", { input: {
+    const verified = await withProvisionProgress(imageTransferResult, `${source.name} → ${target.name}`, (operationId) => invoke<string>("transfer_profiles", { operationId, input: {
       source: enclaveInput(profileConnection(source)),
       destination: enclaveInput(profileConnection(target)),
       cli: false,
       image: image.image,
-    } });
+    } }));
     provisioningSucceeded(imageTransferResult, verified, target);
     finishJob(job, "succeeded", `Imported ${image.image} on ${target.name}`);
   } catch (error) { provisioningFailure(imageTransferResult, error); finishJob(job, "failed", String(error)); }
@@ -2496,11 +2503,10 @@ for (const input of [imageTransferSource, imageTransferTarget]) input.addEventLi
 imageTransferName.addEventListener("input", () => { inspectedImage = undefined; imageTransferRun.disabled = true; imageTransferResult.textContent = "Image changed. Check source and destination again."; });
 cliProvisionCheck.addEventListener("click", () => void checkCliProvision());
 cliProvisionRun.addEventListener("click", () => void provisionCli());
-for (const input of [cliProvisionSource, cliProvisionTarget, cliProvisionImage, cliProvisionImageName]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; renderProvisionIdentity(); cliProvisionResult.textContent = "Selection changed. Check requirements again before installing."; });
+for (const input of [cliProvisionSource, cliProvisionTarget]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; renderProvisionIdentity(); cliProvisionResult.textContent = "Selection changed. Check requirements again before installing."; });
 for (const select of [imageTransferSource, imageTransferTarget]) select.addEventListener("change", renderProvisionIdentity);
-cliProvisionImage.addEventListener("change", () => { cliProvisionImageField.hidden = !cliProvisionImage.checked; });
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
-enclaveCreateApply.addEventListener("click", () => { if (window.confirm("Create this empty Enclave?")) void planEmptyEnclave(true); });
+enclaveCreateApply.addEventListener("click", async () => { if (await confirmAction("Create this Enclave with the selected runtime access?", { title: "New Enclave", confirmLabel: "Create" })) void planEmptyEnclave(true); });
 for (const input of [enclaveCreateProfile, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("change", () => { enclaveCreateApply.disabled = true; });
 enclaveCreateTtyd.addEventListener("change", () => {
   enclaveCreateTtydAuth.disabled = !enclaveCreateTtyd.checked;
@@ -2520,7 +2526,7 @@ credentialSelect.addEventListener("change", refreshProfileForm);
 profileTest.addEventListener("click", () => void testProfile());
 profileSave.addEventListener("click", () => void saveProfile());
 profileDelete.addEventListener("click", async () => {
-  if (!editingProfile || !window.confirm(`Delete the profile ${editingProfile.name}? Nothing changes on the machine.`)) return;
+  if (!editingProfile || !await confirmAction(`Delete the profile ${editingProfile.name}? Nothing changes on the machine.`, { title: "Delete profile", confirmLabel: "Delete", danger: true })) return;
   await invoke("delete_profile", { id: editingProfile.id });
   if (current?.profileId === editingProfile.id) lockStudio();
   await loadStore();
