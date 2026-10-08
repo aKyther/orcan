@@ -22,6 +22,59 @@ pub(super) struct TransferCheck {
     destination_user: String,
 }
 
+/// Engine-specific IDs can identify an OCI manifest or an image config.
+/// Compare runtime content, not store metadata, tags, compressed size or IDs.
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+struct ImageContent {
+    config: serde_json::Value,
+    #[serde(rename = "RootFS")]
+    root_fs: ImageRootFs,
+    architecture: String,
+    os: String,
+    #[serde(default)]
+    variant: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+struct ImageRootFs {
+    #[serde(rename = "Type")]
+    kind: String,
+    layers: Vec<String>,
+}
+
+fn parse_image_content(output: &str) -> Result<ImageContent, String> {
+    let images: Vec<ImageContent> = serde_json::from_str(output)
+        .map_err(|e| format!("Docker returned invalid image content: {e}"))?;
+    if images.len() != 1 {
+        return Err("Docker must report exactly one image for verification".into());
+    }
+    let image = images.into_iter().next().unwrap();
+    if !image.config.is_object()
+        || image.architecture.is_empty()
+        || image.os.is_empty()
+        || image.root_fs.kind != "layers"
+    {
+        return Err("Docker returned incomplete image content for verification".into());
+    }
+    Ok(image)
+}
+
+async fn image_content(
+    enclave: &EnclaveInput,
+    image: &str,
+    state: &tauri::State<'_, ProfileState>,
+) -> Result<ImageContent, String> {
+    let output = execute(
+        enclave,
+        &format!("docker image inspect {}", shell_quote(image)),
+        state,
+    )
+    .await?;
+    parse_image_content(&output)
+}
+
 fn process(enclave: &EnclaveInput, script: &str) -> Result<TokioCommand, String> {
     let script = format!("export PATH=\"$HOME/.local/bin:$PATH\"; {script}");
     match &enclave.target {
@@ -387,13 +440,18 @@ async fn transfer_profiles_inner(
     progress: &mut TransferProgress,
 ) -> Result<String, String> {
     let check = check_transfer(input.clone(), state.clone()).await?;
-    if !input.cli
-        && check
-            .source_image
-            .as_ref()
-            .is_some_and(|image| Some(&image.id) == check.destination_image_id.as_ref())
-    {
-        return Ok("Destination already has the same image. No transfer needed.".into());
+    let source_content = match &input.image {
+        Some(image) => Some(image_content(&input.source, image, &state).await?),
+        None => None,
+    };
+    if check.destination_image_id.is_some() {
+        if let (Some(image), Some(expected)) = (&input.image, &source_content) {
+            if image_content(&input.destination, image, &state).await? == *expected {
+                return Ok(
+                    "Destination already has the same image content. No transfer needed.".into(),
+                );
+            }
+        }
     }
     let (source, destination): (String, String) = if input.cli {
         ("set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\" >&2; tar -C \"$kit/bundle\" -czf - .".into(),
@@ -417,6 +475,11 @@ async fn transfer_profiles_inner(
     )
     .await
     .map_err(|e| format!("Source export failed: {e}"))?;
+    if let (Some(image), Some(expected)) = (&input.image, &source_content) {
+        if image_content(&input.source, image, &state).await? != *expected {
+            return Err("Source image changed during export. Check the source and retry.".into());
+        }
+    }
     move_file(
         &input.destination,
         &destination,
@@ -432,10 +495,18 @@ async fn transfer_profiles_inner(
         execute(&input.destination, "orcan version", &state).await?;
     }
     if let Some(image) = &check.source_image {
-        let installed =
-            profile_image_inventory(input.destination.clone(), image.image.clone(), state).await?;
-        if installed.id != image.id {
-            return Err("Destination image differs from source".into());
+        let installed = profile_image_inventory(
+            input.destination.clone(),
+            image.image.clone(),
+            state.clone(),
+        )
+        .await?;
+        let installed_content = image_content(&input.destination, &image.image, &state).await?;
+        if source_content.as_ref() != Some(&installed_content) {
+            return Err(format!(
+                "Destination image content differs from source (configuration, layers or platform). Source ID: {}; destination ID: {}. Check the selected image and Docker endpoints.",
+                image.id, installed.id
+            ));
         }
     }
     Ok("Installation verified on destination. Existing configuration and projects were not transferred.".into())
@@ -465,6 +536,72 @@ pub(super) async fn remove_destination_image(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn inspect_fixture() -> serde_json::Value {
+        serde_json::json!([{
+            "Id": "sha256:config", "Size": 100, "RepoTags": ["orcan:latest"],
+            "Architecture": "amd64", "Os": "linux",
+            "Config": {"Env": ["LANG=C.UTF-8"], "Cmd": ["orcan-supervisord"]},
+            "RootFS": {"Type": "layers", "Layers": ["sha256:first", "sha256:second"]}
+        }])
+    }
+
+    #[test]
+    fn image_content_ignores_store_ids_sizes_tags_and_json_key_order() {
+        let source = inspect_fixture();
+        let mut destination = source.clone();
+        destination[0]["Id"] = serde_json::json!("sha256:manifest");
+        destination[0]["Size"] = serde_json::json!(200);
+        destination[0]["RepoTags"] = serde_json::json!(["another:tag"]);
+        destination[0]["Descriptor"] = serde_json::json!({"digest": "sha256:manifest"});
+        assert_eq!(
+            parse_image_content(&source.to_string()).unwrap(),
+            parse_image_content(&destination.to_string()).unwrap()
+        );
+    }
+
+    #[test]
+    fn image_content_rejects_changed_config_layers_and_platform_even_with_same_id() {
+        let source = inspect_fixture();
+        let expected = parse_image_content(&source.to_string()).unwrap();
+        for (field, value) in [
+            ("Config", serde_json::json!({"Cmd": ["different-command"]})),
+            (
+                "RootFS",
+                serde_json::json!({"Type": "layers", "Layers": ["sha256:second", "sha256:first"]}),
+            ),
+            ("Architecture", serde_json::json!("arm64")),
+            ("Os", serde_json::json!("windows")),
+            ("Variant", serde_json::json!("v8")),
+        ] {
+            let mut changed = source.clone();
+            changed[0][field] = value;
+            assert_ne!(
+                expected,
+                parse_image_content(&changed.to_string()).unwrap(),
+                "{field}"
+            );
+        }
+    }
+
+    #[test]
+    fn image_content_fails_closed_on_missing_or_invalid_information() {
+        for invalid in ["not-json", "[]", "[{}]"] {
+            assert!(parse_image_content(invalid).is_err());
+        }
+        let fixture = inspect_fixture();
+        assert!(
+            parse_image_content(&serde_json::json!([fixture[0], fixture[0]]).to_string()).is_err()
+        );
+        for field in ["Config", "RootFS", "Architecture", "Os"] {
+            let mut incomplete = fixture.clone();
+            incomplete[0].as_object_mut().unwrap().remove(field);
+            assert!(
+                parse_image_content(&incomplete.to_string()).is_err(),
+                "{field}"
+            );
+        }
+    }
 
     fn endpoint(target: TargetInput, id: &str) -> EnclaveInput {
         EnclaveInput {
@@ -533,7 +670,10 @@ mod tests {
         input.image = Some("orcan:latest".into());
         assert!(validate(&input).is_ok());
         input.cli = true;
-        assert!(validate(&input).is_err(), "CLI installation must not bundle an image");
+        assert!(
+            validate(&input).is_err(),
+            "CLI installation must not bundle an image"
+        );
         input.cli = false;
         input.destination.profile_id = input.source.profile_id.clone();
         assert!(validate(&input).is_err());

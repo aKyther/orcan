@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio image verification:** profile transfers compare runtime configuration,
+  ordered filesystem layers and platform instead of engine-specific image IDs.
+  This avoids false failures between classic Docker and containerd image stores;
+  real content mismatches still fail with both IDs shown. Source changes during
+  export are detected before uploading.
 - **Studio compact UI:** confirmations and workspace renaming use centered,
   keyboard-accessible dialogs instead of browser prompts. Profiles use compact
   cards with inline connection tests. Offline CLI and Docker-image transfer are

@@ -90,7 +90,11 @@ container or selected image. Images used by containers cannot be removed;
 neither action deletes CLI, configuration, projects, or workspace data.
 After installation Studio reads the CLI version and
 verifies the selected image after a separate image transfer. Image transfer compares the
-destination image ID with the inspected source ID. A verified result offers
+destination runtime configuration, ordered filesystem layers and platform with
+the source. Docker engines can report different IDs for the same content, so ID
+differences alone do not fail verification. Incomplete inspection or different
+content still fails; mismatches show both IDs. If source content changes during
+export, Studio stops before uploading. A verified result offers
 **Go to Enclaves**; failed operations show a short recovery hint and expandable
 technical detail.
 Kits intentionally exclude profiles, configuration, projects,
