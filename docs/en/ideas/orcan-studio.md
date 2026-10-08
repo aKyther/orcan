@@ -17,6 +17,12 @@ Studio has three transport modes:
 - **SSH**: runs the same versioned Orcan Studio protocol through the user's
   OpenSSH configuration.
 
+For a system-SSH Enclave, Studio can open a selected workspace in the user's
+native terminal application. It launches `ssh -tt HOST 'orcan attach WORKSPACE'`
+so tmux keeps its normal keyboard shortcuts, clipboard, and scrollback. Studio
+does not pass a saved password or private-key credential to another terminal
+application; that action requires the user's system SSH agent/configuration.
+
 Profiles are transport records, not proof that Orcan is already installed.
 For a new SSH destination, Studio fetches the public host key before sign-in,
 shows its algorithm and SHA-256 fingerprint, and saves it to the user's
@@ -109,12 +115,15 @@ Settings repeats the target, user, configuration path, and workspace-index
 path, with reconnect and profile actions.
 
 For a real SSH or WSL verification, open that saved profile in Studio and run
-**Test connection**. It verifies the selected transport and system user without
-requiring Orcan. Provisioning then has a separate requirements check for Bash,
+**Test connection**. It verifies only the selected transport, server identity,
+and sign-in user; it does not call Orcan or Docker and changes nothing on the
+destination. Its result describes common reachability, sign-in, WSL2, and
+changed-server-identity failures in plain language, with the original technical
+detail available on demand. Provisioning then has a separate requirements check for Bash,
 cURL, Git, Python 3, and reachability of the official installer; it also
 reports whether it found an existing Orcan CLI.
-Profiles also expose a read-only Docker readiness check. New Enclave is enabled
-only after Orcan reports a usable Docker daemon for that profile; on WSL this
+The Enclave check reports Docker readiness after Orcan is available. New Enclave
+is enabled only after that check reports a usable Docker daemon; on WSL this
 means Docker Desktop integration or a Docker Engine must already be available
 inside the selected distribution.
 After provisioning, open its Enclave and use **Check Orcan** to read the

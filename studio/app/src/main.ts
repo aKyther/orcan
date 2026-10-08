@@ -1604,10 +1604,11 @@ function refreshProfileForm(): void {
   sshSystemUserField.hidden = !system;
   sshUser.disabled = !system;
   credentialHint.textContent = value === SYSTEM_SSH
-    ? "Signs in like ssh in a terminal: your SSH agent and ~/.ssh/config. For a custom port, add a Host alias there."
+    ? "Uses the same SSH setup as a terminal on this computer: its SSH agent and SSH configuration. Enter a user above only when your SSH configuration does not already choose one."
     : value === INLINE_SSH ? "Kept as saved. Choose a shared credential to reuse it across profiles."
     : value ? `Studio signs in natively as ${savedCredentials.find((item) => item.id === value)?.username ?? "the credential user"}. This user is fixed by the credential.` : "Choose system SSH or one immutable credential.";
   profileTestResult.textContent = "";
+  profileTestHint.replaceChildren();
   profileTestHint.hidden = true;
 }
 
@@ -1620,7 +1621,7 @@ async function showWslDefaultUser(): Promise<void> {
   const request = ++wslUserRequest;
   try {
     const user = await invoke<string>("wsl_default_user", { distribution });
-    if (request === wslUserRequest) wslDistributionHint.textContent = `Detected locally by Studio. WSL starts Orcan as its default Linux user: ${user}. No password is needed for local WSL access.`;
+    if (request === wslUserRequest) wslDistributionHint.textContent = `Detected by Studio. WSL2 will use its default Linux user: ${user}. No password is needed for this local connection.`;
   } catch (error) {
     if (request === wslUserRequest) wslDistributionHint.textContent = `WSL distribution selected. Studio could not read its default Linux user: ${String(error)}`;
   }
@@ -1644,7 +1645,7 @@ async function discoverWslDistributions(): Promise<void> {
     wslDistribution.value = distributions.includes(selected) ? selected : distributions.includes("Ubuntu") ? "Ubuntu" : distributions[0] ?? "";
     wslDistribution.disabled = distributions.length === 0;
     wslDistributionHint.textContent = distributions.length
-      ? "Detected locally by Studio. Orcan must be installed inside the selected distribution."
+      ? "Detected on this Windows computer. Choose the Linux distribution Studio should connect to."
       : "No WSL2 distributions were found. Install one with `wsl --install`, then reopen this profile.";
     if (distributions.length) void showWslDefaultUser();
   } catch (error) {
@@ -1712,6 +1713,7 @@ function profileFromForm(): { profile: ConnectionProfile; connection: Connection
 }
 
 async function testProfile(): Promise<void> {
+  profileTestHint.replaceChildren();
   profileTestHint.hidden = true;
   let connection: Connection;
   try { connection = profileFromForm().connection; }
@@ -1721,11 +1723,11 @@ async function testProfile(): Promise<void> {
   try {
     if (!(await confirmSshHostKey(connection))) return;
     const user = await invoke<string>("test_connection", { enclave: enclaveInput(connection) });
-    profileTestResult.textContent = `✓ Reached ${connection.label}${user ? ` as ${user}` : ""}. Orcan is optional at this stage; install or update it later from Provisioning.`;
-  } catch (error) {
-    profileTestResult.textContent = `✕ ${String(error)}`;
-    profileTestHint.textContent = failureHint(String(error));
+    profileTestResult.textContent = `✓ Connected to ${connection.label}${user ? ` as ${user}` : ""}.`;
+    profileTestHint.textContent = "Connection only succeeded. Studio did not check Orcan, Docker, projects, or settings.";
     profileTestHint.hidden = false;
+  } catch (error) {
+    showConnectionFailure(String(error));
   } finally { profileTest.disabled = false; }
 }
 
@@ -1734,19 +1736,52 @@ async function confirmSshHostKey(connection: Connection): Promise<boolean> {
   const offer = await invoke<SshHostKeyOffer>("ssh_host_key", { destination: connection.target.destination });
   if (offer.status === "trusted") return true;
   if (offer.status === "changed") {
-    profileTestResult.textContent = `✕ The SSH host key for ${offer.destination} changed.`;
-    profileTestHint.textContent = "Studio blocked the connection. Confirm the new fingerprint with the server owner, then remove the stale host entry from this computer's SSH known-hosts file before trying again.";
+    profileTestResult.textContent = "Studio could not verify this server’s identity.";
+    profileTestHint.replaceChildren(
+      el("strong", { textContent: "The server identity changed." }),
+      el("span", { textContent: "For safety, Studio blocked the connection. Ask the server owner to confirm the new fingerprint, then remove the old saved server identity from this computer before trying again." }),
+      technicalDetail(`SSH host key changed for ${offer.destination}.`),
+    );
     profileTestHint.hidden = false;
     return false;
   }
-  const message = `Trust this SSH host?\n\n${offer.destination}\n${offer.algorithm}\n${offer.fingerprint}\n\nStudio will save this public host key in your SSH known-hosts file and then test the connection.`;
+  const message = `First connection to this server\n\n${offer.destination}\n${offer.algorithm}\n${offer.fingerprint}\n\nCompare this fingerprint with the server owner if you can. If it is the intended server, approve to save its public identity on this computer and continue.`;
   if (!window.confirm(message)) {
     profileTestResult.textContent = "SSH host key was not trusted; no connection was made.";
     return false;
   }
   await invoke("trust_ssh_host_key", { destination: connection.target.destination, fingerprint: offer.fingerprint });
-  profileTestResult.textContent = `Trusted ${offer.destination}; testing connection…`;
+  profileTestResult.textContent = `Server identity saved; testing connection to ${offer.destination}…`;
   return true;
+}
+
+function technicalDetail(detail: string): HTMLDetailsElement {
+  return el("details", {}, el("summary", { textContent: "Technical detail" }), el("code", { textContent: detail }));
+}
+
+function showConnectionFailure(detail: string): void {
+  const normalized = detail.toLowerCase();
+  let title = "Studio could not connect.";
+  let explanation = "Check the connection details, then try again.";
+  if (/authentication|permission denied|rejected|publickey/.test(normalized)) {
+    title = "The computer rejected the sign-in.";
+    explanation = "Check that the selected credential has the right user and password or key. Credentials cannot be edited; create a replacement if a value changed.";
+  } else if (/no (password|key-passphrase) is stored|vault|keyring/.test(normalized)) {
+    title = "The saved sign-in secret is unavailable.";
+    explanation = "This computer’s secure credential store no longer has the password or key passphrase. Create a replacement credential and select it for this profile.";
+  } else if (/host.?key|known_hosts|host key verification/.test(normalized)) {
+    title = "Studio could not verify the server’s identity.";
+    explanation = "Do not continue until the server owner confirms its fingerprint. Studio never replaces a saved server identity automatically.";
+  } else if (/wsl|distribution/.test(normalized)) {
+    title = "The selected WSL2 Linux installation is unavailable.";
+    explanation = "Choose a listed WSL2 distribution, or install and start WSL2 on this Windows computer before trying again.";
+  } else if (/timed out|connection refused|resolve|unreachable|no route|not found/.test(normalized)) {
+    title = "Studio could not reach the computer.";
+    explanation = "Check the server address and port. If you use a private network, connect its VPN or Tailscale network first. The remote computer must be on and accept SSH connections.";
+  }
+  profileTestResult.textContent = `✕ ${title}`;
+  profileTestHint.replaceChildren(el("strong", { textContent: explanation }), technicalDetail(detail));
+  profileTestHint.hidden = false;
 }
 
 async function saveProfile(): Promise<void> {
@@ -1760,56 +1795,18 @@ async function saveProfile(): Promise<void> {
     if (current?.profileId === built.profile.id) lockStudio();
     enclaveStatus.delete(built.profile.id);
     await loadStore();
-    result.textContent = `Profile “${built.profile.name}” saved. Install Orcan from Provisioning when this destination is new.`;
+    result.textContent = `Profile “${built.profile.name}” saved. Use Provisioning or Enclaves when you are ready to work with Orcan.`;
     showPane("profiles");
     showView("profiles");
   } catch (error) { profileTestResult.textContent = `Could not save: ${String(error)}`; }
   finally { profileSave.disabled = false; }
 }
 
-type DockerReadiness = { available: boolean; version?: string; detail: string };
-const dockerReadiness = new Map<string, DockerReadiness>();
-const dockerChecks = new Map<string, Promise<void>>();
-
-function profileReadiness(profile: ConnectionProfile): string {
-  const status = enclaveStatus.get(profile.id);
-  const docker = dockerReadiness.get(profile.id);
-  const orcan = status?.report ? `Orcan ${status.report.sandbox.version}` : status?.error && needsStudioUpdate(status.error) ? "Orcan update required" : "Orcan unchecked";
-  const dockerLabel = docker ? (docker.available ? `Docker ${docker.version ?? "ready"}` : "Docker unavailable") : status?.report?.capabilities.docker ? "Docker ready" : "Docker unchecked";
-  const enclave = profileHasEnclave(profile) ? "Enclave exists" : "Enclave not created";
-  return `${describeProfile(profile)} · ${orcan} · ${dockerLabel} · ${enclave}`;
-}
-
-async function checkDocker(profile: ConnectionProfile): Promise<void> {
-  const pending = dockerChecks.get(profile.id);
-  if (pending) return pending;
-  const check = (async () => {
-    dockerReadiness.set(profile.id, { available: false, detail: "Checking Docker…" });
-    renderProfiles();
-    try {
-      const readiness = await invoke<DockerReadiness>("check_docker", { enclave: enclaveInput(profileConnection(profile)) });
-      if (!readiness.available && profile.target.kind === "wsl2") {
-        readiness.detail = `${readiness.detail} Enable Docker Desktop WSL integration for this distribution, or install and start Docker Engine inside it.`;
-      }
-      dockerReadiness.set(profile.id, readiness);
-    } catch (error) {
-      dockerReadiness.set(profile.id, { available: false, detail: String(error) });
-    }
-    renderProfiles();
-    renderEnclaveCreator();
-  })().finally(() => dockerChecks.delete(profile.id));
-  dockerChecks.set(profile.id, check);
-  return check;
-}
-
 function renderProfiles(): void {
   profileList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
-    const check = actionButton("Check Docker", () => void checkDocker(profile), "secondary");
-    check.disabled = dockerChecks.has(profile.id);
-    check.title = dockerReadiness.get(profile.id)?.detail ?? "Check whether Docker is usable on this profile";
-    return listItem(profile.name, profileReadiness(profile), actionButton("Install / update", () => openProvisioning(profile), "secondary"), check, actionButton("Edit", () => openProfileForm(profile)));
+    return listItem(profile.name, describeProfile(profile), actionButton("Test connection", () => openProfileForm(profile), "secondary"), actionButton("Edit", () => openProfileForm(profile)));
   })
-    : [emptyState("No profiles yet. A profile records how Studio reaches a local, WSL2, or SSH destination; Orcan can be installed later.", "Create a profile", () => openProfileForm())]));
+    : [emptyState("No profiles yet. Create one to save how Studio reaches a local, WSL2, or SSH computer.", "Create a profile", () => openProfileForm())]));
 }
 
 // Enclaves
@@ -2113,10 +2110,9 @@ function profileHasEnclave(profile: ConnectionProfile): boolean {
 
 function profileCanCreateEnclave(profile: ConnectionProfile): boolean {
   const status = enclaveStatus.get(profile.id);
-  const docker = dockerReadiness.get(profile.id);
   return status?.state === "online"
     && !profileHasEnclave(profile)
-    && (docker?.available ?? Boolean(status.report?.capabilities.docker));
+    && Boolean(status.report?.capabilities.docker);
 }
 
 function renderEnclaveCreator(): void {

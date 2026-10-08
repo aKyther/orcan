@@ -35,7 +35,7 @@
         <section class="view active" data-view="overview">
           <section class="panel health-panel" hidden><div class="health-summary"><div><p class="eyebrow">INSTANCE HEALTH</p><h2 id="health-title">Not checked</h2></div><dl class="metric-list"><div><dt>Runtime</dt><dd id="overview-runtime">—</dd></div><div><dt>Configuration</dt><dd id="overview-config">—</dd></div><div><dt>Agent tools</dt><dd id="overview-agents">—</dd></div><div><dt>Access exposure</dt><dd id="overview-access">—</dd></div></dl></div><div class="runtime-controls"><p id="launch-summary" class="muted">Start flags not recorded yet.</p><p id="launch-warning" class="launch-warning" hidden></p><div class="actions compact"><button id="runtime-start" type="button" class="secondary">Start</button><button id="runtime-restart" type="button" class="secondary">Restart</button><button id="runtime-stop" type="button" class="secondary">Stop</button></div><output id="runtime-result" aria-live="polite"></output></div></section>
           <section id="enclave-map" class="panel" aria-labelledby="map-title" hidden>
-            <div class="panel-heading"><div><p class="eyebrow">IN THIS ENCLAVE</p><h2 id="map-title">Workspace connections</h2><p class="muted">Git repositories and worktrees are projects; ordinary folders are directory mounts. Inspect what is connected, then stage an attach or detach before Orcan changes anything.</p></div><button type="button" class="secondary" data-go="contexts">Open contexts</button></div>
+            <div class="panel-heading"><div><p class="eyebrow">IN THIS ENCLAVE</p><h2 id="map-title">Workspace connections</h2><p class="muted">Git repositories and worktrees are projects; ordinary folders are directory mounts. Inspect what is connected, then stage an attach or detach before Orcan changes anything.</p></div><div class="actions compact"><label>Terminal<select id="terminal-launcher"><option value="windows_terminal">Windows Terminal</option><option value="power_shell">PowerShell</option><option value="command_prompt">Command Prompt</option><option value="mac_terminal">macOS Terminal</option><option value="linux_terminal">Default Linux terminal</option></select></label><button type="button" class="secondary" data-go="contexts">Open contexts</button></div></div>
             <div id="sync-banner" class="sync-banner" hidden><span><strong>Context changed.</strong> Run orcan sync so the Enclave mounts the new workspace layout.</span><button id="sync-now" type="button">Run orcan sync</button></div>
             <section id="change-set" class="change-set" hidden aria-live="polite">
               <header><div><strong>Planned context changes</strong><span id="change-set-count">0 changes</span></div><div class="actions compact"><button id="change-set-clear" type="button" class="secondary">Clear</button><button id="change-set-apply" type="button">Apply changes</button></div></header>
@@ -115,29 +115,30 @@
 
         <section class="view" data-view="profiles" hidden>
           <div class="pane-stack"><section data-pane="profiles" class="pane">
-                <div class="pane-header"><div><p class="muted">A profile is only a saved route to a machine: local, WSL2, or SSH. Orcan may be installed later during provisioning.</p></div><button id="new-profile" type="button">New profile</button></div>
+                <div class="pane-header"><div><p class="muted">A profile is a saved way to reach a computer. It stores only connection details; it does not check, install, or configure Orcan.</p></div><button id="new-profile" type="button">New profile</button></div>
                 <div id="profile-list" class="item-list"></div>
               </section><section data-pane="profile-form" class="pane" hidden>
                 <button type="button" class="back-link" data-pane-target="profiles">← Profiles</button>
                 <h2 id="profile-form-title">New profile</h2>
                 <div class="field"><label for="profile-name">Name</label><input id="profile-name" autocomplete="off" placeholder="Build server" /></div>
-                <fieldset class="field"><legend>Where does it run?</legend>
+                <fieldset class="field"><legend>Which computer should Studio reach?</legend>
                   <div class="choice-grid">
-                    <label class="choice"><input type="radio" name="location" value="local" checked /><strong>This computer</strong><span>Save this machine as a destination for Orcan.</span></label>
-                    <label class="choice"><input type="radio" name="location" value="wsl2" /><strong>Windows WSL2</strong><span>Save a local WSL2 distribution; provision Orcan later if needed.</span></label>
-                    <label class="choice"><input type="radio" name="location" value="ssh" /><strong>Remote server</strong><span>Save an SSH destination and its sign-in method.</span></label>
+                    <label class="choice"><input type="radio" name="location" value="local" checked /><strong>This computer</strong><span>The computer running Studio. No address or sign-in details are needed.</span></label>
+                    <label class="choice"><input type="radio" name="location" value="wsl2" /><strong>Windows WSL2</strong><span>Linux installed inside this Windows computer. Studio uses its default Linux user.</span></label>
+                    <label class="choice"><input type="radio" name="location" value="ssh" /><strong>Remote server</strong><span>Another computer. Enter its address and choose how Studio should sign in.</span></label>
                   </div>
                 </fieldset>
-                <div id="wsl-fields" class="field" hidden><label for="wsl-distribution">WSL2 distribution</label><select id="wsl-distribution" disabled><option value="">Looking for WSL2 distributions…</option></select><p id="wsl-distribution-hint" class="hint">Studio checks <code>wsl --list --quiet</code> in the background.</p></div>
+                <div id="wsl-fields" class="field" hidden><label for="wsl-distribution">WSL2 distribution</label><select id="wsl-distribution" disabled><option value="">Looking for WSL2 distributions…</option></select><p id="wsl-distribution-hint" class="hint">Studio lists WSL2 distributions installed on this Windows computer.</p></div>
                 <div id="ssh-fields" class="field-stack" hidden>
                   <div class="connection-grid">
-                    <div class="field"><label for="ssh-host">Server address</label><input id="ssh-host" autocomplete="off" placeholder="orcan.example.com or 100.64.0.5:2222" /><p class="hint">Hostname, IP address, or a Host alias from <code>~/.ssh/config</code>.</p></div>
-                    <div id="ssh-system-user-field" class="field"><label for="ssh-user">SSH user for system SSH</label><input id="ssh-user" autocomplete="username" placeholder="Optional; otherwise SSH config decides" /><p class="hint">Only used when you explicitly select system SSH below.</p></div>
+                    <div class="field"><label for="ssh-host">Server address</label><input id="ssh-host" autocomplete="off" placeholder="server.example.com or 100.64.0.5:2222" /><p class="hint">The address supplied by the server owner. Include <code>:port</code> only when it is not the normal SSH port.</p></div>
+                    <div id="ssh-system-user-field" class="field"><label for="ssh-user">Server user</label><input id="ssh-user" autocomplete="username" placeholder="Optional; use SSH configuration instead" /><p class="hint">Used only with System SSH. A saved credential already includes its user.</p></div>
                   </div>
                   <div class="field"><label for="credential-select">Sign in with</label><select id="credential-select"></select><p id="credential-hint" class="hint"></p></div>
                 </div>
                 <output id="profile-test-result" aria-live="polite"></output>
-                <p id="profile-test-hint" class="hint" hidden></p>
+                <div id="profile-test-hint" class="hint" hidden></div>
+                <details class="hint"><summary>What does “Test connection” do?</summary><p>It checks that Studio can reach this computer and sign in as the selected user. For a new SSH server, it asks before saving that server’s public identity. It does not call Orcan, Docker, or change anything on the other computer.</p><p>Common problems: a wrong address or port, a disconnected VPN or Tailscale network, a rejected user/password/key, or a changed server identity. The result explains which one Studio found.</p></details>
                 <div class="form-actions"><button id="profile-delete" type="button" class="danger-link" hidden>Delete profile</button><span></span><button id="profile-test" type="button" class="secondary">Test connection</button><button id="profile-save" type="button">Save profile</button></div>
               </section></div>
         </section>
