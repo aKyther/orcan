@@ -18,7 +18,7 @@ FROM ghcr.io/astral-sh/uv:latest AS uv-tools
 # Final image
 # ------------------------------------------------------------------------------
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS runtime
 
 ARG USERNAME=developer
 ARG USER_UID=1000
@@ -710,6 +710,7 @@ RUN set -eux; \
             sleep 10; \
         done; \
         codex --version; \
+        npm cache clean --force; \
     else \
         printf 'Skipping Codex CLI (INSTALL_CODEX=%s)\n' "${INSTALL_CODEX}" >&2; \
     fi
@@ -725,7 +726,8 @@ RUN set -eux; \
     fi; \
     if [ "${INSTALL_COPILOT}" = "1" ] || [ "${INSTALL_COPILOT}" = "true" ]; then \
         npm_config_ignore_scripts=false npm install -g --prefix "${HOME}/.local" @github/copilot; copilot --version; \
-    fi
+    fi; \
+    npm cache clean --force
 
 RUN set -eux; \
     cursor_on=0; claude_on=0; codex_on=0; gemini_on=0; copilot_on=0; \
@@ -758,5 +760,57 @@ ENV ORCAN_VERSION="${ORCAN_VERSION}"
 
 USER ${USERNAME}
 
+ENTRYPOINT ["docker-entrypoint"]
+CMD ["zsh"]
+
+# ------------------------------------------------------------------------------
+# Distribution image
+# ------------------------------------------------------------------------------
+# Keep the runtime stage layered for fast rebuilds, but publish one filesystem
+# layer for end users. The final stage repeats image configuration because
+# COPY transfers files, not Docker image metadata.
+FROM scratch
+
+ARG USERNAME=developer
+ARG ORCAN_VERSION=dev
+
+COPY --from=runtime / /
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    HOME=/home/${USERNAME} \
+    XDG_CACHE_HOME=/home/${USERNAME}/.cache \
+    npm_config_cache=/home/${USERNAME}/.cache/npm \
+    PNPM_HOME=/home/${USERNAME}/.cache/pnpm \
+    CARGO_HOME=/home/${USERNAME}/.cache/cargo \
+    RUSTUP_HOME=/usr/local/rustup \
+    GOPATH=/home/${USERNAME}/.cache/go \
+    GOCACHE=/home/${USERNAME}/.cache/go-build \
+    GOMODCACHE=/home/${USERNAME}/.cache/go/pkg/mod \
+    JAVA_HOME=/opt/java \
+    GRADLE_USER_HOME=/home/${USERNAME}/.cache/gradle \
+    UV_CACHE_DIR=/home/${USERNAME}/.cache/uv \
+    RUFF_CACHE_DIR=/home/${USERNAME}/.cache/ruff \
+    MYPY_CACHE_DIR=/home/${USERNAME}/.cache/mypy \
+    PIP_CACHE_DIR=/home/${USERNAME}/.cache/pip \
+    PRE_COMMIT_HOME=/home/${USERNAME}/.cache/pre-commit \
+    HISTFILE=/home/${USERNAME}/.local/share/orcan/history/.zsh_history \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTEST_ADDOPTS="-p no:cacheprovider" \
+    CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude \
+    USE_BUILTIN_RIPGREP=0 \
+    ORCAN_VERSION=${ORCAN_VERSION} \
+    PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/java/bin:/opt/gradle/bin:/opt/maven/bin:/opt/kotlinc/bin:/opt/scala3/bin:/opt/sbt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+LABEL org.opencontainers.image.title="Orcan" \
+      org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \
+      org.opencontainers.image.source="https://github.com/aKyther/orcan" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${ORCAN_VERSION}"
+
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
 ENTRYPOINT ["docker-entrypoint"]
 CMD ["zsh"]
