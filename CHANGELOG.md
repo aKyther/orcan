@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio offline provisioning:** WSL CLI exports use a new bundle directory
+  inside the temporary directory and keep export messages out of the archive
+  stream, for both password/key credentials and system SSH.
 - **SSH multiplexing:** container SSH stores control sockets under
   `~/.cache/orcan/ssh` instead of the read-only host `~/.ssh` mount, while
   preserving configured `ControlMaster` and `ControlPersist` settings.

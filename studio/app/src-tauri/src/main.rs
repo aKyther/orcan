@@ -754,7 +754,7 @@ async fn provision_wsl_cli(
             .map(|image| format!(" --image {}", shell_quote(image)))
             .unwrap_or_default();
         let source_script = format!(
-            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit\"{image_arg}; tar -C \"$kit\" -czf - ."
+            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\"{image_arg} >&2; tar -C \"$kit/bundle\" -czf - ."
         );
         let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
         let stdout = native_ssh_stream_wsl(
@@ -794,7 +794,7 @@ async fn provision_wsl_cli(
             .map(|image| format!(" --image {}", shell_quote(image)))
             .unwrap_or_default();
         let source_script = format!(
-            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit\"{image_arg}; tar -C \"$kit\" -czf - ."
+            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\"{image_arg} >&2; tar -C \"$kit/bundle\" -czf - ."
         );
         let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
         let remote_command = format!("bash -lc {}", shell_quote(remote_script));
