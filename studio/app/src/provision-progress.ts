@@ -4,12 +4,12 @@ import { demoMode } from "./transport";
 
 type ProgressEvent = { operationId: string; stage: string; bytes: number; total?: number | null };
 const labels: Record<string, string> = {
-  preparing: "Preparing transfer / waiting for connection approval",
-  checking: "Checking source and destination",
-  exporting: "Preparing and exporting source → Studio",
-  transferring: "Transferring Studio → destination",
-  installing: "Destination is extracting / installing",
-  verifying: "Verifying destination installation",
+  preparing: "Preparing connection",
+  checking: "Checking requirements",
+  exporting: "Exporting to Studio",
+  transferring: "Sending to destination",
+  installing: "Installing on destination",
+  verifying: "Verifying installation",
   completed: "Completed",
   failed: "Failed",
 };
@@ -37,12 +37,15 @@ export async function withProvisionProgress<T>(output: HTMLElement, title: strin
   let phaseStarted = started;
   let update: ProgressEvent = { operationId, stage: "preparing", bytes: 0 };
   const heading = el("strong");
+  const percentage = el("span", { className: "transfer-percentage" });
+  percentage.setAttribute("aria-live", "off");
+  const header = el("div", { className: "transfer-progress-header" }, heading, percentage);
   const detail = el("span", { className: "transfer-detail" });
   detail.setAttribute("aria-live", "off");
   const bar = document.createElement("progress");
   bar.max = 100;
   bar.setAttribute("aria-label", "Transfer phase progress");
-  const card = el("div", { className: "transfer-progress", role: "status" }, heading, bar, detail);
+  const card = el("div", { className: "transfer-progress", role: "status" }, header, bar, detail);
   const global = el("div", { className: "transfer-status-item" });
   global.title = "Transfer is running. Keep Studio open; view details in Provisioning.";
   const status = document.querySelector<HTMLElement>("#transfer-status")!;
@@ -61,8 +64,10 @@ export async function withProvisionProgress<T>(output: HTMLElement, title: strin
     const speed = phaseSeconds >= 2 && update.bytes > 0 ? update.bytes / phaseSeconds : undefined;
     const eta = remaining !== undefined && remaining > 0 && speed ? Math.ceil(remaining / speed) : undefined;
     if (percent === undefined) bar.removeAttribute("value"); else bar.value = percent;
+    percentage.textContent = percent === undefined ? duration(elapsed) : `${percent}%`;
     if (heading.textContent !== stage) heading.textContent = stage;
-    detail.textContent = `${percent !== undefined ? `${percent}% · ` : ""}${update.bytes ? `${bytes(update.bytes)}${update.total ? ` / ${bytes(update.total)}` : ""} done · ` : ""}${remaining !== undefined ? `${bytes(remaining)} left · ` : ""}${speed ? `${bytes(speed)}/s · ` : ""}${eta !== undefined ? `~${duration(eta)} left · ` : ""}${duration(elapsed)} elapsed${update.stage === "exporting" ? update.bytes ? " · Total size and remaining time will be known after export." : " · Waiting for source output; kit/image preparation may take a while." : ""}${update.stage === "installing" ? " · Data sent; waiting for destination confirmation." : ""}`;
+    detail.textContent = `${update.bytes ? `${bytes(update.bytes)}${update.total ? ` / ${bytes(update.total)}` : ""} · ` : ""}${remaining !== undefined ? `${bytes(remaining)} left · ` : ""}${speed ? `${bytes(speed)}/s · ` : ""}${eta !== undefined ? `~${duration(eta)} left · ` : ""}${duration(elapsed)} elapsed`;
+    card.title = update.stage === "exporting" ? "Total size and remaining time are known after export. Source preparation may take a while." : update.stage === "installing" ? "Data sent. Waiting for destination installation to finish." : update.stage === "preparing" ? "Waiting for connection or server identity approval." : "Remaining time is an estimate for this transfer phase, excluding installation and verification.";
     global.textContent = `${title} · ${stage}${percent !== undefined ? ` · ${percent}%` : ""}${remaining !== undefined ? ` · ${bytes(remaining)} left` : ""}${eta !== undefined ? ` · ~${duration(eta)}` : ""} · ${duration(elapsed)}`;
   };
   render();

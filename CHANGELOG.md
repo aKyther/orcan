@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio transfer UI:** a slim, consistently styled progress track replaces
+  the browser-default bar. Compact phase headings, separate percentages and
+  secondary metrics reduce clutter; explanatory details use tooltips. Unknown
+  totals stay indeterminate, with reduced-motion support.
 - **Studio image verification:** profile transfers compare runtime configuration,
   ordered filesystem layers and platform instead of engine-specific image IDs.
   This avoids false failures between classic Docker and containerd image stores;
