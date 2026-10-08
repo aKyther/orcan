@@ -9,7 +9,9 @@ Machine-readable draft: [`orcan.config.schema.json`](https://github.com/aKyther/
 
 | Key | Required | Description |
 | --- | --- | --- |
-| `workspaces` | yes (non-empty) | List of workspace objects |
+| `workspaces` | yes | List of workspace objects; may be empty while preparing a container |
+| `image` | no | Installed Docker image selected at creation; ordinary sync preserves existing host overrides |
+| `projects_root` | no | Absolute shared source catalog selected at creation; default is the data root sandbox |
 | `tmux` | no | Default window layout |
 | `ttyd` | no | Browser terminal settings |
 | `resources` | no | Container limits (default **2** CPU / **4g** RAM — raise in config when needed) |

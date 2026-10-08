@@ -78,6 +78,15 @@ if [[ -z "${ORCAN_DATA:-}" ]]; then
     ORCAN_DATA="${HOME}/.config/orcan"
 fi
 export ORCAN_DATA
+if [[ ( -z "${ORCAN_PROJECTS_ROOT:-}" || "${ORCAN_STUDIO_CREATE_RUNTIME:-}" == 1 ) && -n "${CONFIG}" && -f "${CONFIG}" ]]; then
+    ORCAN_PROJECTS_ROOT="$("${ORCAN_ROOT}/scripts/repository/python.sh" -c '
+import json, pathlib, sys
+root = json.loads(pathlib.Path(sys.argv[1]).read_text()).get("projects_root", sys.argv[2])
+if not isinstance(root, str) or (root and (not pathlib.Path(root).is_absolute() or any(c in root for c in "\n\r$`"))):
+    raise SystemExit("projects_root must be an absolute path without line breaks")
+print(root)
+' "${CONFIG}" "${ORCAN_PROJECTS_ROOT:-}")"
+fi
 ORCAN_PROJECTS_ROOT="${ORCAN_PROJECTS_ROOT:-${ORCAN_DATA}/sandbox}"
 export ORCAN_PROJECTS_ROOT
 mkdir -p "${ORCAN_PROJECTS_ROOT}"

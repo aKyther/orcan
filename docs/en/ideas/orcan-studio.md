@@ -17,6 +17,20 @@ that host. It does not create one container per profile. After provisioning,
 **Servers → New container** creates named instances from the installed image.
 The image is reused; it is not transferred again for each container.
 
+After **Check destination**, choose an installed image marked as Orcan from the
+image list. No free-form image or project-root path is needed. Project roots
+come from Orcan's reports for the host's configured instances; the default
+sandbox is included. A different root changes the source catalog, not the
+shared cache or agent data. Studio shows the reported cache and instance
+workspace paths. The backend rechecks image/root choices before plan and apply.
+The selected image and root are recorded in the new container configuration;
+normal sync continues to preserve existing host overrides.
+
+Studio remembers the selected container per profile on this device. Reopening
+Studio still requires a fresh connection check before editing. A missing saved
+container is not silently replaced by another container. Settings identify the
+exact container and server, so actions cannot be confused with host provisioning.
+
 Choose a name such as `developer` or `tester`; Docker names become
 `orcan-developer` and `orcan-tester`. Use lowercase letters, digits and hyphens,
 starting with a letter, up to 48 characters. Names are unique on the host.

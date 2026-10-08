@@ -938,6 +938,8 @@ pub struct Host {
 pub struct Paths {
     pub home: String,
     pub data: String,
+    #[serde(default)]
+    pub cache: Option<String>,
     pub projects_root: String,
     pub workspace_metadata_root: String,
     pub managed_worktrees_root: String,

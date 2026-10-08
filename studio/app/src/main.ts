@@ -6,7 +6,7 @@ import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
 import { creationBlocker, lifecycleBlocker, ownsEnclave } from "./enclave-model";
-import { containerStateLabel } from "./server-model";
+import { containerStateLabel, loadContainerSelections, persistContainerSelections } from "./server-model";
 import { confirmAction, promptText } from "./dialog";
 import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
 import { loadCachedReport, persistCachedReport } from "./report-cache";
@@ -35,6 +35,9 @@ const onlineProvisionCheck = $<HTMLButtonElement>("#online-provision-check");
 const onlineProvisionRun = $<HTMLButtonElement>("#online-provision-run");
 const onlineProvisionResult = $<HTMLOutputElement>("#online-provision-result");
 const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
+const containerCreateImage = $<HTMLSelectElement>("#container-create-image");
+const containerCreateRoot = $<HTMLSelectElement>("#container-create-root");
+const containerCreatePaths = $("#container-create-paths");
 const enclaveCreateName = $<HTMLInputElement>("#enclave-create-name");
 const enclaveCreatePort = $<HTMLInputElement>("#enclave-create-port");
 const enclaveCreateCpus = $<HTMLInputElement>("#enclave-create-cpus");
@@ -325,7 +328,10 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (command === "list_instances") return { instances: [{ instance: null, container: "orcan-1", home: demoReport.paths.home }, ...[...demoReports.entries()].filter(([key, report]) => key.startsWith(`${JSON.stringify(enclave!.target)}:`) && ownsEnclave(report)).map(([key, report]) => ({ instance: key.slice(JSON.stringify(enclave!.target).length + 1), container: report.runtime.docker.container.name, home: report.paths.home }))] } as T;
   if (command === "server_capacity") return { cpus: 8, memoryBytes: 16 * 1024 ** 3, diskTotalBytes: 200 * 1024 ** 3, diskFreeBytes: 120 * 1024 ** 3, diskPath: (_args as { path?: string }).path } as T;
   if (command === "probe") return structuredClone(await demoReportFor(enclave!.target, enclave!.instance)) as T;
-  if (command === "enclave_readiness") return { user: "developer", docker: { available: true, version: "demo", detail: "Docker ready" }, report: structuredClone(await demoReportFor(enclave!.target, enclave!.instance)), orcanError: null } as T;
+  if (command === "enclave_readiness") {
+    const report = structuredClone(await demoReportFor(enclave!.target, enclave!.instance));
+    return { user: "developer", docker: { available: true, version: "demo", detail: "Docker ready" }, report, orcanError: null, images: report.runtime.docker.image ? [report.runtime.docker.image.name] : [], projectRoots: [report.paths.projects_root] } as T;
+  }
   if (command === "enclave_action") {
     const report = await demoReportFor(enclave!.target, enclave!.instance);
     const args = _args as { apply: boolean; withGit: boolean; withDocker: boolean; withTtyd: boolean; ttydCredential?: string };
@@ -1356,6 +1362,7 @@ function renderSnapshot(report: ProbeReport): void {
   renderContextWorkspaceList(report);
   renderSandboxProjects(report);
   sandboxSettings.hidden = false;
+  $("#settings-title").textContent = `Container: ${report.runtime.docker.container.name ?? "not reported"} · ${current?.label ?? "connected server"}`;
   renderConnectionDoctor(report);
   setting("setting-home").textContent = report.paths.home;
   setting("setting-data").textContent = report.paths.data;
@@ -1946,7 +1953,7 @@ type ManagedInstance = { instance: string | null; container: string; home: strin
 const instanceInventory = new Map<string, ManagedInstance[]>();
 type ServerCapacity = { cpus?: number; memoryBytes?: number; diskTotalBytes?: number; diskFreeBytes?: number; diskPath?: string };
 const serverCapacity = new Map<string, ServerCapacity>();
-const selectedInstances = new Map<string, string>();
+const selectedInstances = loadContainerSelections();
 function runtimeKey(profile: ConnectionProfile, instance = selectedInstances.get(profile.id)): string {
   return instance ? `${profile.id}:${instance}` : profile.id;
 }
@@ -1960,6 +1967,7 @@ function sameHostProfile(profile: ConnectionProfile): boolean {
 }
 function selectInstance(profile: ConnectionProfile, instance: string): void {
   selectedInstances.set(profile.id, instance);
+  persistContainerSelections(selectedInstances);
   if (current?.profileId === profile.id && current.instance !== (instance || undefined)) { currentReport = undefined; lockStudio(); }
   renderEnclaveStatus();
   void openEnclave(profile);
@@ -2365,7 +2373,7 @@ function renderImageTransfer(): void {
   renderProvisionIdentity();
 }
 
-type EnclaveReadiness = { user: string; docker: { available: boolean; version?: string; detail: string }; report?: ProbeReport; orcanError?: string; capacity?: ServerCapacity };
+type EnclaveReadiness = { user: string; docker: { available: boolean; version?: string; detail: string }; report?: ProbeReport; orcanError?: string; capacity?: ServerCapacity; images?: string[]; projectRoots?: string[] };
 let creatorReadiness: { connection: string; result: EnclaveReadiness } | undefined;
 let creatorBusy = false;
 let creatorRevision = 0;
@@ -2386,7 +2394,11 @@ function creatorNameError(): string | undefined {
 }
 
 function creatorReport(profile: ConnectionProfile): ProbeReport | undefined {
-  return creatorReadiness?.connection === creatorConnection(profile) && creatorReadiness.result.docker.available ? creatorReadiness.result.report : undefined;
+  if (creatorReadiness?.connection !== creatorConnection(profile) || !creatorReadiness.result.docker.available || !creatorReadiness.result.report) return undefined;
+  const report = structuredClone(creatorReadiness.result.report);
+  if (report.runtime.docker.image && creatorReadiness.result.images?.length === 0) report.runtime.docker.image.present = false;
+  if (containerCreateImage.value) report.runtime.docker.image = { name: containerCreateImage.value, present: Boolean(creatorReadiness.result.images?.includes(containerCreateImage.value)) };
+  return report;
 }
 
 function creatorCanApply(profile: ConnectionProfile): boolean {
@@ -2418,6 +2430,14 @@ function renderEnclaveCreator(): void {
   enclaveCreateOptions.disabled = !ready;
   enclaveCreatePlan.disabled = !ready;
   enclaveCreateApply.disabled = !profile || !creatorCanApply(profile);
+  const checked = profile && creatorReadiness?.connection === creatorConnection(profile);
+  containerCreateImage.disabled = !checked || !creatorReadiness?.result.images?.length;
+  containerCreateRoot.disabled = !checked || !creatorReadiness?.result.projectRoots?.length;
+  if (!checked) {
+    containerCreateImage.replaceChildren(new Option("Check destination first", ""));
+    containerCreateRoot.replaceChildren(new Option("Reported by Orcan after checking", ""));
+    containerCreatePaths.textContent = "Sandbox and cache are shared. Workspace metadata belongs to the named container.";
+  }
   if (!profile) enclaveCreateReadiness.textContent = "Choose a profile. Orcan does not need to be installed yet.";
 }
 
@@ -2439,6 +2459,8 @@ async function checkCreatorDestination(): Promise<void> {
   if (!profile || creatorBusy) return;
   if (creatorNameError()) { enclaveCreateResult.textContent = creatorNameError()!; return; }
   creatorBusy = true;
+  containerCreateImage.disabled = true;
+  containerCreateRoot.disabled = true;
   creatorPlanRevision = -1;
   creatorReadiness = undefined;
   enclaveCreateName.disabled = true;
@@ -2459,6 +2481,11 @@ async function checkCreatorDestination(): Promise<void> {
     if (!selected || connection !== creatorConnection(selected)) return;
     creatorReadiness = { connection, result: readiness };
     const report = readiness.report;
+    containerCreateImage.replaceChildren(...(readiness.images?.length ? readiness.images.map((image) => new Option(image, image)) : [new Option("No installed Orcan image — transfer one first", "")]));
+    if (report?.runtime.docker.image && readiness.images?.includes(report.runtime.docker.image.name)) containerCreateImage.value = report.runtime.docker.image.name;
+    containerCreateRoot.replaceChildren(...(readiness.projectRoots ?? []).map((root) => new Option(root, root)));
+    if (readiness.projectRoots?.includes(report?.paths.projects_root ?? "")) containerCreateRoot.value = report!.paths.projects_root;
+    if (report) containerCreatePaths.textContent = `Shared cache: ${report.paths.cache ?? "not reported — update Orcan CLI"} · Shared data: ${report.paths.data} · Container workspaces: ${report.paths.workspace_metadata_root}. Worktrees are scoped beneath the selected project root.`;
     const defaults = report?.runtime.defaults;
     if (!creatorResourcesEdited && defaults?.resources?.cpus) enclaveCreateCpus.value = String(defaults.resources.cpus);
     const memoryDefault = defaults?.resources?.memory?.match(/^(\d+)g$/i);
@@ -2474,7 +2501,7 @@ async function checkCreatorDestination(): Promise<void> {
       fact("Connection", `Signed in as ${readiness.user}`, true),
       fact("Orcan CLI", report ? report.sandbox.version : needsStudioUpdate(readiness.orcanError ?? "") ? "Update required" : "Not ready", Boolean(report)),
       fact("Docker", readiness.docker.available ? readiness.docker.version ?? "Ready" : "Not ready for this user", readiness.docker.available),
-      fact("Image", image ? `${image.name} · ${image.present ? "available" : "missing"}` : "Check after CLI installation", Boolean(image?.present)),
+      fact("Default image", image ? `${image.name} · ${image.present ? "available" : "missing — choose an installed image above or transfer this one"}` : "Check after CLI installation", Boolean(image?.present)),
     );
     if (readiness.capacity?.memoryBytes) enclaveCreateReadiness.append(fact("VM capacity", `${readiness.capacity.cpus ?? "?"} CPUs · ${(readiness.capacity.memoryBytes / 1024 ** 3).toFixed(1)} GiB RAM total (not free capacity)${readiness.capacity.diskFreeBytes !== undefined ? ` · ${(readiness.capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB disk free` : ""}`, true));
     else if (readiness.capacity?.diskFreeBytes !== undefined) enclaveCreateReadiness.append(fact("Disk", `${(readiness.capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB free`, true));
@@ -2485,7 +2512,7 @@ async function checkCreatorDestination(): Promise<void> {
     enclaveCreateReadiness.append(actions);
     if (readiness.orcanError) enclaveCreateReadiness.append(technicalDetail(readiness.orcanError));
     if (!readiness.docker.available) enclaveCreateReadiness.append(el("p", { className: "muted", textContent: "Start Docker and grant this user access. On WSL2, enable Docker Desktop integration or prepare Docker Engine in this distribution." }), technicalDetail(readiness.docker.detail));
-    enclaveCreateResult.textContent = creationBlocker(report) ?? "Ready. Review access options and preview the creation plan.";
+    enclaveCreateResult.textContent = creationBlocker(creatorReport(profile)) ?? "Ready. Review image, project root and access, then preview the plan.";
     renderEnclaveStatus();
   } catch (error) {
     enclaveCreateReadiness.replaceChildren(el("strong", { textContent: "Could not connect to this profile." }), el("span", { textContent: failureHint(String(error)) }), technicalDetail(String(error)));
@@ -2522,6 +2549,8 @@ async function planEmptyEnclave(apply = false): Promise<void> {
   const ttydHostPort = enclaveCreateTtyd.checked ? Number(enclaveCreatePort.value) : undefined;
   if (ttydHostPort !== undefined && (!Number.isInteger(ttydHostPort) || ttydHostPort < 1024 || ttydHostPort > 65535)) { enclaveCreateResult.textContent = "Choose a host port between 1024 and 65535."; return; }
   creatorBusy = true;
+  containerCreateImage.disabled = true;
+  containerCreateRoot.disabled = true;
   enclaveCreateName.disabled = true;
   enclaveCreatePort.disabled = true;
   enclaveCreateCpus.disabled = true;
@@ -2539,6 +2568,8 @@ async function planEmptyEnclave(apply = false): Promise<void> {
       ttydHostPort,
       cpus: Number(enclaveCreateCpus.value),
       memoryGb: Number(enclaveCreateMemory.value),
+      image: containerCreateImage.value || undefined,
+      projectsRoot: containerCreateRoot.value || undefined,
       withGit: enclaveCreateGit.checked,
       withDocker: enclaveCreateDocker.checked,
       withTtyd: enclaveCreateTtyd.checked,
@@ -2553,6 +2584,7 @@ async function planEmptyEnclave(apply = false): Promise<void> {
       enclaveCreateResult.textContent = "container created. Verifying and opening context…";
       enclaveCreateTtydPassword.value = "";
       selectedInstances.set(profile.id, connection.instance ?? "");
+      persistContainerSelections(selectedInstances);
       await enclaveChecks.get(runtimeKey(profile));
       const status = await checkEnclave(profile);
       if (status.state !== "online" || !status.report || status.report.runtime.docker.container.state !== "running") throw new Error(status.error ?? "Container is not running after creation. Refresh its status before continuing.");
@@ -2708,6 +2740,7 @@ function renderEnclaves(): void {
         ["Image", report.runtime.docker.image ? `${report.runtime.docker.image.name} · ${report.runtime.docker.image.present ? "available" : "missing"}` : "Not reported"],
         ["Configured resources", `CPU ${report.runtime.resources?.cpus ?? "not reported"} · RAM ${report.runtime.resources?.memory ?? "not reported"}`],
         ["Projects", report.paths.projects_root],
+        ["Shared cache", report.paths.cache ?? "Not reported"],
         ["Worktrees", report.paths.managed_worktrees_root],
         ["Workspaces", `${report.context.workspaces.length} · ${report.paths.workspace_metadata_root}`],
       ]) facts.append(el("div", {}, el("dt", { textContent: label }), el("dd", { textContent: value, title: value })));
@@ -2829,7 +2862,7 @@ for (const select of [imageTransferSource, imageTransferTarget]) select.addEvent
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
 enclaveCreateCheck.addEventListener("click", () => void checkCreatorDestination());
 enclaveCreateApply.addEventListener("click", async () => { if (await confirmAction("Create this container with the selected runtime access?", { title: "New container", confirmLabel: "Create" })) void planEmptyEnclave(true); });
-for (const input of [enclaveCreateProfile, enclaveCreateName, enclaveCreatePort, enclaveCreateCpus, enclaveCreateMemory, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("input", () => {
+for (const input of [enclaveCreateProfile, enclaveCreateName, containerCreateImage, containerCreateRoot, enclaveCreatePort, enclaveCreateCpus, enclaveCreateMemory, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("input", () => {
   if ([enclaveCreateCpus, enclaveCreateMemory, enclaveCreatePort].includes(input as HTMLInputElement)) creatorResourcesEdited = true;
   creatorRevision += 1;
   creatorPlanRevision = -1;
@@ -2856,6 +2889,8 @@ profileSave.addEventListener("click", () => void saveProfile());
 profileDelete.addEventListener("click", async () => {
   if (!editingProfile || !await confirmAction(`Delete the profile ${editingProfile.name}? Nothing changes on the machine.`, { title: "Delete profile", confirmLabel: "Delete", danger: true })) return;
   await invoke("delete_profile", { id: editingProfile.id });
+  selectedInstances.delete(editingProfile.id);
+  persistContainerSelections(selectedInstances);
   if (current?.profileId === editingProfile.id) lockStudio();
   await loadStore();
   showPane("profiles");

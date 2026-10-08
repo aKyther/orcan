@@ -7,6 +7,16 @@
   "additionalProperties": true,
   "required": ["workspaces"],
   "properties": {
+    "image": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/:@-]*$",
+      "description": "Installed Docker image chosen at container creation; normal sync preserves host overrides."
+    },
+    "projects_root": {
+      "type": "string",
+      "pattern": "^/[^\\r\\n]*$",
+      "description": "Shared host source catalog chosen at creation; defaults to the data root sandbox."
+    },
     "_comment": {
       "type": "string",
       "description": "Optional human note; ignored by apply-config."

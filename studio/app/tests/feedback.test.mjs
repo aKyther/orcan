@@ -54,6 +54,21 @@ test("container cards distinguish fresh, pending, stale and unchecked states", a
   assert.equal(containerStateLabel({ state: "online" }), "unknown");
 });
 
+test("container selections persist by profile and reject malformed storage", async () => {
+  let stored = '{"a":"tester","b":"","bad":"../../escape","number":3}';
+  globalThis.localStorage = { getItem: () => stored, setItem: (_key, value) => { stored = value; } };
+  const { loadContainerSelections, persistContainerSelections } = await load("server-model");
+  const selections = loadContainerSelections();
+  assert.deepEqual([...selections], [["a", "tester"], ["b", ""]]);
+  selections.set("a", "developer");
+  persistContainerSelections(selections);
+  assert.equal(loadContainerSelections().get("a"), "developer");
+  stored = "invalid JSON";
+  assert.equal(loadContainerSelections().size, 0);
+  globalThis.localStorage.getItem = () => { throw new Error("unavailable"); };
+  assert.equal(loadContainerSelections().size, 0);
+});
+
 test("confirmation is centered, defaults to Cancel, restores focus, and queues dialogs", async () => {
   setup();
   const previous = document.activeElement;

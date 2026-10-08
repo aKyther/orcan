@@ -783,6 +783,29 @@ def main() -> None:
         if os.environ.get("ORCAN_STUDIO_CREATE_RUNTIME") == "1"
         else ensure_env_key_unless_set
     )
+    if config_path and config_path.is_file():
+        creation_config = load_config(config_path)
+        if creation_config.get("image"):
+            if not isinstance(creation_config["image"], str) or not re.fullmatch(
+                r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]*", creation_config["image"]
+            ):
+                die("invalid configured Docker image reference")
+            creation_setting(env_path, "IMAGE_LOCAL", creation_config["image"])
+        if creation_config.get("projects_root"):
+            value = creation_config["projects_root"]
+            if (
+                not isinstance(value, str)
+                or not Path(value).is_absolute()
+                or any(c in value for c in "\n\r$`")
+            ):
+                die("projects_root must be an absolute path without shell expansions")
+            try:
+                checked_project_dir(value, must_exist=False)
+            except PathGuardError as error:
+                die(str(error))
+            creation_setting(
+                env_path, "ORCAN_PROJECTS_ROOT", creation_config["projects_root"]
+            )
     ensure_env_key_unless_set(env_path, "TTYD_PORT", str(ttyd["port"]))
     creation_setting(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
     ensure_env_key_unless_set(env_path, "TTYD_BIND", str(ttyd.get("bind", "0.0.0.0")))

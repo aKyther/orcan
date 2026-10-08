@@ -152,6 +152,9 @@
                   <h2>New container</h2>
                   <p class="muted">Create a named container from the provisioned image. Containers share sandbox and cache; each has its own context and launch settings.</p>
                   <label>Destination profile<select id="enclave-create-profile"></select></label>
+                  <label>Installed Orcan image<select id="container-create-image" disabled><option value="">Check destination first</option></select></label>
+                  <label>Shared project root<select id="container-create-root" disabled><option value="">Reported by Orcan after checking</option></select></label>
+                  <small id="container-create-paths">Sandbox and cache are shared. Workspace metadata belongs to the named container.</small>
                   <label>Container name suffix<input id="enclave-create-name" pattern="[a-z][a-z0-9-]{0,47}" maxlength="48" placeholder="developer" /><small id="enclave-create-container">Name: orcan-1 (legacy default)</small></label>
                   <div class="form-row"><label>CPU limit<input id="enclave-create-cpus" type="number" min="0.1" max="1024" step="0.1" value="2" /></label><label>RAM limit (GiB)<input id="enclave-create-memory" type="number" min="1" max="65536" value="4" /></label></div>
                   <label>Browser-terminal host port<input id="enclave-create-port" type="number" min="1024" max="65535" value="17681" /><small>Choose a different host port for each published browser terminal.</small></label>

@@ -15,6 +15,12 @@ instances are not migrated. The Enclave term is retired from the current product
 vocabulary; possible future grouping has no committed category name.
 Real Windows/WSL/SSH and concurrent-container operation still need field testing.
 
+The creator now lists installed images labelled Orcan and project roots reported
+by configured instances on the host. It records choices in the new configuration
+and rechecks them before plan/apply. Cache paths are explicitly reported; the
+last selected container is a device preference per profile, never authorization
+to edit without a fresh check. No extra container or workflow grouping is added.
+
 ## Product direction
 
 Orcan helps people build the context that agents need. Running agents and

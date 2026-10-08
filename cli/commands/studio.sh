@@ -91,7 +91,7 @@ orcan_cmd_studio() {
                     --ttyd-host-port)
                         [[ $# -ge 2 && "$2" =~ ^[0-9]+$ ]] || orcan_usage_error '--ttyd-host-port requires a port'
                         port_args+=(--ttyd-host-port "$2"); apply_args+=(--ttyd-host-port "$2"); shift 2 ;;
-                    --cpus|--memory-gb)
+                    --cpus|--memory-gb|--image|--projects-root)
                         [[ $# -ge 2 && "$2" != -* ]] || orcan_usage_error "$1 requires a value"
                         port_args+=("$1" "$2"); apply_args+=("$1" "$2"); shift 2 ;;
                     --with-git|--with-docker|--with-ttyd) up_args+=("$1"); shift ;;
@@ -111,6 +111,12 @@ orcan_cmd_studio() {
             # Studio consumes one JSON document on stdout. Runtime command
             # progress deliberately goes to stderr so it cannot corrupt that response.
             orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}" >/dev/null || return
+            local index
+            for ((index=0; index<${#port_args[@]}; index+=2)); do
+                case "${port_args[index]}" in
+                    --image) export IMAGE_LOCAL="${port_args[index+1]}" ;;
+                esac
+            done
             source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync.sh"
             if ! ORCAN_STUDIO_CREATE_RUNTIME=1 orcan_cmd_sync >&2; then
                 orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" rollback --config "${ORCAN_CONFIG_FILE}" "${port_args[@]}" --yes >&2 || true

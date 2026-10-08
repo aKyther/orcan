@@ -1272,9 +1272,28 @@ async fn enclave_action(
     ttyd_host_port: Option<u16>,
     cpus: Option<f64>,
     memory_gb: Option<u32>,
+    image: Option<String>,
+    projects_root: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
-    let report = probe(enclave.clone(), state.clone()).await?;
+    let mut report = probe(enclave.clone(), state.clone()).await?;
+    if image.is_some() || projects_root.is_some() {
+        let (images, roots) = enclave::creation_choices(&enclave, &report, &state).await?;
+        if let Some(image) = &image {
+            if !images.contains(image) {
+                return Err(
+                    "Select an available Orcan image from a fresh destination check.".into(),
+                );
+            }
+            report.runtime.docker.image.name = image.clone();
+            report.runtime.docker.image.present = true;
+        }
+        if let Some(root) = &projects_root {
+            if !roots.contains(root) {
+                return Err("Select a project root reported by Orcan on this host.".into());
+            }
+        }
+    }
     if let Some(reason) = enclave::creation_blocker(&report) {
         return Err(reason);
     }
@@ -1299,6 +1318,12 @@ async fn enclave_action(
         if apply { "apply" } else { "plan" }.to_owned(),
         "--empty".to_owned(),
     ];
+    if let Some(image) = image {
+        args.extend(["--image".into(), image]);
+    }
+    if let Some(root) = projects_root {
+        args.extend(["--projects-root".into(), root]);
+    }
     if with_git {
         // Access options are independent of the selected runtime name.
         args.push("--with-git".to_owned());

@@ -13,7 +13,7 @@ export type ProbeReport = {
     defaults?: { resources?: { cpus?: number; memory?: string }; ttyd?: { host_port?: number } };
     launch?: { recorded: boolean; docker?: boolean; git?: boolean; network?: string | null; ttyd?: boolean; ttyd_auth?: boolean };
   };
-  paths: { home: string; data: string; projects_root: string; workspace_metadata_root: string; managed_worktrees_root: string };
+  paths: { home: string; data: string; cache?: string; projects_root: string; workspace_metadata_root: string; managed_worktrees_root: string };
   control?: {
     operations?: Record<string, { available: boolean; reason?: string }>;
     settings?: Array<{ id: string; label: string; state: "editable" | "locked"; value: string; detail: string; action?: "contexts" | "runtime" }>;

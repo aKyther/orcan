@@ -43,6 +43,9 @@ def test_named_probes_share_sources_and_data_not_workspace_or_worktree_roots(
         assert report["paths"]["home"] == str(tmp_path / "orcan" / "instances" / name)
         reports.append(report["paths"])
     assert reports[0]["data"] == reports[1]["data"]
+    assert (
+        reports[0]["cache"] == reports[1]["cache"] == str(tmp_path / "shared" / "cache")
+    )
     assert reports[0]["projects_root"] == reports[1]["projects_root"]
     assert (
         reports[0]["workspace_metadata_root"] != reports[1]["workspace_metadata_root"]

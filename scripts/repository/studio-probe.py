@@ -531,6 +531,7 @@ def main() -> None:
         "paths": {
             "home": str(Path(args.home)),
             "data": str(Path(args.data)),
+            "cache": str(Path(args.data) / "cache"),
             "projects_root": str(Path(args.projects_root)),
             "workspace_metadata_root": str(Path(args.workspace_index).parent),
             "managed_worktrees_root": str(worktrees_root),

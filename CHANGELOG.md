@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio container creation selects installed Orcan images and reported shared project roots, displays cache/workspace paths, and remembers the selected container per profile on the device.
+
 - Studio uses server/container terminology and compact container selection cards, separating host capacity from container resource limits without changing saved data identifiers.
 
 - **Studio servers and named containers:** provisioning prepares host CLI/image;

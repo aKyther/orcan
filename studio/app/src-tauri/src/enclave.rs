@@ -62,6 +62,54 @@ pub(super) struct Readiness {
     report: Option<ProbeReport>,
     orcan_error: Option<String>,
     capacity: Option<serde_json::Value>,
+    images: Vec<String>,
+    project_roots: Vec<String>,
+}
+
+pub(super) async fn creation_choices(
+    enclave: &EnclaveInput,
+    report: &ProbeReport,
+    state: &tauri::State<'_, ProfileState>,
+) -> Result<(Vec<String>, Vec<String>), String> {
+    let output = provisioning::execute(enclave, "docker image ls --filter 'label=org.opencontainers.image.title=Orcan' --format '{{.Repository}}:{{.Tag}}'", state).await.unwrap_or_default();
+    let images = image_choices(&output);
+    let mut roots = vec![report.paths.projects_root.clone()];
+    let inventory = list_instances(enclave.clone(), state.clone())
+        .await
+        .unwrap_or_default();
+    if let Some(instances) = inventory["instances"].as_array() {
+        for instance in instances {
+            let mut connection = enclave.clone();
+            connection.instance = instance["instance"].as_str().map(str::to_owned);
+            if connection.instance == enclave.instance {
+                continue;
+            }
+            if let Ok(existing) = probe(connection, state.clone()).await {
+                roots.push(existing.paths.projects_root);
+            }
+        }
+    }
+    roots.retain(|root| root.starts_with('/') && !root.contains(['\n', '\r', '$', '`']));
+    roots.sort();
+    roots.dedup();
+    Ok((images, roots))
+}
+
+fn image_choices(output: &str) -> Vec<String> {
+    let mut images: Vec<String> = output
+        .lines()
+        .filter(|line| {
+            line.as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_alphanumeric)
+                && !line.contains("<none>")
+                && valid_image_reference(line)
+        })
+        .map(str::to_owned)
+        .collect();
+    images.sort();
+    images.dedup();
+    images
 }
 
 #[tauri::command]
@@ -131,6 +179,11 @@ pub(super) async fn enclave_readiness(
         Ok(report) => (Some(report), None),
         Err(error) => (None, Some(error)),
     };
+    let (images, project_roots) = if let Some(report) = report.as_ref() {
+        creation_choices(&enclave, report, &state).await?
+    } else {
+        (Vec::new(), Vec::new())
+    };
     let capacity = server_capacity(
         enclave,
         report
@@ -146,6 +199,8 @@ pub(super) async fn enclave_readiness(
         report,
         orcan_error,
         capacity,
+        images,
+        project_roots,
     })
 }
 
@@ -231,6 +286,17 @@ pub(super) fn lifecycle_command(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn image_choices_are_sorted_unique_and_never_shell_arguments() {
+        assert_eq!(
+            image_choices(
+                "orcan:tester\norcan:latest\norcan:tester\n<none>:<none>\n--option\norcan:latest;id\n"
+            ),
+            vec!["orcan:latest", "orcan:tester"]
+        );
+        assert!(image_choices("").is_empty());
+    }
 
     #[test]
     fn instance_names_cannot_escape_paths_or_inject_commands() {

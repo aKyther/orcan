@@ -120,6 +120,12 @@ def test_invalid_resources_do_not_create_configuration(tmp_path: Path) -> None:
         ("--cpus", "0"),
         ("--memory-gb", "0"),
         ("--ttyd-host-port", "65536"),
+        ("--image", "orcan:latest;whoami"),
+        ("--projects-root", "relative"),
+        ("--projects-root", "/tmp/$EXPANSION"),
+        ("--projects-root", "/"),
+        ("--projects-root", "/etc"),
+        ("--projects-root", str(Path.home())),
     ]:
         result = invoke("apply", "--config", str(config), *args, "--yes", check=False)
         assert result.returncode != 0
@@ -140,6 +146,10 @@ def test_empty_container_first_sync_honors_selected_limits_and_port(
         "8",
         "--ttyd-host-port",
         "17682",
+        "--image",
+        "orcan:tester",
+        "--projects-root",
+        str(tmp_path / "shared sources"),
         "--yes",
     )
     (tmp_path / ".env.example").write_text(
@@ -172,3 +182,29 @@ def test_empty_container_first_sync_honors_selected_limits_and_port(
     assert "CPUS=1.5\n" in generated
     assert "MEMORY=8g\n" in generated
     assert "TTYD_HOST_PORT=17682\n" in generated
+    assert "IMAGE_LOCAL=orcan:tester\n" in generated
+    assert f'ORCAN_PROJECTS_ROOT="{tmp_path / "shared sources"}"\n' in generated
+
+
+def test_selected_image_and_root_are_in_plan_and_rollback_identity(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "orcan.config.json"
+    options = (
+        "--config",
+        str(config),
+        "--image",
+        "orcan:tester",
+        "--projects-root",
+        str(tmp_path / "sandbox"),
+    )
+    plan = json.loads(invoke("plan", *options).stdout)["plan"]
+    assert "use local image orcan:tester (no download)" in plan["changes"]
+    assert not config.exists()
+    invoke("apply", *options, "--yes")
+    assert json.loads(config.read_text())["image"] == "orcan:tester"
+    rejected = invoke("rollback", "--config", str(config), "--yes", check=False)
+    assert rejected.returncode != 0
+    assert config.exists()
+    invoke("rollback", *options, "--yes")
+    assert not config.exists()
