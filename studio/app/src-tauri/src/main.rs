@@ -17,6 +17,7 @@ use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
 mod provisioning;
+mod transfer_cache;
 
 #[derive(Clone, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -2388,6 +2389,15 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
+            let cache =
+                transfer_cache::TransferCache::new(app.path().app_cache_dir()?.join("transfers"))?;
+            let cleanup_cache = cache.clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                if let Err(error) = cleanup_cache.cleanup() {
+                    eprintln!("Could not clean orphaned Studio transfers: {error}");
+                }
+            });
+            app.manage(cache);
             app.manage(ProfileState(Mutex::new(ProfileStore::new(
                 data_dir.join("profiles.json"),
             ))));

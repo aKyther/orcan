@@ -49,7 +49,14 @@ local Linux/macOS, WSL2, and SSH profiles in either direction, including SSH
 server to SSH server. Local Windows must use a WSL2 profile. Studio stores the
 export in a private temporary file, then sends it to the destination; leave
 enough disk space for the entire kit or image and keep Studio open. The file
-is removed when the operation finishes or fails. Hosts need no Internet or
+is removed when the operation finishes or fails. Transfer files live in the
+current user's Studio application cache, in a dedicated `transfers` directory
+(mode `700` on Unix, user-cache permissions on Windows). At startup Studio
+cleans recognized files left by a crashed transfer. Filesystem leases protect
+active transfers, including those in another Studio instance. Cleanup never
+sweeps the system temp directory or follows symlinks; unrecognized files remain.
+Legacy anonymous temp files and remote shell temp directories are not swept.
+Hosts need no Internet or
 direct connection to each other. The destination extracts the kit, installs
 the host CLI, and verifies `orcan version`. An optional Docker image is loaded
 in the same operation. Before transfer, Studio checks source and destination

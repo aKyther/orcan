@@ -324,6 +324,7 @@ async fn move_file(
 pub(super) async fn transfer_profiles(
     input: TransferInput,
     state: tauri::State<'_, ProfileState>,
+    cache: tauri::State<'_, transfer_cache::TransferCache>,
 ) -> Result<String, String> {
     let check = check_transfer(input.clone(), state.clone()).await?;
     if !input.cli
@@ -348,14 +349,21 @@ pub(super) async fn transfer_profiles(
             "docker load".into(),
         )
     };
-    let payload = tempfile::NamedTempFile::new()
+    let payload = cache
+        .create()
         .map_err(|e| format!("Could not create private transfer file: {e}"))?;
-    move_file(&input.source, &source, &payload, false, &state)
+    move_file(&input.source, &source, &payload.file, false, &state)
         .await
         .map_err(|e| format!("Source export failed: {e}"))?;
-    move_file(&input.destination, &destination, &payload, true, &state)
-        .await
-        .map_err(|e| format!("Destination installation failed: {e}"))?;
+    move_file(
+        &input.destination,
+        &destination,
+        &payload.file,
+        true,
+        &state,
+    )
+    .await
+    .map_err(|e| format!("Destination installation failed: {e}"))?;
     if input.cli {
         execute(&input.destination, "orcan version", &state).await?;
     }

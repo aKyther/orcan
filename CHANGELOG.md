@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Studio transfer cleanup:** private transfer-cache directories use filesystem
+  leases. Startup removes recognized crash leftovers, skips active transfers
+  (including another Studio instance), and leaves unknown files and symlinks alone.
 - **Studio profile transfers:** offline CLI and image provisioning now supports
   local Linux/macOS, WSL2, and SSH profiles in either direction, including
   SSH-to-SSH, using a private temporary file on Studio. Destination checks show
