@@ -36,6 +36,12 @@ For a new SSH destination, Studio fetches the public host key before sign-in,
 shows its algorithm and SHA-256 fingerprint, and saves it to the user's
 OpenSSH-compatible `known_hosts` file only after explicit approval. A changed
 key is blocked and never replaced automatically.
+Studio handles this for all SSH tests and operations, including provisioning.
+Its own dialog shows the fingerprint and saves approval without opening a
+terminal. System SSH aliases and their configured known-hosts location are
+resolved with OpenSSH. A changed identity can be replaced after a separate
+explicit approval in that dialog; Studio first rechecks the fingerprint and
+backs up the previous known-hosts file using `ssh-keygen`.
 Studio can use the official online installer on a saved local, WSL2, or SSH
 profile; it requires Internet access plus Bash, Git, and Python 3. For
 isolated or on-premise hosts, Provisioning can build a minimal CLI kit in

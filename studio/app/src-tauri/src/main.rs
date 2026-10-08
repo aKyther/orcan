@@ -214,6 +214,22 @@ mod provisioning_tests {
         assert_eq!(check.destination_architecture, "arm64");
         assert!(check.image_architecture.is_none());
     }
+
+    #[test]
+    fn system_ssh_trust_uses_resolved_host_port_alias_and_file() {
+        let result = parse_host_trust_config("hostname 192.0.2.1\nport 2222\nhostkeyalias private-server\nuserknownhostsfile \"C:/Users/Test User/.ssh/known_hosts\" /other/file\n").unwrap();
+        assert_eq!(
+            result,
+            (
+                "192.0.2.1".into(),
+                2222,
+                "private-server".into(),
+                Some("C:/Users/Test User/.ssh/known_hosts".into())
+            )
+        );
+        assert!(parse_host_trust_config("port 22\n").is_err());
+        assert!(parse_host_trust_config("hostname server\nport invalid\n").is_err());
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -1402,8 +1418,9 @@ fn ssh_endpoint(destination: &str) -> Result<(String, u16), String> {
 
 async fn observed_ssh_host_key(
     destination: &str,
+    system_ssh: bool,
 ) -> Result<(HostKeyOffer, keys::PublicKey), String> {
-    let (host, port) = ssh_endpoint(destination)?;
+    let (host, port, key_host, known_hosts) = host_trust_endpoint(destination, system_ssh).await?;
     let observed = Arc::new(Mutex::new(None));
     let handler = HostKeyCaptureHandler {
         observed: Arc::clone(&observed),
@@ -1421,7 +1438,11 @@ async fn observed_ssh_host_key(
         .map_err(|_| "SSH host-key inspection state is unavailable".to_owned())?
         .clone()
         .ok_or_else(|| "Studio could not read an SSH host key from this destination".to_owned())?;
-    let status = match keys::known_hosts::check_known_hosts(&host, port, &public_key) {
+    let check = match &known_hosts {
+        Some(path) => keys::known_hosts::check_known_hosts_path(&key_host, port, &public_key, path),
+        None => keys::known_hosts::check_known_hosts(&key_host, port, &public_key),
+    };
+    let status = match check {
         Ok(true) => HostKeyStatus::Trusted,
         Ok(false) => HostKeyStatus::Unknown,
         Err(keys::Error::KeyChanged { .. }) => HostKeyStatus::Changed,
@@ -1441,26 +1462,127 @@ async fn observed_ssh_host_key(
 }
 
 #[tauri::command]
-async fn ssh_host_key(destination: String) -> Result<HostKeyOffer, String> {
-    observed_ssh_host_key(&destination)
+async fn ssh_host_key(
+    destination: String,
+    system_ssh: Option<bool>,
+) -> Result<HostKeyOffer, String> {
+    observed_ssh_host_key(&destination, system_ssh.unwrap_or(false))
         .await
         .map(|(offer, _)| offer)
 }
 
 #[tauri::command]
-async fn trust_ssh_host_key(destination: String, fingerprint: String) -> Result<(), String> {
-    let (offer, public_key) = observed_ssh_host_key(&destination).await?;
+async fn trust_ssh_host_key(
+    destination: String,
+    fingerprint: String,
+    system_ssh: Option<bool>,
+    replace_changed: Option<bool>,
+) -> Result<(), String> {
+    let system_ssh = system_ssh.unwrap_or(false);
+    let (offer, public_key) = observed_ssh_host_key(&destination, system_ssh).await?;
+    let changed = matches!(offer.status, HostKeyStatus::Changed);
     match offer.status {
         HostKeyStatus::Trusted => return Ok(()),
-        HostKeyStatus::Changed => return Err("The SSH host key differs from the saved key. Studio will not replace it automatically.".to_owned()),
+        HostKeyStatus::Changed if !replace_changed.unwrap_or(false) => return Err("The SSH host key differs from the saved key. Approve its replacement in Studio after verifying the fingerprint.".to_owned()),
+        HostKeyStatus::Changed => {},
         HostKeyStatus::Unknown => {}
     }
     if offer.fingerprint != fingerprint {
         return Err("The SSH host key changed while awaiting confirmation. Inspect it again before trusting it.".to_owned());
     }
-    let (host, port) = ssh_endpoint(&destination)?;
-    keys::known_hosts::learn_known_hosts(&host, port, &public_key)
-        .map_err(|error| format!("could not save SSH host key: {error}"))
+    let (_, port, host, path) = host_trust_endpoint(&destination, system_ssh).await?;
+    if changed {
+        #[allow(deprecated)]
+        let default_path = std::env::home_dir().map(|home| home.join(".ssh").join("known_hosts"));
+        let file = path
+            .clone()
+            .map(std::path::PathBuf::from)
+            .or(default_path)
+            .ok_or("could not locate known_hosts for identity replacement")?;
+        let identity = if port == 22 {
+            host.clone()
+        } else {
+            format!("[{host}]:{port}")
+        };
+        tauri::async_runtime::spawn_blocking(move || {
+            command_output(
+                {
+                    let mut command = background_command("ssh-keygen");
+                    command.args(["-R", &identity, "-f"]).arg(file);
+                    command
+                },
+                "saved server identity replacement",
+            )
+        })
+        .await
+        .map_err(|error| error.to_string())??;
+    }
+    match path {
+        Some(path) => keys::known_hosts::learn_known_hosts_path(&host, port, &public_key, path),
+        None => keys::known_hosts::learn_known_hosts(&host, port, &public_key),
+    }
+    .map_err(|error| format!("could not save SSH host key: {error}"))
+}
+
+/// OpenSSH resolves aliases and custom known-hosts locations without signing in.
+async fn host_trust_endpoint(
+    destination: &str,
+    system_ssh: bool,
+) -> Result<(String, u16, String, Option<String>), String> {
+    if !system_ssh {
+        let (host, port) = ssh_endpoint(destination)?;
+        return Ok((host.clone(), port, host, None));
+    }
+    Target::Ssh {
+        destination: destination.to_owned(),
+    }
+    .probe_request()
+    .map_err(|error| error.to_string())?;
+    let destination = destination.to_owned();
+    let config = tauri::async_runtime::spawn_blocking(move || {
+        command_output(
+            {
+                let mut command = background_command("ssh");
+                command.args(["-G", "--", &destination]);
+                command
+            },
+            "SSH configuration lookup",
+        )
+    })
+    .await
+    .map_err(|error| error.to_string())??;
+    parse_host_trust_config(&config)
+}
+
+fn parse_host_trust_config(config: &str) -> Result<(String, u16, String, Option<String>), String> {
+    let value = |name: &str| {
+        config
+            .lines()
+            .find_map(|line| line.strip_prefix(name))
+            .map(str::trim)
+    };
+    let host = value("hostname ")
+        .ok_or("SSH configuration did not report a hostname")?
+        .to_owned();
+    let port = value("port ")
+        .unwrap_or("22")
+        .parse()
+        .map_err(|_| "SSH configuration reported an invalid port")?;
+    let key_host = value("hostkeyalias ")
+        .filter(|alias| *alias != "none")
+        .unwrap_or(&host)
+        .to_owned();
+    let path = value("userknownhostsfile ")
+        .and_then(|paths| {
+            if let Some(quoted) = paths.strip_prefix('"') {
+                quoted.split('"').next()
+            } else {
+                paths.split_whitespace().next()
+            }
+        })
+        .filter(|path| *path != "none")
+        .map(str::to_owned);
+    Ok((host, port, key_host, path))
 }
 
 fn required_vault_secret(owner: &str, kind: &str) -> Result<String, String> {

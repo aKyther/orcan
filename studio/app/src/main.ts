@@ -278,7 +278,19 @@ function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
 }
 
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
-  if (!demoMode) return invokeTauri<T>(command, _args);
+  if (!demoMode) {
+    const args = _args as { enclave?: ReturnType<typeof enclaveInput>; input?: { destination?: string; destinationProfileId?: string; destinationCredentialId?: string } } | undefined;
+    const target = args?.enclave?.target;
+    const destination = target?.kind === "ssh" ? target.destination : args?.input?.destination;
+    if (destination) {
+      const profileId = args?.enclave?.profileId ?? args?.input?.destinationProfileId;
+      const profile = profiles.find((profile) => profile.id === profileId);
+      const credentialId = args?.enclave?.credentialId ?? args?.input?.destinationCredentialId ?? profile?.credential_id;
+      const systemSsh = !credentialId && (!profile?.ssh || profile.ssh.authentication.kind === "agent");
+      if (!(await ensureSshHostTrust(destination, systemSsh))) throw new Error("Server identity was not approved. No connection was made.");
+    }
+    return invokeTauri<T>(command, _args);
+  }
   await new Promise((resolve) => window.setTimeout(resolve, 180));
   if (command === "current_user") return "developer" as T;
   if (command === "wsl_default_user") return "developer" as T;
@@ -1744,7 +1756,6 @@ async function testProfile(): Promise<void> {
   profileTest.disabled = true;
   profileTestResult.textContent = `Testing connection to ${connection.label}…`;
   try {
-    if (!(await confirmSshHostKey(connection))) return;
     const user = await invoke<string>("test_connection", { enclave: enclaveInput(connection) });
     profileTestResult.textContent = `✓ Connected to ${connection.label}${user ? ` as ${user}` : ""}.`;
     profileTestHint.textContent = "Connection only succeeded. Studio did not check Orcan, Docker, projects, or settings.";
@@ -1754,28 +1765,41 @@ async function testProfile(): Promise<void> {
   } finally { profileTest.disabled = false; }
 }
 
-async function confirmSshHostKey(connection: Connection): Promise<boolean> {
-  if (connection.target.kind !== "ssh") return true;
-  const offer = await invoke<SshHostKeyOffer>("ssh_host_key", { destination: connection.target.destination });
-  if (offer.status === "trusted") return true;
-  if (offer.status === "changed") {
-    profileTestResult.textContent = "Studio could not verify this server’s identity.";
-    profileTestHint.replaceChildren(
-      el("strong", { textContent: "The server identity changed." }),
-      el("span", { textContent: "For safety, Studio blocked the connection. Ask the server owner to confirm the new fingerprint, then remove the old saved server identity from this computer before trying again." }),
-      technicalDetail(`SSH host key changed for ${offer.destination}.`),
-    );
-    profileTestHint.hidden = false;
-    return false;
-  }
-  const message = `First connection to this server\n\n${offer.destination}\n${offer.algorithm}\n${offer.fingerprint}\n\nCompare this fingerprint with the server owner if you can. If it is the intended server, approve to save its public identity on this computer and continue.`;
-  if (!window.confirm(message)) {
-    profileTestResult.textContent = "SSH host key was not trusted; no connection was made.";
-    return false;
-  }
-  await invoke("trust_ssh_host_key", { destination: connection.target.destination, fingerprint: offer.fingerprint });
-  profileTestResult.textContent = `Server identity saved; testing connection to ${offer.destination}…`;
-  return true;
+const pendingHostTrust = new Map<string, Promise<boolean>>();
+let hostTrustQueue: Promise<unknown> = Promise.resolve();
+
+function ensureSshHostTrust(destination: string, systemSsh: boolean): Promise<boolean> {
+  const key = `${systemSsh}:${destination}`;
+  const pending = pendingHostTrust.get(key);
+  if (pending) return pending;
+  const task = hostTrustQueue.catch(() => undefined).then(async () => {
+    const offer = await invokeTauri<SshHostKeyOffer>("ssh_host_key", { destination, systemSsh });
+    if (offer.status === "trusted") return true;
+    const approved = await requestHostTrust(offer);
+    if (!approved) return false;
+    await invokeTauri("trust_ssh_host_key", { destination, systemSsh, fingerprint: offer.fingerprint, replaceChanged: offer.status === "changed" });
+    return true;
+  }).finally(() => pendingHostTrust.delete(key));
+  pendingHostTrust.set(key, task);
+  hostTrustQueue = task;
+  return task;
+}
+
+function requestHostTrust(offer: SshHostKeyOffer): Promise<boolean> {
+  return new Promise((resolve) => {
+    const changed = offer.status === "changed";
+    const dialog = el("dialog", { className: "plan-dialog", ariaLabel: "SSH server identity" });
+    const cancel = actionButton("Cancel", () => dialog.close("cancel"));
+    const approve = actionButton(changed ? "Replace saved identity and continue" : "Trust and continue", () => dialog.close("trust"), "");
+    dialog.append(el("h2", { textContent: changed ? "Server identity changed" : "First connection to this server" }),
+      el("p", { textContent: offer.destination }),
+      el("p", { textContent: changed ? "The server key differs from the saved identity. Verify this fingerprint with the server owner before replacing it. Studio saves a backup of the previous known-hosts file." : "Approve this server’s identity to save it on this computer and continue. You can compare the fingerprint with the server owner." }),
+      el("p", {}, el("code", { textContent: `${offer.algorithm} · ${offer.fingerprint}` })),
+      el("div", { className: "form-actions" }, cancel, approve));
+    dialog.addEventListener("close", () => { const approved = dialog.returnValue === "trust"; dialog.remove(); resolve(approved); }, { once: true });
+    document.body.append(dialog);
+    dialog.showModal();
+  });
 }
 
 function technicalDetail(detail: string): HTMLDetailsElement {
@@ -1786,7 +1810,10 @@ function showConnectionFailure(detail: string): void {
   const normalized = detail.toLowerCase();
   let title = "Studio could not connect.";
   let explanation = "Check the connection details, then try again.";
-  if (/authentication|permission denied|rejected|publickey/.test(normalized)) {
+  if (/identity was not approved/.test(normalized)) {
+    title = "Connection cancelled.";
+    explanation = "Test the connection again when you are ready to approve the server identity in Studio.";
+  } else if (/authentication|permission denied|rejected|publickey/.test(normalized)) {
     title = "The computer rejected the sign-in.";
     explanation = "Check that the selected credential has the right user and password or key. Credentials cannot be edited; create a replacement if a value changed.";
   } else if (/no (password|key-passphrase) is stored|vault|keyring/.test(normalized)) {
@@ -1991,7 +2018,7 @@ function provisioningFailure(output: HTMLElement, error: unknown): void {
     : /needs|required|not found|command not found/i.test(detail) ? "A required tool is missing. Install the tool named in the technical detail, then check again."
     : /architecture|does not match|differs/i.test(detail) ? "The destination did not match the selected source. Check the selected profiles and image."
     : /timed out|unreachable|refused|resolve/i.test(detail) ? "Check the address, network or VPN, and whether the destination is running."
-    : /host.key|known_hosts/i.test(detail) ? "Open the profile and test its connection to verify the server identity."
+    : /host.key|known_hosts|identity was not approved/i.test(detail) ? "Try again when you are ready to verify and approve the server identity in Studio."
     : "The operation did not finish. Review the detail below and check requirements before trying again.";
   output.replaceChildren(el("strong", { textContent: "Could not complete provisioning. " }), el("span", { textContent: hint }), technicalDetail(detail));
 }

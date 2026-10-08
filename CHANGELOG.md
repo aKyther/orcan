@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   method. Offline CLI readiness checks destination tools and write access, and
   verifies Docker access and matching architecture when an image is included.
 
+- **Studio SSH:** all SSH operations handle server identity approval inside
+  Studio, including aliases and configured known-hosts files. An explicitly
+  approved changed identity is replaced with a backup of the previous file.
+
 - **Image size:** omit sbt native clients for other operating systems and
   architectures while keeping the matching Linux client and documentation.
 
