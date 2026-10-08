@@ -2292,6 +2292,15 @@
 <p>This is a maintainer handoff and product direction, not a list of available
 features. It preserves decisions from the design session ending on 2026-10-08.
 Read <a href="../orcan-studio/">Orcan Studio</a> for the current implementation.</p>
+<p>The follow-up decision is to develop named containers now, with shared sandbox
+and cache. The implemented first management layer is <strong>server/host → named
+containers</strong>: profiles connect to WSL2 or a VM, provisioning prepares CLI/image,
+then creation chooses name, CPU, RAM, access and browser-terminal host port.
+Servers report engine CPU/RAM capacity and project-filesystem free space.
+Configuration, workspace metadata and launch state are instance-scoped;
+worktrees are namespaced beneath the shared source catalog. Existing default
+instances are not migrated. Enclaves remain future groups, not host synonyms.
+Real Windows/WSL/SSH and concurrent-container operation still need field testing.</p>
 <h2 id="product-direction">Product direction<a class="headerlink" href="#product-direction" title="Permanent link">&para;</a></h2>
 <p>Orcan helps people build the context that agents need. Running agents and
 wrapping tmux are useful, but they are not the main product value.</p>
@@ -2321,8 +2330,12 @@ engine now. First complete and test the single-container foundation.</p>
 <td>A connection to a local machine, WSL2 distribution, or SSH host. It must work without Orcan installed.</td>
 </tr>
 <tr>
-<td>Enclave, today</td>
-<td>One managed Orcan environment/container for a profile. Do not create a second one on that profile.</td>
+<td>Server / host</td>
+<td>Local machine, WSL2 distribution or remote VM reached by a profile; owns installed CLI, Docker images and shared data.</td>
+</tr>
+<tr>
+<td>Named instance</td>
+<td>One Orcan container on a host, with its own Compose project, configuration, launch state and workspaces.</td>
 </tr>
 <tr>
 <td>Enclave, future</td>
@@ -2347,8 +2360,8 @@ engine now. First complete and test the single-container foundation.</p>
 </tbody>
 </table>
 <p>Do not permanently encode <code>profile == enclave == container</code> in new storage.
-It is the current product limit, not the eventual data model. Do not introduce
-multiple containers until paths, lifecycle, and ownership are isolated.</p>
+Keep host identity separate from container identity. Named containers now isolate
+paths, lifecycle and ownership; Enclave grouping and task orchestration remain future work.</p>
 <h2 id="current-baseline-implemented-not-yet-fully-field-tested">Current baseline: implemented, not yet fully field-tested<a class="headerlink" href="#current-baseline-implemented-not-yet-fully-field-tested" title="Permanent link">&para;</a></h2>
 <p>The transfer baseline before this roadmap is <code>138ce161</code> on <code>main</code>.</p>
 <ul>
@@ -2384,8 +2397,8 @@ Check the current commit and tests before treating a planned block as complete.<
 and provisioning return, guarded creation, compact runtime cards, real
 existing-container lifecycle, and entry into context management. They are
 acceptance criteria for the next session, not a request to duplicate the work.
-Field-test Windows → WSL → SSH, failure recovery, and the creation UI before
-moving to multiple containers. Refine in verified blocks; no release, tag, or
+Field-test Windows → WSL → SSH, failure recovery, and the named creation UI.
+Refine in verified blocks; no release, tag, or
 version bump is requested.</p>
 <h3 id="1-guided-preparation-and-creation">1. Guided preparation and creation<a class="headerlink" href="#1-guided-preparation-and-creation" title="Permanent link">&para;</a></h3>
 <p>Make New Enclave available from Enclaves, even when the selected profile does
@@ -2530,10 +2543,10 @@ not part of the next session.</p>
 </ul>
 <h2 id="small-code-map-for-the-next-agent">Small code map for the next agent<a class="headerlink" href="#small-code-map-for-the-next-agent" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>studio/app/src/main.ts</code>: current creator, Enclave list, profile checks,
+<li><code>studio/app/src/main.ts</code>: current creator, server/container list, profile checks,
   lifecycle controls, context UI and demo adapter. Avoid more monolithic growth.</li>
-<li><code>studio/app/src/types.ts</code>, <code>probe.ts</code>: report types/normalization; the current
-  UI Docker type omits image/name facts already present in the Rust report.</li>
+<li><code>studio/app/src/types.ts</code>, <code>probe.ts</code>: report types/normalization, including
+  Docker image/name facts and Orcan-provided creation defaults.</li>
 <li><code>studio/app/src-tauri/src/main.rs</code>: native commands, profile/vault integration,
   probe, <code>enclave_action</code>, and <code>runtime_action</code>.</li>
 <li><code>studio/app/src-tauri/src/provisioning.rs</code>, <code>transfer_receiver.py</code>,
@@ -2541,11 +2554,13 @@ not part of the next session.</p>
 <li><code>studio/crates/orcan-studio-core/src/lib.rs</code>: report model and argument helpers.</li>
 <li><code>cli/commands/studio.sh</code>, <code>scripts/repository/studio-enclave.py</code>,
   <code>studio-probe.py</code>: Orcan-side contract, creation, reported capabilities/paths.</li>
+<li><code>cli/orcan.sh</code>, <code>scripts/repository/studio-instances.py</code>: named instance
+  scoping and host-side configured-instance discovery.</li>
 <li><code>cli/commands/up.sh</code>, <code>down.sh</code>, <code>cli/lib/runtime.sh</code>: actual lifecycle behavior.</li>
 <li><code>studio/app/tests/feedback.test.mjs</code>, <code>tests/host/test_studio_transfer_receiver.py</code>
   and existing Studio probe/enclave tests: extend, do not duplicate.</li>
 </ul>
-<p>Start by inspecting and testing the four single-container blocks above. Keep
+<p>Start by verifying named-instance isolation, shared data and the four foundation blocks. Keep
 this roadmap current as decisions change. Use the workspace session brief for
 short live handoffs, not additional PLAN/TODO/SUMMARY files.</p>
 
@@ -2570,7 +2585,7 @@ short live handoffs, not additional PLAN/TODO/SUMMARY files.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 17:45:46 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 18:40:49 UTC">October 8, 2026</span>
   </span>
 
     

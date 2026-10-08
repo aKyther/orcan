@@ -931,6 +931,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orcan Studio
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -947,6 +965,36 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#servers-and-named-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Servers and named containers
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1936,6 +1984,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#servers-and-named-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Servers and named containers
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1985,8 +2052,52 @@
 
 <h1 id="orcan-studio">Orcan Studio<a class="headerlink" href="#orcan-studio" title="Permanent link">&para;</a></h1>
 <p>For the next development phases, see the
-<a href="../orcan-studio-roadmap/">Studio and Enclave roadmap</a>. It separates the current
-single-container foundation from future multi-container and visual-flow work.</p>
+<a href="../orcan-studio-roadmap/">Studio and Enclave roadmap</a>. It separates host/container
+management from future Enclave groups and visual task flows.</p>
+<h2 id="servers-and-named-containers">Servers and named containers<a class="headerlink" href="#servers-and-named-containers" title="Permanent link">&para;</a></h2>
+<p>A profile connects to a <strong>server/host</strong>: local Linux/macOS, a WSL2 distribution,
+or a remote VM. Provisioning installs the CLI and transfers a Docker image to
+that host. It does not create one container per profile. After provisioning,
+<strong>Servers → New container</strong> creates named instances from the installed image.
+The image is reused; it is not transferred again for each container.</p>
+<p>Choose a name such as <code>developer</code> or <code>tester</code>; Docker names become
+<code>orcan-developer</code> and <code>orcan-tester</code>. Use lowercase letters, digits and hyphens,
+starting with a letter, up to 48 characters. Names are unique on the host.
+The server card offers a container selector. Context, settings, drafts, cached
+reports and lifecycle actions are scoped to that selected container.
+Studio discovers configured instances from Orcan, not a second desktop registry.</p>
+<p>Set CPU and RAM limits in the creation form. Orcan supplies its defaults; the
+user can override them before reviewing the plan. Studio reports Docker engine
+CPU/RAM capacity and free disk space on the project filesystem. These are
+read-only snapshots: total engine capacity is not free or reserved capacity,
+and limits on separate containers do not reserve that amount of RAM in advance.
+Refresh to update the facts. Each published browser terminal needs a different
+host port; Studio rejects a port already published by a running Docker container.
+An unrelated host process can still take that port after the check.</p>
+<p>Named instances use separate configuration, generated mounts, workspace metadata,
+launch options and Compose project names. <strong>Sandbox, cache, agent directories,
+history and dotfiles are shared through <code>ORCAN_DATA</code> on that host.</strong> Worktree
+storage is namespaced beneath the shared sandbox. A mount-as-is edit changes
+the shared source seen by every container; use separate worktrees for isolated
+changes. Shared agent directories are not a security boundary and concurrent
+login/token refresh depends on the agent tool's own behavior.</p>
+<p>The legacy default <code>orcan-1</code> and ordinary CLI commands keep their existing layout.
+No existing configuration or data is migrated. For named instances:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>--instance<span class="w"> </span>developer<span class="w"> </span>studio<span class="w"> </span>probe<span class="w"> </span>--json
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>--instance<span class="w"> </span>developer<span class="w"> </span>sync
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>orcan<span class="w"> </span>--instance<span class="w"> </span>developer<span class="w"> </span>up<span class="w"> </span>--resume
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>orcan<span class="w"> </span>--instance<span class="w"> </span>developer<span class="w"> </span>down
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>orcan<span class="w"> </span>studio<span class="w"> </span>instances<span class="w"> </span>--json
+</span></code></pre></div>
+<p>Default named configuration lives under <code>~/.config/orcan/instances/NAME</code> (or
+<code>$ORCAN_INSTANCES_ROOT/instances/NAME</code>). Shared data remains the base Orcan data
+directory; <code>ORCAN_DATA</code> and <code>ORCAN_PROJECTS_ROOT</code> can select explicit host paths.
+Down removes only the selected Compose stack, without deleting configuration,
+shared data, projects or worktrees. Start recreates a removed container using
+saved flags; protected ttyd recreation still needs its credentials on the host.
+Existing-container Start/Stop/Restart preserve its settings and ttyd auth.</p>
+<p><strong>Enclave</strong> is reserved for a future group of cooperating containers; creating
+named containers does not implement an agent workflow engine.</p>
 <p>Orcan Studio is the native desktop companion for composing and inspecting Orcan
 context. Orcan Sandbox remains the runtime that owns Docker, managed project
 roots, mounts, workspaces, and live reconcile.</p>
@@ -2164,7 +2275,7 @@ changed-server-identity failures in plain language, with the original technical
 detail available on demand. Provisioning then has a separate requirements check for Bash,
 cURL, Git, Python 3, and reachability of the official installer; it also
 reports whether it found an existing Orcan CLI.
-New Enclave accepts any saved profile, including a host without Orcan. <strong>Check
+New container accepts any saved profile, including a host without Orcan. <strong>Check
 destination</strong> separates connection, Orcan CLI, Docker and the required image.
 Missing components offer targeted CLI installation/update or image transfer;
 the provisioning result returns to the selected destination's setup. Docker
@@ -2172,10 +2283,10 @@ Desktop integration or Docker Engine must already be ready inside the selected
 WSL distribution; setup does not silently install Docker.
 Access options and creation are enabled only after readiness checks succeed.
 Preview the actual Orcan plan, then confirm creation; changing options invalidates
-the plan. The backend checks again for an existing configuration or container
+the plan. The backend checks again for the selected name's existing configuration or container
 and a usable local image. It does not build an image on an offline destination.
 After creation, Studio verifies the running container and opens Contexts.</p>
-<p>Enclave cards show container state/name, image, configured CPU/RAM, source and
+<p>Server cards show the selected container's state/name, image, configured CPU/RAM, source and
 worktree paths, workspace count and access exposure. Settings remain behind the
 gear, with locked creation-time values and change-impact explanations. A cached
 or failed report is history, not authority to unlock operations; the current
@@ -2213,12 +2324,10 @@ remain in the platform credential vault; a hash cannot replace a password here
 because native SSH must retrieve the password to authenticate. The installation
 directory is intentionally not used: it is commonly read-only or shared on
 Windows, macOS, and packaged Linux installations.
-Studio's UI calls the current Sandbox runtime an <strong>Enclave</strong> (an isolated Orcan
-environment) and walks through Credentials &amp; keys → Profiles → Enclaves; no
-instance view is shown until a probe succeeds. Today one checked profile owns
-at most one Enclave, so Studio excludes profiles that already report an
-<code>orcan.config.json</code> or an existing container from creating another Enclave.
-The destination remains selectable for inspection and opening the existing one.</p>
+Studio walks through Credentials &amp; keys → Profiles → Provisioning → Servers
+and named containers. Context editing is enabled only after a successful probe
+for the selected container. An existing configuration/container reserves that
+name, not the whole profile: choose a different name to create another instance.</p>
 <p>Workspace membership is edited on the Enclave map: dragging a project onto a
 workspace (or onto "New workspace") asks Orcan for a plan through
 <code>orcan studio settings</code>, shows it for confirmation, applies it on that Enclave
@@ -2253,7 +2362,7 @@ never replaced automatically. Their destination is direct <code>host</code> or
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 17:45:46 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 18:40:49 UTC">October 8, 2026</span>
   </span>
 
     
