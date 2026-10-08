@@ -2065,13 +2065,22 @@ into one vertical view.
 Selected workspace focus and map filters are remembered separately for each
 Enclave on the Studio device.</p>
 <p>Studio saves reconnect profiles in its native application-data directory. A
-profile contains a display name, transport metadata, and an optional SSH user
-override. Passwords and key passphrases are not written to
-the profile file; they belong in the operating system credential vault.</p>
-<p>Credentials are separate, reusable records: a named private-key path or
-password, together with its usual remote username, that several profiles can
-reference. A profile can override that user for an exceptional target. A
-credential cannot be deleted while a profile uses it.
+profile contains a display name and transport metadata; system-SSH profiles may
+optionally state their SSH user. Passwords and key passphrases are not written
+to the profile file; they belong in the operating system credential vault.</p>
+<p>Credentials are separate, reusable, immutable records: a named password or
+private-key path together with its SSH user. Studio offers distinct creation
+flows for password and key credentials; changing any of those values means
+creating a replacement, moving profiles to it, and deleting the unused old
+record. A profile chooses exactly one sign-in method: system SSH or one
+credential. It cannot override the credential user, and a credential cannot be
+deleted while a profile uses it.</p>
+<p>Studio keeps reconnect metadata in a versioned JSON document in its per-user
+application-data directory. Secrets are deliberately absent from that file and
+remain in the platform credential vault; a hash cannot replace a password here
+because native SSH must retrieve the password to authenticate. The installation
+directory is intentionally not used: it is commonly read-only or shared on
+Windows, macOS, and packaged Linux installations.
 Studio's UI calls the current Sandbox runtime an <strong>Enclave</strong> (an isolated Orcan
 environment) and walks through Credentials &amp; keys → Profiles → Enclaves; no
 instance view is shown until a probe succeeds. Today one checked profile owns
@@ -2085,8 +2094,9 @@ workspace (or onto "New workspace") asks Orcan for a plan through
 <p>The application is Rust + Tauri. The UI has no arbitrary shell permission: the
 Rust connection layer owns fixed commands and validates target identifiers.
 Password and private-key profiles use native SSH and check the host key against
-the local <code>known_hosts</code> file. An unknown or changed key is rejected; Studio
-never trusts it automatically. Their destination is direct <code>host</code> or
+the local <code>known_hosts</code> file. Studio displays an unknown key's fingerprint and
+records it only after explicit user approval; a changed key is rejected and
+never replaced automatically. Their destination is direct <code>host</code> or
 <code>host:port</code>; SSH-agent profiles continue to use system OpenSSH configuration.</p>
 
 
@@ -2110,7 +2120,7 @@ never trusts it automatically. Their destination is direct <code>host</code> or
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 11:26:30 UTC">October 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 06:56:34 UTC">October 8, 2026</span>
   </span>
 
     
