@@ -85,14 +85,17 @@ orcan_cmd_studio() {
             local mode="${1:-}"; shift || true
             [[ "$mode" == "plan" || "$mode" == "apply" ]] || orcan_usage_error 'usage: orcan studio enclave plan|apply --empty [--with-git] [--with-docker] [--with-ttyd | --with-ttyd-auth USER:PASS] [--yes]'
             local up_args=() port_args=() apply_args=("$mode" --config "${ORCAN_CONFIG_FILE}")
+            local identity_json="" identity_image="${IMAGE_LOCAL:-orcan:latest}"
             while (($#)); do
                 case "$1" in
                     --empty) shift ;;
                     --ttyd-host-port)
                         [[ $# -ge 2 && "$2" =~ ^[0-9]+$ ]] || orcan_usage_error '--ttyd-host-port requires a port'
                         port_args+=(--ttyd-host-port "$2"); apply_args+=(--ttyd-host-port "$2"); shift 2 ;;
-                    --cpus|--memory-gb|--image|--projects-root)
+                    --cpus|--memory-gb|--image|--projects-root|--identity-json)
                         [[ $# -ge 2 && "$2" != -* ]] || orcan_usage_error "$1 requires a value"
+                        [[ "$1" != --identity-json ]] || identity_json="$2"
+                        [[ "$1" != --image ]] || identity_image="$2"
                         port_args+=("$1" "$2"); apply_args+=("$1" "$2"); shift 2 ;;
                     --with-git|--with-docker|--with-ttyd) up_args+=("$1"); shift ;;
                     --with-ttyd-auth)
@@ -104,6 +107,17 @@ orcan_cmd_studio() {
                 esac
             done
             orcan_require_python
+            if [[ -n "$identity_json" ]]; then
+                local identity_capability
+                identity_capability=$(docker image inspect --format '{{ index .Config.Labels "io.orcan.identity.version" }}' "$identity_image" 2>/dev/null) || {
+                    printf 'Selected identity requires an installed Orcan image with identity support.\n' >&2
+                    return 1
+                }
+                [[ "$identity_capability" == 1 ]] || {
+                    printf 'Selected image does not support identities; build or provision an updated image.\n' >&2
+                    return 1
+                }
+            fi
             if [[ "$mode" == "plan" ]]; then
                 orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}"
                 return

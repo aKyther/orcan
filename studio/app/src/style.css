@@ -140,3 +140,7 @@ button.context-project-update { background: none; border: 0; color: #9fba8d; fon
 .profile-card-status { font-size: .7rem; color: #b7c8a7; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-card button { padding: .32rem .5rem; font-size: .72rem; }
 #profile-list > .empty-state { grid-column: 1 / -1; }
+#identity-list pre { max-height: 14rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+#identity-path { overflow-wrap: anywhere; }
+.view[data-view="identities"] label { display: grid; gap: .4rem; }
+#identity-instructions { background: #171a16; border: 1px solid #4e5748; border-radius: .55rem; color: inherit; font: inherit; line-height: 1.5; min-height: 16rem; padding: .8rem; resize: vertical; width: 100%; }

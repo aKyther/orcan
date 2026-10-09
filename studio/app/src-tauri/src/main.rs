@@ -17,6 +17,7 @@ use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
 mod enclave;
+mod identities;
 mod provisioning;
 mod ssh_access;
 mod transfer_cache;
@@ -1275,6 +1276,8 @@ async fn enclave_action(
     memory_gb: Option<u32>,
     image: Option<String>,
     projects_root: Option<String>,
+    identity_id: Option<String>,
+    identity_version: Option<u32>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<serde_json::Value, String> {
     let mut report = probe(enclave.clone(), state.clone()).await?;
@@ -1295,6 +1298,21 @@ async fn enclave_action(
             }
         }
     }
+    let identity = match (identity_id, identity_version) {
+        (Some(id), Some(version)) => {
+            if !report.capabilities.identity_templates {
+                return Err("Update the host Orcan CLI before using identity templates".into());
+            }
+            let identity = identities::read_at(&identities::root()?, &id, version)?;
+            let label = provisioning::execute(&enclave, &format!("docker image inspect --format '{{{{index .Config.Labels \"io.orcan.identity.version\"}}}}' {}", shell_quote(&report.runtime.docker.image.name)), &state).await?;
+            if label.trim() != "1" {
+                return Err("This image cannot preserve identity instructions. Select an updated Orcan image.".into());
+            }
+            Some(identity)
+        }
+        (None, None) => None,
+        _ => return Err("Select an identity and its exact version".into()),
+    };
     if let Some(reason) = enclave::creation_blocker(&report) {
         return Err(reason);
     }
@@ -1319,6 +1337,12 @@ async fn enclave_action(
         if apply { "apply" } else { "plan" }.to_owned(),
         "--empty".to_owned(),
     ];
+    if let Some(identity) = identity {
+        args.extend([
+            "--identity-json".into(),
+            serde_json::to_string(&identity).map_err(|e| e.to_string())?,
+        ]);
+    }
     if let Some(image) = image {
         args.extend(["--image".into(), image]);
     }
@@ -2493,6 +2517,9 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            identities::list_identities,
+            identities::save_identity,
+            identities::open_studio_data,
             ssh_access::git_ssh_keys,
             ssh_access::transfer_git_ssh_key,
             ssh_access::test_git_ssh,

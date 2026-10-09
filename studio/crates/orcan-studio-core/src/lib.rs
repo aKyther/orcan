@@ -947,6 +947,8 @@ pub struct Paths {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Capabilities {
+    #[serde(default)]
+    pub identity_templates: bool,
     pub docker: bool,
     pub git: bool,
     pub managed_projects: bool,
@@ -1013,6 +1015,8 @@ pub struct Container {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContextSnapshot {
+    #[serde(default)]
+    pub identity: Option<serde_json::Value>,
     pub configuration: ConfigurationState,
     pub paths: ContextPaths,
     pub workspaces: Vec<Workspace>,

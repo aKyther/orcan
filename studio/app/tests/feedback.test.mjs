@@ -27,6 +27,47 @@ class Element extends EventTarget {
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
+test("identity revisions stay selected after edits and stale reloads are ignored", async () => {
+  setup();
+  const fields = new Map();
+  for (const name of ["list", "name", "description", "instructions", "result", "save", "new", "refresh", "open-data", "path"]) {
+    const field = new Element();
+    field.value = "";
+    fields.set(`#identity-${name}`, field);
+  }
+  const select = new Element();
+  select.value = "";
+  Object.defineProperty(select, "options", { get: () => select.children });
+  fields.set("#container-create-identity", select);
+  document.querySelector = (selector) => fields.get(selector);
+  globalThis.Option = class { constructor(text, value) { this.textContent = text; this.value = value; } };
+  const first = { id: "template", version: 1, name: "Reviewer", description: "Review", instructions: "Check errors" };
+  const second = { ...first, version: 2, instructions: "Check concurrency too" };
+  const requests = [];
+  let invalidations = 0;
+  const { identityPanel } = await load("identities");
+  const panel = identityPanel(() => new Promise((resolve) => requests.push(resolve)), () => invalidations++);
+  const initial = panel.reload();
+  requests.shift()({ path: "/app/studio-data", identities: [first] });
+  await initial;
+  select.value = "template:1";
+  select.dispatchEvent(new Event("change"));
+  const stale = panel.reload();
+  const fresh = panel.reload();
+  requests[1]({ path: "/app/studio-data", identities: [second] });
+  await fresh;
+  requests[0]({ path: "/wrong", identities: [] });
+  await stale;
+  assert.equal(fields.get("#identity-path").textContent, "/app/studio-data");
+  assert.equal(select.value, "template:1");
+  assert.deepEqual(panel.selected(), first);
+  assert.equal(select.options.some((option) => option.value === "template:2"), true);
+  select.value = "template:2";
+  select.dispatchEvent(new Event("change"));
+  assert.deepEqual(panel.selected(), second);
+  assert.equal(invalidations, 2);
+});
+
 test("Git access ignores stale inventory and copies only after explicit approval", async () => {
   setup();
   const fields = new Map();

@@ -14,14 +14,18 @@ from pathlib import Path
 
 # Host scripts live next to this file.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config_io import die, discover_config, load_config as load_user_config  # noqa: E402
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2] / "docker/rootfs/usr/local/lib")
+)
+from config_io import die, discover_config  # noqa: E402
+from config_io import load_config as load_user_config
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS  # noqa: E402
+from orcan.identity import validate_identity
 from path_guards import (  # noqa: E402
     PathGuardError,
     checked_project_dir,
     is_sensitive_path,
 )
-
 
 DEFAULT_DEVELOPER_WORKSPACES = "/home/developer/workspaces"
 
@@ -630,7 +634,12 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
     primary_ws = primary_workspace(workspaces)
     container_project_dir = primary_ws["root"]
 
+    try:
+        identity = validate_identity(cfg.get("identity"))
+    except ValueError as error:
+        die(str(error))
     runtime: dict = {
+        "identity": identity,
         "workspaces": workspaces,
         **_resolved_runtime_settings(cfg),
     }
@@ -723,6 +732,19 @@ def main() -> None:
         print("No CONFIG file; synthesized single-repo workspace from PROJECT_DIR")
 
     runtime_dir.mkdir(parents=True, exist_ok=True)
+    identity_path = runtime_dir / "frozen-identity.json"
+    identity = built["runtime"].get("identity")
+    if identity_path.is_symlink():
+        die("container identity record must not be a symlink")
+    if identity_path.exists():
+        frozen = json.loads(identity_path.read_text(encoding="utf-8"))
+        if frozen != identity:
+            die("container identity is immutable; create a replacement container")
+    else:
+        if identity and not os.environ.get("ORCAN_STUDIO_CREATE_RUNTIME"):
+            die("identity can only be assigned during Studio container creation")
+        with identity_path.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(identity, indent=2) + "\n")
     workspaces_dir.mkdir(parents=True, exist_ok=True)
     active_names = {
         ws["name"] for ws in built["workspaces"] if ws.get("enabled") is not False

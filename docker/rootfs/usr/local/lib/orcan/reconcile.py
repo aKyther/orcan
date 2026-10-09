@@ -173,7 +173,12 @@ def _seed_agent_ignores(root: Path, templates_root: Path) -> None:
     )
 
 
-def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, Any]]) -> None:
+def _write_agents_md(
+    root: Path,
+    ws: dict[str, Any],
+    projects: list[dict[str, Any]],
+    identity: dict | None = None,
+) -> None:
     name = ws.get("name") or "workspace"
     session = ws.get("tmux_session") or name
     rows = []
@@ -279,7 +284,7 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
             "3. **Surgical changes** — touch only what you must; match style; clean up only",
             "   orphans *your* change created; no drive-by refactors.",
             "4. **Goal-driven execution** — define verifiable success criteria and loop until",
-            "   checked (tests / make / lint). Prefer \"make X pass\" over \"make it work\".",
+            '   checked (tests / make / lint). Prefer "make X pass" over "make it work".',
             "5. **Multi-agent restraint** — spawning subagents (`/code-review`, parallel tasks)",
             "   costs tokens per agent; poll for results on backoff, never a tight loop. If a",
             "   subagent's result looks garbled or unfounded, stop and ask — don't act on it,",
@@ -309,13 +314,29 @@ def _write_agents_md(root: Path, ws: dict[str, Any], projects: list[dict[str, An
             "",
         ]
     )
+    if identity:
+        body += (
+            "\n\n## Container identity\n\n"
+            + identity["name"]
+            + " (version "
+            + str(identity["version"])
+            + "; template `"
+            + identity["id"]
+            + "`).\n\n"
+            + "These instructions supplement Orcan base rules and repository instructions.\n\n"
+            + identity["instructions"]
+            + "\n"
+        )
     _write_if_changed(root / "AGENTS.md", body + "\n")
     # Claude Code looks for CLAUDE.md; keep in sync with AGENTS.md.
     _write_if_changed(root / "CLAUDE.md", body + "\n")
 
 
 def _apply_one_workspace(
-    ws: dict[str, Any], defaults_root: Path, templates_root: Path
+    ws: dict[str, Any],
+    defaults_root: Path,
+    templates_root: Path,
+    identity: dict | None = None,
 ) -> WorkspaceReport:
     root = Path(ws["root"])
     root.mkdir(parents=True, exist_ok=True)
@@ -329,11 +350,11 @@ def _apply_one_workspace(
         },
         "projects": projects,
     }
-    _write_if_changed(
-        root / ".manifest.json", json.dumps(manifest, indent=2) + "\n"
-    )
+    _write_if_changed(root / ".manifest.json", json.dumps(manifest, indent=2) + "\n")
 
-    report = WorkspaceReport(name=ws.get("name") or "workspace", root=str(root), repo_count=len(projects))
+    report = WorkspaceReport(
+        name=ws.get("name") or "workspace", root=str(root), repo_count=len(projects)
+    )
     desired_names: set[str] = set()
     for item in projects:
         name = (item.get("name") or "").strip()
@@ -372,7 +393,7 @@ def _apply_one_workspace(
             print(f"removed orphan symlink: {child}", file=sys.stderr)
             report.symlinks_removed.append(str(child))
 
-    _write_agents_md(root, ws, projects)
+    _write_agents_md(root, ws, projects, identity)
     _seed_agent_ignores(root, templates_root)
 
     rule_template = defaults_root / ".cursor" / "rules" / "workspace-context.mdc"
@@ -423,11 +444,18 @@ def apply_workspaces(
     defaults_root = defaults_root or DEFAULT_DEFAULTS_ROOT
     templates_root = defaults_root.parent
 
+    identity = None
+    if cfg.get("identity") is not None:
+        from orcan.identity import validate_identity
+
+        identity = validate_identity(cfg["identity"])
     workspaces = iter_enabled_workspaces(cfg)
     report = ReconcileReport()
 
     for ws in workspaces:
-        report.workspaces.append(_apply_one_workspace(ws, defaults_root, templates_root))
+        report.workspaces.append(
+            _apply_one_workspace(ws, defaults_root, templates_root, identity)
+        )
 
     # Remove whole workspace dirs that are no longer in config (visible via
     # the parent mount) — never touches a dir whose name is still active.
@@ -443,7 +471,11 @@ def apply_workspaces(
     # oversight — but it does mean removing a workspace from config is a
     # deletion of everything under that workspace root, not just the
     # symlinks/manifest this module manages.
-    active_names = {str(ws.get("name") or "").strip() for ws in workspaces if str(ws.get("name") or "").strip()}
+    active_names = {
+        str(ws.get("name") or "").strip()
+        for ws in workspaces
+        if str(ws.get("name") or "").strip()
+    }
     parents = {Path(ws["root"]).parent for ws in workspaces if ws.get("root")}
     parents.add(workspaces_parent or DEVELOPER_WORKSPACES_ROOT)
     for parent in parents:

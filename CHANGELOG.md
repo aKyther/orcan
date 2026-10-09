@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio has an install-adjacent identity library with Markdown instructions,
+  UUIDs and immutable template versions. New containers can select a version
+  or Default; all their workspaces inherit it alongside Orcan base rules.
+  Ordinary sync rejects identity changes, and template edits affect future
+  containers only. Custom identities require an updated CLI and runtime image.
+
 - Named-instance worktree commands now use their reported namespace and registry;
   the default prune skips named instances, and forced removal cannot delete
   another instance's managed worktree. Studio probes read the selected registry.

@@ -7,8 +7,13 @@ import argparse
 import json
 import math
 import re
+import sys
 from pathlib import Path
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2] / "docker/rootfs/usr/local/lib")
+)
+from orcan.identity import validate_identity
 from path_guards import PathGuardError, checked_project_dir
 
 
@@ -22,9 +27,18 @@ def main() -> None:
     parser.add_argument("--memory-gb", type=int)
     parser.add_argument("--image")
     parser.add_argument("--projects-root")
+    parser.add_argument("--identity-json")
     args = parser.parse_args()
     config = Path(args.config)
     empty_config = {"workspaces": []}
+    if args.identity_json is not None:
+        try:
+            identity = validate_identity(json.loads(args.identity_json))
+            if identity is None:
+                parser.error("select Default by omitting --identity-json")
+            empty_config["identity"] = identity
+        except (ValueError, TypeError) as error:
+            parser.error(str(error))
     if args.image is not None:
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]*", args.image):
             parser.error("invalid Docker image reference")
@@ -73,6 +87,11 @@ def main() -> None:
         ],
         "ready": not config.exists(),
     }
+    if "identity" in empty_config:
+        identity = empty_config["identity"]
+        plan["changes"].append(
+            f"identity: {identity['name']} v{identity['version']} (immutable; inherited by all workspaces)"
+        )
     if resources:
         plan["changes"].append(f"container resources: {json.dumps(resources)}")
     if args.image:
@@ -96,6 +115,11 @@ def main() -> None:
             raise SystemExit(
                 "refusing to remove a configuration that is not the empty Studio configuration"
             )
+        frozen = config.parent / "mounts" / "frozen-identity.json"
+        if frozen.is_file() and json.loads(
+            frozen.read_text(encoding="utf-8")
+        ) == empty_config.get("identity"):
+            frozen.unlink()
         config.unlink()
         print(json.dumps({"ok": True, "result": {"rolled_back": str(config)}}))
         return

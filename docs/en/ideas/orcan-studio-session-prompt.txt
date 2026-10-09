@@ -53,6 +53,11 @@ Najpierw domknij projekt: skład instrukcji, Attach na każdej platformie,
 UUID/klonowanie, konfigurację zastępczego kontenera, lokalizację danych oraz
 minimalny wygląd planszy i stany offline/stale. Pierwszy blok wyrównał helper Git
 i rejestr probe ze ścieżkami instancji; nowe kontenery dostają namespace z Compose.
+Kolejny blok wdrożył bibliotekę tożsamości i wybór wersji przy tworzeniu kontenera,
+zamrożenie kopii w konfiguracji oraz propagację do AGENTS.md/CLAUDE.md workspace’ów.
+Dane wersji są w studio-data/identities/<UUID>/versions/<version>/ obok aplikacji.
+Tożsamość wymaga nowego CLI i obrazu; istniejący runtime nie został przebudowany.
+Pozostały UUID hostów/kontenerów, konfiguracja zastępcza i plansza 2D z Attach.
 
 DALSZA OPCJA, nie wymóg pierwszego etapu:
 - GitHub PR / GitLab MR na przypiętych base/head: Tester → Reviewer → człowiek.

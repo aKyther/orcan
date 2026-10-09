@@ -78,6 +78,7 @@ def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
     assert [setting["id"] for setting in report["control"]["settings"]] == [
         "context",
         "lifecycle",
+        "identity",
         "resources",
         "agents",
         "environment",

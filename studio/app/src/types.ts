@@ -6,7 +6,7 @@ export type Target =
 export type ProbeReport = {
   sandbox: { version: string };
   host: { os: string; architecture: string; user?: string };
-  capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean };
+  capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean; identity_templates?: boolean };
   runtime: {
     docker: { available?: boolean; image?: { name: string; present: boolean }; container: { name?: string; state: string }; agents?: Record<string, boolean> };
     resources?: { cpus?: string | number; memory?: string; shm_size?: string; tmpfs_size?: string };
@@ -19,6 +19,7 @@ export type ProbeReport = {
     settings?: Array<{ id: string; label: string; state: "editable" | "locked"; value: string; detail: string; action?: "contexts" | "runtime" }>;
   };
   context: {
+    identity?: Identity | null;
     workspaces: Array<{
       name: string;
       projects: Array<{ name?: string; path: string; kind: string; writable?: boolean; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; repository_id?: string }>;
@@ -41,3 +42,5 @@ export type Connection = { target: Target; label: string; profileId?: string; cr
 export type SshHostKeyOffer = { destination: string; algorithm: string; fingerprint: string; status: "trusted" | "unknown" | "changed" };
 export type MembershipArgs = { action: "attach" | "detach"; workspace: string; project: string; apply: boolean };
 export type ProjectRef = { name: string; path: string; kind?: string };
+
+export type Identity = { id: string; version: number; name: string; description: string; instructions: string };

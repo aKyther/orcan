@@ -7,6 +7,7 @@ import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
 import { creationBlocker, lifecycleBlocker, ownsEnclave } from "./enclave-model";
 import { containerStateLabel, loadContainerSelections, persistContainerSelections } from "./server-model";
+import { identityPanel } from "./identities";
 import { gitAccessPanel } from "./git-access";
 import { confirmAction, promptText } from "./dialog";
 import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
@@ -20,6 +21,7 @@ const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>
 const profileList = $("#profile-list");
 const enclaveList = $("#enclave-list");
 const gitAccess = gitAccessPanel(invoke, profileConnection);
+const identityLibrary = identityPanel(invoke, () => { creatorRevision += 1; creatorPlanRevision = -1; renderEnclaveCreator(); });
 const imageTransferSource = $<HTMLSelectElement>("#image-transfer-source");
 const imageTransferName = $<HTMLInputElement>("#image-transfer-name");
 const imageTransferTarget = $<HTMLSelectElement>("#image-transfer-target");
@@ -300,6 +302,9 @@ function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
   return { ok: true, result: plan };
 }
 
+const demoIdentities = new Map<string, import("./types").Identity>();
+const demoIdentityVersions = new Map<string, import("./types").Identity>();
+
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) {
     const args = _args as { enclave?: ReturnType<typeof enclaveInput>; input?: { source?: ReturnType<typeof enclaveInput>; destination?: string | ReturnType<typeof enclaveInput>; destinationProfileId?: string; destinationCredentialId?: string } } | undefined;
@@ -321,6 +326,18 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     return invokeTauri<T>(command, _args);
   }
   await new Promise((resolve) => window.setTimeout(resolve, 180));
+  if (command === "list_identities") return { path: "Demo only — no files saved", identities: [...demoIdentities.values()] } as T;
+  if (command === "save_identity") {
+    const args = _args as { id?: string; expectedVersion?: number; name: string; description: string; instructions: string };
+    const previous = args.id ? demoIdentities.get(args.id) : undefined;
+    if (args.id && previous?.version !== args.expectedVersion) throw new Error("Identity changed; reload before editing");
+    if (!args.name.trim() || !args.instructions.trim()) throw new Error("Name and instructions are required");
+    const identity = { id: args.id ?? crypto.randomUUID(), version: (previous?.version ?? 0) + 1, name: args.name.trim(), description: args.description, instructions: args.instructions };
+    demoIdentities.set(identity.id, identity);
+    demoIdentityVersions.set(`${identity.id}:${identity.version}`, identity);
+    return identity as T;
+  }
+  if (command === "open_studio_data") return undefined as T;
   if (command === "current_user") return "developer" as T;
   if (command === "wsl_default_user") return "developer" as T;
   if (command === "test_connection") return "developer" as T;
@@ -338,6 +355,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (command === "probe") return structuredClone(await demoReportFor(enclave!.target, enclave!.instance)) as T;
   if (command === "enclave_readiness") {
     const report = structuredClone(await demoReportFor(enclave!.target, enclave!.instance));
+    report.capabilities.identity_templates = true;
     return { user: "developer", docker: { available: true, version: "demo", detail: "Docker ready" }, report, orcanError: null, images: report.runtime.docker.image ? [report.runtime.docker.image.name] : [], projectRoots: [report.paths.projects_root] } as T;
   }
   if (command === "enclave_action") {
@@ -345,13 +363,17 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     const args = _args as { apply: boolean; withGit: boolean; withDocker: boolean; withTtyd: boolean; ttydCredential?: string };
     const blocker = creationBlocker(report);
     if (blocker) throw new Error(blocker);
+    const choice = _args as { identityId?: string; identityVersion?: number };
+    const identity = choice.identityId ? demoIdentityVersions.get(`${choice.identityId}:${choice.identityVersion}`) : null;
+    if (choice.identityId && !identity) throw new Error("Select an existing identity version");
     if (args.apply) {
       report.context.configuration = { state: "present", source: "config", editable: true };
+      report.context.identity = identity ? structuredClone(identity) : null;
       report.runtime.docker.container.state = "running";
       report.runtime.launch = { recorded: true, git: args.withGit, docker: args.withDocker, ttyd: args.withTtyd, ttyd_auth: Boolean(args.ttydCredential) };
       return { ok: true } as T;
     }
-    return { plan: { ready: true, changes: ["create empty configuration", "run orcan sync", "start Orcan with selected access"] } } as T;
+    return { plan: { ready: true, changes: ["create empty configuration", ...(identity ? [`identity: ${identity.name} v${identity.version} (immutable)`] : []), "run orcan sync", "start Orcan with selected access"] } } as T;
   }
   if (command === "runtime_action") {
     const report = await demoReportFor(enclave!.target, enclave!.instance);
@@ -400,6 +422,7 @@ function showView(name: string): void {
   if (!target || (gatedViews.has(name) && !connected && !(name === "contexts" && canViewContexts()))) return;
   currentView = name;
   if (name === "enclaves") checkAll();
+  if (name === "identities") void identityLibrary.reload();
   for (const view of views) view.hidden = view !== target;
   for (const item of navigationItems) {
     const active = item.dataset.viewTarget === name;
@@ -2469,6 +2492,7 @@ async function checkCreatorDestination(): Promise<void> {
   creatorBusy = true;
   containerCreateImage.disabled = true;
   containerCreateRoot.disabled = true;
+  identityLibrary.select.disabled = true;
   creatorPlanRevision = -1;
   creatorReadiness = undefined;
   enclaveCreateName.disabled = true;
@@ -2526,6 +2550,7 @@ async function checkCreatorDestination(): Promise<void> {
     enclaveCreateReadiness.replaceChildren(el("strong", { textContent: "Could not connect to this profile." }), el("span", { textContent: failureHint(String(error)) }), technicalDetail(String(error)));
   } finally {
     creatorBusy = false;
+    identityLibrary.select.disabled = false;
     enclaveCreateName.disabled = false;
     enclaveCreatePort.disabled = false;
     enclaveCreateCpus.disabled = false;
@@ -2552,6 +2577,8 @@ async function planEmptyEnclave(apply = false): Promise<void> {
     enclaveCreateResult.textContent = "Check the destination and preview the current plan before creating this container.";
     return;
   }
+  const selectedIdentity = identityLibrary.selected();
+  if (selectedIdentity && !creatorReport(profile)?.capabilities.identity_templates) { enclaveCreateResult.textContent = "Update the host Orcan CLI before using identity templates."; return; }
   const revision = creatorRevision;
   const connection = creatorProfileConnection(profile);
   const ttydHostPort = enclaveCreateTtyd.checked ? Number(enclaveCreatePort.value) : undefined;
@@ -2559,6 +2586,7 @@ async function planEmptyEnclave(apply = false): Promise<void> {
   creatorBusy = true;
   containerCreateImage.disabled = true;
   containerCreateRoot.disabled = true;
+  identityLibrary.select.disabled = true;
   enclaveCreateName.disabled = true;
   enclaveCreatePort.disabled = true;
   enclaveCreateCpus.disabled = true;
@@ -2578,6 +2606,8 @@ async function planEmptyEnclave(apply = false): Promise<void> {
       memoryGb: Number(enclaveCreateMemory.value),
       image: containerCreateImage.value || undefined,
       projectsRoot: containerCreateRoot.value || undefined,
+      identityId: selectedIdentity?.id,
+      identityVersion: selectedIdentity?.version,
       withGit: enclaveCreateGit.checked,
       withDocker: enclaveCreateDocker.checked,
       withTtyd: enclaveCreateTtyd.checked,
@@ -2602,7 +2632,7 @@ async function planEmptyEnclave(apply = false): Promise<void> {
       enclaveCreateResult.textContent = "container is running. Add projects to its context.";
     }
   } catch (error) { creatorPlanRevision = -1; enclaveCreateResult.textContent = `container setup failed: ${String(error)}`; }
-  finally { creatorBusy = false; enclaveCreateName.disabled = false; enclaveCreatePort.disabled = false; enclaveCreateCpus.disabled = false; enclaveCreateMemory.disabled = false; enclaveCreateProfile.disabled = false; renderEnclaveCreator(); }
+  finally { creatorBusy = false; identityLibrary.select.disabled = false; enclaveCreateName.disabled = false; enclaveCreatePort.disabled = false; enclaveCreateCpus.disabled = false; enclaveCreateMemory.disabled = false; enclaveCreateProfile.disabled = false; renderEnclaveCreator(); }
 }
 
 async function inspectTransferImage(): Promise<void> {
@@ -2722,6 +2752,10 @@ function renderEnclaves(): void {
         const state = containerStateLabel(checked);
         const button = actionButton(runtime.container, () => selectInstance(profile, runtime.instance ?? ""), "secondary container-choice");
         button.append(el("small", { textContent: state }));
+        if (checked?.report) {
+          const identity = checked.report.context.identity;
+          button.append(el("small", { textContent: identity ? `${identity.name} · v${identity.version}` : "Default identity" }));
+        }
         button.classList.toggle("active", selected);
         button.setAttribute("aria-pressed", String(selected));
         button.disabled = runtimeBusy;
@@ -2746,6 +2780,7 @@ function renderEnclaves(): void {
       const facts = el("dl", { className: "enclave-facts" });
       for (const [label, value] of [
         ["Container", `${report.runtime.docker.container.name ?? "Not reported"} · ${report.runtime.docker.container.state}`],
+        ["Identity", report.context.identity ? `${report.context.identity.name} · v${report.context.identity.version}` : "Default — Orcan base rules"],
         ["Image", report.runtime.docker.image ? `${report.runtime.docker.image.name} · ${report.runtime.docker.image.present ? "available" : "missing"}` : "Not reported"],
         ["Configured resources", `CPU ${report.runtime.resources?.cpus ?? "not reported"} · RAM ${report.runtime.resources?.memory ?? "not reported"}`],
         ["Projects", report.paths.projects_root],
@@ -3029,3 +3064,5 @@ activeInstance.addEventListener("click", () => showView("enclaves"));
 void loadStore().catch((error) => {
   result.textContent = `Could not load saved Servers: ${String(error)}`;
 });
+
+void identityLibrary.reload();

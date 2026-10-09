@@ -7,6 +7,43 @@
   "additionalProperties": true,
   "required": ["workspaces"],
   "properties": {
+    "identity": {
+      "description": "Frozen identity selected at container creation; all workspaces inherit its instructions.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "name",
+        "description",
+        "instructions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        }
+      }
+    },
     "image": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/:@-]*$",

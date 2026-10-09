@@ -241,6 +241,7 @@ def context_snapshot(
         "config" if config_path.is_file() else "runtime_index" if workspaces else "none"
     )
     return {
+        "identity": config.get("identity"),
         "configuration": {
             "state": "present"
             if source == "config"
@@ -450,6 +451,19 @@ def studio_control(
                 "action": "runtime",
             },
             {
+                "id": "identity",
+                "label": "Container identity",
+                "state": "locked",
+                "value": (
+                    str((runtime_data.get("identity") or {}).get("name"))
+                    + " v"
+                    + str((runtime_data.get("identity") or {}).get("version"))
+                )
+                if runtime_data.get("identity")
+                else "Default",
+                "detail": "Fixed at creation; inherited by all workspaces. Another identity requires a replacement container. Base Orcan and repository rules remain.",
+            },
+            {
                 "id": "resources",
                 "label": "Container resources",
                 "state": "locked",
@@ -517,6 +531,8 @@ def main() -> None:
         Path(args.workspace_index),
         args.instance,
     )
+    if Path(args.runtime).is_file():
+        context["identity"] = runtime_data.get("identity")
     worktrees_root = managed_worktrees_root(Path(args.projects_root), args.instance)
     report = {
         "protocol": {
@@ -539,6 +555,7 @@ def main() -> None:
             "managed_worktrees_root": str(worktrees_root),
         },
         "capabilities": {
+            "identity_templates": True,
             "docker": bool(docker["available"]),
             "git": shutil.which("git") is not None,
             "managed_projects": True,

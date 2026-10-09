@@ -11,6 +11,43 @@ management from possible future container groups and visual task flows.
 
 ## Servers and named containers
 
+### Container identities
+
+Open **Identities** to create a template with a name, description and Markdown
+instructions. Describe an effective developer, a goal, or a review perspective
+such as security or testing. These instructions supplement the general Orcan
+`AGENTS.md` / `CLAUDE.md` rules and the repository's own instructions.
+
+**Save new version** retains previous versions. In **Servers → New container**,
+select a saved identity version or **Default — Orcan base rules** before planning
+creation. Studio sends a copy of that version through the existing host
+connection; no MCP or extra service is required. Container identity is fixed:
+editing a template does not change existing containers. Every current and future
+workspace receives the frozen instructions through its generated context pack.
+Settings display the assigned version as locked. Ordinary sync refuses a changed
+or removed assignment, including changing an existing Default container to a role.
+
+The library lives beside the installed Studio application:
+`studio-data/identities/<UUID>/versions/<version>/identity.json` stores metadata,
+and `instructions.md` stores the text. Use **Open data directory** to inspect,
+back up or remove templates. Keep this directory during app updates. Removing a
+template leaves existing container snapshots intact; new creation using a removed
+version fails explicitly. Profiles and credentials keep their existing storage.
+The installation directory must be writable. Studio reports storage errors and
+does not silently switch to another location. For AppImage, the library lives
+beside the AppImage file; on macOS it lives beside the `.app` bundle.
+
+Custom identity creation requires updated host CLI code and a newly built Orcan
+image with identity support. Older images are rejected for custom identities;
+Default remains available. Updating Studio alone does not update a running
+container. Choose the new image when creating a new container. Another identity
+requires explicit replacement, preserving projects and shared data.
+
+This block supplies the identity foundation. The saved 2D enclave canvas and
+manual Attach from that canvas are still planned. It does not execute workflows.
+
+### Creating and managing containers
+
 A profile connects to a **server/host**: local Linux/macOS, a WSL2 distribution,
 or a remote VM. Provisioning installs the CLI and transfers a Docker image to
 that host. It does not create one container per profile. After provisioning,

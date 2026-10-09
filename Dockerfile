@@ -755,7 +755,8 @@ RUN install -d -m 0755 /etc/orcan \
     && chmod 0644 /etc/orcan/agents.json /etc/orcan/version \
     && chown root:root /etc/orcan/agents.json /etc/orcan/version
 
-LABEL org.opencontainers.image.title="Orcan" \
+LABEL io.orcan.identity.version="1" \
+      org.opencontainers.image.title="Orcan" \
       org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \
       org.opencontainers.image.source="https://github.com/aKyther/orcan" \
       org.opencontainers.image.licenses="MIT" \
@@ -809,7 +810,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ORCAN_VERSION=${ORCAN_VERSION} \
     PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/java/bin:/opt/gradle/bin:/opt/maven/bin:/opt/kotlinc/bin:/opt/scala3/bin:/opt/sbt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-LABEL org.opencontainers.image.title="Orcan" \
+LABEL io.orcan.identity.version="1" \
+      org.opencontainers.image.title="Orcan" \
       org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \
       org.opencontainers.image.source="https://github.com/aKyther/orcan" \
       org.opencontainers.image.licenses="MIT" \

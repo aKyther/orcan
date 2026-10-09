@@ -16,7 +16,8 @@ the probe reports worktrees namespaced beneath the shared source catalog.
 The first isolation block now aligns the host Git helper and probe registry
 with those paths; Compose passes the namespace to newly created containers. Existing default instances are not migrated. Enclave is reserved for
 the planned group of containers across one or more servers; it is not a current
-container category. Identity templates and enclaves are planning work only.
+container category. Identity templates and creation-time adaptation are now
+implemented; the enclave canvas remains planned.
 Real Windows/WSL/SSH and concurrent-container operation still need field testing.
 
 The creator now lists installed images labelled Orcan and project roots reported
@@ -58,13 +59,13 @@ scheduler, mandatory MCP, automatic login or pipeline engine is needed now.
 
 ### Remaining decisions for the first milestone
 
-- Define the exact instruction composition and verify actual agent loading.
+- Verify actual agent loading of the implemented additive context-pack instructions.
 - Choose supported Attach mechanisms on Windows, WSL, SSH and local hosts,
   including target labels and reconnect to existing sessions.
 - Define UUID initialization/clone detection and replacement-container config,
   preserving projects while clearing the old immutable identity assignment.
-- Define writable installation-adjacent studio-data roots on each platform and
-  preservation on updates; keep current profiles/vault outside this change.
+- Field-test the implemented installation-adjacent storage roots on each platform
+  and preservation on updates; current profiles/vault remain outside this change.
 - Define the minimal canvas layout/cards and behavior for stale, missing or
   offline members. Avoid adding task controls in the initial view.
 
@@ -107,7 +108,8 @@ engine now. First complete and test the single-container foundation.
 Do not permanently encode profile and container as the same identity in new storage.
 Keep host identity separate from container identity. Named containers now isolate
 configuration and lifecycle; worktree ownership still needs verification.
-Identity templates, grouping and task orchestration remain future work.
+Identity templates are implemented. Stable host/container UUIDs, grouping and
+task orchestration remain future work.
 
 ## Current baseline: implemented, not yet fully field-tested
 
@@ -303,8 +305,8 @@ existing general Orcan AGENTS.md/CLAUDE.md rules as the base and add identity
 instructions without replacing them. Use Markdown for the instruction body and
 JSON only for UUID/name/description/version metadata; no numeric priority engine
 in the first version. Describe working priorities in plain instruction text.
-Proposed storage is `identities/<identity_id>/identity.json` for metadata/version
-and `instructions.md` for the readable text. Editing produces a version for
+Implemented storage is `identities/<identity_id>/versions/<version>/identity.json`
+for metadata and `instructions.md` for the readable text. Editing produces a version for
 future containers and never changes an already assigned container.
 
 Adaptation happens only during container creation. Choose a server, installed
