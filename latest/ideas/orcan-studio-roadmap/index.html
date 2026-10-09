@@ -2693,7 +2693,8 @@ The first isolation block now aligns the host Git helper and probe registry
 with those paths; Compose passes the namespace to newly created containers. Existing default instances are not migrated. Enclave is reserved for
 the planned group of containers across one or more servers; it is not a current
 container category. Identity templates and creation-time adaptation are now
-implemented; the enclave canvas remains planned.
+implemented, together with a saved manual Vue Flow enclave canvas and UUID-checked
+Check/Start/Attach. Named replacement archives instance configuration after Down.
 Real Windows/WSL/SSH and concurrent-container operation still need field testing.</p>
 <p>The creator now lists installed images labelled Orcan and project roots reported
 by configured instances on the host. It records choices in the new configuration
@@ -2727,14 +2728,14 @@ scheduler, mandatory MCP, automatic login or pipeline engine is needed now.</p>
 <h3 id="remaining-decisions-for-the-first-milestone">Remaining decisions for the first milestone<a class="headerlink" href="#remaining-decisions-for-the-first-milestone" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Verify actual agent loading of the implemented additive context-pack instructions.</li>
-<li>Choose supported Attach mechanisms on Windows, WSL, SSH and local hosts,
-  including target labels and reconnect to existing sessions.</li>
-<li>Define UUID initialization/clone detection and replacement-container config,
-  preserving projects while clearing the old immutable identity assignment.</li>
+<li>Field-test native Attach on Windows, WSL, SSH and local hosts. Saved SSH
+  passwords/keys are not handed to terminal apps; system SSH is required.</li>
+<li>Field-test clone detection and explicit rekeying. The current fingerprint cannot
+  detect a clone that retains the same machine ID; the clone must be rekeyed.</li>
 <li>Field-test the implemented installation-adjacent storage roots on each platform
   and preservation on updates; current profiles/vault remain outside this change.</li>
-<li>Define the minimal canvas layout/cards and behavior for stale, missing or
-  offline members. Avoid adding task controls in the initial view.</li>
+<li>Field-test missing/offline and replacement cards on actual hosts. Current cards
+  never recreate missing containers and actions recheck target UUIDs.</li>
 </ul>
 <p>Resolve these implementation design questions within the authorized manual
 milestone. The six checks before automation remain in their separate
@@ -2809,8 +2810,8 @@ engine now. First complete and test the single-container foundation.</p>
 <p>Do not permanently encode profile and container as the same identity in new storage.
 Keep host identity separate from container identity. Named containers now isolate
 configuration and lifecycle; worktree ownership still needs verification.
-Identity templates are implemented. Stable host/container UUIDs, grouping and
-task orchestration remain future work.</p>
+Identity templates, target UUID registration and manual grouping are implemented.
+Task orchestration remains future work.</p>
 <h2 id="current-baseline-implemented-not-yet-fully-field-tested">Current baseline: implemented, not yet fully field-tested<a class="headerlink" href="#current-baseline-implemented-not-yet-fully-field-tested" title="Permanent link">&para;</a></h2>
 <p>The transfer baseline before this roadmap is <code>138ce161</code> on <code>main</code>.</p>
 <ul>
@@ -2952,8 +2953,9 @@ credentials separate. Orcan still does not choose or route AI models.</p>
 shared source access, namespaced workspaces, and default-instance compatibility
 before building a pipeline editor.</p>
 <h2 id="planned-identities-and-enclaves">Planned identities and enclaves<a class="headerlink" href="#planned-identities-and-enclaves" title="Permanent link">&para;</a></h2>
-<p>Implementation has started with the isolation foundation. Identities and the
-manual enclave remain the next planned blocks.
+<p>Isolation, identity templates and the manual enclave are implemented. The canvas
+stores membership and positions; it does not execute workflows. Platform/host
+field testing remains required.
 The agreed model is: a VM proposes a default identity, a container owns its
 selected identity, and all workspaces in that container inherit it. An enclave
 groups containers, including containers selected from different VMs.</p>
@@ -3478,7 +3480,7 @@ short live handoffs, not additional PLAN/TODO/SUMMARY files.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 16:17:52 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 17:05:01 UTC">October 9, 2026</span>
   </span>
 
     

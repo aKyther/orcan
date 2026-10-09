@@ -57,7 +57,16 @@ Kolejny blok wdrożył bibliotekę tożsamości i wybór wersji przy tworzeniu k
 zamrożenie kopii w konfiguracji oraz propagację do AGENTS.md/CLAUDE.md workspace’ów.
 Dane wersji są w studio-data/identities/<UUID>/versions/<version>/ obok aplikacji.
 Tożsamość wymaga nowego CLI i obrazu; istniejący runtime nie został przebudowany.
-Pozostały UUID hostów/kontenerów, konfiguracja zastępcza i plansza 2D z Attach.
+Kolejny blok wdrożył UUID hostów/kontenerów, jawną archiwizację konfiguracji
+zastępowanego kontenera oraz zapis enklaw na planszy Vue Flow. Karty mają Check,
+Start i Attach; połączenia są wyłącznie wizualne. UUID oznacza logiczny cel:
+Down/ponowne uruchomienie z tą samą konfiguracją zachowuje ID, jawne zastąpienie
+nadaje nowe. Klon VM wymaga jawnego target clone/register --new-target;
+skopiowanego machine-id nie da się automatycznie odróżnić. Probe nie zapisuje ID.
+Attach obsługuje lokalny terminal, WSL i system SSH; SSH wymaga agenta systemowego,
+nie przekazuje zapisanych haseł/kluczy do terminala. Rzeczywiste Windows/WSL/SSH
+i instalatory pozostają do sprawdzenia na testowych maszynach, bez restartu
+runtime’u użytkownika. Dalszy etap to takie sprawdzenie, nie automatyzacja.
 
 DALSZA OPCJA, nie wymóg pierwszego etapu:
 - GitHub PR / GitLab MR na przypiętych base/head: Tester → Reviewer → człowiek.

@@ -1005,6 +1005,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#manual-enclaves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual enclaves
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-uuids-and-replacement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target UUIDs and replacement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-and-managing-containers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2053,6 +2075,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#manual-enclaves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual enclaves
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-uuids-and-replacement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target UUIDs and replacement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-and-managing-containers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2160,8 +2204,58 @@ image with identity support. Older images are rejected for custom identities;
 Default remains available. Updating Studio alone does not update a running
 container. Choose the new image when creating a new container. Another identity
 requires explicit replacement, preserving projects and shared data.</p>
-<p>This block supplies the identity foundation. The saved 2D enclave canvas and
-manual Attach from that canvas are still planned. It does not execute workflows.</p>
+<h3 id="manual-enclaves">Manual enclaves<a class="headerlink" href="#manual-enclaves" title="Permanent link">&para;</a></h3>
+<p>Open <strong>Enclaves</strong>, name a group and choose a server profile. <strong>Check container
+list</strong> discovers its configured containers. <strong>Register / add container</strong> adds
+an existing runtime and saves target UUIDs when needed. It does not create or
+start the container. Repeat with other servers to assemble the group. A container
+can belong to several enclaves; removing a card only removes that membership.</p>
+<p>The canvas uses Vue Flow, with draggable cards, zoom controls and a minimap.
+Connect handles to draw a visual line; double-click the line to remove it. Lines,
+opening a group and saving its layout execute no agent work. <strong>Save enclave</strong>
+writes <code>studio-data/enclaves/&lt;UUID&gt;.json</code> beside the application. The JSON contains
+the name, revision, member UUIDs, connection profile references, positions and
+visual lines. Credentials remain in their existing vault. Conflicting saves fail
+explicitly; <strong>Reload list</strong> can reload the saved layout after discarding local edits.</p>
+<p>Use <strong>Check</strong> on a card to verify the host and container UUIDs. Select a workspace
+and use <strong>Attach</strong> to open its existing tmux context. <strong>Start</strong> only starts an
+existing stopped runtime and verifies the result. Missing/offline containers and
+changed UUIDs require explicit recovery; the card cannot recreate or silently
+replace a container. Card state is the last check; each action checks again.
+The side panel shows UUIDs, profile, assigned identity and the checked project path.</p>
+<p>Native Attach uses the selected terminal setting: local Linux/macOS, WSL on
+Windows, or system SSH on the desktop platform. SSH Attach requires a saved
+system-SSH profile and an SSH agent/configuration usable by that terminal.
+Studio never passes a saved password or private key to another app. Workspace
+selection and UUID verification happen before attaching, including a second
+check in the launched shell. Sign into and use the agent manually. Closing the
+terminal leaves the container and persistent tmux session in place.</p>
+<h3 id="target-uuids-and-replacement">Target UUIDs and replacement<a class="headerlink" href="#target-uuids-and-replacement" title="Permanent link">&para;</a></h3>
+<p>Probe remains read-only. <strong>Register UUIDs</strong> in Servers or <strong>Register / add
+container</strong> in Enclaves explicitly initializes IDs for an existing instance.
+New Studio-created containers are registered during creation. The host installation
+stores <code>studio-host.json</code> in its configuration root; <code>host_id</code> and <code>container_id</code>
+are metadata in the instance's <code>orcan.config.json</code>. They do not change the role.
+Renaming a Studio profile/group label and ordinary stop/start preserve these IDs.
+IDs represent the logical instance configuration: restoring that same configuration
+after Down keeps its ID, while explicit replacement allocates a new one.</p>
+<p>The host record includes a machine fingerprint. A changed fingerprint blocks
+enclave operations. On Linux this uses the machine ID; other hosts use their
+hostname. Fully copied VMs can retain the same fingerprint and cannot always be
+detected automatically. On a clone, explicitly run <code>orcan studio target clone
+--yes</code>, then register each cloned instance with <code>--new-target --yes</code>. Existing
+enclaves continue to refer to the original host/container IDs.</p>
+<p>To change a named container's identity, first use <strong>Down</strong>. After checking its
+state, <strong>Prepare replacement</strong> previews and confirms archiving the whole instance
+directory under <code>&lt;host-root&gt;/retired/&lt;name&gt;-&lt;old-UUID&gt;</code>. Shared projects, cache and
+agent data stay in place; workspace metadata and the old configuration remain in
+the archive. The operation refuses a still-existing runtime, unavailable Docker,
+or project data stored inside the instance directory. Then use <strong>New container</strong>
+with the same name or a new name, select an identity and create it explicitly.
+Context bindings from the archive are not imported automatically. Old enclave
+cards fail their UUID check; remove them and add the replacement explicitly.
+The legacy default instance is not retired through this action; create a named
+replacement instead.</p>
 <h3 id="creating-and-managing-containers">Creating and managing containers<a class="headerlink" href="#creating-and-managing-containers" title="Permanent link">&para;</a></h3>
 <p>A profile connects to a <strong>server/host</strong>: local Linux/macOS, a WSL2 distribution,
 or a remote VM. Provisioning installs the CLI and transfers a Docker image to
@@ -2230,8 +2324,9 @@ saved flags; protected ttyd recreation still needs its credentials on the host.
 Existing-container Start/Stop/Restart preserve its settings and ttyd auth.</p>
 <p>The current terms are <strong>profile → server/host → container → workspace</strong>.
 A profile supplies the connection, a host owns images and shared data, and each
-container owns its configuration and workspaces. “Enclave” is no longer a UI
-category. Existing internal command and storage identifiers stay compatible.
+container owns its configuration and workspaces. An <strong>enclave</strong> is a separate
+saved group of containers across one or more servers. Existing internal server
+command and storage identifiers stay compatible.
 Named containers do not implement an agent workflow engine.</p>
 <p>Orcan Studio is the native desktop companion for composing and inspecting Orcan
 context. Orcan Sandbox remains the runtime that owns Docker, managed project
@@ -2520,7 +2615,7 @@ Encrypted keys need unlocking on the destination. Containers started with
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 16:17:52 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 17:05:01 UTC">October 9, 2026</span>
   </span>
 
     
