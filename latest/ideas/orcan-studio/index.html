@@ -990,6 +990,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Servers and named containers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#optional-git-ssh-access-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional Git / SSH access provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1999,6 +2016,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Servers and named containers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#optional-git-ssh-access-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional Git / SSH access provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2098,6 +2132,15 @@ changes. Shared agent directories are not a security boundary and concurrent
 login/token refresh depends on the agent tool's own behavior.</p>
 <p>The legacy default <code>orcan-1</code> and ordinary CLI commands keep their existing layout.
 No existing configuration or data is migrated. For named instances:</p>
+<p>Host worktree commands and Studio probes use
+<code>&lt;projects_root&gt;/.worktrees/instances/&lt;name&gt;/</code> and its own <code>registry.json</code>.
+The default instance retains <code>&lt;projects_root&gt;/.worktrees/</code> and skips the
+<code>instances</code> namespace during prune. Even forced removal refuses another
+instance's managed worktree. Branch names still belong to the shared Git
+repository, so separate containers must use different checked-out branches.
+New/recreated containers receive their instance namespace in the environment;
+existing running containers are not updated automatically. Existing worktrees
+are not moved: inspect legacy bindings before adopting the namespaced layout.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>--instance<span class="w"> </span>developer<span class="w"> </span>studio<span class="w"> </span>probe<span class="w"> </span>--json
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>--instance<span class="w"> </span>developer<span class="w"> </span>sync
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>orcan<span class="w"> </span>--instance<span class="w"> </span>developer<span class="w"> </span>up<span class="w"> </span>--resume
@@ -2358,6 +2401,29 @@ the local <code>known_hosts</code> file. Studio displays an unknown key's finger
 records it only after explicit user approval; a changed key is rejected and
 never replaced automatically. Their destination is direct <code>host</code> or
 <code>host:port</code>; SSH-agent profiles continue to use system OpenSSH configuration.</p>
+<h3 id="optional-git-ssh-access-provisioning">Optional Git / SSH access provisioning<a class="headerlink" href="#optional-git-ssh-access-provisioning" title="Permanent link">&para;</a></h3>
+<p>The Provisioning screen can copy one explicitly selected OpenSSH key pair between
+source and destination profiles independently of CLI/image installation. Both
+endpoints need Python 3 and OpenSSH; Orcan itself is not required. Windows users
+can select their WSL profile as the source. Native Windows endpoints are not
+supported by this POSIX helper.</p>
+<p>Studio lists names and public fingerprints, then requires approval before copying
+the private key. A separate key for the destination is safer: copying grants that
+machine the source identity's permissions. Encrypted OpenSSH keys retain their
+passphrase; hardware-backed and legacy PEM keys are not transferable here.</p>
+<p>Only the selected pair is transferred through native process memory and stdin,
+never through the webview, CLI/image archive, temporary archive or resume cache.
+The destination uses the profile user's home, with <code>.ssh</code> mode 700 and new files
+mode 600. Existing keys are never overwritten: choose another name or skip.
+Source <code>config</code>, <code>known_hosts</code> and SSH multiplexing sockets are not copied.</p>
+<p>The optional host-specific configuration toggle adds an Include while preserving
+existing configuration bytes. With it off, existing SSH configuration is untouched
+and a standalone test configuration is created. Test Git access checks
+authentication without fetching or changing repositories. Unknown Git host keys
+require fingerprint approval; changed/revoked entries are not replaced. Verify
+fingerprints independently: key scanning alone does not authenticate a host.
+Encrypted keys need unlocking on the destination. Containers started with
+<code>--with-git</code> expose the host SSH directory read-only.</p>
 
 
 
@@ -2380,7 +2446,7 @@ never replaced automatically. Their destination is direct <code>host</code> or
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 20:34:02 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 15:22:11 UTC">October 9, 2026</span>
   </span>
 
     
