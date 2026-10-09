@@ -61,6 +61,16 @@ login/token refresh depends on the agent tool's own behavior.
 The legacy default `orcan-1` and ordinary CLI commands keep their existing layout.
 No existing configuration or data is migrated. For named instances:
 
+Host worktree commands and Studio probes use
+`<projects_root>/.worktrees/instances/<name>/` and its own `registry.json`.
+The default instance retains `<projects_root>/.worktrees/` and skips the
+`instances` namespace during prune. Even forced removal refuses another
+instance's managed worktree. Branch names still belong to the shared Git
+repository, so separate containers must use different checked-out branches.
+New/recreated containers receive their instance namespace in the environment;
+existing running containers are not updated automatically. Existing worktrees
+are not moved: inspect legacy bindings before adopting the namespaced layout.
+
 ```bash
 orcan --instance developer studio probe --json
 orcan --instance developer sync
