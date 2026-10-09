@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 
 from defaults import RESOURCE_DEFAULTS, TTYD_DEFAULTS
+from git_worktrees import managed_worktrees_root
 
 
 def read_json(path: Path) -> dict[str, object]:
@@ -128,7 +129,7 @@ def indexed_workspaces(index_path: Path) -> list[dict[str, object]]:
 
 
 def context_snapshot(
-    config_path: Path, projects_root: Path, workspace_index: Path
+    config_path: Path, projects_root: Path, workspace_index: Path, instance: str = ""
 ) -> dict[str, object]:
     """Return Studio-visible configuration and path membership, never secrets."""
     config = read_json(config_path)
@@ -189,7 +190,8 @@ def context_snapshot(
     # The worktree registry is Orcan's source of truth for repositories used to
     # create branches. Regular configured Git mounts remain distinct: they may
     # be updated only while clean, and never gain the worktree-parent role.
-    registry = read_json(projects_root / ".worktrees" / "registry.json")
+    worktrees_root = managed_worktrees_root(projects_root, instance)
+    registry = read_json(worktrees_root / "registry.json")
     parent_counts: dict[str, int] = {}
     for entry in registry.get("worktrees") or []:
         if not isinstance(entry, dict):
@@ -254,7 +256,7 @@ def context_snapshot(
         },
         "paths": {
             "workspace_metadata_root": str(workspace_index.parent),
-            "managed_worktrees_root": str(projects_root / ".worktrees"),
+            "managed_worktrees_root": str(worktrees_root),
         },
         "workspaces": workspaces,
         "managed_projects": managed_entries,
@@ -510,12 +512,12 @@ def main() -> None:
     runtime_data = read_json(Path(args.runtime))
     launch = launch_flags(Path(args.last_up)) if args.last_up else {"recorded": False}
     context = context_snapshot(
-        Path(args.config), Path(args.projects_root), Path(args.workspace_index)
+        Path(args.config),
+        Path(args.projects_root),
+        Path(args.workspace_index),
+        args.instance,
     )
-    worktrees_root = Path(args.projects_root) / ".worktrees"
-    if args.instance:
-        worktrees_root = worktrees_root / "instances" / args.instance
-    context["paths"]["managed_worktrees_root"] = str(worktrees_root)
+    worktrees_root = managed_worktrees_root(Path(args.projects_root), args.instance)
     report = {
         "protocol": {
             "name": "orcan-studio",

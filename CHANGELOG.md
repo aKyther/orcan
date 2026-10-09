@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Named-instance worktree commands now use their reported namespace and registry;
+  the default prune skips named instances, and forced removal cannot delete
+  another instance's managed worktree. Studio probes read the selected registry.
+  New/recreated containers receive the same namespace for in-container helpers;
+  existing running containers and worktrees are not migrated automatically.
+
 - Studio container creation selects installed Orcan images and reported shared project roots, displays cache/workspace paths, and remembers the selected container per profile on the device.
 
 - Studio uses server/container terminology and compact container selection cards, separating host capacity from container resource limits without changing saved data identifiers.

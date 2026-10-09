@@ -140,3 +140,147 @@ def test_instance_selector_refuses_symlinked_config(tmp_path: Path) -> None:
     )
     assert result.returncode == 2
     assert "symlink" in result.stderr
+
+
+def test_real_worktrees_and_registries_are_instance_owned(tmp_path: Path) -> None:
+    env = environment(tmp_path)
+    repo = Path(env["ORCAN_PROJECTS_ROOT"]) / "api"
+    repo.mkdir(parents=True)
+    for args in (
+        ["init", "-b", "main"],
+        [
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "--allow-empty",
+            "-m",
+            "initial",
+        ],
+    ):
+        subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
+
+    def cli(instance: str | None, *args: str, check: bool = True):
+        command = [str(ROOT / "bin/orcan")]
+        if instance:
+            command += ["--instance", instance]
+        return subprocess.run(
+            command + list(args), env=env, text=True, capture_output=True, check=check
+        )
+
+    roots = {}
+    for instance in (None, "developer", "tester"):
+        name = instance or "default"
+        cli(
+            instance,
+            "context",
+            "worktree",
+            "create",
+            "--repo",
+            str(repo),
+            "--branch",
+            f"{name}-feature",
+            "--workspace",
+            "same",
+            "--project",
+            "api",
+        )
+        report = json.loads(cli(instance, "studio", "probe", "--json").stdout)
+        root = Path(report["paths"]["managed_worktrees_root"])
+        roots[name] = root
+        assert (root / "same" / "api").is_dir()
+        registry = json.loads((root / "registry.json").read_text())
+        assert len(registry["worktrees"]) == 1
+        assert registry["worktrees"][0]["path"] == str(root / "same" / "api")
+        parent = next(
+            item
+            for item in report["context"]["update_targets"]
+            if item["path"] == str(repo)
+        )
+        assert parent["role"] == "worktree_parent"
+        assert parent["worktree_count"] == 1
+
+    target = roots["tester"] / "same" / "api"
+    for owner in (None, "developer"):
+        refused = cli(
+            owner,
+            "context",
+            "worktree",
+            "remove",
+            "--path",
+            str(target),
+            "--force",
+            check=False,
+        )
+        assert refused.returncode != 0
+        assert "another instance" in refused.stderr
+        assert target.exists()
+
+    # Default prune must never sweep the nested named-instance namespace.
+    cli(None, "context", "worktree", "prune", "--force")
+    assert target.exists()
+    assert (roots["developer"] / "same" / "api").exists()
+    orphan = roots["developer"] / "unused" / "folder"
+    orphan.mkdir(parents=True)
+    (orphan / "scratch.txt").write_text("discardable test data")
+    cli("developer", "context", "worktree", "prune", "--force")
+    assert not orphan.exists()
+    assert target.exists()
+    assert (roots["default"] / "same" / "api").exists()
+    listed = json.loads(
+        cli(
+            "tester",
+            "studio",
+            "worktree",
+            "list",
+            "--worktrees-root",
+            str(roots["tester"]),
+        ).stdout
+    )
+    assert [entry["path"] for entry in listed["worktrees"]] == [str(target)]
+    cli(
+        "developer",
+        "context",
+        "worktree",
+        "remove",
+        "--path",
+        str(roots["developer"] / "same" / "api"),
+        "--force",
+    )
+    assert not (roots["developer"] / "same" / "api").exists()
+    assert target.exists()
+    assert (roots["default"] / "same" / "api").exists()
+    assert not json.loads((roots["developer"] / "registry.json").read_text())[
+        "worktrees"
+    ]
+
+
+def test_probe_does_not_read_another_instance_registry(tmp_path: Path) -> None:
+    env = environment(tmp_path)
+    root = Path(env["ORCAN_PROJECTS_ROOT"]) / ".worktrees"
+    root.mkdir(parents=True)
+    (root / "registry.json").write_text(
+        json.dumps(
+            {
+                "worktrees": [
+                    {
+                        "repo": str(ROOT),
+                        "workspace": "legacy",
+                        "project": "orcan",
+                        "path": str(ROOT),
+                    }
+                ]
+            }
+        )
+    )
+    result = subprocess.run(
+        [str(ROOT / "bin/orcan"), "--instance", "tester", "studio", "probe", "--json"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    report = json.loads(result.stdout)
+    assert report["context"]["update_targets"] == []
+    assert not (root / "instances" / "tester").exists()

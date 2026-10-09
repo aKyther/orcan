@@ -133,9 +133,21 @@ def projects_root() -> Path:
     return orcan_data_root() / "sandbox"
 
 
+def managed_worktrees_root(projects: Path, instance: str = "") -> Path:
+    """Resolve the selected instance's worktree namespace without creating it."""
+    root = projects / ".worktrees"
+    if instance:
+        if not re.fullmatch(r"[a-z][a-z0-9-]{0,47}", instance):
+            die("invalid named instance for managed worktrees")
+        root = root / "instances" / instance
+    return root
+
+
 def managed_root(*, ensure: bool = False) -> Path:
-    """Host dir for Orcan-managed git worktrees: ``$ORCAN_PROJECTS_ROOT/.worktrees``."""
-    root = projects_root() / ".worktrees"
+    """Host worktree root, isolated for an explicitly selected named instance."""
+    root = managed_worktrees_root(
+        projects_root(), os.environ.get("ORCAN_NAMED_INSTANCE", "")
+    )
     if ensure:
         root.mkdir(parents=True, exist_ok=True)
     return root
@@ -150,8 +162,11 @@ def managed_worktree_path(workspace: str, project: str) -> Path:
 
 def is_under_managed_root(path: Path) -> bool:
     try:
-        path.resolve().relative_to(managed_root(ensure=False).resolve())
-        return True
+        relative = path.resolve().relative_to(managed_root(ensure=False).resolve())
+        return bool(relative.parts) and (
+            bool(os.environ.get("ORCAN_NAMED_INSTANCE"))
+            or relative.parts[0] != "instances"
+        )
     except ValueError:
         return False
 
@@ -482,6 +497,11 @@ def create_worktree(
     else:
         dest = default_worktree_path(repo, branch)
 
+    if dest.is_relative_to(
+        (projects_root() / ".worktrees").resolve()
+    ) and not is_under_managed_root(dest):
+        fail("worktree destination belongs to another instance", code="args")
+
     if dest.exists():
         existing_here: Worktree | None = None
         if is_git_repo(dest):
@@ -593,6 +613,9 @@ def remove_worktree(
     path = path.resolve()
     if not path.exists():
         die(f"worktree path does not exist: {path}")
+    shared_root = (projects_root() / ".worktrees").resolve()
+    if path.is_relative_to(shared_root) and not is_under_managed_root(path):
+        die(f"refusing to remove another instance's managed worktree: {path}")
     if not allow_unmanaged and not is_under_managed_root(path):
         die(
             f"refusing to remove path outside managed root {managed_root()}: {path}\n"
@@ -631,6 +654,8 @@ def find_orphan_dirs(entries: list[ManifestEntry]) -> list[Path]:
     known = {Path(e.path).resolve() for e in entries}
     orphans: list[Path] = []
     for ws_dir in sorted(root.iterdir()):
+        if not os.environ.get("ORCAN_NAMED_INSTANCE") and ws_dir.name == "instances":
+            continue
         if not ws_dir.is_dir():
             continue
         for proj_dir in sorted(ws_dir.iterdir()):

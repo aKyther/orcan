@@ -70,6 +70,8 @@ services:
       ORCAN_CONFIG: ${ORCAN_CONFIG:-/etc/orcan/config.json}
       ORCAN_DATA: ${ORCAN_DATA}
       ORCAN_PROJECTS_ROOT: ${ORCAN_PROJECTS_ROOT}
+      # Keep in-container worktree helpers in the selected instance namespace.
+      ORCAN_NAMED_INSTANCE: ${ORCAN_NAMED_INSTANCE:-}
       TZ: ${TZ:-UTC}
       # Host git identity (orcan sync → .env). Same author/committer as host commits.
       GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-}
