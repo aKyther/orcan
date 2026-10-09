@@ -348,3 +348,31 @@ the local `known_hosts` file. Studio displays an unknown key's fingerprint and
 records it only after explicit user approval; a changed key is rejected and
 never replaced automatically. Their destination is direct `host` or
 `host:port`; SSH-agent profiles continue to use system OpenSSH configuration.
+
+### Optional Git / SSH access provisioning
+
+The Provisioning screen can copy one explicitly selected OpenSSH key pair between
+source and destination profiles independently of CLI/image installation. Both
+endpoints need Python 3 and OpenSSH; Orcan itself is not required. Windows users
+can select their WSL profile as the source. Native Windows endpoints are not
+supported by this POSIX helper.
+
+Studio lists names and public fingerprints, then requires approval before copying
+the private key. A separate key for the destination is safer: copying grants that
+machine the source identity's permissions. Encrypted OpenSSH keys retain their
+passphrase; hardware-backed and legacy PEM keys are not transferable here.
+
+Only the selected pair is transferred through native process memory and stdin,
+never through the webview, CLI/image archive, temporary archive or resume cache.
+The destination uses the profile user's home, with `.ssh` mode 700 and new files
+mode 600. Existing keys are never overwritten: choose another name or skip.
+Source `config`, `known_hosts` and SSH multiplexing sockets are not copied.
+
+The optional host-specific configuration toggle adds an Include while preserving
+existing configuration bytes. With it off, existing SSH configuration is untouched
+and a standalone test configuration is created. Test Git access checks
+authentication without fetching or changing repositories. Unknown Git host keys
+require fingerprint approval; changed/revoked entries are not replaced. Verify
+fingerprints independently: key scanning alone does not authenticate a host.
+Encrypted keys need unlocking on the destination. Containers started with
+`--with-git` expose the host SSH directory read-only.
