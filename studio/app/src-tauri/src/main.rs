@@ -18,6 +18,7 @@ use tokio::process::Command as TokioCommand;
 
 mod enclave;
 mod provisioning;
+mod ssh_access;
 mod transfer_cache;
 mod transfer_progress;
 
@@ -2492,6 +2493,11 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            ssh_access::git_ssh_keys,
+            ssh_access::transfer_git_ssh_key,
+            ssh_access::test_git_ssh,
+            ssh_access::git_ssh_host_identity,
+            ssh_access::trust_git_ssh_host,
             provisioning::check_transfer,
             provisioning::transfer_profiles,
             provisioning::has_pending_transfer,

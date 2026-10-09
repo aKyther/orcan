@@ -220,6 +220,70 @@ pub(super) async fn execute(
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
+/// Bounded secret payload on stdin, never in process arguments or a temp file.
+pub(super) async fn execute_with_input(
+    enclave: &EnclaveInput,
+    script: &str,
+    payload: &[u8],
+    state: &tauri::State<'_, ProfileState>,
+) -> Result<String, String> {
+    if let (TargetInput::Ssh { destination }, Some(resolved)) = (
+        &enclave.target,
+        native_ssh(enclave, &Target::from(enclave.target.clone()), state)?,
+    ) {
+        let session = native_ssh_connect(destination, resolved).await?;
+        let mut channel = session
+            .channel_open_session()
+            .await
+            .map_err(|e| e.to_string())?;
+        let command = format!("bash -lc {}", shell_quote(script));
+        channel
+            .exec(true, command.as_str())
+            .await
+            .map_err(|e| e.to_string())?;
+        channel.data(payload).await.map_err(|e| e.to_string())?;
+        channel.eof().await.map_err(|e| e.to_string())?;
+        let mut output = Vec::new();
+        let mut status = None;
+        while let Some(message) = channel.wait().await {
+            match message {
+                ChannelMsg::Data { data } => output.extend_from_slice(&data),
+                ChannelMsg::ExitStatus { exit_status } => status = Some(exit_status),
+                _ => {}
+            }
+            if output.len() > 16384 {
+                return Err("Unexpected SSH preparation response".into());
+            }
+        }
+        if status != Some(0) {
+            return Err("SSH installation refused. Check destination filename collisions, permissions and key format; existing files were not overwritten.".into());
+        }
+        return String::from_utf8(output).map_err(|_| "Invalid SSH preparation response".into());
+    }
+    let mut command = profile_process(enclave, script, state)?;
+    command
+        .kill_on_drop(true)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command.spawn().map_err(|e| e.to_string())?;
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or("Destination has no input stream")?;
+    let write = async {
+        stdin.write_all(payload).await?;
+        stdin.shutdown().await
+    };
+    let (sent, output) = tokio::join!(write, child.wait_with_output());
+    sent.map_err(|_| "SSH transfer interrupted; inspect destination before retrying")?;
+    let output = output.map_err(|_| "SSH preparation process stopped")?;
+    if !output.status.success() {
+        return Err("SSH installation refused. Check destination filename collisions, permissions and key format; existing files were not overwritten.".into());
+    }
+    String::from_utf8(output.stdout).map_err(|_| "Invalid SSH preparation response".into())
+}
+
 fn validate(input: &TransferInput) -> Result<(), String> {
     if input.cli && input.image.is_some() {
         return Err("CLI and image transfers are separate. Use the image transfer panel.".into());

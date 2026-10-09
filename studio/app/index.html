@@ -177,6 +177,17 @@
         </section>
         <section class="view" data-view="provisioning" hidden>
           <div class="view-intro"><p class="eyebrow">PROVISIONING</p><h2>Install or move Orcan to a saved profile.</h2></div>
+          <section class="panel" aria-labelledby="git-access-title">
+            <h2 id="git-access-title">Git / SSH access <span title="Optional. A separate destination key is safer. Copying an existing private key gives the destination its permissions; image/CLI transfers never include it.">ⓘ</span></h2>
+            <div class="form-row"><label>Source profile<select id="git-access-source"></select></label><label>Destination profile<select id="git-access-destination"></select></label></div>
+            <div class="actions compact"><button id="git-access-list" type="button" class="secondary">Find source keys</button></div>
+            <div class="form-row"><label>Source key<select id="git-access-key" disabled><option value="">Find keys first</option></select></label><label>Destination key name<input id="git-access-name" maxlength="64" pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}" /></label></div>
+            <small id="git-access-fingerprint">Only public fingerprints are displayed. Private data never reaches this UI.</small>
+            <div class="form-row"><label>Git hostname<input id="git-access-host" value="github.com" /></label><label>Git SSH user<input id="git-access-user" value="git" /></label></div>
+            <label class="toggle"><span>Use this key for the selected Git host <span title="Adds an Include to the destination SSH config, taking priority only for this Git host. Existing config bytes are preserved. Off: saves a separate config for testing only.">ⓘ</span></span><input id="git-access-configure" type="checkbox" /></label>
+            <div class="actions compact"><button id="git-access-transfer" type="button" disabled>Copy selected key</button><button id="git-access-test" type="button" class="secondary" disabled>Test Git access</button></div>
+            <output id="git-access-result" aria-live="polite">Optional. Requires Python 3 and OpenSSH, not Orcan. Existing keys are never replaced.</output>
+          </section>
           <section class="panel" aria-labelledby="online-provision-title">
             <h2 id="online-provision-title">Install Orcan online</h2>
             <p class="muted">Use the official installer on a saved local, WSL2, or SSH profile. It needs internet access, Bash, Git, and Python 3; it does not transfer Studio profiles, projects, configuration, or credentials.</p>

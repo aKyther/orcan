@@ -26,6 +26,46 @@ class Element extends EventTarget {
 }
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+test("Git access ignores stale inventory and copies only after explicit approval", async () => {
+  setup();
+  const fields = new Map();
+  for (const name of ["source", "destination", "key", "name", "host", "user", "configure", "list", "transfer", "test", "fingerprint", "result"]) {
+    const field = new Element();
+    field.value = "";
+    fields.set(`#git-access-${name}`, field);
+  }
+  document.querySelector = (selector) => fields.get(selector);
+  globalThis.Option = class { constructor(text, value) { this.textContent = text; this.value = value; } };
+  let finish;
+  const commands = [];
+  const { gitAccessPanel } = await load("git-access", {
+    "./dialog": dataModule("export async function confirmAction() { return false; }"),
+    "./provision-progress": dataModule("export function isProvisionRunning() { return false; } export async function withProvisionProgress(_output, _title, operation) { return operation('test'); }"),
+    "./transport": dataModule("export function enclaveInput(value) { return value; }"),
+  });
+  const panel = gitAccessPanel((command) => { commands.push(command); return new Promise((resolve) => { finish = resolve; }); }, (profile) => ({ target: profile.id }));
+  panel.render([{ id: "a", name: "Source" }, { id: "b", name: "Destination" }, { id: "c", name: "Other" }]);
+  const field = (name) => fields.get(`#git-access-${name}`);
+  field("source").value = "a";
+  field("destination").value = "b";
+  field("destination").dispatchEvent(new Event("change"));
+  field("list").dispatchEvent(new Event("click"));
+  field("source").value = "c";
+  field("source").dispatchEvent(new Event("change"));
+  finish({ keys: [{ name: "id_test", algorithm: "ssh-ed25519", fingerprint: "SHA256:test" }] });
+  await tick();
+  assert.equal(field("transfer").disabled, true);
+  field("list").dispatchEvent(new Event("click"));
+  finish({ keys: [{ name: "id_test", algorithm: "ssh-ed25519", fingerprint: "SHA256:test" }] });
+  await tick();
+  field("key").value = "id_test";
+  field("key").dispatchEvent(new Event("change"));
+  assert.equal(field("transfer").disabled, false);
+  field("transfer").dispatchEvent(new Event("click"));
+  await tick();
+  assert.deepEqual(commands, ["git_ssh_keys", "git_ssh_keys"]);
+});
 const dataModule = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
 
 function setup() {

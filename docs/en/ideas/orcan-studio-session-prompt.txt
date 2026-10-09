@@ -1,35 +1,74 @@
-Kontynuujemy rozwój Orcan Studio.
+Kontynuujemy wdrażanie ręcznej enklawy Orcan Studio (etapy 0–2 roadmapy).
+Użytkownik zatwierdził rozpoczęcie implementacji. Automatyzacja pozostaje planem.
 
-Najpierw przeczytaj:
-1. AGENTS.md i .manifest.json w workspace.
+Przeczytaj kolejno:
+1. AGENTS.md i .manifest.json workspace’u.
 2. .orcan/session-brief.md — aktualny handoff.
 3. Instrukcje projektu Orcan.
-4. docs/en/ideas/orcan-studio-roadmap.md.
-5. docs/en/ideas/orcan-studio.md.
+4. docs/en/ideas/orcan-studio-roadmap.md — trwały plan.
+5. docs/en/ideas/orcan-studio.md — opis obecnej implementacji.
 
-Porównaj zapisane ustalenia z aktualnym kodem i testami. Dokumentacja
-opisuje kierunek, ale nie jest dowodem, że wszystko zostało wdrożone.
+Dokumentacja kierunku nie jest dowodem wdrożenia. Porównuj ją z kodem i testami.
 
-Obecny fundament:
-- Profile definiują połączenie: lokalne, WSL2 lub SSH.
-- Serwer/host posiada CLI, obrazy Dockera i współdzielone dane.
-- Na jednym hoście może działać wiele nazwanych kontenerów Orcana.
-- Sandbox/cache są współdzielone; konfiguracja, workspace’y,
-  worktree’y i cykl życia są rozdzielone między kontenerami.
-- Provisioning CLI/obrazu jest osobny od tworzenia kontenerów.
-- Nie używamy obecnie kategorii „Enclave”.
-- Studio przede wszystkim pomaga zarządzać kontekstem dla agentów.
-- Pipeline’y i graf wykonywania zadań są przyszłym kierunkiem,
-  nie zakresem obecnego etapu.
+Pierwszy etap: RĘCZNIE UŻYTECZNA ENKLAWA, bez automatyzacji.
 
-Zrób analizę:
-1. Co faktycznie działa i jakie testy to potwierdzają?
-2. Gdzie kod, UI, kontrakt CLI i dokumentacja są niespójne?
-3. Jakie ryzyka pozostają przy wielu kontenerach i wspólnych danych?
-4. Co trzeba zweryfikować na Windows → WSL2 → SSH?
-5. Jakie maksymalnie 3 działania najlepiej domkną obecny etap?
+Kolejność użytkownika:
+- Opcjonalnie utwórz tożsamość w Studio.
+- Połącz się z serwerem/VM i wykonaj provisioning CLI/obrazu.
+- W Servers utwórz i uruchom kontener z tożsamością lub Default.
+- Dobierz istniejące kontenery z jednej lub wielu VM do enklawy.
+- Ułóż karty na planszy 2D i zapisz grupę.
+- Attach do konkretnego kontenera/workspace’u; ręcznie zaloguj się do agenta.
 
-Preferuj minimalizm, poprawki i deduplikację zamiast nowych warstw.
-Nie cofaj istniejących zmian ani nie przebudowuj/restartuj mojego
-kontenera. Na tym etapie tylko przeanalizuj i przedstaw krótki wynik;
-nie implementuj zmian bez kolejnego polecenia.
+Ustalenia:
+- Biblioteka tożsamości jest sekcją jak Profile/Credentials: nazwa, opis,
+  textarea Markdown. identity.json + instructions.md, wersjonowanie szablonów.
+  Tożsamość opisuje też efektywnego developera i nastawienie na cel, nie tylko
+  rolę review. Ogólne AGENTS.md/CLAUDE.md Orcana pozostają bazą. Markdown dodaje
+  instrukcje; JSON jest wyłącznie metadanymi, bez liczbowych priorytetów.
+- Tożsamość przesyłamy i adaptujemy tylko przy tworzeniu kontenera. Jego kopia
+  i wersja są niezmienne. Inna tożsamość wymaga jawnego usunięcia i utworzenia
+  kontenera zastępczego, z zachowaniem danych projektów. Default to bazowe
+  instrukcje Orcana bez dodatkowej roli; istniejące kontenery pozostają Default.
+- VM może proponować domyślną tożsamość nowych kontenerów. Orcan propaguje
+  przypisaną kopię przez obecne workspace context packs (AGENTS.md/CLAUDE.md)
+  do wszystkich istniejących i nowych workspace’ów. Zachowaj reguły własne
+  i instrukcje repozytoriów. Tożsamość nie zawiera sekretów ani uprawnień.
+- Enklawa dobiera kontenery, nie VM/workspace’y. Kontener może być w kilku
+  enklawach. Linie, zapis układu i otwarcie grupy niczego nie uruchamiają.
+- Karta ma Attach. Zatrzymany kontener wymaga jawnego Start i weryfikacji;
+  brak/offline nie powoduje cichego odtworzenia. Zamknięcie terminala nie
+  usuwa kontenera ani nie kończy automatycznie trwałej sesji tmux.
+- UUID służą do referencji; nazwy do wyświetlania, profile do transportu.
+  Sprawdzaj cel po uwierzytelnieniu SSH. Restart/zmiana nazwy zachowują ID,
+  nowy kontener i klon VM potrzebują nowych ID. Probe pozostaje read-only.
+- Nowe dane identities/enclaves/runs są w studio-data/ obok zainstalowanej
+  aplikacji, niezależnie od katalogu uruchomienia. JSON/Markdown, przycisk
+  „Otwórz katalog danych”, kopiowanie i ręczne sprzątanie po zamknięciu Studio.
+  Aktualizacja zachowuje dane; brak zapisu ma jawny błąd bez cichego fallbacku.
+  Usunięcie lokalnych danych nie usuwa danych na VM ani nie ponawia pracy.
+  Nie przenoś istniejących profili ani sekretów w ramach tego planu.
+
+Najpierw domknij projekt: skład instrukcji, Attach na każdej platformie,
+UUID/klonowanie, konfigurację zastępczego kontenera, lokalizację danych oraz
+minimalny wygląd planszy i stany offline/stale. Pierwszy blok wyrównał helper Git
+i rejestr probe ze ścieżkami instancji; nowe kontenery dostają namespace z Compose.
+
+DALSZA OPCJA, nie wymóg pierwszego etapu:
+- GitHub PR / GitLab MR na przypiętych base/head: Tester → Reviewer → człowiek.
+  Enklawa może też zbierać niezależne perspektywy na tę samą rewizję obok siebie;
+  sekwencyjny przepływ nie jest wymagany. Początkowo oceny zlecamy ręcznie.
+- Studio steruje, Orcan wykonuje, agent oddaje report.md + result.json.
+- Reuse inbox/executor, bez wymogu MCP. Tryb agenta zależy od zweryfikowanego
+  interfejsu; dedykowany workspace i osobny proces nie są obowiązkowe.
+- Jedno zadanie automatyczne na workspace między enklawami; uwzględnij
+  wspólne zapisywalne katalogi. Attempt ID blokuje podwójne wykonanie.
+- Studio musi działać, aby uruchamiać kolejne kroki. Reconnect odzyskuje stan.
+- Retencja wyników/logów/artefaktów: 7 dni; krótka historia: 30 dni, od końca
+  całego przebiegu. Chroń aktywne, oczekujące na review, zależne i „Zachowaj”.
+- Sześć decyzji przed automatyzacją opisano w roadmapie. Bez pętli poprawek,
+  automatycznego merge/push; publikacja komentarzy/review jest jawna.
+
+Preferuj minimalizm i wykorzystanie istniejących mechanizmów. Nie cofaj zmian,
+nie przebudowuj ani nie restartuj kontenera użytkownika. Testy jednostkowe nie
+zastępują rzeczywistego sprawdzenia Windows → WSL2 → SSH na testowych VM.

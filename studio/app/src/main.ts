@@ -7,6 +7,7 @@ import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
 import { creationBlocker, lifecycleBlocker, ownsEnclave } from "./enclave-model";
 import { containerStateLabel, loadContainerSelections, persistContainerSelections } from "./server-model";
+import { gitAccessPanel } from "./git-access";
 import { confirmAction, promptText } from "./dialog";
 import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
 import { loadCachedReport, persistCachedReport } from "./report-cache";
@@ -18,6 +19,7 @@ const result = document.querySelector<HTMLOutputElement>("#result")!;
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const profileList = $("#profile-list");
 const enclaveList = $("#enclave-list");
+const gitAccess = gitAccessPanel(invoke, profileConnection);
 const imageTransferSource = $<HTMLSelectElement>("#image-transfer-source");
 const imageTransferName = $<HTMLInputElement>("#image-transfer-name");
 const imageTransferTarget = $<HTMLSelectElement>("#image-transfer-target");
@@ -324,6 +326,12 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (command === "test_connection") return "developer" as T;
   if (/profile|credential/.test(command)) return demoStoreCommand(command, (_args ?? {}) as Record<string, unknown>) as T;
   const enclave = (_args as { enclave?: { target: Target; instance?: string } } | undefined)?.enclave;
+  if (command === "git_ssh_keys") return { keys: [{ name: "id_ed25519", algorithm: "ssh-ed25519", fingerprint: "Demo fingerprint — no real key" }] } as T;
+  if (command === "transfer_git_ssh_key") {
+    const args = (_args as { input: { destinationName: string; configure: boolean } }).input;
+    return { name: args.destinationName, fingerprint: "Demo fingerprint — no real key copied", encrypted: false, configured: args.configure, config: `/demo/.ssh/orcan-git-${args.destinationName}.conf` } as T;
+  }
+  if (command === "test_git_ssh") return { ready: true, detail: "Demo only — no Git connection was made" } as T;
   if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
   if (command === "list_instances") return { instances: [{ instance: null, container: "orcan-1", home: demoReport.paths.home }, ...[...demoReports.entries()].filter(([key, report]) => key.startsWith(`${JSON.stringify(enclave!.target)}:`) && ownsEnclave(report)).map(([key, report]) => ({ instance: key.slice(JSON.stringify(enclave!.target).length + 1), container: report.runtime.docker.container.name, home: report.paths.home }))] } as T;
   if (command === "server_capacity") return { cpus: 8, memoryBytes: 16 * 1024 ** 3, diskTotalBytes: 200 * 1024 ** 3, diskFreeBytes: 120 * 1024 ** 3, diskPath: (_args as { path?: string }).path } as T;
@@ -2670,6 +2678,7 @@ async function transferImage(): Promise<void> {
 }
 
 function renderEnclaves(): void {
+  gitAccess.render(profiles);
   enclaveList.replaceChildren(...(profiles.length ? profiles.map((profile) => {
     const status = enclaveStatus.get(runtimeKey(profile));
     const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
