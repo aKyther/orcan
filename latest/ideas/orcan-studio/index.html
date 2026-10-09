@@ -994,6 +994,28 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#container-identities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container identities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-and-managing-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating and managing containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#optional-git-ssh-access-provisioning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2020,6 +2042,28 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#container-identities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container identities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-and-managing-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating and managing containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#optional-git-ssh-access-provisioning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2089,6 +2133,36 @@
 <a href="../orcan-studio-roadmap/">Studio server and container roadmap</a>. It separates host/container
 management from possible future container groups and visual task flows.</p>
 <h2 id="servers-and-named-containers">Servers and named containers<a class="headerlink" href="#servers-and-named-containers" title="Permanent link">&para;</a></h2>
+<h3 id="container-identities">Container identities<a class="headerlink" href="#container-identities" title="Permanent link">&para;</a></h3>
+<p>Open <strong>Identities</strong> to create a template with a name, description and Markdown
+instructions. Describe an effective developer, a goal, or a review perspective
+such as security or testing. These instructions supplement the general Orcan
+<code>AGENTS.md</code> / <code>CLAUDE.md</code> rules and the repository's own instructions.</p>
+<p><strong>Save new version</strong> retains previous versions. In <strong>Servers → New container</strong>,
+select a saved identity version or <strong>Default — Orcan base rules</strong> before planning
+creation. Studio sends a copy of that version through the existing host
+connection; no MCP or extra service is required. Container identity is fixed:
+editing a template does not change existing containers. Every current and future
+workspace receives the frozen instructions through its generated context pack.
+Settings display the assigned version as locked. Ordinary sync refuses a changed
+or removed assignment, including changing an existing Default container to a role.</p>
+<p>The library lives beside the installed Studio application:
+<code>studio-data/identities/&lt;UUID&gt;/versions/&lt;version&gt;/identity.json</code> stores metadata,
+and <code>instructions.md</code> stores the text. Use <strong>Open data directory</strong> to inspect,
+back up or remove templates. Keep this directory during app updates. Removing a
+template leaves existing container snapshots intact; new creation using a removed
+version fails explicitly. Profiles and credentials keep their existing storage.
+The installation directory must be writable. Studio reports storage errors and
+does not silently switch to another location. For AppImage, the library lives
+beside the AppImage file; on macOS it lives beside the <code>.app</code> bundle.</p>
+<p>Custom identity creation requires updated host CLI code and a newly built Orcan
+image with identity support. Older images are rejected for custom identities;
+Default remains available. Updating Studio alone does not update a running
+container. Choose the new image when creating a new container. Another identity
+requires explicit replacement, preserving projects and shared data.</p>
+<p>This block supplies the identity foundation. The saved 2D enclave canvas and
+manual Attach from that canvas are still planned. It does not execute workflows.</p>
+<h3 id="creating-and-managing-containers">Creating and managing containers<a class="headerlink" href="#creating-and-managing-containers" title="Permanent link">&para;</a></h3>
 <p>A profile connects to a <strong>server/host</strong>: local Linux/macOS, a WSL2 distribution,
 or a remote VM. Provisioning installs the CLI and transfers a Docker image to
 that host. It does not create one container per profile. After provisioning,
@@ -2446,7 +2520,7 @@ Encrypted keys need unlocking on the destination. Containers started with
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 15:22:11 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 16:17:52 UTC">October 9, 2026</span>
   </span>
 
     

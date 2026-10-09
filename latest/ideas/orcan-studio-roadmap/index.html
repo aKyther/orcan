@@ -2692,7 +2692,8 @@ the probe reports worktrees namespaced beneath the shared source catalog.
 The first isolation block now aligns the host Git helper and probe registry
 with those paths; Compose passes the namespace to newly created containers. Existing default instances are not migrated. Enclave is reserved for
 the planned group of containers across one or more servers; it is not a current
-container category. Identity templates and enclaves are planning work only.
+container category. Identity templates and creation-time adaptation are now
+implemented; the enclave canvas remains planned.
 Real Windows/WSL/SSH and concurrent-container operation still need field testing.</p>
 <p>The creator now lists installed images labelled Orcan and project roots reported
 by configured instances on the host. It records choices in the new configuration
@@ -2725,13 +2726,13 @@ but they are not acceptance requirements for the manual milestone. No background
 scheduler, mandatory MCP, automatic login or pipeline engine is needed now.</p>
 <h3 id="remaining-decisions-for-the-first-milestone">Remaining decisions for the first milestone<a class="headerlink" href="#remaining-decisions-for-the-first-milestone" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Define the exact instruction composition and verify actual agent loading.</li>
+<li>Verify actual agent loading of the implemented additive context-pack instructions.</li>
 <li>Choose supported Attach mechanisms on Windows, WSL, SSH and local hosts,
   including target labels and reconnect to existing sessions.</li>
 <li>Define UUID initialization/clone detection and replacement-container config,
   preserving projects while clearing the old immutable identity assignment.</li>
-<li>Define writable installation-adjacent studio-data roots on each platform and
-  preservation on updates; keep current profiles/vault outside this change.</li>
+<li>Field-test the implemented installation-adjacent storage roots on each platform
+  and preservation on updates; current profiles/vault remain outside this change.</li>
 <li>Define the minimal canvas layout/cards and behavior for stale, missing or
   offline members. Avoid adding task controls in the initial view.</li>
 </ul>
@@ -2808,7 +2809,8 @@ engine now. First complete and test the single-container foundation.</p>
 <p>Do not permanently encode profile and container as the same identity in new storage.
 Keep host identity separate from container identity. Named containers now isolate
 configuration and lifecycle; worktree ownership still needs verification.
-Identity templates, grouping and task orchestration remain future work.</p>
+Identity templates are implemented. Stable host/container UUIDs, grouping and
+task orchestration remain future work.</p>
 <h2 id="current-baseline-implemented-not-yet-fully-field-tested">Current baseline: implemented, not yet fully field-tested<a class="headerlink" href="#current-baseline-implemented-not-yet-fully-field-tested" title="Permanent link">&para;</a></h2>
 <p>The transfer baseline before this roadmap is <code>138ce161</code> on <code>main</code>.</p>
 <ul>
@@ -2971,8 +2973,8 @@ existing general Orcan AGENTS.md/CLAUDE.md rules as the base and add identity
 instructions without replacing them. Use Markdown for the instruction body and
 JSON only for UUID/name/description/version metadata; no numeric priority engine
 in the first version. Describe working priorities in plain instruction text.
-Proposed storage is <code>identities/&lt;identity_id&gt;/identity.json</code> for metadata/version
-and <code>instructions.md</code> for the readable text. Editing produces a version for
+Implemented storage is <code>identities/&lt;identity_id&gt;/versions/&lt;version&gt;/identity.json</code>
+for metadata and <code>instructions.md</code> for the readable text. Editing produces a version for
 future containers and never changes an already assigned container.</p>
 <p>Adaptation happens only during container creation. Choose a server, installed
 image and identity version; inspect the plan, then create the container.
@@ -3476,7 +3478,7 @@ short live handoffs, not additional PLAN/TODO/SUMMARY files.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 15:20:16 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 16:17:52 UTC">October 9, 2026</span>
   </span>
 
     
