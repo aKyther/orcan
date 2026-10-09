@@ -3,15 +3,29 @@
 
 # Machine-readable Sandbox endpoints consumed by the separate Orcan Studio
 # desktop application. Keep stdout JSON-only for the --json protocol.
+orcan_studio_host_root() {
+    if [[ -n "${ORCAN_NAMED_INSTANCE:-}" ]]; then
+        dirname -- "$(dirname -- "${ORCAN_HOME}")"
+    else
+        printf '%s\n' "${ORCAN_HOME}"
+    fi
+}
+
 orcan_cmd_studio() {
     local sub="${1:-}"
     shift || true
 
     case "${sub}" in
+        target)
+            orcan_require_python
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-target.py" "$@" \
+                --host-root "$(orcan_studio_host_root)" \
+                --config "${ORCAN_CONFIG_FILE}" --container "$(orcan_container_name)"
+            ;;
         instances)
             [[ "${1:-}" == "--json" && $# -eq 1 ]] || orcan_usage_error 'usage: orcan studio instances --json'
             orcan_require_python
-            orcan_host_python "${ORCAN_SCRIPTS}/studio-instances.py" --root "${ORCAN_INSTANCES_ROOT:-${XDG_CONFIG_HOME:-${HOME}/.config}/orcan}"
+            orcan_host_python "${ORCAN_SCRIPTS}/studio-instances.py" --root "$(orcan_studio_host_root)"
             ;;
         probe)
             if [[ "${1:-}" != "--json" || $# -ne 1 ]]; then
@@ -39,6 +53,7 @@ orcan_cmd_studio() {
                     --last-up "$(orcan_last_up_file)" \
                     --image "${IMAGE_LOCAL:-orcan:latest}" \
                     --container "$(orcan_container_name)" \
+                    --host-root "$(orcan_studio_host_root)" \
                     --instance "${ORCAN_NAMED_INSTANCE:-}"
             ;;
         parent)
@@ -125,6 +140,12 @@ orcan_cmd_studio() {
             # Studio consumes one JSON document on stdout. Runtime command
             # progress deliberately goes to stderr so it cannot corrupt that response.
             orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" "${apply_args[@]}" >/dev/null || return
+            if ! orcan_host_python "${ORCAN_SCRIPTS}/studio-target.py" register \
+                --host-root "$(orcan_studio_host_root)" \
+                --config "${ORCAN_CONFIG_FILE}" --yes >/dev/null; then
+                orcan_host_python "${ORCAN_SCRIPTS}/studio-enclave.py" rollback --config "${ORCAN_CONFIG_FILE}" "${port_args[@]}" --yes >&2 || true
+                return 1
+            fi
             local index
             for ((index=0; index<${#port_args[@]}; index+=2)); do
                 case "${port_args[index]}" in

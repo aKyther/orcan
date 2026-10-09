@@ -4,6 +4,7 @@ export type Target =
   | { kind: "ssh"; destination: string };
 
 export type ProbeReport = {
+  target?: { state: string; host_id?: string; container_id?: string; reason?: string };
   sandbox: { version: string };
   host: { os: string; architecture: string; user?: string };
   capabilities: { docker: boolean; managed_projects: boolean; live_reconcile: boolean; identity_templates?: boolean };

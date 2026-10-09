@@ -17,7 +17,8 @@ The first isolation block now aligns the host Git helper and probe registry
 with those paths; Compose passes the namespace to newly created containers. Existing default instances are not migrated. Enclave is reserved for
 the planned group of containers across one or more servers; it is not a current
 container category. Identity templates and creation-time adaptation are now
-implemented; the enclave canvas remains planned.
+implemented, together with a saved manual Vue Flow enclave canvas and UUID-checked
+Check/Start/Attach. Named replacement archives instance configuration after Down.
 Real Windows/WSL/SSH and concurrent-container operation still need field testing.
 
 The creator now lists installed images labelled Orcan and project roots reported
@@ -60,14 +61,14 @@ scheduler, mandatory MCP, automatic login or pipeline engine is needed now.
 ### Remaining decisions for the first milestone
 
 - Verify actual agent loading of the implemented additive context-pack instructions.
-- Choose supported Attach mechanisms on Windows, WSL, SSH and local hosts,
-  including target labels and reconnect to existing sessions.
-- Define UUID initialization/clone detection and replacement-container config,
-  preserving projects while clearing the old immutable identity assignment.
+- Field-test native Attach on Windows, WSL, SSH and local hosts. Saved SSH
+  passwords/keys are not handed to terminal apps; system SSH is required.
+- Field-test clone detection and explicit rekeying. The current fingerprint cannot
+  detect a clone that retains the same machine ID; the clone must be rekeyed.
 - Field-test the implemented installation-adjacent storage roots on each platform
   and preservation on updates; current profiles/vault remain outside this change.
-- Define the minimal canvas layout/cards and behavior for stale, missing or
-  offline members. Avoid adding task controls in the initial view.
+- Field-test missing/offline and replacement cards on actual hosts. Current cards
+  never recreate missing containers and actions recheck target UUIDs.
 
 Resolve these implementation design questions within the authorized manual
 milestone. The six checks before automation remain in their separate
@@ -108,8 +109,8 @@ engine now. First complete and test the single-container foundation.
 Do not permanently encode profile and container as the same identity in new storage.
 Keep host identity separate from container identity. Named containers now isolate
 configuration and lifecycle; worktree ownership still needs verification.
-Identity templates are implemented. Stable host/container UUIDs, grouping and
-task orchestration remain future work.
+Identity templates, target UUID registration and manual grouping are implemented.
+Task orchestration remains future work.
 
 ## Current baseline: implemented, not yet fully field-tested
 
@@ -281,8 +282,9 @@ before building a pipeline editor.
 
 ## Planned identities and enclaves
 
-Implementation has started with the isolation foundation. Identities and the
-manual enclave remain the next planned blocks.
+Isolation, identity templates and the manual enclave are implemented. The canvas
+stores membership and positions; it does not execute workflows. Platform/host
+field testing remains required.
 The agreed model is: a VM proposes a default identity, a container owns its
 selected identity, and all workspaces in that container inherit it. An enclave
 groups containers, including containers selected from different VMs.

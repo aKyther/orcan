@@ -27,6 +27,24 @@ class Element extends EventTarget {
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
+test("enclave references survive multiple memberships and reject replacement UUIDs", async () => {
+  const { targetMatches, removeMember, attachAvailable } = await load("group-model");
+  const member = { host_id: "host", container_id: "original", profile_id: "connection", instance: "tester", label: "Tester", x: 10, y: 20 };
+  const first = { members: [member, { ...member, container_id: "other" }], edges: [{ source: "original", target: "other" }] };
+  const second = structuredClone(first);
+  removeMember(first, "original");
+  assert.equal(first.members.length, 1);
+  assert.equal(first.edges.length, 0);
+  assert.equal(second.members.length, 2);
+  const report = { target: { state: "ready", host_id: "host", container_id: "original" }, runtime: { docker: { container: { state: "running" } } }, context: { workspaces: [{ name: "review" }] } };
+  assert.equal(targetMatches(report, member), true);
+  assert.equal(targetMatches({ ...report, target: { ...report.target, container_id: "replacement" } }, member), false);
+  assert.equal(attachAvailable({ state: "ready", report }), true);
+  assert.equal(attachAvailable({ state: "mismatch", report }), false);
+  report.runtime.docker.container.state = "missing";
+  assert.equal(attachAvailable({ state: "ready", report }), false);
+});
+
 test("identity revisions stay selected after edits and stale reloads are ignored", async () => {
   setup();
   const fields = new Map();

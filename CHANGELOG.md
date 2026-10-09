@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio adds saved manual enclaves on a Vue Flow canvas: container cards from
+  multiple servers, drag layout, zoom, minimap and visual-only lines. UUID checks
+  protect Check/Start/Attach, and missing runtimes are never recreated by a card.
+  Native Attach supports local, WSL and system-SSH profiles. Named container
+  replacement explicitly archives configuration after Down and keeps shared data.
+
 - Studio has an install-adjacent identity library with Markdown instructions,
   UUIDs and immutable template versions. New containers can select a version
   or Default; all their workspaces inherit it alongside Orcan base rules.

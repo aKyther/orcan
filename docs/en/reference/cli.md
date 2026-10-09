@@ -53,6 +53,10 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan context worktree remove --workspace NAME` | Remove all managed worktrees for a workspace (and unpin from config) |
 | `orcan context worktree prune [--force] [--no-config]` | Reconcile `$ORCAN_PROJECTS_ROOT/.worktrees/registry.json` against disk (and `orcan.config.json`); dry-run by default, `--force` cleans up |
 | `orcan studio probe --json` | Read-only, versioned host/runtime capability report for the separate Orcan Studio desktop application. It is designed for local, SSH, and WSL transports; it does not change config, images, or containers. |
+| `orcan --instance NAME studio target register --yes` | Explicitly initialize host/container UUID metadata for an existing configuration; leaves its role and runtime unchanged. |
+| `orcan studio target clone --yes` | Allocate a new host UUID on a cloned host. Then register each cloned instance with `register --new-target --yes`; original enclave references remain unchanged. |
+| `orcan --instance NAME studio target verify --expected-host-id UUID --expected-id UUID` | Read-only UUID check used before native enclave Attach. |
+| `orcan --instance NAME studio target replace-plan --expected-id UUID` | Preview archiving a named instance after Down. `replace-apply --expected-id UUID --yes` applies the archive; it never stops a runtime or deletes shared projects/data. |
 | `orcan bundle create --output DIR [--image IMAGE]` | Create a clean, offline-installable host CLI kit. It excludes profiles, configuration, projects, sandbox data, and secrets; an optional local Docker image is saved alongside it. |
 | `orcan studio parent plan --path PATH --branch BRANCH` | Read-only plan for updating a parent checkout; reports branch, dirty state, HEAD and `origin` head. |
 | `orcan studio parent apply --path PATH --branch BRANCH --expected-head SHA --yes` | Apply an approved parent update with `git pull --ff-only`; refuses a stale, dirty, or wrong-branch checkout. |

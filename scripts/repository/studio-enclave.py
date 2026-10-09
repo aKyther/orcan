@@ -108,10 +108,16 @@ def main() -> None:
     if args.mode == "rollback":
         if not args.yes:
             raise SystemExit("rollback requires --yes")
-        if (
-            not config.is_file()
-            or json.loads(config.read_text(encoding="utf-8")) != empty_config
-        ):
+        existing = (
+            json.loads(config.read_text(encoding="utf-8")) if config.is_file() else None
+        )
+        if isinstance(existing, dict):
+            existing = {
+                key: value
+                for key, value in existing.items()
+                if key not in {"host_id", "container_id"}
+            }
+        if existing != empty_config:
             raise SystemExit(
                 "refusing to remove a configuration that is not the empty Studio configuration"
             )

@@ -144,3 +144,24 @@ button.context-project-update { background: none; border: 0; color: #9fba8d; fon
 #identity-path { overflow-wrap: anywhere; }
 .view[data-view="identities"] label { display: grid; gap: .4rem; }
 #identity-instructions { background: #171a16; border: 1px solid #4e5748; border-radius: .55rem; color: inherit; font: inherit; line-height: 1.5; min-height: 16rem; padding: .8rem; resize: vertical; width: 100%; }
+#group-canvas { background: #171a16; border: 1px solid #3c4339; border-radius: .9rem; height: 650px; min-width: 0; }
+.group-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 1rem; }
+.group-toolbar { display: flex; gap: .7rem; align-items: end; flex-wrap: wrap; }
+.group-toolbar label { display: grid; gap: .35rem; min-width: 160px; flex: 1; }
+#group-details { align-content: start; overflow-wrap: anywhere; }
+#group-details code { display: block; font-size: .72rem; margin-top: .35rem; }
+.enclave-node { background: #222620; border: 1px solid #68745e; border-radius: .8rem; width: 290px; padding: 1rem; display: grid; gap: .65rem; color: #e2e6dc; box-shadow: 0 8px 20px #0004; }
+.enclave-node.online { border-color: #77b576; }
+.enclave-node strong { font-size: .95rem; overflow-wrap: anywhere; }
+.enclave-node p { font-size: .8rem; margin: 0; }
+.enclave-node select { min-width: 0; width: 100%; }
+.enclave-node button { padding: .5rem; font-size: .72rem; }
+.node-actions { display: flex; gap: .4rem; }
+.node-actions button { flex: 1; }
+.node-state { color: #e6a94c; font-size: .75rem; }
+.node-error { color: #dd7770; max-height: 5rem; overflow: auto; overflow-wrap: anywhere; }
+#group-canvas .vue-flow__controls-button { background: #30362b; color: #eee; border-color: #4e5748; }
+#group-canvas .vue-flow__controls-button svg { fill: currentColor; }
+#group-canvas .vue-flow__minimap { background: #242920; }
+#group-canvas .vue-flow__edge-path { stroke: #dba543; stroke-width: 2; }
+@media (max-width: 1100px) { .group-layout { grid-template-columns: 1fr; } #group-canvas { height: 600px; } }

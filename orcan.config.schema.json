@@ -7,6 +7,8 @@
   "additionalProperties": true,
   "required": ["workspaces"],
   "properties": {
+    "host_id": { "type": "string", "format": "uuid", "description": "Registered Orcan host installation UUID." },
+    "container_id": { "type": "string", "format": "uuid", "description": "Registered logical container configuration UUID; explicit replacement creates a new ID." },
     "identity": {
       "description": "Frozen identity selected at container creation; all workspaces inherit its instructions.",
       "type": "object",

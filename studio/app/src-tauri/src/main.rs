@@ -17,9 +17,11 @@ use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
 mod enclave;
+mod groups;
 mod identities;
 mod provisioning;
 mod ssh_access;
+mod terminal;
 mod transfer_cache;
 mod transfer_progress;
 
@@ -1916,140 +1918,15 @@ async fn native_ssh_stream_wsl(
 struct ProfileState(Mutex<ProfileStore>);
 
 #[tauri::command]
-fn open_terminal(
+async fn open_terminal(
     enclave: EnclaveInput,
     workspace: String,
     launcher: TerminalLauncher,
+    host_id: Option<String>,
+    container_id: Option<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<(), String> {
-    let TargetInput::Ssh { .. } = &enclave.target else {
-        return Err("native terminal launch currently needs an SSH Enclave profile".to_owned());
-    };
-    let resolved = state
-        .0
-        .lock()
-        .map_err(|_| "profile store is unavailable".to_owned())?
-        .resolve_ssh(
-            enclave.profile_id.as_deref(),
-            enclave.credential_id.as_deref(),
-            enclave.username.as_deref(),
-        )
-        .map_err(|error| error.to_string())?
-        .ok_or_else(|| {
-            "save and select a system-SSH profile before opening a terminal".to_owned()
-        })?;
-    if !matches!(resolved.1.ssh.authentication, SshAuthentication::Agent) {
-        return Err("native terminal launch uses system SSH only; Studio never passes a saved password or key to another app".to_owned());
-    }
-    let profile = resolved
-        .0
-        .ok_or_else(|| "select a saved SSH profile".to_owned())?;
-    let Target::Ssh { destination } = profile.target else {
-        return Err("select a saved SSH profile".to_owned());
-    };
-    Target::Ssh {
-        destination: destination.clone(),
-    }
-    .probe_request()
-    .map_err(|error| error.to_string())?;
-    if workspace.is_empty()
-        || workspace.starts_with('-')
-        || workspace
-            .chars()
-            .any(|c| !c.is_ascii_alphanumeric() && !"._-".contains(c))
-    {
-        return Err("select a valid workspace name".to_owned());
-    }
-    let destination = &destination;
-    if destination.starts_with('-')
-        || !destination
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || "._-@[]:".contains(c))
-    {
-        return Err(
-            "use a hostname, IP address, or SSH Host alias for native terminal access".to_owned(),
-        );
-    }
-    let mut args = vec!["attach".to_owned(), workspace];
-    if let Some(instance) = enclave.instance {
-        enclave::validate_instance(&instance)?;
-        args.splice(0..0, ["--instance".into(), instance]);
-    }
-    let remote = remote_orcan_command(&args);
-    #[cfg(windows)]
-    let mut command = match launcher {
-        TerminalLauncher::WindowsTerminal => {
-            let mut c = Command::new("wt.exe");
-            c.args(["-w", "new", "ssh", "-tt", "--", destination, &remote]);
-            c
-        }
-        TerminalLauncher::PowerShell => {
-            use std::os::windows::process::CommandExt;
-            let mut c = Command::new("powershell.exe");
-            c.creation_flags(0x0000_0010); // CREATE_NEW_CONSOLE
-            c.args([
-                "-NoExit",
-                "-Command",
-                &format!(
-                    "& ssh -tt -- '{}' '{}'",
-                    destination.replace('\'', "''"),
-                    remote.replace('\'', "''")
-                ),
-            ]);
-            c
-        }
-        TerminalLauncher::CommandPrompt => {
-            use std::os::windows::process::CommandExt;
-            let mut c = Command::new("cmd.exe");
-            c.creation_flags(0x0000_0010); // CREATE_NEW_CONSOLE
-            c.args([
-                "/K",
-                "powershell.exe",
-                "-NoProfile",
-                "-Command",
-                &format!(
-                    "& ssh -tt -- '{}' '{}'",
-                    destination.replace('\'', "''"),
-                    remote.replace('\'', "''")
-                ),
-            ]);
-            c
-        }
-        _ => return Err("choose a Windows terminal on Windows".to_owned()),
-    };
-    #[cfg(target_os = "macos")]
-    let mut command = match launcher {
-        TerminalLauncher::MacTerminal => {
-            let mut c = Command::new("/usr/bin/osascript");
-            let shell = format!(
-                "exec ssh -tt -- {} {}",
-                shell_quote(destination),
-                shell_quote(&remote)
-            );
-            c.args([
-                "-e",
-                &format!(
-                    "tell application \"Terminal\" to do script {}",
-                    serde_json::to_string(&shell).map_err(|error| error.to_string())?
-                ),
-            ]);
-            c
-        }
-        _ => return Err("choose Terminal on macOS".to_owned()),
-    };
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let mut command = match launcher {
-        TerminalLauncher::LinuxTerminal => {
-            let mut c = Command::new("x-terminal-emulator");
-            c.args(["-e", "ssh", "-tt", "--", destination, &remote]);
-            c
-        }
-        _ => return Err("choose Default Linux terminal on Linux".to_owned()),
-    };
-    command
-        .spawn()
-        .map_err(|error| format!("could not open terminal: {error}"))?;
-    Ok(())
+    terminal::open(enclave, workspace, launcher, host_id, container_id, state).await
 }
 
 /// Execute a Studio helper through the selected Enclave and decode its JSON reply.
@@ -2554,6 +2431,12 @@ fn main() {
             sync,
             runtime_action,
             open_terminal,
+            groups::list_groups,
+            groups::save_group,
+            groups::register_target,
+            groups::group_probe,
+            groups::group_start,
+            groups::replace_container,
             current_user,
             list_profiles,
             save_profile,

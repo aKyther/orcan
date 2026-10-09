@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import hashlib
+import importlib.util
 import json
 import os
 import platform
@@ -15,6 +16,12 @@ from pathlib import Path
 
 from defaults import RESOURCE_DEFAULTS, TTYD_DEFAULTS
 from git_worktrees import managed_worktrees_root
+
+_target_spec = importlib.util.spec_from_file_location(
+    "studio_target", Path(__file__).with_name("studio-target.py")
+)
+_target = importlib.util.module_from_spec(_target_spec)
+_target_spec.loader.exec_module(_target)
 
 
 def read_json(path: Path) -> dict[str, object]:
@@ -518,6 +525,7 @@ def main() -> None:
     parser.add_argument("--container", required=True)
     parser.add_argument("--last-up", default="")
     parser.add_argument("--instance", default="")
+    parser.add_argument("--host-root", type=Path)
     args = parser.parse_args()
 
     docker = docker_probe(
@@ -535,6 +543,9 @@ def main() -> None:
         context["identity"] = runtime_data.get("identity")
     worktrees_root = managed_worktrees_root(Path(args.projects_root), args.instance)
     report = {
+        "target": _target.snapshot(
+            args.host_root or Path(args.home), Path(args.config)
+        ),
         "protocol": {
             "name": "orcan-studio",
             "version": args.protocol,

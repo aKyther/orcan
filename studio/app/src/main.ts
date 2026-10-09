@@ -8,6 +8,7 @@ import { normalizeProbeReport } from "./probe";
 import { creationBlocker, lifecycleBlocker, ownsEnclave } from "./enclave-model";
 import { containerStateLabel, loadContainerSelections, persistContainerSelections } from "./server-model";
 import { identityPanel } from "./identities";
+import { groupPanel } from "./groups";
 import { gitAccessPanel } from "./git-access";
 import { confirmAction, promptText } from "./dialog";
 import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
@@ -304,6 +305,9 @@ function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
 
 const demoIdentities = new Map<string, import("./types").Identity>();
 const demoIdentityVersions = new Map<string, import("./types").Identity>();
+const demoGroups = new Map<string, import("./group-model").Group>();
+const demoHostIds = new Map<string, string>();
+let manualGroups: ReturnType<typeof groupPanel> | undefined;
 
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) {
@@ -326,6 +330,13 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     return invokeTauri<T>(command, _args);
   }
   await new Promise((resolve) => window.setTimeout(resolve, 180));
+  if (command === "list_groups") return structuredClone([...demoGroups.values()]) as T;
+  if (command === "save_group") {
+    const group = structuredClone((_args as { group: import("./group-model").Group }).group);
+    if (!group.name.trim()) throw new Error("Name the enclave before saving");
+    if ((demoGroups.get(group.id)?.revision ?? 0) !== group.revision) throw new Error("Enclave changed; reload before saving");
+    group.revision++; demoGroups.set(group.id, group); return structuredClone(group) as T;
+  }
   if (command === "list_identities") return { path: "Demo only — no files saved", identities: [...demoIdentities.values()] } as T;
   if (command === "save_identity") {
     const args = _args as { id?: string; expectedVersion?: number; name: string; description: string; instructions: string };
@@ -350,6 +361,29 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   }
   if (command === "test_git_ssh") return { ready: true, detail: "Demo only — no Git connection was made" } as T;
   if (command === "probe" && JSON.stringify(enclave?.target).includes("staging")) throw new Error("SSH connection failed: Connection timed out");
+  if (["register_target", "group_probe", "group_start", "replace_container"].includes(command)) {
+    if (JSON.stringify(enclave?.target).includes("staging")) throw new Error("Server offline");
+    const report = await demoReportFor(enclave!.target, enclave!.instance);
+    const args = _args as { hostId?: string; containerId?: string; apply?: boolean };
+    if (command === "register_target") {
+      if (["missing", "unavailable"].includes(report.runtime.docker.container.state)) throw new Error("Create or start the existing container before registering it");
+      const key = JSON.stringify(enclave!.target);
+      if (!demoHostIds.has(key)) demoHostIds.set(key, crypto.randomUUID());
+      report.target ??= { state: "ready", host_id: demoHostIds.get(key), container_id: crypto.randomUUID() };
+    } else {
+      if (report.target?.state !== "ready" || report.target.host_id !== args.hostId || report.target.container_id !== args.containerId) throw new Error("Target identity mismatch. Refresh or register the replacement explicitly.");
+      if (command === "group_start") {
+        if (report.runtime.docker.container.state === "missing") throw new Error("Enclave Start never recreates missing containers");
+        report.runtime.docker.container.state = "running";
+      }
+      if (command === "replace_container") {
+        if (report.runtime.docker.container.state !== "missing") throw new Error("Remove the container with Down first");
+        if (args.apply) { report.target = undefined; report.context.configuration = { state: "missing", source: "none", editable: false }; report.context.workspaces = []; }
+        return { ok: true, result: { ready: true, archive: "/demo/retired/container", changes: ["archive instance configuration and workspace metadata", "preserve shared projects and data", "create replacement separately"] } } as T;
+      }
+    }
+    return structuredClone(report) as T;
+  }
   if (command === "list_instances") return { instances: [{ instance: null, container: "orcan-1", home: demoReport.paths.home }, ...[...demoReports.entries()].filter(([key, report]) => key.startsWith(`${JSON.stringify(enclave!.target)}:`) && ownsEnclave(report)).map(([key, report]) => ({ instance: key.slice(JSON.stringify(enclave!.target).length + 1), container: report.runtime.docker.container.name, home: report.paths.home }))] } as T;
   if (command === "server_capacity") return { cpus: 8, memoryBytes: 16 * 1024 ** 3, diskTotalBytes: 200 * 1024 ** 3, diskFreeBytes: 120 * 1024 ** 3, diskPath: (_args as { path?: string }).path } as T;
   if (command === "probe") return structuredClone(await demoReportFor(enclave!.target, enclave!.instance)) as T;
@@ -369,6 +403,9 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     if (args.apply) {
       report.context.configuration = { state: "present", source: "config", editable: true };
       report.context.identity = identity ? structuredClone(identity) : null;
+      const hostKey = JSON.stringify(enclave!.target);
+      if (!demoHostIds.has(hostKey)) demoHostIds.set(hostKey, crypto.randomUUID());
+      report.target = { state: "ready", host_id: demoHostIds.get(hostKey), container_id: crypto.randomUUID() };
       report.runtime.docker.container.state = "running";
       report.runtime.launch = { recorded: true, git: args.withGit, docker: args.withDocker, ttyd: args.withTtyd, ttyd_auth: Boolean(args.ttydCredential) };
       return { ok: true } as T;
@@ -408,7 +445,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   return (responses[command] ?? {}) as T;
 }
 
-const viewTitles: Record<string, string> = { credentials: "Credentials & keys", enclaves: "Servers and containers" };
+const viewTitles: Record<string, string> = { credentials: "Credentials & keys", enclaves: "Servers and containers", groups: "Enclaves" };
 const gatedViews = new Set(navigationItems.filter((item) => item.classList.contains("gated")).map((item) => item.dataset.viewTarget));
 gatedViews.add("settings");
 let currentView = "overview";
@@ -423,6 +460,7 @@ function showView(name: string): void {
   currentView = name;
   if (name === "enclaves") checkAll();
   if (name === "identities") void identityLibrary.reload();
+  if (name === "groups") void manualGroups?.refresh();
   for (const view of views) view.hidden = view !== target;
   for (const item of navigationItems) {
     const active = item.dataset.viewTarget === name;
@@ -771,10 +809,9 @@ function renderEnclaveMap(report: ProbeReport): void {
     const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
     if (drafts.length) meta.append(el("span", { className: "tag draft", textContent: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` }), actionButton("Discard", () => discardWorkspaceDraft(workspace.name), "workspace-draft-discard"));
     const attach = actionButton("Open terminal", () => void openWorkspaceTerminal(workspace.name), "secondary");
-    attach.hidden = current?.target.kind !== "ssh";
     const terminalProfile = profiles.find((profile) => profile.id === current?.profileId);
-    attach.disabled = report.runtime.docker.container.state !== "running" || Boolean(terminalProfile?.credential_id) || (terminalProfile?.ssh?.authentication.kind ?? "agent") !== "agent";
-    attach.title = attach.disabled ? "Start the container and use a system-SSH profile to open a native terminal." : `Attach to ${workspace.name} in your native terminal`;
+    attach.disabled = report.runtime.docker.container.state !== "running" || (current?.target.kind === "ssh" && (Boolean(terminalProfile?.credential_id) || (terminalProfile?.ssh?.authentication.kind ?? "agent") !== "agent"));
+    attach.title = attach.disabled ? "Start the container first; remote native terminals require a system-SSH profile." : `Attach to ${workspace.name} in your native terminal`;
     const card = el("article", { className: "workspace-card" }, el("header", {}, el("strong", { textContent: workspace.name }), meta, attach));
     card.classList.toggle("focused", focusedWorkspace === workspace.name);
     card.title = "Click empty space to focus this workspace";
@@ -2781,6 +2818,7 @@ function renderEnclaves(): void {
       for (const [label, value] of [
         ["Container", `${report.runtime.docker.container.name ?? "Not reported"} · ${report.runtime.docker.container.state}`],
         ["Identity", report.context.identity ? `${report.context.identity.name} · v${report.context.identity.version}` : "Default — Orcan base rules"],
+        ["Target UUID", report.target?.container_id ?? "Not registered"],
         ["Image", report.runtime.docker.image ? `${report.runtime.docker.image.name} · ${report.runtime.docker.image.present ? "available" : "missing"}` : "Not reported"],
         ["Configured resources", `CPU ${report.runtime.resources?.cpus ?? "not reported"} · RAM ${report.runtime.resources?.memory ?? "not reported"}`],
         ["Projects", report.paths.projects_root],
@@ -2789,6 +2827,18 @@ function renderEnclaves(): void {
         ["Workspaces", `${report.context.workspaces.length} · ${report.paths.workspace_metadata_root}`],
       ]) facts.append(el("div", {}, el("dt", { textContent: label }), el("dd", { textContent: value, title: value })));
       text.append(facts);
+      const register = actionButton("Register UUIDs", async () => {
+        register.disabled = true;
+        try { await invoke("register_target", { enclave: enclaveInput(profileConnection(profile)) }); await checkEnclave(profile); }
+        catch (error) { result.textContent = String(error); }
+        finally { register.disabled = false; }
+      }, "secondary");
+      register.disabled = status.state !== "online" || ["missing", "unavailable"].includes(report.runtime.docker.container.state) || report.target?.state === "ready";
+      item.children[1].append(register);
+      const replace = actionButton("Prepare replacement", () => { void prepareReplacement(profile, report); }, "secondary");
+      replace.disabled = status.state !== "online" || !selectedInstances.get(profile.id) || report.runtime.docker.container.state !== "missing" || report.target?.state !== "ready";
+      replace.title = "After Down: archive instance configuration and workspace metadata, then create a replacement with a new UUID and identity.";
+      item.children[1].append(replace);
       if (status.state === "online") {
         const enter = actionButton("Manage context", async () => { await openEnclave(profile); if (current?.profileId === profile.id && connected) showView("contexts"); }, "secondary");
         enter.disabled = !ownsEnclave(report);
@@ -3066,3 +3116,25 @@ void loadStore().catch((error) => {
 });
 
 void identityLibrary.reload();
+
+manualGroups = groupPanel(invoke, () => profiles, (profileId, instance) => {
+  const profile = profiles.find((item) => item.id === profileId);
+  if (!profile) throw new Error("Saved connection profile is missing. Restore it or remove this enclave member.");
+  return enclaveInput({ ...profileConnection(profile), instance });
+}, () => terminalLauncher.value);
+
+async function prepareReplacement(profile: ConnectionProfile, report: ProbeReport): Promise<void> {
+  const connection = profileConnection(profile);
+  const args = { enclave: enclaveInput(connection), hostId: report.target?.host_id, containerId: report.target?.container_id };
+  try {
+    const plan = await invoke<{ result: { archive: string; changes: string[] } }>("replace_container", { ...args, apply: false });
+    if (!await confirmAction(`${connection.label}\n\n${plan.result.changes.join("\n")}\n\nArchive: ${plan.result.archive}\nExisting enclaves keep the old UUID. Running sessions must already be stopped with Down.`, { title: "Prepare replacement container", confirmLabel: "Archive configuration", danger: true })) return;
+    await invoke("replace_container", { ...args, apply: true });
+    await checkEnclave(profile);
+    creatorReadiness = undefined; creatorPlanRevision = -1; creatorRevision++;
+    enclaveCreateProfile.value = profile.id; enclaveCreateName.value = connection.instance ?? "";
+    renderEnclaveCreator();
+    enclaveCreateResult.textContent = `Previous configuration archived at ${plan.result.archive}. Check the destination, select an identity and create the replacement.`;
+    showView("enclaves");
+  } catch (error) { result.textContent = `Replacement was not prepared: ${String(error)}`; }
+}

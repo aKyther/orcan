@@ -878,6 +878,8 @@ impl ProfileStore {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProbeReport {
+    #[serde(default)]
+    pub target: Option<serde_json::Value>,
     pub protocol: Protocol,
     pub sandbox: Sandbox,
     pub host: Host,

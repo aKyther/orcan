@@ -43,8 +43,66 @@ Default remains available. Updating Studio alone does not update a running
 container. Choose the new image when creating a new container. Another identity
 requires explicit replacement, preserving projects and shared data.
 
-This block supplies the identity foundation. The saved 2D enclave canvas and
-manual Attach from that canvas are still planned. It does not execute workflows.
+### Manual enclaves
+
+Open **Enclaves**, name a group and choose a server profile. **Check container
+list** discovers its configured containers. **Register / add container** adds
+an existing runtime and saves target UUIDs when needed. It does not create or
+start the container. Repeat with other servers to assemble the group. A container
+can belong to several enclaves; removing a card only removes that membership.
+
+The canvas uses Vue Flow, with draggable cards, zoom controls and a minimap.
+Connect handles to draw a visual line; double-click the line to remove it. Lines,
+opening a group and saving its layout execute no agent work. **Save enclave**
+writes `studio-data/enclaves/<UUID>.json` beside the application. The JSON contains
+the name, revision, member UUIDs, connection profile references, positions and
+visual lines. Credentials remain in their existing vault. Conflicting saves fail
+explicitly; **Reload list** can reload the saved layout after discarding local edits.
+
+Use **Check** on a card to verify the host and container UUIDs. Select a workspace
+and use **Attach** to open its existing tmux context. **Start** only starts an
+existing stopped runtime and verifies the result. Missing/offline containers and
+changed UUIDs require explicit recovery; the card cannot recreate or silently
+replace a container. Card state is the last check; each action checks again.
+The side panel shows UUIDs, profile, assigned identity and the checked project path.
+
+Native Attach uses the selected terminal setting: local Linux/macOS, WSL on
+Windows, or system SSH on the desktop platform. SSH Attach requires a saved
+system-SSH profile and an SSH agent/configuration usable by that terminal.
+Studio never passes a saved password or private key to another app. Workspace
+selection and UUID verification happen before attaching, including a second
+check in the launched shell. Sign into and use the agent manually. Closing the
+terminal leaves the container and persistent tmux session in place.
+
+### Target UUIDs and replacement
+
+Probe remains read-only. **Register UUIDs** in Servers or **Register / add
+container** in Enclaves explicitly initializes IDs for an existing instance.
+New Studio-created containers are registered during creation. The host installation
+stores `studio-host.json` in its configuration root; `host_id` and `container_id`
+are metadata in the instance's `orcan.config.json`. They do not change the role.
+Renaming a Studio profile/group label and ordinary stop/start preserve these IDs.
+IDs represent the logical instance configuration: restoring that same configuration
+after Down keeps its ID, while explicit replacement allocates a new one.
+
+The host record includes a machine fingerprint. A changed fingerprint blocks
+enclave operations. On Linux this uses the machine ID; other hosts use their
+hostname. Fully copied VMs can retain the same fingerprint and cannot always be
+detected automatically. On a clone, explicitly run `orcan studio target clone
+--yes`, then register each cloned instance with `--new-target --yes`. Existing
+enclaves continue to refer to the original host/container IDs.
+
+To change a named container's identity, first use **Down**. After checking its
+state, **Prepare replacement** previews and confirms archiving the whole instance
+directory under `<host-root>/retired/<name>-<old-UUID>`. Shared projects, cache and
+agent data stay in place; workspace metadata and the old configuration remain in
+the archive. The operation refuses a still-existing runtime, unavailable Docker,
+or project data stored inside the instance directory. Then use **New container**
+with the same name or a new name, select an identity and create it explicitly.
+Context bindings from the archive are not imported automatically. Old enclave
+cards fail their UUID check; remove them and add the replacement explicitly.
+The legacy default instance is not retired through this action; create a named
+replacement instead.
 
 ### Creating and managing containers
 
@@ -126,8 +184,9 @@ Existing-container Start/Stop/Restart preserve its settings and ttyd auth.
 
 The current terms are **profile → server/host → container → workspace**.
 A profile supplies the connection, a host owns images and shared data, and each
-container owns its configuration and workspaces. “Enclave” is no longer a UI
-category. Existing internal command and storage identifiers stay compatible.
+container owns its configuration and workspaces. An **enclave** is a separate
+saved group of containers across one or more servers. Existing internal server
+command and storage identifiers stay compatible.
 Named containers do not implement an agent workflow engine.
 
 Orcan Studio is the native desktop companion for composing and inspecting Orcan
