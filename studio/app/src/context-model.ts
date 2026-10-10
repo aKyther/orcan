@@ -3,11 +3,11 @@ import type { ProbeReport, ProjectRef } from "./types";
 
 export type ParentCandidate = {
   path: string; name: string; role: "worktree_parent" | "configured_mount"; worktree_count: number;
-  readOnly: boolean; eligible: boolean; repositoryId?: string; branch?: string; dirty?: boolean;
+  readOnly: boolean; eligible: boolean; repositoryId?: string; branch?: string; dirty?: boolean | null;
   upstream?: string; ahead?: number; behind?: number;
 };
 export type ContextProject = ProbeReport["context"]["workspaces"][number]["projects"][number];
-export type HealthProject = { path: string; kind?: string; writable?: boolean; dirty?: boolean; repository_id?: string };
+export type HealthProject = { path: string; kind?: string; writable?: boolean; dirty?: boolean | null; repository_id?: string };
 
 export function parentCandidates(report: ProbeReport, runs: ParentRun[]): ParentCandidate[] {
   return report.context.update_targets.map((target) => ({
@@ -51,6 +51,7 @@ export function projectAlerts(report: ProbeReport, project: HealthProject, orpha
   if (project.kind === "missing") alerts.push("missing");
   else if (project.writable === false) alerts.push("read-only");
   if (project.dirty) alerts.push("uncommitted");
+  else if (project.dirty === null) alerts.push("Git status unknown");
   if (orphan) alerts.push("orphan worktree");
   const source = project.repository_id
     ? report.context.update_targets.find((target) => target.repository_id === project.repository_id)

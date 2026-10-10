@@ -8,6 +8,16 @@ import json
 import re
 from pathlib import Path
 
+from config_io import dump_config
+
+
+def save_settings(path: Path, data: dict, expected: bytes) -> None:
+    try:
+        dump_config(path, data, expected=expected)
+    except (OSError, ValueError) as error:
+        print(json.dumps({"ok": False, "error": str(error)}))
+        raise SystemExit(2)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -36,7 +46,8 @@ def main() -> None:
     if not path.is_file():
         print(json.dumps({"ok": False, "error": "Orcan configuration does not exist"}))
         raise SystemExit(2)
-    data = json.loads(path.read_text(encoding="utf-8"))
+    original = path.read_bytes()
+    data = json.loads(original)
     workspaces = data.get("workspaces") or []
     if args.mode.startswith("workspace-"):
         if not args.workspace:
@@ -81,9 +92,7 @@ def main() -> None:
             workspace["name"] = new_name
         else:
             workspaces.remove(workspace)
-        temporary = path.with_suffix(".json.tmp")
-        temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-        temporary.replace(path)
+        save_settings(path, data, original)
         print(json.dumps({"ok": True, "result": plan}, separators=(",", ":")))
         return
     if args.mode != "plan":
@@ -157,9 +166,7 @@ def main() -> None:
                 for item in workspace.get("projects") or []
                 if Path(item.get("path", "")).resolve() != project
             ]
-            temporary = path.with_suffix(".json.tmp")
-            temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-            temporary.replace(path)
+            save_settings(path, data, original)
             print(json.dumps({"ok": True, "result": plan}, separators=(",", ":")))
             return
 

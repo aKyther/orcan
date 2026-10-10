@@ -34,9 +34,10 @@ def inspect(path: Path, branch: str) -> dict[str, object]:
         raise ValueError("path is not a Git working tree")
     current_branch = output(git(resolved, "symbolic-ref", "--quiet", "--short", "HEAD"))
     head = output(git(resolved, "rev-parse", "HEAD"))
-    dirty = bool(
-        output(git(resolved, "status", "--porcelain=v1", "--untracked-files=normal"))
+    status = output(
+        git(resolved, "status", "--porcelain=v1", "--untracked-files=normal")
     )
+    dirty = bool(status) if status is not None else None
     remote_head = output(
         git(
             resolved,
@@ -49,6 +50,8 @@ def inspect(path: Path, branch: str) -> dict[str, object]:
     )
     remote_commit = remote_head.split()[0] if remote_head else None
     blockers: list[str] = []
+    if dirty is None:
+        blockers.append("cannot determine parent working-tree status")
     if current_branch != branch:
         blockers.append(
             f"parent is on {current_branch or 'detached HEAD'}, not {branch}"

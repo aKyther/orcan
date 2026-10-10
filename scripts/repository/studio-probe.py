@@ -82,7 +82,8 @@ def git_details(path: Path) -> dict[str, object]:
         "git_common_dir": str(common_path),
         "origin_url": git_output(path, "config", "--get", "remote.origin.url"),
         "branch": branch,
-        "dirty": bool(status),
+        "dirty": bool(status) if status is not None else None,
+        "git_status": "unknown" if status is None else "dirty" if status else "clean",
         "upstream": upstream,
         "ahead": ahead,
         "behind": behind,
@@ -110,7 +111,9 @@ def classify_path(path: Path) -> dict[str, object]:
     }
 
 
-def indexed_workspaces(index_path: Path) -> list[dict[str, object]]:
+def indexed_workspaces(
+    index_path: Path, classify=classify_path
+) -> list[dict[str, object]]:
     """Re-classify the last synced workspace index without trusting stale facts."""
     index = read_json(index_path)
     workspaces: list[dict[str, object]] = []
@@ -128,7 +131,7 @@ def indexed_workspaces(index_path: Path) -> list[dict[str, object]]:
             if not isinstance(raw_path, str) or not raw_path:
                 continue
             path = Path(raw_path)
-            item = classify_path(path)
+            item = classify(path)
             item["name"] = str(project.get("name") or path.name)
             projects.append(item)
         workspaces.append({"name": name, "projects": projects})
@@ -139,6 +142,15 @@ def context_snapshot(
     config_path: Path, projects_root: Path, workspace_index: Path, instance: str = ""
 ) -> dict[str, object]:
     """Return Studio-visible configuration and path membership, never secrets."""
+    classified: dict[str, dict[str, object]] = {}
+
+    def classify(path: Path) -> dict[str, object]:
+        key = str(path.resolve())
+        if key not in classified:
+            classified[key] = classify_path(path)
+        # Callers add binding-specific names; never mutate the cached fact.
+        return {**classified[key], "path": str(path)}
+
     config = read_json(config_path)
     workspaces: list[dict[str, object]] = []
     for workspace in config.get("workspaces") or []:
@@ -152,7 +164,7 @@ def context_snapshot(
             raw_path = str(project.get("path") or "")
             if raw_path:
                 path = Path(raw_path)
-                item = classify_path(path)
+                item = classify(path)
                 default_name = path.name
             else:
                 item = {"path": "", "kind": "missing", "writable": False}
@@ -161,10 +173,10 @@ def context_snapshot(
             projects.append(item)
         workspaces.append({"name": name, "projects": projects})
     if not workspaces:
-        workspaces = indexed_workspaces(workspace_index)
+        workspaces = indexed_workspaces(workspace_index, classify)
     managed_entries = (
         [
-            classify_path(entry)
+            classify(entry)
             for entry in sorted(projects_root.iterdir())
             if not entry.name.startswith(".")
         ]
@@ -213,14 +225,14 @@ def context_snapshot(
 
     def add_update_target(raw_path: str, *, role: str, worktree_count: int = 0) -> None:
         path = str(Path(raw_path).expanduser().resolve())
-        item = classify_path(Path(path))
+        item = classify(Path(path))
         # Directories and files are deliberately not update targets.
         if item.get("kind") != "git_repository":
             return
         # A mount-as-is is a read-only convenience target, never a place where
         # Studio should compete with local work. Dirty mounts stay out of the
         # selector entirely; studio-parent.py checks again before git pull.
-        if role == "configured_mount" and item.get("dirty"):
+        if role == "configured_mount" and item.get("dirty") is not False:
             return
         existing = update_targets.get(path)
         if existing and existing.get("role") == "worktree_parent":
@@ -231,7 +243,7 @@ def context_snapshot(
                 "role": role,
                 "worktree_count": worktree_count,
                 "read_only": role == "configured_mount",
-                "eligible": not bool(item.get("dirty")),
+                "eligible": item.get("dirty") is False,
             }
         )
         update_targets[path] = item

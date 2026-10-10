@@ -1060,7 +1060,7 @@ pub struct ManagedProject {
     pub origin_url: Option<String>,
     pub branch: Option<String>,
     #[serde(default)]
-    pub dirty: bool,
+    pub dirty: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

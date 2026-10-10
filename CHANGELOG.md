@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio reports unknown Git status instead of treating failed reads as clean,
+  blocks unsafe parent updates, and deduplicates repository inspection per probe.
+  Configuration writes use unique atomic replacements; Studio rejects changed
+  snapshots before saving.
+
 - Development checks add fast/integration test selections and focused pytest
   arguments. CI runs the full host suite once with coverage. Validation scans
   sources once instead of traversing build caches; release tests reuse isolated

@@ -1,0 +1,76 @@
+"""In-process Git inspection contracts: failures are never clean checkouts."""
+
+import json
+from types import SimpleNamespace
+
+from ._scripts_loader import load_script
+
+probe = load_script("studio-probe.py")
+parent = load_script("studio-parent.py")
+
+
+def test_unknown_probe_status_blocks_parent_updates(tmp_path, monkeypatch):
+    repo = tmp_path / "app"
+    (repo / ".git").mkdir(parents=True)
+    facts = {"rev-parse": ".git", "symbolic-ref": "main", "config": "origin"}
+    monkeypatch.setattr(probe, "git_output", lambda path, *args: facts.get(args[0]))
+    config = tmp_path / "orcan.config.json"
+    config.write_text(
+        json.dumps({"workspaces": [{"name": "dev", "projects": [{"path": str(repo)}]}]})
+    )
+    snapshot = probe.context_snapshot(config, tmp_path, tmp_path / "index.json")
+    project = snapshot["workspaces"][0]["projects"][0]
+    assert project["dirty"] is None
+    assert project["git_status"] == "unknown"
+    assert snapshot["update_targets"] == []
+
+
+def test_snapshot_classifies_each_path_once_without_sharing_binding_names(
+    tmp_path, monkeypatch
+):
+    repo = tmp_path / "app"
+    repo.mkdir()
+    calls = []
+
+    def classify(path):
+        calls.append(path.resolve())
+        return {"path": str(path), "kind": "directory"}
+
+    monkeypatch.setattr(probe, "classify_path", classify)
+    config = tmp_path / "orcan.config.json"
+    config.write_text(
+        json.dumps(
+            {
+                "workspaces": [
+                    {"name": "a", "projects": [{"name": "first", "path": str(repo)}]},
+                    {"name": "b", "projects": [{"name": "second", "path": str(repo)}]},
+                ]
+            }
+        )
+    )
+    result = probe.context_snapshot(config, tmp_path, tmp_path / "index.json")
+    assert calls.count(repo.resolve()) == 1
+    assert [w["projects"][0]["name"] for w in result["workspaces"]] == [
+        "first",
+        "second",
+    ]
+    probe.context_snapshot(config, tmp_path, tmp_path / "index.json")
+    assert calls.count(repo.resolve()) == 2  # No persistent stale cache.
+
+
+def test_parent_plan_rejects_failed_status(tmp_path, monkeypatch):
+    def git(path, *args, **kwargs):
+        values = {
+            "rev-parse": "true",
+            "symbolic-ref": "main",
+            "ls-remote": "abc refs/heads/main",
+        }
+        return SimpleNamespace(
+            returncode=1 if args[0] == "status" else 0, stdout=values.get(args[0], "")
+        )
+
+    monkeypatch.setattr(parent, "git", git)
+    plan = parent.inspect(tmp_path, "main")
+    assert plan["dirty"] is None
+    assert not plan["ready"]
+    assert "cannot determine" in plan["blockers"][0]

@@ -976,7 +976,7 @@ function renderProjectInspector(report: ProbeReport): void {
   projectInspectorMetrics.replaceChildren(
     el("span", { textContent: `${bindings.length} workspace${bindings.length === 1 ? "" : "s"}` }),
     el("span", { textContent: project.writable === false ? "read-only" : "writable" }),
-    el("span", { className: project.dirty ? "warn" : "", textContent: project.dirty ? "uncommitted" : "clean" }),
+    el("span", { className: project.dirty !== false ? "warn" : "", textContent: project.dirty === null ? "Git status unknown" : project.dirty ? "uncommitted" : "clean" }),
   );
   projectInspectorPath.textContent = project.path;
   const actions: HTMLElement[] = [];
@@ -1350,10 +1350,10 @@ function renderWorktreeExisting(): void {
     worktreeSourceUpdate.hidden = true;
     return;
   }
-  const status = candidate.dirty ? "has uncommitted changes" : candidate.behind ? `${candidate.behind} commit${candidate.behind === 1 ? "" : "s"} behind ${candidate.upstream ?? "upstream"}` : "up to date";
+  const status = candidate.dirty === null ? "Git status unknown" : candidate.dirty ? "has uncommitted changes" : candidate.behind ? `${candidate.behind} commit${candidate.behind === 1 ? "" : "s"} behind ${candidate.upstream ?? "upstream"}` : "up to date";
   worktreeSourceState.textContent = `${candidate.branch ?? "detached HEAD"} · ${status}`;
   worktreeSourceUpdate.hidden = !candidate.branch;
-  worktreeSourceUpdate.disabled = Boolean(candidate.dirty) || report.control?.operations?.parent_update?.available === false;
+  worktreeSourceUpdate.disabled = !candidate.eligible || candidate.dirty !== false || report.control?.operations?.parent_update?.available === false;
   worktreeSourceUpdate.title = candidate.dirty ? "Commit or stash changes before updating this parent." : "Preview and run git pull --ff-only before creating a worktree.";
   const branches = selected.flatMap((workspaceName) => {
     const workspace = report.context.workspaces.find((item) => item.name === workspaceName);
@@ -1596,7 +1596,7 @@ function renderContextWorkspaceList(report: ProbeReport): void {
     if (parent) {
       update = actionButton("↻", () => void updateProjectParent(parent, workspace.name, projectName(project)), "context-project-update");
       update.title = parent.dirty ? "Parent has changes; update is blocked" : `Check and update ${parent.branch ?? "parent"}`;
-      update.disabled = parent.dirty || !parent.branch || currentReport?.control?.operations?.parent_update?.available === false;
+      update.disabled = !parent.eligible || parent.dirty !== false || !parent.branch || currentReport?.control?.operations?.parent_update?.available === false;
     }
     return el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", {}, el("strong", { textContent: projectName(project) }), el("small", { textContent: [project.branch, project.dirty && "dirty", parentState, project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind })), ...(update ? [update] : []), detach);
   });
@@ -1615,7 +1615,7 @@ async function updateSandboxParent(parent: ParentCandidate): Promise<void> {
 }
 
 async function updateParent(parent: ParentCandidate, label: string, reportStatus: (message: string) => void, completion = ""): Promise<void> {
-  if (!current || !parent.branch || parent.dirty) return;
+  if (!current || !parent.branch || !parent.eligible || parent.dirty !== false) return;
   reportStatus(`Checking ${label}…`);
   try {
     const response = await invoke<{ plan: { head: string; remote_head?: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch });

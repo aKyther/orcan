@@ -23,11 +23,11 @@ export type ProbeReport = {
     identity?: Identity | null;
     workspaces: Array<{
       name: string;
-      projects: Array<{ name?: string; path: string; kind: string; writable?: boolean; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; repository_id?: string }>;
+      projects: Array<{ name?: string; path: string; kind: string; writable?: boolean; branch?: string; dirty?: boolean | null; upstream?: string; ahead?: number; behind?: number; repository_id?: string }>;
     }>;
-    managed_projects: Array<{ path: string; kind: string; writable?: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
+    managed_projects: Array<{ path: string; kind: string; writable?: boolean; repository_id?: string; branch?: string; dirty?: boolean | null; upstream?: string; ahead?: number; behind?: number; origin_url?: string }>;
     repositories: Array<{ repository_id: string; origin_url?: string; bindings: Array<{ workspace: string }> }>;
-    update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; repository_id?: string; branch?: string; dirty?: boolean; upstream?: string; ahead?: number; behind?: number }>;
+    update_targets: Array<{ name: string; path: string; kind: string; role: "worktree_parent" | "configured_mount"; worktree_count: number; read_only: boolean; eligible: boolean; repository_id?: string; branch?: string; dirty?: boolean | null; upstream?: string; ahead?: number; behind?: number }>;
     configuration: { state: string; revision?: string; source?: "config" | "runtime_index" | "none"; editable?: boolean; path?: string };
   };
 };

@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -52,11 +55,33 @@ def load_config(path: Path) -> dict[str, Any]:
     return data
 
 
-def dump_config(path: Path, data: dict[str, Any]) -> None:
+def dump_config(
+    path: Path, data: dict[str, Any], *, expected: bytes | None = None
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not is_json_path(path):
         die(f"unsupported config extension for write (use .json): {path}")
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    pending = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            delete=False,
+        ) as stream:
+            pending = Path(stream.name)
+            if path.exists():
+                os.chmod(pending, stat.S_IMODE(path.stat().st_mode))
+            stream.write(json.dumps(data, indent=2) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        if expected is not None and path.read_bytes() != expected:
+            raise ValueError("configuration changed; reload before applying")
+        os.replace(pending, path)
+    finally:
+        if pending is not None:
+            pending.unlink(missing_ok=True)
 
 
 def default_write_path(root: Path) -> Path:
