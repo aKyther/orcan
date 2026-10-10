@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Container navigation and active-server highlighting stay within server views;
+  setup/library views hide them without dropping the saved selection. Late
+  connection checks cannot pull users back from a setup view.
+
+- Windows terminal selection includes WSL: local WSL2 profiles use their saved
+  distribution and remote profiles run SSH inside default WSL before Attach.
+  Native SSH Attach preserves the saved username; Windows Terminal receives
+  escaped command separators so the attach script stays in one terminal tab.
+  Saved password/key profiles can open SSH terminals with independent login,
+  without exporting Studio credentials.
+
 - Identities includes optional Tester, Senior Engineer and Reviewer templates
   plus an editable preferred-tools field. Tool preferences are frozen with the
   role instructions; Default stays selected unless another identity is chosen.

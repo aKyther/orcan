@@ -77,8 +77,17 @@ replace a container. Card state is the last check; each action checks again.
 The side panel shows UUIDs, profile, assigned identity and the checked project path.
 
 Native Attach uses the selected terminal setting: local Linux/macOS, WSL on
-Windows, or system SSH on the desktop platform. SSH Attach requires a saved
-system-SSH profile and an SSH agent/configuration usable by that terminal.
+Windows, or system SSH on the desktop platform. On Windows, the WSL terminal
+choice opens WSL directly. WSL2 profiles run Orcan in their saved distribution;
+SSH profiles first connect to the remote server and then attach there. Choosing
+WSL for an SSH profile runs SSH in the default WSL distribution, using its own
+SSH agent and configuration. The saved SSH username is passed to the terminal.
+Windows Terminal also launches the correct transport rather than running Orcan
+in a Windows shell. SSH Attach requires a saved
+SSH profile. Studio verifies it using its saved connection credentials, then
+the terminal authenticates independently with its own SSH agent/configuration
+or interactive login. Saved password/key profiles can also open a terminal;
+Studio does not export their credentials.
 Studio never passes a saved password or private key to another app. Workspace
 selection and UUID verification happen before attaching, including a second
 check in the launched shell. Sign into and use the agent manually. Closing the
@@ -453,6 +462,11 @@ Windows, macOS, and packaged Linux installations.
 Studio navigation follows Credentials & keys → Profiles → Identities →
 Provisioning → Servers → Enclaves. Overview stays first. Identity templates are
 optional; Servers manages named containers, and Enclaves groups existing containers.
+The server sidebar, active-container marker and container sections appear only
+in server/container views. Switching to Profiles, Credentials, Identities,
+Provisioning or Enclaves hides them and clears their visual selection while
+retaining the checked connection. A late connection result cannot switch the
+user back from a setup view.
 Actions share compact sizing and spacing; touch devices use larger targets.
 Identities and servers use compact cards in a responsive grid. Server cards start
 collapsed and expand to show capacity, containers, paths and

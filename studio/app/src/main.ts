@@ -205,6 +205,7 @@ let profiles: ConnectionProfile[] = [];
 let savedCredentials: Credential[] = [];
 let current: Connection | undefined;
 let latestProbe = 0;
+let enclaveOpenSequence = 0;
 let connected = false;
 const demoReport: ProbeReport = {
   sandbox: { version: "0.1.0-dev" },
@@ -455,10 +456,33 @@ function canViewContexts(): boolean {
   return connected || Boolean(currentReport);
 }
 
+function containerView(): boolean {
+  return currentView === "enclaves" || gatedViews.has(currentView) || (currentView === "overview" && Boolean(currentReport));
+}
+
+function syncContainerNavigation(): void {
+  const visible = containerView();
+  $("#nav-enclaves").hidden = !visible;
+  activeInstance.hidden = !visible;
+  activeGroup.hidden = !visible || !canViewContexts();
+  for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) {
+    const name = item.dataset.viewTarget ?? "";
+    item.hidden = !visible || (connected
+      ? needsManagedProjects.has(name) && !currentReport?.capabilities.managed_projects
+      : name !== "contexts" || !canViewContexts());
+  }
+  for (const button of document.querySelectorAll<HTMLButtonElement>("#nav-enclaves .nav-enclave")) {
+    const active = visible && connected && button.dataset.profileId === current?.profileId && button.dataset.instance === (current?.instance ?? "");
+    button.classList.toggle("active", active);
+    button.toggleAttribute("aria-current", active);
+  }
+}
+
 function showView(name: string): void {
   const target = views.find((view) => view.dataset.view === name);
   if (!target || (gatedViews.has(name) && !connected && !(name === "contexts" && canViewContexts()))) return;
   currentView = name;
+  if (!containerView()) enclaveOpenSequence++;
   if (name === "enclaves") checkAll();
   if (name === "identities") void identityLibrary.reload();
   if (name === "groups") void manualGroups?.refresh();
@@ -469,6 +493,7 @@ function showView(name: string): void {
     item.toggleAttribute("aria-current", active);
   }
   viewTitle.textContent = viewTitles[name] ?? name[0].toUpperCase() + name.slice(1);
+  syncContainerNavigation();
 }
 
 const healthPanel = document.querySelector<HTMLElement>(".health-panel")!;
@@ -478,10 +503,7 @@ function lockStudio(): void {
   if (!connected) return;
   connected = false;
   if (gatedViews.has(currentView)) showView("overview");
-  activeGroup.hidden = true;
-  for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) {
-    item.hidden = item.dataset.viewTarget !== "contexts" || !canViewContexts();
-  }
+  syncContainerNavigation();
   healthPanel.hidden = true;
   enclaveMap.hidden = true;
   snapshot.hidden = true;
@@ -491,10 +513,7 @@ function lockStudio(): void {
 
 function unlockStudio(report: ProbeReport): void {
   connected = true;
-  activeGroup.hidden = false;
-  for (const item of navigationItems.filter((item) => item.classList.contains("gated"))) {
-    item.hidden = needsManagedProjects.has(item.dataset.viewTarget ?? "") && !report.capabilities.managed_projects;
-  }
+  syncContainerNavigation();
   healthPanel.hidden = false;
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   healthTitle.textContent = report.runtime.docker.container.state === "running" ? "Ready" : "Attention needed";
@@ -626,7 +645,7 @@ const terminalLauncher = $<HTMLSelectElement>("#terminal-launcher");
 if (/Windows/i.test(navigator.userAgent)) terminalLauncher.value = "windows_terminal";
 else if (/Macintosh|Mac OS X/i.test(navigator.userAgent)) terminalLauncher.value = "mac_terminal";
 else terminalLauncher.value = "linux_terminal";
-const terminalOptions = /Windows/i.test(navigator.userAgent) ? ["windows_terminal", "power_shell", "command_prompt"] : /Macintosh|Mac OS X/i.test(navigator.userAgent) ? ["mac_terminal"] : ["linux_terminal"];
+const terminalOptions = /Windows/i.test(navigator.userAgent) ? ["wsl", "windows_terminal", "power_shell", "command_prompt"] : /Macintosh|Mac OS X/i.test(navigator.userAgent) ? ["mac_terminal"] : ["linux_terminal"];
 for (const option of Array.from(terminalLauncher.options)) if (!terminalOptions.includes(option.value)) option.remove();
 try {
   const saved = localStorage.getItem("orcan-terminal-launcher");
@@ -2138,8 +2157,7 @@ function activate(connection: Connection, report: ProbeReport): void {
 }
 
 /** Only a successful check in this session unlocks operations; cache is history. */
-let enclaveOpenSequence = 0;
-async function openEnclave(profile: ConnectionProfile): Promise<void> {
+async function openEnclave(profile: ConnectionProfile): Promise<boolean> {
   const sequence = ++enclaveOpenSequence;
   const connection = profileConnection(profile);
   const checked = enclaveStatus.get(runtimeKey(profile));
@@ -2147,7 +2165,7 @@ async function openEnclave(profile: ConnectionProfile): Promise<void> {
     activate(connection, checked.report);
     showView("overview");
     void checkEnclave(profile);
-    return;
+    return true;
   }
   result.textContent = `Connecting to ${profile.name}…`;
   showView("enclaves");
@@ -2155,12 +2173,13 @@ async function openEnclave(profile: ConnectionProfile): Promise<void> {
   if (sequence === enclaveOpenSequence && status.state === "online" && status.report) {
     activate(connection, status.report);
     showView("overview");
+    return true;
   }
+  return false;
 }
 
 async function openEnclaveSettings(profile: ConnectionProfile): Promise<void> {
-  await openEnclave(profile);
-  if (connected && current?.profileId === profile.id) {
+  if (await openEnclave(profile) && connected && current?.profileId === profile.id) {
     showView("settings");
   }
 }
@@ -2853,7 +2872,7 @@ function renderEnclaves(): void {
       replace.title = "After Down: archive instance configuration and workspace metadata, then create a replacement with a new UUID and identity.";
       item.children[1].append(replace);
       if (status.state === "online") {
-        const enter = actionButton("Manage context", async () => { await openEnclave(profile); if (current?.profileId === profile.id && connected) showView("contexts"); }, "secondary");
+        const enter = actionButton("Manage context", async () => { if (await openEnclave(profile) && current?.profileId === profile.id && connected) showView("contexts"); }, "secondary");
         enter.disabled = !ownsEnclave(report);
         item.children[1].append(enter);
       }
@@ -2883,7 +2902,9 @@ function renderEnclaveStatus(): void {
   navEnclaves.replaceChildren(...profiles.map((profile) => {
     const drafts = queuedChanges.filter((change) => change.enclave === enclaveChangeKey(profileConnection(profile))).length;
     const button = el("button", { type: "button", className: "nav-enclave", title: `${statusText(enclaveStatus.get(runtimeKey(profile)))}${drafts ? ` · ${drafts} drafts` : ""}` }, dot(statusTone(enclaveStatus.get(runtimeKey(profile)))), el("span", { textContent: profileConnection(profile).label }), ...(drafts ? [el("small", { className: "draft-count", textContent: String(drafts) })] : []));
-    button.classList.toggle("active", connected && current?.profileId === profile.id && current.instance === profileConnection(profile).instance);
+    button.dataset.profileId = profile.id;
+    button.dataset.instance = profileConnection(profile).instance ?? "";
+    button.classList.toggle("active", containerView() && connected && current?.profileId === profile.id && current.instance === profileConnection(profile).instance);
     button.addEventListener("click", () => void openEnclave(profile));
     return button;
   }));
@@ -2900,6 +2921,7 @@ function renderEnclaveStatus(): void {
   const online = profiles.filter((profile) => enclaveStatus.get(runtimeKey(profile))?.state === "online").length;
   const checking = profiles.some((profile) => enclaveStatus.get(runtimeKey(profile))?.state === "checking");
   instanceState.textContent = profiles.length ? `${online} of ${profiles.length} selected containers checked${checking ? " · checking…" : ""}` : "No servers yet";
+  syncContainerNavigation();
 }
 
 function failureHint(error: string): string {

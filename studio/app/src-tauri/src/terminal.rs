@@ -45,6 +45,65 @@ pub(super) fn attach_script(
     }
 }
 
+fn wsl_command(distribution: Option<&str>, argv: Vec<String>) -> Result<Vec<String>, String> {
+    let mut command = vec!["wsl.exe".into()];
+    if let Some(distribution) = distribution {
+        validate_wsl_distribution(distribution)?;
+        command.extend(["--distribution".into(), distribution.into()]);
+    }
+    command.push("--exec".into());
+    command.extend(argv);
+    Ok(command)
+}
+
+#[cfg(any(windows, test))]
+fn wsl_terminal_command(argv: Vec<String>) -> Result<Vec<String>, String> {
+    match argv.first().map(String::as_str) {
+        Some("wsl.exe") => Ok(argv),
+        Some("ssh") => wsl_command(None, argv),
+        _ => Err("WSL terminal requires a WSL2 or SSH profile".into()),
+    }
+}
+
+#[cfg(any(windows, test))]
+fn windows_terminal_args(argv: &[String]) -> Vec<String> {
+    // wt treats even quoted semicolons as action separators; escape for its parser.
+    ["-w", "new", "new-tab"]
+        .map(str::to_owned)
+        .into_iter()
+        .chain(argv.iter().map(|arg| arg.replace(';', "\\;")))
+        .collect()
+}
+
+fn ssh_command(
+    destination: String,
+    username: Option<&str>,
+    script: String,
+) -> Result<Vec<String>, String> {
+    if destination.is_empty()
+        || destination.starts_with('-')
+        || !destination
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "._-@[]:".contains(c))
+    {
+        return Err("Use a hostname, IP address or SSH alias for Attach".into());
+    }
+    let mut argv = vec!["ssh".into(), "-tt".into()];
+    if let Some(username) = username {
+        if username.is_empty()
+            || username.starts_with('-')
+            || !username
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "._-".contains(c))
+        {
+            return Err("Use a valid SSH username for Attach".into());
+        }
+        argv.extend(["-l".into(), username.into()]);
+    }
+    argv.extend(["--".into(), destination, script]);
+    Ok(argv)
+}
+
 pub(super) async fn open(
     enclave: EnclaveInput,
     workspace: String,
@@ -89,15 +148,10 @@ pub(super) async fn open(
             if !cfg!(windows) {
                 return Err("WSL terminal launch requires Windows".into());
             }
-            vec![
-                "wsl.exe".into(),
-                "--distribution".into(),
-                distribution.clone(),
-                "--exec".into(),
-                "bash".into(),
-                "-lc".into(),
-                script,
-            ]
+            wsl_command(
+                Some(distribution),
+                vec!["bash".into(), "-lc".into(), script],
+            )?
         }
         TargetInput::Ssh { .. } => {
             let resolved = state
@@ -110,22 +164,14 @@ pub(super) async fn open(
                     enclave.username.as_deref(),
                 )
                 .map_err(|error| error.to_string())?
-                .ok_or("Select a system-SSH profile")?;
-            if !matches!(resolved.1.ssh.authentication, SshAuthentication::Agent) {
-                return Err("Attach uses system SSH. Configure an SSH agent/profile; saved passwords and keys are not passed to another app.".into());
-            }
+                .ok_or("Select a saved SSH profile")?;
+            // Probe can use the vault; the interactive terminal authenticates independently.
+            // Pass only its destination and username, never passwords or private keys.
             let profile = resolved.0.ok_or("Select a saved SSH profile")?;
             let Target::Ssh { destination } = profile.target else {
                 return Err("Select an SSH profile".into());
             };
-            if destination.starts_with('-')
-                || !destination
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || "._-@[]:".contains(c))
-            {
-                return Err("Use a hostname, IP address or SSH alias for Attach".into());
-            }
-            vec!["ssh".into(), "-tt".into(), "--".into(), destination, script]
+            ssh_command(destination, resolved.1.ssh.username.as_deref(), script)?
         }
     };
     launch(argv, launcher)
@@ -134,9 +180,16 @@ pub(super) async fn open(
 fn launch(argv: Vec<String>, launcher: TerminalLauncher) -> Result<(), String> {
     #[cfg(windows)]
     let mut command = match launcher {
+        TerminalLauncher::Wsl => {
+            use std::os::windows::process::CommandExt;
+            let argv = wsl_terminal_command(argv)?;
+            let mut c = Command::new("wsl.exe");
+            c.creation_flags(0x0000_0010).args(&argv[1..]);
+            c
+        }
         TerminalLauncher::WindowsTerminal => {
             let mut c = Command::new("wt.exe");
-            c.args(["-w", "new"]).args(&argv);
+            c.args(windows_terminal_args(&argv));
             c
         }
         TerminalLauncher::PowerShell | TerminalLauncher::CommandPrompt => {
@@ -203,6 +256,66 @@ fn launch(argv: Vec<String>, launcher: TerminalLauncher) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn wsl_attach_and_remote_ssh_keep_transport_and_script_intact() {
+        let script = attach_script(&Some("tester".into()), "review", None, None).unwrap();
+        let local = wsl_command(
+            Some("Ubuntu-24.04"),
+            vec!["bash".into(), "-lc".into(), script.clone()],
+        )
+        .unwrap();
+        assert_eq!(
+            &local[..6],
+            &[
+                "wsl.exe",
+                "--distribution",
+                "Ubuntu-24.04",
+                "--exec",
+                "bash",
+                "-lc"
+            ]
+        );
+        assert_eq!(local[6], script);
+        assert_eq!(wsl_terminal_command(local.clone()).unwrap(), local);
+        let remote = ssh_command("server-alias".into(), Some("developer"), script.clone()).unwrap();
+        assert_eq!(
+            &remote[..6],
+            &["ssh", "-tt", "-l", "developer", "--", "server-alias"]
+        );
+        assert_eq!(remote[6], script);
+        let remote_wsl = wsl_terminal_command(remote.clone()).unwrap();
+        assert_eq!(&remote_wsl[..2], &["wsl.exe", "--exec"]);
+        assert_eq!(&remote_wsl[2..], remote);
+        assert!(wsl_terminal_command(vec!["bash".into()]).is_err());
+        assert!(ssh_command("-oProxyCommand=bad".into(), None, script.clone()).is_err());
+        assert!(ssh_command("server".into(), Some("bad user"), script).is_err());
+    }
+
+    #[test]
+    fn windows_terminal_does_not_split_the_attach_script_into_tabs() {
+        let script = attach_script(
+            &Some("tester".into()),
+            "review",
+            Some("host"),
+            Some("container"),
+        )
+        .unwrap();
+        assert!(script.contains(';'));
+        let argv = wsl_command(
+            Some("Ubuntu"),
+            vec!["bash".into(), "-lc".into(), script.clone()],
+        )
+        .unwrap();
+        let args = windows_terminal_args(&argv);
+        assert_eq!(&args[..3], &["-w", "new", "new-tab"]);
+        // Windows Terminal removes this escaping before launching wsl.exe.
+        assert_eq!(args.last().unwrap().replace("\\;", ";"), script);
+        assert_eq!(
+            args.last().unwrap().matches("\\;").count(),
+            script.matches(';').count()
+        );
+    }
+
     #[test]
     fn target_check_precedes_attach_and_both_commands_use_the_instance() {
         let script = attach_script(

@@ -64,6 +64,7 @@ struct EnclaveInput {
 #[derive(Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum TerminalLauncher {
+    Wsl,
     WindowsTerminal,
     PowerShell,
     CommandPrompt,
