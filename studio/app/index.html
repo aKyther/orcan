@@ -147,12 +147,21 @@
         </section>
 
         <section class="view" data-view="groups" hidden>
-          <div class="view-intro"><p class="eyebrow">MANUAL ENCLAVES</p><h2>Your containers, together.</h2><p>Arrange containers from your servers. Check a card, select its workspace and Attach to work with an agent.</p></div>
-          <section class="panel"><div class="group-toolbar"><label>Enclave<select id="group-select"></select></label><label>Name<input id="group-name" maxlength="120" placeholder="PR review team" /></label><button id="group-new" class="secondary" type="button">New</button><button id="group-save" type="button">Save enclave</button><button id="group-reload" class="secondary" type="button">Reload list</button><button id="group-open-data" class="secondary" type="button">Open data directory</button></div><p id="group-state" class="hint"></p>
-            <div class="group-toolbar"><label>Server<select id="group-profile"></select></label><button id="group-inventory" class="secondary" type="button">Check container list</button><label>Container<select id="group-instance"></select></label><button id="group-add" type="button">Register / add container</button></div>
-            <p class="hint">Registration saves target UUIDs on the host. Drag cards to arrange them. Lines are visual only; double-click a line to remove it. Opening or saving an enclave never starts its containers.</p>
+          <div class="view-intro"><p class="eyebrow">ENCLAVES</p><h2>Your containers, together.</h2><p>Open an enclave to arrange its containers and workspaces, or create a new one.</p></div>
+          <section id="group-browser" class="panel">
+            <div class="panel-heading"><h2>Saved enclaves</h2><div class="actions"><button id="group-new" type="button">New enclave</button><button id="group-refresh" class="secondary" type="button">Refresh</button><button id="group-open-data" class="secondary" type="button">Open data directory</button></div></div>
+            <div id="group-list"></div>
           </section>
-          <div class="group-layout"><div id="group-canvas" aria-label="Enclave container canvas"></div><aside id="group-details" class="panel" aria-label="Selected container details"></aside></div><output id="group-result" aria-live="polite"></output>
+          <div id="group-editor" hidden>
+            <section class="panel">
+              <div class="panel-heading"><h2 id="group-editor-title">New enclave</h2><button id="group-back" class="secondary" type="button">Back to enclaves</button></div>
+              <div class="group-toolbar"><label>Name<input id="group-name" maxlength="120" placeholder="PR review team" /></label><button id="group-save" type="button">Save enclave</button><button id="group-reload" class="secondary" type="button">Reload saved</button></div><p id="group-state" class="hint"></p>
+              <div class="group-toolbar"><label>Server<select id="group-profile"></select></label><button id="group-inventory" class="secondary" type="button">Check containers</button><label>Container<select id="group-instance"></select></label><button id="group-add" type="button">Add container</button></div>
+              <details class="hint"><summary>How membership works</summary><p>Adding a container registers its target UUIDs when needed. Drag cards to arrange them. Lines are visual only; double-click a line to remove it. Opening or saving an enclave never starts its containers.</p></details>
+            </section>
+            <div class="group-layout"><div id="group-canvas" aria-label="Enclave container canvas"></div><aside id="group-details" class="panel" aria-label="Selected container details"></aside></div>
+          </div>
+          <output id="group-result" aria-live="polite"></output>
         </section>
         <section class="view" data-view="identities" hidden>
           <div class="view-intro"><p class="eyebrow">IDENTITIES</p><h2>How your containers' agents work.</h2><p>Templates add instructions to Orcan base rules. Choose a version when creating a container; its identity then stays fixed.</p></div>

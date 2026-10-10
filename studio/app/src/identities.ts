@@ -58,11 +58,12 @@ export function identityPanel(invoke: Invoke, changed: () => void) {
     select.replaceChildren(new Option("Default — Orcan base rules", ""), ...choices.map((identity) => new Option(`${identity.name} · v${identity.version}`, `${identity.id}:${identity.version}`)));
     if ([...select.options].some((option) => option.value === previous)) select.value = previous;
     else if (previous) changed();
-    list.replaceChildren(...identities.map((identity) => el("article", { className: "panel" },
-      el("h3", { textContent: `${identity.name} · v${identity.version}` }),
-      el("p", { textContent: identity.description }),
-      el("details", {}, el("summary", { textContent: "View instructions" }), el("pre", { textContent: identity.instructions })),
-      actionButton("Edit template", () => edit(identity), "secondary"))));
+    list.replaceChildren(...identities.map((identity) => el("article", { className: "identity-card" },
+      el("header", { className: "identity-card-header" },
+        el("h3", { textContent: `${identity.name} · v${identity.version}`, title: identity.name }),
+        actionButton("Edit", () => edit(identity), "secondary")),
+      ...(identity.description ? [el("p", { className: "identity-card-description", textContent: identity.description, title: identity.description })] : []),
+      el("details", {}, el("summary", { textContent: "View instructions" }), el("pre", { textContent: identity.instructions })))));
     if (!identities.length) list.append(el("p", { className: "hint", textContent: "No custom identities. Containers can use Default." }));
   }
   async function reload() {

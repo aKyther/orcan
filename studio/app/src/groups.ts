@@ -1,4 +1,4 @@
-import { el } from "./dom";
+import { actionButton, el } from "./dom";
 import { confirmAction } from "./dialog";
 import { enclaveCanvas } from "./enclave-canvas";
 import { targetMatches, type Group, type GroupMember } from "./group-model";
@@ -8,7 +8,7 @@ type Profile = { id: string; name: string; target: Target };
 type Invoke = <T>(command: string, args?: unknown) => Promise<T>;
 export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection: (profileId: string, instance?: string) => unknown, launcher: () => string) {
   const field = <T extends HTMLElement>(id: string) => document.querySelector<T>(`#group-${id}`)!;
-  const name = field<HTMLInputElement>("name"), select = field<HTMLSelectElement>("select"), profile = field<HTMLSelectElement>("profile"), instance = field<HTMLSelectElement>("instance");
+  const name = field<HTMLInputElement>("name"), profile = field<HTMLSelectElement>("profile"), instance = field<HTMLSelectElement>("instance");
   const result = field<HTMLOutputElement>("result");
   let groups: Group[] = [], group: Group;
   let dirty = false, busy = false, inventoryGeneration = 0;
@@ -30,11 +30,32 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     canvas.setGroup(group, keepStates); inspected = undefined;
     field("details").textContent = "Select a container card to inspect its UUIDs and checked state.";
     field("state").textContent = group.revision ? `Saved · revision ${group.revision}` : "New enclave";
+    field("editor-title").textContent = group.revision ? group.name : "New enclave";
     renderList();
   }
   function renderList() {
-    select.replaceChildren(new Option("New / unsaved enclave", ""), ...groups.map((item) => new Option(item.name, item.id)));
-    select.value = group.revision ? group.id : "";
+    field("list").replaceChildren(...(groups.length ? groups.map((item) => {
+      const hosts = new Set(item.members.map((member) => member.host_id)).size;
+      return el("article", { className: "enclave-library-card" },
+        el("header", {}, el("h3", { textContent: item.name, title: item.name }), actionButton("Open", () => { void openEditor(item); }, "secondary")),
+        el("p", { textContent: `${item.members.length} container${item.members.length === 1 ? "" : "s"} · ${hosts} server${hosts === 1 ? "" : "s"}` }));
+    }) : [el("p", { className: "hint", textContent: "No enclaves yet. Use New enclave to group existing containers from your servers." })]));
+  }
+  async function openEditor(saved?: Group) {
+    if (busy || !await discard()) return;
+    field("browser").hidden = true;
+    field("editor").hidden = false;
+    result.textContent = "";
+    setGroup(saved ?? { id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
+    name.focus();
+  }
+  async function closeEditor() {
+    if (busy || !await discard()) return;
+    setGroup({ id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
+    field("editor").hidden = true;
+    field("browser").hidden = false;
+    result.textContent = "";
+    field("new").focus();
   }
   async function discard(): Promise<boolean> { return !dirty || await confirmAction("Discard unsaved enclave layout changes?", { title: "Unsaved enclave", confirmLabel: "Discard changes", danger: true }); }
   function endpoint(member: GroupMember) { return connection(member.profile_id, member.instance ?? undefined); }
@@ -93,8 +114,9 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     });
   }
   name.addEventListener("input", () => { group.name = name.value; markDirty(); });
-  field("new").addEventListener("click", async () => { if (!busy && await discard()) setGroup({ id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] }); });
-  select.addEventListener("change", async () => { const selected = groups.find((item) => item.id === select.value); if (selected && await discard()) setGroup(selected); else renderList(); });
+  field("new").addEventListener("click", () => { void openEditor(); });
+  field("back").addEventListener("click", () => { void closeEditor(); });
+  field("refresh").addEventListener("click", () => { if (!busy) void refresh(); });
   field("reload").addEventListener("click", async () => { if (!busy && await discard()) void refresh(true); });
   field("inventory").addEventListener("click", () => { void inventory(); });
   profile.addEventListener("change", () => { inventoryGeneration++; instance.replaceChildren(); });

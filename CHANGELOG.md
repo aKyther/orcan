@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio uses consistent compact action buttons and responsive identity/server
+  cards. Enclaves opens with a saved library; New and Open lead to a separate
+  canvas editor with a return action that protects unsaved changes.
+
 - Studio navigation follows setup order: Credentials, Profiles, Identities,
   Provisioning, Servers, then Enclaves. Server details start collapsed. New
   container and identity forms open on request and can be cancelled; identity

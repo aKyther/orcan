@@ -439,10 +439,14 @@ Windows, macOS, and packaged Linux installations.
 Studio navigation follows Credentials & keys → Profiles → Identities →
 Provisioning → Servers → Enclaves. Overview stays first. Identity templates are
 optional; Servers manages named containers, and Enclaves groups existing containers.
-Server rows start collapsed and expand to show capacity, containers, paths and
+Actions share compact sizing and spacing; touch devices use larger targets.
+Identities and servers use compact cards in a responsive grid. Server cards start
+collapsed and expand to show capacity, containers, paths and
 controls. New container opens a separate form with Cancel. Identities shows saved
-templates first; New identity and Edit template open a form that can be cancelled
-without saving. Template instructions are available under View instructions. Context editing is enabled only after a successful probe
+templates first; New identity and Edit open a form that can be cancelled
+without saving. Template instructions are available under View instructions. Enclaves shows saved
+cards first. New enclave and Open enter a separate canvas editor. Back to enclaves
+returns to the library and asks before discarding unsaved changes. Context editing is enabled only after a successful probe
 for the selected container. An existing configuration/container reserves that
 name, not the whole profile: choose a different name to create another instance.
 

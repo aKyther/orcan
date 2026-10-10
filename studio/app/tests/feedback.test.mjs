@@ -45,6 +45,52 @@ test("enclave references survive multiple memberships and reject replacement UUI
   assert.equal(attachAvailable({ state: "ready", report }), false);
 });
 
+test("enclave library opens an editor and protects discarded drafts", async () => {
+  setup();
+  const fields = new Map();
+  for (const name of ["name", "profile", "instance", "result", "canvas", "details", "state", "editor-title", "list", "browser", "editor", "new", "back", "refresh", "reload", "inventory", "add", "save", "open-data"]) {
+    const field = new Element();
+    field.value = "";
+    fields.set(`#group-${name}`, field);
+  }
+  document.querySelector = selector => fields.get(selector);
+  document.querySelectorAll = () => [];
+  globalThis.Option = class { constructor(text, value) { this.textContent = text; this.value = value; } };
+  globalThis.__discardEnclave = false;
+  fields.get("#group-editor").hidden = true;
+  const saved = { id: "saved", revision: 1, name: "Review team", members: [], edges: [] };
+  const commands = [];
+  const { groupPanel } = await load("groups", {
+    "./dialog": dataModule("export async function confirmAction() { return globalThis.__discardEnclave; }"),
+    "./enclave-canvas": dataModule("export function enclaveCanvas() { return { setGroup() {}, setBusy() {} }; }"),
+    "./group-model": dataModule("export function targetMatches() { return true; }"),
+  });
+  const panel = groupPanel(async command => { commands.push(command); return [saved]; }, () => [], () => ({}), () => "linux_terminal");
+  await panel.refresh();
+  assert.equal(fields.get("#group-editor").hidden, true);
+  fields.get("#group-new").dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(fields.get("#group-editor").hidden, false);
+  assert.equal(fields.get("#group-browser").hidden, true);
+  const name = fields.get("#group-name");
+  name.value = "Unsaved draft";
+  name.dispatchEvent(new Event("input"));
+  fields.get("#group-back").dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(fields.get("#group-editor").hidden, false);
+  assert.equal(name.value, "Unsaved draft");
+  globalThis.__discardEnclave = true;
+  fields.get("#group-back").dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(fields.get("#group-editor").hidden, true);
+  assert.equal(fields.get("#group-browser").hidden, false);
+  fields.get("#group-list").children[0].children[0].children[1].dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(fields.get("#group-editor").hidden, false);
+  assert.equal(name.value, "Review team");
+  assert.deepEqual(commands, ["list_groups"]);
+});
+
 test("identity revisions stay selected after edits and stale reloads are ignored", async () => {
   setup();
   const fields = new Map();
