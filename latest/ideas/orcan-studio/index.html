@@ -2233,8 +2233,17 @@ changed UUIDs require explicit recovery; the card cannot recreate or silently
 replace a container. Card state is the last check; each action checks again.
 The side panel shows UUIDs, profile, assigned identity and the checked project path.</p>
 <p>Native Attach uses the selected terminal setting: local Linux/macOS, WSL on
-Windows, or system SSH on the desktop platform. SSH Attach requires a saved
-system-SSH profile and an SSH agent/configuration usable by that terminal.
+Windows, or system SSH on the desktop platform. On Windows, the WSL terminal
+choice opens WSL directly. WSL2 profiles run Orcan in their saved distribution;
+SSH profiles first connect to the remote server and then attach there. Choosing
+WSL for an SSH profile runs SSH in the default WSL distribution, using its own
+SSH agent and configuration. The saved SSH username is passed to the terminal.
+Windows Terminal also launches the correct transport rather than running Orcan
+in a Windows shell. SSH Attach requires a saved
+SSH profile. Studio verifies it using its saved connection credentials, then
+the terminal authenticates independently with its own SSH agent/configuration
+or interactive login. Saved password/key profiles can also open a terminal;
+Studio does not export their credentials.
 Studio never passes a saved password or private key to another app. Workspace
 selection and UUID verification happen before attaching, including a second
 check in the launched shell. Sign into and use the agent manually. Closing the
@@ -2570,6 +2579,11 @@ Windows, macOS, and packaged Linux installations.
 Studio navigation follows Credentials &amp; keys → Profiles → Identities →
 Provisioning → Servers → Enclaves. Overview stays first. Identity templates are
 optional; Servers manages named containers, and Enclaves groups existing containers.
+The server sidebar, active-container marker and container sections appear only
+in server/container views. Switching to Profiles, Credentials, Identities,
+Provisioning or Enclaves hides them and clears their visual selection while
+retaining the checked connection. A late connection result cannot switch the
+user back from a setup view.
 Actions share compact sizing and spacing; touch devices use larger targets.
 Identities and servers use compact cards in a responsive grid. Server cards start
 collapsed and expand to show capacity, containers, paths and
@@ -2647,7 +2661,7 @@ Encrypted keys need unlocking on the destination. Containers started with
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 07:23:24 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 07:37:12 UTC">October 10, 2026</span>
   </span>
 
     
