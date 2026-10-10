@@ -6,6 +6,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -34,6 +35,7 @@ class BuildPromptTests(unittest.TestCase):
         self.assertNotIn("entire chat log", prompt)
 
 
+@pytest.mark.integration
 class ShellExecutorTests(unittest.TestCase):
     def test_runs_command_in_given_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -60,6 +62,7 @@ class DispatchOnceTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
 
+    @pytest.mark.integration
     def test_claims_executes_and_marks_done_on_success(self) -> None:
         agent_inbox.propose(
             self.root,
@@ -78,6 +81,7 @@ class DispatchOnceTests(unittest.TestCase):
         self.assertEqual(len(done), 1)
         self.assertIn("hi", done[0]["result"]["output"])
 
+    @pytest.mark.integration
     def test_failure_lands_in_failed_not_done(self) -> None:
         agent_inbox.propose(
             self.root,

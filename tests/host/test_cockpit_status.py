@@ -5,12 +5,16 @@ actions.py (see test_cockpit_panel.py's comment on why that's safe here)."""
 
 from __future__ import annotations
 
+import pytest
+
 import importlib.util
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 STATUS_PATH = ROOT / "cockpit" / "src" / "orcan_cockpit" / "status.py"

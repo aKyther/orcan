@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 import subprocess
 import sys
@@ -9,6 +11,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 SCAFFOLD = ROOT / "scripts" / "repository" / "config-scaffold.py"

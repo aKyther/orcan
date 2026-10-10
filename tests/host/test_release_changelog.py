@@ -18,11 +18,15 @@ so drift between release.sh and cli/lib/git.sh gets caught here.
 
 from __future__ import annotations
 
+import pytest
+
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 RELEASE_SH = ROOT / "scripts" / "repository" / "release.sh"

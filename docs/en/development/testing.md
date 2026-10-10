@@ -33,10 +33,12 @@ make test-integration
 make test-host TEST_ARGS="--durations=20"
 ```
 
-`test-fast` excludes modules importing subprocess, PTY, socket or pexpect.
-This conservative selection includes imports inside fixtures/functions.
-Mark a test with `@pytest.mark.integration` when its external boundary lives
-in an imported helper. These modes are developer shortcuts, not replacements
+`test-fast` excludes explicitly marked integration tests, classes and modules.
+Use `@pytest.mark.integration` or `pytestmark = pytest.mark.integration` for
+Git/CLI, PTY or network operations, including those in imported fixtures/helpers.
+Unmarked tests cannot launch subprocesses: an autouse fixture rejects `Popen`
+and asks for a mocked boundary or an integration marker. Imports alone no longer
+determine selection. These modes are developer shortcuts, not replacements
 for full CI. `TEST_ARGS` also accepts pytest paths, node IDs and `-k` filters;
 it applies to `test-host`, `test-fast`, `test-integration` and `test-coverage`.
 
@@ -65,6 +67,10 @@ Pure worktree contracts live in `test_git_worktrees.py`; real Git operations
 live in `test_git_worktrees_integration.py`. Use `git_repo_factory` for isolated
 empty repositories: its session template is copied, including `.git`, never
 shared or hardlinked. Keep scenario-specific remotes and commits in each test.
+Use `committed_git_repo_factory` when only an initial HEAD is needed. It copies
+a session template with one empty commit and local fixture identity; branches
+and configuration remain private. Real worktree lifecycle tests reuse this
+template rather than repeating init/config/commit for every checkout.
 UI tests share `tests/helpers.mjs`: TypeScript compilation is cached, but each
 test gets fresh module state. No browser emulator is needed for these contracts.
 

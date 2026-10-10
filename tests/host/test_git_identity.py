@@ -1,8 +1,12 @@
 """Container defaults must allow repository and conditional Git identities."""
 
+import pytest
+
 import os
 import subprocess
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 

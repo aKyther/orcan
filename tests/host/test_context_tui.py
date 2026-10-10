@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 import os
 import subprocess
@@ -12,6 +14,8 @@ from pathlib import Path
 from unittest import mock
 
 from ._scripts_loader import load_script
+
+pytestmark = pytest.mark.integration
 
 _mod = load_script("context_tui.py")
 

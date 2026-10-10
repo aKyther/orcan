@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import importlib.util
 import json
 import os
@@ -13,6 +15,8 @@ import time
 import unittest
 from pathlib import Path
 from unittest import mock
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 GLANCE_PATH = ROOT / "cockpit" / "src" / "orcan_cockpit" / "session_glance.py"

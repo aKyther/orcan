@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 import subprocess
 import sys
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -80,16 +84,13 @@ def test_directory_plan_allows_one_named_child_of_an_orcan_parent(
     assert report["plan"]["destination"] == str(root / "NEW")
 
 
-def test_worktree_plan_refuses_existing_destination(tmp_path: Path) -> None:
-    repo = tmp_path / "parent"
-    repo.mkdir()
-    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+def test_worktree_plan_refuses_existing_destination(
+    tmp_path: Path, git_repo_factory
+) -> None:
+    repo = git_repo_factory(tmp_path / "parent")
     root = tmp_path / "worktrees"
     destination = root / "api" / "parent--feature"
-    destination.mkdir(parents=True)
-    subprocess.run(
-        ["git", "-C", str(destination), "init", "-q"], check=True, capture_output=True
-    )
+    git_repo_factory(destination)
     subprocess.run(
         ["git", "-C", str(destination), "checkout", "-q", "-b", "feature"],
         check=True,
@@ -113,26 +114,10 @@ def test_worktree_plan_refuses_existing_destination(tmp_path: Path) -> None:
     assert "already exists" in report["plan"]["blockers"][0]
 
 
-def test_worktree_branches_lists_existing_local_branches(tmp_path: Path) -> None:
-    repo = tmp_path / "parent"
-    repo.mkdir()
-    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
-    subprocess.run(
-        [
-            "git",
-            "-C",
-            str(repo),
-            "-c",
-            "user.name=Test",
-            "-c",
-            "user.email=test@example.test",
-            "commit",
-            "--allow-empty",
-            "-qm",
-            "initial",
-        ],
-        check=True,
-    )
+def test_worktree_branches_lists_existing_local_branches(
+    tmp_path: Path, committed_git_repo_factory
+) -> None:
+    repo = committed_git_repo_factory(tmp_path / "parent")
     subprocess.run(["git", "-C", str(repo), "branch", "feature/existing"], check=True)
     report = studio_script(
         "studio-worktree.py",
@@ -163,10 +148,9 @@ def test_worktree_branches_lists_existing_local_branches(tmp_path: Path) -> None
 
 def test_worktree_plan_names_multiple_branches_of_one_repo_in_one_workspace(
     tmp_path: Path,
+    git_repo_factory,
 ) -> None:
-    repo = tmp_path / "api"
-    repo.mkdir()
-    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+    repo = git_repo_factory(tmp_path / "api")
     root = tmp_path / "worktrees"
 
     first = studio_script(

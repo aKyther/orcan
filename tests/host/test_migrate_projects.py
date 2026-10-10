@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 import sys
 import tempfile
@@ -10,6 +12,8 @@ import unittest
 from pathlib import Path
 
 from ._scripts_loader import load_script
+
+pytestmark = pytest.mark.integration
 
 migrate_projects = load_script("migrate_projects.py")
 

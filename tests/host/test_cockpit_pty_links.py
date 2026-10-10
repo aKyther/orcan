@@ -3,12 +3,16 @@
 
 from __future__ import annotations
 
+import pytest
+
 import importlib.util
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 from unittest import mock
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 LINKS_PATH = ROOT / "cockpit" / "src" / "orcan_cockpit" / "pty_links.py"

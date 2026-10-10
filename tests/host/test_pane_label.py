@@ -3,12 +3,16 @@
 
 from __future__ import annotations
 
+import pytest
+
 import os
 import shutil
 import subprocess
 import time
 import unittest
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "docker" / "rootfs" / "etc" / "tmux" / "scripts" / "pane-label.sh"

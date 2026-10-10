@@ -9,6 +9,8 @@ from pathlib import Path
 import pytest
 from ._scripts_loader import load_script
 
+pytestmark = pytest.mark.integration
+
 apply_config = load_script("apply-config.py")
 from orcan.identity import validate_identity
 from orcan.reconcile import apply_workspaces

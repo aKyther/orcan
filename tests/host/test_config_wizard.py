@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import pytest
 from pathlib import Path
 from unittest.mock import patch
 
@@ -45,6 +46,7 @@ class SuggestCwdProjectTests(unittest.TestCase):
             self.assertEqual(cw.suggest_cwd_project(None), cw.suggest_cwd_project({}))
 
 
+@pytest.mark.integration
 class AskNewWorkspaceCwdDefaultTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()

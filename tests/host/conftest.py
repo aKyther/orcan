@@ -1,8 +1,8 @@
-"""Conservative developer selection; the default/CI still runs every test."""
+"""Explicit integration boundaries; pure tests cannot launch external helpers."""
 
-import ast
 import shutil
 import subprocess
+import os
 
 import pytest
 
@@ -24,28 +24,47 @@ def git_repo_factory(git_template):
     return create
 
 
-def external_test_module(source):
-    external = {"subprocess", "pty", "socket", "pexpect"}
-    for node in ast.walk(ast.parse(source)):
-        if isinstance(node, ast.Import):
-            names = [alias.name for alias in node.names]
-        elif isinstance(node, ast.ImportFrom):
-            names = [node.module or ""]
-        else:
-            continue
-        if any(name.split(".")[0] in external for name in names):
-            return True
-    return False
+@pytest.fixture(scope="session")
+def committed_git_template(git_template, tmp_path_factory):
+    path = tmp_path_factory.mktemp("git-committed-template") / "repo"
+    shutil.copytree(git_template, path)
+    environment = {
+        **os.environ,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+    }
+    for key, value in (
+        ("user.name", "Test"),
+        ("user.email", "test@example.test"),
+        ("core.hooksPath", os.devnull),
+    ):
+        subprocess.run(
+            ["git", "-C", str(path), "config", key, value], check=True, env=environment
+        )
+    subprocess.run(
+        ["git", "-C", str(path), "commit", "--allow-empty", "-qm", "initial"],
+        check=True,
+        env=environment,
+    )
+    return path
 
 
-def pytest_collection_modifyitems(items):
-    # Classify whole modules, not individual assertions: a subprocess fixture
-    # must not accidentally become a fast test. Explicit markers cover helpers
-    # whose external boundary lives in another module.
-    modules = {}
-    for item in items:
-        path = item.path
-        if path not in modules:
-            modules[path] = external_test_module(path.read_text(encoding="utf-8"))
-        if modules[path]:
-            item.add_marker(pytest.mark.integration)
+@pytest.fixture
+def committed_git_repo_factory(committed_git_template):
+    def create(path):
+        shutil.copytree(committed_git_template, path)
+        return path
+
+    return create
+
+
+def reject_external_process(*args, **kwargs):
+    raise AssertionError(
+        "Pure tests cannot start subprocesses. Mock the boundary or mark this test integration."
+    )
+
+
+@pytest.fixture(autouse=True)
+def pure_process_boundary(request, monkeypatch):
+    if request.node.get_closest_marker("integration") is None:
+        monkeypatch.setattr(subprocess, "Popen", reject_external_process)

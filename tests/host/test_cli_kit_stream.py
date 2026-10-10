@@ -1,5 +1,7 @@
 """Exercise the actual Studio export scripts without WSL or SSH."""
 
+import pytest
+
 import io
 import json
 import os
@@ -8,6 +10,8 @@ import subprocess
 import tarfile
 import tempfile
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 

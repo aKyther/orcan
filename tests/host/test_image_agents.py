@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import pytest
+
 import subprocess
 import unittest
 from pathlib import Path
 
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 

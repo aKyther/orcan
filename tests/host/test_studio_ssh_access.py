@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.integration
+
 SCRIPT = Path(__file__).resolve().parents[2] / "studio/app/src-tauri/src/ssh_access.py"
 spec = importlib.util.spec_from_file_location("studio_ssh_access", SCRIPT)
 helper = importlib.util.module_from_spec(spec)

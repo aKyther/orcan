@@ -1,22 +1,15 @@
-"""Selection never imports a test module or mistakes prose for a boundary."""
+"""Explicit markers and an enforced process boundary keep fast tests honest."""
 
 import pytest
-
-from .conftest import external_test_module
-
-
-@pytest.mark.parametrize(
-    "source",
-    [
-        "import subprocess as process",
-        "from subprocess import run",
-        "def fixture():\n    import pty",
-        "from socket import socket",
-    ],
-)
-def test_external_boundaries_are_integration(source):
-    assert external_test_module(source)
+import subprocess
+import sys
 
 
-def test_pure_imports_and_documentation_remain_fast():
-    assert not external_test_module('import json\nmessage = "import subprocess"')
+def test_pure_test_cannot_launch_even_through_an_imported_helper():
+    with pytest.raises(AssertionError, match="mark this test integration"):
+        subprocess.run([sys.executable, "-c", "raise SystemExit(99)"], check=True)
+
+
+@pytest.mark.integration
+def test_explicit_integration_marker_allows_a_real_helper():
+    assert subprocess.run([sys.executable, "-c", "pass"], check=False).returncode == 0

@@ -5,14 +5,19 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 pytestmark = pytest.mark.integration
 
 
-class CreateIntegrationTests(unittest.TestCase):
+class CommittedRepoTests(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def repository_factory(self, committed_git_repo_factory):
+        self.repo_factory = committed_git_repo_factory
+
+
+class CreateIntegrationTests(CommittedRepoTests):
     def test_create_and_list_real_repo(self) -> None:
         import subprocess
 
@@ -20,31 +25,7 @@ class CreateIntegrationTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            repo = root / "app"
-            repo.mkdir()
-            subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
-            subprocess.run(
-                ["git", "config", "user.email", "t@example.com"],
-                cwd=repo,
-                check=True,
-                capture_output=True,
-            )
-            subprocess.run(
-                ["git", "config", "user.name", "t"],
-                cwd=repo,
-                check=True,
-                capture_output=True,
-            )
-            (repo / "README").write_text("x\n", encoding="utf-8")
-            subprocess.run(
-                ["git", "add", "README"], cwd=repo, check=True, capture_output=True
-            )
-            subprocess.run(
-                ["git", "commit", "-m", "init"],
-                cwd=repo,
-                check=True,
-                capture_output=True,
-            )
+            repo = self.repo_factory(root / "app")
             wt = create_worktree(repo, branch="feature-demo")
             self.assertTrue(wt.path.is_dir())
             trees = list_worktrees(repo)
@@ -77,7 +58,6 @@ class CreateIntegrationTests(unittest.TestCase):
 
     def test_managed_create_and_remove(self) -> None:
         import os
-        import subprocess
 
         import git_worktrees as gw
         from managed_workspace import create_managed_workspace, remove_managed_workspace
@@ -92,34 +72,7 @@ class CreateIntegrationTests(unittest.TestCase):
             os.environ["ORCAN_HOME"] = str(home)
 
             def init_repo(name: str) -> Path:
-                repo = root / name
-                repo.mkdir()
-                subprocess.run(
-                    ["git", "init"], cwd=repo, check=True, capture_output=True
-                )
-                subprocess.run(
-                    ["git", "config", "user.email", "t@example.com"],
-                    cwd=repo,
-                    check=True,
-                    capture_output=True,
-                )
-                subprocess.run(
-                    ["git", "config", "user.name", "t"],
-                    cwd=repo,
-                    check=True,
-                    capture_output=True,
-                )
-                (repo / "f").write_text("x\n", encoding="utf-8")
-                subprocess.run(
-                    ["git", "add", "f"], cwd=repo, check=True, capture_output=True
-                )
-                subprocess.run(
-                    ["git", "commit", "-m", "i"],
-                    cwd=repo,
-                    check=True,
-                    capture_output=True,
-                )
-                return repo
+                return self.repo_factory(root / name)
 
             api = init_repo("api")
             web = init_repo("web")
@@ -152,7 +105,6 @@ class CreateIntegrationTests(unittest.TestCase):
 
     def test_force_replace_removes_dropped_project_worktree(self) -> None:
         import os
-        import subprocess
 
         from managed_workspace import create_managed_workspace
 
@@ -167,34 +119,7 @@ class CreateIntegrationTests(unittest.TestCase):
             try:
 
                 def init_repo(name: str) -> Path:
-                    repo = root / name
-                    repo.mkdir()
-                    subprocess.run(
-                        ["git", "init"], cwd=repo, check=True, capture_output=True
-                    )
-                    subprocess.run(
-                        ["git", "config", "user.email", "t@example.com"],
-                        cwd=repo,
-                        check=True,
-                        capture_output=True,
-                    )
-                    subprocess.run(
-                        ["git", "config", "user.name", "t"],
-                        cwd=repo,
-                        check=True,
-                        capture_output=True,
-                    )
-                    (repo / "f").write_text("x\n", encoding="utf-8")
-                    subprocess.run(
-                        ["git", "add", "f"], cwd=repo, check=True, capture_output=True
-                    )
-                    subprocess.run(
-                        ["git", "commit", "-m", "i"],
-                        cwd=repo,
-                        check=True,
-                        capture_output=True,
-                    )
-                    return repo
+                    return self.repo_factory(root / name)
 
                 api = init_repo("api")
                 web = init_repo("web")
@@ -242,7 +167,6 @@ class CreateIntegrationTests(unittest.TestCase):
 
     def test_force_replace_switches_unmanaged_path_to_managed_worktree(self) -> None:
         import os
-        import subprocess
 
         from managed_workspace import create_managed_workspace
 
@@ -255,33 +179,7 @@ class CreateIntegrationTests(unittest.TestCase):
             os.environ["ORCAN_PROJECTS_ROOT"] = str(data / "sandbox")
             os.environ["ORCAN_HOME"] = str(home)
             try:
-                repo = root / "api"
-                repo.mkdir()
-                subprocess.run(
-                    ["git", "init"], cwd=repo, check=True, capture_output=True
-                )
-                subprocess.run(
-                    ["git", "config", "user.email", "t@example.com"],
-                    cwd=repo,
-                    check=True,
-                    capture_output=True,
-                )
-                subprocess.run(
-                    ["git", "config", "user.name", "t"],
-                    cwd=repo,
-                    check=True,
-                    capture_output=True,
-                )
-                (repo / "f").write_text("x\n", encoding="utf-8")
-                subprocess.run(
-                    ["git", "add", "f"], cwd=repo, check=True, capture_output=True
-                )
-                subprocess.run(
-                    ["git", "commit", "-m", "i"],
-                    cwd=repo,
-                    check=True,
-                    capture_output=True,
-                )
+                repo = self.repo_factory(root / "api")
 
                 cfg_path = home / "orcan.config.json"
                 cfg_path.write_text(
@@ -321,11 +219,10 @@ class CreateIntegrationTests(unittest.TestCase):
                 os.environ.pop("ORCAN_HOME", None)
 
 
-class PruneTests(unittest.TestCase):
+class PruneTests(CommittedRepoTests):
     def test_prune_reconciles_stale_orphan_and_config(self) -> None:
         import json
         import os
-        import subprocess
 
         import git_worktrees as gw
         from managed_workspace import create_managed_workspace
@@ -341,34 +238,7 @@ class PruneTests(unittest.TestCase):
             try:
 
                 def init_repo(name: str) -> Path:
-                    repo = root / name
-                    repo.mkdir()
-                    subprocess.run(
-                        ["git", "init"], cwd=repo, check=True, capture_output=True
-                    )
-                    subprocess.run(
-                        ["git", "config", "user.email", "t@example.com"],
-                        cwd=repo,
-                        check=True,
-                        capture_output=True,
-                    )
-                    subprocess.run(
-                        ["git", "config", "user.name", "t"],
-                        cwd=repo,
-                        check=True,
-                        capture_output=True,
-                    )
-                    (repo / "f").write_text("x\n", encoding="utf-8")
-                    subprocess.run(
-                        ["git", "add", "f"], cwd=repo, check=True, capture_output=True
-                    )
-                    subprocess.run(
-                        ["git", "commit", "-m", "i"],
-                        cwd=repo,
-                        check=True,
-                        capture_output=True,
-                    )
-                    return repo
+                    return self.repo_factory(root / name)
 
                 api = init_repo("api")
                 cfg_path = home / "orcan.config.json"

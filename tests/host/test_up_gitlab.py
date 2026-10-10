@@ -7,6 +7,8 @@ import pytest
 
 from tests.host.test_up_github import shell as shell  # noqa: PLC0414 — shared pytest fixture
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.parametrize("hostname", ["gitlab.com", "gitlab.company.test"])
 def test_gitlab_token_works_for_public_and_company_hosts(shell, tmp_path, hostname):

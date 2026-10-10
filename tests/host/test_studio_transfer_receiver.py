@@ -1,5 +1,7 @@
 """Exercise the embedded receiver with real partial files and subprocess stdin."""
 
+import pytest
+
 import hashlib
 import os
 import subprocess
@@ -8,6 +10,8 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 SCRIPT = (
     Path(__file__).resolve().parents[2]

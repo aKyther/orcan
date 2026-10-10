@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "repository" / "studio-enclave.py"

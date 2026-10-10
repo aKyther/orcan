@@ -1,3 +1,5 @@
+import pytest
+
 import json
 import os
 import subprocess
@@ -5,6 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 PREVIEW = ROOT / "scripts" / "dev" / "orcan-preview"

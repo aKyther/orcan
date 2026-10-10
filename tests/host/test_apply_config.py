@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import contextlib
 import io
 import json
@@ -13,6 +15,8 @@ import unittest
 from pathlib import Path
 
 from ._scripts_loader import load_script
+
+pytestmark = pytest.mark.integration
 
 apply_config = load_script("apply-config.py")
 

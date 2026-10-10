@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import hashlib
 import os
 import subprocess
@@ -10,6 +12,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 ENTRYPOINT = ROOT / "docker/rootfs/usr/local/bin/docker-entrypoint"

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Host tests explicitly mark external boundaries and reject subprocess launches
+  in unmarked tests. Worktree lifecycle tests reuse private committed Git copies;
+  the fast suite no longer accidentally runs helper-backed GitLab/executor tests.
+
 - Context endpoints share native argument builders. Terminal selection/history,
   Studio branch discovery and activity rendering have separate modules. Unknown
   branch lists are not presented as proof that a branch is new.
