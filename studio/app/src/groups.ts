@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { actionButton, el } from "./dom";
 import { confirmAction } from "./dialog";
 import { enclaveCanvas } from "./enclave-canvas";
@@ -75,14 +76,14 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     field("browser").hidden = true;
     field("editor").hidden = false;
     result.textContent = "";
-    setGroup(saved ?? { id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
+    setGroup(saved ?? { id: newId(), revision: 0, name: "", members: [], edges: [] });
     syncProfiles(false);
     void inventory();
     name.focus();
   }
   async function closeEditor() {
     if (busy || !await discard()) return;
-    setGroup({ id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
+    setGroup({ id: newId(), revision: 0, name: "", members: [], edges: [] });
     field("editor").hidden = true;
     clearInventory("Open an enclave to load available containers.");
     field("browser").hidden = false;
@@ -128,7 +129,7 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
         const saved = groups.find((item) => item.id === group.id);
         if (!saved) throw new Error("Saved enclave was removed. Create a new enclave explicitly; its containers are unchanged.");
         setGroup(saved);
-      } else if (reloadCurrent) setGroup({ id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
+      } else if (reloadCurrent) setGroup({ id: newId(), revision: 0, name: "", members: [], edges: [] });
       else renderList();
     });
   }
@@ -178,7 +179,7 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     result.textContent = "Enclave saved. Saving and visual lines execute no work.";
   }); });
   field("open-data").addEventListener("click", () => { void run(async () => { await invoke("open_studio_data"); }); });
-  setGroup({ id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
+  setGroup({ id: newId(), revision: 0, name: "", members: [], edges: [] });
   clearInventory("Open an enclave to load available containers.");
   syncProfiles();
   return { refresh, syncProfiles };

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio’s HTTP preview can initialize Enclaves, select servers and add containers
+  without the secure-context-only UUID API. Canvas edges and preview actions use
+  the same browser-compatible UUID generator.
+
 - Enclave editors show saved servers and load their existing containers on open
   and server selection. Loading, empty and failure states appear beside the picker;
   stale responses cannot replace another server’s container list.

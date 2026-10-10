@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
 import { loadJobs, persistJobs, type Job } from "./activity";
 import { draftConflicts, loadQueuedChanges, persistQueuedChanges, type QueuedChange } from "./context-drafts";
@@ -343,7 +344,7 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     const previous = args.id ? demoIdentities.get(args.id) : undefined;
     if (args.id && previous?.version !== args.expectedVersion) throw new Error("Identity changed; reload before editing");
     if (!args.name.trim() || !args.instructions.trim()) throw new Error("Name and instructions are required");
-    const identity = { id: args.id ?? crypto.randomUUID(), version: (previous?.version ?? 0) + 1, name: args.name.trim(), description: args.description, instructions: args.instructions };
+    const identity = { id: args.id ?? newId(), version: (previous?.version ?? 0) + 1, name: args.name.trim(), description: args.description, instructions: args.instructions };
     demoIdentities.set(identity.id, identity);
     demoIdentityVersions.set(`${identity.id}:${identity.version}`, identity);
     return identity as T;
@@ -368,8 +369,8 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     if (command === "register_target") {
       if (["missing", "unavailable"].includes(report.runtime.docker.container.state)) throw new Error("Create or start the existing container before registering it");
       const key = JSON.stringify(enclave!.target);
-      if (!demoHostIds.has(key)) demoHostIds.set(key, crypto.randomUUID());
-      report.target ??= { state: "ready", host_id: demoHostIds.get(key), container_id: crypto.randomUUID() };
+      if (!demoHostIds.has(key)) demoHostIds.set(key, newId());
+      report.target ??= { state: "ready", host_id: demoHostIds.get(key), container_id: newId() };
     } else {
       if (report.target?.state !== "ready" || report.target.host_id !== args.hostId || report.target.container_id !== args.containerId) throw new Error("Target identity mismatch. Refresh or register the replacement explicitly.");
       if (command === "group_start") {
@@ -404,8 +405,8 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
       report.context.configuration = { state: "present", source: "config", editable: true };
       report.context.identity = identity ? structuredClone(identity) : null;
       const hostKey = JSON.stringify(enclave!.target);
-      if (!demoHostIds.has(hostKey)) demoHostIds.set(hostKey, crypto.randomUUID());
-      report.target = { state: "ready", host_id: demoHostIds.get(hostKey), container_id: crypto.randomUUID() };
+      if (!demoHostIds.has(hostKey)) demoHostIds.set(hostKey, newId());
+      report.target = { state: "ready", host_id: demoHostIds.get(hostKey), container_id: newId() };
       report.runtime.docker.container.state = "running";
       report.runtime.launch = { recorded: true, git: args.withGit, docker: args.withDocker, ttyd: args.withTtyd, ttyd_auth: Boolean(args.ttydCredential) };
       return { ok: true } as T;
@@ -1663,11 +1664,6 @@ const SYSTEM_SSH = "__system__";
 const INLINE_SSH = "__inline__";
 let editingProfile: ConnectionProfile | undefined;
 let credentialKind: "password" | "private_key" = "private_key";
-
-/** randomUUID needs a secure context; the Tailscale UX preview is plain HTTP. */
-function newId(): string {
-  return crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 function showPane(name: string): void {
   const pane = document.querySelector<HTMLElement>(`[data-pane="${name}"]`);

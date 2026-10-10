@@ -455,6 +455,10 @@ register, create, start or add containers. Context editing is enabled only after
 for the selected container. An existing configuration/container reserves that
 name, not the whole profile: choose a different name to create another instance.
 
+The HTTP UX preview supports enclave server selection and container membership.
+Its UUID generator also works outside secure browser contexts; preview actions
+still use fixture data.
+
 Workspace membership is edited on the container map: dragging a project onto a
 workspace (or onto "New workspace") asks Orcan for a plan through
 `orcan studio settings`, shows it for confirmation, applies it on that container

@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { createApp, h, reactive, ref, shallowRef, type Component } from "vue";
 import { VueFlow, Handle, Position, type Node, type Edge, type NodeChange, type Connection } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
@@ -34,7 +35,7 @@ export function enclaveCanvas(root: HTMLElement, changed: () => void, action: (k
       },
       onConnect: (connection: Connection) => {
         if (busy.value || connection.source === connection.target) return;
-        group.edges.push({ id: crypto.randomUUID(), source: connection.source, target: connection.target });
+        group.edges.push({ id: newId(), source: connection.source, target: connection.target });
         sync(); changed();
       },
       onEdgeDoubleClick: ({ edge }: { edge: Edge }) => {

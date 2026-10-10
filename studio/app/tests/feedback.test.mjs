@@ -241,7 +241,7 @@ async function load(name, imports = {}) {
   const transpile = (source) => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const dom = dataModule(transpile(readFileSync(new URL("../src/dom.ts", import.meta.url), "utf8")));
   let source = transpile(readFileSync(new URL(`../src/${name}.ts`, import.meta.url), "utf8"));
-  for (const [path, module] of Object.entries({ "./dom": dom, ...imports })) source = source.replace(JSON.stringify(path), JSON.stringify(module));
+  for (const [path, module] of Object.entries({ "./dom": dom, "./id": dataModule(transpile(readFileSync(new URL("../src/id.ts", import.meta.url), "utf8"))), ...imports })) source = source.replace(JSON.stringify(path), JSON.stringify(module));
   return import(dataModule(`${source}\n// isolated test ${Math.random()}`));
 }
 
@@ -387,4 +387,19 @@ test("progress is scoped, counts remaining bytes, blocks re-entry, and disposes 
   assert.equal(control.disabled, false);
   assert.equal(status.hidden, true);
   assert.equal(listeners.length, 0);
+});
+
+
+test("UUIDs remain valid and unique in the HTTP preview without randomUUID", async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+  const webCrypto = globalThis.crypto;
+  Object.defineProperty(globalThis, "crypto", { configurable: true, value: { getRandomValues: webCrypto.getRandomValues.bind(webCrypto) } });
+  try {
+    const { newId } = await load("id");
+    const ids = Array.from({ length: 100 }, () => newId());
+    assert.equal(new Set(ids).size, ids.length);
+    for (const id of ids) assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  } finally {
+    Object.defineProperty(globalThis, "crypto", original);
+  }
 });

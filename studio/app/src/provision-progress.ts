@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { listen } from "@tauri-apps/api/event";
 import { el } from "./dom";
 import { demoMode } from "./transport";
@@ -33,7 +34,7 @@ export function isProvisionRunning(output: HTMLElement): boolean {
 /** Subscribe before invoking; dispose on success/error and scope concurrent jobs. */
 export async function withProvisionProgress<T>(output: HTMLElement, title: string, operation: (operationId: string) => Promise<T>): Promise<T> {
   if (isProvisionRunning(output)) throw new Error("A transfer is already running. Wait for its result.");
-  const operationId = crypto.randomUUID();
+  const operationId = newId();
   const started = Date.now();
   let phaseStarted = started;
   let update: ProgressEvent = { operationId, stage: "preparing", bytes: 0 };
