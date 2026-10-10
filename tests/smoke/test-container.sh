@@ -59,6 +59,8 @@ command -v tree >/dev/null
 command -v yq >/dev/null
 command -v curl >/dev/null
 command -v gh >/dev/null
+command -v glab >/dev/null
+glab --version >/dev/null
 command -v sg >/dev/null
 command -v ast-grep >/dev/null
 command -v ssh >/dev/null
@@ -76,6 +78,7 @@ command -v sqlite3 >/dev/null
 test -x /usr/local/bin/ttyd
 test -x /usr/local/bin/yq
 test -x /usr/local/bin/gh
+test -x /usr/local/bin/glab
 test -x /usr/local/bin/sg
 test -x /usr/local/bin/agent-launcher
 test -L /usr/local/bin/cursor-launcher

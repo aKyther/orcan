@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- The Docker image includes pinned GitLab CLI (`glab`) alongside GitHub CLI
+  (`gh`), with SHA-256-verified amd64/arm64 downloads and container smoke checks.
+
 - Runtime flags now use `--ssh`, `--docker-socket`, `--network`,
   `--web-terminal` and `--web-terminal-auth`; old `--with-*` names remain aliases.
   `--github [--github-hostname HOST]` supplies GitHub or Enterprise authentication

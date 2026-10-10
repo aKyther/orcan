@@ -8,6 +8,9 @@ Use this page for image tags, Compose overlays, and `$ORCAN_DATA` binds. For **w
 - Multi-stage tool fetch (Node, Go, Rust, uv)
 - tmux **3.6a** from `tmux/tmux-builds` (not the bookworm 3.3a package)
 - OpenSSH client and `sshpass` for explicitly password-authenticated SSH automation
+- GitHub CLI (`gh`) and GitLab CLI (`glab`) on PATH for amd64 and arm64.
+  Sign in inside the container with `gh auth login` or `glab auth login`;
+  credentials are not built into the image. GitLab Self-Managed is also supported.
 - Non-root user `developer`
 - sbt includes only the native client for the image's Linux architecture;
   tool documentation is retained.

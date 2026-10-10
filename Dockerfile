@@ -341,6 +341,27 @@ RUN set -eux; \
     sg --version; \
     ast-grep --version
 
+# GitLab CLI — pinned release and architecture-specific SHA-256 checksums.
+ARG GLAB_VERSION=1.122.0
+ARG GLAB_SHA256_AMD64=242326668011a110ea6dcbe865cfbf3ab763f9909851c90ef0da23ab1f2f3808
+ARG GLAB_SHA256_ARM64=78910c21b6b517c0936e413df96e59f942558a3a4e4109370a452761f7d0f253
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+        amd64) glab_sha256="${GLAB_SHA256_AMD64}" ;; \
+        arm64) glab_sha256="${GLAB_SHA256_ARM64}" ;; \
+        *) echo "unsupported architecture for glab: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    tmp="$(mktemp -d)"; \
+    curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${arch}.tar.gz" \
+        -o "${tmp}/glab.tar.gz"; \
+    printf '%s  %s\n' "${glab_sha256}" "${tmp}/glab.tar.gz" | sha256sum -c -; \
+    tar -xzf "${tmp}/glab.tar.gz" -C "${tmp}" bin/glab; \
+    install -m 0755 "${tmp}/bin/glab" /usr/local/bin/glab; \
+    rm -rf "${tmp}"; \
+    glab --version
+
 # ------------------------------------------------------------------------------
 # Starship + delta + lazygit (shell / git UX)
 # ------------------------------------------------------------------------------
