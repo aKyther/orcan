@@ -1,6 +1,33 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { load, dataModule } from "./helpers.mjs";
+import { load, dataModule, setup, Element, tick } from "./helpers.mjs";
+
+test("read-only probe cancellation is scoped and controls disappear on failure", async () => {
+  setup();
+  const { createCheckInvoker } = await load("check-controls");
+  const container = new Element();
+  const calls = [];
+  let reject;
+  const invoke = createCheckInvoker(async (command, args) => {
+    calls.push([command, args]);
+    if (command === "cancel_operation") return true;
+    if (command === "probe") return new Promise((_, fail) => { reject = fail; });
+    return "mutation";
+  }, container);
+  const input = { enclave: { target: { kind: "local" } } };
+  const pending = invoke("probe", input);
+  const rejected = assert.rejects(pending, /cancelled/);
+  assert.equal(container.children.length, 1);
+  container.children[0].dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(calls[1][1].operationId, calls[0][1].enclave.operationId);
+  assert.equal(input.enclave.operationId, undefined);
+  reject(new Error("cancelled"));
+  await rejected;
+  assert.equal(container.children.length, 0);
+  assert.equal(await invoke("worktree_apply", input), "mutation");
+  assert.equal(container.children.length, 0);
+});
 
 test("profile model builds transport-only profiles and rejects stale credentials", async () => {
   const { buildProfile, SYSTEM_SSH } = await load("profile-model");

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio bounds captured local/WSL/SSH commands and lets users cancel a running
+  read-only probe. Timeout/cancellation explicitly require a refreshed host state;
+  they do not claim to roll back remote changes.
+
 - Studio map selection preserves cards, indexes parent lookups and coalesces
   connection redraws, including collapsed groups. Browser smoke tests cover
   connection gating, responsive anchors and draft discard; demo contexts are editable.

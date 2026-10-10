@@ -827,7 +827,8 @@ pub(super) async fn remove_destination_image(
 fn image_removal_script(image: &str, expected_id: &str) -> String {
     format!(
         "set -Eeuo pipefail; image={}; expected={}; current=$(docker image inspect --format '{{{{.Id}}}}' \"$image\"); [[ \"$current\" == \"$expected\" ]] || {{ echo 'Image changed. Check the server again.' >&2; exit 1; }}; users=$(docker container ls -aq --filter \"ancestor=$current\"); if [[ -n \"$users\" ]]; then echo 'Remove the container first; this image is still used' >&2; exit 1; fi; docker image rm -- \"$image\"",
-        shell_quote(image), shell_quote(expected_id)
+        shell_quote(image),
+        shell_quote(expected_id)
     )
 }
 
@@ -848,7 +849,11 @@ mod tests {
             let mock = format!(
                 "docker() {{ if [[ \"$1 $2\" == 'image inspect' ]]; then echo {}; elif [[ \"$1 $2\" == 'container ls' ]]; then {}; else printf '%s' \"$4\" > {}; fi; }}; ",
                 shell_quote(id),
-                if docker_error { "return 1".to_string() } else { format!("printf '%s' {}", shell_quote(users)) },
+                if docker_error {
+                    "return 1".to_string()
+                } else {
+                    format!("printf '%s' {}", shell_quote(users))
+                },
                 shell_quote(&removed.to_string_lossy()),
             );
             let output = std::process::Command::new("bash")
@@ -954,6 +959,7 @@ mod tests {
 
     fn endpoint(target: TargetInput, id: &str) -> EnclaveInput {
         EnclaveInput {
+            operation_id: None,
             instance: None,
             target,
             profile_id: Some(id.into()),

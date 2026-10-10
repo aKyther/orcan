@@ -98,6 +98,15 @@ Probe inspection deduplicates canonical paths only within one request. Unknown
 Git status is not clean and cannot authorize an update. Configuration writes use
 unique temporary files and atomic replacement. Host writers serialize commits
 with a bounded parent-directory lock, preserving configuration symlinks.
+
+Studio captures local, WSL and system-SSH commands with a deadline and drains
+stdout/stderr concurrently. Read-only probes have a 90-second limit and a Cancel
+check button; other captured commands allow up to 15 minutes. Native SSH connection
+setup has a 45-second limit. Host clone operations allow 14 minutes, other Studio
+mutations five minutes. A timeout or cancellation does not roll back remote work:
+refresh the host before retrying. Streaming image transfers retain their separate
+progress/resume workflow. These limits are policy, not performance benchmarks.
+
 `load_config` snapshots automatically check their revision before saving; Studio
 supplies its explicit read snapshot. A stale save is rejected, not merged or
 silently overwritten. This is not a transaction with arbitrary

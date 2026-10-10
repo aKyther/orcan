@@ -258,6 +258,18 @@ pub(super) async fn native_ssh_connect(
     destination: &str,
     resolved: ResolvedSsh,
 ) -> Result<client::Handle<KnownHostsHandler>, String> {
+    tokio::time::timeout(
+        std::time::Duration::from_secs(45),
+        native_ssh_connect_inner(destination, resolved),
+    )
+    .await
+    .map_err(|_| "SSH connection timed out. Check the server, VPN and credentials.".to_owned())?
+}
+
+async fn native_ssh_connect_inner(
+    destination: &str,
+    resolved: ResolvedSsh,
+) -> Result<client::Handle<KnownHostsHandler>, String> {
     let ResolvedSsh { vault_owner, ssh } = resolved;
     let username = ssh
         .username
@@ -309,6 +321,43 @@ pub(super) async fn native_ssh_connect(
 
 /// Runs one command over native SSH (host key checked against known_hosts).
 pub(super) async fn native_ssh_exec(
+    destination: &str,
+    resolved: ResolvedSsh,
+    command: &str,
+) -> Result<String, String> {
+    native_ssh_exec_controlled(
+        destination,
+        resolved,
+        command,
+        orcan_studio_core::COMMAND_TIMEOUT,
+        Default::default(),
+    )
+    .await
+}
+
+pub(super) async fn native_ssh_exec_controlled(
+    destination: &str,
+    resolved: ResolvedSsh,
+    command: &str,
+    timeout: std::time::Duration,
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) -> Result<String, String> {
+    let cancelled_wait = async {
+        loop {
+            if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+    };
+    tokio::select! {
+        result = tokio::time::timeout(timeout, native_ssh_exec_inner(destination, resolved, command)) =>
+            result.map_err(|_| "SSH command timed out; remote changes are not rolled back. Refresh before retrying.".to_owned())?,
+        _ = cancelled_wait => Err("SSH command cancelled; remote changes are not rolled back. Refresh before retrying.".to_owned()),
+    }
+}
+
+async fn native_ssh_exec_inner(
     destination: &str,
     resolved: ResolvedSsh,
     command: &str,

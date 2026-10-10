@@ -5,9 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
+
+from studio_process import IMPORT_TIMEOUT, run_command
 
 
 def suggested_name(source: str) -> str:
@@ -69,11 +70,9 @@ def main() -> None:
         )
         raise SystemExit(2)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
+    result = run_command(
         ["git", "clone", "--", args.source, str(destination)],
-        capture_output=True,
-        text=True,
-        check=False,
+        timeout=IMPORT_TIMEOUT,
     )
     if result.returncode:
         print(

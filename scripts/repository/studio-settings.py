@@ -170,13 +170,10 @@ def main() -> None:
             print(json.dumps({"ok": True, "result": plan}, separators=(",", ":")))
             return
 
-        import subprocess
+        from studio_process import run_command
 
-        result = subprocess.run(
+        result = run_command(
             ["orcan", "context", "add", str(project), "--workspace", args.workspace],
-            capture_output=True,
-            text=True,
-            check=False,
         )
         if result.returncode:
             print(

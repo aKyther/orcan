@@ -1,4 +1,5 @@
 import { cleanupPanel } from "./cleanup";
+import { createCheckInvoker } from "./check-controls";
 import { createMapConnections } from "./map-connections";
 import { buildProfile, CHOOSE_SSH, SYSTEM_SSH, INLINE_SSH } from "./profile-model";
 import { newId } from "./id";
@@ -215,7 +216,9 @@ let manualGroups: ReturnType<typeof groupPanel> | undefined;
 let serverCleanup: ReturnType<typeof cleanupPanel> | undefined;
 
 const ensureSshHostTrust = createSshTrust(invokeTauri, confirmAction);
-const trustedInvoke = createTrustedInvoker(invokeTauri, () => profiles, ensureSshHostTrust);
+const checkControls = el("span", { className: "command-controls" });
+result.after(checkControls);
+const trustedInvoke = createTrustedInvoker(createCheckInvoker(invokeTauri, checkControls), () => profiles, ensureSshHostTrust);
 
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) return trustedInvoke<T>(command, _args);

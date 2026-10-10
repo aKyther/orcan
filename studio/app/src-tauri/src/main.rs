@@ -2,8 +2,8 @@
 
 use orcan_studio_core::{
     MembershipAction, ProbeReport, ProfileStore, ProjectMode, ResolvedSsh, RuntimeAction,
-    SshAuthentication, SystemRunner, Target, membership_args, parse_probe_report,
-    remote_orcan_command, runtime_args, sync_args,
+    SshAuthentication, Target, membership_args, parse_probe_report, remote_orcan_command,
+    runtime_args, sync_args,
 };
 use serde::{Deserialize, Serialize};
 use std::io;
@@ -13,6 +13,7 @@ use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
 mod cleanup;
+mod commands;
 mod profiles;
 mod ssh;
 #[cfg(test)]
@@ -56,6 +57,7 @@ impl From<TargetInput> for Target {
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct EnclaveInput {
+    operation_id: Option<String>,
     instance: Option<String>,
     target: TargetInput,
     profile_id: Option<String>,
@@ -355,6 +357,7 @@ fn decode_wsl_output(bytes: &[u8]) -> String {
 
 fn provision_destination(input: &WslCliProvision) -> EnclaveInput {
     EnclaveInput {
+        operation_id: None,
         instance: None,
         target: TargetInput::Ssh {
             destination: input.destination.clone(),
@@ -366,9 +369,16 @@ fn provision_destination(input: &WslCliProvision) -> EnclaveInput {
 }
 
 fn command_output(mut command: Command, label: &str) -> Result<String, String> {
-    let output = command
-        .output()
-        .map_err(|error| format!("could not start {label}: {error}"))?;
+    let timeout = if ["check", "test", "lookup", "inventory"]
+        .iter()
+        .any(|word| label.contains(word))
+    {
+        orcan_studio_core::CHECK_TIMEOUT
+    } else {
+        orcan_studio_core::COMMAND_TIMEOUT
+    };
+    let output = orcan_studio_core::capture_command(&mut command, timeout, &Default::default())
+        .map_err(|error| format!("{label}: {error}"))?;
     if output.status.success() {
         return Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned());
     }
@@ -416,8 +426,8 @@ fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> 
     if !valid_image_reference(&input.image) {
         return Err("invalid Docker image reference".to_owned());
     }
-    let output = background_command("wsl.exe")
-        .args([
+    let output = orcan_studio_core::capture_command(
+        background_command("wsl.exe").args([
             "--distribution",
             &input.distribution,
             "--exec",
@@ -427,9 +437,11 @@ fn wsl_image_inventory(input: &WslImageInput) -> Result<ImageInventory, String> 
             "--format",
             "{{.Id}}\t{{.Size}}\t{{.Architecture}}",
             &input.image,
-        ])
-        .output()
-        .map_err(|error| format!("could not start WSL Docker: {error}"))?;
+        ]),
+        orcan_studio_core::CHECK_TIMEOUT,
+        &Default::default(),
+    )
+    .map_err(|error| format!("could not start WSL Docker: {error}"))?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
     }
@@ -564,6 +576,7 @@ async fn transfer_wsl_image(
     state: tauri::State<'_, ProfileState>,
 ) -> Result<ImageInventory, String> {
     let destination = EnclaveInput {
+        operation_id: None,
         instance: None,
         target: TargetInput::Ssh {
             destination: input.destination.clone(),
@@ -1062,6 +1075,14 @@ async fn run_on_enclave(
     mut args: Vec<String>,
     state: tauri::State<'_, ProfileState>,
 ) -> Result<String, String> {
+    let control = commands::OperationControl::register(enclave.operation_id.clone())?;
+    let timeout = if args.first().is_some_and(|arg| arg == "studio")
+        && args.get(1).is_some_and(|arg| arg == "probe")
+    {
+        orcan_studio_core::CHECK_TIMEOUT
+    } else {
+        orcan_studio_core::COMMAND_TIMEOUT
+    };
     if let Some(instance) = &enclave.instance {
         enclave::validate_instance(instance)?;
         args.splice(0..0, ["--instance".to_owned(), instance.clone()]);
@@ -1070,13 +1091,28 @@ async fn run_on_enclave(
     if let (Some(resolved), Target::Ssh { destination }) =
         (native_ssh(&enclave, &target, &state)?, &target)
     {
-        return native_ssh_exec(destination, resolved, &remote_orcan_command(&args)).await;
+        return ssh::native_ssh_exec_controlled(
+            destination,
+            resolved,
+            &remote_orcan_command(&args),
+            timeout,
+            control.cancelled.clone(),
+        )
+        .await;
     }
-    tauri::async_runtime::spawn_blocking(move || target.run_orcan(&SystemRunner, &args))
-        .await
-        .map_err(|error| format!("Orcan task stopped: {error}"))?
-        .map(|output| output.stdout)
-        .map_err(|error| error.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        target.run_orcan(
+            &orcan_studio_core::ControlledRunner {
+                timeout,
+                cancelled: control.cancelled.clone(),
+            },
+            &args,
+        )
+    })
+    .await
+    .map_err(|error| format!("Orcan task stopped: {error}"))?
+    .map(|output| output.stdout)
+    .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -1204,10 +1240,12 @@ async fn check_docker(
 #[tauri::command]
 async fn list_wsl_distributions() -> Result<Vec<String>, String> {
     tauri::async_runtime::spawn_blocking(|| {
-        let output = background_command("wsl.exe")
-            .args(["--list", "--quiet"])
-            .output()
-            .map_err(|error| format!("could not start wsl.exe: {error}"))?;
+        let output = orcan_studio_core::capture_command(
+            background_command("wsl.exe").args(["--list", "--quiet"]),
+            orcan_studio_core::CHECK_TIMEOUT,
+            &Default::default(),
+        )
+        .map_err(|error| format!("could not start wsl.exe: {error}"))?;
         if !output.status.success() {
             return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
         }
@@ -1804,6 +1842,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::cancel_operation,
             identities::list_identities,
             identities::save_identity,
             identities::open_studio_data,

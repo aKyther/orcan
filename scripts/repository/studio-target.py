@@ -177,6 +177,7 @@ def _retire(
         raise ValueError("Replacement supports named instances only")
     result = subprocess.run(
         ["docker", "inspect", "--format", "{{.Id}}", container],
+        timeout=15,
         capture_output=True,
         text=True,
         check=False,
@@ -186,7 +187,7 @@ def _retire(
             "Remove the container with Down first; replacement never stops sessions automatically"
         )
     # Do not interpret a daemon/permission failure as an absent container.
-    subprocess.run(["docker", "info"], capture_output=True, check=True)
+    subprocess.run(["docker", "info"], capture_output=True, check=True, timeout=15)
     inventory = subprocess.run(
         [
             "docker",
@@ -198,6 +199,7 @@ def _retire(
             "{{.ID}}",
         ],
         capture_output=True,
+        timeout=15,
         text=True,
         check=True,
     )
@@ -289,7 +291,12 @@ def main() -> None:
                 args.mode == "replace-apply",
             )
         print(json.dumps({"ok": True, "result": result}))
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (
+        OSError,
+        ValueError,
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+    ) as error:
         raise SystemExit(str(error)) from error
 
 

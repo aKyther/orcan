@@ -10,6 +10,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+mod process;
+pub use process::{CHECK_TIMEOUT, COMMAND_TIMEOUT, ControlledRunner, capture_command};
+
 pub const PROTOCOL_NAME: &str = "orcan-studio";
 pub const PROTOCOL_VERSION: u32 = 1;
 const WSL_ORCAN_LAUNCHER: &str = "export PATH=\"$HOME/.local/bin:$PATH\"; exec orcan \"$@\"";
@@ -430,23 +433,18 @@ fn system_command(program: &str) -> Command {
 
 impl ProcessRunner for SystemRunner {
     fn run(&self, request: &ProcessRequest) -> Result<ProcessOutput, StudioError> {
-        let output = system_command(&request.program)
-            .args(&request.arguments)
-            .output()
-            .map_err(|error| StudioError::Launch {
-                command: request.display(),
-                reason: error.to_string(),
-            })?;
-        Ok(ProcessOutput {
-            success: output.status.success(),
-            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
-            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
-        })
+        ControlledRunner {
+            timeout: COMMAND_TIMEOUT,
+            cancelled: Default::default(),
+        }
+        .run(request)
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StudioError {
+    Cancelled,
+    TimedOut { command: String, seconds: u64 },
     InvalidTarget(String),
     Launch { command: String, reason: String },
     CommandFailed { command: String, stderr: String },
@@ -462,6 +460,14 @@ pub enum StudioError {
 impl fmt::Display for StudioError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Cancelled => write!(
+                formatter,
+                "operation cancelled; refresh the host before retrying"
+            ),
+            Self::TimedOut { command, seconds } => write!(
+                formatter,
+                "{command} exceeded {seconds}s; refresh the host before retrying; changes are not rolled back"
+            ),
             Self::InvalidTarget(reason) => write!(formatter, "invalid target: {reason}"),
             Self::Launch { command, reason } => {
                 write!(formatter, "cannot start {command}: {reason}")
