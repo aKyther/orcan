@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Preferred tools uses the shared dark form styling and focus indicator.
+
 - Provisioning lists installed CLI and Orcan images for explicit removal without
   a transfer source. CLI-only uninstall preserves containers, images, data and
   configured projects, including projects inside the managed installation. Image
