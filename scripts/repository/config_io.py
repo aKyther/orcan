@@ -8,10 +8,48 @@ import os
 import stat
 import sys
 import tempfile
+import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, NoReturn
 
 JSON_NAME = "orcan.config.json"
+
+
+class ConfigSnapshot(dict):
+    """JSON data plus an out-of-band revision; never written into user config."""
+
+    def __init__(self, data: dict, path: Path, revision: bytes):
+        super().__init__(data)
+        self.path = path.resolve()
+        self.revision = revision
+
+
+@contextmanager
+def config_write_lock(path: Path):
+    """Serialize cooperating host writers, including aliases, without lock debris.
+
+    Host CLI runs on Linux/macOS (including WSL); Studio on Windows delegates
+    to one of these hosts. Lock the parent directory, not the replaced inode.
+    """
+    import fcntl
+
+    descriptor = os.open(path.parent, os.O_RDONLY)
+    try:
+        deadline = time.monotonic() + 5
+        while True:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        "configuration is busy; retry after the current save"
+                    )
+                time.sleep(0.01)
+        yield
+    finally:
+        os.close(descriptor)
 
 
 def die(msg: str) -> NoReturn:
@@ -45,14 +83,15 @@ def load_config(path: Path) -> dict[str, Any]:
     if not is_json_path(path):
         die(f"unsupported config extension (use .json): {path}")
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        revision = path.read_bytes()
+        data = json.loads(revision)
     except json.JSONDecodeError as exc:
         die(f"invalid JSON in {path}: {exc}")
     if data is None:
         data = {}
     if not isinstance(data, dict):
         die(f"config root must be an object: {path}")
-    return data
+    return ConfigSnapshot(data, path, revision)
 
 
 def dump_config(
@@ -64,6 +103,13 @@ def dump_config(
     # updates reaching the user's actual configuration.
     path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if expected is None and isinstance(data, ConfigSnapshot) and data.path == path:
+        expected = data.revision
+    with config_write_lock(path):
+        _dump_locked(path, data, expected)
+
+
+def _dump_locked(path: Path, data: dict[str, Any], expected: bytes | None) -> None:
     pending = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -79,9 +125,12 @@ def dump_config(
             stream.write(json.dumps(data, indent=2) + "\n")
             stream.flush()
             os.fsync(stream.fileno())
-        if expected is not None and path.read_bytes() != expected:
+        actual = path.read_bytes() if path.exists() else b""
+        if expected is not None and actual != expected:
             raise ValueError("configuration changed; reload before applying")
         os.replace(pending, path)
+        if isinstance(data, ConfigSnapshot):
+            data.revision = path.read_bytes()
     finally:
         if pending is not None:
             pending.unlink(missing_ok=True)

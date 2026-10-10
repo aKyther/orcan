@@ -17,6 +17,21 @@ import config_io  # noqa: E402
 
 
 class ConfigIoTests(unittest.TestCase):
+    def test_loaded_snapshots_reject_lost_updates_and_can_save_again(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            path.write_text("{}\n")
+            first = config_io.load_config(path)
+            stale = config_io.load_config(path)
+            first["one"] = True
+            config_io.dump_config(path, first)
+            first["two"] = True
+            config_io.dump_config(path, first)
+            stale["lost"] = True
+            with self.assertRaisesRegex(ValueError, "configuration changed"):
+                config_io.dump_config(path, stale)
+            self.assertEqual(config_io.load_config(path), {"one": True, "two": True})
+
     def test_atomic_write_preserves_configuration_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "target.json"
