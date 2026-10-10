@@ -72,14 +72,11 @@ jobs:
       - name: Validate repository
         run: make validate
 
-      - name: Host tests
-        run: make test-host
-
       - name: Python format
         run: make format-check
 
-      - name: Python coverage
-        run: make test-coverage
+      - name: Full host tests with Python coverage (one run)
+        run: ORCAN_TEST_MODE=all make test-coverage
 
       - name: Check documentation
         run: make docs-check

@@ -39,8 +39,13 @@ def run(args: list[str], cwd: Path, check: bool = True) -> subprocess.CompletedP
 class ReleaseFixture:
     """A minimal repo skeleton release.sh can operate on."""
 
-    def __init__(self, tmp: Path) -> None:
+    def __init__(self, tmp: Path, template: ReleaseFixture | None = None) -> None:
         self.root = tmp
+        if template is not None:
+            # Copy both repo and sibling bare origin: every scenario can push,
+            # change tags or retract without sharing mutable Git state.
+            shutil.copytree(template.root.parent, tmp.parent, dirs_exist_ok=True)
+            return
         (self.root / "scripts" / "repository").mkdir(parents=True)
         (self.root / "cockpit").mkdir()
         (self.root / "docs" / "en").mkdir(parents=True)
@@ -136,13 +141,26 @@ class ReleaseFixture:
         return run(["git", "status", "--porcelain"], cwd=self.root).stdout == ""
 
 
-class CheckpointTests(unittest.TestCase):
+class ReleaseTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        directory = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(directory.cleanup)
+        cls.template = ReleaseFixture(Path(directory.name) / "repo")
+
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
-        self.fx = ReleaseFixture(Path(self._tmp.name) / "repo")
+        self.addCleanup(self._tmp.cleanup)
+        self.fx = ReleaseFixture(Path(self._tmp.name) / "repo", self.template)
 
-    def tearDown(self) -> None:
-        self._tmp.cleanup()
+
+class CheckpointTests(ReleaseTestCase):
+    def test_fixture_changes_do_not_modify_the_template(self) -> None:
+        before = self.template.local_head()
+        self.fx.add_unreleased("Fixed", "isolated change")
+        self.fx.sh("checkpoint", "patch")
+        self.assertEqual(self.template.local_head(), before)
+        self.assertTrue(self.template.is_clean())
 
     def test_checkpoint_needs_content(self) -> None:
         proc = self.fx.sh("checkpoint", "patch", check=False)
@@ -181,14 +199,7 @@ class CheckpointTests(unittest.TestCase):
         self.assertIn("nothing to checkpoint", proc.stderr)
 
 
-class ReleaseTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self._tmp = tempfile.TemporaryDirectory()
-        self.fx = ReleaseFixture(Path(self._tmp.name) / "repo")
-
-    def tearDown(self) -> None:
-        self._tmp.cleanup()
-
+class ReleaseTests(ReleaseTestCase):
     def test_release_auto_checkpoints_and_pushes(self) -> None:
         self.fx.add_unreleased("Fixed", "shipped fix")
         proc = self.fx.sh("release", "26.9")
@@ -281,17 +292,10 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("v3.0.6", self.fx.remote_tags())
 
 
-class UpdateHintSafetyTests(unittest.TestCase):
+class UpdateHintSafetyTests(ReleaseTestCase):
     """Exercises the real cli/lib/git.sh functions, not a reimplementation
     — proves checkpoint/CalVer tags can never surface as an orcan
     update/downgrade target, only a real release's bare vX.Y.Z can."""
-
-    def setUp(self) -> None:
-        self._tmp = tempfile.TemporaryDirectory()
-        self.fx = ReleaseFixture(Path(self._tmp.name) / "repo")
-
-    def tearDown(self) -> None:
-        self._tmp.cleanup()
 
     def test_checkpoints_and_calver_tag_invisible_to_update_targeting(self) -> None:
         self.fx.add_unreleased("Fixed", "fix one")

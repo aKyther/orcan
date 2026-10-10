@@ -14,7 +14,10 @@ This repository ships a Makefile only for **maintainers** working in a git check
 | Target | Role |
 | --- | --- |
 | `make validate` | Layout + script syntax |
-| `make test-host` | Pytest host tests |
+| `make test-host` | Full pytest host suite; optional `TEST_ARGS` selects paths or pytest filters |
+| `make test-fast` | In-process host tests for the development loop |
+| `make test-integration` | Subprocess/external-boundary host tests |
+| `make test-coverage` | Full host suite with coverage in one run; supports `TEST_ARGS` |
 | `make format` / `make format-check` | Apply / verify Ruff formatting for Python code |
 | `make studio-test` | Test the Orcan Studio Rust transport core |
 | `make test` / `make test-path-parity` | Container tests (needs Docker) |

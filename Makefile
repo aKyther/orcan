@@ -13,8 +13,10 @@ HOST_PYTHON := ./scripts/repository/python.sh
 ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null | tr -d '[:space:]' || echo dev)
 
 .DEFAULT_GOAL := help
+TEST_ARGS ?=
 
 .PHONY: help deprecate-user \
+	test-fast test-integration \
 	validate test test-host test-coverage test-path-parity format format-check studio-test studio-preview-start studio-preview-stop studio-preview-status studio-preview-logs studio-preview-url studio-preview-snapshot studio-preview-snapshot-clear dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
@@ -44,11 +46,16 @@ validate: ## Validate repository layout and script syntax
 	@./scripts/repository/validate.sh
 
 test-host: ## Host unit tests via uv (automatic test dependencies; no Docker image)
-	@./tests/host/run.sh
+	@./tests/host/run.sh $(TEST_ARGS)
 
-test-coverage: ## Python host/cockpit coverage report (requires coverage)
-	@PYTHONPATH="$(PWD)/scripts/repository:$(PWD)/cockpit/src" python3 -m coverage run --branch --source=scripts/repository,cockpit/src -m pytest tests/host
-	@python3 -m coverage report --show-missing --skip-empty
+test-fast: ## Fast in-process host tests for development
+	@ORCAN_TEST_MODE=fast ./tests/host/run.sh $(TEST_ARGS)
+
+test-integration: ## Host tests that exercise subprocesses or external boundaries
+	@ORCAN_TEST_MODE=integration ./tests/host/run.sh $(TEST_ARGS)
+
+test-coverage: ## Full host tests and cockpit coverage via uv
+	@./tests/host/run.sh --coverage $(TEST_ARGS)
 
 format: ## Format host and cockpit Python with Ruff
 	@python3 -m ruff format scripts/repository cockpit/src tests/host

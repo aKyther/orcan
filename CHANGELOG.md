@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Development checks add fast/integration test selections and focused pytest
+  arguments. CI runs the full host suite once with coverage. Validation scans
+  sources once instead of traversing build caches; release tests reuse isolated
+  repository templates without sharing mutable state.
+
 - `orcan status` reports installation, configuration home, data and config file paths.
 
 - Preferred tools uses the shared dark form styling and focus indicator.

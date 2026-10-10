@@ -20,6 +20,34 @@ make docs-check
 | `make format` / `make format-check` | Apply / verify Ruff formatting for host helpers, cockpit, and host tests |
 | `make docs-check` | Strict MkDocs build + product-name check |
 
+## Fast development loop
+
+Run the smallest relevant check while editing. Full host tests remain the
+default for `make test-host` and CI; CI collects coverage in that same run,
+not a second execution of the suite.
+
+```bash
+make test-fast
+make test-host TEST_ARGS="tests/host/test_named_instances.py -k registry"
+make test-integration
+make test-host TEST_ARGS="--durations=20"
+```
+
+`test-fast` excludes modules importing subprocess, PTY, socket or pexpect.
+This conservative selection includes imports inside fixtures/functions.
+Mark a test with `@pytest.mark.integration` when its external boundary lives
+in an imported helper. These modes are developer shortcuts, not replacements
+for full CI. `TEST_ARGS` also accepts pytest paths, node IDs and `-k` filters;
+it applies to `test-host`, `test-fast`, `test-integration` and `test-coverage`.
+
+For Studio-only changes, use `npm test` and `npm run build` in `studio/app`,
+plus `cargo test --manifest-path studio/Cargo.toml` for native Rust changes.
+Run the full checks before handoff.
+
+Validation scans source files once using Git's tracked/non-ignored file list,
+excluding build output, dependency folders, virtual environments and secrets.
+Keep `studio/target` as a build cache; validation does not need to inspect it.
+
 ## Smoke tests (Codex selection — local)
 
 ```bash

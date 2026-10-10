@@ -422,34 +422,41 @@ else
     printf 'Skip: Docker daemon not available for compose config\n'
 fi
 
-# Stale path check (ignore this script's own pattern list)
-stale=0
-for pattern in \
-    'scripts/init-cursor-home.sh' \
-    'scripts/docker-entrypoint.sh' \
-    'scripts/init-project.sh' \
-    'cursor-home/' \
-    'cursor-sshd' \
-    'docker-compose.ssh.yml' \
-    'cursor-tmux-attach' \
-    'Named volumes' \
-    'cursor-cli-devcontainer' \
-    'TMUX_SESSION_NAME' \
-    'make terminal PROJECT_DIR=' \
+# One scan of tracked and non-ignored sources, never generated build trees.
+stale_patterns=(
+    'scripts/init-cursor-home.sh'
+    'scripts/docker-entrypoint.sh'
+    'scripts/init-project.sh'
+    'cursor-home/'
+    'cursor-sshd'
+    'docker-compose.ssh.yml'
+    'cursor-tmux-attach'
+    'Named volumes'
+    'cursor-cli-devcontainer'
+    'TMUX_SESSION_NAME'
+    'make terminal PROJECT_DIR='
     'cursor-app-config'
-do
-    if grep -R --exclude-dir=.git --exclude-dir=site --exclude='validate.sh' -n "${pattern}" . \
-        > /tmp/stale-hits.txt 2>/dev/null; then
-        if [[ -s /tmp/stale-hits.txt ]]; then
-            printf 'Stale references to %s:\n' "${pattern}" >&2
-            cat /tmp/stale-hits.txt >&2
-            stale=1
-        fi
-    fi
+)
+stale_args=()
+for pattern in "${stale_patterns[@]}"; do
+    stale_args+=(-e "${pattern}")
 done
-
-if (( stale )); then
+if git grep --untracked --exclude-standard -n -I -F "${stale_args[@]}" -- . \
+    ':!scripts/repository/validate.sh' \
+    ':(glob,exclude)**/target/**' ':(glob,exclude)**/node_modules/**' \
+    ':(glob,exclude)**/dist/**' ':(glob,exclude)**/build/**' \
+    ':(glob,exclude)site/**' ':(glob,exclude)**/.venv*/**' \
+    ':(glob,exclude)**/venv/**' ':(glob,exclude)**/.env*' \
+    ':(glob,exclude)**/secrets/**' ':(glob,exclude)**/.ssh/**' \
+    ':(glob,exclude)**/keys/**' ':(glob,exclude)**/*.pem' ':(glob,exclude)**/*.key'; then
+    printf 'Stale source references found\n' >&2
     fail=1
+else
+    stale_status=$?
+    if (( stale_status != 1 )); then
+        printf 'Source reference scan failed (status %s)\n' "${stale_status}" >&2
+        fail=1
+    fi
 fi
 
 if (( fail )); then

@@ -5,15 +5,34 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-export PYTHONPATH="${ROOT_DIR}/scripts/repository${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="${ROOT_DIR}/scripts/repository:${ROOT_DIR}/cockpit/src${PYTHONPATH:+:$PYTHONPATH}"
 
 if ! command -v uv >/dev/null 2>&1; then
     printf 'Host tests require uv. Install uv, then rerun make test-host.\n' >&2
     exit 1
 fi
 
-printf '==> host tests (pytest via uv)\n'
-uv run --no-project --with-requirements requirements-test.txt python -m pytest tests/host -v
+coverage=0
+if [[ "${1:-}" == --coverage ]]; then
+    coverage=1
+    shift
+fi
+selection=()
+case "${ORCAN_TEST_MODE:-all}" in
+    all) ;;
+    fast) selection=(-m 'not integration') ;;
+    integration) selection=(-m integration) ;;
+    *) printf 'Unknown ORCAN_TEST_MODE: use all, fast or integration\n' >&2; exit 2 ;;
+esac
+uv_python=(uv run --no-project --with-requirements requirements-test.txt python -m)
+printf '==> host tests (%s, pytest via uv)\n' "${ORCAN_TEST_MODE:-all}"
+if (( coverage )); then
+    "${uv_python[@]}" coverage run --branch --source=scripts/repository,cockpit/src \
+        -m pytest -q "${selection[@]}" "$@"
+    "${uv_python[@]}" coverage report --show-missing --skip-empty
+else
+    "${uv_python[@]}" pytest -q "${selection[@]}" "$@"
+fi
 
 printf '==> release.sh check\n'
 ./scripts/repository/release.sh check
