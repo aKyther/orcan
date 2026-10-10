@@ -2387,7 +2387,7 @@ async function checkCliProvision(): Promise<void> {
     }
     cliProvisionReady = true;
     cliProvisionRun.disabled = false;
-    cliProvisionRun.textContent = checked.installedVersion ? "Update offline kit" : "Install offline kit";
+    cliProvisionRun.textContent = checked.installedVersion ? "Update CLI from source" : "Copy CLI to destination";
     cliProvisionResult.replaceChildren(el("strong", { textContent: checked.installedVersion ? `Existing Orcan: ${checked.installedVersion}. Transfer only if you want to update it.` : "Orcan is not installed. Ready to install." }), el("ul", {},
       el("li", { textContent: "Source: Orcan CLI and tar available." }),
       el("li", { textContent: `Destination: connected as ${checked.destinationUser}; Bash, tar and Python 3 available.` }),
@@ -2409,7 +2409,7 @@ async function provisionCli(): Promise<void> {
   if (!cliProvisionReady) return;
   let input: TransferInput;
   try { input = cliProvisionInput()!; } catch (error) { cliProvisionResult.textContent = String(error); return; }
-  if (!await confirmAction(`Install the Orcan CLI from ${source.name} on ${target.name}? This replaces only CLI files. No Docker image, profile, project, sandbox, or credential is transferred.`, { title: "Install Orcan CLI offline", confirmLabel: "Install / update" })) return;
+  if (!await confirmAction(`Install the Orcan CLI from ${source.name} on ${target.name}? This replaces only CLI files. No Docker image, profile, project, sandbox, or credential is transferred.`, { title: "Copy existing Orcan CLI", confirmLabel: "Install / update" })) return;
   if (isProvisionRunning(cliProvisionResult) || !cliProvisionReady) return;
   const job = addJob("Offline CLI provisioning", `${source.name} → ${target.name}`, target.name, target.id);
   cliProvisionRun.disabled = true;

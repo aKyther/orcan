@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Offline provisioning explains that Studio copies an existing CLI and prepared
+  Docker image from a source such as WSL; Studio does not bundle either artifact.
+
+- Scrolling over the enclave canvas scrolls Studio. Canvas zoom uses the
+  zoom buttons instead of wheel, pinch or double-click gestures.
+
 - Studio’s HTTP preview can initialize Enclaves, select servers and add containers
   without the secure-context-only UUID API. Canvas edges and preview actions use
   the same browser-compatible UUID generator.

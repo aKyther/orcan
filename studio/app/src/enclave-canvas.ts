@@ -25,6 +25,8 @@ export function enclaveCanvas(root: HTMLElement, changed: () => void, action: (k
     return () => h(VueFlow as Component, {
       id: "manual-enclave", nodes: nodes.value, edges: edges.value,
       nodesDraggable: !busy.value, nodesConnectable: !busy.value, deleteKeyCode: null,
+      zoomOnScroll: false, panOnScroll: false, preventScrolling: false,
+      zoomOnPinch: false, zoomOnDoubleClick: false,
       minZoom: 0.2, maxZoom: 2, defaultViewport: { x: 30, y: 30, zoom: 1 },
       onNodeClick: ({ node }: { node: Node }) => inspect(node.data.member),
       onNodesChange: (changes: NodeChange[]) => {

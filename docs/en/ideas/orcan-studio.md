@@ -268,8 +268,12 @@ Checking requirements cannot replace an active transfer's progress view, and
 switching views does not cancel it. Confirmations use centered Studio dialogs
 with Cancel focused by default; Escape cancels and destructive actions have
 explicit labels. Profile cards offer an inline connection-only test and Edit.
-Hosts need no Internet or
-direct connection to each other. The destination extracts the kit, installs
+Offline provisioning copies an existing installation from a prepared source,
+for example WSL where Orcan was installed and its image built or downloaded
+while internet was available. Studio does not bundle an Orcan installer or image.
+The source must already contain the CLI, and image transfer requires an existing
+image in its Docker daemon. The transfer itself needs no internet or
+direct connection between the hosts. The destination extracts the kit, installs
 the host CLI, and verifies `orcan version`. CLI installation and Docker-image
 transfer have separate panels, requirements checks, and progress. CLI kits do
 not include a Docker image and do not require destination Docker. Before each
@@ -446,7 +450,8 @@ controls. New container opens a separate form with Cancel. Identities shows save
 templates first; New identity and Edit open a form that can be cancelled
 without saving. Template instructions are available under View instructions. Enclaves shows saved
 cards first. New enclave and Open enter a separate canvas editor. Back to enclaves
-returns to the library and asks before discarding unsaved changes. The library
+returns to the library and asks before discarding unsaved changes. Scrolling over
+the canvas scrolls the application; use the canvas + and − buttons to zoom. The library
 shows available saved servers. Opening the editor or selecting a server loads its
 existing containers automatically; Refresh containers retries a failed check.
 Loading, empty and failure states appear beside the picker. Add container stays
