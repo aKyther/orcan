@@ -2021,6 +2021,7 @@ type ManagedInstance = { instance: string | null; container: string; home: strin
 const instanceInventory = new Map<string, ManagedInstance[]>();
 type ServerCapacity = { cpus?: number; memoryBytes?: number; diskTotalBytes?: number; diskFreeBytes?: number; diskPath?: string };
 const serverCapacity = new Map<string, ServerCapacity>();
+const expandedServers = new Set<string>();
 const selectedInstances = loadContainerSelections();
 function runtimeKey(profile: ConnectionProfile, instance = selectedInstances.get(profile.id)): string {
   return instance ? `${profile.id}:${instance}` : profile.id;
@@ -2473,17 +2474,35 @@ function creatorCanApply(profile: ConnectionProfile): boolean {
   return !creatorBusy && !creatorNameError() && creatorPlanRevision === creatorRevision && !creationBlocker(creatorReport(profile));
 }
 
-function openEnclaveCreator(profile: ConnectionProfile): void {
+function openEnclaveCreator(profile?: ConnectionProfile): void {
+  if (creatorBusy) return;
+  $("#server-browser").hidden = true;
+  $("#enclave-creator").hidden = false;
   creatorPlanRevision = -1;
   creatorRevision += 1;
   renderEnclaveCreator();
-  enclaveCreateProfile.value = profile.id;
+  enclaveCreateProfile.value = profile?.id ?? "";
   showView("enclaves");
   renderEnclaveCreator();
   $("#enclave-creator").scrollIntoView({ block: "start" });
+  enclaveCreateProfile.focus();
+}
+
+function closeEnclaveCreator(): void {
+  if (creatorBusy) return;
+  creatorPlanRevision = -1;
+  creatorRevision += 1;
+  enclaveCreateTtydPassword.value = "";
+  creatorReadiness = undefined;
+  enclaveCreateReadiness.textContent = "";
+  enclaveCreateResult.textContent = "";
+  $("#enclave-creator").hidden = true;
+  $("#server-browser").hidden = false;
+  $("#new-container").focus();
 }
 
 function renderEnclaveCreator(): void {
+  $("#container-create-cancel").toggleAttribute("disabled", creatorBusy);
   if (creatorBusy) return;
   const previous = enclaveCreateProfile.value;
   enclaveCreateProfile.replaceChildren(
@@ -2527,6 +2546,7 @@ async function checkCreatorDestination(): Promise<void> {
   if (!profile || creatorBusy) return;
   if (creatorNameError()) { enclaveCreateResult.textContent = creatorNameError()!; return; }
   creatorBusy = true;
+  $("#container-create-cancel").setAttribute("disabled", "");
   containerCreateImage.disabled = true;
   containerCreateRoot.disabled = true;
   identityLibrary.select.disabled = true;
@@ -2621,6 +2641,7 @@ async function planEmptyEnclave(apply = false): Promise<void> {
   const ttydHostPort = enclaveCreateTtyd.checked ? Number(enclaveCreatePort.value) : undefined;
   if (ttydHostPort !== undefined && (!Number.isInteger(ttydHostPort) || ttydHostPort < 1024 || ttydHostPort > 65535)) { enclaveCreateResult.textContent = "Choose a host port between 1024 and 65535."; return; }
   creatorBusy = true;
+  $("#container-create-cancel").setAttribute("disabled", "");
   containerCreateImage.disabled = true;
   containerCreateRoot.disabled = true;
   identityLibrary.select.disabled = true;
@@ -2665,6 +2686,8 @@ async function planEmptyEnclave(apply = false): Promise<void> {
       if (status.state !== "online" || !status.report || status.report.runtime.docker.container.state !== "running") throw new Error(status.error ?? "Container is not running after creation. Refresh its status before continuing.");
       creatorReadiness = undefined;
       activate(profileConnection(profile), status.report);
+      $("#enclave-creator").hidden = true;
+      $("#server-browser").hidden = false;
       showView("contexts");
       enclaveCreateResult.textContent = "container is running. Add projects to its context.";
     }
@@ -2846,7 +2869,17 @@ function renderEnclaves(): void {
       }
     }
     item.classList.toggle("active", active);
-    return item;
+    const summary = el("summary", { className: "server-summary" },
+      el("strong", {}, dot(statusTone(status)), profile.name),
+      el("span", { className: "server-summary-status", textContent: statusText(status) }),
+      el("small", { textContent: instances ? `${instances.length} container${instances.length === 1 ? "" : "s"}` : "Expand for details" }));
+    const disclosure = el("details", { className: "server-disclosure", open: expandedServers.has(profile.id) }, summary, item);
+    disclosure.addEventListener("toggle", () => {
+      if (!disclosure.isConnected) return;
+      if (disclosure.open) expandedServers.add(profile.id);
+      else expandedServers.delete(profile.id);
+    });
+    return disclosure;
   }) : [emptyState("Servers appear here once you create a profile.", "Create a profile", () => openProfileForm())]));
   renderCliProvision();
   renderOnlineProvision();
@@ -2953,6 +2986,8 @@ cliProvisionCheck.addEventListener("click", () => void checkCliProvision());
 cliProvisionRun.addEventListener("click", () => void provisionCli());
 for (const input of [cliProvisionSource, cliProvisionTarget]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; renderProvisionIdentity(); cliProvisionResult.textContent = "Selection changed. Check requirements again before installing."; });
 for (const select of [imageTransferSource, imageTransferTarget]) select.addEventListener("change", renderProvisionIdentity);
+$("#new-container").addEventListener("click", () => openEnclaveCreator());
+$("#container-create-cancel").addEventListener("click", closeEnclaveCreator);
 enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
 enclaveCreateCheck.addEventListener("click", () => void checkCreatorDestination());
 enclaveCreateApply.addEventListener("click", async () => { if (await confirmAction("Create this container with the selected runtime access?", { title: "New container", confirmLabel: "Create" })) void planEmptyEnclave(true); });
@@ -3135,6 +3170,6 @@ async function prepareReplacement(profile: ConnectionProfile, report: ProbeRepor
     enclaveCreateProfile.value = profile.id; enclaveCreateName.value = connection.instance ?? "";
     renderEnclaveCreator();
     enclaveCreateResult.textContent = `Previous configuration archived at ${plan.result.archive}. Check the destination, select an identity and create the replacement.`;
-    showView("enclaves");
+    openEnclaveCreator(profile);
   } catch (error) { result.textContent = `Replacement was not prepared: ${String(error)}`; }
 }

@@ -12,12 +12,12 @@
         <nav class="primary-nav" aria-label="Studio views">
           <button type="button" class="nav-item active" data-view-target="overview" aria-current="page"><span>⌂</span>Overview</button>
           <button type="button" class="nav-item" data-view-target="credentials"><span>⚿</span>Credentials &amp; keys</button>
-          <button type="button" class="nav-item" data-view-target="identities"><span>◎</span>Identities</button>
-          <button type="button" class="nav-item" data-view-target="groups"><span>◇</span>Enclaves</button>
           <button type="button" class="nav-item" data-view-target="profiles"><span>◧</span>Profiles</button>
+          <button type="button" class="nav-item" data-view-target="identities"><span>◎</span>Identities</button>
           <button type="button" class="nav-item" data-view-target="provisioning"><span>⇄</span>Provisioning</button>
           <button type="button" class="nav-item" data-view-target="enclaves"><span>◌</span>Servers</button>
           <div id="nav-enclaves" class="nav-enclaves" aria-label="Your servers and containers"></div>
+          <button type="button" class="nav-item" data-view-target="groups"><span>◇</span>Enclaves</button>
           <p id="active-group" class="nav-group" hidden>ACTIVE CONTAINER</p>
           <button type="button" class="nav-item gated" data-view-target="sandbox" hidden><span>▣</span>Sandbox</button>
           <button type="button" class="nav-item gated" data-view-target="contexts" hidden><span>◫</span>Contexts</button>
@@ -156,22 +156,23 @@
         </section>
         <section class="view" data-view="identities" hidden>
           <div class="view-intro"><p class="eyebrow">IDENTITIES</p><h2>How your containers' agents work.</h2><p>Templates add instructions to Orcan base rules. Choose a version when creating a container; its identity then stays fixed.</p></div>
-          <section class="panel"><div class="panel-heading"><h2>Saved templates</h2><div class="actions"><button id="identity-refresh" class="secondary" type="button">Refresh</button><button id="identity-open-data" class="secondary" type="button">Open data directory</button></div></div><p id="identity-path" class="hint"></p><div id="identity-list"></div></section>
-          <section class="panel"><div class="panel-heading"><h2>Identity template</h2><button id="identity-new" class="secondary" type="button">New identity</button></div>
+          <section class="panel" id="identity-browser"><div class="panel-heading"><h2>Saved templates</h2><div class="actions"><button id="identity-new" type="button">New identity</button><button id="identity-refresh" class="secondary" type="button">Refresh</button><button id="identity-open-data" class="secondary" type="button">Open data directory</button></div></div><p id="identity-path" class="hint"></p><div id="identity-list"></div></section>
+          <section class="panel" id="identity-editor" hidden><div class="panel-heading"><h2 id="identity-editor-title">New identity</h2><button id="identity-cancel" class="secondary" type="button">Cancel</button></div>
             <label>Name<input id="identity-name" maxlength="120" placeholder="Effective developer" /></label>
             <label>Description<input id="identity-description" maxlength="1000" placeholder="Purpose and working style" /></label>
             <label>Instructions (Markdown)<textarea id="identity-instructions" rows="12" maxlength="32768" placeholder="Describe the role, working habits and how to report results."></textarea></label>
             <p class="hint">Base Orcan instructions and repository rules remain. Saving a template never updates existing containers.</p>
-            <button id="identity-save" type="button">Create identity</button><output id="identity-result" aria-live="polite"></output>
+            <button id="identity-save" type="button">Create identity</button>
           </section>
+          <output id="identity-result" aria-live="polite"></output>
         </section>
 
         <section class="view" data-view="enclaves" hidden>
           <div class="pane-stack"><section data-pane="enclaves" class="pane">
-                <div class="pane-header"><div><h2>Servers and containers</h2><p class="muted">Profiles connect to WSL2 or a local/remote host. Provision CLI and image once, then create named containers with individual resources and context. Sandbox and cache are shared on that host.</p></div><button type="button" class="secondary" data-go="profiles">Manage profiles</button></div>
-                <div id="enclave-list" class="item-list"></div>
-                <section class="panel" id="enclave-creator">
-                  <h2>New container</h2>
+                <div id="server-browser"><div class="pane-header"><div><h2>Servers and containers</h2><p class="muted">Expand a server to view its containers and controls.</p></div><div class="actions compact"><button type="button" class="secondary" data-go="profiles">Manage profiles</button><button id="new-container" type="button">New container</button></div></div>
+                <div id="enclave-list" class="item-list"></div></div>
+                <section class="panel" id="enclave-creator" hidden>
+                  <div class="panel-heading"><h2>New container</h2><button id="container-create-cancel" type="button" class="secondary">Cancel</button></div>
                   <p class="muted">Create a named container from the provisioned image. Containers share sandbox and cache; each has its own context and launch settings.</p>
                   <label>Destination profile<select id="enclave-create-profile"></select></label>
                   <label>Installed Orcan image<select id="container-create-image" disabled><option value="">Check destination first</option></select></label>

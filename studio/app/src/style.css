@@ -165,3 +165,14 @@ button.context-project-update { background: none; border: 0; color: #9fba8d; fon
 #group-canvas .vue-flow__minimap { background: #242920; }
 #group-canvas .vue-flow__edge-path { stroke: #dba543; stroke-width: 2; }
 @media (max-width: 1100px) { .group-layout { grid-template-columns: 1fr; } #group-canvas { height: 600px; } }
+
+.server-disclosure + .server-disclosure { border-top: 1px solid #343a32; }
+.server-summary { align-items: center; cursor: pointer; display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding: 1rem; list-style: none; }
+.server-summary::-webkit-details-marker { display: none; }
+.server-summary::before { content: "›"; color: #8ca980; font-size: 1.2rem; transition: transform .12s; }
+.server-disclosure[open] > .server-summary::before { transform: rotate(90deg); }
+.server-summary strong { align-items: center; display: flex; gap: .55rem; }
+.server-summary-status { color: #a3ad9a; font-size: .77rem; }
+.server-summary small { color: #a3ad9a; margin-left: auto; }
+.server-disclosure[open] > .server-summary { border-bottom: 1px solid #343a32; }
+@media (max-width: 760px) { .server-summary-status { flex-basis: 100%; padding-left: 1.5rem; } }

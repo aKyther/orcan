@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio navigation follows setup order: Credentials, Profiles, Identities,
+  Provisioning, Servers, then Enclaves. Server details start collapsed. New
+  container and identity forms open on request and can be cancelled; identity
+  instructions are available on expansion.
+
 - Host Git identity now provides container Git config defaults instead of forcing
   author/committer environment variables. Per-repository identities and conditional
   includes can override them. Requires an updated image and recreated container.

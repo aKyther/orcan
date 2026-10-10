@@ -48,7 +48,7 @@ test("enclave references survive multiple memberships and reject replacement UUI
 test("identity revisions stay selected after edits and stale reloads are ignored", async () => {
   setup();
   const fields = new Map();
-  for (const name of ["list", "name", "description", "instructions", "result", "save", "new", "refresh", "open-data", "path"]) {
+  for (const name of ["list", "name", "description", "instructions", "result", "save", "new", "refresh", "open-data", "path", "cancel", "editor", "editor-title", "browser"]) {
     const field = new Element();
     field.value = "";
     fields.set(`#identity-${name}`, field);
@@ -65,6 +65,16 @@ test("identity revisions stay selected after edits and stale reloads are ignored
   let invalidations = 0;
   const { identityPanel } = await load("identities");
   const panel = identityPanel(() => new Promise((resolve) => requests.push(resolve)), () => invalidations++);
+  fields.get("#identity-editor").hidden = true;
+  fields.get("#identity-new").dispatchEvent(new Event("click"));
+  assert.equal(fields.get("#identity-editor").hidden, false);
+  assert.equal(fields.get("#identity-browser").hidden, true);
+  fields.get("#identity-name").value = "Discarded draft";
+  fields.get("#identity-cancel").dispatchEvent(new Event("click"));
+  assert.equal(fields.get("#identity-editor").hidden, true);
+  assert.equal(fields.get("#identity-browser").hidden, false);
+  assert.equal(fields.get("#identity-name").value, "");
+  assert.equal(document.activeElement, fields.get("#identity-new"));
   const initial = panel.reload();
   requests.shift()({ path: "/app/studio-data", identities: [first] });
   await initial;

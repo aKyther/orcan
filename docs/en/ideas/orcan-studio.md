@@ -436,8 +436,13 @@ remain in the platform credential vault; a hash cannot replace a password here
 because native SSH must retrieve the password to authenticate. The installation
 directory is intentionally not used: it is commonly read-only or shared on
 Windows, macOS, and packaged Linux installations.
-Studio walks through Credentials & keys → Profiles → Provisioning → Servers
-and named containers. Context editing is enabled only after a successful probe
+Studio navigation follows Credentials & keys → Profiles → Identities →
+Provisioning → Servers → Enclaves. Overview stays first. Identity templates are
+optional; Servers manages named containers, and Enclaves groups existing containers.
+Server rows start collapsed and expand to show capacity, containers, paths and
+controls. New container opens a separate form with Cancel. Identities shows saved
+templates first; New identity and Edit template open a form that can be cancelled
+without saving. Template instructions are available under View instructions. Context editing is enabled only after a successful probe
 for the selected container. An existing configuration/container reserves that
 name, not the whole profile: choose a different name to create another instance.
 
