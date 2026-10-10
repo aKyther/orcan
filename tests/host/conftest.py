@@ -58,6 +58,37 @@ def committed_git_repo_factory(committed_git_template):
     return create
 
 
+@pytest.fixture(scope="session")
+def tracked_git_template(committed_git_template, tmp_path_factory):
+    """A tracked README for tests that edit content, prepared only once."""
+    path = tmp_path_factory.mktemp("git-tracked-template") / "repo"
+    shutil.copytree(committed_git_template, path)
+    (path / "README").write_text("x\n", encoding="utf-8")
+    environment = {
+        **os.environ,
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+    }
+    subprocess.run(
+        ["git", "-C", str(path), "add", "README"], check=True, env=environment
+    )
+    subprocess.run(
+        ["git", "-C", str(path), "commit", "-qm", "tracked content"],
+        check=True,
+        env=environment,
+    )
+    return path
+
+
+@pytest.fixture
+def tracked_git_repo_factory(tracked_git_template):
+    def create(path):
+        shutil.copytree(tracked_git_template, path, dirs_exist_ok=True)
+        return path
+
+    return create
+
+
 def reject_external_process(*args, **kwargs):
     raise AssertionError(
         "Pure tests cannot start subprocesses. Mock the boundary or mark this test integration."

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Context tests mark only process-backed classes as integration. Pure selection
+  and configuration contracts run in the fast suite; content-editing tests reuse
+  private copies of a session-scoped tracked Git fixture.
+
 - Command JSON/log capture fails explicitly above 16 MiB per stream instead of
   growing without a bound. Successful captures move buffers without duplicating
   them; binary image exports remain streamed to private files.

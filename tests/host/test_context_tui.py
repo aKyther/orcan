@@ -7,7 +7,6 @@ import pytest
 
 import json
 import os
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,36 +14,22 @@ from unittest import mock
 
 from ._scripts_loader import load_script
 
-pytestmark = pytest.mark.integration
-
 _mod = load_script("context_tui.py")
 
 
-def _git_init(path: Path) -> None:
-    path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init", "-q", str(path)], check=True)
-    subprocess.run(
-        ["git", "-C", str(path), "config", "user.email", "t@example.com"],
-        check=True,
-    )
-    subprocess.run(
-        ["git", "-C", str(path), "config", "user.name", "t"],
-        check=True,
-    )
-    (path / "README").write_text("x\n", encoding="utf-8")
-    subprocess.run(["git", "-C", str(path), "add", "README"], check=True)
-    subprocess.run(
-        ["git", "-C", str(path), "commit", "-q", "-m", "init"],
-        check=True,
-    )
+class GitRepoTests(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def repository_factory(self, tracked_git_repo_factory):
+        self.git_init = tracked_git_repo_factory
 
 
-class ScanReposTests(unittest.TestCase):
+@pytest.mark.integration
+class ScanReposTests(GitRepoTests):
     def test_finds_child_repos_not_parent_when_many(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            _git_init(root / "api")
-            _git_init(root / "web")
+            self.git_init(root / "api")
+            self.git_init(root / "web")
             found = _mod.scan_repos(root)
             names = sorted(p.name for p in found)
             self.assertEqual(names, ["api", "web"])
@@ -53,29 +38,30 @@ class ScanReposTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             group = root / "group"
-            _git_init(group / "svc")
+            self.git_init(group / "svc")
             found = _mod.scan_repos(root, max_depth=2)
             self.assertTrue(any(p.name == "svc" for p in found))
 
 
-class WorktreeIsDirtyTests(unittest.TestCase):
+@pytest.mark.integration
+class WorktreeIsDirtyTests(GitRepoTests):
     def test_clean_repo_is_not_dirty(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
-            _git_init(repo)
+            self.git_init(repo)
             self.assertFalse(_mod.worktree_is_dirty(repo))
 
     def test_modified_file_is_dirty(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
-            _git_init(repo)
+            self.git_init(repo)
             (repo / "README").write_text("changed\n", encoding="utf-8")
             self.assertTrue(_mod.worktree_is_dirty(repo))
 
     def test_untracked_file_is_dirty(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
-            _git_init(repo)
+            self.git_init(repo)
             (repo / "new.txt").write_text("x\n", encoding="utf-8")
             self.assertTrue(_mod.worktree_is_dirty(repo))
 
@@ -83,11 +69,12 @@ class WorktreeIsDirtyTests(unittest.TestCase):
         self.assertFalse(_mod.worktree_is_dirty(Path("/no/such/directory")))
 
 
-class ScanDirsTests(unittest.TestCase):
+@pytest.mark.integration
+class ScanDirsTests(GitRepoTests):
     def test_includes_plain_dirs_tagged_as_non_git(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            _git_init(root / "api")
+            self.git_init(root / "api")
             (root / "notes").mkdir()
             found = {p.name: is_git for p, is_git in _mod.scan_dirs(root)}
             self.assertEqual(found, {"api": True, "notes": False})
@@ -96,7 +83,7 @@ class ScanDirsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             group = root / "group"
-            _git_init(group / "svc")
+            self.git_init(group / "svc")
             (group / "docs").mkdir()
             found = {p.name: is_git for p, is_git in _mod.scan_dirs(root, max_depth=2)}
             self.assertEqual(found.get("group"), False)
@@ -107,7 +94,7 @@ class ScanDirsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             group = root / "group"
-            _git_init(group / "svc")
+            self.git_init(group / "svc")
             found = {p.name for p, _ in _mod.scan_dirs(root)}
             self.assertEqual(found, {"group"})
             self.assertNotIn("svc", found)
@@ -173,16 +160,17 @@ class WorkspaceMembershipTests(unittest.TestCase):
             )
 
 
-class PerProjectModeTests(unittest.TestCase):
+@pytest.mark.integration
+class PerProjectModeTests(GitRepoTests):
     def test_partitions_git_worktrees_from_mounts_in_pick_order(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             api = root / "api"
             docs = root / "docs"
             web = root / "web"
-            _git_init(api)
+            self.git_init(api)
             docs.mkdir()
-            _git_init(web)
+            self.git_init(web)
             worktrees, mounts = _mod.partition_selection_by_mode(
                 [api, docs, web], {web, docs}
             )
@@ -380,14 +368,15 @@ class FindPathConflictsTests(unittest.TestCase):
             self.assertEqual(_mod.find_path_conflicts(cfg_path, [other]), {})
 
 
-class ApplySelectionTests(unittest.TestCase):
+@pytest.mark.integration
+class ApplySelectionTests(GitRepoTests):
     def test_mount_as_is(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             api = root / "api"
             web = root / "web"
-            _git_init(api)
-            _git_init(web)
+            self.git_init(api)
+            self.git_init(web)
             cfg_path = root / "orcan.config.json"
             _mod.apply_selection(
                 config_path=cfg_path,
@@ -411,7 +400,7 @@ class ApplySelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             api = root / "api"
-            _git_init(api)
+            self.git_init(api)
             cfg_path = root / "orcan.config.json"
             with mock.patch.dict(
                 os.environ, {"ORCAN_PROJECTS_ROOT": str(root / "managed")}
