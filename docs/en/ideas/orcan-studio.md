@@ -446,7 +446,12 @@ controls. New container opens a separate form with Cancel. Identities shows save
 templates first; New identity and Edit open a form that can be cancelled
 without saving. Template instructions are available under View instructions. Enclaves shows saved
 cards first. New enclave and Open enter a separate canvas editor. Back to enclaves
-returns to the library and asks before discarding unsaved changes. Context editing is enabled only after a successful probe
+returns to the library and asks before discarding unsaved changes. The library
+shows available saved servers. Opening the editor or selecting a server loads its
+existing containers automatically; Refresh containers retries a failed check.
+Loading, empty and failure states appear beside the picker. Add container stays
+disabled until the selected server has a loaded container; discovery does not
+register, create, start or add containers. Context editing is enabled only after a successful probe
 for the selected container. An existing configuration/container reserves that
 name, not the whole profile: choose a different name to create another instance.
 

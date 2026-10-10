@@ -2935,6 +2935,7 @@ function renderSetup(): void {
 }
 
 function renderStore(): void {
+  manualGroups?.syncProfiles();
   renderCredentials();
   renderProfiles();
   renderEnclaveStatus();

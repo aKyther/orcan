@@ -48,7 +48,7 @@ test("enclave references survive multiple memberships and reject replacement UUI
 test("enclave library opens an editor and protects discarded drafts", async () => {
   setup();
   const fields = new Map();
-  for (const name of ["name", "profile", "instance", "result", "canvas", "details", "state", "editor-title", "list", "browser", "editor", "new", "back", "refresh", "reload", "inventory", "add", "save", "open-data"]) {
+  for (const name of ["name", "profile", "instance", "result", "canvas", "details", "state", "editor-title", "list", "browser", "editor", "new", "back", "refresh", "reload", "inventory", "add", "save", "open-data", "sources", "inventory-state"]) {
     const field = new Element();
     field.value = "";
     fields.set(`#group-${name}`, field);
@@ -89,6 +89,53 @@ test("enclave library opens an editor and protects discarded drafts", async () =
   assert.equal(fields.get("#group-editor").hidden, false);
   assert.equal(name.value, "Review team");
   assert.deepEqual(commands, ["list_groups"]);
+});
+
+test("enclave picker discovers containers automatically and ignores stale servers", async () => {
+  setup();
+  const fields = new Map();
+  for (const id of "name profile instance result canvas details state editor-title list browser editor new back refresh reload inventory add save open-data sources inventory-state".split(" ")) {
+    const field = new Element(); field.value = ""; fields.set(`#group-${id}`, field);
+  }
+  document.querySelector = selector => fields.get(selector);
+  document.querySelectorAll = () => [];
+  globalThis.Option = class { constructor(text, value) { this.textContent = text; this.value = value; } };
+  fields.get("#group-editor").hidden = true;
+  let profiles = [{ id: "first", name: "First server" }, { id: "second", name: "Second server" }];
+  const requests = [], commands = [];
+  const { groupPanel } = await load("groups", {
+    "./dialog": dataModule("export async function confirmAction() { return true; }"),
+    "./enclave-canvas": dataModule("export function enclaveCanvas() { return { setGroup() {}, setBusy() {} }; }"),
+    "./group-model": dataModule("export function targetMatches() { return true; }"),
+  });
+  const panel = groupPanel((command, args) => { commands.push(command); return new Promise((resolve, reject) => requests.push({ args, resolve, reject })); }, () => profiles, id => ({ id }), () => "linux_terminal");
+  assert.equal(fields.get("#group-profile").value, "first");
+  fields.get("#group-new").dispatchEvent(new Event("click"));
+  await tick();
+  assert.deepEqual(requests[0].args, { enclave: { id: "first" } });
+  assert.equal(fields.get("#group-add").disabled, true);
+  const profile = fields.get("#group-profile");
+  profile.value = "second"; profile.dispatchEvent(new Event("change"));
+  requests[0].resolve({ instances: [{ instance: "stale", container: "orcan-stale" }] });
+  await tick();
+  assert.equal(fields.get("#group-add").disabled, true);
+  requests[1].resolve({ instances: [{ instance: null, container: "orcan-1" }, { instance: "tester", container: "orcan-tester" }] });
+  await tick();
+  assert.deepEqual(fields.get("#group-instance").children.map(item => item.textContent), ["orcan-1", "orcan-tester"]);
+  assert.equal(fields.get("#group-add").disabled, false);
+  profiles = [{ id: "third", name: "New server" }]; panel.syncProfiles();
+  assert.equal(profile.value, "third");
+  requests[2].reject(new Error("Server offline"));
+  await tick();
+  assert.match(fields.get("#group-inventory-state").textContent, /Server offline/);
+  assert.equal(fields.get("#group-add").disabled, true);
+  assert.equal(fields.get("#group-inventory").disabled, false);
+  fields.get("#group-inventory").dispatchEvent(new Event("click"));
+  requests[3].resolve({ instances: [] });
+  await tick();
+  assert.match(fields.get("#group-inventory-state").textContent, /No configured containers/);
+  assert.equal(fields.get("#group-add").disabled, true);
+  assert.deepEqual(commands, ["list_instances", "list_instances", "list_instances", "list_instances"]);
 });
 
 test("identity revisions stay selected after edits and stale reloads are ignored", async () => {

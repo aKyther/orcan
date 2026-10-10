@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Enclave editors show saved servers and load their existing containers on open
+  and server selection. Loading, empty and failure states appear beside the picker;
+  stale responses cannot replace another server’s container list.
+
 - Studio uses consistent compact action buttons and responsive identity/server
   cards. Enclaves opens with a saved library; New and Open lead to a separate
   canvas editor with a return action that protects unsaved changes.

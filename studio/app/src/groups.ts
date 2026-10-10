@@ -13,6 +13,35 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
   let groups: Group[] = [], group: Group;
   let dirty = false, busy = false, inventoryGeneration = 0;
   let inspected: GroupMember | undefined;
+  let inventoryLoading = false;
+  let availableContainers: Array<{ instance: string | null; container: string }> = [];
+  const inventoryStatus = field<HTMLElement>("inventory-state");
+  function pickerState() {
+    profile.disabled = busy || !profiles().length;
+    instance.disabled = busy || inventoryLoading || !availableContainers.length;
+    field<HTMLButtonElement>("inventory").disabled = busy || inventoryLoading || !profile.value;
+    field<HTMLButtonElement>("add").disabled = busy || inventoryLoading || !availableContainers.length;
+  }
+  function clearInventory(message: string) {
+    inventoryGeneration++;
+    inventoryLoading = false;
+    availableContainers = [];
+    instance.replaceChildren(new Option(message, ""));
+    inventoryStatus.textContent = message;
+    pickerState();
+  }
+  function syncProfiles(loadContainers = true) {
+    const old = profile.value;
+    const saved = profiles();
+    profile.replaceChildren(...(saved.length ? saved.map((item) => new Option(item.name, item.id)) : [new Option("No saved servers — create a profile first", "")]));
+    profile.value = saved.some((item) => item.id === old) ? old : saved[0]?.id ?? "";
+    field("sources").textContent = saved.length ? `Available servers: ${saved.map((item) => item.name).join(", ")}. Open an enclave or choose New enclave to add their containers.` : "No saved servers. Create a connection in Profiles first.";
+    if (profile.value !== old) {
+      clearInventory("Choose a server to load its containers.");
+      if (loadContainers && !field("editor").hidden) void inventory();
+    }
+    pickerState();
+  }
   const canvas = enclaveCanvas(field("canvas"), markDirty, (kind, member, workspace) => { void operate(kind, member, workspace); }, inspect);
   function markDirty() { dirty = true; field("state").textContent = "Unsaved layout"; }
   function inspect(member: GroupMember) {
@@ -47,12 +76,15 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     field("editor").hidden = false;
     result.textContent = "";
     setGroup(saved ?? { id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
+    syncProfiles(false);
+    void inventory();
     name.focus();
   }
   async function closeEditor() {
     if (busy || !await discard()) return;
     setGroup({ id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
     field("editor").hidden = true;
+    clearInventory("Open an enclave to load available containers.");
     field("browser").hidden = false;
     result.textContent = "";
     field("new").focus();
@@ -65,7 +97,7 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     const controls = [...document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('[data-view="groups"] input, [data-view="groups"] select, [data-view="groups"] button')].filter((control) => !control.closest("#group-canvas"));
     controls.forEach((control) => control.disabled = true);
     try { await operation(); } catch (error) { result.textContent = String(error); }
-    finally { busy = false; canvas.setBusy(false); controls.filter((control) => !control.closest("#group-canvas")).forEach((control) => control.disabled = false); }
+    finally { busy = false; canvas.setBusy(false); controls.filter((control) => !control.closest("#group-canvas")).forEach((control) => control.disabled = false); pickerState(); }
   }
   async function operate(kind: "check" | "start" | "attach", member: GroupMember, workspace?: string) {
     await run(async () => {
@@ -88,10 +120,8 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     });
   }
   async function refresh(reloadCurrent = false) {
-    const old = profile.value;
-    profile.replaceChildren(...profiles().map((item) => new Option(item.name, item.id)));
-    if (profiles().some((item) => item.id === old)) profile.value = old;
     if (busy) return;
+    syncProfiles();
     await run(async () => {
       groups = await invoke<Group[]>("list_groups");
       if (reloadCurrent && group.revision) {
@@ -103,15 +133,27 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
     });
   }
   async function inventory() {
-    const chosen = profile.value, request = ++inventoryGeneration;
-    instance.replaceChildren();
+    if (busy || field("editor").hidden) return;
+    const chosen = profile.value;
+    clearInventory(chosen ? "Loading containers…" : "No saved servers. Create a profile first.");
     if (!chosen) return;
-    await run(async () => {
+    const request = inventoryGeneration;
+    inventoryLoading = true;
+    pickerState();
+    try {
       const report = await invoke<{ instances: Array<{ instance: string | null; container: string }> }>("list_instances", { enclave: connection(chosen) });
       if (request !== inventoryGeneration || profile.value !== chosen) return;
-      instance.replaceChildren(...report.instances.map((item) => new Option(item.container, item.instance ?? "")));
-      result.textContent = "Select an existing container. Add registers UUIDs when needed; it never creates or starts a runtime.";
-    });
+      availableContainers = report.instances;
+      instance.replaceChildren(...(availableContainers.length ? availableContainers.map((item) => new Option(item.container, item.instance ?? "")) : [new Option("No configured containers on this server", "")]));
+      instance.value = availableContainers[0]?.instance ?? "";
+      inventoryStatus.textContent = availableContainers.length ? "Choose a container and click Add container to place it on the canvas." : "No configured containers found. Create one in Servers, then refresh this list.";
+    } catch (error) {
+      if (request !== inventoryGeneration || profile.value !== chosen) return;
+      instance.replaceChildren(new Option("Could not load containers — refresh to retry", ""));
+      inventoryStatus.textContent = `Could not load containers: ${String(error)}`;
+    } finally {
+      if (request === inventoryGeneration) { inventoryLoading = false; pickerState(); }
+    }
   }
   name.addEventListener("input", () => { group.name = name.value; markDirty(); });
   field("new").addEventListener("click", () => { void openEditor(); });
@@ -119,9 +161,9 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
   field("refresh").addEventListener("click", () => { if (!busy) void refresh(); });
   field("reload").addEventListener("click", async () => { if (!busy && await discard()) void refresh(true); });
   field("inventory").addEventListener("click", () => { void inventory(); });
-  profile.addEventListener("change", () => { inventoryGeneration++; instance.replaceChildren(); });
+  profile.addEventListener("change", () => { void inventory(); });
   field("add").addEventListener("click", () => { void run(async () => {
-    if (!profile.value || !instance.options.length) throw new Error("Choose a server and check its container list first.");
+    if (!profile.value || inventoryLoading || !availableContainers.length) throw new Error("Choose a server and check its container list first.");
     const selected = profiles().find((item) => item.id === profile.value)!;
     const report = await invoke<ProbeReport>("register_target", { enclave: connection(selected.id, instance.value || undefined) });
     if (report.target?.state !== "ready" || !report.target.host_id || !report.target.container_id) throw new Error(report.target?.reason ?? "Container registration failed");
@@ -137,5 +179,7 @@ export function groupPanel(invoke: Invoke, profiles: () => Profile[], connection
   }); });
   field("open-data").addEventListener("click", () => { void run(async () => { await invoke("open_studio_data"); }); });
   setGroup({ id: crypto.randomUUID(), revision: 0, name: "", members: [], edges: [] });
-  return { refresh };
+  clearInventory("Open an enclave to load available containers.");
+  syncProfiles();
+  return { refresh, syncProfiles };
 }
