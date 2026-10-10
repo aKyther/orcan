@@ -418,3 +418,43 @@ test("preferred tools round-trip without altering old instructions or stacking s
   assert.deepEqual(defaults.map(item => item.name), ["Tester", "Senior Engineer", "Reviewer"]);
   for (const item of defaults) assert.ok(identityFields(item.instructions).tools);
 });
+
+
+test("server cleanup blocks used images and requires confirmation on the checked endpoint", async () => {
+  setup();
+  const fields = new Map();
+  for (const id of ["server", "check", "installed", "result"]) { const field = new Element(); field.value = ""; fields.set(`#server-cleanup-${id}`, field); }
+  document.querySelector = selector => fields.get(selector);
+  globalThis.Option = class { constructor(text, value) { this.textContent = text; this.value = value; } };
+  globalThis.__cleanupConfirm = false;
+  const commands = [];
+  let endpoint = { target: "first" };
+  const { cleanupPanel } = await load("cleanup", { "./dialog": dataModule("export async function confirmAction() { return globalThis.__cleanupConfirm; }") });
+  cleanupPanel(async (command, args) => {
+    commands.push({ command, args });
+    if (command === "server_cleanup_inventory") return { cli: { path: "/user/orcan", version: "4", removable: true, reason: "" }, images: [{ image: "orcan:used", id: "id1", size: 1, containers: ["running"] }, { image: "orcan:old", id: "id2", size: 1, containers: [] }], dockerError: null };
+  }, () => [{ id: "first", name: "First server" }], () => endpoint, () => {});
+  fields.get("#server-cleanup-server").value = "first";
+  fields.get("#server-cleanup-server").dispatchEvent(new Event("change"));
+  fields.get("#server-cleanup-check").dispatchEvent(new Event("click"));
+  await tick();
+  const list = fields.get("#server-cleanup-installed");
+  assert.equal(list.children[1].children[1].disabled, true);
+  assert.equal(list.children[2].children[1].disabled, false);
+  list.children[2].children[1].dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(commands.length, 1);
+  globalThis.__cleanupConfirm = true;
+  endpoint = { target: "different" };
+  list.children[2].children[1].dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(commands.length, 1);
+  assert.match(fields.get("#server-cleanup-result").textContent, /selection changed/);
+  endpoint = { target: "first" };
+  fields.get("#server-cleanup-check").dispatchEvent(new Event("click"));
+  await tick();
+  list.children[2].children[1].dispatchEvent(new Event("click"));
+  await tick();
+  assert.equal(commands.at(-1).command, "remove_destination_image");
+  assert.deepEqual(commands.at(-1).args, { image: "orcan:old", expectedId: "id2", enclave: endpoint, confirmed: true });
+});

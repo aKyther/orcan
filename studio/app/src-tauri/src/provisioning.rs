@@ -815,15 +815,55 @@ pub(super) async fn remove_destination_image(
     if current.id != expected_id {
         return Err("Image changed. Check the destination again.".into());
     }
-    execute(&enclave, &format!(
-        "set -Eeuo pipefail; image={}; if [[ -n \"$(docker container ls -aq --filter \"ancestor=$image\")\" ]]; then echo 'Remove the container first; this image is still used' >&2; exit 1; fi; docker image rm -- \"$image\"",
-        shell_quote(&current.id)
-    ), &state).await
+    execute(
+        &enclave,
+        &image_removal_script(&current.image, &expected_id),
+        &state,
+    )
+    .await
+}
+
+fn image_removal_script(image: &str, expected_id: &str) -> String {
+    format!(
+        "set -Eeuo pipefail; image={}; expected={}; current=$(docker image inspect --format '{{{{.Id}}}}' \"$image\"); [[ \"$current\" == \"$expected\" ]] || {{ echo 'Image changed. Check the server again.' >&2; exit 1; }}; users=$(docker container ls -aq --filter \"ancestor=$current\"); if [[ -n \"$users\" ]]; then echo 'Remove the container first; this image is still used' >&2; exit 1; fi; docker image rm -- \"$image\"",
+        shell_quote(image), shell_quote(expected_id)
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn image_removal_keeps_used_changed_or_unchecked_images_and_removes_only_selected_tag() {
+        for (id, users, docker_error, success) in [
+            ("sha256:checked", "", false, true),
+            ("sha256:changed", "", false, false),
+            ("sha256:checked", "container-id", false, false),
+            ("sha256:checked", "", true, false),
+        ] {
+            let directory = tempfile::tempdir().unwrap();
+            let removed = directory.path().join("removed");
+            let mock = format!(
+                "docker() {{ if [[ \"$1 $2\" == 'image inspect' ]]; then echo {}; elif [[ \"$1 $2\" == 'container ls' ]]; then {}; else printf '%s' \"$4\" > {}; fi; }}; ",
+                shell_quote(id),
+                if docker_error { "return 1".to_string() } else { format!("printf '%s' {}", shell_quote(users)) },
+                shell_quote(&removed.to_string_lossy()),
+            );
+            let output = std::process::Command::new("bash")
+                .args([
+                    "-c",
+                    &(mock + &image_removal_script("orcan:selected", "sha256:checked")),
+                ])
+                .output()
+                .unwrap();
+            assert_eq!(output.status.success(), success);
+            assert_eq!(removed.exists(), success);
+            if success {
+                assert_eq!(std::fs::read_to_string(removed).unwrap(), "orcan:selected");
+            }
+        }
+    }
 
     #[tokio::test]
     async fn resume_hash_matches_only_the_requested_prefix() {

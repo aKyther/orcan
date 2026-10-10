@@ -2,10 +2,15 @@
 # shellcheck shell=bash
 
 orcan_cmd_uninstall() {
+    local cli_only=0
     local purge=0
     local purge_images=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --cli-only)
+                cli_only=1
+                shift
+                ;;
             --purge-data)
                 purge=1
                 shift
@@ -15,8 +20,9 @@ orcan_cmd_uninstall() {
                 shift
                 ;;
             -h | --help)
-                printf 'usage: orcan uninstall [--purge-data] [--purge-images]\n'
+                printf 'usage: orcan uninstall [--cli-only] [--purge-data] [--purge-images]\n'
                 printf '  Removes ~/.local/bin/orcan and the install under ORCAN_ROOT.\n'
+                printf '  --cli-only keeps all containers, images, configuration and projects.\n'
                 printf '  --purge-data deletes config/logins/caches but always preserves ORCAN_PROJECTS_ROOT.\n'
                 printf '  --purge-images removes local Docker tags matching orcan:*.\n'
                 return 0
@@ -26,6 +32,10 @@ orcan_cmd_uninstall() {
                 ;;
         esac
     done
+
+    if (( cli_only && (purge || purge_images) )); then
+        orcan_usage_error "--cli-only cannot be combined with --purge-data or --purge-images"
+    fi
 
     local launcher="${HOME}/.local/bin/orcan"
     local share_default="${XDG_DATA_HOME:-${HOME}/.local/share}/orcan"
@@ -54,7 +64,7 @@ orcan_cmd_uninstall() {
         return 1
     fi
 
-    if orcan_have docker; then
+    if (( !cli_only )) && orcan_have docker; then
         orcan_info "stopping containers (all up overlay variants)"
         orcan_compose_ttyd_down_all_variants
     fi
@@ -100,8 +110,17 @@ orcan_cmd_uninstall() {
     # Delete the installed source last: --purge-data still needs its Python
     # helper. Never delete an arbitrary development checkout.
     if [[ "${ORCAN_ROOT}" == "${share_default}" || "${ORCAN_ROOT}" == "${HOME}/.orcan" ]]; then
-        rm -rf -- "${ORCAN_ROOT}"
-        orcan_info "removed ${ORCAN_ROOT}"
+        orcan_require_python
+        if orcan_host_python "${ORCAN_SCRIPTS}/uninstall_data.py" \
+            --target "${ORCAN_ROOT}" \
+            --protect "${projects_root}" \
+            --protect "${ORCAN_HOME}" \
+            --protect "${data}" \
+            --config "${ORCAN_CONFIG_FILE}"; then
+            orcan_info "removed CLI install files; kept configured projects and data"
+        else
+            orcan_die "CLI install removal stopped by path safety checks"
+        fi
     else
         orcan_warn "leaving ORCAN_ROOT in place (dev checkout?): ${ORCAN_ROOT}"
         orcan_warn "delete manually if desired"

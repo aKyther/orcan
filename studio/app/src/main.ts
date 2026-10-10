@@ -1,3 +1,4 @@
+import { cleanupPanel } from "./cleanup";
 import defaultIdentities from "./default-identities.json";
 import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
@@ -310,6 +311,7 @@ const demoIdentityVersions = new Map(defaultIdentities.map((identity) => [`${ide
 const demoGroups = new Map<string, import("./group-model").Group>();
 const demoHostIds = new Map<string, string>();
 let manualGroups: ReturnType<typeof groupPanel> | undefined;
+let serverCleanup: ReturnType<typeof cleanupPanel> | undefined;
 
 async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) {
@@ -332,6 +334,11 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
     return invokeTauri<T>(command, _args);
   }
   await new Promise((resolve) => window.setTimeout(resolve, 180));
+  if (command === "server_cleanup_inventory") return {
+    cli: { path: "/home/demo/.local/bin/orcan", version: "orcan demo", removable: true, reason: "" },
+    images: [{ image: "orcan:latest", id: "sha256:demo-cleanup", size: 2000000000, containers: ["orcan-1"] }, { image: "orcan:old", id: "sha256:demo-unused", size: 1800000000, containers: [] }], dockerError: null,
+  } as T;
+  if (command === "remove_server_cli") return "Demo CLI removed" as T;
   if (command === "list_groups") return structuredClone([...demoGroups.values()]) as T;
   if (command === "save_group") {
     const group = structuredClone((_args as { group: import("./group-model").Group }).group);
@@ -2948,6 +2955,7 @@ function renderSetup(): void {
 
 function renderStore(): void {
   manualGroups?.syncProfiles();
+  serverCleanup?.syncProfiles();
   renderCredentials();
   renderProfiles();
   renderEnclaveStatus();
@@ -3163,6 +3171,17 @@ void loadStore().catch((error) => {
 });
 
 void identityLibrary.reload();
+
+serverCleanup = cleanupPanel(invoke, () => profiles, (id) => {
+  const profile = profiles.find(profile => profile.id === id);
+  if (!profile) throw new Error("Saved server profile is missing");
+  return enclaveInput(profileConnection(profile));
+}, (id) => {
+  for (const key of enclaveStatus.keys()) if (key === id || key.startsWith(`${id}:`)) enclaveStatus.delete(key);
+  if (current?.profileId === id) { currentReport = undefined; lockStudio(); }
+  cliProvisionReady = false; inspectedImage = undefined;
+  renderEnclaveStatus();
+});
 
 manualGroups = groupPanel(invoke, () => profiles, (profileId, instance) => {
   const profile = profiles.find((item) => item.id === profileId);

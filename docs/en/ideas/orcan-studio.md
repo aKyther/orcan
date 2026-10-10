@@ -298,6 +298,17 @@ transfer have separate panels, requirements checks, and progress. CLI kits do
 not include a Docker image and do not require destination Docker. Before each
 transfer, Studio checks source and destination
 for the required commands, including Docker only when an image is selected.
+Provisioning also has a separate **Remove Orcan from a server** section. Select
+a server and check its installed components; no transfer source is needed.
+Remove CLI uses `orcan uninstall --cli-only`, which requires an updated host CLI
+with that capability. Older versions show an update requirement and keep removal
+disabled. CLI removal keeps all containers, images, configuration and projects.
+Managed installation files are removed while configured projects inside the
+installation directory are preserved; development checkouts remain.
+Each image tag has its own removal button; running and stopped containers using
+it block removal. Each action needs confirmation and rechecks the installed
+CLI path/version or image ID. Docker failure does not prevent CLI removal.
+
 The offline CLI readiness result reports the destination user, Bash, tar,
 Python 3, and permission to write to the user's home. The separate image check
 verifies Docker access and requires its architecture to match the

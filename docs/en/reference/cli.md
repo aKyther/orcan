@@ -73,7 +73,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan update` | Dev channel: fast-forward this checkout to `origin/main` |
 | `orcan upgrade [--to VERSION]` | Release channel: newest release tag `vX.Y.Z` (default), or `--to` pins one (up or down) |
 | `orcan downgrade [--to VERSION]` | Previous SemVer release, or pin an older `--to` (refuses newer targets) |
-| `orcan uninstall [--purge-data] [--purge-images]` | Stop/remove Orcan runtime and CLI. Data/images are opt-in; `ORCAN_PROJECTS_ROOT` and configured projects are preserved |
+| `orcan uninstall [--cli-only] [--purge-data] [--purge-images]` | Stop/remove Orcan runtime and CLI. `--cli-only` keeps containers, images and data; it cannot be combined with purge flags. Data/images are opt-in; `ORCAN_PROJECTS_ROOT` and configured projects are preserved |
 | `orcan version` / `orcan help` | Version / help |
 
 ### Optional

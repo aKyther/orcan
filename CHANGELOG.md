@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Provisioning lists installed CLI and Orcan images for explicit removal without
+  a transfer source. CLI-only uninstall preserves containers, images, data and
+  configured projects, including projects inside the managed installation. Image
+  removal refuses in-use images and removes only the selected tag.
+
 - Container navigation and active-server highlighting stay within server views;
   setup/library views hide them without dropping the saved selection. Late
   connection checks cannot pull users back from a setup view.

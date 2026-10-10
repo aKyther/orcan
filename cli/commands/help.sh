@@ -60,7 +60,7 @@ Commands:
   downgrade [--to VERSION] Previous SemVer release, or pin an older VERSION
   doctor                   Host / config / container health
   status                   Product version, runtime summary, and installed-agent manifest
-  uninstall [--purge-data] [--purge-images]
+  uninstall [--cli-only] [--purge-data] [--purge-images]
                            Remove Orcan; data/images are opt-in, projects are always kept
   version                  Print version
   help                     Show this help

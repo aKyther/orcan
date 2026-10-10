@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
+mod cleanup;
 mod enclave;
 mod groups;
 mod identities;
@@ -2410,6 +2411,8 @@ fn main() {
             provisioning::discard_transfer,
             provisioning::profile_image_inventory,
             provisioning::remove_destination_image,
+            cleanup::server_cleanup_inventory,
+            cleanup::remove_server_cli,
             list_wsl_distributions,
             wsl_default_user,
             wsl_image_inventory_command,
