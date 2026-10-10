@@ -2,6 +2,7 @@
 //! temporary file on Studio, not buffered in RAM or copied between servers.
 use super::transfer_progress::{ProgressReader, TransferProgress};
 use super::*;
+use russh::ChannelMsg;
 use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
