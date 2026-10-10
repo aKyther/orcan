@@ -58,9 +58,12 @@ def load_config(path: Path) -> dict[str, Any]:
 def dump_config(
     path: Path, data: dict[str, Any], *, expected: bytes | None = None
 ) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
     if not is_json_path(path):
         die(f"unsupported config extension for write (use .json): {path}")
+    # Preserve existing config aliases: replacing the link itself would stop
+    # updates reaching the user's actual configuration.
+    path = path.resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
     pending = None
     try:
         with tempfile.NamedTemporaryFile(

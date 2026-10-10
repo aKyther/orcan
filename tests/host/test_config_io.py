@@ -17,6 +17,16 @@ import config_io  # noqa: E402
 
 
 class ConfigIoTests(unittest.TestCase):
+    def test_atomic_write_preserves_configuration_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "target.json"
+            target.write_text("{}\n")
+            alias = Path(tmp) / "alias.json"
+            alias.symlink_to(target)
+            config_io.dump_config(alias, {"updated": True})
+            self.assertTrue(alias.is_symlink())
+            self.assertEqual(config_io.load_config(target), {"updated": True})
+
     def test_atomic_write_preserves_original_on_replace_failure(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "orcan.config.json"
