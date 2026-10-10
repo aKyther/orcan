@@ -46,6 +46,15 @@ from git_worktrees import (  # noqa: E402
     safe_segment,
 )
 from managed_workspace import create_managed_workspace, find_workspace  # noqa: E402
+from context_presenters import (  # noqa: E402
+    _ellipsize,
+    _humanize,
+    format_pick_label,
+    manage_rows,
+    review_outcome,
+    selection_outside_scan,
+    stack_apply_summary,
+)
 
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$")
 STATE_NAME = "context-tui-state.json"
@@ -179,16 +188,6 @@ def scan_repos(parent: Path, *, max_depth: int = 1) -> list[Path]:
     return [p for p, is_git in scan_dirs(parent, max_depth=max_depth) if is_git]
 
 
-def selection_outside_scan(
-    selected: list[Path] | set[Path],
-    repos: list[tuple[Path, bool]],
-) -> list[Path]:
-    """Paths kept in the selection that are not in the current scan list
-    (e.g. picked under a previous parent). Preserves selection order."""
-    visible = {p for p, _ in repos}
-    return [p for p in selected if p not in visible]
-
-
 def workspace_membership(
     config_path: Path, workspace: str
 ) -> tuple[set[str], set[str]]:
@@ -278,23 +277,6 @@ def classify_pick(
     return bits
 
 
-def format_pick_label(path: Path, bits: list[str], *, mark: str = "+") -> str:
-    tag = f"  ({' · '.join(bits)})" if bits else ""
-    return f"{mark} {path.name}{tag}"
-
-
-def review_outcome(bits: list[str]) -> str:
-    """Translate compact scan tags into an explicit apply outcome."""
-    labels = {
-        "mount": "plain directory (mount as-is)",
-        "elsewhere": "selected in another folder",
-        "in ws": "already connected — no change",
-        "name taken": "name conflict — will be renamed",
-        "other ws": "also used in another workspace",
-    }
-    return " · ".join(labels.get(bit, bit) for bit in bits) if bits else "new project"
-
-
 def format_will_add_lines(
     selected: list[Path],
     repos: list[tuple[Path, bool]],
@@ -340,23 +322,6 @@ def format_will_add_lines(
     if omitted:
         lines.append(_ellipsize(f"… +{omitted} more", width))
     return lines
-
-
-def stack_apply_summary(
-    selected: list[Path],
-    *,
-    paths_in_ws: set[str],
-) -> tuple[int, int]:
-    """Return (new_count, already_in_ws_count) for the will-add header."""
-    already = 0
-    for path in selected:
-        try:
-            resolved = str(path.resolve())
-        except OSError:
-            resolved = str(path)
-        if resolved in paths_in_ws:
-            already += 1
-    return len(selected) - already, already
 
 
 def selection_mode_summary(
@@ -409,19 +374,6 @@ def worktree_is_dirty(path: Path) -> bool:
     return r.returncode == 0 and bool(r.stdout.strip())
 
 
-def _ellipsize(text: str, width: int) -> str:
-    """Truncate text to width, marking truncation with an ellipsis instead of
-    silently cutting it off — so a long path reads as 'cut here', not as the
-    whole path. Pure/curses-free."""
-    if width <= 0:
-        return ""
-    if len(text) <= width:
-        return text
-    if width == 1:
-        return "…"
-    return text[: width - 1] + "…"
-
-
 def resolve_config(path: str) -> Path:
     if path:
         p = Path(path)
@@ -429,20 +381,6 @@ def resolve_config(path: str) -> Path:
             p = (ROOT / p).resolve()
         return p
     return discover_config(ROOT) or default_write_path(ROOT)
-
-
-def _humanize(seconds: float) -> str:
-    """Coarse duration like '5m', '3h', '2d' — used for history age/TTL display."""
-    seconds = max(0, int(seconds))
-    if seconds < 60:
-        return f"{seconds}s"
-    minutes = seconds // 60
-    if minutes < 60:
-        return f"{minutes}m"
-    hours = minutes // 60
-    if hours < 24:
-        return f"{hours}h"
-    return f"{hours // 24}d"
 
 
 def update_parent_history(
@@ -1632,27 +1570,6 @@ def _run_curses(args: argparse.Namespace) -> int:
         return _run_sync()
     info("Run: orcan sync && orcan down && orcan up")
     return 0
-
-
-def manage_rows(
-    workspaces: list[Any], collapsed: set[int] | None = None
-) -> list[tuple[str, int, int | None]]:
-    """(kind, ws_idx, proj_idx) — kind 'ws' or 'proj'; proj_idx None for 'ws'.
-    Pure/curses-free so it's directly unit-testable."""
-    out: list[tuple[str, int, int | None]] = []
-    collapsed = collapsed or set()
-    for wi, ws in enumerate(workspaces):
-        if not isinstance(ws, dict):
-            continue
-        out.append(("ws", wi, None))
-        if wi in collapsed:
-            continue
-        projects = ws.get("projects")
-        if isinstance(projects, list):
-            for pi, p in enumerate(projects):
-                if isinstance(p, dict):
-                    out.append(("proj", wi, pi))
-    return out
 
 
 def manage_rename_workspace(
