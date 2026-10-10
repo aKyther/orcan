@@ -4,8 +4,36 @@ use std::sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
 };
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::time::Instant;
+
+pub(super) fn append_response(buffer: &mut Vec<u8>, data: &[u8]) -> Result<(), String> {
+    if data.len() > orcan_studio_core::RESPONSE_LIMIT.saturating_sub(buffer.len()) {
+        return Err(
+            "Command response exceeded the 16 MiB limit; refresh before retrying.".to_owned(),
+        );
+    }
+    buffer.extend_from_slice(data);
+    Ok(())
+}
+
+pub(super) async fn read_response(
+    stream: impl tokio::io::AsyncRead + Unpin,
+) -> Result<Vec<u8>, String> {
+    let mut buffer = Vec::new();
+    stream
+        .take((orcan_studio_core::RESPONSE_LIMIT + 1) as u64)
+        .read_to_end(&mut buffer)
+        .await
+        .map_err(|e| e.to_string())?;
+    if buffer.len() > orcan_studio_core::RESPONSE_LIMIT {
+        return Err(
+            "Command response exceeded the 16 MiB limit; refresh before retrying.".to_owned(),
+        );
+    }
+    Ok(buffer)
+}
 
 /// Armed until both the helper and its pipes have finished. Dropping an outer
 /// future must stop descendants too, not only Tokio's direct child.
@@ -49,8 +77,8 @@ pub(super) async fn capture(
     let pid = child.id().ok_or("Command has no process ID")?;
     let mut tree = ProcessTree(Some(pid));
     let mut stdin = child.stdin.take();
-    let mut stdout = child.stdout.take().ok_or("Command has no stdout")?;
-    let mut stderr = child.stderr.take().ok_or("Command has no stderr")?;
+    let stdout = child.stdout.take().ok_or("Command has no stdout")?;
+    let stderr = child.stderr.take().ok_or("Command has no stderr")?;
     let result = deadline(duration, async {
         let write = async {
             if let (Some(stream), Some(bytes)) = (&mut stdin, input) {
@@ -59,19 +87,14 @@ pub(super) async fn capture(
             }
             Ok::<_, std::io::Error>(())
         };
-        let mut out = Vec::new();
-        let mut err = Vec::new();
-        let (sent, status, read_out, read_err) = tokio::join!(
-            write,
-            child.wait(),
-            stdout.read_to_end(&mut out),
-            stderr.read_to_end(&mut err)
-        );
-        sent.map_err(|e| e.to_string())?;
-        read_out.map_err(|e| e.to_string())?;
-        read_err.map_err(|e| e.to_string())?;
+        let (_, status, out, err) = tokio::try_join!(
+            async { write.await.map_err(|e| e.to_string()) },
+            async { child.wait().await.map_err(|e| e.to_string()) },
+            read_response(stdout),
+            read_response(stderr)
+        )?;
         Ok(std::process::Output {
-            status: status.map_err(|e| e.to_string())?,
+            status,
             stdout: out,
             stderr: err,
         })
@@ -128,7 +151,22 @@ impl Activity {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[tokio::test]
+    async fn response_limit_rejects_excess_without_truncating_json() {
+        let bytes = vec![0; orcan_studio_core::RESPONSE_LIMIT + 1];
+        assert!(
+            read_response(bytes.as_slice())
+                .await
+                .unwrap_err()
+                .contains("16 MiB")
+        );
+        let mut buffer = vec![0; orcan_studio_core::RESPONSE_LIMIT];
+        assert!(append_response(&mut buffer, b"x").is_err());
+        assert_eq!(buffer.len(), orcan_studio_core::RESPONSE_LIMIT);
+        assert_eq!(read_response(&b"valid"[..]).await.unwrap(), b"valid");
+    }
+    #[tokio::test(start_paused = true)]
     async fn deadline_bounds_an_unresponsive_operation() {
         assert!(
             deadline::<()>(Duration::from_millis(10), std::future::pending())
@@ -137,7 +175,7 @@ mod tests {
                 .contains("not rolled back")
         );
     }
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn idle_guard_accepts_progress_beyond_one_deadline() {
         let activity = Activity::new();
         activity

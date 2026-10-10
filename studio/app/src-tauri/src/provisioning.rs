@@ -505,10 +505,12 @@ async fn move_file_inner(
                         writer.write_all(&data).await.map_err(|e| e.to_string())?;
                         progress.advance(data.len());
                     } else {
-                        stdout.extend_from_slice(&data);
+                        execution::append_response(&mut stdout, &data)?;
                     }
                 }
-                ChannelMsg::ExtendedData { data, .. } => stderr.extend_from_slice(&data),
+                ChannelMsg::ExtendedData { data, .. } => {
+                    execution::append_response(&mut stderr, &data)?
+                }
                 ChannelMsg::ExitStatus { exit_status } => status = Some(exit_status),
                 _ => {}
             }
@@ -536,6 +538,8 @@ async fn move_file_inner(
     let mut child = command.spawn().map_err(|e| e.to_string())?;
     let mut tree = execution::ProcessTree(child.id());
     let stdin = child.stdin.take();
+    let response = if upload { child.stdout.take() } else { None };
+    let diagnostics = child.stderr.take().ok_or("Command has no stderr")?;
     let stdout = if upload { None } else { child.stdout.take() };
     let copy = async {
         if upload {
@@ -558,16 +562,22 @@ async fn move_file_inner(
         }
         Ok::<_, io::Error>(())
     };
-    let (copied, output) = tokio::join!(copy, child.wait_with_output());
-    if copied.is_ok() && output.is_ok() {
-        tree.0 = None;
+    let (_, status, stdout, stderr) = tokio::try_join!(
+        async { copy.await.map_err(|e| e.to_string()) },
+        async { child.wait().await.map_err(|e| e.to_string()) },
+        async {
+            match response {
+                Some(stream) => execution::read_response(stream).await,
+                None => Ok(Vec::new()),
+            }
+        },
+        execution::read_response(diagnostics)
+    )?;
+    tree.0 = None;
+    if !status.success() {
+        return Err(String::from_utf8_lossy(&stderr).trim().to_owned());
     }
-    let output = output.map_err(|e| e.to_string())?;
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
-    }
-    copied.map_err(|e| e.to_string())?;
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+    Ok(String::from_utf8_lossy(&stdout).trim().to_owned())
 }
 
 #[tauri::command]

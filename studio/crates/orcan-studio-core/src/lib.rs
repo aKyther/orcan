@@ -12,7 +12,8 @@ use std::process::Command;
 
 mod process;
 pub use process::{
-    CHECK_TIMEOUT, COMMAND_TIMEOUT, ControlledRunner, capture_command, terminate_process_tree,
+    CHECK_TIMEOUT, COMMAND_TIMEOUT, ControlledRunner, RESPONSE_LIMIT, capture_command,
+    terminate_process_tree,
 };
 
 pub const PROTOCOL_NAME: &str = "orcan-studio";

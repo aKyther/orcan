@@ -131,6 +131,9 @@ refresh the host before retrying. Streaming image transfers retain their separat
 progress/resume workflow with a five-minute idle deadline; active transfers have
 no fixed total-duration limit. Provisioning and SSH preparation also bound stdin
 commands. These limits are policy, not performance benchmarks.
+Command responses and diagnostics have a 16 MiB limit per stream. Exceeding it
+is an explicit failure, never silently truncated JSON; image bytes use a separate
+streaming path and are not subject to this response limit.
 
 Worktree apply responses can have `ok: true` with `outcome: partial`: the request
 returned a usable result, but not every attachment succeeded. `completed` and

@@ -378,8 +378,10 @@ async fn native_ssh_exec_inner(
     let mut exit_status = None;
     while let Some(message) = channel.wait().await {
         match message {
-            ChannelMsg::Data { data } => stdout.extend_from_slice(&data),
-            ChannelMsg::ExtendedData { data, .. } => stderr.extend_from_slice(&data),
+            ChannelMsg::Data { data } => super::execution::append_response(&mut stdout, &data)?,
+            ChannelMsg::ExtendedData { data, .. } => {
+                super::execution::append_response(&mut stderr, &data)?
+            }
             ChannelMsg::ExitStatus {
                 exit_status: status,
             } => exit_status = Some(status),
@@ -447,8 +449,10 @@ pub(super) async fn native_ssh_stream_wsl(
     let mut exit_status = None;
     while let Some(message) = channel.wait().await {
         match message {
-            ChannelMsg::Data { data } => stdout.extend_from_slice(&data),
-            ChannelMsg::ExtendedData { data, .. } => stderr.extend_from_slice(&data),
+            ChannelMsg::Data { data } => super::execution::append_response(&mut stdout, &data)?,
+            ChannelMsg::ExtendedData { data, .. } => {
+                super::execution::append_response(&mut stderr, &data)?
+            }
             ChannelMsg::ExitStatus {
                 exit_status: status,
             } => exit_status = Some(status),

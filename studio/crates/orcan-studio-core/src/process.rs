@@ -12,6 +12,8 @@ use std::time::{Duration, Instant};
 
 pub const COMMAND_TIMEOUT: Duration = Duration::from_secs(900);
 pub const CHECK_TIMEOUT: Duration = Duration::from_secs(90);
+/// Small command responses only; never use this path for an image archive.
+pub const RESPONSE_LIMIT: usize = 16 * 1024 * 1024;
 
 pub struct ControlledRunner {
     pub timeout: Duration,
@@ -63,7 +65,19 @@ pub fn capture_command(
     ) {
         std::thread::spawn(move || {
             let mut bytes = Vec::new();
-            let result = pipe.read_to_end(&mut bytes).map(|_| bytes);
+            let result = pipe
+                .by_ref()
+                .take((RESPONSE_LIMIT + 1) as u64)
+                .read_to_end(&mut bytes)
+                .and_then(|_| {
+                    if bytes.len() > RESPONSE_LIMIT {
+                        Err(std::io::Error::other(
+                            "Command response exceeded the 16 MiB limit; refresh before retrying",
+                        ))
+                    } else {
+                        Ok(bytes)
+                    }
+                });
             let _ = send.send((stdout, result));
         });
     }
@@ -102,13 +116,11 @@ pub fn capture_command(
                 }
             }
         }
-        if let (Some(status), Some(stdout), Some(stderr)) =
-            (status, stdout.as_ref(), stderr.as_ref())
-        {
+        if status.is_some() && stdout.is_some() && stderr.is_some() {
             break Ok(std::process::Output {
-                status,
-                stdout: stdout.clone(),
-                stderr: stderr.clone(),
+                status: status.unwrap(),
+                stdout: stdout.take().unwrap(),
+                stderr: stderr.take().unwrap(),
             });
         }
         if cancelled.load(Ordering::Relaxed) {
@@ -148,6 +160,22 @@ pub fn terminate_process_tree(pid: u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn oversized_response_stops_the_helper_without_waiting_for_exit() {
+        let started = Instant::now();
+        let result = capture_command(
+            Command::new("sh").args([
+                "-c",
+                &format!("head -c {} /dev/zero; sleep 30", RESPONSE_LIMIT + 1),
+            ]),
+            CHECK_TIMEOUT,
+            &AtomicBool::new(false),
+        );
+        assert!(result.unwrap_err().to_string().contains("16 MiB"));
+        assert!(started.elapsed() < Duration::from_secs(3));
+    }
 
     #[test]
     fn cancellation_before_launch_never_starts_a_process() {
