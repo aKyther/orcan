@@ -1590,6 +1590,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#gitlab-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitLab access
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2157,6 +2168,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#gitlab-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitLab access
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2377,7 +2399,7 @@
 <td>Agent task handoff queue under <code>.orcan/tasks/</code> (<code>propose</code>, <code>approve</code>, <code>claim</code>, <code>complete</code>, <code>list</code>, <code>watch</code>). See <a href="../../ideas/agent-inbox/">Agent inbox</a></td>
 </tr>
 <tr>
-<td><code>orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]]</code></td>
+<td><code>orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]</code></td>
 <td>Start container (<code>orcan enter</code> locally; pick <strong>one</strong> browser mode: <code>--web-terminal</code> or <code>--web-terminal-auth</code>); optional socket <strong>or</strong> network join (pick one) + SSH; hints if a newer release exists</td>
 </tr>
 <tr>
@@ -2495,6 +2517,14 @@
 <td>Select a GitHub hostname; requires <code>--github</code>. Use a hostname without a URL, path or port.</td>
 </tr>
 <tr>
+<td><code>--gitlab</code></td>
+<td>Provide a token to GitLab CLI in the selected container. Default host: <code>gitlab.com</code>.</td>
+</tr>
+<tr>
+<td><code>--gitlab-hostname HOST</code></td>
+<td>Select a GitLab hostname; requires <code>--gitlab</code>. Use a hostname without a URL, path or port.</td>
+</tr>
+<tr>
 <td><code>--ssh</code></td>
 <td>Mount host <code>~/.ssh</code> read-only (+ SSH agent when <code>SSH_AUTH_SOCK</code> is set) for push/pull</td>
 </tr>
@@ -2527,6 +2557,32 @@ PR creation, comments and reviews; Git SSH access still uses <code>--ssh</code>.
 <code>--resume</code> retains the hostname and enabled flag, and resolves the token again.
 Start without <code>--github</code> to recreate the container without this supplied token.
 The same option is available for named instances (<code>orcan --instance reviewer up --github</code>).</p>
+<h3 id="gitlab-access">GitLab access<a class="headerlink" href="#gitlab-access" title="Permanent link">&para;</a></h3>
+<p>The image includes <code>glab</code> (GitLab CLI). Authenticate on the host/VM that runs
+Orcan, then enable access explicitly:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>glab<span class="w"> </span>auth<span class="w"> </span>login<span class="w"> </span>--hostname<span class="w"> </span>gitlab.com
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>orcan<span class="w"> </span>up<span class="w"> </span>--gitlab
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># A company GitLab instance</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>glab<span class="w"> </span>auth<span class="w"> </span>login<span class="w"> </span>--hostname<span class="w"> </span>gitlab.company.example
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>orcan<span class="w"> </span>up<span class="w"> </span>--gitlab<span class="w"> </span>--gitlab-hostname<span class="w"> </span>gitlab.company.example
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># Both services in one container</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>orcan<span class="w"> </span>up<span class="w"> </span>--github<span class="w"> </span>--gitlab<span class="w"> </span>--gitlab-hostname<span class="w"> </span>gitlab.company.example
+</span></code></pre></div>
+<p>Both public and company instances use <code>GITLAB_TOKEN</code>. Orcan also accepts
+<code>GITLAB_ACCESS_TOKEN</code> and <code>OAUTH_TOKEN</code>, in that order after <code>GITLAB_TOKEN</code>.
+Without an environment token, it requests the saved login for the selected host
+with <code>glab config get token --host HOST</code>. CI job tokens are not used for this mode.
+See <a href="https://docs.gitlab.com/cli/authentication/">GitLab authentication</a>.</p>
+<p>As with GitHub, a missing token stops the launch before the current container is
+stopped. The token is passed in the container environment, accessible to agents
+and Docker administrators, and is absent from Orcan config, generated overlays
+and launch records. Scope it to the required projects and operations. <code>--resume</code>
+remembers the hostname and resolves the token again. Starting without <code>--gitlab</code>
+removes this supplied access. GitLab and GitHub access can be enabled separately
+or together. <code>--gitlab</code> does not modify remotes or Git HTTPS credentials; SSH
+access continues to use <code>--ssh</code>. Update/rebuild the runtime image to obtain <code>glab</code>.</p>
 <p>Other flags combine with a chosen browser mode, e.g. <code>orcan up --web-terminal --ssh</code> or <code>orcan up --web-terminal-auth user:pass --network my-net</code>.</p>
 <p>Git <strong>author</strong> identity is always synced by <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> from host <code>user.name</code> / <code>user.email</code>). SSH keys are only attached with <code>--ssh</code>. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: <a href="../security/">Security</a>, <a href="../../guides/workflows/">Workflows</a>.</p>
 <h2 id="maintainer-make">Maintainer Make<a class="headerlink" href="#maintainer-make" title="Permanent link">&para;</a></h2>
@@ -2553,7 +2609,7 @@ The same option is available for named instances (<code>orcan --instance reviewe
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 05:54:04 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 06:05:02 UTC">October 10, 2026</span>
   </span>
 
     

@@ -1615,6 +1615,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Optional private registry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gitlab-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitLab CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2081,6 +2098,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Optional private registry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gitlab-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitLab CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2336,6 +2370,12 @@ or nested <code>cache/cache/</code>): run
 <code>orcan sync &amp;&amp; orcan up</code>.</p>
 <h2 id="optional-private-registry">Optional private registry<a class="headerlink" href="#optional-private-registry" title="Permanent link">&para;</a></h2>
 <p>CI does <strong>not</strong> publish images. For your own registry use <code>orcan pull</code> / <code>orcan publish</code> (see <a href="../cli/">CLI reference</a>). Maintainer helpers: <a href="../makefile/#optional-private-registry">Makefile — optional registry</a>.</p>
+<h3 id="gitlab-cli">GitLab CLI<a class="headerlink" href="#gitlab-cli" title="Permanent link">&para;</a></h3>
+<p>The image includes a pinned <code>glab</code> release for amd64 and arm64. Use
+<code>orcan up --gitlab [--gitlab-hostname HOST]</code> to supply host authentication only
+when requested. See <a href="../cli/#gitlab-access">GitLab access</a>. Existing images need
+an update/rebuild to include the new tool; enabling access does not install it
+inside a running container.</p>
 
 
 
@@ -2358,7 +2398,7 @@ or nested <code>cache/cache/</code>): run
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 05:57:20 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 06:05:02 UTC">October 10, 2026</span>
   </span>
 
     
