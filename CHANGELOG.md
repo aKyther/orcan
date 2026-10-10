@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio map selection preserves cards, indexes parent lookups and coalesces
+  connection redraws, including collapsed groups. Browser smoke tests cover
+  connection gating, responsive anchors and draft discard; demo contexts are editable.
+- Host configuration saves serialize cooperating writers and reject stale loaded
+  snapshots. Pure context presenters/tests are separated from Git operations.
+- Optional extended coverage includes compatible Python subprocesses in the same
+  test run; default CI retains fast parent-process coverage. CI Rust
+  caches exclude bundles/incremental output and use compiler-specific keys.
+
 - Studio probe bounds Docker/Git reads and reads agent metadata directly from
   new image labels. Older images keep the manifest fallback; numeric agent flags
   are accepted. Failed worktree status checks remain unknown, not clean.

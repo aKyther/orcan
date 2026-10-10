@@ -45,8 +45,11 @@ plus `cargo test --manifest-path studio/Cargo.toml` for native Rust changes.
 Run the full checks before handoff.
 
 CI runs UI behavior tests and native application tests as well as the Rust core.
-Studio jobs cache npm/Cargo dependencies and Rust build output; installer caches
-are separate per platform and build mode. Host checks share uv dependencies
+Studio jobs cache npm/Cargo dependencies and compiled dependency directories, not
+installers, app executables or incremental output. Keys include the Rust compiler,
+platform and build mode. Linux CI omits development debug symbols and logs cache
+directory sizes; compare restore/save times with compile time before expanding
+the cache. Host checks share uv dependencies
 instead of installing the test requirements into two Python environments.
 
 Pure worktree contracts live in `test_git_worktrees.py`; real Git operations
@@ -56,11 +59,54 @@ shared or hardlinked. Keep scenario-specific remotes and commits in each test.
 UI tests share `tests/helpers.mjs`: TypeScript compilation is cached, but each
 test gets fresh module state. No browser emulator is needed for these contracts.
 
+`test_context_presenters.py` contains isolated formatting contracts; Git-backed
+context tests remain in `test_context_tui.py`. Labels and rows live in
+`scripts/repository/context_presenters.py`, without curses or command execution.
+
+Studio has three real browser smoke flows, independent of the cockpit suite:
+connection gating, map selection/resize anchors, and drag/stage/discard. They use
+bundled demo data, block host snapshots, and contact no SSH or Docker target.
+CI runs them after the UI tests. Locally:
+
+```bash
+npm install --no-save --no-package-lock --prefix .orcan-dev-ux/playwright-node @playwright/test@1.55.0
+.orcan-dev-ux/playwright-node/node_modules/.bin/playwright install chromium --with-deps
+make studio-test-browser
+```
+
+The browser check starts and stops its own Vite server on port 1438; do not point
+it at the daily Orcan runtime. Headless browser dependencies are needed only for
+this check, not `npm test`. Map geometry owns coalesced frame scheduling in
+`map-connections.ts`; project selection updates classes/edges, not all cards.
+
+Default CI coverage measures the test process, not helper subprocesses. All tests
+still run, including real CLI operations. For an accurate extended diagnostic:
+
+```bash
+make test-coverage-subprocess TEST_ARGS="tests/host/test_studio_probe.py"
+```
+
+This explicit mode enables Python subprocess startup instrumentation and combines
+per-process data after the suite. It adds overhead; do not add another full run
+to CI. Child commands keep their working directories;
+reports are collected in the checkout even for tests running in temporary folders.
+Separately installed Python interpreters without coverage and killed processes
+may not contribute. Inline Python version/PATH discovery is not instrumented.
+Normal `test-host`/`test-fast` do not enable instrumentation.
+
 Probe inspection deduplicates canonical paths only within one request. Unknown
 Git status is not clean and cannot authorize an update. Configuration writes use
-unique temporary files and atomic replacement; Studio compares the snapshot
-before saving. This detects stale edits, but is not a transaction with arbitrary
+unique temporary files and atomic replacement. Host writers serialize commits
+with a bounded parent-directory lock, preserving configuration symlinks.
+`load_config` snapshots automatically check their revision before saving; Studio
+supplies its explicit read snapshot. A stale save is rejected, not merged or
+silently overwritten. This is not a transaction with arbitrary
 external editors, which should not write the same configuration concurrently.
+
+Every Docker probe request and read-only worktree Git command has a timeout.
+New images advertise installed agents in labels, avoiding a helper container on
+each probe; legacy images retain the bounded manifest fallback. There is no
+persistent cache of mutable repository status or image tags.
 
 Validation scans source files once using Git's tracked/non-ignored file list,
 excluding build output, dependency folders, virtual environments and secrets.

@@ -44,9 +44,9 @@ jobs:
             studio/target/debug/deps
             studio/target/debug/build
             studio/target/debug/.fingerprint
-          key: studio-check-v2-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-${{ github.sha }}
+          key: studio-check-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-${{ github.sha }}
           restore-keys: |
-            studio-check-v2-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-
+            studio-check-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-
 
       - name: Install Tauri Linux dependencies
         run: |

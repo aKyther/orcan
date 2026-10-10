@@ -50,9 +50,9 @@ jobs:
             studio/target/release/deps
             studio/target/release/build
             studio/target/release/.fingerprint
-          key: studio-bundle-v2-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml', 'studio/app/package-lock.json') }}-${{ github.sha }}
+          key: studio-bundle-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml', 'studio/app/package-lock.json') }}-${{ github.sha }}
           restore-keys: |
-            studio-bundle-v2-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml', 'studio/app/package-lock.json') }}-
+            studio-bundle-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml', 'studio/app/package-lock.json') }}-
       - name: Build native bundle
         working-directory: studio/app
         run: npm run tauri build
