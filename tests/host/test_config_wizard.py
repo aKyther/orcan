@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 cw = load_script("config-wizard.py")
 

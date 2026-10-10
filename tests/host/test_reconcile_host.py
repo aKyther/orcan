@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 ROOT = Path(__file__).resolve().parents[2]
 LIB = ROOT / "docker" / "rootfs" / "usr" / "local" / "lib"

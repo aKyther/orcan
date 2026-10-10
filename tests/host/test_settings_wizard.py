@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 sw = load_script("settings-wizard.py")
 

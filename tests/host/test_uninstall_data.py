@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 uninstall_data = load_script("uninstall_data.py")
 

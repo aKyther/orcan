@@ -1,7 +1,6 @@
 """Docker/Git command boundaries without a daemon or subprocess execution."""
 
 import json
-from types import SimpleNamespace
 
 from ._scripts_loader import load_script
 

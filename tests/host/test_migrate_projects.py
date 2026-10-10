@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 migrate_projects = load_script("migrate_projects.py")
 

@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 apply_config = load_script("apply-config.py")
 from orcan.identity import validate_identity

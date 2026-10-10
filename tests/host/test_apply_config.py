@@ -12,7 +12,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 apply_config = load_script("apply-config.py")
 

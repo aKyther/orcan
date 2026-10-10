@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 target = load_script("studio-target.py")
 

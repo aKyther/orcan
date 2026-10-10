@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _scripts_loader import load_script
+from ._scripts_loader import load_script
 
 workspace_audit = load_script("workspace-audit.py")
 
