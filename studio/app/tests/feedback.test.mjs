@@ -141,7 +141,7 @@ test("enclave picker discovers containers automatically and ignores stale server
 test("identity revisions stay selected after edits and stale reloads are ignored", async () => {
   setup();
   const fields = new Map();
-  for (const name of ["list", "name", "description", "instructions", "result", "save", "new", "refresh", "open-data", "path", "cancel", "editor", "editor-title", "browser"]) {
+  for (const name of ["list", "name", "description", "instructions", "tools", "result", "save", "new", "refresh", "open-data", "path", "cancel", "editor", "editor-title", "browser"]) {
     const field = new Element();
     field.value = "";
     fields.set(`#identity-${name}`, field);
@@ -241,7 +241,7 @@ async function load(name, imports = {}) {
   const transpile = (source) => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const dom = dataModule(transpile(readFileSync(new URL("../src/dom.ts", import.meta.url), "utf8")));
   let source = transpile(readFileSync(new URL(`../src/${name}.ts`, import.meta.url), "utf8"));
-  for (const [path, module] of Object.entries({ "./dom": dom, "./id": dataModule(transpile(readFileSync(new URL("../src/id.ts", import.meta.url), "utf8"))), ...imports })) source = source.replace(JSON.stringify(path), JSON.stringify(module));
+  for (const [path, module] of Object.entries({ "./identity-instructions": dataModule(transpile(readFileSync(new URL("../src/identity-instructions.ts", import.meta.url), "utf8"))), "./dom": dom, "./id": dataModule(transpile(readFileSync(new URL("../src/id.ts", import.meta.url), "utf8"))), ...imports })) source = source.replace(JSON.stringify(path), JSON.stringify(module));
   return import(dataModule(`${source}\n// isolated test ${Math.random()}`));
 }
 
@@ -402,4 +402,19 @@ test("UUIDs remain valid and unique in the HTTP preview without randomUUID", asy
   } finally {
     Object.defineProperty(globalThis, "crypto", original);
   }
+});
+
+
+test("preferred tools round-trip without altering old instructions or stacking sections", async () => {
+  const { identityFields, identityInstructions } = await load("identity-instructions");
+  const original = "Test behavior.\n\n## Preferred tools\nA handwritten section stays intact.\n";
+  assert.deepEqual(identityFields(original), { instructions: original, tools: "" });
+  const combined = identityInstructions(original, " FastAPI, Pydantic, pytest, Ruff ");
+  const fields = identityFields(combined);
+  assert.deepEqual(fields, { instructions: original, tools: "FastAPI, Pydantic, pytest, Ruff" });
+  assert.equal(identityInstructions(fields.instructions, fields.tools), combined);
+  assert.equal(identityInstructions(fields.instructions, ""), original);
+  const defaults = JSON.parse(readFileSync(new URL("../src/default-identities.json", import.meta.url), "utf8"));
+  assert.deepEqual(defaults.map(item => item.name), ["Tester", "Senior Engineer", "Reviewer"]);
+  for (const item of defaults) assert.ok(identityFields(item.instructions).tools);
 });

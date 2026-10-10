@@ -168,6 +168,8 @@
           <section class="panel" id="identity-editor" hidden><div class="panel-heading"><h2 id="identity-editor-title">New identity</h2><button id="identity-cancel" class="secondary" type="button">Cancel</button></div>
             <label>Name<input id="identity-name" maxlength="120" placeholder="Effective developer" /></label>
             <label>Description<input id="identity-description" maxlength="1000" placeholder="Purpose and working style" /></label>
+            <label>Preferred tools<textarea id="identity-tools" rows="2" maxlength="2000" placeholder="FastAPI, Pydantic, pytest, Ruff"></textarea></label>
+            <p class="hint">Starting toolkit for this role. Use it where appropriate and follow the project’s existing stack. This does not install tools.</p>
             <label>Instructions (Markdown)<textarea id="identity-instructions" rows="12" maxlength="32768" placeholder="Describe the role, working habits and how to report results."></textarea></label>
             <p class="hint">Base Orcan instructions and repository rules remain. Saving a template never updates existing containers.</p>
             <button id="identity-save" type="button">Create identity</button>

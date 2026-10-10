@@ -1,3 +1,4 @@
+import { identityFields, identityInstructions } from "./identity-instructions";
 import { actionButton, el } from "./dom";
 import type { Identity } from "./types";
 
@@ -8,6 +9,7 @@ export function identityPanel(invoke: Invoke, changed: () => void) {
   const list = field<HTMLElement>("list");
   const name = field<HTMLInputElement>("name");
   const description = field<HTMLInputElement>("description");
+  const tools = field<HTMLTextAreaElement>("tools");
   const instructions = field<HTMLTextAreaElement>("instructions");
   const status = field<HTMLOutputElement>("result");
   const save = field<HTMLButtonElement>("save");
@@ -32,14 +34,16 @@ export function identityPanel(invoke: Invoke, changed: () => void) {
     editing = identity;
     name.value = identity?.name ?? "";
     description.value = identity?.description ?? "";
-    instructions.value = identity?.instructions ?? "";
+    const content = identityFields(identity?.instructions ?? "");
+    instructions.value = content.instructions;
+    tools.value = content.tools;
     save.textContent = identity ? "Save new version" : "Create identity";
     status.textContent = identity ? `Editing ${identity.name} v${identity.version}. Existing containers keep their version.` : "Describe how this container's agents should work. Orcan base rules remain.";
     name.focus();
   }
   function closeEditor() {
     editing = undefined;
-    name.value = description.value = instructions.value = "";
+    name.value = description.value = instructions.value = tools.value = "";
     editor.hidden = true;
     browser.hidden = false;
     (returnFocus?.isConnected ? returnFocus : fresh).focus();
@@ -63,7 +67,9 @@ export function identityPanel(invoke: Invoke, changed: () => void) {
         el("h3", { textContent: `${identity.name} · v${identity.version}`, title: identity.name }),
         actionButton("Edit", () => edit(identity), "secondary")),
       ...(identity.description ? [el("p", { className: "identity-card-description", textContent: identity.description, title: identity.description })] : []),
-      el("details", {}, el("summary", { textContent: "View instructions" }), el("pre", { textContent: identity.instructions })))));
+      el("details", {}, el("summary", { textContent: "View instructions" }),
+        ...(identityFields(identity.instructions).tools ? [el("p", {}, el("strong", { textContent: "Preferred tools: " }), el("span", { textContent: identityFields(identity.instructions).tools }))] : []),
+        el("pre", { textContent: identityFields(identity.instructions).instructions })))));
     if (!identities.length) list.append(el("p", { className: "hint", textContent: "No custom identities. Containers can use Default." }));
   }
   async function reload() {
@@ -85,9 +91,9 @@ export function identityPanel(invoke: Invoke, changed: () => void) {
     if (busy) return;
     busy = true;
     let saved = false;
-    for (const input of [save, fresh, cancel, name, description, instructions]) input.disabled = true;
+    for (const input of [save, fresh, cancel, name, description, instructions, tools]) input.disabled = true;
     try {
-      const identity = await invoke<Identity>("save_identity", { id: editing?.id, expectedVersion: editing?.version, name: name.value, description: description.value, instructions: instructions.value });
+      const identity = await invoke<Identity>("save_identity", { id: editing?.id, expectedVersion: editing?.version, name: name.value, description: description.value, instructions: identityInstructions(instructions.value, tools.value) });
       await reload();
       saved = true;
       changed();
@@ -95,7 +101,7 @@ export function identityPanel(invoke: Invoke, changed: () => void) {
     } catch (error) { status.textContent = `Could not save identity: ${String(error)}`; }
     finally {
       busy = false;
-      for (const input of [save, fresh, cancel, name, description, instructions]) input.disabled = false;
+      for (const input of [save, fresh, cancel, name, description, instructions, tools]) input.disabled = false;
       if (saved) closeEditor();
     }
   });

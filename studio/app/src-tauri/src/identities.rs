@@ -116,8 +116,33 @@ fn revision_dir(root: &Path, id: &str, version: u32) -> Result<PathBuf, String> 
     Ok(versions.join(version.to_string()))
 }
 
+fn builtins() -> Result<Vec<Identity>, String> {
+    let identities: Vec<Identity> =
+        serde_json::from_str(include_str!("../../src/default-identities.json")).map_err(error)?;
+    for identity in &identities {
+        identity.validate()?;
+    }
+    Ok(identities)
+}
+
+pub(crate) fn library_at(root: &Path) -> Result<Vec<Identity>, String> {
+    let mut identities = list_at(root)?;
+    for identity in builtins()? {
+        if !identities.iter().any(|saved| saved.id == identity.id) {
+            identities.push(identity);
+        }
+    }
+    identities.sort_by(|a, b| a.name.cmp(&b.name).then(a.id.cmp(&b.id)));
+    Ok(identities)
+}
+
 pub(crate) fn read_at(root: &Path, id: &str, version: u32) -> Result<Identity, String> {
     let directory = revision_dir(root, id, version)?;
+    if version == 1 && !directory.try_exists().map_err(error)? {
+        if let Some(identity) = builtins()?.into_iter().find(|identity| identity.id == id) {
+            return Ok(identity);
+        }
+    }
     for path in [
         &directory,
         &directory.join("identity.json"),
@@ -207,7 +232,7 @@ pub(crate) fn save_at(
         .map_err(|_| "Identity library is busy. Retry saving.".to_string())?;
     let (id, version) = match id {
         Some(id) => {
-            let latest = list_at(root)?
+            let latest = library_at(root)?
                 .into_iter()
                 .find(|item| item.id == id)
                 .ok_or("Identity was removed; reload the library")?;
@@ -263,7 +288,7 @@ pub(crate) fn save_at(
 #[tauri::command]
 pub(crate) fn list_identities() -> Result<serde_json::Value, String> {
     let root = root()?;
-    Ok(serde_json::json!({"path": root, "identities": list_at(&root)?}))
+    Ok(serde_json::json!({"path": root, "identities": library_at(&root)?}))
 }
 
 #[tauri::command]
@@ -304,6 +329,48 @@ pub(crate) fn open_studio_data() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn builtin_choices_preserve_default_and_frozen_revisions() {
+        let dir = tempfile::tempdir().unwrap();
+        let original = library_at(dir.path()).unwrap();
+        assert_eq!(original.len(), 3);
+        assert!(list_at(dir.path()).unwrap().is_empty());
+        let tester = original
+            .iter()
+            .find(|identity| identity.name == "Tester")
+            .unwrap();
+        let edited = save_at(
+            dir.path(),
+            Some(tester.id.clone()),
+            Some(1),
+            tester.name.clone(),
+            tester.description.clone(),
+            "Use the repository's own test tools".into(),
+        )
+        .unwrap();
+        assert_eq!(edited.version, 2);
+        assert_eq!(read_at(dir.path(), &tester.id, 1).unwrap(), *tester);
+        assert_eq!(read_at(dir.path(), &tester.id, 2).unwrap(), edited);
+        assert_eq!(library_at(dir.path()).unwrap().len(), 3);
+        let custom = save_at(
+            dir.path(),
+            None,
+            None,
+            "Tester".into(),
+            "Custom".into(),
+            "My tests".into(),
+        )
+        .unwrap();
+        let library = library_at(dir.path()).unwrap();
+        assert_eq!(library.len(), 4);
+        assert!(library.contains(&custom));
+        assert!(library.contains(&edited));
+        assert!(read_at(dir.path(), &tester.id, 3).is_err());
+        // Listing again adds no saved templates and never recreates versions.
+        assert_eq!(list_at(dir.path()).unwrap().len(), 2);
+        assert_eq!(library_at(dir.path()).unwrap(), library);
+    }
+
     #[test]
     fn revisions_are_immutable_and_stale_edits_fail() {
         let dir = tempfile::tempdir().unwrap();

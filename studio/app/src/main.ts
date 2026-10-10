@@ -1,3 +1,4 @@
+import defaultIdentities from "./default-identities.json";
 import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
 import { loadJobs, persistJobs, type Job } from "./activity";
@@ -304,8 +305,8 @@ function demoMembership(report: ProbeReport, args: MembershipArgs): unknown {
   return { ok: true, result: plan };
 }
 
-const demoIdentities = new Map<string, import("./types").Identity>();
-const demoIdentityVersions = new Map<string, import("./types").Identity>();
+const demoIdentities = new Map(defaultIdentities.map((identity) => [identity.id, structuredClone(identity)]));
+const demoIdentityVersions = new Map(defaultIdentities.map((identity) => [`${identity.id}:${identity.version}`, structuredClone(identity)]));
 const demoGroups = new Map<string, import("./group-model").Group>();
 const demoHostIds = new Map<string, string>();
 let manualGroups: ReturnType<typeof groupPanel> | undefined;

@@ -43,6 +43,16 @@ Default remains available. Updating Studio alone does not update a running
 container. Choose the new image when creating a new container. Another identity
 requires explicit replacement, preserving projects and shared data.
 
+Studio includes three optional identity templates: Tester, Senior Engineer and
+Reviewer. Default — Orcan base rules remains the initial container choice. Each
+template has an editable preferred-tools field, such as FastAPI, Pydantic, pytest
+and Ruff. This is a starting toolkit for the role, subject to repository rules
+and the project’s existing stack; it does not install packages. Preferences are
+saved as part of the versioned Markdown instructions and frozen at container
+creation. Older identities without a tools section remain editable. Editing a
+built-in template creates a new version; its original version stays available
+to containers already using it. Custom templates are preserved.
+
 ### Manual enclaves
 
 Open **Enclaves**, name a group and choose a server profile. **Check container
