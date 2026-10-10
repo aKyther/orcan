@@ -59,7 +59,7 @@ Commands:
   upgrade [--to VERSION]   Release channel: newest release tag (default), or pin VERSION
   downgrade [--to VERSION] Previous SemVer release, or pin an older VERSION
   doctor                   Host / config / container health
-  status                   Product version, runtime summary, and installed-agent manifest
+  status                   Version, installation/config/data paths, runtime, and agents
   uninstall [--cli-only] [--purge-data] [--purge-images]
                            Remove Orcan; data/images are opt-in, projects are always kept
   version                  Print version

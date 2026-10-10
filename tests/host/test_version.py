@@ -52,8 +52,8 @@ class VersionTests(unittest.TestCase):
                 cwd=ROOT,
                 env={
                     "HOME": home,
-                    "ORCAN_HOME": home,
-                    "ORCAN_DATA": home,
+                    "ORCAN_HOME": str(Path(home) / "config"),
+                    "ORCAN_DATA": str(Path(home) / "data"),
                     "PATH": "/usr/bin:/bin",
                 },
                 check=False,
@@ -62,6 +62,10 @@ class VersionTests(unittest.TestCase):
             )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn(f"version: {read_pyproject_version()}", proc.stdout)
+        self.assertIn(f"installation (ORCAN_ROOT): {ROOT}", proc.stdout)
+        self.assertIn(f"config home (ORCAN_HOME): {home}/config", proc.stdout)
+        self.assertIn(f"data (ORCAN_DATA): {home}/data", proc.stdout)
+        self.assertIn(f"config file: {home}/config/orcan.config.json", proc.stdout)
 
     def test_mkdocs_extra_version_matches(self) -> None:
         ver = read_pyproject_version()

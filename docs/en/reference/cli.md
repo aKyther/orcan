@@ -64,7 +64,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]` | Start container (`orcan enter` locally; pick **one** browser mode: `--web-terminal` or `--web-terminal-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
 | `orcan down` | Stop containers |
 | `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache] [--prune] [--remove-previous]` | Build `orcan:latest` + `orcan:<VERSION>` with explicit clients. `--prune` removes dangling Orcan images. `--remove-previous` asks `[y/n]` before removing previous local `orcan` tags/images after success; images used by containers are kept. Neither option deletes containers, sandbox data, workspaces, or BuildKit cache. Never publishes. |
-| `orcan status` | Product version, runtime summary, and the image agent manifest |
+| `orcan status` | Product version, installation (`ORCAN_ROOT`), configuration home (`ORCAN_HOME`), data (`ORCAN_DATA`), config file, runtime summary, and the image agent manifest |
 | `orcan pull` | Pull portable all-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push an all-agents `orcan:latest` (**manual**; partial images are refused) |
 | `orcan url` | Print browser terminal URL (requires `orcan up --web-terminal`) |

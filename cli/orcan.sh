@@ -61,7 +61,7 @@ Commands:
   upgrade      Release channel: checkout newest release tag (or --to VERSION)
   downgrade    Previous release (or --to VERSION)
   doctor       Check host dependencies, config, and image agents
-  status       Show runtime and image agent manifest
+  status       Show installation/config/data paths, runtime and image agents
   uninstall    Remove Orcan; optional --purge-data / --purge-images (projects kept)
   version      Print version
   help         Show this help

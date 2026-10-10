@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `orcan status` reports installation, configuration home, data and config file paths.
+
 - Preferred tools uses the shared dark form styling and focus indicator.
 
 - Provisioning lists installed CLI and Orcan images for explicit removal without

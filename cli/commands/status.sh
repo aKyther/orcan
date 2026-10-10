@@ -8,6 +8,10 @@ orcan_cmd_status() {
     ver="$(orcan_image_version)"
     printf 'orcan status\n\n'
     printf 'version: %s\n' "${ver}"
+    printf 'installation (ORCAN_ROOT): %s\n' "${ORCAN_ROOT}"
+    printf 'config home (ORCAN_HOME): %s\n' "${ORCAN_HOME}"
+    printf 'data (ORCAN_DATA): %s\n' "${ORCAN_DATA}"
+    printf 'config file: %s\n' "${ORCAN_CONFIG_FILE}"
     if orcan_have docker && docker image inspect "${image}" >/dev/null 2>&1; then
         printf 'image: %s\n' "${image}"
         printf 'agents: '
