@@ -128,7 +128,9 @@ check button; other captured commands allow up to 15 minutes. Native SSH connect
 setup has a 45-second limit. Host clone operations allow 14 minutes, other Studio
 mutations five minutes. A timeout or cancellation does not roll back remote work:
 refresh the host before retrying. Streaming image transfers retain their separate
-progress/resume workflow. These limits are policy, not performance benchmarks.
+progress/resume workflow with a five-minute idle deadline; active transfers have
+no fixed total-duration limit. Provisioning and SSH preparation also bound stdin
+commands. These limits are policy, not performance benchmarks.
 
 Worktree apply responses can have `ok: true` with `outcome: partial`: the request
 returned a usable result, but not every attachment succeeded. `completed` and

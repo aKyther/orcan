@@ -15,6 +15,7 @@ use tokio::process::Command as TokioCommand;
 mod cleanup;
 mod commands;
 mod context;
+mod execution;
 use context::studio_json;
 mod profiles;
 mod ssh;

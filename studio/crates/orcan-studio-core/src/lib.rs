@@ -11,7 +11,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 mod process;
-pub use process::{CHECK_TIMEOUT, COMMAND_TIMEOUT, ControlledRunner, capture_command};
+pub use process::{
+    CHECK_TIMEOUT, COMMAND_TIMEOUT, ControlledRunner, capture_command, terminate_process_tree,
+};
 
 pub const PROTOCOL_NAME: &str = "orcan-studio";
 pub const PROTOCOL_VERSION: u32 = 1;

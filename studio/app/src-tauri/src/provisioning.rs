@@ -211,10 +211,12 @@ pub(super) async fn execute(
         )
         .await;
     }
-    let output = profile_process(enclave, script, state)?
-        .output()
-        .await
-        .map_err(|e| e.to_string())?;
+    let output = execution::capture(
+        profile_process(enclave, script, state)?,
+        None,
+        orcan_studio_core::COMMAND_TIMEOUT,
+    )
+    .await?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
     }
@@ -223,6 +225,19 @@ pub(super) async fn execute(
 
 /// Bounded secret payload on stdin, never in process arguments or a temp file.
 pub(super) async fn execute_with_input(
+    enclave: &EnclaveInput,
+    script: &str,
+    payload: &[u8],
+    state: &tauri::State<'_, ProfileState>,
+) -> Result<String, String> {
+    execution::deadline(
+        orcan_studio_core::COMMAND_TIMEOUT,
+        execute_with_input_inner(enclave, script, payload, state),
+    )
+    .await
+}
+
+async fn execute_with_input_inner(
     enclave: &EnclaveInput,
     script: &str,
     payload: &[u8],
@@ -261,24 +276,12 @@ pub(super) async fn execute_with_input(
         }
         return String::from_utf8(output).map_err(|_| "Invalid SSH preparation response".into());
     }
-    let mut command = profile_process(enclave, script, state)?;
-    command
-        .kill_on_drop(true)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let mut child = command.spawn().map_err(|e| e.to_string())?;
-    let mut stdin = child
-        .stdin
-        .take()
-        .ok_or("Destination has no input stream")?;
-    let write = async {
-        stdin.write_all(payload).await?;
-        stdin.shutdown().await
-    };
-    let (sent, output) = tokio::join!(write, child.wait_with_output());
-    sent.map_err(|_| "SSH transfer interrupted; inspect destination before retrying")?;
-    let output = output.map_err(|_| "SSH preparation process stopped")?;
+    let output = execution::capture(
+        profile_process(enclave, script, state)?,
+        Some(payload),
+        orcan_studio_core::COMMAND_TIMEOUT,
+    )
+    .await?;
     if !output.status.success() {
         return Err("SSH installation refused. Check destination filename collisions, permissions and key format; existing files were not overwritten.".into());
     }
@@ -420,6 +423,24 @@ async fn move_file(
     state: &tauri::State<'_, ProfileState>,
     progress: &mut TransferProgress,
 ) -> Result<String, String> {
+    let activity = progress.activity.clone();
+    activity
+        .guard(
+            std::time::Duration::from_secs(300),
+            move_file_inner(enclave, script, file, upload, offset, state, progress),
+        )
+        .await
+}
+
+async fn move_file_inner(
+    enclave: &EnclaveInput,
+    script: &str,
+    file: &tempfile::NamedTempFile,
+    upload: bool,
+    offset: u64,
+    state: &tauri::State<'_, ProfileState>,
+    progress: &mut TransferProgress,
+) -> Result<String, String> {
     let total = if upload {
         Some(file.as_file().metadata().map_err(|e| e.to_string())?.len())
     } else {
@@ -477,6 +498,7 @@ async fn move_file(
         let mut stderr = Vec::new();
         let mut status = None;
         while let Some(message) = channel.wait().await {
+            progress.activity.touch();
             match message {
                 ChannelMsg::Data { data } => {
                     if let Some(writer) = &mut writer {
@@ -502,6 +524,8 @@ async fn move_file(
     }
     let mut command = profile_process(enclave, script, state)?;
     command.kill_on_drop(true);
+    #[cfg(unix)]
+    command.process_group(0);
     command.stdin(if upload {
         Stdio::piped()
     } else {
@@ -510,6 +534,7 @@ async fn move_file(
     command.stdout(Stdio::piped());
     command.stderr(Stdio::piped());
     let mut child = command.spawn().map_err(|e| e.to_string())?;
+    let mut tree = execution::ProcessTree(child.id());
     let stdin = child.stdin.take();
     let stdout = if upload { None } else { child.stdout.take() };
     let copy = async {
@@ -534,6 +559,9 @@ async fn move_file(
         Ok::<_, io::Error>(())
     };
     let (copied, output) = tokio::join!(copy, child.wait_with_output());
+    if copied.is_ok() && output.is_ok() {
+        tree.0 = None;
+    }
     let output = output.map_err(|e| e.to_string())?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());

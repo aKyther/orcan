@@ -123,21 +123,26 @@ pub fn capture_command(
         std::thread::sleep(Duration::from_millis(10));
     };
     if result.is_err() {
-        #[cfg(unix)]
-        // The child has its own process group. Never signal Studio's group.
-        unsafe {
-            libc::kill(-(child.id() as i32), libc::SIGKILL);
-        }
-        #[cfg(windows)]
-        {
-            let _ = crate::system_command("taskkill")
-                .args(["/PID", &child.id().to_string(), "/T", "/F"])
-                .status();
-        }
+        terminate_process_tree(child.id());
         let _ = child.kill();
         let _ = child.wait();
     }
     result
+}
+
+/// Only call for an owned helper launched in its own process group.
+pub fn terminate_process_tree(pid: u32) {
+    #[cfg(unix)]
+    // The child has its own process group. Never signal Studio's group.
+    unsafe {
+        libc::kill(-(pid as i32), libc::SIGKILL);
+    }
+    #[cfg(windows)]
+    {
+        let _ = crate::system_command("taskkill")
+            .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .status();
+    }
 }
 
 #[cfg(test)]

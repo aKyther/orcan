@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Provisioning and SSH preparation use bounded commands, including stdin payloads.
+  Profile transfers stop after five minutes without activity, retaining resumable
+  payloads rather than timing out a healthy large transfer.
+
 - Large context maps index project bindings and update status once per render.
   A 100-project browser fixture checks filters, both connection anchors and drafts
   retained across workspace selection.

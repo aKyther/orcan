@@ -16,6 +16,7 @@ struct ProgressEvent<'a> {
 }
 
 pub(super) struct TransferProgress {
+    pub activity: super::execution::Activity,
     app: tauri::AppHandle,
     id: String,
     stage: &'static str,
@@ -28,6 +29,7 @@ pub(super) struct TransferProgress {
 impl TransferProgress {
     pub fn new(app: tauri::AppHandle, id: String) -> Self {
         Self {
+            activity: super::execution::Activity::new(),
             app,
             id,
             stage: "checking",
@@ -39,6 +41,7 @@ impl TransferProgress {
     }
 
     pub fn stage(&mut self, stage: &'static str, total: Option<u64>) {
+        self.activity.touch();
         self.stage = stage;
         self.bytes = 0;
         self.offset = 0;
@@ -47,6 +50,7 @@ impl TransferProgress {
     }
 
     pub fn advance(&mut self, bytes: usize) {
+        self.activity.touch();
         self.bytes = self.bytes.saturating_add(bytes as u64);
         if self.last.elapsed() >= Duration::from_millis(250) {
             self.flush();
