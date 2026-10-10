@@ -782,6 +782,11 @@ RUN install -d -m 0755 /etc/orcan \
     && chown root:root /etc/orcan/agents.json /etc/orcan/version
 
 LABEL io.orcan.identity.version="1" \
+      io.orcan.agent.cursor="${INSTALL_CURSOR}" \
+      io.orcan.agent.claude="${INSTALL_CLAUDE}" \
+      io.orcan.agent.codex="${INSTALL_CODEX}" \
+      io.orcan.agent.gemini="${INSTALL_GEMINI}" \
+      io.orcan.agent.copilot="${INSTALL_COPILOT}" \
       org.opencontainers.image.title="Orcan" \
       org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \
       org.opencontainers.image.source="https://github.com/aKyther/orcan" \

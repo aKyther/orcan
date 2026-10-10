@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio probe bounds Docker/Git reads and reads agent metadata directly from
+  new image labels. Older images keep the manifest fallback; numeric agent flags
+  are accepted. Failed worktree status checks remain unknown, not clean.
+
 - Studio CI now runs UI/native behavior tests and caches build dependencies.
   Connection models, native SSH/credentials and browser demo have separate
   modules. Tests reuse isolated Git templates and cached UI compilation, while

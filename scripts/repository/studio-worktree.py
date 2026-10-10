@@ -11,9 +11,16 @@ from pathlib import Path
 
 
 def run(repo: Path, *args: str) -> str | None:
-    result = subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
-    )
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
     return result.stdout.strip() if result.returncode == 0 else None
 
 
@@ -110,7 +117,11 @@ def main() -> None:
                         "branch": run(
                             path, "symbolic-ref", "--quiet", "--short", "HEAD"
                         ),
-                        "dirty": bool(run(path, "status", "--porcelain=v1")),
+                        "dirty": (
+                            None
+                            if (status := run(path, "status", "--porcelain=v1")) is None
+                            else bool(status)
+                        ),
                     }
                 )
         print(json.dumps({"ok": True, "worktrees": entries}, separators=(",", ":")))

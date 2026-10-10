@@ -33,7 +33,8 @@ def read_json(path: Path) -> dict[str, object]:
 
 def read_json_text(contents: str) -> dict[str, object]:
     try:
-        return json.loads(contents)
+        value = json.loads(contents)
+        return value if isinstance(value, dict) else {}
     except json.JSONDecodeError:
         return {}
 
@@ -291,6 +292,21 @@ def context_snapshot(
     }
 
 
+def docker_output(docker: str, *arguments: str, timeout: int = 5) -> str | None:
+    """Bound every read-only daemon request; unavailable facts stay unknown."""
+    try:
+        result = subprocess.run(
+            [docker, *arguments],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
 def docker_probe(docker: str, image: str, container: str) -> dict[str, object]:
     """Return Docker facts without changing images, containers, or configuration."""
     if not shutil.which(docker):
@@ -300,15 +316,7 @@ def docker_probe(docker: str, image: str, container: str) -> dict[str, object]:
             "container": {"name": container, "state": "unavailable"},
         }
 
-    try:
-        daemon = (
-            subprocess.run(
-                [docker, "info"], capture_output=True, text=True, timeout=5, check=False
-            ).returncode
-            == 0
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        daemon = False
+    daemon = docker_output(docker, "info") is not None
     if not daemon:
         return {
             "available": False,
@@ -316,26 +324,29 @@ def docker_probe(docker: str, image: str, container: str) -> dict[str, object]:
             "container": {"name": container, "state": "unavailable"},
         }
 
-    image_present = (
-        subprocess.run(
-            [docker, "image", "inspect", image],
-            capture_output=True,
-            text=True,
-            check=False,
-        ).returncode
-        == 0
+    labels = docker_output(
+        docker, "image", "inspect", "--format", "{{json .Config.Labels}}", image
     )
-    state = subprocess.run(
-        [docker, "inspect", "--format", "{{.State.Status}}", container],
-        capture_output=True,
-        text=True,
-        check=False,
+    image_present = labels is not None
+    container_state = (
+        docker_output(docker, "inspect", "--format", "{{.State.Status}}", container)
+        or "unknown"
     )
-    container_state = state.stdout.strip() if state.returncode == 0 else "missing"
     agents: dict[str, object] = {}
     if image_present:
-        manifest = subprocess.run(
-            [
+        metadata = read_json_text(labels or "{}")
+        names = ("cursor", "claude", "codex", "gemini", "copilot")
+        if isinstance(metadata, dict) and all(
+            metadata.get(f"io.orcan.agent.{name}") in ("0", "1", "false", "true")
+            for name in names
+        ):
+            agents = {
+                name: metadata[f"io.orcan.agent.{name}"] in ("1", "true")
+                for name in names
+            }
+        else:
+            # Compatibility for images built before agent metadata labels.
+            manifest = docker_output(
                 docker,
                 "run",
                 "--rm",
@@ -343,19 +354,16 @@ def docker_probe(docker: str, image: str, container: str) -> dict[str, object]:
                 "cat",
                 image,
                 "/etc/orcan/agents.json",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        if manifest.returncode == 0:
-            reported_agents = read_json_text(manifest.stdout).get("agents", {})
+                timeout=10,
+            )
+            reported_agents = read_json_text(manifest or "{}").get("agents", {})
             if isinstance(reported_agents, dict) and all(
-                isinstance(name, str) and isinstance(available, bool)
+                isinstance(name, str)
+                and isinstance(available, (bool, int))
+                and available in (0, 1)
                 for name, available in reported_agents.items()
             ):
-                agents = reported_agents
+                agents = {name: bool(value) for name, value in reported_agents.items()}
     return {
         "available": True,
         "image": {"name": image, "present": image_present},
