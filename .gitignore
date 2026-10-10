@@ -58,6 +58,7 @@ build/
 target/
 coverage/
 .coverage
+.coverage.*
 
 # MkDocs
 site/

@@ -27,8 +27,15 @@ esac
 uv_python=(uv run --no-project --with-requirements requirements-test.txt python -m)
 printf '==> host tests (%s, pytest via uv)\n' "${ORCAN_TEST_MODE:-all}"
 if (( coverage )); then
-    "${uv_python[@]}" coverage run --branch --source=scripts/repository,cockpit/src \
+    export COVERAGE_PROCESS_START="${ROOT_DIR}/.coveragerc"
+    export ORCAN_COVERAGE_ROOT="${ROOT_DIR}"
+    export COVERAGE_FILE="${ROOT_DIR}/.coverage"
+    export PYTHONPATH="${ROOT_DIR}/tests/host/coverage_bootstrap:${PYTHONPATH}"
+    "${uv_python[@]}" coverage erase
+    "${uv_python[@]}" coverage run \
         -m pytest -q "${selection[@]}" "$@"
+    unset COVERAGE_PROCESS_START ORCAN_COVERAGE_ROOT
+    "${uv_python[@]}" coverage combine
     "${uv_python[@]}" coverage report --show-missing --skip-empty
 else
     "${uv_python[@]}" pytest -q "${selection[@]}" "$@"

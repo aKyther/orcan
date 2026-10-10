@@ -116,7 +116,9 @@ def test_runner_forwards_module_filters_and_selection(runner_environment, mode):
 def test_coverage_runs_pytest_once_then_reports(runner_environment):
     result = run_runner({**runner_environment, "ORCAN_TEST_MODE": "all"}, "--coverage")
     assert result.stdout.count("pytest\n-q") == 1
-    assert "coverage\nrun\n--branch" in result.stdout
+    assert "coverage\nrun\n-m\npytest" in result.stdout
+    assert "coverage\nerase" in result.stdout
+    assert "coverage\ncombine" in result.stdout
     assert "coverage\nreport\n--show-missing" in result.stdout
 
 
