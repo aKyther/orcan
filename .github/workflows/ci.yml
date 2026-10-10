@@ -114,6 +114,15 @@ jobs:
           .orcan-dev-ux/playwright-node/node_modules/.bin/playwright install chromium --with-deps
           make studio-test-browser
 
+      - name: Retain browser diagnostics and render measurements
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: studio-browser-diagnostics
+          path: .orcan-dev-ux/artifacts/studio-browser/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Keep only reusable dependency artifacts in Rust cache
         run: |
           cargo clean --manifest-path studio/Cargo.toml -p orcan-studio -p orcan-studio-core

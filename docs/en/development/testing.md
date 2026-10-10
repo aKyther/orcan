@@ -81,7 +81,10 @@ Directory/selection/history models live in `context_selection.py`. Presenter
 tests import these small modules directly, not the terminal application.
 Native context endpoints share argument builders in `context.rs`. Branch discovery
 and the activity view own their DOM/state in `branch-picker.ts` and `activity-panel.ts`;
-the main UI coordinates them through callbacks.
+the main UI coordinates them through callbacks. `container-creator.ts` owns the
+complete creation form and readiness/approval snapshot. Native CLI installation
+is in `installation.rs`; bounded execution in `execution.rs`. Curses-free config
+mutations live in `context_mutations.py`.
 
 Studio has five real browser smoke flows, independent of the cockpit suite:
 connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
@@ -105,7 +108,8 @@ source of truth alongside the probe report.
 Add `&measure=1` to the demo URL for in-memory render counters and timings, available
 as `window.__orcanRenderMetrics.snapshot()` in browser developer tools. Normal
 launches do not read the clock or collect samples. The large-map browser test
-attaches JSON measurements; project selection also asserts zero full map rebuilds.
+attaches JSON measurements, saved in the browser `results.json` report and retained
+as a CI artifact for seven days; project selection asserts zero full map rebuilds.
 There is no wall-clock CI threshold: machine speed must not decide correctness.
 
 Default CI coverage measures the test process, not helper subprocesses. All tests
