@@ -48,12 +48,7 @@ pub(super) async fn transfer_git_ssh_key(
     if !input.confirmed {
         return Err("Explicit approval is required to copy a private SSH key".into());
     }
-    if Target::from(input.source.target.clone()) == Target::from(input.destination.target.clone())
-        && input.source.username == input.destination.username
-        && input.source.profile_id == input.destination.profile_id
-    {
-        return Err("Choose a different source and destination profile".into());
-    }
+    provisioning::distinct_endpoints(&input.source, &input.destination)?;
     let mut progress = transfer_progress::TransferProgress::new(app, operation_id);
     progress.stage("checking", None);
     let result = async {

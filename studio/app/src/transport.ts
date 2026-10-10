@@ -17,7 +17,3 @@ export function describeTarget(target: Target): string {
   if (target.kind === "wsl2") return `WSL2 · ${target.distribution}`;
   return `SSH · ${target.destination}`;
 }
-
-export function cacheKey(target: Target, instance?: string): string {
-  return `orcan-studio:snapshot:${JSON.stringify(target)}${instance ? `:${instance}` : ""}`;
-}

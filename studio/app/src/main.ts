@@ -3,7 +3,7 @@ import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
 import { loadJobs, persistJobs, type Job } from "./activity";
 import { draftConflicts, loadQueuedChanges, persistQueuedChanges, type QueuedChange } from "./context-drafts";
-import { parentCandidates, parentDirectory, parentForProject, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, unassignedProjects, type ContextProject, type HealthProject, type ParentCandidate } from "./context-model";
+import { parentCandidates, parentDirectory, parentForProject, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, type HealthProject, type ParentCandidate } from "./context-model";
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
@@ -14,8 +14,7 @@ import { groupPanel } from "./groups";
 import { gitAccessPanel } from "./git-access";
 import { confirmAction, promptText } from "./dialog";
 import { isProvisionRunning, withProvisionProgress } from "./provision-progress";
-import { loadCachedReport, persistCachedReport } from "./report-cache";
-import { cacheKey, demoMode, describeTarget, enclaveInput, invokeTauri } from "./transport";
+import { demoMode, describeTarget, enclaveInput, invokeTauri } from "./transport";
 import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeReport, ProjectRef, SshAuthentication, SshHostKeyOffer, Target } from "./types";
 import "./style.css";
 
@@ -2088,7 +2087,6 @@ async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatu
   let status: EnclaveStatus;
   try {
     const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
-    persistCachedReport(cacheKey(profile.target, connection.instance), report);
     void Promise.all([
       discoverInstances(profile).catch(() => undefined), // Legacy CLI can still operate its default container.
       invoke<ServerCapacity>("server_capacity", { enclave: enclaveInput(connection), path: report.paths.projects_root }).then((capacity) => { if (sameHostProfile(profile)) serverCapacity.set(profile.id, capacity); }).catch(() => { if (sameHostProfile(profile)) serverCapacity.delete(profile.id); }),
@@ -2137,10 +2135,6 @@ function activate(connection: Connection, report: ProbeReport): void {
   renderChangeSet();
   activeGroup.textContent = `ACTIVE · ${connection.label.toUpperCase()}`;
   renderStore();
-}
-
-function cachedEnclaveReport(profile: ConnectionProfile): ProbeReport | undefined {
-  return loadCachedReport(cacheKey(profile.target, selectedInstances.get(profile.id)));
 }
 
 /** Only a successful check in this session unlocks operations; cache is history. */
@@ -2579,7 +2573,6 @@ async function checkCreatorDestination(): Promise<void> {
     if (!creatorResourcesEdited && defaults?.ttyd?.host_port) enclaveCreatePort.value = String(defaults.ttyd.host_port);
     if (report) {
       enclaveStatus.set(runtimeKey(profile, creatorProfileConnection(profile).instance ?? ""), { state: "online", report, at: Date.now() });
-      persistCachedReport(cacheKey(profile.target, creatorProfileConnection(profile).instance), report);
     }
     const fact = (label: string, value: string, okay: boolean) => el("div", { className: `enclave-readiness-row ${okay ? "ready" : "attention"}` }, el("span", { textContent: okay ? "✓" : "!", ariaHidden: "true" }), el("strong", { textContent: label }), el("span", { textContent: value }));
     const image = report?.runtime.docker.image;
@@ -2952,7 +2945,6 @@ async function connect(connection: Connection, output: HTMLOutputElement = resul
   try {
     const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
     if (request !== latestProbe) return undefined;
-    persistCachedReport(cacheKey(connection.target, connection.instance), report);
     if (connection.profileId) enclaveStatus.set(connection.instance ? `${connection.profileId}:${connection.instance}` : connection.profileId, { state: "online", report, at: Date.now() });
     activate(connection, report);
     output.textContent = `Connected · ${report.host.os}/${report.host.architecture} · Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;

@@ -33,11 +33,6 @@ export function projectName(project: { name?: string; path: string }): string {
   return project.name ?? project.path.split("/").pop() ?? project.path;
 }
 
-export function unassignedProjects(report: ProbeReport): Array<{ path: string; kind: string }> {
-  const used = new Set(report.context.workspaces.flatMap((workspace) => workspace.projects.map((project) => project.path)));
-  return report.context.managed_projects.filter((project) => !used.has(project.path));
-}
-
 export function parseDraggedProject(value: string): ProjectRef | undefined {
   try {
     const project: unknown = JSON.parse(value);

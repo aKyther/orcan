@@ -284,19 +284,26 @@ pub(super) async fn execute_with_input(
     String::from_utf8(output.stdout).map_err(|_| "Invalid SSH preparation response".into())
 }
 
+pub(super) fn distinct_endpoints(
+    source: &EnclaveInput,
+    destination: &EnclaveInput,
+) -> Result<(), String> {
+    if Target::from(source.target.clone()) == Target::from(destination.target.clone())
+        && source.username == destination.username
+    {
+        return Err("Source and destination refer to the same endpoint".into());
+    }
+    if source.profile_id.is_some() && source.profile_id == destination.profile_id {
+        return Err("Choose different source and destination profiles".into());
+    }
+    Ok(())
+}
+
 fn validate(input: &TransferInput) -> Result<(), String> {
     if input.cli && input.image.is_some() {
         return Err("CLI and image transfers are separate. Use the image transfer panel.".into());
     }
-    if Target::from(input.source.target.clone()) == Target::from(input.destination.target.clone())
-        && input.source.username == input.destination.username
-    {
-        return Err("Source and destination refer to the same endpoint".into());
-    }
-    if input.source.profile_id.is_some() && input.source.profile_id == input.destination.profile_id
-    {
-        return Err("Choose different source and destination profiles".into());
-    }
+    distinct_endpoints(&input.source, &input.destination)?;
     if !input.cli && input.image.is_none() {
         return Err("Choose CLI or a Docker image to transfer".into());
     }
@@ -951,6 +958,17 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn shared_transfer_guard_ignores_profile_aliases_but_preserves_user_scope() {
+        let source = endpoint(TargetInput::Local, "source");
+        let mut destination = endpoint(TargetInput::Local, "alias");
+        assert!(distinct_endpoints(&source, &destination).is_err());
+        destination.username = Some("another-user".into());
+        assert!(distinct_endpoints(&source, &destination).is_ok());
+        destination.profile_id = source.profile_id.clone();
+        assert!(distinct_endpoints(&source, &destination).is_err());
     }
 
     #[test]
