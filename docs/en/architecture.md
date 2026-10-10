@@ -16,7 +16,7 @@ Orcan must:
 1. Describe multi-repo **context** on the host (JSON config).
 2. Run agents in an isolated **container** with heavy toolchains.
 3. Keep **absolute paths** identical when the host Docker daemon resolves binds.
-4. Give humans and agents a clear **entry** — locally (`orcan enter`) or optionally in the browser (`orcan up --with-ttyd` → session → shell).
+4. Give humans and agents a clear **entry** — locally (`orcan enter`) or optionally in the browser (`orcan up --web-terminal` → session → shell).
 
 Those constraints force a split between **host orchestration** and **container runtime**.
 
@@ -33,7 +33,7 @@ flowchart TB
   subgraph container [Container]
     entry["entrypoint"]
     session["launcher → tmux → zsh"]
-    ttyd["ttyd (--with-ttyd)"]
+    ttyd["ttyd (--web-terminal)"]
     pack["workspace context pack"]
     clis["agent / claude"]
   end
@@ -49,7 +49,7 @@ flowchart TB
   pack --> clis
 ```
 
-**Caption:** The host turns config into mounts and env. Default access is `orcan enter` into the same session stack; `--with-ttyd` adds a browser path. Models stay inside each CLI.
+**Caption:** The host turns config into mounts and env. Default access is `orcan enter` into the same session stack; `--web-terminal` adds a browser path. Models stay inside each CLI.
 
 ### Why the host owns config
 
@@ -72,7 +72,7 @@ See [Mental Model](ideas/mental-model.md) and [Path parity](concepts/path-parity
 
 ## Entry path
 
-Default: start with plain `orcan up`, then `orcan enter` on the host — no published ttyd port. Optional remote/phone path: `orcan up --with-ttyd`, then open `orcan url`.
+Default: start with plain `orcan up`, then `orcan enter` on the host — no published ttyd port. Optional remote/phone path: `orcan up --web-terminal`, then open `orcan url`.
 
 ```mermaid
 flowchart LR
@@ -100,7 +100,7 @@ Mounted **git checkouts** are not rewritten on every start. Seeding files into e
 | --- | --- |
 | Workspaces, mounts, path parity | Which model a CLI uses |
 | Context pack | Prompt engineering for a model |
-| Entry path (`orcan enter` or `--with-ttyd` → launcher → tmux → zsh) | Auto-routing between CLIs |
+| Entry path (`orcan enter` or `--web-terminal` → launcher → tmux → zsh) | Auto-routing between CLIs |
 | Docker isolation and optional host socket | Shared RAG outside workspace files |
 
 ## Non-goals (by design)

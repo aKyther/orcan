@@ -16,7 +16,7 @@ The supported public interfaces are:
 
 High-signal commands:
 
-User ritual: `orcan init` → `orcan build --agent codex` → `orcan up` (local; add `--with-ttyd` for browser). After config edits: `orcan sync` then `orcan up` — rebuild only when the image changed.
+User ritual: `orcan init` → `orcan build --agent codex` → `orcan up` (local; add `--web-terminal` for browser). After config edits: `orcan sync` then `orcan up` — rebuild only when the image changed.
 
 ## Maintainer Make
 

@@ -18,12 +18,12 @@ The `docker compose config` command prints the resolved Compose file (needs gene
 
 ## Browser terminal will not open
 
-Requires `orcan up --with-ttyd` (plain `orcan up` is local-only — use `orcan enter` instead).
+Requires `orcan up --web-terminal` (plain `orcan up` is local-only — use `orcan enter` instead).
 
 1. Confirm the container is up: `orcan logs`
 2. Confirm ttyd is on: `orcan doctor` (Runtime section) or `orcan url`
 3. Confirm the URL: `orcan url` (prints `http://localhost:7681` when `TTYD_BIND` is `0.0.0.0`)
-4. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `orcan sync` and `orcan down && orcan up --with-ttyd`
+4. If the port is busy, change `ttyd.host_port` in `orcan.config.json`, then `orcan sync` and `orcan down && orcan up --web-terminal`
 
 ## Frequent “reconnecting” on phone / mobile network
 
@@ -76,14 +76,14 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 
 ## Docker socket errors inside the container
 
-Use `orcan up --with-docker`. Plain `orcan up` does not mount the socket.
+Use `orcan up --docker-socket`. Plain `orcan up` does not mount the socket.
 
 If `docker` needs `sudo` inside the container, the host socket GID must match `DOCKER_GID` in `.env`:
 
 ```bash
 stat -c '%g' /var/run/docker.sock
 grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan}/.env"
-orcan sync && orcan down && orcan up --with-docker
+orcan sync && orcan down && orcan up --docker-socket
 ```
 
 `orcan sync` re-detects the socket GID from the host (do not leave a stale `999` from `.env.example`).
@@ -119,9 +119,9 @@ Orcan does **not** mount host `~/.gitconfig`. Instead `orcan sync` copies `user.
 For `git push` / `git pull` over SSH:
 
 ```bash
-orcan up --with-git
+orcan up --ssh
 # combine with DinD:
-orcan up --with-docker --with-git
+orcan up --docker-socket --ssh
 ```
 
 That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is set). Plain `orcan up` does not.

@@ -366,6 +366,9 @@ def launch_flags(path: Path) -> dict[str, object]:
         "recorded": True,
         "docker": flag("WITH_DOCKER"),
         "git": flag("WITH_GIT"),
+        "github": values.get("GITHUB_HOSTNAME", "github.com")
+        if flag("WITH_GITHUB")
+        else None,
         "network": values.get("NETWORK_NAME") if flag("WITH_NETWORK") else None,
         "ttyd": flag("WITH_TTYD"),
         "ttyd_auth": flag("WITH_TTYD_AUTH"),

@@ -481,4 +481,4 @@ authentication without fetching or changing repositories. Unknown Git host keys
 require fingerprint approval; changed/revoked entries are not replaced. Verify
 fingerprints independently: key scanning alone does not authenticate a host.
 Encrypted keys need unlocking on the destination. Containers started with
-`--with-git` expose the host SSH directory read-only.
+`--ssh` expose the host SSH directory read-only.

@@ -37,9 +37,10 @@ Commands:
   studio parent plan       Read-only parent update plan (Git fast-forward safety checks)
   studio parent apply      Apply an approved parent update (--expected-head SHA --yes)
 
-  up [--with-ttyd | --with-ttyd-auth USER:PASS] [--with-docker | --with-network NAME] [--with-git]
+  up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--ssh] [--github [--github-hostname HOST]]
                            Start container (local: orcan enter; browser: pick ttyd or ttyd-auth)
                            | = pick one (ttyd vs ttyd-auth; docker vs network)
+                           Old --with-* flags remain accepted; see orcan up --help
   down                     Stop containers
   build --agent NAME [...] | --all-agents [--force]
                            Explicit image contents; NAME is cursor, claude,

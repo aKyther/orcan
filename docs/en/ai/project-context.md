@@ -22,7 +22,7 @@ When you are inside an orcan workspace (e.g. `orcan-dev`), read the workspace co
 | --- | --- |
 | Workspace | Named set of projects = one daily job |
 | Path parity | Same absolute paths host ↔ container |
-| Access | Local `orcan enter` by default; optional `orcan up --with-ttyd` |
+| Access | Local `orcan enter` by default; optional `orcan up --web-terminal` |
 | Cockpit | Top bar + workspaces + embedded tmux; see [Terminal UI](../guides/terminal-ui.md) |
 
 ## Goals
@@ -43,7 +43,7 @@ When you are inside an orcan workspace (e.g. `orcan-dev`), read the workspace co
 orcan init          # or edit orcan.config.json
 orcan sync          # ALWAYS after config (up does not sync)
 orcan build         # when image inputs change
-orcan up            # daily; --with-ttyd for browser
+orcan up            # daily; --web-terminal for browser
 ```
 
 Prefer live reconcile via `orcan sync` when possible; recreate when overlays require it (`orcan down && orcan up`). Details: [Runtime reconcile](../ideas/runtime-reconcile.md).

@@ -61,13 +61,13 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan studio parent plan --path PATH --branch BRANCH` | Read-only plan for updating a parent checkout; reports branch, dirty state, HEAD and `origin` head. |
 | `orcan studio parent apply --path PATH --branch BRANCH --expected-head SHA --yes` | Apply an approved parent update with `git pull --ff-only`; refuses a stale, dirty, or wrong-branch checkout. |
 | *(in-container)* `orcan-inbox` | Agent task handoff queue under `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). See [Agent inbox](../ideas/agent-inbox.md) |
-| `orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]` | Start container (`orcan enter` locally; pick **one** browser mode: `--with-ttyd` or `--with-ttyd-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
+| `orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]]` | Start container (`orcan enter` locally; pick **one** browser mode: `--web-terminal` or `--web-terminal-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
 | `orcan down` | Stop containers |
 | `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache] [--prune] [--remove-previous]` | Build `orcan:latest` + `orcan:<VERSION>` with explicit clients. `--prune` removes dangling Orcan images. `--remove-previous` asks `[y/n]` before removing previous local `orcan` tags/images after success; images used by containers are kept. Neither option deletes containers, sandbox data, workspaces, or BuildKit cache. Never publishes. |
 | `orcan status` | Product version, runtime summary, and the image agent manifest |
 | `orcan pull` | Pull portable all-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push an all-agents `orcan:latest` (**manual**; partial images are refused) |
-| `orcan url` | Print browser terminal URL (requires `orcan up --with-ttyd`) |
+| `orcan url` | Print browser terminal URL (requires `orcan up --web-terminal`) |
 | `orcan enter` / `orcan go-in` | Local terminal into the running container (`--launcher` default, `--shell`, `--tmux [SESSION]`) |
 | `orcan attach WORKSPACE` | Create or resume one configured workspace's tmux session and attach the current terminal. For a remote native terminal: `ssh -tt HOST 'orcan attach WORKSPACE'` |
 | `orcan update` | Dev channel: fast-forward this checkout to `origin/main` |
@@ -88,7 +88,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 orcan init
 orcan build --agent codex
 orcan up              # local — orcan enter on the same machine
-# remote browser: orcan up --with-ttyd
+# remote browser: orcan up --web-terminal
 ```
 
 After config edits:
@@ -106,14 +106,50 @@ orcan down && orcan up
 | Flag | Effect |
 | --- | --- |
 | *(none)* | Local-only container — no published ttyd port; use `orcan enter` |
-| `--with-ttyd` \| `--with-ttyd-auth USER:PASS` | **Pick one.** `--with-ttyd`: browser terminal, no password. `--with-ttyd-auth USER:PASS`: same browser terminal **with** HTTP basic auth. Do not pass both. (`TTYD_BIND` defaults to `0.0.0.0`.) |
-| `--with-docker` \| `--with-network NAME` | **Pick one.** `--with-docker`: mount `/var/run/docker.sock` (Docker-from-Docker). `--with-network NAME`: join an existing Docker network (no socket) |
-| `--resume` | Restart with the flags of the last `orcan up` (kept across `orcan down`, stored in `mounts/last-up.env`, never the ttyd password). A previous `--with-ttyd-auth` start must pass `--with-ttyd-auth USER:PASS` again. Orcan Studio Start/Restart use this. |
-| `--with-git` | Mount host `~/.ssh` read-only (+ SSH agent when `SSH_AUTH_SOCK` is set) for push/pull |
+| `--web-terminal` \| `--web-terminal-auth USER:PASS` | **Pick one.** `--web-terminal`: browser terminal, no password. `--web-terminal-auth USER:PASS`: same browser terminal **with** HTTP basic auth. Do not pass both. (`TTYD_BIND` defaults to `0.0.0.0`.) |
+| `--docker-socket` \| `--network NAME` | **Pick one.** `--docker-socket`: mount `/var/run/docker.sock` (Docker-from-Docker). `--network NAME`: join an existing Docker network (no socket) |
+| `--resume` | Restart with the flags of the last `orcan up` (kept across `orcan down`, stored in `mounts/last-up.env`, never the ttyd password). A previous `--web-terminal-auth` start must pass `--web-terminal-auth USER:PASS` again. Orcan Studio Start/Restart use this. |
+| `--github` | Provide a token to GitHub CLI in the selected container. Default host: `github.com`. |
+| `--github-hostname HOST` | Select a GitHub hostname; requires `--github`. Use a hostname without a URL, path or port. |
+| `--ssh` | Mount host `~/.ssh` read-only (+ SSH agent when `SSH_AUTH_SOCK` is set) for push/pull |
 
-Other flags combine with a chosen browser mode, e.g. `orcan up --with-ttyd --with-git` or `orcan up --with-ttyd-auth user:pass --with-network my-net`.
+The old names remain aliases: `--with-git` → `--ssh`, `--with-docker` →
+`--docker-socket`, `--with-network` → `--network`, `--with-ttyd` →
+`--web-terminal`, and `--with-ttyd-auth` → `--web-terminal-auth`.
 
-Git **author** identity is always synced by `orcan sync` (`GIT_AUTHOR_*` from host `user.name` / `user.email`). SSH keys are only attached with `--with-git`. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: [Security](security.md), [Workflows](../guides/workflows.md).
+### GitHub access
+
+Authenticate on the host/VM that runs Orcan, then enable access explicitly:
+
+```bash
+gh auth login --hostname github.com
+orcan up --github
+
+# A company GitHub Enterprise Server
+gh auth login --hostname github.company.example
+orcan up --github --github-hostname github.company.example
+```
+
+Orcan first uses `GH_TOKEN` (or `GITHUB_TOKEN`) for `github.com` and `*.ghe.com`.
+For another hostname it uses `GH_ENTERPRISE_TOKEN` (or `GITHUB_ENTERPRISE_TOKEN`).
+If that token is absent, it requests the saved login for the exact hostname with
+`gh auth token --hostname HOST`. Tokens from the other family are not reused.
+Missing authentication stops the launch before the existing container is stopped.
+These rules follow [GitHub CLI environment variables](https://cli.github.com/manual/gh_help_environment).
+
+The token is passed in the container environment. It is not written to the
+project config, generated Compose overlay or launch records. Agents in the
+container and Docker administrators can access it. Limit its repository access
+and permissions to the work you need. The token enables API operations such as
+PR creation, comments and reviews; Git SSH access still uses `--ssh`.
+`--github` does not change repository remotes or configure Git HTTPS credentials.
+`--resume` retains the hostname and enabled flag, and resolves the token again.
+Start without `--github` to recreate the container without this supplied token.
+The same option is available for named instances (`orcan --instance reviewer up --github`).
+
+Other flags combine with a chosen browser mode, e.g. `orcan up --web-terminal --ssh` or `orcan up --web-terminal-auth user:pass --network my-net`.
+
+Git **author** identity is always synced by `orcan sync` (`GIT_AUTHOR_*` from host `user.name` / `user.email`). SSH keys are only attached with `--ssh`. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: [Security](security.md), [Workflows](../guides/workflows.md).
 
 ## Maintainer Make
 

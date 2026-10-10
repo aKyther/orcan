@@ -98,7 +98,7 @@ login/session data under `ORCAN_DATA/gemini` and `ORCAN_DATA/copilot`.
 - Local image `orcan:latest` exists
 - `orcan context show` prints workspace paths
 
-Git author identity is filled by `orcan sync`. To attach host SSH keys for push/pull, use `orcan up --with-git` (see [Quickstart](quickstart.md#git-inside-the-container)).
+Git author identity is filled by `orcan sync`. To attach host SSH keys for push/pull, use `orcan up --ssh` (see [Quickstart](quickstart.md#git-inside-the-container)).
 
 ## Uninstall
 

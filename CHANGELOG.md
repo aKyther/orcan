@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Runtime flags now use `--ssh`, `--docker-socket`, `--network`,
+  `--web-terminal` and `--web-terminal-auth`; old `--with-*` names remain aliases.
+  `--github [--github-hostname HOST]` supplies GitHub or Enterprise authentication
+  from the matching token environment variable or saved host `gh` login. Resume
+  remembers the hostname and resolves authentication again without storing tokens.
+
 - Studio adds saved manual enclaves on a Vue Flow canvas: container cards from
   multiple servers, drag layout, zoom, minimap and visual-only lines. UUID checks
   protect Check/Start/Attach, and missing runtimes are never recreated by a card.

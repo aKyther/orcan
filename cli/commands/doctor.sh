@@ -56,14 +56,14 @@ orcan_cmd_doctor() {
         fi
         local git_overlay="${ORCAN_COMPOSE_GIT:-${ORCAN_RUNTIME_DIR}/compose-git.generated.yml}"
         if [[ -f "${git_overlay}" ]]; then
-            check "git overlay (up --with-git)" "1" "${git_overlay}"
+            check "git overlay (up --ssh)" "1" "${git_overlay}"
         else
-            check "git overlay (up --with-git)" "1" "created on demand by: orcan up --with-git"
+            check "git overlay (up --ssh)" "1" "created on demand by: orcan up --ssh"
         fi
         if [[ -d "${HOME}/.ssh" ]]; then
             check "host ~/.ssh" "1" "${HOME}/.ssh"
         else
-            check "host ~/.ssh" "0" "needed for: orcan up --with-git"
+            check "host ~/.ssh" "0" "needed for: orcan up --ssh"
         fi
         check "runtime config" "$([[ -f ${runtime} ]] && echo 1 || echo 0)" "${runtime}"
         if [[ -f "${ORCAN_CONFIG_FILE}" && -f "${runtime}" ]]; then
@@ -119,7 +119,7 @@ orcan_cmd_doctor() {
                 check "browser renderer" "1" \
                     "${renderer}; diagnostics: $(orcan_terminal_url | tr -d '\n')?orcanDiagnostics=1"
             else
-                check "browser terminal (ttyd)" "1" "off — orcan up --with-ttyd (local: orcan enter)"
+                check "browser terminal (ttyd)" "1" "off — orcan up --web-terminal (local: orcan enter)"
             fi
             # Supervisord (post rebuild): status line + whether durable log dir exists.
             local sup_line=""
@@ -199,7 +199,7 @@ orcan_cmd_doctor() {
     if [[ -S /var/run/docker.sock ]]; then
         check "docker.sock" "1" "/var/run/docker.sock"
     else
-        check "docker.sock" "0" "needed for: orcan up --with-docker"
+        check "docker.sock" "0" "needed for: orcan up --docker-socket"
     fi
 
     local local_bin="${HOME}/.local/bin"

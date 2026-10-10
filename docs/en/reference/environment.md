@@ -7,7 +7,7 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 | Variable | Role |
 | --- | --- |
 | `USER_UID` / `USER_GID` | Map container user to host |
-| `DOCKER_GID` | Group for Docker socket (`orcan up --with-docker`) |
+| `DOCKER_GID` | Group for Docker socket (`orcan up --docker-socket`) |
 | `TZ` | Timezone |
 | `PROJECT_DIR` | Orcan install path (where you run `orcan`) |
 | `CONTAINER_PROJECT_DIR` / `WORKSPACE_*` | Primary workspace paths |
@@ -90,8 +90,8 @@ before `orcan sync`; it must be an absolute host path. Important edge cases:
 | `HISTFILE` | Default `~/.local/share/orcan/history/.zsh_history`; in tmux, per workspace: `…/history/workspaces/<name>/.zsh_history` (bind: `$ORCAN_DATA/history`) |
 | `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Under `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |
 | `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Same commit identity as the host user |
-| `SSH_AUTH_SOCK` | Host agent (only with `orcan up --with-git`) |
-| `ORCAN_SUPERVISOR_MODE` | Set by Compose overlays: `keepalive` (default `orcan up`) or `ttyd` (`--with-ttyd`) — see [Docker](docker.md#process-layout-supervisord) |
+| `SSH_AUTH_SOCK` | Host agent (only with `orcan up --ssh`) |
+| `ORCAN_SUPERVISOR_MODE` | Set by Compose overlays: `keepalive` (default `orcan up`) or `ttyd` (`--web-terminal`) — see [Docker](docker.md#process-layout-supervisord) |
 
 ### Devtool cache hygiene
 
@@ -107,3 +107,14 @@ Login shells and `docker-entrypoint` (so `agent` / `claude` inherit the same env
 Override any of these in the environment if a tool must use its default on-disk layout. Seeded ignore templates also list common cache dirs so agents skip them if they appear.
 
 See also `.env.example`.
+
+## Optional GitHub access
+
+`orcan up --github [--github-hostname HOST]` reads host authentication only when
+requested. `GH_TOKEN` takes precedence over `GITHUB_TOKEN` for `github.com` and
+`*.ghe.com`. `GH_ENTERPRISE_TOKEN` takes precedence over `GITHUB_ENTERPRISE_TOKEN`
+for a GitHub Enterprise Server hostname. A saved `gh auth login` for the selected
+host is the fallback. The container receives `GH_HOST` and the selected token
+variable; the other token variables are cleared. `ORCAN_GITHUB_TOKEN` is an
+internal, temporary Compose interpolation variable, not a persisted setting.
+See [GitHub access](cli.md#github-access) for examples and token visibility.

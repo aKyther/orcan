@@ -34,7 +34,7 @@ orcan init /absolute/path/to/your/repo   # scaffold + sync
 orcan sync                               # refresh after later edits (safe to re-run)
 orcan build --agent codex
 orcan up              # local-only — use `orcan enter` on the same machine
-# or: orcan up --with-ttyd   # browser terminal (remote / phone)
+# or: orcan up --web-terminal   # browser terminal (remote / phone)
 ```
 
 !!! note
@@ -42,7 +42,7 @@ orcan up              # local-only — use `orcan enter` on the same machine
 
 On the same machine use **`orcan enter`** — plain `orcan up` does not publish ttyd.
 
-For a browser terminal (remote / phone): `orcan up --with-ttyd`, then open `orcan url` (wildcard bind prints `http://localhost:7681`). See [Workflows — local terminal](../guides/workflows.md#local-terminal).
+For a browser terminal (remote / phone): `orcan up --web-terminal`, then open `orcan url` (wildcard bind prints `http://localhost:7681`). See [Workflows — local terminal](../guides/workflows.md#local-terminal).
 
 ## Git inside the container
 
@@ -51,9 +51,9 @@ For a browser terminal (remote / phone): `orcan up --with-ttyd`, then open `orca
 Plain `orcan up` does **not** mount SSH keys. To push/pull over SSH from inside:
 
 ```bash
-orcan up --with-git
+orcan up --ssh
 # optional DinD at the same time:
-orcan up --with-docker --with-git
+orcan up --docker-socket --ssh
 ```
 
 That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is set). Both flags are optional and print a security warning — agents in the container can use the mounted socket/keys. Details: [Workflows](../guides/workflows.md), [Security](../reference/security.md).
@@ -84,8 +84,8 @@ pwd
 | --- | --- |
 | Port 7681 busy | Set `ttyd.host_port` in config, then `orcan sync` |
 | Empty launcher | Check workspaces in config, then `orcan sync` |
-| Socket errors with Docker-in-Docker | Use `orcan up --with-docker` |
-| `git push` fails (SSH) inside the container | Use `orcan up --with-git` |
+| Socket errors with Docker-in-Docker | Use `orcan up --docker-socket` |
+| `git push` fails (SSH) inside the container | Use `orcan up --ssh` |
 
 !!! tip
     After you edit `orcan.config.json`, run `orcan sync` before recreating the container. `orcan up` does **not** refresh config. See [Workflows](../guides/workflows.md).

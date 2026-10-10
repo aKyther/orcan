@@ -8,7 +8,7 @@ Short answers to common Orcan questions.
 
 ## What is Orcan?
 
-Orcan is a **work-context orchestrator**. It runs Cursor CLI (`agent`) and Claude Code (`claude`) in Docker with workspaces (named sets of projects) and path-parity mounts. Enter locally with `orcan enter`, or optionally use a browser terminal (`orcan up --with-ttyd`).
+Orcan is a **work-context orchestrator**. It runs Cursor CLI (`agent`) and Claude Code (`claude`) in Docker with workspaces (named sets of projects) and path-parity mounts. Enter locally with `orcan enter`, or optionally use a browser terminal (`orcan up --web-terminal`).
 
 Read [Why Orcan?](why-orcan.md) and [Core Ideas](ideas/core-ideas.md) before the rest of this FAQ.
 
@@ -49,7 +49,7 @@ After reconnect, the launcher retries the last workspace while its list is becom
 
 **Commit author:** yes after `orcan sync` — host `user.name` / `user.email` become `GIT_AUTHOR_*` in the container.
 
-**Push/pull over SSH:** start with `orcan up --with-git` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --with-docker --with-git`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
+**Push/pull over SSH:** start with `orcan up --ssh` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --docker-socket --ssh`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
 
 **Worktrees:** optional. Mount a normal clone path by default; use the wizard’s advanced help or `orcan context worktree` when you want a separate checkout under `$ORCAN_PROJECTS_ROOT/.worktrees` (default `~/.config/orcan/sandbox/.worktrees` — covered by the stable projects mount, so no container recreate). See [Workspaces](concepts/workspaces.md#git-worktrees).
 

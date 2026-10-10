@@ -12,7 +12,7 @@ export type ProbeReport = {
     docker: { available?: boolean; image?: { name: string; present: boolean }; container: { name?: string; state: string }; agents?: Record<string, boolean> };
     resources?: { cpus?: string | number; memory?: string; shm_size?: string; tmpfs_size?: string };
     defaults?: { resources?: { cpus?: number; memory?: string }; ttyd?: { host_port?: number } };
-    launch?: { recorded: boolean; docker?: boolean; git?: boolean; network?: string | null; ttyd?: boolean; ttyd_auth?: boolean };
+    launch?: { recorded: boolean; docker?: boolean; git?: boolean; github?: string | null; network?: string | null; ttyd?: boolean; ttyd_auth?: boolean };
   };
   paths: { home: string; data: string; cache?: string; projects_root: string; workspace_metadata_root: string; managed_worktrees_root: string };
   control?: {

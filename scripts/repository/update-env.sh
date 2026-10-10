@@ -167,7 +167,7 @@ quote_dotenv() {
 
 # Host git identity → container commits match host author/committer.
 # Prefer global config (update-env cwd is ORCAN_HOME, not a project repo).
-# SSH keys / agent are NOT mounted here — use: orcan up --with-git
+# SSH keys / agent are NOT mounted here — use: orcan up --ssh
 GIT_AUTHOR_NAME="$(git config --global --get user.name 2>/dev/null || true)"
 GIT_AUTHOR_EMAIL="$(git config --global --get user.email 2>/dev/null || true)"
 if [[ -n "${GIT_AUTHOR_NAME}" ]]; then
@@ -257,5 +257,5 @@ fi
 if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}" ]]; then
     printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}"
 fi
-printf 'SSH keys: orcan up --with-git (not mounted by sync)\n'
+printf 'SSH keys: orcan up --ssh (not mounted by sync)\n'
 printf 'Next: orcan down && orcan up\n'

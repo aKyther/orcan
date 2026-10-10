@@ -16,7 +16,7 @@ Version **4.0.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the i
 - Path parity (same absolute paths host ↔ container)
 - Images: `orcan:latest` / `orcan:<VERSION>` (all agents); optional local `orcan:<VERSION>-claude` / `-cursor` / `-codex`
 - Local container by default (`orcan enter` on the same machine)
-- Optional browser terminal (`orcan up --with-ttyd` → ttyd → launcher → tmux → zsh)
+- Optional browser terminal (`orcan up --web-terminal` → ttyd → launcher → tmux → zsh)
 - Host data under `~/.config/orcan` (`ORCAN_DATA`)
 - JSON config + wizard (`orcan.config.json`)
 - Documentation in clear English
@@ -28,7 +28,7 @@ Version **4.0.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the i
 | Bash | `orcan` CLI dispatcher |
 | Python 3 | Host config: `sync`, `init` (incl. wizard), `context` (show / add / hook) — stdlib only, no pip |
 | Git | Install clone + your projects |
-| Docker (Compose v2) | Container runtime (`orcan up`, optional `--with-ttyd`) |
+| Docker (Compose v2) | Container runtime (`orcan up`, optional `--web-terminal`) |
 
 `orcan` itself is Bash; several commands call small Python helpers on the host. `orcan doctor` checks all of the above.
 
@@ -48,7 +48,7 @@ orcan init /absolute/path/to/your/repo   # or just `orcan init` for the interact
 orcan sync                               # after later edits to orcan.config.json
 orcan build --agent codex
 orcan up                                 # local — use `orcan enter` on the same machine
-# remote browser: orcan up --with-ttyd && orcan url
+# remote browser: orcan up --web-terminal && orcan url
 ```
 
 After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). Rebuild the image only when the Dockerfile or agent install set changed — not for workspace/project changes.
@@ -59,7 +59,7 @@ After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). 
 | --- | --- |
 | `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
 | `orcan init` | Interactive config wizard (no PATH: create or edit) |
-| `orcan up` / `orcan up --with-ttyd` / `orcan up --with-docker \| --with-network NAME` / `orcan up --with-git` / `orcan down` | Start container (local by default; optional browser / DinD **or** network / SSH) / stop |
+| `orcan up` / `orcan up --web-terminal` / `orcan up --docker-socket \| --network NAME` / `orcan up --ssh` / `orcan down` | Start container (local by default; optional browser / DinD **or** network / SSH) / stop |
 | `orcan build --agent NAME [...]` / `--all-agents` | Explicit client selection in standard `latest` + `<VERSION>` tags; inspect it with `orcan status` |
 | `orcan publish` | Manual image push (maintainers) |
 | `orcan upgrade [--to VERSION]` / `orcan downgrade` | Newest release / pin / one step back |

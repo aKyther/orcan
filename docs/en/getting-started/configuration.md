@@ -126,8 +126,8 @@ orcan context show
 | `.env` | Compose and Make variables |
 | `mounts/runtime-config.json` | Mounted into the container as `/etc/orcan/config.json` |
 | `mounts/compose-projects.generated.yml` | Extra bind mounts |
-| `mounts/compose-git.generated.yml` | Written by `orcan up --with-git` (SSH mounts) |
-| `mounts/compose-network.generated.yml` | Written by `orcan up --with-network NAME` (join an existing Docker network) |
+| `mounts/compose-git.generated.yml` | Written by `orcan up --ssh` (SSH mounts) |
+| `mounts/compose-network.generated.yml` | Written by `orcan up --network NAME` (join an existing Docker network) |
 | `workspaces/<name>/` | Host-backed workspace meta |
 | `$ORCAN_DATA` tree | Default `~/.config/orcan` (Cursor/Claude home, caches) |
 

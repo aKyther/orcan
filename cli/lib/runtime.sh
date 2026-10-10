@@ -72,7 +72,7 @@ orcan_ttyd_container_port() {
     _orcan_ttyd_env TTYD_PORT 7681
 }
 
-# Same URL shape as `orcan url` and `orcan up --with-ttyd` success line.
+# Same URL shape as `orcan url` and `orcan up --web-terminal` success line.
 # A wildcard bind (0.0.0.0 / ::) isn't itself a dialable address — printing
 # it literally gives an unusable URL. `localhost` at least works from this
 # same host; reaching it from elsewhere (LAN/Tailscale) needs the host's own
@@ -112,9 +112,9 @@ orcan_require_ttyd_for_url() {
         return 0
     fi
     if orcan_container_is_running; then
-        orcan_die "browser terminal is off — orcan down && orcan up --with-ttyd   (local: orcan enter)"
+        orcan_die "browser terminal is off — orcan down && orcan up --web-terminal   (local: orcan enter)"
     fi
-    orcan_die "no running container — start with: orcan up --with-ttyd   (or plain orcan up for local: orcan enter)"
+    orcan_die "no running container — start with: orcan up --web-terminal   (or plain orcan up for local: orcan enter)"
 }
 
 # Human-readable summary of mounts/up-state.env for doctor / logs.
@@ -134,6 +134,9 @@ orcan_up_state_summary() {
     fi
     if [[ "${WITH_GIT:-0}" == "1" ]]; then
         parts+=("git/ssh")
+    fi
+    if [[ "${WITH_GITHUB:-0}" == "1" ]]; then
+        parts+=("github:${GITHUB_HOSTNAME:-github.com}")
     fi
     if [[ "${WITH_NETWORK:-0}" == "1" && -n "${NETWORK_NAME:-}" ]]; then
         parts+=("network:${NETWORK_NAME}")

@@ -12,7 +12,7 @@ Orcan is **not** deployed as a pulled image from GHCR.
 2. Configure `orcan.config.json`
 3. `orcan sync`
 4. `orcan build --agent codex` (or choose another explicit client set)
-5. `orcan up` (local — `orcan enter`) or `orcan up --with-ttyd` (browser) or `orcan up --with-docker | --with-network NAME` (pick one)
+5. `orcan up` (local — `orcan enter`) or `orcan up --web-terminal` (browser) or `orcan up --docker-socket | --network NAME` (pick one)
 
 ```bash
 git clone https://github.com/aKyther/orcan.git
@@ -22,7 +22,7 @@ orcan init /absolute/path/to/your/repo
 orcan sync
 orcan build --agent codex
 orcan up
-# remote browser: orcan up --with-ttyd && orcan url
+# remote browser: orcan up --web-terminal && orcan url
 ```
 
 ### Multi-host

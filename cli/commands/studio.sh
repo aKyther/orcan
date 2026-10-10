@@ -98,7 +98,7 @@ orcan_cmd_studio() {
             ;;
         enclave)
             local mode="${1:-}"; shift || true
-            [[ "$mode" == "plan" || "$mode" == "apply" ]] || orcan_usage_error 'usage: orcan studio enclave plan|apply --empty [--with-git] [--with-docker] [--with-ttyd | --with-ttyd-auth USER:PASS] [--yes]'
+            [[ "$mode" == "plan" || "$mode" == "apply" ]] || orcan_usage_error 'usage: orcan studio enclave plan|apply --empty [--ssh] [--docker-socket] [--web-terminal | --web-terminal-auth USER:PASS] [--yes]'
             local up_args=() port_args=() apply_args=("$mode" --config "${ORCAN_CONFIG_FILE}")
             local identity_json="" identity_image="${IMAGE_LOCAL:-orcan:latest}"
             while (($#)); do
@@ -112,9 +112,9 @@ orcan_cmd_studio() {
                         [[ "$1" != --identity-json ]] || identity_json="$2"
                         [[ "$1" != --image ]] || identity_image="$2"
                         port_args+=("$1" "$2"); apply_args+=("$1" "$2"); shift 2 ;;
-                    --with-git|--with-docker|--with-ttyd) up_args+=("$1"); shift ;;
-                    --with-ttyd-auth)
-                        [[ $# -ge 2 && "$2" != -* ]] || orcan_usage_error '--with-ttyd-auth requires user:password'
+                    --ssh|--with-git|--docker-socket|--with-docker|--web-terminal|--with-ttyd|--github) up_args+=("$1"); shift ;;
+                    --web-terminal-auth|--with-ttyd-auth|--github-hostname)
+                        [[ $# -ge 2 && "$2" != -* ]] || orcan_usage_error "$1 requires a value"
                         up_args+=("$1" "$2"); shift 2
                         ;;
                     --yes) apply_args+=(--yes); shift ;;

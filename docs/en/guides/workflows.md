@@ -15,7 +15,7 @@ You already configured workspaces. You want a dev container with yesterday’s m
 ```bash
 cd /absolute/path/to/orcan
 orcan up              # local — orcan enter on the same machine
-# remote browser: orcan up --with-ttyd && orcan url
+# remote browser: orcan up --web-terminal && orcan url
 ```
 
 !!! note
@@ -23,9 +23,9 @@ orcan up              # local — orcan enter on the same machine
 
 ## Scenario: local terminal (not only the browser) { #local-terminal }
 
-**When:** you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside `--with-ttyd`.
+**When:** you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside `--web-terminal`.
 
-Plain `orcan up` is local-only (no published port). **`orcan enter`** is the default path on the same machine. Add **`--with-ttyd`** when you need the browser (remote / phone).
+Plain `orcan up` is local-only (no published port). **`orcan enter`** is the default path on the same machine. Add **`--web-terminal`** when you need the browser (remote / phone).
 
 # equivalent low-level:
 docker exec -it orcan-1 tmux ls
@@ -131,23 +131,23 @@ orcan up
 **When:** nested Compose / Docker from inside the container.
 
 ```bash
-orcan up --with-docker
+orcan up --docker-socket
 ```
 
 **Tradeoff:** the socket ≈ control of the host Docker engine. The flag is a
 deliberate opt-in (warning on start). There is no “full host Docker but
 sandboxed” mode. If you only need to reach other containers, prefer
-`--with-network`. Details: [Security](../reference/security.md).
+`--network`. Details: [Security](../reference/security.md).
 
 ## Scenario: reach containers on an existing Docker network
 
 **When:** the container needs to reach another container by name/IP (e.g. a
 project's own `docker compose` stack) but doesn't need to control the host
-Docker engine. Lower-risk than `--with-docker` — no socket mounted.
+Docker engine. Lower-risk than `--docker-socket` — no socket mounted.
 
 ```bash
 docker network create my-net   # if it doesn't exist yet
-orcan up --with-network my-net
+orcan up --network my-net
 ```
 
 ## Scenario: git push/pull from inside the container
@@ -155,9 +155,9 @@ orcan up --with-network my-net
 **When:** commits already match the host identity (via `orcan sync`); you also need SSH keys or an agent for remotes.
 
 ```bash
-orcan up --with-git
+orcan up --ssh
 # with DinD:
-orcan up --with-docker --with-git
+orcan up --docker-socket --ssh
 ```
 
 ## Scenario: optional git worktree

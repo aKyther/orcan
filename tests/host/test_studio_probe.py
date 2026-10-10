@@ -91,7 +91,8 @@ def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None
     last_up = tmp_path / "last-up.env"
     last_up.write_text(
         "WITH_DOCKER=0\nWITH_GIT=1\nWITH_NETWORK=1\nWITH_TTYD=1\n"
-        "WITH_TTYD_AUTH=1\nNETWORK_NAME=my\\ net\n",
+        "WITH_TTYD_AUTH=1\nNETWORK_NAME=my\\ net\n"
+        "WITH_GITHUB=1\nGITHUB_HOSTNAME=github.company.test\n",
         encoding="utf-8",
     )
     result = subprocess.run(
@@ -121,6 +122,7 @@ def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None
         "recorded": True,
         "docker": False,
         "git": True,
+        "github": "github.company.test",
         "network": "my net",
         "ttyd": True,
         "ttyd_auth": True,

@@ -40,15 +40,15 @@ Version label: `ORCAN_VERSION` / `/etc/orcan/version`.
 | `docker-compose.yml` | Base service, `$ORCAN_DATA` binds, no Docker socket |
 | `docker-compose.keepalive.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=keepalive` — default `orcan up` (local-only; use `orcan enter`) |
 | `docker-compose.docker.yml` | Host Docker socket + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=ttyd` when `orcan up --with-ttyd`; published port (`TTYD_BIND`, default `0.0.0.0`), optional `TTYD_CREDENTIAL`, healthcheck |
+| `docker-compose.ttyd.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=ttyd` when `orcan up --web-terminal`; published port (`TTYD_BIND`, default `0.0.0.0`), optional `TTYD_CREDENTIAL`, healthcheck |
 | `mounts/compose-projects.generated.yml` | Path-parity project mounts (generated) |
 
-Overlays for `orcan up --with-ttyd` / `--with-docker` / `--with-git` /
-`--with-network` are opt-in. Capability ladder and risks: [Security](security.md).
+Overlays for `orcan up --web-terminal` / `--docker-socket` / `--ssh` /
+`--network` are opt-in. Capability ladder and risks: [Security](security.md).
 
 ttyd: default publish is all interfaces (`TTYD_BIND=0.0.0.0`). **Recommended
 remote access** is Tailscale (or another private VPN) plus
-`TTYD_CREDENTIAL` / `--with-ttyd-auth`. Set `TTYD_BIND=127.0.0.1` for
+`TTYD_CREDENTIAL` / `--web-terminal-auth`. Set `TTYD_BIND=127.0.0.1` for
 host-local only. `orcan url` prints `http://localhost:<port>` for wildcard
 binds.
 
