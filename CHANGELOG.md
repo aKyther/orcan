@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CI selects expensive Studio/image jobs from changed paths, retains full host
+  checks, and runs everything on manual/weekly checks or unknown inputs. Browser
+  downloads are cached separately; image vulnerability policy is unchanged.
+
 - Worktree creation reports partial attachments and preserves the created checkout.
   Studio can retry only remaining attachments; failed drafts retain the existing
   worktree instead of trying to recreate its branch.

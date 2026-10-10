@@ -45,6 +45,15 @@ plus `cargo test --manifest-path studio/Cargo.toml` for native Rust changes.
 Run the full checks before handoff.
 
 CI runs UI behavior tests and native application tests as well as the Rust core.
+Full host checks always run. Changed-path selection skips Studio builds for
+docs/test-only changes and skips image builds/Trivy for Studio/host-only changes.
+Image/runtime changes run both image and Studio checks. Unknown paths, unavailable
+Git history, manual dispatch and the weekly schedule run the full scope. Trivy's
+severity policy is unchanged. Docs deploy only after documentation changes.
+The classifier and its pure tests are `ci_scope.py` and `test_ci_scope.py`;
+update them when adding a new build input. Browser downloads use a pinned-version
+cache, separate from native build artifacts.
+
 Studio jobs cache npm/Cargo dependencies and compiled dependency directories, not
 installers, app executables or incremental output. Keys include the Rust compiler,
 platform and build mode. Linux CI omits development debug symbols and logs cache

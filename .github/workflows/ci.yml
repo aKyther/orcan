@@ -6,14 +6,42 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * 0'
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Select CI scope
+    runs-on: ubuntu-latest
+    outputs:
+      studio: ${{ steps.scope.outputs.studio }}
+      image: ${{ steps.scope.outputs.image }}
+      docs: ${{ steps.scope.outputs.docs }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Select jobs from changed paths
+        id: scope
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD: ${{ github.sha }}
+        run: |
+          if [[ "$CI_EVENT" == workflow_dispatch || "$CI_EVENT" == schedule ]]; then
+            python3 scripts/repository/ci_scope.py --full
+          else
+            python3 scripts/repository/ci_scope.py --base "$CI_BASE" --head "$CI_HEAD"
+          fi
+
   studio:
     name: Orcan Studio (Linux build)
+    needs: changes
+    if: needs.changes.outputs.studio == 'true'
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: "0"
@@ -74,6 +102,12 @@ jobs:
       - name: Test native Studio application
         run: cargo test --manifest-path studio/Cargo.toml -p orcan-studio
 
+      - name: Cache the fixture browser
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: studio-browser-${{ runner.os }}-${{ runner.arch }}-playwright-1.55.0
+
       - name: Test Studio browser flows (fixture backend only)
         run: |
           npm install --no-save --no-package-lock --prefix .orcan-dev-ux/playwright-node @playwright/test@1.55.0
@@ -127,6 +161,8 @@ jobs:
 
   image-scan:
     name: Image vulnerability scan (Trivy)
+    needs: changes
+    if: needs.changes.outputs.image == 'true'
     runs-on: ubuntu-latest
     # contents:read alone sets every other GITHUB_TOKEN scope to none.
     # trivy-action then cannot restore/save its DB cache (actions/cache)
@@ -260,8 +296,8 @@ jobs:
 
   docs-dev:
     name: Deploy docs (latest)
-    needs: checks
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [checks, changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     # Serialize with Release workflow (both push gh-pages)
     concurrency:
