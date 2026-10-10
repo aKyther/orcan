@@ -120,6 +120,15 @@ def test_coverage_runs_pytest_once_then_reports(runner_environment):
     assert "coverage\nerase" in result.stdout
     assert "coverage\ncombine" in result.stdout
     assert "coverage\nreport\n--show-missing" in result.stdout
+    assert "Coverage: test process only" in result.stdout
+
+
+def test_extended_coverage_is_an_explicit_diagnostic_mode(runner_environment):
+    result = run_runner(
+        {**runner_environment, "ORCAN_SUBPROCESS_COVERAGE": "1"}, "--coverage"
+    )
+    assert "compatible source-file subprocesses" in result.stdout
+    assert result.stdout.count("pytest\n-q") == 1
 
 
 def test_runner_rejects_unknown_selection(runner_environment):

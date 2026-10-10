@@ -16,7 +16,7 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 TEST_ARGS ?=
 
 .PHONY: help deprecate-user \
-	test-fast test-integration \
+	test-fast test-integration test-coverage-subprocess studio-test-browser \
 	validate test test-host test-coverage test-path-parity format format-check studio-test studio-preview-start studio-preview-stop studio-preview-status studio-preview-logs studio-preview-url studio-preview-snapshot studio-preview-snapshot-clear dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
@@ -57,6 +57,9 @@ test-integration: ## Host tests that exercise subprocesses or external boundarie
 test-coverage: ## Full host tests and cockpit coverage via uv
 	@./tests/host/run.sh --coverage $(TEST_ARGS)
 
+test-coverage-subprocess: ## Extended coverage including host-helper subprocesses (slower)
+	@ORCAN_SUBPROCESS_COVERAGE=1 ./tests/host/run.sh --coverage $(TEST_ARGS)
+
 format: ## Format host and cockpit Python with Ruff
 	@python3 -m ruff format scripts/repository cockpit/src tests/host
 
@@ -65,6 +68,9 @@ format-check: ## Verify host and cockpit Python is Ruff-formatted
 
 studio-test: ## Test the transport-neutral Orcan Studio Rust core
 	@cargo test --manifest-path studio/Cargo.toml -p orcan-studio-core
+
+studio-test-browser: ## Studio demo browser flows (requires local Playwright and Chromium)
+	@NODE_PATH="$(CURDIR)/.orcan-dev-ux/playwright-node/node_modules" ./.orcan-dev-ux/playwright-node/node_modules/.bin/playwright test --config=tests/browser/studio.config.js
 
 studio-preview-start: ## Serve fixture-only Studio UX on the host Tailscale address
 	@./scripts/dev/orcan-studio-preview start

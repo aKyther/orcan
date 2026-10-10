@@ -27,11 +27,17 @@ esac
 uv_python=(uv run --no-project --with-requirements requirements-test.txt python -m)
 printf '==> host tests (%s, pytest via uv)\n' "${ORCAN_TEST_MODE:-all}"
 if (( coverage )); then
-    export COVERAGE_PROCESS_START="${ROOT_DIR}/.coveragerc"
-    export ORCAN_COVERAGE_ROOT="${ROOT_DIR}"
     export COVERAGE_FILE="${ROOT_DIR}/.coverage"
-    export PYTHONPATH="${ROOT_DIR}/tests/host/coverage_bootstrap:${PYTHONPATH}"
     "${uv_python[@]}" coverage erase
+    if [[ "${ORCAN_SUBPROCESS_COVERAGE:-0}" == 1 ]]; then
+        printf 'Coverage: parent and compatible source-file subprocesses (slower diagnostic mode)\n'
+        export COVERAGE_PROCESS_START="${ROOT_DIR}/.coveragerc"
+        export ORCAN_COVERAGE_ROOT="${ROOT_DIR}"
+        export PYTHONPATH="${ROOT_DIR}/tests/host/coverage_bootstrap:${PYTHONPATH}"
+    else
+        printf 'Coverage: test process only; use make test-coverage-subprocess for helper subprocesses\n'
+        unset COVERAGE_PROCESS_START ORCAN_COVERAGE_ROOT
+    fi
     "${uv_python[@]}" coverage run \
         -m pytest -q "${selection[@]}" "$@"
     unset COVERAGE_PROCESS_START ORCAN_COVERAGE_ROOT

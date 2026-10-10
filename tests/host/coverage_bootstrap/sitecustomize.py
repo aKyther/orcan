@@ -1,8 +1,18 @@
 """Activated only by the coverage runner's private PYTHONPATH entry."""
 
 import os
+import sys
 
-if os.environ.get("COVERAGE_PROCESS_START"):
+root = os.environ.get("ORCAN_COVERAGE_ROOT")
+# Version/PATH discovery frequently invokes Python -c. It executes no source
+# file under test, so do not start an expensive collector for those helpers.
+script = os.path.realpath(sys.argv[0]) if sys.argv else ""
+instrument = root and any(
+    script.startswith(os.path.realpath(root) + suffix)
+    for suffix in ("/scripts/repository/", "/cockpit/src/")
+)
+
+if os.environ.get("COVERAGE_PROCESS_START") and instrument:
     try:
         import coverage
     except ImportError:

@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -28,16 +30,23 @@ jobs:
           cache: npm
           cache-dependency-path: studio/app/package-lock.json
 
-      - name: Cache Rust dependencies and build output
+      - name: Identify Rust cache toolchain
+        id: rust-version
+        shell: bash
+        run: echo "version=$(rustc --version)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Rust dependencies (no bundles or incremental output)
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            studio/target
-          key: studio-check-${{ runner.os }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-${{ github.sha }}
+            studio/target/debug/deps
+            studio/target/debug/build
+            studio/target/debug/.fingerprint
+          key: studio-check-v2-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-${{ github.sha }}
           restore-keys: |
-            studio-check-${{ runner.os }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-
+            studio-check-v2-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('studio/Cargo.lock', 'studio/**/Cargo.toml') }}-
 
       - name: Install Tauri Linux dependencies
         run: |
@@ -64,6 +73,17 @@ jobs:
 
       - name: Test native Studio application
         run: cargo test --manifest-path studio/Cargo.toml -p orcan-studio
+
+      - name: Test Studio browser flows (fixture backend only)
+        run: |
+          npm install --no-save --no-package-lock --prefix .orcan-dev-ux/playwright-node @playwright/test@1.55.0
+          .orcan-dev-ux/playwright-node/node_modules/.bin/playwright install chromium --with-deps
+          make studio-test-browser
+
+      - name: Keep only reusable dependency artifacts in Rust cache
+        run: |
+          cargo clean --manifest-path studio/Cargo.toml -p orcan-studio -p orcan-studio-core
+          du -sh studio/target/debug/deps studio/target/debug/build
 
   checks:
     name: Checks
