@@ -10,6 +10,7 @@ export type ContextProject = ProbeReport["context"]["workspaces"][number]["proje
 export type HealthProject = { path: string; kind?: string; writable?: boolean; dirty?: boolean | null; repository_id?: string };
 
 export function parentCandidates(report: ProbeReport, runs: ParentRun[]): ParentCandidate[] {
+  const runsByPath = new Map(runs.map((run) => [run.path, run.at]));
   return report.context.update_targets.map((target) => ({
     path: target.path, name: target.name, role: target.role,
     worktree_count: target.worktree_count, readOnly: target.read_only,
@@ -17,16 +18,23 @@ export function parentCandidates(report: ProbeReport, runs: ParentRun[]): Parent
     upstream: target.upstream, ahead: target.ahead, behind: target.behind,
   })).sort((left, right) => {
     if (left.role !== right.role) return left.role === "worktree_parent" ? -1 : 1;
-    const leftRun = runs.find((run) => run.path === left.path)?.at ?? "";
-    const rightRun = runs.find((run) => run.path === right.path)?.at ?? "";
+    const leftRun = runsByPath.get(left.path) ?? "";
+    const rightRun = runsByPath.get(right.path) ?? "";
     return rightRun.localeCompare(leftRun) || left.name.localeCompare(right.name);
   });
 }
 
-export function parentForProject(report: ProbeReport, project: ContextProject, runs: ParentRun[]): ParentCandidate | undefined {
+/** Build once per render, never retain across a refreshed report/history. */
+export function indexParents(report: ProbeReport, runs: ParentRun[]) {
   const candidates = parentCandidates(report, runs);
-  return candidates.find((candidate) => candidate.repositoryId && candidate.repositoryId === project.repository_id)
-    ?? candidates.find((candidate) => candidate.path === project.path);
+  const byPath = new Map<string, ParentCandidate>();
+  const byRepository = new Map<string, ParentCandidate>();
+  for (const candidate of candidates) {
+    if (!byPath.has(candidate.path)) byPath.set(candidate.path, candidate);
+    if (candidate.repositoryId && !byRepository.has(candidate.repositoryId)) byRepository.set(candidate.repositoryId, candidate);
+  }
+  return { candidates, forProject: (project: ContextProject) =>
+    (project.repository_id ? byRepository.get(project.repository_id) : undefined) ?? byPath.get(project.path) };
 }
 
 export function projectName(project: { name?: string; path: string }): string {

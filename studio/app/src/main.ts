@@ -1,10 +1,11 @@
 import { cleanupPanel } from "./cleanup";
+import { createMapConnections } from "./map-connections";
 import { buildProfile, CHOOSE_SSH, SYSTEM_SSH, INLINE_SSH } from "./profile-model";
 import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
 import { loadJobs, persistJobs, type Job } from "./activity";
 import { draftConflicts, loadQueuedChanges, persistQueuedChanges, type QueuedChange } from "./context-drafts";
-import { parentCandidates, parentDirectory, parentForProject, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, type HealthProject, type ParentCandidate } from "./context-model";
+import { parentCandidates, parentDirectory, indexParents, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, type HealthProject, type ParentCandidate } from "./context-model";
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
@@ -493,43 +494,16 @@ function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: stri
   chip.addEventListener("click", () => {
     tracedPath = tracedPath === project.path ? undefined : project.path;
     inspectedProject = { path: project.path, workspace: from };
-    if (currentReport) renderEnclaveMap(currentReport);
+    if (currentReport) {
+      renderProjectInspector(currentReport);
+      mapConnections.highlight();
+    }
   });
   return chip;
 }
 
-function drawConnections(): void {
-  const bounds = contextCanvas.getBoundingClientRect();
-  connectionLines.replaceChildren();
-  traceLines.replaceChildren();
-  for (const layer of [connectionLines, traceLines]) layer.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
-  for (const source of sandboxTray.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")) {
-    const sourceAnchor = source.querySelector<HTMLElement>(".connection-anchor");
-    if (!sourceAnchor) continue;
-    const sourceBox = sourceAnchor.getBoundingClientRect();
-    if (!sourceBox.width || !sourceBox.height) continue;
-    const path = source.dataset.projectPath;
-    for (const target of workspaceCards.querySelectorAll<HTMLElement>(`.project-chip[data-project-path="${CSS.escape(path ?? "")}"]`)) {
-      const targetAnchor = target.querySelector<HTMLElement>(".connection-anchor");
-      if (!targetAnchor) continue;
-      const targetBox = targetAnchor.getBoundingClientRect();
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const startX = sourceBox.left - bounds.left + sourceBox.width / 2;
-      const startY = sourceBox.top - bounds.top + sourceBox.height / 2;
-      const endX = targetBox.left - bounds.left + targetBox.width / 2;
-      const endY = targetBox.top - bounds.top + targetBox.height / 2;
-      const horizontal = window.matchMedia("(min-width: 761px)").matches;
-      const middleX = (startX + endX) / 2;
-      const middleY = (startY + endY) / 2;
-      line.setAttribute("d", horizontal
-        ? `M ${startX} ${startY} C ${middleX} ${startY}, ${middleX} ${endY}, ${endX} ${endY}`
-        : `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
-      const highlighted = tracedPath === path || target.dataset.workspace === focusedWorkspace;
-      line.setAttribute("class", `context-link ${target.dataset.connectionState ?? "current"} ${highlighted ? "highlight" : "muted"}`);
-      (highlighted ? traceLines : connectionLines).append(line);
-    }
-  }
-}
+const mapConnections = createMapConnections(contextCanvas, sandboxTray, workspaceCards,
+  connectionLines, traceLines, () => ({ path: tracedPath, workspace: focusedWorkspace }));
 
 function dropZone(zone: HTMLElement, onDrop: (project: ProjectRef) => void): void {
   zone.addEventListener("dragover", (event) => {
@@ -689,7 +663,7 @@ function renderEnclaveMap(report: ProbeReport): void {
   const rootItems = groups.get(undefined) ?? [];
   const groupNodes = [...groups.entries()].filter(([parent]) => parent).sort(([left], [right]) => left!.localeCompare(right!)).map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent!) }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
   sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available projects and folders (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), chips.length ? el("div", { className: "project-parent-groups" }, ...(rootItems.length ? [el("div", { className: "tray-chips root-projects" }, ...rootItems)] : []), ...groupNodes) : el("p", { className: "hint", textContent: query ? "No project or folder matches this filter." : "No projects or folders in the sandbox yet. Import a repository in Repositories." }));
-  requestAnimationFrame(drawConnections);
+  mapConnections.schedule();
 }
 
 function renderWorkspaceInspector(report: ProbeReport): void {
@@ -762,14 +736,14 @@ function renderProjectInspector(report: ProbeReport): void {
       worktreeBranch.focus();
     }, "secondary"));
   }
-  actions.push(actionButton("Clear", () => { inspectedProject = undefined; tracedPath = undefined; renderEnclaveMap(report); }, "secondary"));
+  actions.push(actionButton("Clear", () => { inspectedProject = undefined; tracedPath = undefined; renderProjectInspector(report); mapConnections.highlight(); }, "secondary"));
   for (const action of actions) {
     if (!canEditContext(report) && action.textContent !== "Clear" && action instanceof HTMLButtonElement) action.disabled = true;
   }
   projectInspectorActions.replaceChildren(...actions);
 }
 
-window.addEventListener("resize", () => { if (currentReport) requestAnimationFrame(drawConnections); });
+window.addEventListener("resize", () => { if (currentReport) mapConnections.schedule(); });
 const activeMapFilters = new Set<MapFilter>();
 function restoreMapState(): void {
   const key = current ? enclaveChangeKey(current) : undefined;
@@ -1319,6 +1293,7 @@ function renderSandboxProjects(report: ProbeReport): void {
 }
 
 function renderContextWorkspaceList(report: ProbeReport): void {
+  const parents = indexParents(report, parentRuns);
   const editable = Boolean(report && canEditContext(report));
   const selected = focusedWorkspace && report.context.workspaces.some((workspace) => workspace.name === focusedWorkspace)
     ? focusedWorkspace : report.context.workspaces[0]?.name;
@@ -1350,7 +1325,7 @@ function renderContextWorkspaceList(report: ProbeReport): void {
     const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
     detach.title = editable ? `Detach ${projectName(project)} from ${workspace.name}` : contextEditMessage();
     detach.disabled = !editable;
-    const parent = parentForProject(report, project, parentRuns);
+    const parent = parents.forProject(project);
     const parentState = parent
       ? parent.dirty
         ? `parent ${parent.branch ?? "branch"} dirty`

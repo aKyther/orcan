@@ -48,6 +48,45 @@ test("unknown Git status is visible in project alerts", async () => {
   assert.deepEqual(projectAlerts({ context: { update_targets: [] } }, { path: "/app", dirty: null }), ["Git status unknown"]);
 });
 
+test("parent index preserves preference and is rebuilt for changed reports", async () => {
+  const { indexParents } = await load("context-model");
+  const target = (path, role, name) => ({ path, role, name, repository_id: "repo", eligible: true, read_only: true, worktree_count: 1 });
+  const report = { context: { update_targets: [target("/mount", "configured_mount", "mount"), target("/source", "worktree_parent", "source")] } };
+  const first = indexParents(report, []);
+  assert.equal(first.forProject({ path: "/mount", repository_id: "repo" }).path, "/source");
+  report.context.update_targets = [target("/replacement", "worktree_parent", "new")];
+  assert.equal(indexParents(report, []).forProject({ path: "/tree", repository_id: "repo" }).path, "/replacement");
+  assert.equal(first.forProject({ path: "/tree", repository_id: "repo" }).path, "/source");
+});
+
+test("map geometry coalesces resize and group-toggle requests into one frame", async () => {
+  const { createMapConnections } = await load("map-connections");
+  const frames = [];
+  globalThis.requestAnimationFrame = callback => (frames.push(callback), frames.length);
+  const canvas = new EventTarget();
+  canvas.querySelectorAll = () => [];
+  canvas.getBoundingClientRect = () => ({ width: 800, height: 300 });
+  const container = { querySelectorAll: () => [] };
+  let draws = 0;
+  const layer = () => ({ setAttribute() {}, replaceChildren() { draws++; } });
+  globalThis.window = { matchMedia: () => ({ matches: true }) };
+  try {
+    const connections = createMapConnections(canvas, container, container, layer(), layer(), () => ({}));
+    connections.schedule();
+    connections.schedule();
+    canvas.dispatchEvent(new Event("toggle"));
+    assert.equal(frames.length, 1);
+    frames.shift()();
+    assert.equal(draws, 2);
+    connections.highlight();
+    assert.equal(draws, 2);
+    connections.schedule();
+    assert.equal(frames.length, 1);
+  } finally {
+    delete globalThis.requestAnimationFrame;
+  }
+});
+
 test("demo backend preserves per-container state without mutating another container", async () => {
   globalThis.window = { setTimeout: resolve => { resolve(); return 0; } };
   const { demoInvoke } = await load("demo", {

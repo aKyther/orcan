@@ -27,7 +27,7 @@ const demoReport: ProbeReport = {
       { name: "api", path: "/home/orcan/.config/orcan/sandbox/api", kind: "git_repository", role: "worktree_parent", worktree_count: 3, read_only: false, eligible: true, branch: "main", dirty: false, upstream: "origin/main", ahead: 0, behind: 2 },
       { name: "web", path: "/home/orcan/.config/orcan/sandbox/web", kind: "git_repository", role: "configured_mount", worktree_count: 0, read_only: true, eligible: false, branch: "feature/studio", dirty: true, upstream: "origin/feature/studio", ahead: 1, behind: 0 },
     ],
-    configuration: { state: "synchronized", revision: "demo" },
+    configuration: { state: "present", source: "config", editable: true, path: "/home/orcan/.config/orcan/orcan.config.json", revision: "demo" },
   },
 };
 
