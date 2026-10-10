@@ -2292,6 +2292,21 @@ it applies to <code>test-host</code>, <code>test-fast</code>, <code>test-integra
 <p>For Studio-only changes, use <code>npm test</code> and <code>npm run build</code> in <code>studio/app</code>,
 plus <code>cargo test --manifest-path studio/Cargo.toml</code> for native Rust changes.
 Run the full checks before handoff.</p>
+<p>CI runs UI behavior tests and native application tests as well as the Rust core.
+Studio jobs cache npm/Cargo dependencies and Rust build output; installer caches
+are separate per platform and build mode. Host checks share uv dependencies
+instead of installing the test requirements into two Python environments.</p>
+<p>Pure worktree contracts live in <code>test_git_worktrees.py</code>; real Git operations
+live in <code>test_git_worktrees_integration.py</code>. Use <code>git_repo_factory</code> for isolated
+empty repositories: its session template is copied, including <code>.git</code>, never
+shared or hardlinked. Keep scenario-specific remotes and commits in each test.
+UI tests share <code>tests/helpers.mjs</code>: TypeScript compilation is cached, but each
+test gets fresh module state. No browser emulator is needed for these contracts.</p>
+<p>Probe inspection deduplicates canonical paths only within one request. Unknown
+Git status is not clean and cannot authorize an update. Configuration writes use
+unique temporary files and atomic replacement; Studio compares the snapshot
+before saving. This detects stale edits, but is not a transaction with arbitrary
+external editors, which should not write the same configuration concurrently.</p>
 <p>Validation scans source files once using Git's tracked/non-ignored file list,
 excluding build output, dependency folders, virtual environments and secrets.
 Keep <code>studio/target</code> as a build cache; validation does not need to inspect it.</p>
@@ -2588,7 +2603,7 @@ browser UX run. Run those locally when Docker or cockpit UX behaviour changes.</
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 09:32:17 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 10:09:47 UTC">October 10, 2026</span>
   </span>
 
     
