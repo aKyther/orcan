@@ -86,6 +86,13 @@ complete creation form and readiness/approval snapshot. Native CLI installation
 is in `installation.rs`; bounded execution in `execution.rs`. Curses-free config
 mutations live in `context_mutations.py`.
 
+CLI archive production has one source, `src-tauri/src/cli_export.sh`, embedded by
+`cli_export.rs`. Host tests exercise archive contents and failure cleanup, not
+the number or location of Rust call sites. Rust tests check optional image arguments.
+Probe Git facts use three local processes per unique path: common directory,
+porcelain-v2 status (branch, upstream, counts, dirtiness), and origin URL. Facts
+are reused only within the current report; updates still recheck live Git state.
+
 Studio has five real browser smoke flows, independent of the cockpit suite:
 connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
 100-project/10-workspace map checking filters, both anchors and retained drafts,

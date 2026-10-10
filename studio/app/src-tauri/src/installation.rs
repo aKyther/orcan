@@ -1,6 +1,16 @@
 //! CLI installation and compatibility WSL endpoints. Profile archive/image
 //! transfers live in provisioning.rs; this module never owns their cache.
-use super::*;
+use super::{
+    CliProvisionCheck, CliProvisionResult, EnclaveInput, ImageInventory, ONLINE_INSTALL_SCRIPT,
+    ONLINE_PROVISION_CHECK_SCRIPT, OnlineProvisionCheck, ProfileState, TargetInput,
+    WslCliProvision, WslImageInput, WslImageTransfer, background_command, cli_export,
+    command_output, execution, native_ssh, native_ssh_exec, native_ssh_stream_wsl,
+    offline_check_result, offline_destination_check, offline_source_check,
+    parse_online_provision_check, provision_destination, shell_quote, valid_image_reference,
+    validate_wsl_distribution, wsl_image_inventory,
+};
+use orcan_studio_core::Target;
+use tokio::process::Command as TokioCommand;
 #[tauri::command]
 pub(super) async fn wsl_image_inventory_command(
     input: WslImageInput,
@@ -194,19 +204,7 @@ pub(super) async fn provision_wsl_cli(
     let native = native_ssh(&destination, &target, &state)?;
     if let Some(resolved) = native {
         validate_wsl_distribution(&input.distribution)?;
-        if let Some(image) = &input.image {
-            if !valid_image_reference(image) {
-                return Err("invalid Docker image reference".to_owned());
-            }
-        }
-        let image_arg = input
-            .image
-            .as_deref()
-            .map(|image| format!(" --image {}", shell_quote(image)))
-            .unwrap_or_default();
-        let source_script = format!(
-            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\"{image_arg} >&2; tar -C \"$kit/bundle\" -czf - ."
-        );
+        let source_script = cli_export::command(input.image.as_deref())?;
         let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
         let stdout = native_ssh_stream_wsl(
             &input.distribution,
@@ -233,20 +231,7 @@ pub(super) async fn provision_wsl_cli(
         }
         .probe_request()
         .map_err(|error| error.to_string())?;
-        if let Some(image) = &input.image {
-            if !valid_image_reference(image) {
-                return Err("invalid Docker image reference".to_owned());
-            }
-        }
-
-        let image_arg = input
-            .image
-            .as_deref()
-            .map(|image| format!(" --image {}", shell_quote(image)))
-            .unwrap_or_default();
-        let source_script = format!(
-            "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\"{image_arg} >&2; tar -C \"$kit/bundle\" -czf - ."
-        );
+        let source_script = cli_export::command(input.image.as_deref())?;
         let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
         let remote_command = format!("bash -lc {}", shell_quote(remote_script));
 

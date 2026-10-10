@@ -14,6 +14,37 @@ pytestmark = pytest.mark.integration
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_git_snapshot_reads_real_upstream_counts_and_dirty_state(
+    tmp_path, tracked_git_repo_factory
+):
+    from ._scripts_loader import load_script
+
+    probe = load_script("studio-probe.py")
+    repo = tracked_git_repo_factory(tmp_path / "repo")
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+        ).stdout.strip()
+
+    git("remote", "add", "origin", "https://example.test/repo.git")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    git("branch", "--set-upstream-to=origin/main", "main")
+    git("commit", "--allow-empty", "-qm", "local")
+    facts = probe.git_details(repo)
+    assert (
+        facts["branch"],
+        facts["upstream"],
+        facts["ahead"],
+        facts["behind"],
+        facts["dirty"],
+    ) == ("main", "origin/main", 1, 0, False)
+    (repo / "README").write_text("changed\n")
+    assert probe.git_details(repo)["dirty"] is True
+    git("checkout", "--detach")
+    assert probe.git_details(repo)["branch"] is None
+
+
 def test_probe_emits_only_the_versioned_json_contract(
     tmp_path: Path, git_repo_factory
 ) -> None:

@@ -63,28 +63,39 @@ def git_details(path: Path) -> dict[str, object]:
         if not Path(common_dir).is_absolute()
         else Path(common_dir)
     )
-    branch = git_output(path, "symbolic-ref", "--quiet", "--short", "HEAD")
-    status = git_output(path, "status", "--porcelain=v1", "--untracked-files=normal")
-    upstream = git_output(
-        path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"
+    # One local status snapshot supplies branch, upstream, counts and dirtiness.
+    # No fetch, persistent cache or additional process per fact is needed.
+    status = git_output(
+        path, "status", "--porcelain=v2", "--branch", "--untracked-files=normal"
     )
-    ahead_behind = git_output(
-        path, "rev-list", "--left-right", "--count", "HEAD...@{upstream}"
-    )
+    branch: str | None = None
+    upstream: str | None = None
     ahead: int | None = None
     behind: int | None = None
-    if ahead_behind:
-        try:
-            ahead, behind = (int(value) for value in ahead_behind.split())
-        except ValueError:
-            pass
+    dirty: bool | None = None
+    if status is not None:
+        dirty = False
+        for line in status.splitlines():
+            if line.startswith("# branch.head "):
+                value = line.removeprefix("# branch.head ")
+                branch = None if value == "(detached)" else value
+            elif line.startswith("# branch.upstream "):
+                upstream = line.removeprefix("# branch.upstream ")
+            elif line.startswith("# branch.ab "):
+                try:
+                    added, removed = line.removeprefix("# branch.ab ").split()
+                    ahead, behind = int(added), -int(removed)
+                except ValueError:
+                    pass
+            elif not line.startswith("# "):
+                dirty = True
     return {
         "repository_id": hashlib.sha256(str(common_path).encode()).hexdigest()[:16],
         "git_common_dir": str(common_path),
         "origin_url": git_output(path, "config", "--get", "remote.origin.url"),
         "branch": branch,
-        "dirty": bool(status) if status is not None else None,
-        "git_status": "unknown" if status is None else "dirty" if status else "clean",
+        "dirty": dirty,
+        "git_status": "unknown" if dirty is None else "dirty" if dirty else "clean",
         "upstream": upstream,
         "ahead": ahead,
         "behind": behind,

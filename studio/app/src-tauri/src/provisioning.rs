@@ -1,10 +1,19 @@
 //! Profile-to-profile provisioning. Binary payloads are spooled to a private
 //! temporary file on Studio, not buffered in RAM or copied between servers.
 use super::transfer_progress::{ProgressReader, TransferProgress};
-use super::*;
+use super::{
+    EnclaveInput, ImageInventory, ProfileState, TargetInput, background_tokio_command, cli_export,
+    execution, native_ssh, native_ssh_connect, native_ssh_exec, offline_destination_check,
+    offline_source_check, shell_quote, transfer_cache, valid_image_reference,
+    validate_wsl_distribution,
+};
+use orcan_studio_core::Target;
 use russh::ChannelMsg;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::{io, process::Stdio, sync::Mutex};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+use tokio::process::Command as TokioCommand;
 
 pub(super) struct PendingTransfers(Mutex<std::collections::HashMap<String, PendingTransfer>>);
 
@@ -628,7 +637,7 @@ async fn transfer_profiles_inner(
         }
     }
     let (source, destination): (String, String) = if input.cli {
-        ("set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; orcan bundle create --output \"$kit/bundle\" >&2; tar -C \"$kit/bundle\" -czf - .".into(),
+        (cli_export::command(None)?,
         "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; orcan version".into())
     } else {
         (

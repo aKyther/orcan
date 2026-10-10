@@ -16,7 +16,7 @@ Short index for **finding the right place to edit** — and the doc that explain
 | Host UX / Make targets | `Makefile`, `scripts/repository/` | [Makefile](reference/makefile.md) |
 | Studio connections / credentials | `studio/app/src/profile-model.ts`, `ssh-trust.ts`, `transport.ts`; `studio/app/src-tauri/src/profiles.rs`, `ssh.rs` | [Testing](development/testing.md) |
 | Studio contexts / map / Git facts | `studio/app/src/context-model.ts`, `context-drafts.ts`, `branch-picker.ts`, `map-connections.ts`; native `context.rs`; host `studio-probe.py`, `studio-parent.py`, `studio-settings.py`, `config_io.py` | [Workspaces](concepts/workspaces.md) |
-| Studio transfers / lifecycle | `studio/app/src/provision-progress.ts`, `enclave-model.ts`; `studio/app/src-tauri/src/provisioning.rs`, `enclave.rs`, `transfer_cache.rs` | [Testing](development/testing.md) |
+| Studio transfers / lifecycle | `studio/app/src/provision-progress.ts`, `enclave-model.ts`; `studio/app/src-tauri/src/provisioning.rs`, `installation.rs`, `cli_export.rs` + `cli_export.sh`, `enclave.rs`, `transfer_cache.rs` | [Testing](development/testing.md) |
 | Studio browser demo / test harness | `studio/app/src/demo.ts`; `studio/app/tests/helpers.mjs`, `*.test.mjs`; `tests/browser/studio.spec.js`, `studio.config.js` | [Testing](development/testing.md) |
 | Host context selection / presentation | `scripts/repository/context_selection.py`, `context_presenters.py`, `context_mutations.py`; `context_tui.py` for terminal interaction | [Testing](development/testing.md) |
 | Cockpit TUI (`agent-launcher`) | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `top_bar.py`, `rail.py`) | [Workflows — local terminal](guides/workflows.md#local-terminal), [Terminal UI](guides/terminal-ui.md) |

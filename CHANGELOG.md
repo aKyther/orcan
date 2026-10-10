@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio probe reads branch, upstream, divergence and dirty state in one local
+  Git status snapshot, halving Git processes per repository without stale caches.
+  CLI transfers share one archive producer across profile and WSL transports.
+
 - Compatibility WSL installation streams share bounded response capture and an
   idle watchdog. Diagnostic pipes are drained during binary transfer, and stdin
   is closed before waiting for receivers that require EOF.

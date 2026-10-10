@@ -6,13 +6,13 @@ use orcan_studio_core::{
     runtime_args, sync_args,
 };
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::Mutex;
 use tauri::Manager;
 use tokio::process::Command as TokioCommand;
 
 mod cleanup;
+mod cli_export;
 mod commands;
 mod context;
 mod execution;
