@@ -34,6 +34,7 @@ Prefer the weakest flag that still does the job:
 | Browser terminal (remote / phone) | `--web-terminal` | Publishes ttyd (`TTYD_BIND` defaults to all interfaces); prefer Tailscale + auth |
 | Reach another compose stack by name/IP | `--network NAME` | Network reach only — **mutually exclusive with `--docker-socket`** |
 | Run nested `docker` / Compose against the host engine | `--docker-socket` | **Known high risk** — opt-in; **mutually exclusive with `--network`** |
+| GitLab API / MR review | `--gitlab` | Token available to container agents and Docker administrators; scope it to required projects and permissions |
 | GitHub API / PR review | `--github` | Token available to container agents and Docker administrators; scope it to required repositories and permissions |
 | `git push` / `pull` over SSH from inside | `--ssh` | Keys / agent exposed to the container — opt-in; combines with any mode above |
 

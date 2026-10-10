@@ -61,7 +61,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan studio parent plan --path PATH --branch BRANCH` | Read-only plan for updating a parent checkout; reports branch, dirty state, HEAD and `origin` head. |
 | `orcan studio parent apply --path PATH --branch BRANCH --expected-head SHA --yes` | Apply an approved parent update with `git pull --ff-only`; refuses a stale, dirty, or wrong-branch checkout. |
 | *(in-container)* `orcan-inbox` | Agent task handoff queue under `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). See [Agent inbox](../ideas/agent-inbox.md) |
-| `orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]]` | Start container (`orcan enter` locally; pick **one** browser mode: `--web-terminal` or `--web-terminal-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
+| `orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]` | Start container (`orcan enter` locally; pick **one** browser mode: `--web-terminal` or `--web-terminal-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
 | `orcan down` | Stop containers |
 | `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache] [--prune] [--remove-previous]` | Build `orcan:latest` + `orcan:<VERSION>` with explicit clients. `--prune` removes dangling Orcan images. `--remove-previous` asks `[y/n]` before removing previous local `orcan` tags/images after success; images used by containers are kept. Neither option deletes containers, sandbox data, workspaces, or BuildKit cache. Never publishes. |
 | `orcan status` | Product version, runtime summary, and the image agent manifest |
@@ -111,6 +111,8 @@ orcan down && orcan up
 | `--resume` | Restart with the flags of the last `orcan up` (kept across `orcan down`, stored in `mounts/last-up.env`, never the ttyd password). A previous `--web-terminal-auth` start must pass `--web-terminal-auth USER:PASS` again. Orcan Studio Start/Restart use this. |
 | `--github` | Provide a token to GitHub CLI in the selected container. Default host: `github.com`. |
 | `--github-hostname HOST` | Select a GitHub hostname; requires `--github`. Use a hostname without a URL, path or port. |
+| `--gitlab` | Provide a token to GitLab CLI in the selected container. Default host: `gitlab.com`. |
+| `--gitlab-hostname HOST` | Select a GitLab hostname; requires `--gitlab`. Use a hostname without a URL, path or port. |
 | `--ssh` | Mount host `~/.ssh` read-only (+ SSH agent when `SSH_AUTH_SOCK` is set) for push/pull |
 
 The old names remain aliases: `--with-git` → `--ssh`, `--with-docker` →
@@ -146,6 +148,38 @@ PR creation, comments and reviews; Git SSH access still uses `--ssh`.
 `--resume` retains the hostname and enabled flag, and resolves the token again.
 Start without `--github` to recreate the container without this supplied token.
 The same option is available for named instances (`orcan --instance reviewer up --github`).
+
+### GitLab access
+
+The image includes `glab` (GitLab CLI). Authenticate on the host/VM that runs
+Orcan, then enable access explicitly:
+
+```bash
+glab auth login --hostname gitlab.com
+orcan up --gitlab
+
+# A company GitLab instance
+glab auth login --hostname gitlab.company.example
+orcan up --gitlab --gitlab-hostname gitlab.company.example
+
+# Both services in one container
+orcan up --github --gitlab --gitlab-hostname gitlab.company.example
+```
+
+Both public and company instances use `GITLAB_TOKEN`. Orcan also accepts
+`GITLAB_ACCESS_TOKEN` and `OAUTH_TOKEN`, in that order after `GITLAB_TOKEN`.
+Without an environment token, it requests the saved login for the selected host
+with `glab config get token --host HOST`. CI job tokens are not used for this mode.
+See [GitLab authentication](https://docs.gitlab.com/cli/authentication/).
+
+As with GitHub, a missing token stops the launch before the current container is
+stopped. The token is passed in the container environment, accessible to agents
+and Docker administrators, and is absent from Orcan config, generated overlays
+and launch records. Scope it to the required projects and operations. `--resume`
+remembers the hostname and resolves the token again. Starting without `--gitlab`
+removes this supplied access. GitLab and GitHub access can be enabled separately
+or together. `--gitlab` does not modify remotes or Git HTTPS credentials; SSH
+access continues to use `--ssh`. Update/rebuild the runtime image to obtain `glab`.
 
 Other flags combine with a chosen browser mode, e.g. `orcan up --web-terminal --ssh` or `orcan up --web-terminal-auth user:pass --network my-net`.
 

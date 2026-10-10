@@ -138,6 +138,9 @@ orcan_up_state_summary() {
     if [[ "${WITH_GITHUB:-0}" == "1" ]]; then
         parts+=("github:${GITHUB_HOSTNAME:-github.com}")
     fi
+    if [[ "${WITH_GITLAB:-0}" == "1" ]]; then
+        parts+=("gitlab:${GITLAB_HOSTNAME:-gitlab.com}")
+    fi
     if [[ "${WITH_NETWORK:-0}" == "1" && -n "${NETWORK_NAME:-}" ]]; then
         parts+=("network:${NETWORK_NAME}")
     fi

@@ -303,10 +303,11 @@ RUN set -eux; \
     yq --version
 
 # ------------------------------------------------------------------------------
-# gh (GitHub CLI) + ast-grep (structural search) — agents use these on PATH
+# gh (GitHub CLI) + glab (GitLab CLI) + ast-grep (structural search) — agents use these on PATH
 # ------------------------------------------------------------------------------
 
 ARG GH_VERSION=2.96.0
+ARG GLAB_VERSION=1.122.0
 ARG AST_GREP_VERSION=0.45.0
 
 RUN set -eux; \
@@ -320,14 +321,18 @@ RUN set -eux; \
             gh_arch="arm64"; \
             sg_arch="aarch64-unknown-linux-gnu"; \
             ;; \
-        *) echo "unsupported architecture for gh/ast-grep: ${arch}" >&2; exit 1 ;; \
+        *) echo "unsupported architecture for gh/glab/ast-grep: ${arch}" >&2; exit 1 ;; \
     esac; \
     curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${gh_arch}.tar.gz" \
         | tar -xz --strip-components=1 -C /usr/local \
             "gh_${GH_VERSION}_linux_${gh_arch}/bin/gh"; \
     chmod 0755 /usr/local/bin/gh; \
     gh --version; \
+    curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${gh_arch}.tar.gz" \
+        | tar -xz -C /usr/local bin/glab; \
+    chmod 0755 /usr/local/bin/glab; \
     tmp="$(mktemp -d)"; \
+    GLAB_CONFIG_DIR="${tmp}/glab-config" GLAB_CHECK_UPDATE=false glab version; \
     curl -fsSL "https://github.com/ast-grep/ast-grep/releases/download/${AST_GREP_VERSION}/app-${sg_arch}.zip" \
         -o "${tmp}/ast-grep.zip"; \
     unzip -q "${tmp}/ast-grep.zip" -d "${tmp}"; \

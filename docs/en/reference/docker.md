@@ -109,3 +109,11 @@ or nested `cache/cache/`): run
 ## Optional private registry
 
 CI does **not** publish images. For your own registry use `orcan pull` / `orcan publish` (see [CLI reference](cli.md)). Maintainer helpers: [Makefile — optional registry](makefile.md#optional-private-registry).
+
+### GitLab CLI
+
+The image includes a pinned `glab` release for amd64 and arm64. Use
+`orcan up --gitlab [--gitlab-hostname HOST]` to supply host authentication only
+when requested. See [GitLab access](cli.md#gitlab-access). Existing images need
+an update/rebuild to include the new tool; enabling access does not install it
+inside a running container.

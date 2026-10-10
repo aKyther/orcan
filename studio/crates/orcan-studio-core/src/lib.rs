@@ -980,6 +980,8 @@ pub struct Launch {
     pub git: bool,
     #[serde(default)]
     pub github: Option<String>,
+    #[serde(default)]
+    pub gitlab: Option<String>,
     pub network: Option<String>,
     #[serde(default)]
     pub ttyd: bool,
@@ -1089,7 +1091,7 @@ mod tests {
         "host":{"os":"linux","architecture":"x86_64"},
         "paths":{"home":"/home/user/.config/orcan","data":"/home/user/.config/orcan","projects_root":"/home/user/.config/orcan/sandbox","workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},
         "capabilities":{"docker":true,"git":true,"managed_projects":true,"live_reconcile":true},
-        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"},"agents":{"codex":true,"claude":false}},"resources":{"cpus":4,"memory":"8g"},"launch":{"recorded":true,"git":true,"github":"github.company.test","network":null,"ttyd":true}},
+        "runtime":{"config":"present","generated":"present","docker":{"available":true,"image":{"name":"orcan:latest","present":true},"container":{"name":"orcan-1","state":"running"},"agents":{"codex":true,"claude":false}},"resources":{"cpus":4,"memory":"8g"},"launch":{"recorded":true,"git":true,"github":"github.company.test","gitlab":"gitlab.company.test","network":null,"ttyd":true}},
         "context":{"configuration":{"state":"present","revision":"abc"},"paths":{"workspace_metadata_root":"/home/user/.config/orcan/workspaces","managed_worktrees_root":"/home/user/.config/orcan/sandbox/.worktrees"},"workspaces":[],"managed_projects":[]}
     }"#;
 
@@ -1128,6 +1130,10 @@ mod tests {
         assert_eq!(
             report.runtime.launch.github.as_deref(),
             Some("github.company.test")
+        );
+        assert_eq!(
+            report.runtime.launch.gitlab.as_deref(),
+            Some("gitlab.company.test")
         );
         assert_eq!(
             runner.requests.borrow()[0],

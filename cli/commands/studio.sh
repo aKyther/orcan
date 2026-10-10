@@ -112,8 +112,8 @@ orcan_cmd_studio() {
                         [[ "$1" != --identity-json ]] || identity_json="$2"
                         [[ "$1" != --image ]] || identity_image="$2"
                         port_args+=("$1" "$2"); apply_args+=("$1" "$2"); shift 2 ;;
-                    --ssh|--with-git|--docker-socket|--with-docker|--web-terminal|--with-ttyd|--github) up_args+=("$1"); shift ;;
-                    --web-terminal-auth|--with-ttyd-auth|--github-hostname)
+                    --ssh|--with-git|--docker-socket|--with-docker|--web-terminal|--with-ttyd|--github|--gitlab) up_args+=("$1"); shift ;;
+                    --web-terminal-auth|--with-ttyd-auth|--github-hostname|--gitlab-hostname)
                         [[ $# -ge 2 && "$2" != -* ]] || orcan_usage_error "$1 requires a value"
                         up_args+=("$1" "$2"); shift 2
                         ;;

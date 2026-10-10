@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- The runtime image includes `glab` for amd64 and arm64. `--gitlab`
+  and `--gitlab-hostname HOST` supply GitLab authentication from a token
+  environment variable or the saved host login. Resume resolves it again;
+  launch records and Compose overlays do not store tokens. GitHub and GitLab
+  access can be enabled together, with hostnames reported in Studio.
+
 - The Docker image includes pinned GitLab CLI (`glab`) alongside GitHub CLI
   (`gh`), with SHA-256-verified amd64/arm64 downloads and container smoke checks.
 

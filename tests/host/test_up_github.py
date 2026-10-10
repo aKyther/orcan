@@ -18,6 +18,11 @@ TOKEN_VARIABLES = (
     "GITHUB_ENTERPRISE_TOKEN",
     "ORCAN_GITHUB_TOKEN",
     "GH_HOST",
+    "GITLAB_TOKEN",
+    "GITLAB_ACCESS_TOKEN",
+    "OAUTH_TOKEN",
+    "CI_JOB_TOKEN",
+    "ORCAN_GITLAB_TOKEN",
 )
 
 
@@ -33,6 +38,14 @@ def shell(tmp_path: Path):
         'printf "%s" "$GH_SAVED_FIXTURE"\n'
     )
     gh.chmod(0o755)
+    glab = tools / "glab"
+    glab.write_text(
+        "#!/bin/sh\n"
+        'printf "%s\\n" "$*" >> "$GLAB_CALLS"\n'
+        'test -n "$GLAB_SAVED_FIXTURE" || exit 1\n'
+        'printf "%s" "$GLAB_SAVED_FIXTURE"\n'
+    )
+    glab.chmod(0o755)
     env = {
         key: value for key, value in os.environ.items() if key not in TOKEN_VARIABLES
     }
@@ -42,6 +55,9 @@ def shell(tmp_path: Path):
         GH_CALLS=str(tmp_path / "gh-calls"),
         GH_SAVED_FIXTURE="",
         GH_FIXTURE_SCRIPT=str(gh),
+        GLAB_CALLS=str(tmp_path / "glab-calls"),
+        GLAB_SAVED_FIXTURE="",
+        GLAB_FIXTURE_SCRIPT=str(glab),
         ORCAN_ENV_FILE=str(tmp_path / "fixture.env"),
         ORCAN_ROOT=str(ROOT),
     )
@@ -53,7 +69,9 @@ source cli/commands/up.sh
 env() {
     local args=() arg
     for arg; do
-        if [[ "$arg" == gh ]]; then args+=(bash "$GH_FIXTURE_SCRIPT"); else args+=("$arg"); fi
+        if [[ "$arg" == gh ]]; then args+=(bash "$GH_FIXTURE_SCRIPT");
+        elif [[ "$arg" == glab ]]; then args+=(bash "$GLAB_FIXTURE_SCRIPT");
+        else args+=("$arg"); fi
     done
     command env "${args[@]}"
 }
@@ -67,7 +85,7 @@ orcan_require_generated() { :; }
 orcan_load_env() { :; }
 orcan_maybe_hint_upgrade() { :; }
 orcan_compose_ttyd_down_all_variants() { printf 'STOP\\n'; }
-orcan_compose_up_run() { printf 'RUN %s %s %s %s %s %s\\n' "$1" "$2" "$3" "$4" "$5" "$6"; }
+orcan_compose_up_run() { printf 'RUN %s %s %s %s %s %s\\n' "$1" "$2" "$3" "$4" "$5" "$7"; }
 orcan_terminal_url() { printf 'http://fixture.test'; }
 orcan_write_git_overlay() { printf '/fixture/ssh'; }
 docker() { printf 'orcan-1 '; }
@@ -231,8 +249,8 @@ def test_compose_wrapper_includes_github_only_when_requested(shell):
     result = shell(
         "source cli/lib/compose.sh\n"
         "docker() { printf '%s\\n' \"$@\"; }\n"
-        "orcan_compose_up_run 0 0 0 0 0 up -d\n"
-        "orcan_compose_up_run 0 0 0 0 1 up -d\n"
+        "orcan_compose_up_run 0 0 0 0 0 0 up -d\n"
+        "orcan_compose_up_run 0 0 0 0 1 0 up -d\n"
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.count("compose-github.generated.yml") == 1

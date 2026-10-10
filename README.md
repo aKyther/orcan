@@ -17,6 +17,7 @@ Version **4.0.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the i
 - Images: `orcan:latest` / `orcan:<VERSION>` (all agents); optional local `orcan:<VERSION>-claude` / `-cursor` / `-codex`
 - Local container by default (`orcan enter` on the same machine)
 - Optional browser terminal (`orcan up --web-terminal` → ttyd → launcher → tmux → zsh)
+- Optional GitHub/GitLab API access (`orcan up --github` / `--gitlab`; [CLI](docs/en/reference/cli.md))
 - Host data under `~/.config/orcan` (`ORCAN_DATA`)
 - JSON config + wizard (`orcan.config.json`)
 - Documentation in clear English

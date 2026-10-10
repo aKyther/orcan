@@ -118,3 +118,13 @@ host is the fallback. The container receives `GH_HOST` and the selected token
 variable; the other token variables are cleared. `ORCAN_GITHUB_TOKEN` is an
 internal, temporary Compose interpolation variable, not a persisted setting.
 See [GitHub access](cli.md#github-access) for examples and token visibility.
+
+## Optional GitLab access
+
+`orcan up --gitlab [--gitlab-hostname HOST]` defaults to `gitlab.com`.
+`GITLAB_TOKEN` takes precedence over `GITLAB_ACCESS_TOKEN`, then `OAUTH_TOKEN`.
+The saved `glab` login for the exact hostname is the fallback. The container
+receives `GITLAB_HOST` and `GITLAB_TOKEN`; alternative token variables and
+`CI_JOB_TOKEN` are cleared, and `GLAB_ENABLE_CI_AUTOLOGIN` is disabled for this
+access mode. `ORCAN_GITLAB_TOKEN` is internal and temporary, not persisted.
+See [GitLab access](cli.md#gitlab-access).

@@ -522,7 +522,7 @@ function accessExposure(value: ProbeReport["runtime"]["launch"]): string {
 
 function renderRuntime(report: ProbeReport): void {
   launch = report.runtime.launch ?? { recorded: false };
-  const flags = [launch.ttyd ? (launch.ttyd_auth ? "browser terminal (password)" : "browser terminal") : "local only", launch.docker && "Docker socket", launch.git && "git/SSH keys", launch.github && `GitHub ${launch.github}`, launch.network && `network ${launch.network}`].filter(Boolean);
+  const flags = [launch.ttyd ? (launch.ttyd_auth ? "browser terminal (password)" : "browser terminal") : "local only", launch.docker && "Docker socket", launch.git && "git/SSH keys", launch.github && `GitHub ${launch.github}`, launch.gitlab && `GitLab ${launch.gitlab}`, launch.network && `network ${launch.network}`].filter(Boolean);
   launchSummary.textContent = `Existing container keeps its mounts, resources and access on Start/Restart.${launch.recorded ? ` Access: ${flags.join(" · ")}.` : " Saved launch options are not reported."}`;
   launchWarning.hidden = !launch.ttyd;
   launchWarning.innerHTML = launch.ttyd_auth

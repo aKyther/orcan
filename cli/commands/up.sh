@@ -4,6 +4,10 @@
 orcan_cmd_up() {
     local with_docker=0
     local with_git=0
+    local with_gitlab=0
+    local gitlab_hostname=""
+    local ORCAN_GITLAB_TOKEN=""
+    export ORCAN_GITLAB_TOKEN
     local with_github=0
     local github_hostname=""
     local ORCAN_GITHUB_TOKEN=""
@@ -61,13 +65,22 @@ orcan_cmd_up() {
                 github_hostname="$2"
                 shift 2
                 ;;
+            --gitlab)
+                with_gitlab=1
+                shift
+                ;;
+            --gitlab-hostname)
+                [[ $# -ge 2 && -n "$2" && "$2" != -* ]] || orcan_usage_error '--gitlab-hostname requires a hostname'
+                gitlab_hostname="$2"
+                shift 2
+                ;;
             --resume)
                 resume=1
                 shift
                 ;;
             -h | --help)
                 printf 'usage: orcan up --resume [--web-terminal-auth USER:PASS]\n'
-                printf '       orcan up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--ssh] [--github [--github-hostname HOST]]\n'
+                printf '       orcan up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]\n'
                 printf '  default: local-only container (orcan enter); no browser terminal\n'
                 printf '  --web-terminal | --web-terminal-auth USER:PASS: pick one (| = mutually exclusive)\n'
                 printf '  --web-terminal: publish browser terminal, no password prompt\n'
@@ -78,6 +91,8 @@ orcan_cmd_up() {
                 printf '  --network NAME: join an existing Docker network\n'
                 printf '  --github: provide GitHub authentication (GH_TOKEN or gh auth login)\n'
                 printf '  --github-hostname HOST: GitHub host (default: github.com; Enterprise Server uses GH_ENTERPRISE_TOKEN)\n'
+                printf '  --gitlab: provide GitLab authentication (GITLAB_TOKEN or saved glab login)\n'
+                printf '  --gitlab-hostname HOST: GitLab host (default: gitlab.com)\n'
                 printf '  Compatibility aliases: --with-git, --with-docker, --with-network, --with-ttyd, --with-ttyd-auth\n'
                 printf '  --resume: restart with the flags of the last orcan up (kept across orcan down)\n'
                 printf '  --docker-socket and --ssh expose credentials/capabilities to agents inside the container.\n'
@@ -90,7 +105,7 @@ orcan_cmd_up() {
     done
 
     if (( resume )); then
-        if ((with_docker || with_git || with_github || with_network || with_ttyd_opt || ${#github_hostname})); then
+        if ((with_docker || with_git || with_github || with_gitlab || with_network || with_ttyd_opt || ${#github_hostname} || ${#gitlab_hostname})); then
             orcan_usage_error "--resume restores saved flags; only --web-terminal-auth may be passed with it"
         fi
         orcan_load_env
@@ -98,12 +113,14 @@ orcan_cmd_up() {
         last_up="$(orcan_last_up_file)"
         [[ -f "${last_up}" ]] || orcan_die "no previous orcan up recorded (${last_up}) — start with explicit flags"
         # shellcheck disable=SC1090
-        local WITH_GITHUB=0 GITHUB_HOSTNAME=""
+        local WITH_GITHUB=0 GITHUB_HOSTNAME="" WITH_GITLAB=0 GITLAB_HOSTNAME=""
         source "${last_up}"
         with_docker="${WITH_DOCKER:-0}"
         with_git="${WITH_GIT:-0}"
         with_github="${WITH_GITHUB:-0}"
         github_hostname="${GITHUB_HOSTNAME:-}"
+        with_gitlab="${WITH_GITLAB:-0}"
+        gitlab_hostname="${GITLAB_HOSTNAME:-}"
         with_network="${WITH_NETWORK:-0}"
         network_name="${NETWORK_NAME:-}"
         if [[ "${WITH_TTYD_AUTH:-0}" == "1" ]] && (( ! with_ttyd_auth )); then
@@ -139,6 +156,15 @@ orcan_cmd_up() {
         [[ ${#github_hostname} -le 253 && "$github_hostname" =~ ^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)*[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] || orcan_usage_error '--github-hostname requires a hostname without a URL, path or port'
     fi
 
+    if [[ -n "$gitlab_hostname" ]] && ((!with_gitlab)); then
+        orcan_usage_error '--gitlab-hostname requires --gitlab'
+    fi
+    if ((with_gitlab)); then
+        gitlab_hostname="${gitlab_hostname:-gitlab.com}"
+        gitlab_hostname="${gitlab_hostname,,}"
+        [[ ${#gitlab_hostname} -le 253 && "$gitlab_hostname" =~ ^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)*[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] || orcan_usage_error '--gitlab-hostname requires a hostname without a URL, path or port'
+    fi
+
     orcan_require_docker
     orcan_require_generated
     orcan_load_env
@@ -147,6 +173,10 @@ orcan_cmd_up() {
     local git_overlay=""
     if ((with_github)); then
         orcan_prepare_github "${github_hostname}" || return
+    fi
+
+    if ((with_gitlab)); then
+        orcan_prepare_gitlab "${gitlab_hostname}" || return
     fi
 
     if (( with_git )); then
@@ -164,7 +194,10 @@ orcan_cmd_up() {
     if ((with_github)); then
         orcan_warn "GitHub token for ${github_hostname} is available to agents and Docker administrators."
     fi
-    if ((with_docker || with_git || with_github)); then
+    if ((with_gitlab)); then
+        orcan_warn "GitLab token for ${gitlab_hostname} is available to agents and Docker administrators."
+    fi
+    if ((with_docker || with_git || with_github || with_gitlab)); then
         orcan_warn "  Prefer plain \`orcan up\` unless you need these capabilities."
     fi
     if (( with_network )); then
@@ -191,6 +224,9 @@ orcan_cmd_up() {
     if ((with_github)); then
         label="${label}, GitHub ${github_hostname} enabled"
     fi
+    if ((with_gitlab)); then
+        label="${label}, GitLab ${gitlab_hostname} enabled"
+    fi
     if (( with_network )); then
         label="${label}, network '${network_name}' joined"
     fi
@@ -208,25 +244,25 @@ orcan_cmd_up() {
     if (( with_ttyd_auth )); then
         export TTYD_CREDENTIAL="${ttyd_credential}"
     fi
-    orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" up -d
-    orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}" "${with_github}" "${github_hostname}"
-    orcan_write_last_up "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_ttyd_auth}" "${network_name}" "${with_github}" "${github_hostname}"
+    orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" up -d
+    orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}"
+    orcan_write_last_up "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_ttyd_auth}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}"
 
     if (( with_docker )); then
-        if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" exec -T orcan test -S /var/run/docker.sock 2> /dev/null; then
+        if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" exec -T orcan test -S /var/run/docker.sock 2> /dev/null; then
             orcan_warn "Docker socket missing in container; recreating…"
-            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" up -d --force-recreate
-            if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" exec -T orcan test -S /var/run/docker.sock 2> /dev/null; then
+            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" up -d --force-recreate
+            if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" exec -T orcan test -S /var/run/docker.sock 2> /dev/null; then
                 orcan_die "/var/run/docker.sock is not mounted in the container"
             fi
         fi
     fi
 
     if (( with_git )); then
-        if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" exec -T orcan test -d /home/developer/.ssh 2> /dev/null &&
-            ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" exec -T orcan test -S /run/host-ssh-agent.sock 2> /dev/null; then
+        if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" exec -T orcan test -d /home/developer/.ssh 2> /dev/null &&
+            ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" exec -T orcan test -S /run/host-ssh-agent.sock 2> /dev/null; then
             orcan_warn "git/SSH mounts missing in container; recreating…"
-            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" up -d --force-recreate
+            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" up -d --force-recreate
         fi
     fi
 
@@ -236,7 +272,7 @@ orcan_cmd_up() {
         if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' 2> /dev/null |
             grep -qw "${container_name}"; then
             orcan_warn "network '${network_name}' not attached; recreating…"
-            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" up -d --force-recreate
+            orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" up -d --force-recreate
             if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' 2> /dev/null |
                 grep -qw "${container_name}"; then
                 orcan_die "container is not attached to network '${network_name}'"
