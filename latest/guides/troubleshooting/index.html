@@ -2391,12 +2391,12 @@
 </span></code></pre></div>
 <p>The <code>docker compose config</code> command prints the resolved Compose file (needs generated <code>mounts/</code> files from <code>orcan sync</code>).</p>
 <h2 id="browser-terminal-will-not-open">Browser terminal will not open<a class="headerlink" href="#browser-terminal-will-not-open" title="Permanent link">&para;</a></h2>
-<p>Requires <code>orcan up --with-ttyd</code> (plain <code>orcan up</code> is local-only — use <code>orcan enter</code> instead).</p>
+<p>Requires <code>orcan up --web-terminal</code> (plain <code>orcan up</code> is local-only — use <code>orcan enter</code> instead).</p>
 <ol>
 <li>Confirm the container is up: <code>orcan logs</code></li>
 <li>Confirm ttyd is on: <code>orcan doctor</code> (Runtime section) or <code>orcan url</code></li>
 <li>Confirm the URL: <code>orcan url</code> (prints <code>http://localhost:7681</code> when <code>TTYD_BIND</code> is <code>0.0.0.0</code>)</li>
-<li>If the port is busy, change <code>ttyd.host_port</code> in <code>orcan.config.json</code>, then <code>orcan sync</code> and <code>orcan down &amp;&amp; orcan up --with-ttyd</code></li>
+<li>If the port is busy, change <code>ttyd.host_port</code> in <code>orcan.config.json</code>, then <code>orcan sync</code> and <code>orcan down &amp;&amp; orcan up --web-terminal</code></li>
 </ol>
 <h2 id="frequent-reconnecting-on-phone-mobile-network">Frequent “reconnecting” on phone / mobile network<a class="headerlink" href="#frequent-reconnecting-on-phone-mobile-network" title="Permanent link">&para;</a></h2>
 <p>Cellular handoffs drop the ttyd WebSocket; that is expected. Processes inside tmux survive.</p>
@@ -2458,11 +2458,11 @@ visible screen. Tracked upstream: <a href="https://github.com/tsl0922/ttyd/pull/
 <li>Auth lives under <code>$ORCAN_DATA</code> (<code>~/.config/orcan</code>)</li>
 </ul>
 <h2 id="docker-socket-errors-inside-the-container">Docker socket errors inside the container<a class="headerlink" href="#docker-socket-errors-inside-the-container" title="Permanent link">&para;</a></h2>
-<p>Use <code>orcan up --with-docker</code>. Plain <code>orcan up</code> does not mount the socket.</p>
+<p>Use <code>orcan up --docker-socket</code>. Plain <code>orcan up</code> does not mount the socket.</p>
 <p>If <code>docker</code> needs <code>sudo</code> inside the container, the host socket GID must match <code>DOCKER_GID</code> in <code>.env</code>:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>stat<span class="w"> </span>-c<span class="w"> </span><span class="s1">'%g'</span><span class="w"> </span>/var/run/docker.sock
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>DOCKER_GID<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">ORCAN_HOME</span><span class="k">:-</span><span class="nv">$HOME</span><span class="p">/.config/orcan</span><span class="si">}</span><span class="s2">/.env"</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>sync<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>down<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>orcan<span class="w"> </span>up<span class="w"> </span>--docker-socket
 </span></code></pre></div>
 <p><code>orcan sync</code> re-detects the socket GID from the host (do not leave a stale <code>999</code> from <code>.env.example</code>).</p>
 <h2 id="path-parity-nested-compose-fails">Path parity / nested Compose fails<a class="headerlink" href="#path-parity-nested-compose-fails" title="Permanent link">&para;</a></h2>
@@ -2480,9 +2480,9 @@ visible screen. Tracked upstream: <a href="https://github.com/tsl0922/ttyd/pull/
 <p>An older layout could create a root-owned directory. Fix ownership or replace with a normal file, then update Orcan and recreate the container.</p>
 <p>Orcan does <strong>not</strong> mount host <code>~/.gitconfig</code>. Instead <code>orcan sync</code> copies <code>user.name</code> / <code>user.email</code> into <code>.env</code> (<code>GIT_AUTHOR_*</code> / <code>GIT_COMMITTER_*</code>) so commits inside the container match the host author.</p>
 <p>For <code>git push</code> / <code>git pull</code> over SSH:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--ssh
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># combine with DinD:</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--docker-socket<span class="w"> </span>--ssh
 </span></code></pre></div>
 <p>That mounts host <code>~/.ssh</code> read-only (and the SSH agent when <code>SSH_AUTH_SOCK</code> is set). Plain <code>orcan up</code> does not.</p>
 <h2 id="leftover-space-is-rootroot-after-upgrading-to-20">Leftover <code>space/</code> is <code>root:root</code> after upgrading to 2.0<a class="headerlink" href="#leftover-space-is-rootroot-after-upgrading-to-20" title="Permanent link">&para;</a></h2>
@@ -2525,7 +2525,7 @@ bind-mounts a <strong>missing</strong> host path and the Docker daemon creates i
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 04:37:42 UTC">September 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 05:54:04 UTC">October 10, 2026</span>
   </span>
 
     

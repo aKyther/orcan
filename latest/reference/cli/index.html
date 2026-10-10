@@ -1579,6 +1579,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#github-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub access
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2135,6 +2146,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#github-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub access
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2355,8 +2377,8 @@
 <td>Agent task handoff queue under <code>.orcan/tasks/</code> (<code>propose</code>, <code>approve</code>, <code>claim</code>, <code>complete</code>, <code>list</code>, <code>watch</code>). See <a href="../../ideas/agent-inbox/">Agent inbox</a></td>
 </tr>
 <tr>
-<td><code>orcan up [--with-ttyd \| --with-ttyd-auth USER:PASS] [--with-docker \| --with-network NAME] [--with-git]</code></td>
-<td>Start container (<code>orcan enter</code> locally; pick <strong>one</strong> browser mode: <code>--with-ttyd</code> or <code>--with-ttyd-auth</code>); optional socket <strong>or</strong> network join (pick one) + SSH; hints if a newer release exists</td>
+<td><code>orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]]</code></td>
+<td>Start container (<code>orcan enter</code> locally; pick <strong>one</strong> browser mode: <code>--web-terminal</code> or <code>--web-terminal-auth</code>); optional socket <strong>or</strong> network join (pick one) + SSH; hints if a newer release exists</td>
 </tr>
 <tr>
 <td><code>orcan down</code></td>
@@ -2380,7 +2402,7 @@
 </tr>
 <tr>
 <td><code>orcan url</code></td>
-<td>Print browser terminal URL (requires <code>orcan up --with-ttyd</code>)</td>
+<td>Print browser terminal URL (requires <code>orcan up --web-terminal</code>)</td>
 </tr>
 <tr>
 <td><code>orcan enter</code> / <code>orcan go-in</code></td>
@@ -2431,7 +2453,7 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>orcan<span class="w"> </span>init
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>orcan<span class="w"> </span>build<span class="w"> </span>--agent<span class="w"> </span>codex
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>orcan<span class="w"> </span>up<span class="w">              </span><span class="c1"># local — orcan enter on the same machine</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># remote browser: orcan up --with-ttyd</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># remote browser: orcan up --web-terminal</span>
 </span></code></pre></div>
 <p>After config edits:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># edit ~/.config/orcan/orcan.config.json</span>
@@ -2453,25 +2475,60 @@
 <td>Local-only container — no published ttyd port; use <code>orcan enter</code></td>
 </tr>
 <tr>
-<td><code>--with-ttyd</code> | <code>--with-ttyd-auth USER:PASS</code></td>
-<td><strong>Pick one.</strong> <code>--with-ttyd</code>: browser terminal, no password. <code>--with-ttyd-auth USER:PASS</code>: same browser terminal <strong>with</strong> HTTP basic auth. Do not pass both. (<code>TTYD_BIND</code> defaults to <code>0.0.0.0</code>.)</td>
+<td><code>--web-terminal</code> | <code>--web-terminal-auth USER:PASS</code></td>
+<td><strong>Pick one.</strong> <code>--web-terminal</code>: browser terminal, no password. <code>--web-terminal-auth USER:PASS</code>: same browser terminal <strong>with</strong> HTTP basic auth. Do not pass both. (<code>TTYD_BIND</code> defaults to <code>0.0.0.0</code>.)</td>
 </tr>
 <tr>
-<td><code>--with-docker</code> | <code>--with-network NAME</code></td>
-<td><strong>Pick one.</strong> <code>--with-docker</code>: mount <code>/var/run/docker.sock</code> (Docker-from-Docker). <code>--with-network NAME</code>: join an existing Docker network (no socket)</td>
+<td><code>--docker-socket</code> | <code>--network NAME</code></td>
+<td><strong>Pick one.</strong> <code>--docker-socket</code>: mount <code>/var/run/docker.sock</code> (Docker-from-Docker). <code>--network NAME</code>: join an existing Docker network (no socket)</td>
 </tr>
 <tr>
 <td><code>--resume</code></td>
-<td>Restart with the flags of the last <code>orcan up</code> (kept across <code>orcan down</code>, stored in <code>mounts/last-up.env</code>, never the ttyd password). A previous <code>--with-ttyd-auth</code> start must pass <code>--with-ttyd-auth USER:PASS</code> again. Orcan Studio Start/Restart use this.</td>
+<td>Restart with the flags of the last <code>orcan up</code> (kept across <code>orcan down</code>, stored in <code>mounts/last-up.env</code>, never the ttyd password). A previous <code>--web-terminal-auth</code> start must pass <code>--web-terminal-auth USER:PASS</code> again. Orcan Studio Start/Restart use this.</td>
 </tr>
 <tr>
-<td><code>--with-git</code></td>
+<td><code>--github</code></td>
+<td>Provide a token to GitHub CLI in the selected container. Default host: <code>github.com</code>.</td>
+</tr>
+<tr>
+<td><code>--github-hostname HOST</code></td>
+<td>Select a GitHub hostname; requires <code>--github</code>. Use a hostname without a URL, path or port.</td>
+</tr>
+<tr>
+<td><code>--ssh</code></td>
 <td>Mount host <code>~/.ssh</code> read-only (+ SSH agent when <code>SSH_AUTH_SOCK</code> is set) for push/pull</td>
 </tr>
 </tbody>
 </table>
-<p>Other flags combine with a chosen browser mode, e.g. <code>orcan up --with-ttyd --with-git</code> or <code>orcan up --with-ttyd-auth user:pass --with-network my-net</code>.</p>
-<p>Git <strong>author</strong> identity is always synced by <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> from host <code>user.name</code> / <code>user.email</code>). SSH keys are only attached with <code>--with-git</code>. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: <a href="../security/">Security</a>, <a href="../../guides/workflows/">Workflows</a>.</p>
+<p>The old names remain aliases: <code>--with-git</code> → <code>--ssh</code>, <code>--with-docker</code> →
+<code>--docker-socket</code>, <code>--with-network</code> → <code>--network</code>, <code>--with-ttyd</code> →
+<code>--web-terminal</code>, and <code>--with-ttyd-auth</code> → <code>--web-terminal-auth</code>.</p>
+<h3 id="github-access">GitHub access<a class="headerlink" href="#github-access" title="Permanent link">&para;</a></h3>
+<p>Authenticate on the host/VM that runs Orcan, then enable access explicitly:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>gh<span class="w"> </span>auth<span class="w"> </span>login<span class="w"> </span>--hostname<span class="w"> </span>github.com
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>orcan<span class="w"> </span>up<span class="w"> </span>--github
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># A company GitHub Enterprise Server</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>gh<span class="w"> </span>auth<span class="w"> </span>login<span class="w"> </span>--hostname<span class="w"> </span>github.company.example
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>orcan<span class="w"> </span>up<span class="w"> </span>--github<span class="w"> </span>--github-hostname<span class="w"> </span>github.company.example
+</span></code></pre></div>
+<p>Orcan first uses <code>GH_TOKEN</code> (or <code>GITHUB_TOKEN</code>) for <code>github.com</code> and <code>*.ghe.com</code>.
+For another hostname it uses <code>GH_ENTERPRISE_TOKEN</code> (or <code>GITHUB_ENTERPRISE_TOKEN</code>).
+If that token is absent, it requests the saved login for the exact hostname with
+<code>gh auth token --hostname HOST</code>. Tokens from the other family are not reused.
+Missing authentication stops the launch before the existing container is stopped.
+These rules follow <a href="https://cli.github.com/manual/gh_help_environment">GitHub CLI environment variables</a>.</p>
+<p>The token is passed in the container environment. It is not written to the
+project config, generated Compose overlay or launch records. Agents in the
+container and Docker administrators can access it. Limit its repository access
+and permissions to the work you need. The token enables API operations such as
+PR creation, comments and reviews; Git SSH access still uses <code>--ssh</code>.
+<code>--github</code> does not change repository remotes or configure Git HTTPS credentials.
+<code>--resume</code> retains the hostname and enabled flag, and resolves the token again.
+Start without <code>--github</code> to recreate the container without this supplied token.
+The same option is available for named instances (<code>orcan --instance reviewer up --github</code>).</p>
+<p>Other flags combine with a chosen browser mode, e.g. <code>orcan up --web-terminal --ssh</code> or <code>orcan up --web-terminal-auth user:pass --network my-net</code>.</p>
+<p>Git <strong>author</strong> identity is always synced by <code>orcan sync</code> (<code>GIT_AUTHOR_*</code> from host <code>user.name</code> / <code>user.email</code>). SSH keys are only attached with <code>--ssh</code>. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: <a href="../security/">Security</a>, <a href="../../guides/workflows/">Workflows</a>.</p>
 <h2 id="maintainer-make">Maintainer Make<a class="headerlink" href="#maintainer-make" title="Permanent link">&para;</a></h2>
 <p>From a git checkout: <code>make validate</code>, <code>make test-host</code>, <code>make docs*</code>, <code>make release*</code>, <code>make registry-*</code>. See <a href="../../development/overview/">Development</a>.</p>
 
@@ -2496,7 +2553,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 17:05:01 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 05:54:04 UTC">October 10, 2026</span>
   </span>
 
     

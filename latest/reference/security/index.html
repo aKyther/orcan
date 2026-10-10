@@ -2216,11 +2216,11 @@
 machine</strong>, <strong>not</strong> a hard multi-tenant security boundary.</p>
 <ul>
 <li>Bind mounts give the container write access to your projects</li>
-<li><code>orcan up --with-docker</code> mounts <code>/var/run/docker.sock</code> → control of the host
+<li><code>orcan up --docker-socket</code> mounts <code>/var/run/docker.sock</code> → control of the host
   Docker engine (effectively host-level reach for anyone who can run Docker)</li>
-<li><code>orcan up --with-git</code> mounts host <code>~/.ssh</code> (read-only) and may mount the SSH
+<li><code>orcan up --ssh</code> mounts host <code>~/.ssh</code> (read-only) and may mount the SSH
   agent socket</li>
-<li><code>orcan up --with-network NAME</code> joins an existing Docker network →
+<li><code>orcan up --network NAME</code> joins an existing Docker network →
   network-level reachability to whatever else is on it, but <strong>no</strong> socket and
   <strong>no</strong> host Docker control</li>
 </ul>
@@ -2244,41 +2244,46 @@ a sandbox.</p>
 </tr>
 <tr>
 <td>Browser terminal (remote / phone)</td>
-<td><code>--with-ttyd</code></td>
+<td><code>--web-terminal</code></td>
 <td>Publishes ttyd (<code>TTYD_BIND</code> defaults to all interfaces); prefer Tailscale + auth</td>
 </tr>
 <tr>
 <td>Reach another compose stack by name/IP</td>
-<td><code>--with-network NAME</code></td>
-<td>Network reach only — <strong>mutually exclusive with <code>--with-docker</code></strong></td>
+<td><code>--network NAME</code></td>
+<td>Network reach only — <strong>mutually exclusive with <code>--docker-socket</code></strong></td>
 </tr>
 <tr>
 <td>Run nested <code>docker</code> / Compose against the host engine</td>
-<td><code>--with-docker</code></td>
-<td><strong>Known high risk</strong> — opt-in; <strong>mutually exclusive with <code>--with-network</code></strong></td>
+<td><code>--docker-socket</code></td>
+<td><strong>Known high risk</strong> — opt-in; <strong>mutually exclusive with <code>--network</code></strong></td>
+</tr>
+<tr>
+<td>GitHub API / PR review</td>
+<td><code>--github</code></td>
+<td>Token available to container agents and Docker administrators; scope it to required repositories and permissions</td>
 </tr>
 <tr>
 <td><code>git push</code> / <code>pull</code> over SSH from inside</td>
-<td><code>--with-git</code></td>
+<td><code>--ssh</code></td>
 <td>Keys / agent exposed to the container — opt-in; combines with any mode above</td>
 </tr>
 </tbody>
 </table>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Use <code>orcan up --with-docker</code> only when you need Docker-from-Docker. Prefer
-plain <code>orcan up</code>, or <code>--with-network</code>, when you do not need the socket.
+<p>Use <code>orcan up --docker-socket</code> only when you need Docker-from-Docker. Prefer
+plain <code>orcan up</code>, or <code>--network</code>, when you do not need the socket.
 The flag exists so <strong>you</strong> accept that risk; Orcan prints a warning on
 start.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Use <code>orcan up --with-git</code> only when you need push/pull from inside the
+<p>Use <code>orcan up --ssh</code> only when you need push/pull from inside the
 container. It exposes your SSH keys (and agent) to the container.</p>
 </div>
 <p>There is no safe substitute for a mounted Docker socket that still grants full
-engine control. If you only need reachability, use <code>--with-network</code>.
-<code>--with-docker</code> and <code>--with-network</code> cannot be combined on one <code>orcan up</code>.</p>
+engine control. If you only need reachability, use <code>--network</code>.
+<code>--docker-socket</code> and <code>--network</code> cannot be combined on one <code>orcan up</code>.</p>
 <h2 id="mount-layout-tradeoffs">Mount layout tradeoffs<a class="headerlink" href="#mount-layout-tradeoffs" title="Permanent link">&para;</a></h2>
 <p>Inside the container, the <code>ssh</code> launcher overrides <code>ControlPath</code> to
 <code>~/.cache/orcan/ssh/%C</code>. This private, writable directory lets SSH create and
@@ -2333,13 +2338,13 @@ that directory as sensitive.</p>
 <h2 id="browser-terminal">Browser terminal<a class="headerlink" href="#browser-terminal" title="Permanent link">&para;</a></h2>
 <p><strong>Recommended remote access:</strong> reach the machine over <strong>Tailscale</strong> (or
 another private VPN) and use HTTP basic auth (<code>TTYD_CREDENTIAL</code> or
-<code>--with-ttyd-auth</code>). For a host-local browser only, set
+<code>--web-terminal-auth</code>). For a host-local browser only, set
 <code>TTYD_BIND=127.0.0.1</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>By default the ttyd port is published on <strong>all host interfaces</strong>
 (<code>TTYD_BIND=0.0.0.0</code>). ttyd has <strong>no authentication</strong> unless you set
-<code>TTYD_CREDENTIAL=user:password</code> in <code>.env</code> or use <code>--with-ttyd-auth</code>.
+<code>TTYD_CREDENTIAL=user:password</code> in <code>.env</code> or use <code>--web-terminal-auth</code>.
 Do not expose the port to the public Internet without auth and TLS.</p>
 </div>
 <p>Optional HTTP basic auth (<code>TTYD_CREDENTIAL</code>) is the extra layer when the
@@ -2350,11 +2355,11 @@ via <code>orcan sync</code>. Credentials stay env-only so secrets stay out of co
 config. Existing <code>.env</code> is not rewritten if <code>TTYD_BIND</code> is already set.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p><code>orcan up --with-ttyd-auth USER:PASS</code> sets the same <code>TTYD_CREDENTIAL</code> as
+<p><code>orcan up --web-terminal-auth USER:PASS</code> sets the same <code>TTYD_CREDENTIAL</code> as
 above, but as a <strong>command-line argument</strong> — it lands in your shell
 history and is visible to anything that can list processes on the host
 (<code>ps</code>) for as long as <code>orcan up</code> runs. Prefer <code>TTYD_CREDENTIAL</code> in <code>.env</code>
-(<code>--with-ttyd</code>, no argument) when you can; reach for <code>--with-ttyd-auth</code>
+(<code>--web-terminal</code>, no argument) when you can; reach for <code>--web-terminal-auth</code>
 for a quick one-off rather than routine use.</p>
 </div>
 <h2 id="what-not-to-do">What not to do<a class="headerlink" href="#what-not-to-do" title="Permanent link">&para;</a></h2>
@@ -2395,7 +2400,7 @@ for a quick one-off rather than routine use.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 08:52:51 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 05:54:04 UTC">October 10, 2026</span>
   </span>
 
     

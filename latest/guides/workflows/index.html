@@ -2057,15 +2057,15 @@
 <p><strong>Idea:</strong> recreate the session without regenerating config.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/orcan
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>up<span class="w">              </span><span class="c1"># local — orcan enter on the same machine</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># remote browser: orcan up --with-ttyd &amp;&amp; orcan url</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># remote browser: orcan up --web-terminal &amp;&amp; orcan url</span>
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code>orcan up</code> does <strong>not</strong> run <code>orcan sync</code>. If you changed <code>orcan.config.json</code>, apply config first.</p>
 </div>
 <h2 id="local-terminal">Scenario: local terminal (not only the browser)<a class="headerlink" href="#local-terminal" title="Permanent link">&para;</a></h2>
-<p><strong>When:</strong> you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside <code>--with-ttyd</code>.</p>
-<p>Plain <code>orcan up</code> is local-only (no published port). <strong><code>orcan enter</code></strong> is the default path on the same machine. Add <strong><code>--with-ttyd</code></strong> when you need the browser (remote / phone).</p>
+<p><strong>When:</strong> you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside <code>--web-terminal</code>.</p>
+<p>Plain <code>orcan up</code> is local-only (no published port). <strong><code>orcan enter</code></strong> is the default path on the same machine. Add <strong><code>--web-terminal</code></strong> when you need the browser (remote / phone).</p>
 <h1 id="equivalent-low-level">equivalent low-level:<a class="headerlink" href="#equivalent-low-level" title="Permanent link">&para;</a></h1>
 <p>docker exec -it orcan-1 tmux ls
 docker exec -it orcan-1 agent-launcher
@@ -2182,24 +2182,24 @@ install --frozen-lockfile</code> or <code>corepack yarn install --immutable</cod
 </span></code></pre></div>
 <h2 id="scenario-terminal-with-host-docker-socket-dind">Scenario: terminal with host Docker socket (DinD)<a class="headerlink" href="#scenario-terminal-with-host-docker-socket-dind" title="Permanent link">&para;</a></h2>
 <p><strong>When:</strong> nested Compose / Docker from inside the container.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--docker-socket
 </span></code></pre></div>
 <p><strong>Tradeoff:</strong> the socket ≈ control of the host Docker engine. The flag is a
 deliberate opt-in (warning on start). There is no “full host Docker but
 sandboxed” mode. If you only need to reach other containers, prefer
-<code>--with-network</code>. Details: <a href="../../reference/security/">Security</a>.</p>
+<code>--network</code>. Details: <a href="../../reference/security/">Security</a>.</p>
 <h2 id="scenario-reach-containers-on-an-existing-docker-network">Scenario: reach containers on an existing Docker network<a class="headerlink" href="#scenario-reach-containers-on-an-existing-docker-network" title="Permanent link">&para;</a></h2>
 <p><strong>When:</strong> the container needs to reach another container by name/IP (e.g. a
 project's own <code>docker compose</code> stack) but doesn't need to control the host
-Docker engine. Lower-risk than <code>--with-docker</code> — no socket mounted.</p>
+Docker engine. Lower-risk than <code>--docker-socket</code> — no socket mounted.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>network<span class="w"> </span>create<span class="w"> </span>my-net<span class="w">   </span><span class="c1"># if it doesn't exist yet</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-network<span class="w"> </span>my-net
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan<span class="w"> </span>up<span class="w"> </span>--network<span class="w"> </span>my-net
 </span></code></pre></div>
 <h2 id="scenario-git-pushpull-from-inside-the-container">Scenario: git push/pull from inside the container<a class="headerlink" href="#scenario-git-pushpull-from-inside-the-container" title="Permanent link">&para;</a></h2>
 <p><strong>When:</strong> commits already match the host identity (via <code>orcan sync</code>); you also need SSH keys or an agent for remotes.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-git
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--ssh
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># with DinD:</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-docker<span class="w"> </span>--with-git
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>orcan<span class="w"> </span>up<span class="w"> </span>--docker-socket<span class="w"> </span>--ssh
 </span></code></pre></div>
 <h2 id="scenario-optional-git-worktree">Scenario: optional git worktree<a class="headerlink" href="#scenario-optional-git-worktree" title="Permanent link">&para;</a></h2>
 <p><strong>When:</strong> you want a second checkout without changing the clone you use for <code>main</code> / pulls.</p>
@@ -2328,7 +2328,7 @@ instead of guessing.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 07:49:29 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 05:54:04 UTC">October 10, 2026</span>
   </span>
 
     
