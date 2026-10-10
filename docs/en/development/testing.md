@@ -44,6 +44,24 @@ For Studio-only changes, use `npm test` and `npm run build` in `studio/app`,
 plus `cargo test --manifest-path studio/Cargo.toml` for native Rust changes.
 Run the full checks before handoff.
 
+CI runs UI behavior tests and native application tests as well as the Rust core.
+Studio jobs cache npm/Cargo dependencies and Rust build output; installer caches
+are separate per platform and build mode. Host checks share uv dependencies
+instead of installing the test requirements into two Python environments.
+
+Pure worktree contracts live in `test_git_worktrees.py`; real Git operations
+live in `test_git_worktrees_integration.py`. Use `git_repo_factory` for isolated
+empty repositories: its session template is copied, including `.git`, never
+shared or hardlinked. Keep scenario-specific remotes and commits in each test.
+UI tests share `tests/helpers.mjs`: TypeScript compilation is cached, but each
+test gets fresh module state. No browser emulator is needed for these contracts.
+
+Probe inspection deduplicates canonical paths only within one request. Unknown
+Git status is not clean and cannot authorize an update. Configuration writes use
+unique temporary files and atomic replacement; Studio compares the snapshot
+before saving. This detects stale edits, but is not a transaction with arbitrary
+external editors, which should not write the same configuration concurrently.
+
 Validation scans source files once using Git's tracked/non-ignored file list,
 excluding build output, dependency folders, virtual environments and secrets.
 Keep `studio/target` as a build cache; validation does not need to inspect it.

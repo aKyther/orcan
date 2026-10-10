@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio CI now runs UI/native behavior tests and caches build dependencies.
+  Connection models, native SSH/credentials and browser demo have separate
+  modules. Tests reuse isolated Git templates and cached UI compilation, while
+  pure worktree contracts remain available in the fast development suite.
+
 - Studio reports unknown Git status instead of treating failed reads as clean,
   blocks unsafe parent updates, and deduplicates repository inspection per probe.
   Configuration writes use unique atomic replacements; Studio rejects changed

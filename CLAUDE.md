@@ -95,7 +95,8 @@ instead of reporting a blocker. Install `uv` first if it is unavailable.
 For a focused test, use:
 
 ```bash
-uv run --no-project --with-requirements requirements-test.txt python -m pytest tests/host/test_attach_cli.py
+make test-host TEST_ARGS="tests/host/test_attach_cli.py"
+make test-fast              # pure contracts while editing; full suite before handoff
 ```
 
 ### Agent inbox
@@ -143,6 +144,9 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Change | Place |
 | --- | --- |
 | Public CLI | `bin/orcan`, `cli/` |
+| Studio connections / secrets | `studio/app/src/profile-model.ts`, `ssh-trust.ts`, `transport.ts`; native `profiles.rs`, `ssh.rs` under `studio/app/src-tauri/src/` |
+| Studio context / transfers | `studio/app/src/context-model.ts`, `context-drafts.ts`, `provision-progress.ts`; native `provisioning.rs`, `enclave.rs`; host `scripts/repository/studio-*.py` |
+| Studio demo / behavior tests | Lazy-loaded `studio/app/src/demo.ts`; `studio/app/tests/*.test.mjs`, shared `helpers.mjs`; see `docs/en/change-map.md` |
 | Host helpers / validate / release | `scripts/repository/` |
 | Host workspace reconcile / audit | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; core `docker/rootfs/usr/local/lib/orcan/reconcile.py` |
 | Developer UX environment | `scripts/dev/`, `make dev-*` |

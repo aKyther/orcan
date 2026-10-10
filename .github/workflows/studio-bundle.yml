@@ -9,6 +9,8 @@ permissions:
 jobs:
   bundle:
     name: ${{ matrix.name }}
+    env:
+      CARGO_INCREMENTAL: "0"
     strategy:
       fail-fast: false
       matrix:
