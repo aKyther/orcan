@@ -5,7 +5,7 @@ import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
 import { loadJobs, persistJobs, type Job } from "./activity";
 import { draftConflicts, loadQueuedChanges, persistQueuedChanges, type QueuedChange } from "./context-drafts";
-import { parentCandidates, parentDirectory, indexParents, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, type HealthProject, type ParentCandidate } from "./context-model";
+import { parentCandidates, parentDirectory, indexParents, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, validateBranches, type HealthProject, type ParentCandidate } from "./context-model";
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
@@ -204,6 +204,7 @@ function renderJobs(): void {
 activityFilter.addEventListener("change", renderJobs);
 let worktreeReady = false;
 let sourceBranches: string[] = [];
+let latestBranchRequest = 0;
 let profiles: ConnectionProfile[] = [];
 let savedCredentials: Credential[] = [];
 let current: Connection | undefined;
@@ -535,6 +536,7 @@ function addToMenu(project: ProjectRef, report: ProbeReport): HTMLElement {
 }
 
 function renderEnclaveMap(report: ProbeReport): void {
+  const draftsByWorkspace = groupWorkspaceDrafts();
   enclaveMap.hidden = false;
   mapFocusClear.hidden = !focusedWorkspace;
   renderWorkspaceInspector(report);
@@ -566,7 +568,7 @@ function renderEnclaveMap(report: ProbeReport): void {
   const sharedIn = new Map(report.context.repositories.map((repository) => [repository.repository_id, repository.bindings.map((binding) => binding.workspace)]));
   const cards = report.context.workspaces.flatMap((workspace) => {
     if (focusedWorkspace && workspace.name !== focusedWorkspace) return [];
-    const drafts = workspaceDrafts(workspace.name);
+    const drafts = draftsByWorkspace[workspace.name] ?? [];
     const workspaceMatches = matches(workspace.name);
     const projects = workspace.projects
       .filter((project) => sourceMatchesFilters(project) && (workspaceMatches || matches(project.name, project.path, project.branch)))
@@ -618,7 +620,7 @@ function renderEnclaveMap(report: ProbeReport): void {
     return [card];
   });
   const existingWorkspaces = new Set(report.context.workspaces.map((workspace) => workspace.name));
-  const plannedWorkspaceGroups = Object.entries(groupWorkspaceDrafts()) as Array<[string, QueuedChange[]]>;
+  const plannedWorkspaceGroups = Object.entries(draftsByWorkspace) as Array<[string, QueuedChange[]]>;
   for (const [workspace, drafts] of plannedWorkspaceGroups.filter(([name, entries]) => !existingWorkspaces.has(name) && (!focusedWorkspace || focusedWorkspace === name) && (matches(name) || entries.some((draft) => sourceMatchesFilters({ ...draft.project, dirty: false }) && matches(draft.project.name, draft.project.path, draft.branch))))) {
     const meta = el("div", { className: "workspace-meta" }, el("span", { className: "tag draft", textContent: "draft workspace" }), actionButton("Discard", () => discardWorkspaceDraft(workspace), "workspace-draft-discard"));
     const card = el("article", { className: "workspace-card planned-workspace" }, el("header", {}, el("strong", { textContent: workspace }), meta));
@@ -1130,6 +1132,8 @@ function renderBranchBrowser(): void {
 }
 
 async function refreshWorktreeBranches(): Promise<void> {
+  const request = ++latestBranchRequest;
+  const connection = current, repo = worktreeRepo.value;
   if (!current || !worktreeRepo.value) {
     sourceBranches = [];
     renderWorktreeExisting();
@@ -1138,12 +1142,15 @@ async function refreshWorktreeBranches(): Promise<void> {
   worktreeExisting.textContent = "Reading local branches from the Git source…";
   try {
     const response = await invoke<{ branches: string[] }>("worktree_branches", {
-      enclave: enclaveInput(current), repo: worktreeRepo.value,
+      enclave: enclaveInput(connection!), repo,
       worktreesRoot: setting("setting-worktrees-root").textContent,
     });
-    sourceBranches = response.branches;
-  } catch {
+    if (request !== latestBranchRequest || current !== connection || worktreeRepo.value !== repo) return;
+    sourceBranches = validateBranches(response.branches);
+  } catch (error) {
+    if (request !== latestBranchRequest || current !== connection || worktreeRepo.value !== repo) return;
     sourceBranches = [];
+    worktreeResult.textContent = `Could not read branches: ${String(error)}`;
   }
   renderWorktreeExisting();
   renderWorktreeBranchState();

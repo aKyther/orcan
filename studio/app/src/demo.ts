@@ -212,6 +212,7 @@ export async function demoInvoke<T>(command: string, _args?: unknown): Promise<T
     import_apply: { result: { destination: `${root}/new-repository` } },
     worktree_plan: { plan: { destination: `${worktrees}/api/feature-context`, ready: true, blockers: [] } },
     worktree_apply: { result: { path: `${worktrees}/api/feature-context` } },
+    worktree_branches: { branches: ["main", "feature/studio"] },
     worktree_cleanup: { plan: { ready: true, blockers: [] } },
     workspace_action: { plan: { ready: true, blockers: [], changes: ["update workspace", "run orcan sync"] } },
     runtime_action: null,

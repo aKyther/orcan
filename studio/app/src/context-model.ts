@@ -9,6 +9,13 @@ export type ParentCandidate = {
 export type ContextProject = ProbeReport["context"]["workspaces"][number]["projects"][number];
 export type HealthProject = { path: string; kind?: string; writable?: boolean; dirty?: boolean | null; repository_id?: string };
 
+export function validateBranches(value: unknown): string[] {
+  if (!Array.isArray(value) || !value.every((branch) => typeof branch === "string")) {
+    throw new Error("Orcan did not return a valid branch list. Update the host CLI and reconnect.");
+  }
+  return value;
+}
+
 export function parentCandidates(report: ProbeReport, runs: ParentRun[]): ParentCandidate[] {
   const runsByPath = new Map(runs.map((run) => [run.path, run.at]));
   return report.context.update_targets.map((target) => ({

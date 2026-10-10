@@ -48,6 +48,13 @@ test("unknown Git status is visible in project alerts", async () => {
   assert.deepEqual(projectAlerts({ context: { update_targets: [] } }, { path: "/app", dirty: null }), ["Git status unknown"]);
 });
 
+test("branch response validation rejects missing and malformed lists", async () => {
+  const { validateBranches } = await load("context-model");
+  for (const value of [undefined, null, {}, "main", ["main", 1]]) assert.throws(() => validateBranches(value), /valid branch list/);
+  assert.deepEqual(validateBranches([]), []);
+  assert.deepEqual(validateBranches(["main", "feature/studio"]), ["main", "feature/studio"]);
+});
+
 test("parent index preserves preference and is rebuilt for changed reports", async () => {
   const { indexParents } = await load("context-model");
   const target = (path, role, name) => ({ path, role, name, repository_id: "repo", eligible: true, read_only: true, worktree_count: 1 });
