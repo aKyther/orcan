@@ -107,6 +107,14 @@ mutations five minutes. A timeout or cancellation does not roll back remote work
 refresh the host before retrying. Streaming image transfers retain their separate
 progress/resume workflow. These limits are policy, not performance benchmarks.
 
+Worktree apply responses can have `ok: true` with `outcome: partial`: the request
+returned a usable result, but not every attachment succeeded. `completed` and
+`pending_workspaces` describe the steps. Studio's Retry attachments rechecks each
+remaining membership and never recreates the worktree. A failed queued creation
+becomes an attachment to the preserved checkout. No automatic rollback deletes
+project data. After restarting Studio, use the worktree inventory to attach or
+clean up preserved worktrees.
+
 `load_config` snapshots automatically check their revision before saving; Studio
 supplies its explicit read snapshot. A stale save is rejected, not merged or
 silently overwritten. This is not a transaction with arbitrary

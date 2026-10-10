@@ -1,5 +1,6 @@
 import { cleanupPanel } from "./cleanup";
 import { createCheckInvoker } from "./check-controls";
+import { retryAttachments, worktreeSummary, type WorktreeResult } from "./worktree-result";
 import { createMapConnections } from "./map-connections";
 import { buildProfile, CHOOSE_SSH, SYSTEM_SSH, INLINE_SSH } from "./profile-model";
 import { newId } from "./id";
@@ -944,7 +945,13 @@ async function applyQueuedChanges(selectedIds?: Set<string>): Promise<void> {
     try {
       await revalidateQueuedChange(change, connection, worktreesRoot);
       if (change.action === "attach" && change.relationship === "worktree") {
-        await invoke("worktree_apply", { enclave: enclaveInput(connection), repo: change.project.path, branch: change.branch, worktreesRoot, workspaces: [change.workspace] });
+        const response = await invoke<WorktreeResult>("worktree_apply", { enclave: enclaveInput(connection), repo: change.project.path, branch: change.branch, worktreesRoot, workspaces: [change.workspace] });
+        if (response.outcome === "partial") {
+          change.project = { path: response.result.path, name: projectName({ path: response.result.path }), kind: "git" };
+          change.relationship = "share";
+          change.changes = [`attach preserved worktree ${response.result.path} to ${change.workspace}`];
+          throw new Error(worktreeSummary(response));
+        }
       } else {
         await invoke("membership_action", { enclave: enclaveInput(connection), action: change.action, workspace: change.workspace, project: change.project.path, projectMode: change.projectMode, apply: true });
       }
@@ -2822,13 +2829,42 @@ worktreeApply.addEventListener("click", async () => {
   if (!worktreeReady || !current) return;
   if (!canEditContext()) { worktreeResult.textContent = contextEditMessage(); return; }
   const workspaces = selectedWorkspaces();
+  const connection = current;
   worktreeApply.disabled = true;
   worktreeResult.textContent = "Creating worktree…";
   const job = addJob("Worktree create", worktreeBranch.value);
   try {
-    const response = await invoke<{ result: { path: string } }>("worktree_apply", { enclave: enclaveInput(current), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces });
+    const response = await invoke<WorktreeResult>("worktree_apply", { enclave: enclaveInput(connection), repo: worktreeRepo.value, branch: worktreeBranch.value, worktreesRoot: setting("setting-worktrees-root").textContent, workspaces });
     worktreeReady = false;
-    await connect(current);
+    if (response.outcome === "partial") {
+      worktreeResult.textContent = worktreeSummary(response);
+      finishJob(job, "failed", worktreeSummary(response));
+      if (response.result.pending_workspaces?.length) {
+        const retry = actionButton("Retry attachments", async () => {
+          if (!await confirmAction(`Attach the preserved worktree on ${connection.label}? No new branch will be created.`, { title: "Retry attachments", confirmLabel: "Retry" })) return;
+          retry.disabled = true;
+          try {
+            await retryAttachments(response, async (workspace, path) => {
+              const args = { enclave: enclaveInput(connection), action: "attach", workspace, project: path, projectMode: "git" };
+              const plan = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("membership_action", { ...args, apply: false });
+              if (!plan.plan.ready) throw new Error(plan.plan.blockers.join(" · "));
+              await invoke("membership_action", { ...args, apply: true });
+            });
+            retry.remove();
+            worktreeResult.textContent = `Attached: ${response.result.path}. Run Orcan sync when ready.`;
+            finishJob(job, "succeeded", worktreeSummary(response));
+          } catch (error) {
+            worktreeResult.textContent = `Remaining: ${response.result.pending_workspaces?.join(", ")}. ${String(error)}`;
+            retry.disabled = false;
+          }
+          if (current === connection) await connect(connection).catch(() => undefined);
+        }, "secondary");
+        worktreeResult.after(retry);
+      }
+      if (current === connection) await connect(connection).catch(() => undefined);
+      return;
+    }
+    if (current === connection) await connect(connection);
     worktreeResult.textContent = `Created: ${response.result.path}. Map refreshed; run Orcan sync when you want the container mounts reconciled.`;
     finishJob(job, "succeeded", response.result.path);
   } catch (error) {

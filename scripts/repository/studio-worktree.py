@@ -8,6 +8,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+from studio_process import run_command
 
 
 def run(repo: Path, *args: str) -> str | None:
@@ -61,6 +62,81 @@ def worktree_project_name(root: Path, workspace: str, repo: Path, branch: str) -
     if existing_branch == branch:
         return base
     return f"{base}--{hashlib.sha256(branch.encode()).hexdigest()[:6]}"
+
+
+def verified_worktree(repo: Path, destination: Path, branch: str) -> bool:
+    source = run(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    target = run(destination, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    return bool(
+        source
+        and target
+        and Path(source).resolve() == Path(target).resolve()
+        and run(destination, "symbolic-ref", "--quiet", "--short", "HEAD") == branch
+    )
+
+
+def apply_worktree(
+    repo: Path,
+    branch: str,
+    destination: Path,
+    workspaces: list[str],
+    project: str | None,
+) -> dict:
+    """Report each completed step; never remove a partially created worktree."""
+    workspaces = list(dict.fromkeys(workspaces))
+    command = [
+        "orcan",
+        "context",
+        "worktree",
+        "create",
+        "--repo",
+        str(repo),
+        "--branch",
+        branch,
+        "--path",
+        str(destination),
+    ]
+    if workspaces and project:
+        command += ["--workspace", workspaces[0], "--project", project]
+    created = run_command(command)
+    completed = []
+    pending = workspaces.copy()
+    failure = None
+    if created.returncode:
+        if not destination.exists() or not verified_worktree(repo, destination, branch):
+            return {
+                "ok": False,
+                "error": created.stderr.strip()
+                or "worktree create failed; refresh before retrying",
+            }
+        completed.append("worktree created")
+        failure = created.stderr.strip() or "creation or first attachment failed"
+    else:
+        completed.append("worktree created")
+        if workspaces and project:
+            completed.append(f"attached to {workspaces[0]}")
+            pending.pop(0)
+        for workspace in pending.copy():
+            bound = run_command(
+                ["orcan", "context", "add", str(destination), "--workspace", workspace]
+            )
+            if bound.returncode:
+                failure = bound.stderr.strip() or f"attachment to {workspace} failed"
+                break
+            completed.append(f"attached to {workspace}")
+            pending.remove(workspace)
+    return {
+        "ok": True,
+        "outcome": "partial" if failure else "complete",
+        "result": {
+            "operation": "worktree_create",
+            "path": str(destination),
+            "completed": completed,
+            "pending_workspaces": pending,
+            "error": failure,
+            "retry": "attachments_only" if failure else None,
+        },
+    }
 
 
 def main() -> None:
@@ -172,11 +248,8 @@ def main() -> None:
                 )
             )
             raise SystemExit(2)
-        result = subprocess.run(
+        result = run_command(
             ["orcan", "context", "worktree", "remove", "--path", str(path), "--force"],
-            capture_output=True,
-            text=True,
-            check=False,
         )
         if result.returncode:
             print(
@@ -189,11 +262,8 @@ def main() -> None:
             )
             raise SystemExit(result.returncode)
         if args.remove_branch and git_dir and branch:
-            deleted = subprocess.run(
+            deleted = run_command(
                 ["git", "--git-dir", git_dir, "branch", "-d", branch],
-                capture_output=True,
-                text=True,
-                check=False,
             )
             if deleted.returncode:
                 print(
@@ -267,56 +337,10 @@ def main() -> None:
             json.dumps({"ok": False, "error": "apply requires --yes and a ready plan"})
         )
         raise SystemExit(2)
-    command = [
-        "orcan",
-        "context",
-        "worktree",
-        "create",
-        "--repo",
-        str(repo),
-        "--branch",
-        args.branch,
-        "--path",
-        str(destination),
-    ]
-    if primary_workspace and project:
-        command += ["--workspace", primary_workspace, "--project", project]
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
-    if result.returncode:
-        print(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": result.stderr.strip() or "worktree create failed",
-                }
-            )
-        )
-        raise SystemExit(result.returncode)
-    for workspace in args.workspace[1:]:
-        bind = subprocess.run(
-            ["orcan", "context", "add", str(destination), "--workspace", workspace],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if bind.returncode:
-            print(
-                json.dumps(
-                    {
-                        "ok": False,
-                        "error": f"worktree was created but bind to {workspace} failed: {bind.stderr.strip()}",
-                    }
-                )
-            )
-            raise SystemExit(bind.returncode)
-    print(
-        json.dumps(
-            {
-                "ok": True,
-                "result": {"operation": "worktree_create", "path": str(destination)},
-            }
-        )
-    )
+    response = apply_worktree(repo, args.branch, destination, args.workspace, project)
+    print(json.dumps(response, separators=(",", ":")))
+    if not response["ok"]:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

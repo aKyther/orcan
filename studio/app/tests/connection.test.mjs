@@ -75,6 +75,22 @@ test("unknown Git status is visible in project alerts", async () => {
   assert.deepEqual(projectAlerts({ context: { update_targets: [] } }, { path: "/app", dirty: null }), ["Git status unknown"]);
 });
 
+test("worktree recovery only retries remaining attachments and retains failures", async () => {
+  const { retryAttachments, worktreeSummary } = await load("worktree-result");
+  const response = { outcome: "partial", result: { path: "/tree", completed: ["worktree created"], pending_workspaces: ["one", "two"], retry: "attachments_only", error: "blocked" } };
+  assert.match(worktreeSummary(response), /Worktree preserved/);
+  const calls = [];
+  await assert.rejects(retryAttachments(response, async (workspace, path) => {
+    calls.push([workspace, path]);
+    if (workspace === "two") throw new Error("offline");
+  }), /offline/);
+  assert.deepEqual(response.result.pending_workspaces, ["two"]);
+  await retryAttachments(response, async (workspace, path) => calls.push([workspace, path]));
+  assert.deepEqual(calls, [["one", "/tree"], ["two", "/tree"], ["two", "/tree"]]);
+  assert.equal(response.outcome, "complete");
+  await assert.rejects(retryAttachments(response, async () => {}), /Refresh/);
+});
+
 test("branch response validation rejects missing and malformed lists", async () => {
   const { validateBranches } = await load("context-model");
   for (const value of [undefined, null, {}, "main", ["main", 1]]) assert.throws(() => validateBranches(value), /valid branch list/);

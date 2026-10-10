@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Worktree creation reports partial attachments and preserves the created checkout.
+  Studio can retry only remaining attachments; failed drafts retain the existing
+  worktree instead of trying to recreate its branch.
+
 - Studio bounds captured local/WSL/SSH commands and lets users cancel a running
   read-only probe. Timeout/cancellation explicitly require a refreshed host state;
   they do not claim to roll back remote changes.
