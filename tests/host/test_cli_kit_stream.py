@@ -19,7 +19,8 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_studio_cli_kit_exports_a_clean_archive():
     source_dir = ROOT / "studio/app/src-tauri/src"
     source = "\n".join(
-        (source_dir / name).read_text() for name in ("main.rs", "provisioning.rs")
+        (source_dir / name).read_text()
+        for name in ("main.rs", "installation.rs", "provisioning.rs")
     )
     scripts = [
         encoded

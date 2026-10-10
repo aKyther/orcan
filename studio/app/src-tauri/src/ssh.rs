@@ -406,13 +406,46 @@ pub(super) async fn native_ssh_stream_wsl(
     remote_command: String,
     operation: &str,
 ) -> Result<String, String> {
-    let mut source = background_tokio_command("wsl.exe")
+    let activity = super::execution::Activity::new();
+    activity
+        .guard(
+            std::time::Duration::from_secs(300),
+            native_ssh_stream_wsl_inner(
+                distribution,
+                destination,
+                resolved,
+                source_script,
+                remote_command,
+                operation,
+                &activity,
+            ),
+        )
+        .await
+}
+
+async fn native_ssh_stream_wsl_inner(
+    distribution: &str,
+    destination: &str,
+    resolved: ResolvedSsh,
+    source_script: String,
+    remote_command: String,
+    operation: &str,
+    activity: &super::execution::Activity,
+) -> Result<String, String> {
+    let mut command = background_tokio_command("wsl.exe");
+    command
         .args(["--distribution", distribution, "--exec", "bash", "-lc"])
         .arg(source_script)
+        .kill_on_drop(true)
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(unix)]
+    command.process_group(0);
+    let mut source = command
         .spawn()
         .map_err(|error| format!("could not start WSL export for {operation}: {error}"))?;
+    let mut tree = super::execution::ProcessTree(source.id());
     let source_stdout = source
         .stdout
         .take()
@@ -426,28 +459,37 @@ pub(super) async fn native_ssh_stream_wsl(
         .exec(true, remote_command.as_str())
         .await
         .map_err(|error| format!("could not start remote {operation}: {error}"))?;
-    channel
-        .data(source_stdout)
-        .await
-        .map_err(|error| format!("{operation} interrupted: {error}"))?;
-    channel
-        .eof()
-        .await
-        .map_err(|error| format!("could not finish {operation}: {error}"))?;
-    let source_result = source
-        .wait_with_output()
-        .await
-        .map_err(|error| format!("could not finish WSL export for {operation}: {error}"))?;
-    if !source_result.status.success() {
+    let diagnostics = source.stderr.take().ok_or("WSL export has no stderr")?;
+    let send = async {
+        channel
+            .data(super::transfer_progress::ProgressReader::new(
+                source_stdout,
+                |_| activity.touch(),
+            ))
+            .await
+            .map_err(|error| format!("{operation} interrupted: {error}"))?;
+        channel
+            .eof()
+            .await
+            .map_err(|error| format!("could not finish {operation}: {error}"))
+    };
+    let (_, status, diagnostics) = tokio::try_join!(
+        send,
+        async { source.wait().await.map_err(|e| e.to_string()) },
+        super::execution::read_response(diagnostics)
+    )?;
+    tree.0 = None;
+    if !status.success() {
         return Err(format!(
             "WSL export for {operation} failed: {}",
-            String::from_utf8_lossy(&source_result.stderr).trim()
+            String::from_utf8_lossy(&diagnostics).trim()
         ));
     }
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     let mut exit_status = None;
     while let Some(message) = channel.wait().await {
+        activity.touch();
         match message {
             ChannelMsg::Data { data } => super::execution::append_response(&mut stdout, &data)?,
             ChannelMsg::ExtendedData { data, .. } => {

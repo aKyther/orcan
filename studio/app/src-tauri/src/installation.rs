@@ -55,50 +55,28 @@ pub(super) async fn transfer_wsl_image(
         }
         .probe_request()
         .map_err(|error| error.to_string())?;
-        let mut source = background_command("wsl.exe")
-            .args([
-                "--distribution",
-                &input.distribution,
-                "--exec",
-                "docker",
-                "save",
-                &input.image,
-            ])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|error| format!("could not start WSL Docker export: {error}"))?;
-        let mut target = background_command("ssh")
-            .args([
-                "-o",
-                "BatchMode=yes",
-                "--",
-                &input.destination,
-                "docker",
-                "load",
-            ])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|error| format!("could not start SSH image import: {error}"))?;
-        let mut input_stream = source
-            .stdout
-            .take()
-            .ok_or_else(|| "WSL image export has no stdout".to_owned())?;
-        let mut output_stream = target
-            .stdin
-            .take()
-            .ok_or_else(|| "SSH image import has no stdin".to_owned())?;
-        io::copy(&mut input_stream, &mut output_stream)
-            .map_err(|error| format!("image transfer interrupted: {error}"))?;
-        drop(output_stream);
-        let source_result = source
-            .wait_with_output()
-            .map_err(|error| format!("could not finish WSL image export: {error}"))?;
-        let target_result = target
-            .wait_with_output()
-            .map_err(|error| format!("could not finish SSH image import: {error}"))?;
+        let mut source = background_command("wsl.exe");
+        source.args([
+            "--distribution",
+            &input.distribution,
+            "--exec",
+            "docker",
+            "save",
+            &input.image,
+        ]);
+        let mut target = background_command("ssh");
+        target.args([
+            "-o",
+            "BatchMode=yes",
+            "--",
+            &input.destination,
+            "docker",
+            "load",
+        ]);
+        let (source_result, target_result) = tauri::async_runtime::block_on(execution::pipe(
+            TokioCommand::from(source),
+            TokioCommand::from(target),
+        ))?;
         if !source_result.status.success() {
             return Err(format!(
                 "WSL Docker export failed: {}",
@@ -272,38 +250,15 @@ pub(super) async fn provision_wsl_cli(
         let remote_script = "set -Eeuo pipefail; kit=$(mktemp -d); trap 'rm -rf \"$kit\"' EXIT; tar -xzf - -C \"$kit\"; \"$kit/install-orcan-cli.sh\"; export PATH=\"$HOME/.local/bin:$PATH\"; orcan version";
         let remote_command = format!("bash -lc {}", shell_quote(remote_script));
 
-        let mut source = background_command("wsl.exe")
-            .args(["--distribution", &input.distribution, "--exec", "bash", "-lc"])
+        let mut source = background_command("wsl.exe");
+        source.args(["--distribution", &input.distribution, "--exec", "bash", "-lc"])
             .arg(source_script)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|error| format!("could not create a WSL CLI kit: {error}"))?;
-        let mut target = background_command("ssh")
-            .args(["-o", "BatchMode=yes", "--", &input.destination])
+;
+        let mut target = background_command("ssh");
+        target.args(["-o", "BatchMode=yes", "--", &input.destination])
             .arg(remote_command)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|error| format!("could not start SSH CLI installation: {error}"))?;
-        let mut input_stream = source
-            .stdout
-            .take()
-            .ok_or_else(|| "WSL CLI kit has no stdout".to_owned())?;
-        let mut output_stream = target
-            .stdin
-            .take()
-            .ok_or_else(|| "SSH CLI installation has no stdin".to_owned())?;
-        io::copy(&mut input_stream, &mut output_stream)
-            .map_err(|error| format!("CLI kit transfer interrupted: {error}"))?;
-        drop(output_stream);
-        let source_result = source
-            .wait_with_output()
-            .map_err(|error| format!("could not finish WSL CLI kit: {error}"))?;
-        let target_result = target
-            .wait_with_output()
-            .map_err(|error| format!("could not finish SSH CLI installation: {error}"))?;
+;
+        let (source_result, target_result) = tauri::async_runtime::block_on(execution::pipe(TokioCommand::from(source), TokioCommand::from(target)))?;
         if !source_result.status.success() {
             return Err(format!(
                 "WSL CLI kit creation failed: {}",

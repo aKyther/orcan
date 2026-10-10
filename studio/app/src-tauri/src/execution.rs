@@ -81,7 +81,7 @@ pub(super) async fn capture(
     let stderr = child.stderr.take().ok_or("Command has no stderr")?;
     let result = deadline(duration, async {
         let write = async {
-            if let (Some(stream), Some(bytes)) = (&mut stdin, input) {
+            if let (Some(mut stream), Some(bytes)) = (stdin.take(), input) {
                 stream.write_all(bytes).await?;
                 stream.shutdown().await?;
             }
@@ -112,6 +112,61 @@ pub(super) async fn capture(
 pub(super) struct Activity {
     started: Instant,
     last: Arc<AtomicU64>,
+}
+
+/// Compatibility installation endpoints still stream source directly into the
+/// receiver. Drain every diagnostic pipe concurrently, under the same idle rule.
+pub(super) async fn pipe(
+    mut source: tokio::process::Command,
+    mut target: tokio::process::Command,
+) -> Result<(std::process::Output, std::process::Output), String> {
+    use std::process::Stdio;
+    source
+        .kill_on_drop(true)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    target
+        .kill_on_drop(true)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(unix)]
+    {
+        source.process_group(0);
+        target.process_group(0);
+    }
+    let mut source = source.spawn().map_err(|e| e.to_string())?;
+    let mut source_tree = ProcessTree(source.id());
+    let mut target = target.spawn().map_err(|e| e.to_string())?;
+    let mut target_tree = ProcessTree(target.id());
+    let source_out = source.stdout.take().ok_or("Source has no stdout")?;
+    let source_err = source.stderr.take().ok_or("Source has no stderr")?;
+    let mut target_in = target.stdin.take().ok_or("Destination has no stdin")?;
+    let target_out = target.stdout.take().ok_or("Destination has no stdout")?;
+    let target_err = target.stderr.take().ok_or("Destination has no stderr")?;
+    let activity = Activity::new();
+    let result = activity.guard(Duration::from_secs(300), async {
+        let copy = async {
+            let mut reader = super::transfer_progress::ProgressReader::new(source_out, |_| activity.touch());
+            tokio::io::copy(&mut reader, &mut target_in).await.map_err(|e| e.to_string())?;
+            target_in.shutdown().await.map_err(|e| e.to_string())?;
+            drop(target_in);
+            Ok(())
+        };
+        let (_, source_status, target_status, source_err, target_out, target_err) = tokio::try_join!(
+            copy,
+            async { source.wait().await.map_err(|e| e.to_string()) },
+            async { target.wait().await.map_err(|e| e.to_string()) },
+            read_response(source_err), read_response(target_out), read_response(target_err)
+        )?;
+        Ok((std::process::Output { status: source_status, stdout: Vec::new(), stderr: source_err }, std::process::Output { status: target_status, stdout: target_out, stderr: target_err }))
+    }).await;
+    if result.is_ok() {
+        source_tree.0 = None;
+        target_tree.0 = None;
+    }
+    result
 }
 impl Activity {
     pub fn new() -> Self {
@@ -151,6 +206,36 @@ impl Activity {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn pipeline_streams_binary_and_drains_source_and_receiver_logs() {
+        let mut source = tokio::process::Command::new("sh");
+        source.args([
+            "-c",
+            "head -c 100000 /dev/zero >&2; head -c 200000 /dev/zero",
+        ]);
+        let mut target = tokio::process::Command::new("sh");
+        target.args(["-c", "head -c 100000 /dev/zero >&2; wc -c"]);
+        let (source, target) = deadline(Duration::from_secs(3), pipe(source, target))
+            .await
+            .unwrap();
+        assert!(source.status.success() && target.status.success());
+        assert_eq!(source.stderr.len(), 100000);
+        assert_eq!(target.stderr.len(), 100000);
+        assert_eq!(String::from_utf8(target.stdout).unwrap().trim(), "200000");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn stdin_payload_closes_before_waiting_for_the_command() {
+        let command = tokio::process::Command::new("cat");
+        let output = capture(command, Some(b"payload"), Duration::from_secs(2))
+            .await
+            .unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"payload");
+    }
 
     #[tokio::test]
     async fn response_limit_rejects_excess_without_truncating_json() {

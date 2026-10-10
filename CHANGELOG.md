@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Compatibility WSL installation streams share bounded response capture and an
+  idle watchdog. Diagnostic pipes are drained during binary transfer, and stdin
+  is closed before waiting for receivers that require EOF.
+
 - Optional Studio render measurements track map rebuilds, geometry and selection
   without saving host contents. Large-map browser checks attach timing samples
   and assert that selecting a project does not rebuild the full map.
