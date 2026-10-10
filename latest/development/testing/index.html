@@ -2326,10 +2326,14 @@ Directory/selection/history models live in <code>context_selection.py</code>. Pr
 tests import these small modules directly, not the terminal application.
 Native context endpoints share argument builders in <code>context.rs</code>. Branch discovery
 and the activity view own their DOM/state in <code>branch-picker.ts</code> and <code>activity-panel.ts</code>;
-the main UI coordinates them through callbacks.</p>
-<p>Studio has four real browser smoke flows, independent of the cockpit suite:
+the main UI coordinates them through callbacks. <code>container-creator.ts</code> owns the
+complete creation form and readiness/approval snapshot. Native CLI installation
+is in <code>installation.rs</code>; bounded execution in <code>execution.rs</code>. Curses-free config
+mutations live in <code>context_mutations.py</code>.</p>
+<p>Studio has five real browser smoke flows, independent of the cockpit suite:
 connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
-100-project/10-workspace map checking filters, both anchors and retained drafts.
+100-project/10-workspace map checking filters, both anchors and retained drafts,
+and creator readiness/approval invalidation after changing its target.
 They use fixture data, block host snapshots, and contact no SSH or Docker target.
 CI runs them after the UI tests. Locally:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>npm<span class="w"> </span>install<span class="w"> </span>--no-save<span class="w"> </span>--no-package-lock<span class="w"> </span>--prefix<span class="w"> </span>.orcan-dev-ux/playwright-node<span class="w"> </span>@playwright/test@1.55.0
@@ -2341,7 +2345,13 @@ it at the daily Orcan runtime. Headless browser dependencies are needed only for
 this check, not <code>npm test</code>. Map geometry owns coalesced frame scheduling in
 <code>map-connections.ts</code>; project selection updates classes/edges, not all cards.
 Context rendering builds lookup maps once per render, without persisting a second
-source of truth alongside the probe report.</p>
+source of truth alongside the probe report.
+Add <code>&amp;measure=1</code> to the demo URL for in-memory render counters and timings, available
+as <code>window.__orcanRenderMetrics.snapshot()</code> in browser developer tools. Normal
+launches do not read the clock or collect samples. The large-map browser test
+attaches JSON measurements, saved in the browser <code>results.json</code> report and retained
+as a CI artifact for seven days; project selection asserts zero full map rebuilds.
+There is no wall-clock CI threshold: machine speed must not decide correctness.</p>
 <p>Default CI coverage measures the test process, not helper subprocesses. All tests
 still run, including real CLI operations. For an accurate extended diagnostic:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>test-coverage-subprocess<span class="w"> </span><span class="nv">TEST_ARGS</span><span class="o">=</span><span class="s2">"tests/host/test_studio_probe.py"</span>
@@ -2363,7 +2373,12 @@ check button; other captured commands allow up to 15 minutes. Native SSH connect
 setup has a 45-second limit. Host clone operations allow 14 minutes, other Studio
 mutations five minutes. A timeout or cancellation does not roll back remote work:
 refresh the host before retrying. Streaming image transfers retain their separate
-progress/resume workflow. These limits are policy, not performance benchmarks.</p>
+progress/resume workflow with a five-minute idle deadline; active transfers have
+no fixed total-duration limit. Provisioning and SSH preparation also bound stdin
+commands. These limits are policy, not performance benchmarks.
+Command responses and diagnostics have a 16 MiB limit per stream. Exceeding it
+is an explicit failure, never silently truncated JSON; image bytes use a separate
+streaming path and are not subject to this response limit.</p>
 <p>Worktree apply responses can have <code>ok: true</code> with <code>outcome: partial</code>: the request
 returned a usable result, but not every attachment succeeded. <code>completed</code> and
 <code>pending_workspaces</code> describe the steps. Studio's Retry attachments rechecks each
@@ -2675,7 +2690,7 @@ browser UX run. Run those locally when Docker or cockpit UX behaviour changes.</
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 15:22:05 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 21:53:54 UTC">October 10, 2026</span>
   </span>
 
     
