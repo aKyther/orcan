@@ -5,9 +5,10 @@ import { createMapConnections } from "./map-connections";
 import { buildProfile, CHOOSE_SSH, SYSTEM_SSH, INLINE_SSH } from "./profile-model";
 import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
-import { loadJobs, persistJobs, type Job } from "./activity";
+import { activityPanel } from "./activity-panel";
+import { branchPicker } from "./branch-picker";
 import { draftConflicts, loadQueuedChanges, persistQueuedChanges, type QueuedChange } from "./context-drafts";
-import { parentCandidates, parentDirectory, indexParents, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, validateBranches, type HealthProject, type ParentCandidate } from "./context-model";
+import { parentCandidates, parentDirectory, indexParents, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, type HealthProject, type ParentCandidate } from "./context-model";
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
@@ -166,47 +167,14 @@ const worktreePlan = document.querySelector<HTMLButtonElement>("#worktree-plan")
 const worktreeApply = document.querySelector<HTMLButtonElement>("#worktree-apply")!;
 const worktreeResult = document.querySelector<HTMLOutputElement>("#worktree-result")!;
 const worktreeExisting = document.querySelector<HTMLElement>("#worktree-existing")!;
-const branchBrowser = document.createElement("details");
-branchBrowser.className = "branch-browser";
-const branchSummary = document.createElement("summary");
-const branchSearch = document.createElement("input");
-branchSearch.placeholder = "filter branches";
-const branchList = document.createElement("div");
-branchList.className = "branch-list";
-branchBrowser.append(branchSummary, branchSearch, branchList);
-worktreeExisting.after(branchBrowser);
 const worktreeSourceState = document.querySelector<HTMLElement>("#worktree-source-state")!;
 const worktreeSourceUpdate = document.querySelector<HTMLButtonElement>("#worktree-source-update")!;
-const jobsList = document.querySelector<HTMLElement>("#jobs-list")!;
-const activityFilter = document.createElement("select");
-activityFilter.className = "activity-filter";
-activityFilter.setAttribute("aria-label", "Filter activity by container");
-jobsList.before(activityFilter);
-const jobs = loadJobs();
-function saveJobs(): void { persistJobs(jobs); }
-function addJob(name: string, detail: string, enclave = current?.label, profileId = current?.profileId): Job { const job = { name, detail, enclave, profileId, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); saveJobs(); renderJobs(); return job; }
-function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
-function renderJobs(): void {
-  const selected = activityFilter.value;
-  const enclaves = [...new Set(jobs.map((job) => job.enclave ?? "Other"))];
-  activityFilter.replaceChildren(new Option("All Servers", ""), ...enclaves.map((enclave) => new Option(enclave, enclave)));
-  activityFilter.value = enclaves.includes(selected) ? selected : "";
-  const visible = selected ? jobs.filter((job) => (job.enclave ?? "Other") === selected) : jobs;
-  jobsList.replaceChildren(...(visible.length ? visible.map((job) => {
-    const row = document.createElement("div");
-    row.className = `job ${job.state}`;
-    const profile = profiles.find((item) => item.id === job.profileId) ?? profiles.find((item) => item.name === job.enclave);
-    const actions: HTMLElement[] = [];
-    if (profile) actions.push(actionButton("Open", () => void openEnclave(profile), "secondary"));
-    if (job.state === "failed" && profile) actions.push(actionButton("Retry check", () => void checkEnclave(profile), "secondary"));
-    row.append(el("span", { textContent: `${new Date(job.at).toLocaleString()} · ${job.enclave ?? "Other"} · ${job.name} · ${job.state} · ${job.detail}` }), ...actions);
-    return row;
-  }) : [Object.assign(document.createElement("p"), { className: "snapshot-shared", textContent: "No activity for this container." })]));
-}
-activityFilter.addEventListener("change", renderJobs);
+const { addJob, finishJob, renderJobs } = activityPanel({
+  container: document.querySelector<HTMLElement>("#jobs-list")!,
+  current: () => current, profiles: () => profiles,
+  open: profile => openEnclave(profile), retry: profile => checkEnclave(profile),
+});
 let worktreeReady = false;
-let sourceBranches: string[] = [];
-let latestBranchRequest = 0;
 let profiles: ConnectionProfile[] = [];
 let savedCredentials: Credential[] = [];
 let current: Connection | undefined;
@@ -225,6 +193,14 @@ async function invoke<T>(command: string, _args?: unknown): Promise<T> {
   if (!demoMode) return trustedInvoke<T>(command, _args);
   return (await import("./demo")).demoInvoke<T>(command, _args);
 }
+
+const branchChoices = branchPicker({
+  source: worktreeRepo, branch: worktreeBranch, state: worktreeBranchState,
+  existing: worktreeExisting, output: worktreeResult, connection: () => current,
+  root: () => setting("setting-worktrees-root").textContent, invoke,
+  invalidate: () => { worktreeReady = false; worktreeApply.disabled = true; },
+  changed: renderWorktreeExisting,
+});
 
 const viewTitles: Record<string, string> = { credentials: "Credentials & keys", enclaves: "Servers and containers", groups: "Enclaves" };
 const gatedViews = new Set(navigationItems.filter((item) => item.classList.contains("gated")).map((item) => item.dataset.viewTarget));
@@ -1116,55 +1092,10 @@ function renderWorktreeExisting(): void {
   const connected = branches.length
     ? `Already connected from this source: ${branches.join(" · ")}.`
     : "No managed branches from this source are connected to the first workspace.";
-  const preview = sourceBranches.length
-    ? ` Existing local branches (${sourceBranches.length}): ${sourceBranches.slice(0, 8).join(" · ")}${sourceBranches.length > 8 ? ` · +${sourceBranches.length - 8} more` : ""}.`
+  const preview = branchChoices.branches().length
+    ? ` Existing local branches (${branchChoices.branches().length}): ${branchChoices.branches().slice(0, 8).join(" · ")}${branchChoices.branches().length > 8 ? ` · +${branchChoices.branches().length - 8} more` : ""}.`
     : " No local branches reported yet.";
   worktreeExisting.textContent = `${connected}${preview}`;
-}
-
-function renderWorktreeBranchState(): void {
-  const branch = worktreeBranch.value.trim();
-  const exists = Boolean(branch) && sourceBranches.includes(branch);
-  worktreeBranchState.textContent = !branch
-    ? "Enter a branch name."
-    : exists
-      ? "Existing branch · this worktree will check it out."
-      : "New branch · Orcan will create it for this worktree.";
-  worktreeBranchState.classList.toggle("existing", exists);
-}
-
-function renderBranchBrowser(): void {
-  const query = branchSearch.value.trim().toLowerCase();
-  const visible = sourceBranches.filter((branch) => branch.toLowerCase().includes(query));
-  branchSummary.textContent = `Local branches (${sourceBranches.length})`;
-  branchBrowser.hidden = sourceBranches.length === 0;
-  branchList.replaceChildren(...visible.slice(0, 40).map((branch) => actionButton(branch, () => { worktreeBranch.value = branch; worktreeReady = false; worktreeApply.disabled = true; renderWorktreeBranchState(); }, "secondary")));
-}
-
-async function refreshWorktreeBranches(): Promise<void> {
-  const request = ++latestBranchRequest;
-  const connection = current, repo = worktreeRepo.value;
-  if (!current || !worktreeRepo.value) {
-    sourceBranches = [];
-    renderWorktreeExisting();
-    return;
-  }
-  worktreeExisting.textContent = "Reading local branches from the Git source…";
-  try {
-    const response = await invoke<{ branches: string[] }>("worktree_branches", {
-      enclave: enclaveInput(connection!), repo,
-      worktreesRoot: setting("setting-worktrees-root").textContent,
-    });
-    if (request !== latestBranchRequest || current !== connection || worktreeRepo.value !== repo) return;
-    sourceBranches = validateBranches(response.branches);
-  } catch (error) {
-    if (request !== latestBranchRequest || current !== connection || worktreeRepo.value !== repo) return;
-    sourceBranches = [];
-    worktreeResult.textContent = `Could not read branches: ${String(error)}`;
-  }
-  renderWorktreeExisting();
-  renderWorktreeBranchState();
-  renderBranchBrowser();
 }
 
 function renderWorktreeChoices(report: ProbeReport): void {
@@ -1182,7 +1113,7 @@ function renderWorktreeChoices(report: ProbeReport): void {
     ? previousRepository
     : sources[0]?.path ?? "";
   worktreeWorkspaces.replaceChildren(...report.context.workspaces.map((workspace) => new Option(`${workspace.name} · ${workspace.projects.length} projects`, workspace.name, false, previousWorkspaces.has(workspace.name) || focusedWorkspace === workspace.name)));
-  void refreshWorktreeBranches();
+  void branchChoices.refresh();
 }
 
 function renderImportChoices(report: ProbeReport): void {
@@ -2790,16 +2721,7 @@ folderApplyButton.addEventListener("click", async () => {
     await connect(current);
   } catch (error) { folderResult.textContent = `Create failed: ${String(error)}`; finishJob(job, "failed", String(error)); }
 });
-worktreeRepo.addEventListener("change", () => void refreshWorktreeBranches());
 worktreeWorkspaces.addEventListener("change", renderWorktreeExisting);
-worktreeBranch.addEventListener("input", () => {
-  const exists = sourceBranches.includes(worktreeBranch.value.trim());
-  worktreeReady = false;
-  worktreeApply.disabled = true;
-  if (exists) worktreeResult.textContent = `Existing branch: ${worktreeBranch.value.trim()}. The new worktree will check it out after you preview the plan.`;
-  renderWorktreeBranchState();
-});
-branchSearch.addEventListener("input", renderBranchBrowser);
 worktreeSourceUpdate.addEventListener("click", () => {
   const candidate = currentReport && parentCandidates(currentReport, parentRuns).find((item) => item.path === worktreeRepo.value);
   if (candidate) void updateProjectParent(candidate, "new worktree", candidate.name);

@@ -5,9 +5,8 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from ._scripts_loader import load_script
-
-_mod = load_script("context_tui.py")
+import context_presenters as _mod
+import context_selection as _selection
 
 
 class EllipsizeTests(unittest.TestCase):
@@ -56,12 +55,12 @@ class FormatWillAddLinesTests(unittest.TestCase):
     def setUp(self):
         # Formatting can ask about picks outside the scanned directory.
         # The pure contract supplies that Git boundary instead of executing it.
-        boundary = patch.object(_mod, "is_git_repo", return_value=False)
+        boundary = patch.object(_selection, "is_git_repo", return_value=False)
         boundary.start()
         self.addCleanup(boundary.stop)
 
     def test_empty_shows_hint(self) -> None:
-        lines = _mod.format_will_add_lines([], [], width=40, max_lines=5)
+        lines = _selection.format_will_add_lines([], [], width=40, max_lines=5)
         self.assertEqual(lines, ["(empty — Space to pick)"])
 
     def test_pick_order_and_elsewhere_tag(self) -> None:
@@ -73,7 +72,9 @@ class FormatWillAddLinesTests(unittest.TestCase):
             web.mkdir()
             selected = [web, api]
             repos = [(api, True)]
-            lines = _mod.format_will_add_lines(selected, repos, width=40, max_lines=5)
+            lines = _selection.format_will_add_lines(
+                selected, repos, width=40, max_lines=5
+            )
             self.assertEqual(lines[0], "+ web  (mount · elsewhere)")
             self.assertEqual(lines[1], "+ api")
 
@@ -85,7 +86,7 @@ class FormatWillAddLinesTests(unittest.TestCase):
                 p = root / name
                 p.mkdir()
                 paths.append(p)
-            lines = _mod.format_will_add_lines(
+            lines = _selection.format_will_add_lines(
                 paths, [(paths[0], False)], width=40, max_lines=3
             )
             self.assertEqual(len(lines), 3)
@@ -99,7 +100,7 @@ class FormatWillAddLinesTests(unittest.TestCase):
             web = root / "web"
             api.mkdir()
             web.mkdir()
-            lines = _mod.format_will_add_lines(
+            lines = _selection.format_will_add_lines(
                 [api, web],
                 [(api, True), (web, True)],
                 width=60,
@@ -167,5 +168,5 @@ class UpdatePickHistoryTests(unittest.TestCase):
             b = root / "b"
             a.mkdir()
             b.mkdir()
-            hist = _mod.update_pick_history([], [a, b], now=100.0)
+            hist = _selection.update_pick_history([], [a, b], now=100.0)
             self.assertEqual([h["path"] for h in hist], [str(b), str(a)])

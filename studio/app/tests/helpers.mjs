@@ -7,6 +7,7 @@ export class Element extends EventTarget {
   disabled = false;
   hidden = false;
   textContent = "";
+  value = "";
   append(...children) { this.children.push(...children); for (const child of children) if (typeof child === "object" && child !== null) child.parent = this; }
   replaceChildren(...children) { this.children = []; this.append(...children); }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter((child) => child !== this); }
@@ -25,6 +26,7 @@ export class Element extends EventTarget {
 export const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 export const dataModule = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
+export const compiledModule = (name) => dataModule(transpile(name));
 
 export function setup() {
   const status = new Element();

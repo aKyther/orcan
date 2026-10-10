@@ -1,6 +1,37 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { load, dataModule, setup, Element, tick } from "./helpers.mjs";
+import { load, dataModule, compiledModule, setup, Element, tick } from "./helpers.mjs";
+
+test("branch picker ignores late replies and does not label an unknown name as new", async () => {
+  setup();
+  const { branchPicker } = await load("branch-picker", {
+    "./context-model": compiledModule("context-model"),
+    "./transport": dataModule("export function enclaveInput(connection) { return connection; }"),
+  });
+  const source = new Element(), branch = new Element(), state = new Element(), existing = new Element(), output = new Element();
+  existing.after = () => {};
+  state.classList = { toggle() {} };
+  source.value = "/one";
+  branch.value = "feature";
+  const replies = [];
+  const picker = branchPicker({ source, branch, state, existing, output, connection: () => connection, root: () => "/trees", invalidate: () => {}, changed: () => {}, invoke: () => new Promise(resolve => replies.push(resolve)) });
+  let connection = { target: { kind: "local" } };
+  const first = picker.refresh();
+  assert.match(state.textContent, /Checking/);
+  source.value = "/two";
+  const second = picker.refresh();
+  assert.equal(replies.length, 2, output.textContent);
+  replies[1]({ branches: ["feature"] });
+  await second;
+  assert.match(state.textContent, /Existing branch/);
+  replies[0]({ branches: ["old"] });
+  await first;
+  assert.deepEqual(picker.branches(), ["feature"]);
+  source.value = "";
+  await picker.refresh();
+  assert.deepEqual(picker.branches(), []);
+  assert.match(state.textContent, /unavailable/);
+});
 
 test("read-only probe cancellation is scoped and controls disappear on failure", async () => {
   setup();

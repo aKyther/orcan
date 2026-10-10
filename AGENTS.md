@@ -145,10 +145,10 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | --- | --- |
 | Public CLI | `bin/orcan`, `cli/` |
 | Studio connections / secrets | `studio/app/src/profile-model.ts`, `ssh-trust.ts`, `transport.ts`; native `profiles.rs`, `ssh.rs` under `studio/app/src-tauri/src/` |
-| Studio context / transfers | `studio/app/src/context-model.ts`, `context-drafts.ts`, `provision-progress.ts`; native `provisioning.rs`, `enclave.rs`; host `scripts/repository/studio-*.py` |
+| Studio context / transfers | `studio/app/src/context-model.ts`, `context-drafts.ts`, `branch-picker.ts`, `provision-progress.ts`; native `context.rs`, `provisioning.rs`, `enclave.rs`; host `scripts/repository/studio-*.py` |
 | Studio map / browser tests | `studio/app/src/map-connections.ts`; `tests/browser/studio.spec.js`, `studio.config.js`; `make studio-test-browser` (fixture-only) |
 | Studio demo / behavior tests | Lazy-loaded `studio/app/src/demo.ts`; `studio/app/tests/*.test.mjs`, shared `helpers.mjs`; see `docs/en/change-map.md` |
-| Host context labels / rows | Pure `scripts/repository/context_presenters.py`; Git/curses stay in `context_tui.py` |
+| Host context selection / labels | `scripts/repository/context_selection.py`, `context_presenters.py`; terminal interaction in `context_tui.py` |
 | Host helpers / validate / release | `scripts/repository/` |
 | Host workspace reconcile / audit | `scripts/repository/reconcile-host.py`, `workspace-audit.py`; core `docker/rootfs/usr/local/lib/orcan/reconcile.py` |
 | Developer UX environment | `scripts/dev/`, `make dev-*` |

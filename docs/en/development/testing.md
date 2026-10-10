@@ -71,6 +71,11 @@ test gets fresh module state. No browser emulator is needed for these contracts.
 `test_context_presenters.py` contains isolated formatting contracts; Git-backed
 context tests remain in `test_context_tui.py`. Labels and rows live in
 `scripts/repository/context_presenters.py`, without curses or command execution.
+Directory/selection/history models live in `context_selection.py`. Presenter
+tests import these small modules directly, not the terminal application.
+Native context endpoints share argument builders in `context.rs`. Branch discovery
+and the activity view own their DOM/state in `branch-picker.ts` and `activity-panel.ts`;
+the main UI coordinates them through callbacks.
 
 Studio has three real browser smoke flows, independent of the cockpit suite:
 connection gating, map selection/resize anchors, and drag/stage/discard. They use

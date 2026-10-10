@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Context endpoints share native argument builders. Terminal selection/history,
+  Studio branch discovery and activity rendering have separate modules. Unknown
+  branch lists are not presented as proof that a branch is new.
+
 - CI selects expensive Studio/image jobs from changed paths, retains full host
   checks, and runs everything on manual/weekly checks or unknown inputs. Browser
   downloads are cached separately; image vulnerability policy is unchanged.

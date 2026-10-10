@@ -387,9 +387,10 @@ async fn native_ssh_exec_inner(
         }
     }
     if exit_status.unwrap_or(1) != 0 {
+        let detail = if stderr.is_empty() { &stdout } else { &stderr };
         return Err(format!(
             "`{command}` failed on the Enclave: {}",
-            String::from_utf8_lossy(&stderr).trim()
+            String::from_utf8_lossy(detail).trim()
         ));
     }
     Ok(String::from_utf8_lossy(&stdout).into_owned())
