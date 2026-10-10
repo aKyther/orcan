@@ -2,30 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import ts from "typescript";
-
-class Element extends EventTarget {
-  children = [];
-  attributes = new Map();
-  disabled = false;
-  hidden = false;
-  textContent = "";
-  append(...children) { this.children.push(...children); for (const child of children) if (typeof child === "object" && child !== null) child.parent = this; }
-  replaceChildren(...children) { this.children = []; this.append(...children); }
-  remove() { if (this.parent) this.parent.children = this.parent.children.filter((child) => child !== this); }
-  setAttribute(name, value) { this.attributes.set(name, value); }
-  getAttribute(name) { return this.attributes.get(name) ?? null; }
-  removeAttribute(name) { this.attributes.delete(name); }
-  get childElementCount() { return this.children.length; }
-  closest() { return this.panel; }
-  querySelectorAll() { return this.controls ?? []; }
-  focus() { document.activeElement = this; }
-  select() { this.selected = true; }
-  showModal() { this.open = true; }
-  close(value = "") { this.returnValue = value; this.open = false; this.dispatchEvent(new Event("close")); }
-}
-
-const tick = () => new Promise((resolve) => setImmediate(resolve));
+import { Element, tick, setup, dataModule, load } from "./helpers.mjs";
 
 test("enclave references survive multiple memberships and reject replacement UUIDs", async () => {
   const { targetMatches, removeMember, attachAvailable } = await load("group-model");
@@ -228,22 +205,6 @@ test("Git access ignores stale inventory and copies only after explicit approval
   await tick();
   assert.deepEqual(commands, ["git_ssh_keys", "git_ssh_keys"]);
 });
-const dataModule = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
-
-function setup() {
-  const status = new Element();
-  globalThis.document = { body: new Element(), activeElement: new Element(), createElement: () => new Element(), querySelector: () => status };
-  globalThis.window = { setInterval, clearInterval };
-  return status;
-}
-
-async function load(name, imports = {}) {
-  const transpile = (source) => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-  const dom = dataModule(transpile(readFileSync(new URL("../src/dom.ts", import.meta.url), "utf8")));
-  let source = transpile(readFileSync(new URL(`../src/${name}.ts`, import.meta.url), "utf8"));
-  for (const [path, module] of Object.entries({ "./identity-instructions": dataModule(transpile(readFileSync(new URL("../src/identity-instructions.ts", import.meta.url), "utf8"))), "./dom": dom, "./id": dataModule(transpile(readFileSync(new URL("../src/id.ts", import.meta.url), "utf8"))), ...imports })) source = source.replace(JSON.stringify(path), JSON.stringify(module));
-  return import(dataModule(`${source}\n// isolated test ${Math.random()}`));
-}
 
 test("container cards distinguish fresh, pending, stale and unchecked states", async () => {
   const { containerStateLabel } = await load("server-model");
