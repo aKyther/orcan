@@ -810,6 +810,11 @@ FROM scratch
 
 ARG USERNAME=developer
 ARG ORCAN_VERSION=dev
+ARG INSTALL_CURSOR=1
+ARG INSTALL_CLAUDE=1
+ARG INSTALL_CODEX=1
+ARG INSTALL_GEMINI=1
+ARG INSTALL_COPILOT=1
 
 COPY --from=runtime / /
 
@@ -842,6 +847,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/java/bin:/opt/gradle/bin:/opt/maven/bin:/opt/kotlinc/bin:/opt/scala3/bin:/opt/sbt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 LABEL io.orcan.identity.version="1" \
+      io.orcan.agent.cursor="${INSTALL_CURSOR}" \
+      io.orcan.agent.claude="${INSTALL_CLAUDE}" \
+      io.orcan.agent.codex="${INSTALL_CODEX}" \
+      io.orcan.agent.gemini="${INSTALL_GEMINI}" \
+      io.orcan.agent.copilot="${INSTALL_COPILOT}" \
       org.opencontainers.image.title="Orcan" \
       org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \
       org.opencontainers.image.source="https://github.com/aKyther/orcan" \

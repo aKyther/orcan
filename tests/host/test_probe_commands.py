@@ -1,11 +1,20 @@
 """Docker/Git command boundaries without a daemon or subprocess execution."""
 
 import json
+from pathlib import Path
 
 from ._scripts_loader import load_script
 
 probe = load_script("studio-probe.py")
 worktree = load_script("studio-worktree.py")
+
+
+def test_distribution_stage_repeats_agent_arguments_and_labels():
+    dockerfile = (Path(__file__).resolve().parents[2] / "Dockerfile").read_text()
+    distribution = dockerfile.split("FROM scratch", 1)[1]
+    for name in ("cursor", "claude", "codex", "gemini", "copilot"):
+        assert f"ARG INSTALL_{name.upper()}=1" in distribution
+        assert f'io.orcan.agent.{name}="${{INSTALL_{name.upper()}}}"' in distribution
 
 
 def test_labelled_image_never_starts_a_manifest_container(monkeypatch):
