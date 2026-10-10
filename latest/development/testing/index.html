@@ -2283,17 +2283,27 @@ not a second execution of the suite.</p>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>make<span class="w"> </span>test-integration
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>make<span class="w"> </span>test-host<span class="w"> </span><span class="nv">TEST_ARGS</span><span class="o">=</span><span class="s2">"--durations=20"</span>
 </span></code></pre></div>
-<p><code>test-fast</code> excludes modules importing subprocess, PTY, socket or pexpect.
-This conservative selection includes imports inside fixtures/functions.
-Mark a test with <code>@pytest.mark.integration</code> when its external boundary lives
-in an imported helper. These modes are developer shortcuts, not replacements
+<p><code>test-fast</code> excludes explicitly marked integration tests, classes and modules.
+Use <code>@pytest.mark.integration</code> or <code>pytestmark = pytest.mark.integration</code> for
+Git/CLI, PTY or network operations, including those in imported fixtures/helpers.
+Unmarked tests cannot launch subprocesses: an autouse fixture rejects <code>Popen</code>
+and asks for a mocked boundary or an integration marker. Imports alone no longer
+determine selection. These modes are developer shortcuts, not replacements
 for full CI. <code>TEST_ARGS</code> also accepts pytest paths, node IDs and <code>-k</code> filters;
 it applies to <code>test-host</code>, <code>test-fast</code>, <code>test-integration</code> and <code>test-coverage</code>.</p>
 <p>For Studio-only changes, use <code>npm test</code> and <code>npm run build</code> in <code>studio/app</code>,
 plus <code>cargo test --manifest-path studio/Cargo.toml</code> for native Rust changes.
 Run the full checks before handoff.</p>
 <p>CI runs UI behavior tests and native application tests as well as the Rust core.
-Studio jobs cache npm/Cargo dependencies and compiled dependency directories, not
+Full host checks always run. Changed-path selection skips Studio builds for
+docs/test-only changes and skips image builds/Trivy for Studio/host-only changes.
+Image/runtime changes run both image and Studio checks. Unknown paths, unavailable
+Git history, manual dispatch and the weekly schedule run the full scope. Trivy's
+severity policy is unchanged. Docs deploy only after documentation changes.
+The classifier and its pure tests are <code>ci_scope.py</code> and <code>test_ci_scope.py</code>;
+update them when adding a new build input. Browser downloads use a pinned-version
+cache, separate from native build artifacts.</p>
+<p>Studio jobs cache npm/Cargo dependencies and compiled dependency directories, not
 installers, app executables or incremental output. Keys include the Rust compiler,
 platform and build mode. Linux CI omits development debug symbols and logs cache
 directory sizes; compare restore/save times with compile time before expanding
@@ -2303,14 +2313,24 @@ instead of installing the test requirements into two Python environments.</p>
 live in <code>test_git_worktrees_integration.py</code>. Use <code>git_repo_factory</code> for isolated
 empty repositories: its session template is copied, including <code>.git</code>, never
 shared or hardlinked. Keep scenario-specific remotes and commits in each test.
+Use <code>committed_git_repo_factory</code> when only an initial HEAD is needed. It copies
+a session template with one empty commit and local fixture identity; branches
+and configuration remain private. Real worktree lifecycle tests reuse this
+template rather than repeating init/config/commit for every checkout.
 UI tests share <code>tests/helpers.mjs</code>: TypeScript compilation is cached, but each
 test gets fresh module state. No browser emulator is needed for these contracts.</p>
 <p><code>test_context_presenters.py</code> contains isolated formatting contracts; Git-backed
 context tests remain in <code>test_context_tui.py</code>. Labels and rows live in
-<code>scripts/repository/context_presenters.py</code>, without curses or command execution.</p>
-<p>Studio has three real browser smoke flows, independent of the cockpit suite:
-connection gating, map selection/resize anchors, and drag/stage/discard. They use
-bundled demo data, block host snapshots, and contact no SSH or Docker target.
+<code>scripts/repository/context_presenters.py</code>, without curses or command execution.
+Directory/selection/history models live in <code>context_selection.py</code>. Presenter
+tests import these small modules directly, not the terminal application.
+Native context endpoints share argument builders in <code>context.rs</code>. Branch discovery
+and the activity view own their DOM/state in <code>branch-picker.ts</code> and <code>activity-panel.ts</code>;
+the main UI coordinates them through callbacks.</p>
+<p>Studio has four real browser smoke flows, independent of the cockpit suite:
+connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
+100-project/10-workspace map checking filters, both anchors and retained drafts.
+They use fixture data, block host snapshots, and contact no SSH or Docker target.
 CI runs them after the UI tests. Locally:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>npm<span class="w"> </span>install<span class="w"> </span>--no-save<span class="w"> </span>--no-package-lock<span class="w"> </span>--prefix<span class="w"> </span>.orcan-dev-ux/playwright-node<span class="w"> </span>@playwright/test@1.55.0
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>.orcan-dev-ux/playwright-node/node_modules/.bin/playwright<span class="w"> </span>install<span class="w"> </span>chromium<span class="w"> </span>--with-deps
@@ -2319,7 +2339,9 @@ CI runs them after the UI tests. Locally:</p>
 <p>The browser check starts and stops its own Vite server on port 1438; do not point
 it at the daily Orcan runtime. Headless browser dependencies are needed only for
 this check, not <code>npm test</code>. Map geometry owns coalesced frame scheduling in
-<code>map-connections.ts</code>; project selection updates classes/edges, not all cards.</p>
+<code>map-connections.ts</code>; project selection updates classes/edges, not all cards.
+Context rendering builds lookup maps once per render, without persisting a second
+source of truth alongside the probe report.</p>
 <p>Default CI coverage measures the test process, not helper subprocesses. All tests
 still run, including real CLI operations. For an accurate extended diagnostic:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>test-coverage-subprocess<span class="w"> </span><span class="nv">TEST_ARGS</span><span class="o">=</span><span class="s2">"tests/host/test_studio_probe.py"</span>
@@ -2334,8 +2356,22 @@ Normal <code>test-host</code>/<code>test-fast</code> do not enable instrumentati
 <p>Probe inspection deduplicates canonical paths only within one request. Unknown
 Git status is not clean and cannot authorize an update. Configuration writes use
 unique temporary files and atomic replacement. Host writers serialize commits
-with a bounded parent-directory lock, preserving configuration symlinks.
-<code>load_config</code> snapshots automatically check their revision before saving; Studio
+with a bounded parent-directory lock, preserving configuration symlinks.</p>
+<p>Studio captures local, WSL and system-SSH commands with a deadline and drains
+stdout/stderr concurrently. Read-only probes have a 90-second limit and a Cancel
+check button; other captured commands allow up to 15 minutes. Native SSH connection
+setup has a 45-second limit. Host clone operations allow 14 minutes, other Studio
+mutations five minutes. A timeout or cancellation does not roll back remote work:
+refresh the host before retrying. Streaming image transfers retain their separate
+progress/resume workflow. These limits are policy, not performance benchmarks.</p>
+<p>Worktree apply responses can have <code>ok: true</code> with <code>outcome: partial</code>: the request
+returned a usable result, but not every attachment succeeded. <code>completed</code> and
+<code>pending_workspaces</code> describe the steps. Studio's Retry attachments rechecks each
+remaining membership and never recreates the worktree. A failed queued creation
+becomes an attachment to the preserved checkout. No automatic rollback deletes
+project data. After restarting Studio, use the worktree inventory to attach or
+clean up preserved worktrees.</p>
+<p><code>load_config</code> snapshots automatically check their revision before saving; Studio
 supplies its explicit read snapshot. A stale save is rejected, not merged or
 silently overwritten. This is not a transaction with arbitrary
 external editors, which should not write the same configuration concurrently.</p>
@@ -2639,7 +2675,7 @@ browser UX run. Run those locally when Docker or cockpit UX behaviour changes.</
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 13:33:25 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 15:22:05 UTC">October 10, 2026</span>
   </span>
 
     
