@@ -106,6 +106,23 @@ test("unknown Git status is visible in project alerts", async () => {
   assert.deepEqual(projectAlerts({ context: { update_targets: [] } }, { path: "/app", dirty: null }), ["Git status unknown"]);
 });
 
+test("render measurements are opt-in, bounded and independent of host contents", async () => {
+  const { createRenderMetrics } = await load("render-metrics");
+  const disabled = createRenderMetrics(false, () => { throw new Error("disabled instrumentation read the clock"); });
+  assert.equal(disabled.run("map", () => 42), 42);
+  assert.deepEqual(disabled.snapshot(), { counters: {}, samples: [] });
+  let clock = 0;
+  const enabled = createRenderMetrics(true, () => clock++);
+  for (let index = 0; index < 100; index++) enabled.run("map", () => index);
+  assert.throws(() => enabled.run("failed", () => { throw new Error("render error"); }), /render error/);
+  const snapshot = enabled.snapshot();
+  assert.equal(snapshot.counters.map.count, 100);
+  assert.equal(snapshot.counters.map.totalMs, 100);
+  assert.equal(snapshot.samples.length, 64);
+  snapshot.counters.map.count = 0;
+  assert.equal(enabled.snapshot().counters.map.count, 100);
+});
+
 test("context index handles 100 projects without per-project source scans and stays fresh", async () => {
   const { indexContext } = await load("context-model");
   const projects = Array.from({ length: 100 }, (_, index) => ({ path: `/repo-${index}`, repository_id: `repo-${index}`, dirty: false }));

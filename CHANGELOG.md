@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Optional Studio render measurements track map rebuilds, geometry and selection
+  without saving host contents. Large-map browser checks attach timing samples
+  and assert that selecting a project does not rebuild the full map.
+
 - The complete container creator owns its form, readiness and approval state in
   one UI module. Native installation endpoints and curses-free context mutations
   are separated from the application entry points without changing commands.

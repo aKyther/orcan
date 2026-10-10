@@ -3,6 +3,7 @@ import { cleanupPanel } from "./cleanup";
 import { createCheckInvoker } from "./check-controls";
 import { retryAttachments, worktreeSummary, type WorktreeResult } from "./worktree-result";
 import { createMapConnections } from "./map-connections";
+import { createRenderMetrics } from "./render-metrics";
 import { buildProfile, CHOOSE_SSH, SYSTEM_SSH, INLINE_SSH } from "./profile-model";
 import { newId } from "./id";
 import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./dom";
@@ -26,6 +27,9 @@ import type { Connection, ConnectionProfile, Credential, MembershipArgs, ProbeRe
 import "./style.css";
 
 const result = document.querySelector<HTMLOutputElement>("#result")!;
+const measureRendering = new URLSearchParams(window.location.search).has("measure");
+const renderMetrics = createRenderMetrics(measureRendering);
+if (measureRendering) (window as Window & { __orcanRenderMetrics?: typeof renderMetrics }).__orcanRenderMetrics = renderMetrics;
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const profileList = $("#profile-list");
 const enclaveList = $("#enclave-list");
@@ -463,7 +467,7 @@ function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: stri
 }
 
 const mapConnections = createMapConnections(contextCanvas, sandboxTray, workspaceCards,
-  connectionLines, traceLines, () => ({ path: tracedPath, workspace: focusedWorkspace }));
+  connectionLines, traceLines, () => ({ path: tracedPath, workspace: focusedWorkspace }), renderMetrics.run);
 
 function dropZone(zone: HTMLElement, onDrop: (project: ProjectRef) => void): void {
   zone.addEventListener("dragover", (event) => {
@@ -495,6 +499,10 @@ function addToMenu(project: ProjectRef, report: ProbeReport): HTMLElement {
 }
 
 function renderEnclaveMap(report: ProbeReport): void {
+  renderMetrics.run("context-map", () => renderEnclaveMapContents(report));
+}
+
+function renderEnclaveMapContents(report: ProbeReport): void {
   const contextIndex = indexContext(report);
   const draftsByWorkspace = groupWorkspaceDrafts();
   enclaveMap.hidden = false;

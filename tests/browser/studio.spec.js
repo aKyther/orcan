@@ -12,7 +12,7 @@ const test = base.extend({
 test.beforeEach(async ({ page }) => {
   // Always use bundled fixtures, never a developer's host snapshot.
   await page.route('**/preview-probe.json', route => route.fulfill({ status: 404, body: '' }));
-  await page.goto('/?demo=1');
+  await page.goto('/?demo=1&measure=1');
   await expect(page.locator('[data-profile-id="demo"]')).toHaveCount(1);
 });
 
@@ -53,9 +53,11 @@ test('selection preserves cards and connection anchors follow desktop and narrow
   const chip = page.locator('#sandbox-tray .project-chip').first();
   const path = await chip.getAttribute('data-project-path');
   await page.evaluate(() => { window.originalWorkspaceCard = document.querySelector('#workspace-cards .workspace-card'); });
+  const renderCount = await page.evaluate(() => window.__orcanRenderMetrics.snapshot().counters['context-map'].count);
   await chip.click();
   await expect(chip).toHaveClass(/traced/);
   expect(await page.evaluate(() => window.originalWorkspaceCard === document.querySelector('#workspace-cards .workspace-card'))).toBe(true);
+  expect(await page.evaluate(() => window.__orcanRenderMetrics.snapshot().counters['context-map'].count)).toBe(renderCount);
   for (const width of [1280, 640]) {
     await page.setViewportSize({ width, height: 900 });
     await expect.poll(() => page.evaluate(path => {
@@ -91,7 +93,7 @@ test('drag stages a draft and discard leaves the workspace unchanged', async ({ 
   expect(await page.locator('#workspace-cards .project-chip').evaluateAll((chips, path) => chips.filter(chip => chip.dataset.projectPath === path && chip.dataset.connectionState === 'planned').length, path)).toBe(0);
 });
 
-test('100 projects keep filters, both anchors and workspace drafts consistent', async ({ page }) => {
+test('100 projects keep filters, both anchors and workspace drafts consistent', async ({ page }, testInfo) => {
   const report = largeReport();
   await page.unroute('**/preview-probe.json');
   await page.route('**/preview-probe.json', route => route.fulfill({ json: report }));
@@ -148,4 +150,8 @@ test('100 projects keep filters, both anchors and workspace drafts consistent', 
   await page.locator('.studio-dialog').getByRole('button', { name: 'Discard', exact: true }).click();
   await expect(card('work-00').locator('.project-chip')).toHaveCount(report.context.workspaces[0].projects.length);
   await expect(page.locator('#change-set')).toBeHidden();
+  const measurements = await page.evaluate(() => window.__orcanRenderMetrics.snapshot());
+  expect(measurements.counters['context-map'].count).toBeGreaterThan(0);
+  expect(measurements.counters['map-geometry'].count).toBeGreaterThan(0);
+  await testInfo.attach('100-project-render-metrics', { body: JSON.stringify(measurements, null, 2), contentType: 'application/json' });
 });

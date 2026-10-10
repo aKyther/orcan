@@ -102,6 +102,11 @@ this check, not `npm test`. Map geometry owns coalesced frame scheduling in
 `map-connections.ts`; project selection updates classes/edges, not all cards.
 Context rendering builds lookup maps once per render, without persisting a second
 source of truth alongside the probe report.
+Add `&measure=1` to the demo URL for in-memory render counters and timings, available
+as `window.__orcanRenderMetrics.snapshot()` in browser developer tools. Normal
+launches do not read the clock or collect samples. The large-map browser test
+attaches JSON measurements; project selection also asserts zero full map rebuilds.
+There is no wall-clock CI threshold: machine speed must not decide correctness.
 
 Default CI coverage measures the test process, not helper subprocesses. All tests
 still run, including real CLI operations. For an accurate extended diagnostic:

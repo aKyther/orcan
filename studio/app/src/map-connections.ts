@@ -1,11 +1,16 @@
 /** Connection geometry owns its frame scheduling; selection never rebuilds cards. */
 export function createMapConnections(canvas: HTMLElement, sources: HTMLElement, targets: HTMLElement,
   background: SVGSVGElement, foreground: SVGSVGElement,
-  selection: () => { path?: string; workspace?: string }) {
+  selection: () => { path?: string; workspace?: string },
+  measure: <T>(name: string, operation: () => T) => T = (_name, operation) => operation()) {
   let frame: number | undefined;
   let edges: Array<{ line: SVGPathElement; path: string; workspace?: string; state: string }> = [];
 
   function highlight() {
+    measure("map-selection", highlightContents);
+  }
+
+  function highlightContents() {
     const selected = selection();
     for (const chip of canvas.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")) {
       chip.classList.toggle("traced", selected.path === chip.dataset.projectPath);
@@ -20,6 +25,10 @@ export function createMapConnections(canvas: HTMLElement, sources: HTMLElement, 
   }
 
   function draw() {
+    measure("map-geometry", drawContents);
+  }
+
+  function drawContents() {
     const bounds = canvas.getBoundingClientRect();
     background.replaceChildren();
     foreground.replaceChildren();
