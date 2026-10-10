@@ -449,8 +449,9 @@ collapsed and expand to show capacity, containers, paths and
 controls. New container opens a separate form with Cancel. Identities shows saved
 templates first; New identity and Edit open a form that can be cancelled
 without saving. Template instructions are available under View instructions. Enclaves shows saved
-cards first. New enclave and Open enter a separate canvas editor. Back to enclaves
-returns to the library and asks before discarding unsaved changes. Scrolling over
+cards first. New enclave and Open enter a separate canvas editor. A secondary Cancel button at the right of each form heading
+returns to its library in Credentials, Profiles, Identities, Servers and Enclaves.
+In Enclaves, Cancel returns to the library and asks before discarding unsaved changes. Scrolling over
 the canvas scrolls the application; use the canvas + and − buttons to zoom. The library
 shows available saved servers. Opening the editor or selecting a server loads its
 existing containers automatically; Refresh containers retries a failed check.

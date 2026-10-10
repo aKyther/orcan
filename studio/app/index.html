@@ -105,8 +105,7 @@
                 <div class="pane-header"><div><p class="muted">Credentials are permanent sign-in records. Create a new one when its user, password, or key changes; secrets stay in the operating-system vault.</p></div><div class="actions compact"><button id="new-password-credential" type="button" class="secondary">New password</button><button id="new-key-credential" type="button">New key</button></div></div>
                 <div id="credential-list" class="item-list"></div>
               </section><section data-pane="credential-form" class="pane" hidden>
-                <button type="button" class="back-link" id="credential-back">← Credentials &amp; keys</button>
-                <h2 id="credential-form-title">New credential</h2>
+                <div class="panel-heading"><h2 id="credential-form-title">New credential</h2><button type="button" class="secondary" id="credential-back">Cancel</button></div>
                 <div class="field"><label for="credential-name">Credential name</label><input id="credential-name" autocomplete="off" placeholder="Production deploy key" /></div>
                 <div class="field"><label for="credential-user">SSH user</label><input id="credential-user" autocomplete="username" placeholder="remote-user" /><p class="hint">This user is part of the credential and cannot be changed later.</p></div>
                 <div id="key-path-field" class="field"><label for="key-path">Private-key path on this computer</label><input id="key-path" autocomplete="off" placeholder="~/.ssh/id_ed25519" /></div>
@@ -121,8 +120,7 @@
                 <div class="pane-header"><div><p class="muted">A profile is a saved way to reach a computer. It stores only connection details; it does not check, install, or configure Orcan.</p></div><button id="new-profile" type="button">New profile</button></div>
                 <div id="profile-list" class="item-list"></div>
               </section><section data-pane="profile-form" class="pane" hidden>
-                <button type="button" class="back-link" data-pane-target="profiles">← Profiles</button>
-                <h2 id="profile-form-title">New profile</h2>
+                <div class="panel-heading"><h2 id="profile-form-title">New profile</h2><button type="button" class="secondary" data-pane-target="profiles">Cancel</button></div>
                 <div class="field"><label for="profile-name">Name</label><input id="profile-name" autocomplete="off" placeholder="Build server" /></div>
                 <fieldset class="field"><legend>Which computer should Studio reach?</legend>
                   <div class="choice-grid">
@@ -154,7 +152,7 @@
           </section>
           <div id="group-editor" hidden>
             <section class="panel">
-              <div class="panel-heading"><h2 id="group-editor-title">New enclave</h2><button id="group-back" class="secondary" type="button">Back to enclaves</button></div>
+              <div class="panel-heading"><h2 id="group-editor-title">New enclave</h2><button id="group-back" class="secondary" type="button">Cancel</button></div>
               <div class="group-toolbar"><label>Name<input id="group-name" maxlength="120" placeholder="PR review team" /></label><button id="group-save" type="button">Save enclave</button><button id="group-reload" class="secondary" type="button">Reload saved</button></div><p id="group-state" class="hint"></p>
               <div class="group-toolbar"><label>Server<select id="group-profile"></select></label><button id="group-inventory" class="secondary" type="button">Refresh containers</button><label>Container<select id="group-instance" disabled><option value="">Open an enclave to load available containers</option></select></label><button id="group-add" type="button">Add container</button></div>
               <p id="group-inventory-state" class="hint" aria-live="polite"></p>

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Credential, profile, identity, container and enclave editors use the same
+  secondary Cancel button beside their heading to return to the library.
+
 - Offline provisioning explains that Studio copies an existing CLI and prepared
   Docker image from a source such as WSL; Studio does not bundle either artifact.
 
