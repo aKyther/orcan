@@ -35,6 +35,7 @@ from config_io import (  # noqa: E402
     discover_config,
     dump_config,
     load_config,
+    load_config_or_create,
 )
 from git_worktrees import (  # noqa: E402
     find_worktree_by_branch,
@@ -512,10 +513,7 @@ def apply_selection(
         if not branch_s:
             die("branch is empty")
 
-        if config_path.is_file():
-            cfg = load_config(config_path)
-        else:
-            cfg = {"workspaces": []}
+        cfg = load_config_or_create(config_path)
         cfg.setdefault("workspaces", [])
         if not isinstance(cfg["workspaces"], list):
             die("workspaces must be an array")
@@ -576,10 +574,7 @@ def apply_selection(
         return cfg
 
     # Mount as-is (append or create workspace).
-    if config_path.is_file():
-        cfg = load_config(config_path)
-    else:
-        cfg = {"workspaces": []}
+    cfg = load_config_or_create(config_path)
     cfg.setdefault("workspaces", [])
     if not isinstance(cfg["workspaces"], list):
         die("workspaces must be an array")
@@ -1664,7 +1659,7 @@ def _run_manage(args: argparse.Namespace) -> int:
         die(f"curses not available: {exc}")
 
     config_path = resolve_config(args.config)
-    cfg = load_config(config_path) if config_path.is_file() else {"workspaces": []}
+    cfg = load_config_or_create(config_path)
     workspaces = cfg.get("workspaces")
     if not isinstance(workspaces, list):
         workspaces = []

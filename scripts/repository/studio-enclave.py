@@ -15,6 +15,7 @@ sys.path.insert(
 )
 from orcan.identity import validate_identity
 from path_guards import PathGuardError, checked_project_dir
+from config_io import config_write_lock, dump_config
 
 
 def main() -> None:
@@ -108,33 +109,33 @@ def main() -> None:
     if args.mode == "rollback":
         if not args.yes:
             raise SystemExit("rollback requires --yes")
-        existing = (
-            json.loads(config.read_text(encoding="utf-8")) if config.is_file() else None
-        )
-        if isinstance(existing, dict):
-            existing = {
-                key: value
-                for key, value in existing.items()
-                if key not in {"host_id", "container_id"}
-            }
-        if existing != empty_config:
-            raise SystemExit(
-                "refusing to remove a configuration that is not the empty Studio configuration"
+        with config_write_lock(config.resolve()):
+            existing = (
+                json.loads(config.read_text(encoding="utf-8"))
+                if config.is_file()
+                else None
             )
-        frozen = config.parent / "mounts" / "frozen-identity.json"
-        if frozen.is_file() and json.loads(
-            frozen.read_text(encoding="utf-8")
-        ) == empty_config.get("identity"):
-            frozen.unlink()
-        config.unlink()
+            if isinstance(existing, dict):
+                existing = {
+                    key: value
+                    for key, value in existing.items()
+                    if key not in {"host_id", "container_id"}
+                }
+            if existing != empty_config:
+                raise SystemExit(
+                    "refusing to remove a configuration that is not the empty Studio configuration"
+                )
+            frozen = config.parent / "mounts" / "frozen-identity.json"
+            if frozen.is_file() and json.loads(
+                frozen.read_text(encoding="utf-8")
+            ) == empty_config.get("identity"):
+                frozen.unlink()
+            config.unlink()
         print(json.dumps({"ok": True, "result": {"rolled_back": str(config)}}))
         return
     if not args.yes or not plan["ready"]:
         raise SystemExit("apply requires --yes and an absent configuration")
-    config.parent.mkdir(parents=True, exist_ok=True)
-    # Exclusive creation closes the race between two Studio apply requests.
-    with config.open("x", encoding="utf-8") as stream:
-        stream.write(json.dumps(empty_config, indent=2) + "\n")
+    dump_config(config, empty_config, expected=b"")
     print(json.dumps({"ok": True, "result": {"config": str(config)}}))
 
 

@@ -17,7 +17,7 @@ from config_io import (  # noqa: E402
     discover_config,
     dump_config,
     find_workspace,
-    load_config,
+    load_config_or_create,
 )
 from path_guards import PathGuardError, checked_project_dir  # noqa: E402
 
@@ -80,10 +80,7 @@ def main() -> None:
     else:
         config_path = discover_config(ROOT) or default_write_path(ROOT)
 
-    if config_path.is_file():
-        cfg = load_config(config_path)
-    else:
-        cfg = {"workspaces": []}
+    cfg = load_config_or_create(config_path)
     cfg.setdefault("workspaces", [])
     if not isinstance(cfg["workspaces"], list):
         die("workspaces must be an array")

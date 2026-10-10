@@ -15,6 +15,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from config_io import dump_config, load_config
+
 
 def fingerprint() -> str:
     for path in (Path("/etc/machine-id"), Path("/var/lib/dbus/machine-id")):
@@ -113,7 +115,9 @@ def register(host_root: Path, config: Path, new_target: bool = False) -> dict:
 
 
 def _register(host_root: Path, config: Path, new_target: bool = False) -> dict:
-    cfg = read(config)
+    if config.is_symlink() or config.parent.is_symlink():
+        raise ValueError("Target storage must not use symlinks")
+    cfg = load_config(config)
     host_root.mkdir(parents=True, exist_ok=True)
     path = host_root / "studio-host.json"
     if path.exists():
@@ -144,7 +148,7 @@ def _register(host_root: Path, config: Path, new_target: bool = False) -> dict:
         else str(uuid4())
     )
     cfg["host_id"] = host["id"]
-    write(config, cfg)
+    dump_config(config, cfg)
     return snapshot(host_root, config)
 
 

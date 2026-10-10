@@ -635,7 +635,7 @@ def edit_existing(cfg: dict[str, Any]) -> dict[str, Any]:
         new_workspaces.append(created)
     if not new_workspaces:
         die("need at least one workspace — nothing saved")
-    out = dict(cfg)
+    out = cfg.copy()
     out["workspaces"] = new_workspaces
     return out
 
@@ -758,7 +758,7 @@ def top_menu(cfg: dict[str, Any], config_path: Path) -> dict[str, Any]:
                 info("Cancelled.")
                 return cfg
         workspaces.append(created)
-        out = dict(cfg)
+        out = cfg.copy()
         out["workspaces"] = workspaces
         return out
     if action == "edit":
@@ -863,7 +863,7 @@ def main() -> None:
         info("Cancelled — nothing written.")
         return
 
-    dump_config(out_path, cfg)
+    dump_config(out_path, cfg, expected=b"")
     info()
     success(f"saved {out_path}")
     print_next_steps()

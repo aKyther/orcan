@@ -17,6 +17,30 @@ import config_io  # noqa: E402
 
 
 class ConfigIoTests(unittest.TestCase):
+    def test_retargeted_alias_cannot_overwrite_a_different_configuration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first, second, alias = (
+                Path(tmp) / name for name in ("one.json", "two.json", "alias.json")
+            )
+            first.write_text("{}\n")
+            second.write_text('{"keep": true}\n')
+            alias.symlink_to(first)
+            snapshot = config_io.load_config(alias)
+            alias.unlink()
+            alias.symlink_to(second)
+            with self.assertRaisesRegex(ValueError, "configuration path changed"):
+                config_io.dump_config(alias, snapshot)
+            self.assertEqual(config_io.load_config(second), {"keep": True})
+
+    def test_absent_snapshot_and_copies_keep_revision_guards(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            initial = config_io.load_config_or_create(path)
+            stale = initial.copy()
+            config_io.dump_config(path, initial)
+            with self.assertRaisesRegex(ValueError, "configuration changed"):
+                config_io.dump_config(path, stale)
+
     def test_loaded_snapshots_reject_lost_updates_and_can_save_again(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "config.json"

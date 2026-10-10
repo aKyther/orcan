@@ -24,6 +24,9 @@ class ConfigSnapshot(dict):
         self.path = path.resolve()
         self.revision = revision
 
+    def copy(self):
+        return ConfigSnapshot(self, self.path, self.revision)
+
 
 @contextmanager
 def config_write_lock(path: Path):
@@ -94,6 +97,15 @@ def load_config(path: Path) -> dict[str, Any]:
     return ConfigSnapshot(data, path, revision)
 
 
+def load_config_or_create(path: Path) -> dict[str, Any]:
+    """Snapshot an existing configuration or its absence for safe first save."""
+    return (
+        load_config(path)
+        if path.is_file()
+        else ConfigSnapshot({"workspaces": []}, path, b"")
+    )
+
+
 def dump_config(
     path: Path, data: dict[str, Any], *, expected: bytes | None = None
 ) -> None:
@@ -103,7 +115,9 @@ def dump_config(
     # updates reaching the user's actual configuration.
     path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
-    if expected is None and isinstance(data, ConfigSnapshot) and data.path == path:
+    if expected is None and isinstance(data, ConfigSnapshot):
+        if data.path != path:
+            raise ValueError("configuration path changed; reload before applying")
         expected = data.revision
     with config_write_lock(path):
         _dump_locked(path, data, expected)

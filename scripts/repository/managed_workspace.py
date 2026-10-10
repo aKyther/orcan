@@ -23,6 +23,7 @@ from config_io import (  # noqa: E402
     dump_config,
     find_workspace,
     load_config,
+    load_config_or_create,
 )
 from git_worktrees import (  # noqa: E402
     create_worktree,
@@ -90,10 +91,7 @@ def create_managed_workspace(
     if not branch:
         die("branch is empty")
 
-    if config_path.is_file():
-        cfg = load_config(config_path)
-    else:
-        cfg = {"workspaces": []}
+    cfg = load_config_or_create(config_path)
     cfg.setdefault("workspaces", [])
     if not isinstance(cfg["workspaces"], list):
         die("workspaces must be an array")
