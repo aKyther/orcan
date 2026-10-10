@@ -2204,6 +2204,15 @@ image with identity support. Older images are rejected for custom identities;
 Default remains available. Updating Studio alone does not update a running
 container. Choose the new image when creating a new container. Another identity
 requires explicit replacement, preserving projects and shared data.</p>
+<p>Studio includes three optional identity templates: Tester, Senior Engineer and
+Reviewer. Default — Orcan base rules remains the initial container choice. Each
+template has an editable preferred-tools field, such as FastAPI, Pydantic, pytest
+and Ruff. This is a starting toolkit for the role, subject to repository rules
+and the project’s existing stack; it does not install packages. Preferences are
+saved as part of the versioned Markdown instructions and frozen at container
+creation. Older identities without a tools section remain editable. Editing a
+built-in template creates a new version; its original version stays available
+to containers already using it. Custom templates are preserved.</p>
 <h3 id="manual-enclaves">Manual enclaves<a class="headerlink" href="#manual-enclaves" title="Permanent link">&para;</a></h3>
 <p>Open <strong>Enclaves</strong>, name a group and choose a server profile. <strong>Check container
 list</strong> discovers its configured containers. <strong>Register / add container</strong> adds
@@ -2638,7 +2647,7 @@ Encrypted keys need unlocking on the destination. Containers started with
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 07:19:51 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 07:23:24 UTC">October 10, 2026</span>
   </span>
 
     
