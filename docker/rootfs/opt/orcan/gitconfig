@@ -1,5 +1,5 @@
 # Container-local git defaults (missing-only → ~/.gitconfig).
-# user.name / user.email come from the host via orcan sync (GIT_AUTHOR_* env +
+# user.name / user.email come from the host via orcan sync (ORCAN_GIT_USER_* env +
 # entrypoint). Host ~/.gitconfig is intentionally not mounted.
 
 [init]

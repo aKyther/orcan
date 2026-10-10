@@ -114,7 +114,18 @@ tmux is started by the launcher (`cursor-ttyd` → `agent-launcher`), not by a b
 
 An older layout could create a root-owned directory. Fix ownership or replace with a normal file, then update Orcan and recreate the container.
 
-Orcan does **not** mount host `~/.gitconfig`. Instead `orcan sync` copies `user.name` / `user.email` into `.env` (`GIT_AUTHOR_*` / `GIT_COMMITTER_*`) so commits inside the container match the host author.
+Orcan does **not** mount host `~/.gitconfig`. Instead `orcan sync` copies `user.name` / `user.email` into generated host settings. Compose forwards the identity as `ORCAN_GIT_USER_NAME` / `ORCAN_GIT_USER_EMAIL`; startup writes global Git defaults without forcing commit environment variables.
+
+For separate GitHub and GitLab identities, run these commands in each repository:
+
+```bash
+git config --local user.name "Your Name"
+git config --local user.email "you@example.com"
+git var GIT_AUTHOR_IDENT
+git var GIT_COMMITTER_IDENT
+```
+
+Conditional includes in the container Git configuration also work. Host `~/.gitconfig` includes are not copied automatically. This change requires an updated runtime image and a recreated container; restarting an old image is not enough. Existing terminal sessions keep their old environment.
 
 For `git push` / `git pull` over SSH:
 

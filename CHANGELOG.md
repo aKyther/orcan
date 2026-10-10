@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Host Git identity now provides container Git config defaults instead of forcing
+  author/committer environment variables. Per-repository identities and conditional
+  includes can override them. Requires an updated image and recreated container.
+
 - The runtime image includes `glab` for amd64 and arm64. `--gitlab`
   and `--gitlab-hostname HOST` supply GitLab authentication from a token
   environment variable or the saved host login. Resume resolves it again;

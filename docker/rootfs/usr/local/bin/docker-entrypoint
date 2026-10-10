@@ -273,14 +273,14 @@ ensure_shell_home() {
         lazygit \
         06b3fc5333e9a77d6f811b5add37c0888be8cbe50a0648060b5e952567416c07
 
-    # Apply host identity from Compose env (orcan sync). GIT_AUTHOR_* alone is
-    # enough for commits; user.* keeps tools that only read gitconfig consistent.
+    # Apply host identity as a default; repository config and conditional includes
+    # can override it. Do not export Git author/committer environment overrides.
     if command -v git >/dev/null 2>&1; then
-        if [[ -n "${GIT_AUTHOR_NAME:-}" ]]; then
-            git config --global user.name "${GIT_AUTHOR_NAME}" || true
+        if [[ -n "${ORCAN_GIT_USER_NAME:-}" ]]; then
+            git config --global user.name "${ORCAN_GIT_USER_NAME}" || true
         fi
-        if [[ -n "${GIT_AUTHOR_EMAIL:-}" ]]; then
-            git config --global user.email "${GIT_AUTHOR_EMAIL}" || true
+        if [[ -n "${ORCAN_GIT_USER_EMAIL:-}" ]]; then
+            git config --global user.email "${ORCAN_GIT_USER_EMAIL}" || true
         fi
         if [[ -f "${dotfiles}/gitconfig.local" ]]; then
             git config --global include.path "${dotfiles}/gitconfig.local" || true

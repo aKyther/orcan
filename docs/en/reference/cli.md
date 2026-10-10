@@ -183,7 +183,7 @@ access continues to use `--ssh`. Update/rebuild the runtime image to obtain `gla
 
 Other flags combine with a chosen browser mode, e.g. `orcan up --web-terminal --ssh` or `orcan up --web-terminal-auth user:pass --network my-net`.
 
-Git **author** identity is always synced by `orcan sync` (`GIT_AUTHOR_*` from host `user.name` / `user.email`). SSH keys are only attached with `--ssh`. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: [Security](security.md), [Workflows](../guides/workflows.md).
+Git identity is synced by `orcan sync` from host `user.name` / `user.email` and applied as container Git defaults on startup. Repository settings can override it. SSH keys are only attached with `--ssh`. Optional flags print a security warning — agents inside can use the mounted socket or keys. Capability ladder and mount tradeoffs: [Security](security.md), [Workflows](../guides/workflows.md).
 
 ## Maintainer Make
 

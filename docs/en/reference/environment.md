@@ -15,8 +15,8 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 | `ORCAN_COMPOSE_PROJECTS` | Generated Compose overlay (project mounts) |
 | `ORCAN_DATA` | Host data root (default `$HOME/.config/orcan`) — includes `dotfiles/` for personal shell/tmux/vim overlays |
 | `ORCAN_PROJECTS_ROOT` | Stable host root mounted for managed checkouts (default `$ORCAN_DATA/sandbox`) |
-| `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Host `git config --global` identity for in-container commits |
-| `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Same as author (kept in sync) |
+| `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | Host `git config --global` identity, mapped to container `ORCAN_GIT_USER_*` defaults |
+| `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | Legacy generated values; not forwarded to the container |
 
 ## Seeded once (kept on later `orcan sync`)
 
@@ -89,7 +89,7 @@ before `orcan sync`; it must be an absolute host path. Important edge cases:
 | `ORCAN_VERSION` | From `/etc/orcan/version` |
 | `HISTFILE` | Default `~/.local/share/orcan/history/.zsh_history`; in tmux, per workspace: `…/history/workspaces/<name>/.zsh_history` (bind: `$ORCAN_DATA/history`) |
 | `npm_config_cache` / `PNPM_HOME` / `CARGO_HOME` / `GOPATH` | Under `~/.cache/…` (bind: `$ORCAN_DATA/cache`) |
-| `GIT_AUTHOR_*` / `GIT_COMMITTER_*` | Same commit identity as the host user |
+| `ORCAN_GIT_USER_NAME` / `ORCAN_GIT_USER_EMAIL` | Host identity applied to global Git config on startup; repository config can override it |
 | `SSH_AUTH_SOCK` | Host agent (only with `orcan up --ssh`) |
 | `ORCAN_SUPERVISOR_MODE` | Set by Compose overlays: `keepalive` (default `orcan up`) or `ttyd` (`--web-terminal`) — see [Docker](docker.md#process-layout-supervisord) |
 

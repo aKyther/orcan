@@ -47,7 +47,7 @@ After reconnect, the launcher retries the last workspace while its list is becom
 
 ## Can I commit and push from inside the container?
 
-**Commit author:** yes after `orcan sync` — host `user.name` / `user.email` become `GIT_AUTHOR_*` in the container.
+**Commit author:** host `user.name` / `user.email` provide container Git defaults after sync and container creation. Repository settings can override them.
 
 **Push/pull over SSH:** start with `orcan up --ssh` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --docker-socket --ssh`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
 

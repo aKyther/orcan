@@ -46,7 +46,7 @@ For a browser terminal (remote / phone): `orcan up --web-terminal`, then open `o
 
 ## Git inside the container
 
-`orcan sync` copies your host `git config --global` identity (`user.name` / `user.email`) so commits inside match the host author.
+`orcan sync` copies your host `git config --global` identity (`user.name` / `user.email`) as container Git defaults. Repository settings can override them.
 
 Plain `orcan up` does **not** mount SSH keys. To push/pull over SSH from inside:
 

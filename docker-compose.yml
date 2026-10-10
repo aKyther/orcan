@@ -73,11 +73,9 @@ services:
       # Keep in-container worktree helpers in the selected instance namespace.
       ORCAN_NAMED_INSTANCE: ${ORCAN_NAMED_INSTANCE:-}
       TZ: ${TZ:-UTC}
-      # Host git identity (orcan sync → .env). Same author/committer as host commits.
-      GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-}
-      GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-}
-      GIT_COMMITTER_NAME: ${GIT_COMMITTER_NAME:-${GIT_AUTHOR_NAME:-}}
-      GIT_COMMITTER_EMAIL: ${GIT_COMMITTER_EMAIL:-${GIT_AUTHOR_EMAIL:-}}
+      # Host identity is a Git config default, not a commit environment override.
+      ORCAN_GIT_USER_NAME: ${GIT_AUTHOR_NAME:-}
+      ORCAN_GIT_USER_EMAIL: ${GIT_AUTHOR_EMAIL:-}
     volumes:
       - ${ORCAN_CONFIG_HOST:-./mounts/runtime-config.json}:/etc/orcan/config.json:ro
       - /etc/localtime:/etc/localtime:ro
