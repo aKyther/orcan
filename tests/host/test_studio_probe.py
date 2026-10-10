@@ -10,11 +10,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_probe_emits_only_the_versioned_json_contract(tmp_path: Path) -> None:
+def test_probe_emits_only_the_versioned_json_contract(
+    tmp_path: Path, git_repo_factory
+) -> None:
     home = tmp_path / "home"
-    project = tmp_path / "project"
-    project.mkdir()
-    subprocess.run(["git", "init", "-q", str(project)], check=True)
+    project = git_repo_factory(tmp_path / "project")
     subprocess.run(
         [
             "git",
@@ -132,10 +132,9 @@ def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None
 
 def test_probe_uses_the_last_synced_workspace_index_when_config_is_missing(
     tmp_path: Path,
+    git_repo_factory,
 ) -> None:
-    project = tmp_path / "project"
-    project.mkdir()
-    subprocess.run(["git", "init", "-q", str(project)], check=True)
+    project = git_repo_factory(tmp_path / "project")
     index = tmp_path / "workspaces" / "index.json"
     index.parent.mkdir()
     index.write_text(

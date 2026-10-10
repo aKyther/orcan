@@ -1,8 +1,27 @@
 """Conservative developer selection; the default/CI still runs every test."""
 
 import ast
+import shutil
+import subprocess
 
 import pytest
+
+
+@pytest.fixture(scope="session")
+def git_template(tmp_path_factory):
+    """Initialize once; consumers always receive a private copy, never a link."""
+    path = tmp_path_factory.mktemp("git-template") / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(path)], check=True)
+    return path
+
+
+@pytest.fixture
+def git_repo_factory(git_template):
+    def create(path):
+        shutil.copytree(git_template, path)
+        return path
+
+    return create
 
 
 def external_test_module(source):

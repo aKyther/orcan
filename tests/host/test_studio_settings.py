@@ -22,12 +22,10 @@ def run_settings(home: Path, *arguments: str) -> dict[str, object]:
     return json.loads(result.stdout)
 
 
-def make_home(tmp_path: Path) -> tuple[Path, Path]:
+def make_home(tmp_path: Path, git_repo_factory) -> tuple[Path, Path]:
     home = tmp_path / "home"
     home.mkdir()
-    project = tmp_path / "app"
-    project.mkdir()
-    subprocess.run(["git", "init", "-q", str(project)], check=True)
+    project = git_repo_factory(tmp_path / "app")
     (home / "orcan.config.json").write_text(
         json.dumps(
             {
@@ -41,8 +39,10 @@ def make_home(tmp_path: Path) -> tuple[Path, Path]:
     return home, project
 
 
-def test_attach_to_a_new_workspace_is_planned_as_creating_it(tmp_path: Path) -> None:
-    home, project = make_home(tmp_path)
+def test_attach_to_a_new_workspace_is_planned_as_creating_it(
+    tmp_path: Path, git_repo_factory
+) -> None:
+    home, project = make_home(tmp_path, git_repo_factory)
 
     plan = run_settings(
         home, "project-add-plan", "--workspace", "review", "--project", str(project)
@@ -52,8 +52,10 @@ def test_attach_to_a_new_workspace_is_planned_as_creating_it(tmp_path: Path) -> 
     assert plan["changes"][0] == "create workspace review"
 
 
-def test_attach_blocks_an_already_attached_project(tmp_path: Path) -> None:
-    home, project = make_home(tmp_path)
+def test_attach_blocks_an_already_attached_project(
+    tmp_path: Path, git_repo_factory
+) -> None:
+    home, project = make_home(tmp_path, git_repo_factory)
 
     plan = run_settings(
         home, "project-add-plan", "--workspace", "dev", "--project", str(project)
@@ -65,8 +67,9 @@ def test_attach_blocks_an_already_attached_project(tmp_path: Path) -> None:
 
 def test_mount_mode_allows_a_plain_directory_in_multiple_workspaces(
     tmp_path: Path,
+    git_repo_factory,
 ) -> None:
-    home, project = make_home(tmp_path)
+    home, project = make_home(tmp_path, git_repo_factory)
     shared = tmp_path / "shared-config"
     shared.mkdir()
 
@@ -98,8 +101,10 @@ def test_mount_mode_allows_a_plain_directory_in_multiple_workspaces(
     assert git_plan["ready"]
 
 
-def test_detach_removes_membership_but_keeps_files(tmp_path: Path) -> None:
-    home, project = make_home(tmp_path)
+def test_detach_removes_membership_but_keeps_files(
+    tmp_path: Path, git_repo_factory
+) -> None:
+    home, project = make_home(tmp_path, git_repo_factory)
 
     result = run_settings(
         home,

@@ -17,11 +17,10 @@ def run(*arguments: str, cwd: Path | None = None) -> subprocess.CompletedProcess
     )
 
 
-def make_parent(tmp_path: Path) -> Path:
+def make_parent(tmp_path: Path, git_repo_factory) -> Path:
     origin = tmp_path / "origin.git"
-    parent = tmp_path / "parent"
+    parent = git_repo_factory(tmp_path / "parent")
     run("git", "init", "--bare", "-q", str(origin))
-    run("git", "init", "-q", "-b", "main", str(parent))
     run("git", "config", "user.email", "studio@example.test", cwd=parent)
     run("git", "config", "user.name", "Studio test", cwd=parent)
     (parent / "README.md").write_text("parent\n", encoding="utf-8")
@@ -41,8 +40,9 @@ def plan(parent: Path) -> dict[str, object]:
 
 def test_parent_plan_is_read_only_and_requires_a_clean_default_branch(
     tmp_path: Path,
+    git_repo_factory,
 ) -> None:
-    parent = make_parent(tmp_path)
+    parent = make_parent(tmp_path, git_repo_factory)
     report = plan(parent)
 
     assert report["ok"] is True
