@@ -1,5 +1,7 @@
 import type { ProbeReport } from "./types";
 
+export type ServerCapacity = { cpus?: number; memoryBytes?: number; diskTotalBytes?: number; diskFreeBytes?: number; diskPath?: string };
+
 /** Never present an old runtime observation as a current container state. */
 export function containerStateLabel(status?: { state: "checking" | "online" | "offline"; report?: ProbeReport }): string {
   if (status?.state === "checking") return "checking…";

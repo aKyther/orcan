@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- The complete container creator owns its form, readiness and approval state in
+  one UI module. Native installation endpoints and curses-free context mutations
+  are separated from the application entry points without changing commands.
+
 - Context tests mark only process-backed classes as integration. Pure selection
   and configuration contracts run in the fast suite; content-editing tests reuse
   private copies of a session-scoped tracked Git fixture.

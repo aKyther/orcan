@@ -31,6 +31,23 @@ test('connection gates context operations and disconnected profiles stay usable'
   await expect(page.locator('[data-view-target="contexts"]')).toBeVisible();
 });
 
+test('container creator invalidates readiness and approval when its target changes', async ({ page }) => {
+  await page.locator('[data-view-target="enclaves"]').click();
+  await page.locator('#new-container').click();
+  await page.locator('#enclave-create-profile').selectOption('demo');
+  await page.locator('#enclave-create-name').fill('reviewer');
+  await expect(page.locator('#enclave-create-apply')).toBeDisabled();
+  await page.locator('#enclave-create-check').click();
+  await expect(page.locator('#enclave-create-plan')).toBeEnabled();
+  await page.locator('#enclave-create-plan').click();
+  await expect(page.locator('#enclave-create-apply')).toBeEnabled();
+  await page.locator('#enclave-create-name').fill('tester');
+  await expect(page.locator('#enclave-create-apply')).toBeDisabled();
+  await expect(page.locator('#enclave-create-plan')).toBeDisabled();
+  await page.locator('#container-create-cancel').click();
+  await expect(page.locator('#enclave-creator')).toBeHidden();
+});
+
 test('selection preserves cards and connection anchors follow desktop and narrow layout', async ({ page }) => {
   await connect(page);
   const chip = page.locator('#sandbox-tray .project-chip').first();

@@ -83,9 +83,10 @@ Native context endpoints share argument builders in `context.rs`. Branch discove
 and the activity view own their DOM/state in `branch-picker.ts` and `activity-panel.ts`;
 the main UI coordinates them through callbacks.
 
-Studio has four real browser smoke flows, independent of the cockpit suite:
+Studio has five real browser smoke flows, independent of the cockpit suite:
 connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
-100-project/10-workspace map checking filters, both anchors and retained drafts.
+100-project/10-workspace map checking filters, both anchors and retained drafts,
+and creator readiness/approval invalidation after changing its target.
 They use fixture data, block host snapshots, and contact no SSH or Docker target.
 CI runs them after the UI tests. Locally:
 

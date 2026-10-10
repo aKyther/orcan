@@ -1,3 +1,4 @@
+import { containerCreator as createContainerCreator } from "./container-creator";
 import { cleanupPanel } from "./cleanup";
 import { createCheckInvoker } from "./check-controls";
 import { retryAttachments, worktreeSummary, type WorktreeResult } from "./worktree-result";
@@ -13,7 +14,7 @@ import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
 import { creationBlocker, lifecycleBlocker, ownsEnclave } from "./enclave-model";
-import { containerStateLabel, loadContainerSelections, persistContainerSelections } from "./server-model";
+import { type ServerCapacity, containerStateLabel, loadContainerSelections, persistContainerSelections } from "./server-model";
 import { identityPanel } from "./identities";
 import { groupPanel } from "./groups";
 import { gitAccessPanel } from "./git-access";
@@ -29,7 +30,7 @@ const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>
 const profileList = $("#profile-list");
 const enclaveList = $("#enclave-list");
 const gitAccess = gitAccessPanel(invoke, profileConnection);
-const identityLibrary = identityPanel(invoke, () => { creatorRevision += 1; creatorPlanRevision = -1; renderEnclaveCreator(); });
+const identityLibrary = identityPanel(invoke, () => { containerCreator.invalidate(); });
 const imageTransferSource = $<HTMLSelectElement>("#image-transfer-source");
 const imageTransferName = $<HTMLInputElement>("#image-transfer-name");
 const imageTransferTarget = $<HTMLSelectElement>("#image-transfer-target");
@@ -46,28 +47,6 @@ const onlineProvisionTarget = $<HTMLSelectElement>("#online-provision-target");
 const onlineProvisionCheck = $<HTMLButtonElement>("#online-provision-check");
 const onlineProvisionRun = $<HTMLButtonElement>("#online-provision-run");
 const onlineProvisionResult = $<HTMLOutputElement>("#online-provision-result");
-const enclaveCreateProfile = $<HTMLSelectElement>("#enclave-create-profile");
-const containerCreateImage = $<HTMLSelectElement>("#container-create-image");
-const containerCreateRoot = $<HTMLSelectElement>("#container-create-root");
-const containerCreatePaths = $("#container-create-paths");
-const enclaveCreateName = $<HTMLInputElement>("#enclave-create-name");
-const enclaveCreatePort = $<HTMLInputElement>("#enclave-create-port");
-const enclaveCreateCpus = $<HTMLInputElement>("#enclave-create-cpus");
-const enclaveCreateMemory = $<HTMLInputElement>("#enclave-create-memory");
-const enclaveCreateContainer = $("#enclave-create-container");
-const enclaveCreateCheck = $<HTMLButtonElement>("#enclave-create-check");
-const enclaveCreateReadiness = $("#enclave-create-readiness");
-const enclaveCreateOptions = $<HTMLFieldSetElement>("#enclave-create-options");
-const enclaveCreateGit = $<HTMLInputElement>("#enclave-create-git");
-const enclaveCreateDocker = $<HTMLInputElement>("#enclave-create-docker");
-const enclaveCreateTtyd = $<HTMLInputElement>("#enclave-create-ttyd");
-const enclaveCreateTtydAuth = $<HTMLInputElement>("#enclave-create-ttyd-auth");
-const enclaveCreateTtydFields = $("#enclave-create-ttyd-fields");
-const enclaveCreateTtydUser = $<HTMLInputElement>("#enclave-create-ttyd-user");
-const enclaveCreateTtydPassword = $<HTMLInputElement>("#enclave-create-ttyd-password");
-const enclaveCreatePlan = $<HTMLButtonElement>("#enclave-create-plan");
-const enclaveCreateApply = $<HTMLButtonElement>("#enclave-create-apply");
-const enclaveCreateResult = $<HTMLOutputElement>("#enclave-create-result");
 const credentialList = $("#credential-list");
 const setupPanel = $("#setup-panel");
 const activeGroup = $("#active-group");
@@ -1671,7 +1650,6 @@ const enclaveStatus = new Map<string, EnclaveStatus>();
 const enclaveChecks = new Map<string, Promise<EnclaveStatus>>();
 type ManagedInstance = { instance: string | null; container: string; home: string };
 const instanceInventory = new Map<string, ManagedInstance[]>();
-type ServerCapacity = { cpus?: number; memoryBytes?: number; diskTotalBytes?: number; diskFreeBytes?: number; diskPath?: string };
 const serverCapacity = new Map<string, ServerCapacity>();
 const expandedServers = new Set<string>();
 const selectedInstances = loadContainerSelections();
@@ -1893,8 +1871,8 @@ async function offerTransferResume(output: HTMLElement, token: string | undefine
 
 function provisioningSucceeded(output: HTMLElement, message: string, profile: ConnectionProfile): void {
   output.replaceChildren(el("span", { textContent: message }), actionButton("Continue container setup", () => {
-    openEnclaveCreator(profile);
-    void checkCreatorDestination();
+    containerCreator.open(profile);
+    void containerCreator.check();
   }));
 }
 
@@ -2089,96 +2067,10 @@ function renderImageTransfer(): void {
   renderProvisionIdentity();
 }
 
-type EnclaveReadiness = { user: string; docker: { available: boolean; version?: string; detail: string }; report?: ProbeReport; orcanError?: string; capacity?: ServerCapacity; images?: string[]; projectRoots?: string[] };
-let creatorReadiness: { connection: string; result: EnclaveReadiness } | undefined;
-let creatorBusy = false;
-let creatorRevision = 0;
-let creatorPlanRevision = -1;
-let creatorResourcesEdited = false;
-
-function creatorConnection(profile: ConnectionProfile): string {
-  return JSON.stringify(enclaveInput(creatorProfileConnection(profile)));
-}
-
-function creatorProfileConnection(profile: ConnectionProfile): Connection {
-  return { ...profileConnection(profile), instance: enclaveCreateName.value.trim() || undefined };
-}
-
-function creatorNameError(): string | undefined {
-  const name = enclaveCreateName.value.trim();
-  return name && !/^[a-z][a-z0-9-]{0,47}$/.test(name) ? "Use 1–48 lowercase letters, digits or hyphens; start with a letter." : undefined;
-}
-
-function creatorReport(profile: ConnectionProfile): ProbeReport | undefined {
-  if (creatorReadiness?.connection !== creatorConnection(profile) || !creatorReadiness.result.docker.available || !creatorReadiness.result.report) return undefined;
-  const report = structuredClone(creatorReadiness.result.report);
-  if (report.runtime.docker.image && creatorReadiness.result.images?.length === 0) report.runtime.docker.image.present = false;
-  if (containerCreateImage.value) report.runtime.docker.image = { name: containerCreateImage.value, present: Boolean(creatorReadiness.result.images?.includes(containerCreateImage.value)) };
-  return report;
-}
-
-function creatorCanApply(profile: ConnectionProfile): boolean {
-  return !creatorBusy && !creatorNameError() && creatorPlanRevision === creatorRevision && !creationBlocker(creatorReport(profile));
-}
-
-function openEnclaveCreator(profile?: ConnectionProfile): void {
-  if (creatorBusy) return;
-  $("#server-browser").hidden = true;
-  $("#enclave-creator").hidden = false;
-  creatorPlanRevision = -1;
-  creatorRevision += 1;
-  renderEnclaveCreator();
-  enclaveCreateProfile.value = profile?.id ?? "";
-  showView("enclaves");
-  renderEnclaveCreator();
-  $("#enclave-creator").scrollIntoView({ block: "start" });
-  enclaveCreateProfile.focus();
-}
-
-function closeEnclaveCreator(): void {
-  if (creatorBusy) return;
-  creatorPlanRevision = -1;
-  creatorRevision += 1;
-  enclaveCreateTtydPassword.value = "";
-  creatorReadiness = undefined;
-  enclaveCreateReadiness.textContent = "";
-  enclaveCreateResult.textContent = "";
-  $("#enclave-creator").hidden = true;
-  $("#server-browser").hidden = false;
-  $("#new-container").focus();
-}
-
-function renderEnclaveCreator(): void {
-  $("#container-create-cancel").toggleAttribute("disabled", creatorBusy);
-  if (creatorBusy) return;
-  const previous = enclaveCreateProfile.value;
-  enclaveCreateProfile.replaceChildren(
-    new Option(profiles.length ? "Choose destination profile…" : "Create a profile first", ""),
-    ...profiles.map((profile) => new Option(profile.name, profile.id)),
-  );
-  enclaveCreateProfile.value = profiles.some((profile) => profile.id === previous) ? previous : "";
-  const profile = selectedProfile(enclaveCreateProfile);
-  const ready = Boolean(profile && !creatorNameError() && !creationBlocker(creatorReport(profile)));
-  enclaveCreateContainer.textContent = `Container: orcan-${enclaveCreateName.value.trim() || "1"} · shared sandbox and cache`;
-  enclaveCreateCheck.disabled = !profile;
-  enclaveCreateOptions.disabled = !ready;
-  enclaveCreatePlan.disabled = !ready;
-  enclaveCreateApply.disabled = !profile || !creatorCanApply(profile);
-  const checked = profile && creatorReadiness?.connection === creatorConnection(profile);
-  containerCreateImage.disabled = !checked || !creatorReadiness?.result.images?.length;
-  containerCreateRoot.disabled = !checked || !creatorReadiness?.result.projectRoots?.length;
-  if (!checked) {
-    containerCreateImage.replaceChildren(new Option("Check destination first", ""));
-    containerCreateRoot.replaceChildren(new Option("Reported by Orcan after checking", ""));
-    containerCreatePaths.textContent = "Sandbox and cache are shared. Workspace metadata belongs to the named container.";
-  }
-  if (!profile) enclaveCreateReadiness.textContent = "Choose a profile. Orcan does not need to be installed yet.";
-}
-
 function prepareProfile(profile: ConnectionProfile, image = false): void {
   openProvisioning(profile);
   if (image) {
-    const name = creatorReport(profile)?.runtime.docker.image?.name;
+    const name = containerCreator.report(profile)?.runtime.docker.image?.name;
     imageTransferTarget.value = profile.id;
     if (name) imageTransferName.value = name;
     inspectedImage = undefined;
@@ -2188,158 +2080,19 @@ function prepareProfile(profile: ConnectionProfile, image = false): void {
   }
 }
 
-async function checkCreatorDestination(): Promise<void> {
-  const profile = selectedProfile(enclaveCreateProfile);
-  if (!profile || creatorBusy) return;
-  if (creatorNameError()) { enclaveCreateResult.textContent = creatorNameError()!; return; }
-  creatorBusy = true;
-  $("#container-create-cancel").setAttribute("disabled", "");
-  containerCreateImage.disabled = true;
-  containerCreateRoot.disabled = true;
-  identityLibrary.select.disabled = true;
-  creatorPlanRevision = -1;
-  creatorReadiness = undefined;
-  enclaveCreateName.disabled = true;
-  enclaveCreatePort.disabled = true;
-  enclaveCreateCpus.disabled = true;
-  enclaveCreateMemory.disabled = true;
-  enclaveCreateProfile.disabled = true;
-  enclaveCreateCheck.disabled = true;
-  enclaveCreateOptions.disabled = true;
-  enclaveCreatePlan.disabled = true;
-  enclaveCreateApply.disabled = true;
-  enclaveCreateReadiness.textContent = `Checking connection, Orcan, Docker and image on ${profile.name}…`;
-  enclaveCreateResult.textContent = "";
-  const connection = creatorConnection(profile);
-  try {
-    const readiness = await invoke<EnclaveReadiness>("enclave_readiness", { enclave: enclaveInput(creatorProfileConnection(profile)) });
-    const selected = selectedProfile(enclaveCreateProfile);
-    if (!selected || connection !== creatorConnection(selected)) return;
-    creatorReadiness = { connection, result: readiness };
-    const report = readiness.report;
-    containerCreateImage.replaceChildren(...(readiness.images?.length ? readiness.images.map((image) => new Option(image, image)) : [new Option("No installed Orcan image — transfer one first", "")]));
-    if (report?.runtime.docker.image && readiness.images?.includes(report.runtime.docker.image.name)) containerCreateImage.value = report.runtime.docker.image.name;
-    containerCreateRoot.replaceChildren(...(readiness.projectRoots ?? []).map((root) => new Option(root, root)));
-    if (readiness.projectRoots?.includes(report?.paths.projects_root ?? "")) containerCreateRoot.value = report!.paths.projects_root;
-    if (report) containerCreatePaths.textContent = `Shared cache: ${report.paths.cache ?? "not reported — update Orcan CLI"} · Shared data: ${report.paths.data} · Container workspaces: ${report.paths.workspace_metadata_root}. Worktrees are scoped beneath the selected project root.`;
-    const defaults = report?.runtime.defaults;
-    if (!creatorResourcesEdited && defaults?.resources?.cpus) enclaveCreateCpus.value = String(defaults.resources.cpus);
-    const memoryDefault = defaults?.resources?.memory?.match(/^(\d+)g$/i);
-    if (!creatorResourcesEdited && memoryDefault) enclaveCreateMemory.value = memoryDefault[1];
-    if (!creatorResourcesEdited && defaults?.ttyd?.host_port) enclaveCreatePort.value = String(defaults.ttyd.host_port);
-    if (report) {
-      enclaveStatus.set(runtimeKey(profile, creatorProfileConnection(profile).instance ?? ""), { state: "online", report, at: Date.now() });
-    }
-    const fact = (label: string, value: string, okay: boolean) => el("div", { className: `enclave-readiness-row ${okay ? "ready" : "attention"}` }, el("span", { textContent: okay ? "✓" : "!", ariaHidden: "true" }), el("strong", { textContent: label }), el("span", { textContent: value }));
-    const image = report?.runtime.docker.image;
-    enclaveCreateReadiness.replaceChildren(
-      fact("Connection", `Signed in as ${readiness.user}`, true),
-      fact("Orcan CLI", report ? report.sandbox.version : needsStudioUpdate(readiness.orcanError ?? "") ? "Update required" : "Not ready", Boolean(report)),
-      fact("Docker", readiness.docker.available ? readiness.docker.version ?? "Ready" : "Not ready for this user", readiness.docker.available),
-      fact("Default image", image ? `${image.name} · ${image.present ? "available" : "missing — choose an installed image above or transfer this one"}` : "Check after CLI installation", Boolean(image?.present)),
-    );
-    if (readiness.capacity?.memoryBytes) enclaveCreateReadiness.append(fact("VM capacity", `${readiness.capacity.cpus ?? "?"} CPUs · ${(readiness.capacity.memoryBytes / 1024 ** 3).toFixed(1)} GiB RAM total (not free capacity)${readiness.capacity.diskFreeBytes !== undefined ? ` · ${(readiness.capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB disk free` : ""}`, true));
-    else if (readiness.capacity?.diskFreeBytes !== undefined) enclaveCreateReadiness.append(fact("Disk", `${(readiness.capacity.diskFreeBytes / 1024 ** 3).toFixed(1)} GiB free`, true));
-    const actions = el("div", { className: "actions compact" });
-    if (!report) actions.append(actionButton(needsStudioUpdate(readiness.orcanError ?? "") ? "Update CLI" : "Install CLI", () => prepareProfile(profile)));
-    if (image && !image.present) actions.append(actionButton("Transfer image", () => prepareProfile(profile, true)));
-    if (report && ownsEnclave(report)) actions.append(actionButton("Open existing container", () => selectInstance(profile, creatorProfileConnection(profile).instance ?? "")));
-    enclaveCreateReadiness.append(actions);
-    if (readiness.orcanError) enclaveCreateReadiness.append(technicalDetail(readiness.orcanError));
-    if (!readiness.docker.available) enclaveCreateReadiness.append(el("p", { className: "muted", textContent: "Start Docker and grant this user access. On WSL2, enable Docker Desktop integration or prepare Docker Engine in this distribution." }), technicalDetail(readiness.docker.detail));
-    enclaveCreateResult.textContent = creationBlocker(creatorReport(profile)) ?? "Ready. Review image, project root and access, then preview the plan.";
-    renderEnclaveStatus();
-  } catch (error) {
-    enclaveCreateReadiness.replaceChildren(el("strong", { textContent: "Could not connect to this profile." }), el("span", { textContent: failureHint(String(error)) }), technicalDetail(String(error)));
-  } finally {
-    creatorBusy = false;
-    identityLibrary.select.disabled = false;
-    enclaveCreateName.disabled = false;
-    enclaveCreatePort.disabled = false;
-    enclaveCreateCpus.disabled = false;
-    enclaveCreateMemory.disabled = false;
-    enclaveCreateProfile.disabled = false;
-    renderEnclaveCreator();
-  }
-}
-
-function enclaveTtydCredential(): string | undefined {
-  if (!enclaveCreateTtydAuth.checked) return undefined;
-  const user = enclaveCreateTtydUser.value.trim();
-  const password = enclaveCreateTtydPassword.value;
-  if (!user || !password || user.includes(":")) {
-    throw new Error("Browser-terminal auth needs a user without ':' and a password.");
-  }
-  return `${user}:${password}`;
-}
-
-async function planEmptyEnclave(apply = false): Promise<void> {
-  const profile = selectedProfile(enclaveCreateProfile);
-  if (!profile) return;
-  if (creatorBusy || creatorNameError() || creationBlocker(creatorReport(profile)) || (apply && !creatorCanApply(profile))) {
-    enclaveCreateResult.textContent = "Check the destination and preview the current plan before creating this container.";
-    return;
-  }
-  const selectedIdentity = identityLibrary.selected();
-  if (selectedIdentity && !creatorReport(profile)?.capabilities.identity_templates) { enclaveCreateResult.textContent = "Update the host Orcan CLI before using identity templates."; return; }
-  const revision = creatorRevision;
-  const connection = creatorProfileConnection(profile);
-  const ttydHostPort = enclaveCreateTtyd.checked ? Number(enclaveCreatePort.value) : undefined;
-  if (ttydHostPort !== undefined && (!Number.isInteger(ttydHostPort) || ttydHostPort < 1024 || ttydHostPort > 65535)) { enclaveCreateResult.textContent = "Choose a host port between 1024 and 65535."; return; }
-  creatorBusy = true;
-  $("#container-create-cancel").setAttribute("disabled", "");
-  containerCreateImage.disabled = true;
-  containerCreateRoot.disabled = true;
-  identityLibrary.select.disabled = true;
-  enclaveCreateName.disabled = true;
-  enclaveCreatePort.disabled = true;
-  enclaveCreateCpus.disabled = true;
-  enclaveCreateMemory.disabled = true;
-  enclaveCreateProfile.disabled = true;
-  enclaveCreateCheck.disabled = true;
-  enclaveCreateOptions.disabled = true;
-  enclaveCreatePlan.disabled = true;
-  enclaveCreateApply.disabled = true;
-  enclaveCreateResult.textContent = apply ? "Creating empty container…" : "Reading creation plan…";
-  try {
-    const response = await invoke<{ plan?: { ready: boolean; changes: string[]; config: string } }>("enclave_action", {
-      enclave: enclaveInput(connection),
-      apply,
-      ttydHostPort,
-      cpus: Number(enclaveCreateCpus.value),
-      memoryGb: Number(enclaveCreateMemory.value),
-      image: containerCreateImage.value || undefined,
-      projectsRoot: containerCreateRoot.value || undefined,
-      identityId: selectedIdentity?.id,
-      identityVersion: selectedIdentity?.version,
-      withGit: enclaveCreateGit.checked,
-      withDocker: enclaveCreateDocker.checked,
-      withTtyd: enclaveCreateTtyd.checked,
-      ttydCredential: enclaveTtydCredential(),
-    });
-    if (!apply && response.plan?.ready && revision === creatorRevision) {
-      creatorPlanRevision = revision;
-      enclaveCreateResult.replaceChildren(el("strong", { textContent: "Creation plan" }), el("ul", {}, ...response.plan.changes.map((change) => el("li", { textContent: change }))));
-    }
-    if (apply) {
-      creatorPlanRevision = -1;
-      enclaveCreateResult.textContent = "container created. Verifying and opening context…";
-      enclaveCreateTtydPassword.value = "";
-      selectedInstances.set(profile.id, connection.instance ?? "");
-      persistContainerSelections(selectedInstances);
-      await enclaveChecks.get(runtimeKey(profile));
-      const status = await checkEnclave(profile);
-      if (status.state !== "online" || !status.report || status.report.runtime.docker.container.state !== "running") throw new Error(status.error ?? "Container is not running after creation. Refresh its status before continuing.");
-      creatorReadiness = undefined;
-      activate(profileConnection(profile), status.report);
-      $("#enclave-creator").hidden = true;
-      $("#server-browser").hidden = false;
-      showView("contexts");
-      enclaveCreateResult.textContent = "container is running. Add projects to its context.";
-    }
-  } catch (error) { creatorPlanRevision = -1; enclaveCreateResult.textContent = `container setup failed: ${String(error)}`; }
-  finally { creatorBusy = false; identityLibrary.select.disabled = false; enclaveCreateName.disabled = false; enclaveCreatePort.disabled = false; enclaveCreateCpus.disabled = false; enclaveCreateMemory.disabled = false; enclaveCreateProfile.disabled = false; renderEnclaveCreator(); }
-}
+const containerCreator = createContainerCreator({
+  invoke, profiles: () => profiles, profileConnection, identityLibrary, showView, prepareProfile,
+  selectInstance, renderEnclaveStatus, failureHint, needsStudioUpdate, technicalDetail,
+  observed: (profile, connection, report) => enclaveStatus.set(runtimeKey(profile, connection.instance ?? ""), { state: "online", report, at: Date.now() }),
+  created: async (profile, connection) => {
+    selectedInstances.set(profile.id, connection.instance ?? "");
+    persistContainerSelections(selectedInstances);
+    await enclaveChecks.get(runtimeKey(profile));
+    const status = await checkEnclave(profile);
+    if (status.state !== "online" || !status.report || status.report.runtime.docker.container.state !== "running") throw new Error(status.error ?? "Container is not running after creation. Refresh its status before continuing.");
+    activate(profileConnection(profile), status.report);
+  },
+});
 
 async function inspectTransferImage(): Promise<void> {
   if (isProvisionRunning(imageTransferResult)) return;
@@ -2426,13 +2179,11 @@ function renderEnclaves(): void {
     gear.disabled = status?.state !== "online" || !status.report;
     actions.push(gear);
     actions.unshift(actionButton("New container", () => {
-      if (creatorBusy) return;
+      if (containerCreator.busy()) return;
       const names = new Set((instanceInventory.get(profile.id) ?? []).map((item) => item.instance));
       let name = "developer";
       for (let suffix = 2; names.has(name); suffix += 1) name = `developer-${suffix}`;
-      enclaveCreateName.value = name;
-      creatorReadiness = undefined;
-      openEnclaveCreator(profile);
+      containerCreator.open(profile, name);
     }));
     if (active) actions.push(el("span", { className: "badge", textContent: "Active" }));
     else if (status?.report && ownsEnclave(status.report)) actions.push(actionButton("Open", () => void openEnclave(profile), status?.state === "online" ? "" : "secondary"));
@@ -2530,7 +2281,7 @@ function renderEnclaves(): void {
   renderCliProvision();
   renderOnlineProvision();
   renderImageTransfer();
-  renderEnclaveCreator();
+  containerCreator.render();
 }
 
 /** Per-container state everywhere it is shown: list, sidebar, topbar chip, summary. */
@@ -2636,27 +2387,6 @@ cliProvisionCheck.addEventListener("click", () => void checkCliProvision());
 cliProvisionRun.addEventListener("click", () => void provisionCli());
 for (const input of [cliProvisionSource, cliProvisionTarget]) input.addEventListener("change", () => { cliProvisionReady = false; cliProvisionRun.disabled = true; renderProvisionIdentity(); cliProvisionResult.textContent = "Selection changed. Check requirements again before installing."; });
 for (const select of [imageTransferSource, imageTransferTarget]) select.addEventListener("change", renderProvisionIdentity);
-$("#new-container").addEventListener("click", () => openEnclaveCreator());
-$("#container-create-cancel").addEventListener("click", closeEnclaveCreator);
-enclaveCreatePlan.addEventListener("click", () => void planEmptyEnclave());
-enclaveCreateCheck.addEventListener("click", () => void checkCreatorDestination());
-enclaveCreateApply.addEventListener("click", async () => { if (await confirmAction("Create this container with the selected runtime access?", { title: "New container", confirmLabel: "Create" })) void planEmptyEnclave(true); });
-for (const input of [enclaveCreateProfile, enclaveCreateName, containerCreateImage, containerCreateRoot, enclaveCreatePort, enclaveCreateCpus, enclaveCreateMemory, enclaveCreateGit, enclaveCreateDocker, enclaveCreateTtyd, enclaveCreateTtydAuth, enclaveCreateTtydUser, enclaveCreateTtydPassword]) input.addEventListener("input", () => {
-  if ([enclaveCreateCpus, enclaveCreateMemory, enclaveCreatePort].includes(input as HTMLInputElement)) creatorResourcesEdited = true;
-  creatorRevision += 1;
-  creatorPlanRevision = -1;
-  if (input === enclaveCreateProfile || input === enclaveCreateName) { creatorReadiness = undefined; enclaveCreateReadiness.textContent = "Check this destination and container name before reviewing access options."; enclaveCreateResult.textContent = ""; }
-  renderEnclaveCreator();
-});
-enclaveCreateTtyd.addEventListener("change", () => {
-  enclaveCreateTtydAuth.disabled = !enclaveCreateTtyd.checked;
-  if (!enclaveCreateTtyd.checked) enclaveCreateTtydAuth.checked = false;
-  enclaveCreateTtydFields.hidden = !enclaveCreateTtyd.checked || !enclaveCreateTtydAuth.checked;
-});
-enclaveCreateTtydAuth.addEventListener("change", () => {
-  enclaveCreateTtydFields.hidden = !enclaveCreateTtydAuth.checked;
-  if (!enclaveCreateTtydAuth.checked) enclaveCreateTtydPassword.value = "";
-});
 $("#new-password-credential").addEventListener("click", () => openCredentialForm("password"));
 $("#new-key-credential").addEventListener("click", () => openCredentialForm("private_key"));
 $("#credential-back").addEventListener("click", () => leaveCredentialForm());
@@ -2847,10 +2577,6 @@ async function prepareReplacement(profile: ConnectionProfile, report: ProbeRepor
     if (!await confirmAction(`${connection.label}\n\n${plan.result.changes.join("\n")}\n\nArchive: ${plan.result.archive}\nExisting enclaves keep the old UUID. Running sessions must already be stopped with Down.`, { title: "Prepare replacement container", confirmLabel: "Archive configuration", danger: true })) return;
     await invoke("replace_container", { ...args, apply: true });
     await checkEnclave(profile);
-    creatorReadiness = undefined; creatorPlanRevision = -1; creatorRevision++;
-    enclaveCreateProfile.value = profile.id; enclaveCreateName.value = connection.instance ?? "";
-    renderEnclaveCreator();
-    enclaveCreateResult.textContent = `Previous configuration archived at ${plan.result.archive}. Check the destination, select an identity and create the replacement.`;
-    openEnclaveCreator(profile);
+    containerCreator.replacement(profile, connection.instance ?? "", plan.result.archive);
   } catch (error) { result.textContent = `Replacement was not prepared: ${String(error)}`; }
 }
