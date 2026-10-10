@@ -522,8 +522,6 @@ function renderEnclaveMap(report: ProbeReport): void {
   mapFocusClear.hidden = !focusedWorkspace;
   renderWorkspaceInspector(report);
   renderProjectInspector(report);
-  const query = "";
-  const matches = (..._values: Array<string | undefined>) => true;
   const used = contextIndex.used;
   const plannedPaths = new Set(queuedForCurrent().filter((change) => change.action === "attach").map((change) => change.project.path));
   const sourceMatchesFilters = (project: HealthProject) => [...activeMapFilters].every((filter) => {
@@ -550,12 +548,11 @@ function renderEnclaveMap(report: ProbeReport): void {
   const cards = report.context.workspaces.flatMap((workspace) => {
     if (focusedWorkspace && workspace.name !== focusedWorkspace) return [];
     const drafts = draftsByWorkspace[workspace.name] ?? [];
-    const workspaceMatches = matches(workspace.name);
     const projects = workspace.projects
-      .filter((project) => sourceMatchesFilters(project) && (workspaceMatches || matches(project.name, project.path, project.branch)))
+      .filter(sourceMatchesFilters)
       .sort((left, right) => parentDirectory(left.path).localeCompare(parentDirectory(right.path)) || projectName(left).localeCompare(projectName(right)));
-    const visibleDrafts = drafts.filter((draft) => sourceMatchesFilters({ ...draft.project, dirty: false }) && (workspaceMatches || matches(draft.project.name, draft.project.path, draft.branch)));
-    if ((query || activeMapFilters.size) && !projects.length && !visibleDrafts.length) return [];
+    const visibleDrafts = drafts.filter((draft) => sourceMatchesFilters({ ...draft.project, dirty: false }));
+    if (activeMapFilters.size && !projects.length && !visibleDrafts.length) return [];
     const meta = el("div", { className: "workspace-meta" }, el("span", { textContent: `${workspace.projects.length} project${workspace.projects.length === 1 ? "" : "s"}` }));
     if (drafts.length) meta.append(el("span", { className: "tag draft", textContent: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` }), actionButton("Discard", () => discardWorkspaceDraft(workspace.name), "workspace-draft-discard"));
     const attach = actionButton("Open terminal", () => void openWorkspaceTerminal(workspace.name), "secondary");
@@ -602,7 +599,7 @@ function renderEnclaveMap(report: ProbeReport): void {
   });
   const existingWorkspaces = new Set(report.context.workspaces.map((workspace) => workspace.name));
   const plannedWorkspaceGroups = Object.entries(draftsByWorkspace) as Array<[string, QueuedChange[]]>;
-  for (const [workspace, drafts] of plannedWorkspaceGroups.filter(([name, entries]) => !existingWorkspaces.has(name) && (!focusedWorkspace || focusedWorkspace === name) && (matches(name) || entries.some((draft) => sourceMatchesFilters({ ...draft.project, dirty: false }) && matches(draft.project.name, draft.project.path, draft.branch))))) {
+  for (const [workspace, drafts] of plannedWorkspaceGroups.filter(([name]) => !existingWorkspaces.has(name) && (!focusedWorkspace || focusedWorkspace === name))) {
     const meta = el("div", { className: "workspace-meta" }, el("span", { className: "tag draft", textContent: "draft workspace" }), actionButton("Discard", () => discardWorkspaceDraft(workspace), "workspace-draft-discard"));
     const card = el("article", { className: "workspace-card planned-workspace" }, el("header", {}, el("strong", { textContent: workspace }), meta));
     const additions = drafts.filter((draft) => draft.action === "attach");
@@ -618,9 +615,8 @@ function renderEnclaveMap(report: ProbeReport): void {
   }
   const create = el("article", { className: "workspace-card new-workspace" }, el("strong", { textContent: "＋ New workspace" }), el("span", { className: "hint", textContent: "Drop a project here to start a workspace around it." }));
   dropZone(create, (project) => void reviewChange("attach", undefined, project));
-  const visibleProjectPaths = new Set(cards.flatMap((card) => Array.from(card.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")).map((chip) => chip.dataset.projectPath ?? "")));
   const chips = report.context.managed_projects
-    .filter((project) => sourceMatchesFilters(contextIndex.health(project)) && (!query || matches(project.path) || visibleProjectPaths.has(project.path)))
+    .filter((project) => sourceMatchesFilters(contextIndex.health(project)))
     .sort((left, right) => parentDirectory(left.path).localeCompare(parentDirectory(right.path)) || projectName(left).localeCompare(projectName(right)))
     .map((project) => {
     const ref = { name: projectName(project), path: project.path, kind: project.kind };
@@ -644,7 +640,7 @@ function renderEnclaveMap(report: ProbeReport): void {
   }, new Map());
   const rootItems = groups.get(undefined) ?? [];
   const groupNodes = [...groups.entries()].filter(([parent]) => parent).sort(([left], [right]) => left!.localeCompare(right!)).map(([parent, items]) => el("details", { className: "project-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent!) }), el("small", { textContent: `${items.length} project${items.length === 1 ? "" : "s"}` })), el("div", { className: "tray-chips" }, ...items)));
-  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available projects and folders (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), chips.length ? el("div", { className: "project-parent-groups" }, ...(rootItems.length ? [el("div", { className: "tray-chips root-projects" }, ...rootItems)] : []), ...groupNodes) : el("p", { className: "hint", textContent: query ? "No project or folder matches this filter." : "No projects or folders in the sandbox yet. Import a repository in Repositories." }));
+  sandboxTray.replaceChildren(el("div", { className: "tray-header" }, el("strong", { textContent: `Available projects and folders (${chips.length})` }), el("span", { className: "hint", textContent: `${report.paths.projects_root}` })), chips.length ? el("div", { className: "project-parent-groups" }, ...(rootItems.length ? [el("div", { className: "tray-chips root-projects" }, ...rootItems)] : []), ...groupNodes) : el("p", { className: "hint", textContent: activeMapFilters.size ? "No project or folder matches this filter." : "No projects or folders in the sandbox yet. Import a repository in Repositories." }));
   mapConnections.schedule();
 }
 
