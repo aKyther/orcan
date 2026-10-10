@@ -83,9 +83,10 @@ Native context endpoints share argument builders in `context.rs`. Branch discove
 and the activity view own their DOM/state in `branch-picker.ts` and `activity-panel.ts`;
 the main UI coordinates them through callbacks.
 
-Studio has three real browser smoke flows, independent of the cockpit suite:
-connection gating, map selection/resize anchors, and drag/stage/discard. They use
-bundled demo data, block host snapshots, and contact no SSH or Docker target.
+Studio has four real browser smoke flows, independent of the cockpit suite:
+connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
+100-project/10-workspace map checking filters, both anchors and retained drafts.
+They use fixture data, block host snapshots, and contact no SSH or Docker target.
 CI runs them after the UI tests. Locally:
 
 ```bash
@@ -98,6 +99,8 @@ The browser check starts and stops its own Vite server on port 1438; do not poin
 it at the daily Orcan runtime. Headless browser dependencies are needed only for
 this check, not `npm test`. Map geometry owns coalesced frame scheduling in
 `map-connections.ts`; project selection updates classes/edges, not all cards.
+Context rendering builds lookup maps once per render, without persisting a second
+source of truth alongside the probe report.
 
 Default CI coverage measures the test process, not helper subprocesses. All tests
 still run, including real CLI operations. For an accurate extended diagnostic:

@@ -61,7 +61,7 @@ export function parseDraggedProject(value: string): ProjectRef | undefined {
   }
 }
 
-export function projectAlerts(report: ProbeReport, project: HealthProject, orphan = false): string[] {
+export function projectAlerts(report: ProbeReport, project: HealthProject, orphan = false, sources?: ReadonlyMap<string, ProbeReport["context"]["update_targets"][number]>): string[] {
   const alerts: string[] = [];
   if (project.kind === "missing") alerts.push("missing");
   else if (project.writable === false) alerts.push("read-only");
@@ -69,10 +69,36 @@ export function projectAlerts(report: ProbeReport, project: HealthProject, orpha
   else if (project.dirty === null) alerts.push("Git status unknown");
   if (orphan) alerts.push("orphan worktree");
   const source = project.repository_id
-    ? report.context.update_targets.find((target) => target.repository_id === project.repository_id)
+    ? sources ? sources.get(project.repository_id) : report.context.update_targets.find((target) => target.repository_id === project.repository_id)
     : undefined;
   if (source?.behind) alerts.push(`source ${source.behind} behind`);
   return alerts;
+}
+
+/** One ephemeral index per map render, never a cache of host authority. */
+export function indexContext(report: ProbeReport) {
+  const sources = new Map<string, ProbeReport["context"]["update_targets"][number]>();
+  const workspacesByPath = new Map<string, Set<string>>();
+  const dirtyByPath = new Map<string, boolean | null | undefined>();
+  for (const source of report.context.update_targets) {
+    if (source.repository_id && !sources.has(source.repository_id)) sources.set(source.repository_id, source);
+    dirtyByPath.set(source.path, source.dirty);
+  }
+  for (const workspace of report.context.workspaces) {
+    for (const project of workspace.projects) {
+      const names = workspacesByPath.get(project.path) ?? new Set<string>();
+      names.add(workspace.name);
+      workspacesByPath.set(project.path, names);
+      const previous = dirtyByPath.get(project.path);
+      dirtyByPath.set(project.path, previous === true || project.dirty === true ? true
+        : previous === null || project.dirty === null ? null : project.dirty ?? previous);
+    }
+  }
+  return {
+    used: new Set(workspacesByPath.keys()), workspacesByPath,
+    health: <T extends HealthProject>(project: T): T => dirtyByPath.has(project.path) ? { ...project, dirty: dirtyByPath.get(project.path) } : project,
+    alerts: (project: HealthProject, orphan = false) => projectAlerts(report, project, orphan, sources),
+  };
 }
 
 export function parentDirectory(path: string): string {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Large context maps index project bindings and update status once per render.
+  A 100-project browser fixture checks filters, both connection anchors and drafts
+  retained across workspace selection.
+
 - Host tests explicitly mark external boundaries and reject subprocess launches
   in unmarked tests. Worktree lifecycle tests reuse private committed Git copies;
   the fast suite no longer accidentally runs helper-backed GitLab/executor tests.

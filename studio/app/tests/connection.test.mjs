@@ -106,6 +106,20 @@ test("unknown Git status is visible in project alerts", async () => {
   assert.deepEqual(projectAlerts({ context: { update_targets: [] } }, { path: "/app", dirty: null }), ["Git status unknown"]);
 });
 
+test("context index handles 100 projects without per-project source scans and stays fresh", async () => {
+  const { indexContext } = await load("context-model");
+  const projects = Array.from({ length: 100 }, (_, index) => ({ path: `/repo-${index}`, repository_id: `repo-${index}`, dirty: false }));
+  const report = { context: { workspaces: [{ name: "one", projects }, { name: "two", projects: [{ ...projects[0], dirty: null }] }], update_targets: projects.map(project => ({ ...project, behind: 2 })) } };
+  report.context.update_targets.find = () => { throw new Error("linear source scan"); };
+  const first = indexContext(report);
+  for (const project of projects) assert.deepEqual(first.alerts(project), ["source 2 behind"]);
+  assert.deepEqual([...first.workspacesByPath.get("/repo-0")], ["one", "two"]);
+  assert.equal(first.health(projects[0]).dirty, null);
+  report.context.workspaces[1].projects[0].dirty = true;
+  assert.equal(indexContext(report).health(projects[0]).dirty, true);
+  assert.equal(first.health(projects[0]).dirty, null);
+});
+
 test("worktree recovery only retries remaining attachments and retains failures", async () => {
   const { retryAttachments, worktreeSummary } = await load("worktree-result");
   const response = { outcome: "partial", result: { path: "/tree", completed: ["worktree created"], pending_workspaces: ["one", "two"], retry: "attachments_only", error: "blocked" } };
