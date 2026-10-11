@@ -2294,12 +2294,18 @@ it applies to <code>test-host</code>, <code>test-fast</code>, <code>test-integra
 <p>For Studio-only changes, use <code>npm test</code> and <code>npm run build</code> in <code>studio/app</code>,
 plus <code>cargo test --manifest-path studio/Cargo.toml</code> for native Rust changes.
 Run the full checks before handoff.</p>
+<p>Container selection and refresh use <code>probe-requests.ts</code>: matching in-flight reads
+are shared, without caching completed reports. A new selection or disconnect
+expires older activations. Browser regressions hold an old refresh through a
+container switch and verify that both success and failure leave the new target
+active; activity still records the completed check on its original profile.</p>
 <p>CI runs UI behavior tests and native application tests as well as the Rust core.
 Full host checks always run. Changed-path selection skips Studio builds for
 docs/test-only changes and skips image builds/Trivy for Studio/host-only changes.
 Image/runtime changes run both image and Studio checks. Unknown paths, unavailable
 Git history, manual dispatch and the weekly schedule run the full scope. Trivy's
-severity policy is unchanged. Docs deploy only after documentation changes.
+severity policy is unchanged. Strict docs checks run for documentation and docs
+tool changes, and on full-scope runs. Docs deploy only after documentation changes.
 The classifier and its pure tests are <code>ci_scope.py</code> and <code>test_ci_scope.py</code>;
 update them when adding a new build input. Browser downloads use a pinned-version
 cache, separate from native build artifacts.</p>
@@ -2710,7 +2716,7 @@ browser UX run. Run those locally when Docker or cockpit UX behaviour changes.</
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 11, 2026 13:12:33 UTC">October 11, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 11, 2026 18:21:44 UTC">October 11, 2026</span>
   </span>
 
     
