@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Container refresh and selection share an activation guard and in-flight probe
+  reads. Late replies cannot switch or lock a newly selected container; checks
+  finish their activity entries on the checked profile, even when superseded.
+- CI skips strict documentation builds for unrelated changes while retaining
+  full host checks and full-scope manual and weekly runs.
+
 - Workspace rename/removal and Git parent updates retain the checked target
   through approval, sharing the same guarded apply path as worktree cleanup.
   Switching containers also expires pending draft-discard confirmations.

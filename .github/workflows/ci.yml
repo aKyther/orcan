@@ -130,6 +130,7 @@ jobs:
 
   checks:
     name: Checks
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -166,6 +167,7 @@ jobs:
         run: ORCAN_TEST_MODE=all make test-coverage
 
       - name: Check documentation
+        if: needs.changes.outputs.docs == 'true'
         run: make docs-check
 
   image-scan:

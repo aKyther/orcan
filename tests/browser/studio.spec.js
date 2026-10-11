@@ -35,6 +35,30 @@ async function instrumentDemo(page, code) {
   await page.reload();
 }
 
+for (const failure of [false, true]) {
+  test(`late refresh ${failure ? 'failure' : 'success'} does not replace a newly selected container`, async ({ page }) => {
+    await instrumentDemo(page, `
+      if (command === 'probe' && _args.enclave.target.kind === 'local' && window.holdFixtureProbe) {
+        await new Promise((resolve, reject) => { window.releaseFixtureProbe = () => ${failure ? "reject(new Error('late fixture failure'))" : "resolve()"}; });
+      }
+    `);
+    await connect(page);
+    await page.evaluate(() => { window.holdFixtureProbe = true; });
+    await page.locator('[data-view-target="sandbox"]').click();
+    await page.locator('#sandbox-refresh').click();
+    await expect.poll(() => page.evaluate(() => typeof window.releaseFixtureProbe)).toBe('function');
+    await page.locator('[data-view-target="enclaves"]').click();
+    await page.locator('[data-profile-id="gpu"]').click();
+    await expect(page.locator('#active-group')).toContainText('GPU BOX');
+    await page.evaluate(() => window.releaseFixtureProbe());
+    await page.locator('[data-view-target="activity"]').click();
+    await expect(page.locator('#jobs-list')).toContainText(`container check · ${failure ? 'failed' : 'succeeded'}`);
+    await page.locator('[data-view-target="overview"]').click();
+    await expect(page.locator('#active-group')).toContainText('GPU BOX');
+    await expect(page.locator('#context-canvas')).toBeVisible();
+  });
+}
+
 test('connection gates context operations and disconnected profiles stay usable', async ({ page }) => {
   await expect(page.locator('[data-view-target="contexts"]')).toBeHidden();
   await page.locator('[data-view-target="profiles"]').click();

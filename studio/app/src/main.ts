@@ -1,6 +1,7 @@
 import { containerCreator as createContainerCreator } from "./container-creator";
 import { cleanupPanel } from "./cleanup";
 import { contextScope } from "./context-scope";
+import { probeRequests } from "./probe-requests";
 import { createCheckInvoker } from "./check-controls";
 import { retryAttachments, worktreeSummary, type WorktreeResult } from "./worktree-result";
 import { createMapConnections } from "./map-connections";
@@ -162,8 +163,10 @@ let worktreeReady = false;
 let profiles: ConnectionProfile[] = [];
 let savedCredentials: Credential[] = [];
 let current: Connection | undefined;
-let latestProbe = 0;
-let enclaveOpenSequence = 0;
+const probes = probeRequests<ProbeReport>(key => invoke("probe", { enclave: JSON.parse(key) }));
+function readProbe(connection: Connection): Promise<ProbeReport> {
+  return probes.read(JSON.stringify(enclaveInput(connection)));
+}
 let connected = false;
 let manualGroups: ReturnType<typeof groupPanel> | undefined;
 let serverCleanup: ReturnType<typeof cleanupPanel> | undefined;
@@ -245,7 +248,7 @@ function showView(name: string): void {
   const target = views.find((view) => view.dataset.view === name);
   if (!target || (gatedViews.has(name) && !connected && !(name === "contexts" && canViewContexts()))) return;
   currentView = name;
-  if (!containerView()) enclaveOpenSequence++;
+  if (!containerView()) probes.invalidate();
   if (name === "enclaves") checkAll();
   if (name === "identities") void identityLibrary.reload();
   if (name === "groups") void manualGroups?.refresh();
@@ -263,7 +266,8 @@ function showView(name: string): void {
 const healthPanel = document.querySelector<HTMLElement>(".health-panel")!;
 const needsManagedProjects = new Set(["sandbox", "repositories", "worktrees"]);
 
-function lockStudio(): void {
+function lockStudio(invalidateSelection = true): void {
+  if (invalidateSelection) probes.invalidate();
   if (!connected) return;
   connected = false;
   renderedContextViews.clear();
@@ -1796,7 +1800,7 @@ async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatu
   renderEnclaveStatus();
   let status: EnclaveStatus;
   try {
-    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
+    const report = await readProbe(connection);
     void Promise.all([
       discoverInstances(profile).catch(() => undefined), // Legacy CLI can still operate its default container.
       invoke<ServerCapacity>("server_capacity", { enclave: enclaveInput(connection), path: report.paths.projects_root }).then((capacity) => { if (sameHostProfile(profile)) serverCapacity.set(profile.id, capacity); }).catch(() => { if (sameHostProfile(profile)) serverCapacity.delete(profile.id); }),
@@ -1816,7 +1820,7 @@ async function checkEnclaveNow(profile: ConnectionProfile): Promise<EnclaveStatu
   enclaveStatus.set(key, status);
   if (connected && current?.profileId === profile.id && current.instance === connection.instance) {
     if (status.state === "online" && status.report) renderSnapshot(status.report);
-    else { currentReport = undefined; lockStudio(); }
+    else { currentReport = undefined; lockStudio(false); } // Do not cancel a pending selection of another container.
   }
   renderEnclaveStatus();
   return status;
@@ -1849,10 +1853,10 @@ function activate(connection: Connection, report: ProbeReport): void {
 
 /** Only a successful check in this session unlocks operations; cache is history. */
 async function openEnclave(profile: ConnectionProfile): Promise<boolean> {
-  const sequence = ++enclaveOpenSequence;
   const connection = profileConnection(profile);
   const checked = enclaveStatus.get(runtimeKey(profile));
   if (checked?.state === "online" && checked.report) {
+    probes.invalidate();
     activate(connection, checked.report);
     showView("overview");
     void checkEnclave(profile);
@@ -1860,8 +1864,9 @@ async function openEnclave(profile: ConnectionProfile): Promise<boolean> {
   }
   result.textContent = `Connecting to ${profile.name}…`;
   showView("enclaves");
+  const active = probes.begin();
   const status = await checkEnclave(profile);
-  if (sequence === enclaveOpenSequence && status.state === "online" && status.report) {
+  if (active() && status.state === "online" && status.report) {
     activate(connection, status.report);
     showView("overview");
     return true;
@@ -2426,24 +2431,24 @@ async function loadStore(): Promise<void> {
 
 /** Probes a container and, on success, makes it the active one. */
 async function connect(connection: Connection, output: HTMLOutputElement = result): Promise<ProbeReport | undefined> {
-  const request = ++latestProbe;
+  const active = probes.begin();
   output.textContent = `Connecting to ${connection.label} → reading Orcan report → checking runtime…`;
-  const job = addJob("container check", connection.label);
+  const job = addJob("container check", connection.label, connection.label, connection.profileId);
   try {
-    const report = await invoke<ProbeReport>("probe", { enclave: enclaveInput(connection) });
-    if (request !== latestProbe) return undefined;
+    const report = await readProbe(connection);
+    finishJob(job, "succeeded", "container report refreshed");
+    if (!active()) return undefined;
     if (connection.profileId) enclaveStatus.set(connection.instance ? `${connection.profileId}:${connection.instance}` : connection.profileId, { state: "online", report, at: Date.now() });
     activate(connection, report);
     output.textContent = `Connected · ${report.host.os}/${report.host.architecture} · Orcan ${report.sandbox.version} · container ${report.runtime.docker.container.state}`;
-    finishJob(job, "succeeded", "container report refreshed");
     renderStore();
     return report;
   } catch (error) {
-    if (request !== latestProbe) return undefined;
+    finishJob(job, "failed", String(error));
+    if (!active()) return undefined;
     if (connection.profileId) enclaveStatus.set(connection.instance ? `${connection.profileId}:${connection.instance}` : connection.profileId, { state: "offline", error: String(error), at: Date.now() });
     lockStudio();
     output.textContent = `Connection failed: ${String(error)}`;
-    finishJob(job, "failed", String(error));
     renderStore();
     throw error;
   }

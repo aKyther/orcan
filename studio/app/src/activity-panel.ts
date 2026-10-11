@@ -18,7 +18,7 @@ export function activityPanel(options: Options) {
   jobsList.before(activityFilter);
   const jobs = loadJobs();
   function saveJobs(): void { persistJobs(jobs); }
-  function addJob(name: string, detail: string, enclave = options.current()?.label, profileId = options.current()?.profileId): Job { const job = { name, detail, enclave, profileId, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); jobs.splice(50); saveJobs(); renderJobs(); return job; }
+  function addJob(name: string, detail: string, enclave?: string, profileId?: string): Job { if (enclave === undefined) { enclave = options.current()?.label; profileId = options.current()?.profileId; } const job = { name, detail, enclave, profileId, state: "running" as const, at: new Date().toISOString() }; jobs.unshift(job); jobs.splice(50); saveJobs(); renderJobs(); return job; }
   function finishJob(job: Job, state: "succeeded" | "failed", detail: string): void { job.state = state; job.detail = detail; saveJobs(); renderJobs(); }
   function renderJobs(): void {
     const selected = activityFilter.value;

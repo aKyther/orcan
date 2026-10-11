@@ -29,6 +29,11 @@ def scope(paths: list[str], *, full: bool = False) -> dict[str, bool]:
             selected["studio"] = True  # runtime/report compatibility
         elif path.startswith(("cli/", "bin/", "scripts/repository/")):
             selected["studio"] = True
+            if path in {
+                "scripts/repository/generate-llms-txt.py",
+                "scripts/repository/check-product-name.sh",
+            }:
+                selected["docs"] = True
             if path.endswith("ci_scope.py"):
                 selected = dict.fromkeys(selected, True)
         elif path.startswith("tests/host/") or path in {
@@ -41,7 +46,7 @@ def scope(paths: list[str], *, full: bool = False) -> dict[str, bool]:
         elif path in {"AGENTS.md", "CLAUDE.md", "LICENSE"} or path.startswith(
             ".cursor/"
         ):
-            continue
+            selected["docs"] = True  # product-name check includes agent guidance
         else:
             selected = dict.fromkeys(selected, True)
     return selected
