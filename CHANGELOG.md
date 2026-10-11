@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Workspace rename/removal and Git parent updates retain the checked target
+  through approval, sharing the same guarded apply path as worktree cleanup.
+  Switching containers also expires pending draft-discard confirmations.
+- Failed branch discovery retries when Worktrees is reopened. Cleanup resolves
+  memberships through one indexed report instead of scanning projects per row.
+
 - Worktree cleanup keeps the checked connection, report and managed root through
   approval; stale inventories and changed-target confirmations cannot act on a
   newly selected container. Branch and worktree inventories load on demand.

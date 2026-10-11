@@ -205,7 +205,7 @@ function loadContextExtras(report: ProbeReport): void {
     if (currentView === "worktrees") renderWorktreeChoices(report);
   }
   if (currentView !== "worktrees" || !connected) return;
-  if (branchesLoadedFor !== report) {
+  if (branchesLoadedFor !== report || branchChoices.status() === "failed") {
     branchesLoadedFor = report;
     void branchChoices.refresh();
   }
@@ -809,9 +809,11 @@ function workspaceDrafts(workspace: string): QueuedChange[] {
 async function discardWorkspaceDraft(workspace: string): Promise<void> {
   const drafts = workspaceDrafts(workspace);
   if (!drafts.length || !current) return;
+  const connection = current;
+  const key = enclaveChangeKey(connection);
   const noun = drafts.length === 1 ? "change" : "changes";
   if (!await confirmAction(`Discard ${drafts.length} planned ${noun} for ${workspace}? Nothing has been applied to Orcan.`, { title: "Discard planned changes", confirmLabel: "Discard", danger: true })) return;
-  const key = enclaveChangeKey(current);
+  if (current !== connection) return;
   for (let index = queuedChanges.length - 1; index >= 0; index -= 1) {
     if (queuedChanges[index].enclave === key && queuedChanges[index].workspace === workspace) restoredDraftIds.delete(queuedChanges.splice(index, 1)[0].id);
   }
@@ -1322,38 +1324,49 @@ async function updateSandboxParent(parent: ParentCandidate): Promise<void> {
 }
 
 async function updateParent(parent: ParentCandidate, label: string, reportStatus: (message: string) => void, completion = ""): Promise<void> {
-  if (!current || !parent.branch || !parent.eligible || parent.dirty !== false) return;
+  if (!current || !currentReport || !connected || !parent.branch || !parent.eligible || parent.dirty !== false) return;
+  const scope = contextScope(current, currentReport, () => [connected ? current : undefined, currentReport]);
   reportStatus(`Checking ${label}…`);
   try {
-    const response = await invoke<{ plan: { head: string; remote_head?: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch });
+    const response = await invoke<{ plan: { head: string; remote_head?: string; ready: boolean; blockers: string[] } }>("parent_plan", { enclave: enclaveInput(scope.connection), path: parent.path, branch: parent.branch });
+    if (!scope.active()) return;
     if (!response.plan.ready) {
       reportStatus(response.plan.blockers.join(" · "));
       return;
     }
     const remote = response.plan.remote_head?.slice(0, 8) ?? "origin";
-    if (!await confirmAction(`Update ${label}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`, { title: "Update source repository", confirmLabel: "Update" })) return;
-    reportStatus(`Updating ${parent.branch}…`);
-    await invoke("parent_apply", { enclave: enclaveInput(current), path: parent.path, branch: parent.branch, expectedHead: response.plan.head });
+    if (!await scope.approve(
+      () => confirmAction(`Update ${label}?\n${response.plan.head.slice(0, 8)} → ${remote}\n\nOrcan will run git pull --ff-only.`, { title: "Update source repository", confirmLabel: "Update" }),
+      () => { reportStatus(`Updating ${parent.branch}…`); return invoke("parent_apply", { enclave: enclaveInput(scope.connection), path: parent.path, branch: parent.branch, expectedHead: response.plan.head }); },
+    )) return;
     rememberParentRun(parentRuns, parent.path, parent.branch);
+    if (!scope.active()) return;
     reportStatus(`Updated ${label}${completion ? ` ${completion}` : ""}.`);
-    await connect(current);
+    await connect(scope.connection);
   } catch (error) {
-    reportStatus(`Parent update failed: ${String(error)}`);
+    if (scope.active()) reportStatus(`Parent update failed: ${String(error)}`);
   }
 }
 
 async function manageWorkspace(action: "rename" | "remove", workspace: string): Promise<void> {
   if (!current || !canEditContext()) { setContextNotice(contextEditMessage()); return; }
+  if (!currentReport) return;
+  const scope = contextScope(current, currentReport, () => [connected ? current : undefined, currentReport]);
   const newName = action === "rename" ? (await promptText(`Rename workspace ${workspace}.`, workspace, { title: "Rename workspace", confirmLabel: "Continue" }))?.trim() : undefined;
+  if (!scope.active()) return;
   if (action === "rename" && (!newName || newName === workspace)) return;
   try {
-    const plan = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: false });
+    const plan = await invoke<{ plan: { changes: string[]; blockers: string[]; ready: boolean } }>("workspace_action", { enclave: enclaveInput(scope.connection), action, workspace, newName, apply: false });
+    if (!scope.active()) return;
     if (!plan.plan.ready) { setContextNotice(plan.plan.blockers.join(" · ")); return; }
-    if (!await confirmAction(`${plan.plan.changes.join("\n")}\n\nApply this Orcan plan?`, { title: action === "rename" ? "Rename workspace" : "Remove workspace", confirmLabel: "Apply", danger: action === "remove" })) return;
-    await invoke("workspace_action", { enclave: enclaveInput(current), action, workspace, newName, apply: true });
+    if (!await scope.approve(
+      () => confirmAction(`${plan.plan.changes.join("\n")}\n\nApply this Orcan plan?`, { title: action === "rename" ? "Rename workspace" : "Remove workspace", confirmLabel: "Apply", danger: action === "remove" }),
+      () => invoke("workspace_action", { enclave: enclaveInput(scope.connection), action, workspace, newName, apply: true }),
+    )) return;
+    if (!scope.active()) return;
     setContextNotice(`${action === "rename" ? "Workspace renamed" : "Workspace removed"}. Run Orcan sync to reconcile mounts.`);
-    await connect(current);
-  } catch (error) { setContextNotice(`Workspace change failed: ${String(error)}`); }
+    await connect(scope.connection);
+  } catch (error) { if (scope.active()) setContextNotice(`Workspace change failed: ${String(error)}`); }
 }
 
 async function refreshWorktreeInventory(root: string): Promise<void> {
@@ -1368,8 +1381,9 @@ async function refreshWorktreeInventory(root: string): Promise<void> {
       cleanupSuggestions.replaceChildren(el("p", { className: "hint", textContent: "No managed worktrees to remove." }));
       return;
     }
+    const contextIndex = indexContext(scope.report);
     const rows = response.worktrees.map((worktree) => {
-      const bindings = scope.report.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.path === worktree.path).map(() => workspace.name));
+      const bindings = [...(contextIndex.workspacesByPath.get(worktree.path) ?? [])];
       const label = `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""}`;
       const actions = bindings.length
         ? bindings.map((workspace) => actionButton(`Detach ${workspace}`, () => { if (scope.active()) void reviewChange("detach", workspace, { name: worktree.project, path: worktree.path, kind: "git_worktree" }); }, "secondary"))
@@ -1396,12 +1410,12 @@ async function deleteWorktree(path: string, label: string): Promise<void> {
     const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(scope.connection), path, worktreesRoot: root, removeBranch: false, apply: false });
     if (!scope.active()) return;
     if (!response.plan.ready) { cleanupResult.textContent = response.plan.blockers.join(" · "); return; }
-    if (!await confirmAction(`Delete worktree ${label}?\n\nThis removes only this checkout:\n${path}\n\nIts local Git branch is kept in the source repository.`, { title: "Delete worktree", confirmLabel: "Delete", danger: true })) return;
-    if (!scope.active() || !canEditContext()) return;
     const connection = scope.connection;
-    job = addJob("Worktree cleanup", label);
-    await invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: root, removeBranch: false, apply: true });
-    finishJob(job, "succeeded", path);
+    if (!await scope.approve(
+      () => confirmAction(`Delete worktree ${label}?\n\nThis removes only this checkout:\n${path}\n\nIts local Git branch is kept in the source repository.`, { title: "Delete worktree", confirmLabel: "Delete", danger: true }),
+      () => { job = addJob("Worktree cleanup", label); return invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: root, removeBranch: false, apply: true }); },
+    )) return;
+    if (job) finishJob(job, "succeeded", path);
     if (!scope.active()) return;
     cleanupResult.textContent = `Deleted ${label}.`;
     await connect(connection);

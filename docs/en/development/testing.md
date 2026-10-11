@@ -80,6 +80,11 @@ The CLI integration suite still checks rejection and absence of config writes.
 Studio inventory and deletion bind to a connection/report snapshot via
 `context-scope.ts`. Changing either expires the pending approval. Worktree/branch
 reads wait until the Worktrees view opens; a new report invalidates loaded views.
+The shared approval gate tests that no mutation callback is sent after a target
+switch, disconnect or report refresh; stable approval sends exactly one. Workspace
+rename/removal, Git parent updates and worktree deletion all use this gate.
+Branch discovery exposes idle/loading/ready/failed states; reopening Worktrees
+retries failed reads without duplicating a pending or successful request.
 Map tests check retained SVG path identity across resize and removal of old edges.
 
 `test_context_presenters.py` contains isolated formatting contracts; Git-backed
@@ -101,11 +106,12 @@ Probe Git facts use three local processes per unique path: common directory,
 porcelain-v2 status (branch, upstream, counts, dirtiness), and origin URL. Facts
 are reused only within the current report; updates still recheck live Git state.
 
-Studio has six real browser smoke flows, independent of the cockpit suite:
+Studio has seven real browser smoke flows, independent of the cockpit suite:
 connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
 100-project/10-workspace map checking filters, both anchors and retained drafts,
 creator readiness/approval invalidation after changing its target, and on-demand
-inventory reads that ignore an expired report.
+inventory reads that ignore an expired report. A workspace approval regression
+also checks that refreshing its report sends no apply command after confirmation.
 They use fixture data, block host snapshots, and contact no SSH or Docker target.
 CI runs them after the UI tests. Locally:
 

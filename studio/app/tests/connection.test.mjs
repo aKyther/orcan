@@ -17,12 +17,14 @@ test("branch picker ignores late replies and does not label an unknown name as n
   const picker = branchPicker({ source, branch, state, existing, output, connection: () => connection, root: () => "/trees", invalidate: () => {}, changed: () => {}, invoke: () => new Promise(resolve => replies.push(resolve)) });
   let connection = { target: { kind: "local" } };
   const first = picker.refresh();
+  assert.equal(picker.status(), "loading");
   assert.match(state.textContent, /Checking/);
   source.value = "/two";
   const second = picker.refresh();
   assert.equal(replies.length, 2, output.textContent);
   replies[1]({ branches: ["feature"] });
   await second;
+  assert.equal(picker.status(), "ready");
   assert.match(state.textContent, /Existing branch/);
   replies[0]({ branches: ["old"] });
   await first;
@@ -31,6 +33,28 @@ test("branch picker ignores late replies and does not label an unknown name as n
   await picker.refresh();
   assert.deepEqual(picker.branches(), []);
   assert.match(state.textContent, /unavailable/);
+  assert.equal(picker.status(), "idle");
+});
+
+test("failed branch discovery can be retried without changing its source", async () => {
+  setup();
+  const { branchPicker } = await load("branch-picker", {
+    "./context-model": compiledModule("context-model"),
+    "./transport": dataModule("export function enclaveInput(value) { return value; }"),
+  });
+  const source = new Element(), branch = new Element(), state = new Element(), existing = new Element();
+  source.value = "/repo"; existing.after = () => {}; state.classList = { toggle() {} };
+  let calls = 0;
+  const connection = { instance: "one" };
+  const picker = branchPicker({ source, branch, state, existing, output: new Element(), connection: () => connection, root: () => "/trees", invalidate() {}, changed() {},
+    invoke: async () => { if (++calls === 1) throw new Error("offline"); return { branches: ["main"] }; },
+  });
+  await picker.refresh();
+  assert.equal(picker.status(), "failed");
+  await picker.refresh();
+  assert.equal(picker.status(), "ready");
+  assert.deepEqual(picker.branches(), ["main"]);
+  assert.equal(calls, 2);
 });
 
 test("read-only probe cancellation is scoped and controls disappear on failure", async () => {
@@ -215,6 +239,30 @@ test("context approvals expire on container switch or report refresh", async () 
   current = connection;
   snapshot = { root: "/trees" };
   assert.equal(scope.active(), false);
+});
+
+test("approved context mutations are never sent after the target changes", async () => {
+  const { contextScope } = await load("context-scope");
+  for (const change of ["connection", "report", "disconnect"]) {
+    let current = { instance: "one" }, report = { root: "/trees" };
+    const scope = contextScope(current, report, () => [current, report]);
+    const sent = [];
+    let resolve;
+    const confirmation = new Promise(done => { resolve = done; });
+    const pending = scope.approve(() => confirmation, async () => { sent.push(scope.connection); });
+    if (change === "connection") current = { instance: "two" };
+    if (change === "report") report = { root: "/trees" };
+    if (change === "disconnect") current = undefined;
+    resolve(true);
+    assert.equal(await pending, false);
+    assert.deepEqual(sent, []);
+  }
+  const connection = { instance: "one" }, report = {};
+  const scope = contextScope(connection, report, () => [connection, report]);
+  let calls = 0;
+  assert.equal(await scope.approve(async () => false, async () => { calls++; }), false);
+  assert.equal(await scope.approve(async () => true, async () => { calls++; }), true);
+  assert.equal(calls, 1);
 });
 
 test("map geometry reuses SVG paths and removes obsolete bindings", async () => {

@@ -23,6 +23,18 @@ async function connect(page) {
   await expect(page.locator('#workspace-cards .project-chip').first()).toBeVisible();
 }
 
+async function instrumentDemo(page, code) {
+  // Instrument only the Vite fixture module, never native transports or production.
+  await page.route('**/src/demo.ts', async route => {
+    const response = await route.fetch();
+    const source = await response.text();
+    const pattern = /async function demoInvoke\([^)]*\) \{/;
+    expect(source).toMatch(pattern);
+    await route.fulfill({ response, body: source.replace(pattern, match => match + code) });
+  });
+  await page.reload();
+}
+
 test('connection gates context operations and disconnected profiles stay usable', async ({ page }) => {
   await expect(page.locator('[data-view-target="contexts"]')).toBeHidden();
   await page.locator('[data-view-target="profiles"]').click();
@@ -32,33 +44,54 @@ test('connection gates context operations and disconnected profiles stay usable'
 });
 
 test('worktree inventories load on demand and ignore results from a previous target', async ({ page }) => {
-  // Instrument only the Vite fixture module, never native transports or production.
-  await page.route('**/src/demo.ts', async route => {
-    const response = await route.fetch();
-    const source = await response.text();
-    const pattern = /async function demoInvoke\([^)]*\) \{/;
-    expect(source).toMatch(pattern);
-    const body = source.replace(pattern, match => match + `
+  await instrumentDemo(page, `
       (window.fixtureCalls ??= []).push(command);
+      if (command === 'worktree_branches') {
+        if ((window.fixtureBranchAttempts = (window.fixtureBranchAttempts ?? 0) + 1) === 1) throw new Error('fixture unavailable');
+        return { branches: ['main'] };
+      }
       if (command === 'worktree_inventory') {
         await new Promise(resolve => { window.releaseFixtureInventory = resolve; });
         return { worktrees: [{ path: _args.worktreesRoot + '/orphan', project: 'old-target-orphan', dirty: false }] };
       }
-    `);
-    await route.fulfill({ response, body });
-  });
-  await page.reload();
+  `);
   await connect(page);
   expect(await page.evaluate(() => window.fixtureCalls.filter(name => name === 'worktree_inventory' || name === 'worktree_branches'))).toEqual([]);
   await page.locator('[data-view-target="worktrees"]').click();
   await expect.poll(() => page.evaluate(() => window.fixtureCalls.filter(name => name === 'worktree_inventory').length)).toBe(1);
   await expect.poll(() => page.evaluate(() => typeof window.releaseFixtureInventory)).toBe('function');
+  await expect(page.locator('#worktree-result')).toContainText('Could not read branches');
+  await page.locator('[data-view-target="overview"]').click();
+  await page.locator('[data-view-target="worktrees"]').click();
+  await expect.poll(() => page.evaluate(() => window.fixtureBranchAttempts)).toBe(2);
+  expect(await page.evaluate(() => window.fixtureCalls.filter(name => name === 'worktree_inventory').length)).toBe(1);
   // A fresh report invalidates pending reads even when the same host is selected.
   await page.locator('[data-view-target="sandbox"]').click();
   await page.locator('#sandbox-refresh').click();
   await expect(page.locator('#sandbox-result')).toContainText('Connected');
   await page.evaluate(() => window.releaseFixtureInventory());
   await expect(page.locator('#cleanup-suggestions')).not.toContainText('old-target-orphan');
+});
+
+test('workspace approval sends no apply command after its report expires', async ({ page }) => {
+  await instrumentDemo(page, `
+    if (command === 'workspace_action') {
+      (window.fixtureWorkspaceCalls ??= []).push(_args.apply);
+      return { plan: { ready: true, changes: ['Rename workspace'], blockers: [] } };
+    }
+  `);
+  await connect(page);
+  await page.locator('[data-view-target="contexts"]').click();
+  await page.locator('.context-workspace-detail').getByRole('button', { name: 'Rename', exact: true }).click();
+  const dialog = page.locator('.studio-dialog');
+  await dialog.locator('input').fill('renamed');
+  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Apply', exact: true })).toBeVisible();
+  await page.evaluate(() => document.querySelector('#sandbox-refresh').click());
+  await expect(page.locator('#sandbox-result')).toContainText('Connected');
+  await dialog.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  expect(await page.evaluate(() => window.fixtureWorkspaceCalls)).toEqual([false]);
 });
 
 test('container creator invalidates readiness and approval when its target changes', async ({ page }) => {

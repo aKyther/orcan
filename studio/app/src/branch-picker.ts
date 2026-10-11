@@ -14,8 +14,7 @@ type Options = {
 export function branchPicker(options: Options) {
   let branches: string[] = [];
   let sequence = 0;
-  let known = false;
-  let loading = false;
+  let status: "idle" | "loading" | "ready" | "failed" = "idle";
   const browser = el("details", { className: "branch-browser" });
   const summary = el("summary");
   const search = el("input", { placeholder: "filter branches" });
@@ -25,6 +24,7 @@ export function branchPicker(options: Options) {
   options.existing.after(browser);
 
   function render() {
+    const known = status === "ready", loading = status === "loading";
     const name = options.branch.value.trim();
     const exists = branches.includes(name);
     options.state.textContent = !name ? "Enter a branch name." : loading ? "Checking branch names…" : !known
@@ -45,8 +45,7 @@ export function branchPicker(options: Options) {
     const request = ++sequence;
     const connection = options.connection(), repo = options.source.value;
     branches = [];
-    known = false;
-    loading = Boolean(connection && repo);
+    status = connection && repo ? "loading" : "idle";
     render();
     options.changed();
     if (!connection || !repo) return;
@@ -56,12 +55,12 @@ export function branchPicker(options: Options) {
       const response = await options.invoke<{ branches: unknown }>("worktree_branches", { enclave: enclaveInput(connection), repo, worktreesRoot: options.root() });
       if (!latest()) return;
       branches = validateBranches(response.branches);
-      known = true;
+      status = "ready";
     } catch (error) {
       if (!latest()) return;
+      status = "failed";
       options.output.textContent = `Could not read branches: ${String(error)}`;
     }
-    loading = false;
     render();
     options.changed();
   }
@@ -69,9 +68,9 @@ export function branchPicker(options: Options) {
   options.source.addEventListener("change", () => { options.invalidate(); void refresh(); });
   options.branch.addEventListener("input", () => {
     options.invalidate();
-    if (known && branches.includes(options.branch.value.trim())) options.output.textContent = `Existing branch: ${options.branch.value.trim()}. Preview the plan before checking it out.`;
+    if (status === "ready" && branches.includes(options.branch.value.trim())) options.output.textContent = `Existing branch: ${options.branch.value.trim()}. Preview the plan before checking it out.`;
     render();
   });
   search.addEventListener("input", render);
-  return { refresh, branches: () => branches, reset() { sequence++; branches = []; known = false; loading = false; render(); } };
+  return { refresh, branches: () => branches, status: () => status, reset() { sequence++; branches = []; status = "idle"; render(); } };
 }
