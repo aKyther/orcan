@@ -74,6 +74,14 @@ template rather than repeating init/config/commit for every checkout.
 UI tests share `tests/helpers.mjs`: TypeScript compilation is cached, but each
 test gets fresh module state. No browser emulator is needed for these contracts.
 
+Container creation options are checked by `studio-enclave.py:build_configuration`;
+`test_studio_creation_options.py` exercises validation without spawning Python.
+The CLI integration suite still checks rejection and absence of config writes.
+Studio inventory and deletion bind to a connection/report snapshot via
+`context-scope.ts`. Changing either expires the pending approval. Worktree/branch
+reads wait until the Worktrees view opens; a new report invalidates loaded views.
+Map tests check retained SVG path identity across resize and removal of old edges.
+
 `test_context_presenters.py` contains isolated formatting contracts; Git-backed
 context tests remain in `test_context_tui.py`. Labels and rows live in
 `scripts/repository/context_presenters.py`, without curses or command execution.
@@ -93,10 +101,11 @@ Probe Git facts use three local processes per unique path: common directory,
 porcelain-v2 status (branch, upstream, counts, dirtiness), and origin URL. Facts
 are reused only within the current report; updates still recheck live Git state.
 
-Studio has five real browser smoke flows, independent of the cockpit suite:
+Studio has six real browser smoke flows, independent of the cockpit suite:
 connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
 100-project/10-workspace map checking filters, both anchors and retained drafts,
-and creator readiness/approval invalidation after changing its target.
+creator readiness/approval invalidation after changing its target, and on-demand
+inventory reads that ignore an expired report.
 They use fixture data, block host snapshots, and contact no SSH or Docker target.
 CI runs them after the UI tests. Locally:
 

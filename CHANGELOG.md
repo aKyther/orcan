@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Worktree cleanup keeps the checked connection, report and managed root through
+  approval; stale inventories and changed-target confirmations cannot act on a
+  newly selected container. Branch and worktree inventories load on demand.
+- Context views render once per report when opened. Map resize keeps existing
+  SVG paths and batches anchor measurements before geometry updates.
+- Container creation validation runs in-process in fast tests, with CLI checks
+  retained for rejection without writing configuration.
+
 - Studio probe reads branch, upstream, divergence and dirty state in one local
   Git status snapshot, halving Git processes per repository without stale caches.
   CLI transfers share one archive producer across profile and WSL transports.

@@ -18,6 +18,60 @@ from path_guards import PathGuardError, checked_project_dir
 from config_io import config_write_lock, dump_config
 
 
+def build_configuration(args: argparse.Namespace) -> dict:
+    """Validate creation options without spawning processes or writing config."""
+
+    def fail(message: str) -> None:
+        raise ValueError(message)
+
+    empty_config = {"workspaces": []}
+    if args.identity_json is not None:
+        try:
+            identity = validate_identity(json.loads(args.identity_json))
+            if identity is None:
+                fail("select Default by omitting --identity-json")
+            empty_config["identity"] = identity
+        except (ValueError, TypeError) as error:
+            fail(str(error))
+    if args.image is not None:
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]*", args.image):
+            fail("invalid Docker image reference")
+        empty_config["image"] = args.image
+    if args.projects_root is not None:
+        root = Path(args.projects_root)
+        if (
+            not root.is_absolute()
+            or "\n" in args.projects_root
+            or "\r" in args.projects_root
+            or "$" in args.projects_root
+            or "`" in args.projects_root
+            or (root.exists() and not root.is_dir())
+        ):
+            fail("project root must be an absolute directory without line breaks")
+        try:
+            empty_config["projects_root"] = str(
+                checked_project_dir(root, must_exist=False)
+            )
+        except PathGuardError as error:
+            fail(str(error))
+    if args.ttyd_host_port is not None:
+        if not 1024 <= args.ttyd_host_port <= 65535:
+            fail("browser-terminal host port must be 1024–65535")
+        empty_config["ttyd"] = {"host_port": args.ttyd_host_port}
+    resources = {}
+    if args.cpus is not None:
+        if not math.isfinite(args.cpus) or not 0 < args.cpus <= 1024:
+            fail("CPU limit must be greater than zero and at most 1024")
+        resources["cpus"] = args.cpus
+    if args.memory_gb is not None:
+        if not 1 <= args.memory_gb <= 65536:
+            fail("RAM must be 1–65536 GiB")
+        resources["memory"] = f"{args.memory_gb}g"
+    if resources:
+        empty_config["resources"] = resources
+    return empty_config
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=("plan", "apply", "rollback"))
@@ -31,53 +85,11 @@ def main() -> None:
     parser.add_argument("--identity-json")
     args = parser.parse_args()
     config = Path(args.config)
-    empty_config = {"workspaces": []}
-    if args.identity_json is not None:
-        try:
-            identity = validate_identity(json.loads(args.identity_json))
-            if identity is None:
-                parser.error("select Default by omitting --identity-json")
-            empty_config["identity"] = identity
-        except (ValueError, TypeError) as error:
-            parser.error(str(error))
-    if args.image is not None:
-        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]*", args.image):
-            parser.error("invalid Docker image reference")
-        empty_config["image"] = args.image
-    if args.projects_root is not None:
-        root = Path(args.projects_root)
-        if (
-            not root.is_absolute()
-            or "\n" in args.projects_root
-            or "\r" in args.projects_root
-            or "$" in args.projects_root
-            or "`" in args.projects_root
-            or (root.exists() and not root.is_dir())
-        ):
-            parser.error(
-                "project root must be an absolute directory without line breaks"
-            )
-        try:
-            empty_config["projects_root"] = str(
-                checked_project_dir(root, must_exist=False)
-            )
-        except PathGuardError as error:
-            parser.error(str(error))
-    if args.ttyd_host_port is not None:
-        if not 1024 <= args.ttyd_host_port <= 65535:
-            parser.error("browser-terminal host port must be 1024–65535")
-        empty_config["ttyd"] = {"host_port": args.ttyd_host_port}
-    resources = {}
-    if args.cpus is not None:
-        if not math.isfinite(args.cpus) or not 0 < args.cpus <= 1024:
-            parser.error("CPU limit must be greater than zero and at most 1024")
-        resources["cpus"] = args.cpus
-    if args.memory_gb is not None:
-        if not 1 <= args.memory_gb <= 65536:
-            parser.error("RAM must be 1–65536 GiB")
-        resources["memory"] = f"{args.memory_gb}g"
-    if resources:
-        empty_config["resources"] = resources
+    try:
+        empty_config = build_configuration(args)
+    except ValueError as error:
+        parser.error(str(error))
+    resources = empty_config.get("resources", {})
     plan = {
         "operation": "empty_enclave",
         "config": str(config),

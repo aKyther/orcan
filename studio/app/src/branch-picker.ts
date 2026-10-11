@@ -73,5 +73,5 @@ export function branchPicker(options: Options) {
     render();
   });
   search.addEventListener("input", render);
-  return { refresh, branches: () => branches };
+  return { refresh, branches: () => branches, reset() { sequence++; branches = []; known = false; loading = false; render(); } };
 }

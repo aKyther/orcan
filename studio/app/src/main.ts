@@ -1,5 +1,6 @@
 import { containerCreator as createContainerCreator } from "./container-creator";
 import { cleanupPanel } from "./cleanup";
+import { contextScope } from "./context-scope";
 import { createCheckInvoker } from "./check-controls";
 import { retryAttachments, worktreeSummary, type WorktreeResult } from "./worktree-result";
 import { createMapConnections } from "./map-connections";
@@ -189,6 +190,30 @@ const viewTitles: Record<string, string> = { credentials: "Credentials & keys", 
 const gatedViews = new Set(navigationItems.filter((item) => item.classList.contains("gated")).map((item) => item.dataset.viewTarget));
 gatedViews.add("settings");
 let currentView = "overview";
+let branchesLoadedFor: ProbeReport | undefined;
+let inventoryLoadedFor: ProbeReport | undefined;
+let inventorySequence = 0;
+const renderedContextViews = new Set<string>();
+
+function loadContextExtras(report: ProbeReport): void {
+  if (!renderedContextViews.has(currentView)) {
+    renderedContextViews.add(currentView);
+    if (currentView === "overview") renderEnclaveMap(report);
+    if (currentView === "contexts") { renderContextWorkspaceList(report); renderContextDetails(report); }
+    if (currentView === "sandbox") renderSandboxProjects(report);
+    if (currentView === "repositories") renderImportChoices(report);
+    if (currentView === "worktrees") renderWorktreeChoices(report);
+  }
+  if (currentView !== "worktrees" || !connected) return;
+  if (branchesLoadedFor !== report) {
+    branchesLoadedFor = report;
+    void branchChoices.refresh();
+  }
+  if (inventoryLoadedFor !== report) {
+    inventoryLoadedFor = report;
+    void refreshWorktreeInventory(report.paths.managed_worktrees_root);
+  }
+}
 
 function canViewContexts(): boolean {
   return connected || Boolean(currentReport);
@@ -232,6 +257,7 @@ function showView(name: string): void {
   }
   viewTitle.textContent = viewTitles[name] ?? name[0].toUpperCase() + name.slice(1);
   syncContainerNavigation();
+  if (currentReport) loadContextExtras(currentReport);
 }
 
 const healthPanel = document.querySelector<HTMLElement>(".health-panel")!;
@@ -240,6 +266,9 @@ const needsManagedProjects = new Set(["sandbox", "repositories", "worktrees"]);
 function lockStudio(): void {
   if (!connected) return;
   connected = false;
+  renderedContextViews.clear();
+  inventorySequence++;
+  branchChoices.reset();
   if (gatedViews.has(currentView)) showView("overview");
   syncContainerNavigation();
   healthPanel.hidden = true;
@@ -720,6 +749,8 @@ function restoreMapState(): void {
   focusedWorkspace = saved?.workspace;
 }
 function saveMapState(): void {
+  renderedContextViews.delete("overview");
+  renderedContextViews.delete("contexts");
   if (!current) return;
   persistMapState(enclaveChangeKey(current), { filters: [...activeMapFilters], workspace: focusedWorkspace });
 }
@@ -1096,7 +1127,8 @@ function renderWorktreeChoices(report: ProbeReport): void {
     ? previousRepository
     : sources[0]?.path ?? "";
   worktreeWorkspaces.replaceChildren(...report.context.workspaces.map((workspace) => new Option(`${workspace.name} · ${workspace.projects.length} projects`, workspace.name, false, previousWorkspaces.has(workspace.name) || focusedWorkspace === workspace.name)));
-  void branchChoices.refresh();
+  branchesLoadedFor = undefined;
+  branchChoices.reset();
 }
 
 function renderImportChoices(report: ProbeReport): void {
@@ -1120,13 +1152,11 @@ function renderSnapshot(report: ProbeReport): void {
   unlockStudio(report);
   restoreMapState();
   for (const button of mapFilterChips.querySelectorAll<HTMLButtonElement>("[data-map-filter]")) button.classList.toggle("active", activeMapFilters.has(button.dataset.mapFilter as MapFilter));
-  renderEnclaveMap(report);
+  renderedContextViews.clear();
   snapshot.hidden = false;
   snapshotRoot.textContent = report.paths.projects_root;
   snapshotWorkspaces.textContent = String(report.context.workspaces.length);
   snapshotProjects.textContent = String(report.context.managed_projects.length);
-  renderContextWorkspaceList(report);
-  renderSandboxProjects(report);
   sandboxSettings.hidden = false;
   $("#settings-title").textContent = `Container: ${report.runtime.docker.container.name ?? "not reported"} · ${current?.label ?? "connected server"}`;
   renderConnectionDoctor(report);
@@ -1140,15 +1170,19 @@ function renderSnapshot(report: ProbeReport): void {
   if (!canEditContext(report)) settingsResult.textContent = contextEditMessage();
   setting("setting-access").textContent = accessExposure(report.runtime.launch);
   renderEnclaveConfiguration(report);
-  renderImportChoices(report);
-  renderWorktreeChoices(report);
+  branchesLoadedFor = undefined;
+  branchChoices.reset();
   const resources = report.runtime.resources;
   settingResources.textContent = resources ? `CPU ${resources.cpus ?? "—"} · RAM ${resources.memory ?? "—"} · SHM ${resources.shm_size ?? "—"}` : "Not reported";
   const agents = Object.entries(report.runtime.docker.agents ?? {}).filter(([, available]) => available).map(([name]) => name);
   settingAgents.textContent = agents.length ? agents.join(" · ") : "No image manifest reported";
   cleanupSuggestions.replaceChildren(el("p", { className: "hint", textContent: "Loading managed worktrees…" }));
-  void refreshWorktreeInventory(report.paths.managed_worktrees_root);
+  inventoryLoadedFor = undefined;
+  loadContextExtras(report);
   renderRuntime(report);
+}
+
+function renderContextDetails(report: ProbeReport): void {
   const rows: HTMLElement[] = [];
   for (const workspace of report.context.workspaces) {
     const row = document.createElement("div");
@@ -1228,6 +1262,7 @@ function renderContextWorkspaceList(report: ProbeReport): void {
   const editable = Boolean(report && canEditContext(report));
   const selected = focusedWorkspace && report.context.workspaces.some((workspace) => workspace.name === focusedWorkspace)
     ? focusedWorkspace : report.context.workspaces[0]?.name;
+  if (focusedWorkspace !== selected) renderedContextViews.delete("overview");
   focusedWorkspace = selected;
   contextWorkspaceList.replaceChildren(...report.context.workspaces.map((workspace) => {
     const dirty = workspace.projects.filter((project) => project.dirty).length;
@@ -1322,39 +1357,58 @@ async function manageWorkspace(action: "rename" | "remove", workspace: string): 
 }
 
 async function refreshWorktreeInventory(root: string): Promise<void> {
-  if (!current) return;
+  if (!current || !currentReport) return;
+  const scope = contextScope(current, currentReport, () => [connected ? current : undefined, currentReport]);
+  const request = ++inventorySequence;
+  const latest = () => request === inventorySequence && scope.active();
   try {
-    const response = await invoke<{ worktrees: Array<{ path: string; project: string; branch?: string; dirty: boolean }> }>("worktree_inventory", { enclave: enclaveInput(current), worktreesRoot: root });
+    const response = await invoke<{ worktrees: Array<{ path: string; project: string; branch?: string; dirty: boolean }> }>("worktree_inventory", { enclave: enclaveInput(scope.connection), worktreesRoot: root });
+    if (!latest()) return;
     if (!response.worktrees.length) {
       cleanupSuggestions.replaceChildren(el("p", { className: "hint", textContent: "No managed worktrees to remove." }));
       return;
     }
     const rows = response.worktrees.map((worktree) => {
-      const bindings = currentReport?.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.path === worktree.path).map(() => workspace.name)) ?? [];
+      const bindings = scope.report.context.workspaces.flatMap((workspace) => workspace.projects.filter((project) => project.path === worktree.path).map(() => workspace.name));
       const label = `${worktree.project}${worktree.branch ? ` · ${worktree.branch}` : ""}${worktree.dirty ? " · uncommitted" : ""}`;
       const actions = bindings.length
-        ? bindings.map((workspace) => actionButton(`Detach ${workspace}`, () => void reviewChange("detach", workspace, { name: worktree.project, path: worktree.path, kind: "git_worktree" }), "secondary"))
-        : [actionButton("Delete", () => void deleteWorktree(worktree.path, label), "danger-link")];
+        ? bindings.map((workspace) => actionButton(`Detach ${workspace}`, () => { if (scope.active()) void reviewChange("detach", workspace, { name: worktree.project, path: worktree.path, kind: "git_worktree" }); }, "secondary"))
+        : [actionButton("Delete", () => { if (scope.active()) void deleteWorktree(worktree.path, label); }, "danger-link")];
       return el("div", { className: `cleanup-item ${bindings.length ? "bound" : "orphan"}` }, el("div", {}, el("strong", { textContent: label }), el("small", { textContent: bindings.length ? `Attached to ${bindings.join(", ")} · detach before deleting` : "Ready to delete · local branch is kept" }), el("small", { textContent: worktree.path })), ...actions);
     });
     cleanupSuggestions.replaceChildren(...rows);
-  } catch { /* The current context map remains usable if inventory is unavailable. */ }
+  } catch (error) {
+    if (latest()) {
+      inventoryLoadedFor = undefined;
+      cleanupSuggestions.replaceChildren(el("p", { className: "hint", textContent: `Worktree inventory unavailable: ${String(error)}. Reopen Worktrees to retry.` }));
+    }
+  }
 }
 
 async function deleteWorktree(path: string, label: string): Promise<void> {
   if (!current || !canEditContext()) { cleanupResult.textContent = contextEditMessage(); return; }
+  if (!currentReport) return;
+  const scope = contextScope(current, currentReport, () => [connected ? current : undefined, currentReport]);
+  const root = scope.report.paths.managed_worktrees_root;
+  let job: ReturnType<typeof addJob> | undefined;
   cleanupResult.textContent = `Checking removal of ${label}…`;
   try {
-    const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(current), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: false });
+    const response = await invoke<{ plan: { ready: boolean; blockers: string[] } }>("worktree_cleanup", { enclave: enclaveInput(scope.connection), path, worktreesRoot: root, removeBranch: false, apply: false });
+    if (!scope.active()) return;
     if (!response.plan.ready) { cleanupResult.textContent = response.plan.blockers.join(" · "); return; }
     if (!await confirmAction(`Delete worktree ${label}?\n\nThis removes only this checkout:\n${path}\n\nIts local Git branch is kept in the source repository.`, { title: "Delete worktree", confirmLabel: "Delete", danger: true })) return;
-    const connection = current;
-    const job = addJob("Worktree cleanup", label);
-    await invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: setting("setting-worktrees-root").textContent, removeBranch: false, apply: true });
+    if (!scope.active() || !canEditContext()) return;
+    const connection = scope.connection;
+    job = addJob("Worktree cleanup", label);
+    await invoke("worktree_cleanup", { enclave: enclaveInput(connection), path, worktreesRoot: root, removeBranch: false, apply: true });
     finishJob(job, "succeeded", path);
+    if (!scope.active()) return;
     cleanupResult.textContent = `Deleted ${label}.`;
     await connect(connection);
-  } catch (error) { cleanupResult.textContent = `Removal failed: ${String(error)}`; }
+  } catch (error) {
+    if (job) finishJob(job, "failed", String(error));
+    if (scope.active()) cleanupResult.textContent = `Removal failed: ${String(error)}`;
+  }
 }
 
 let editingProfile: ConnectionProfile | undefined;

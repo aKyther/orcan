@@ -5,6 +5,7 @@ export function createMapConnections(canvas: HTMLElement, sources: HTMLElement, 
   measure: <T>(name: string, operation: () => T) => T = (_name, operation) => operation()) {
   let frame: number | undefined;
   let edges: Array<{ line: SVGPathElement; path: string; workspace?: string; state: string }> = [];
+  let lines = new Map<string, SVGPathElement>();
 
   function highlight() {
     measure("map-selection", highlightContents);
@@ -30,8 +31,6 @@ export function createMapConnections(canvas: HTMLElement, sources: HTMLElement, 
 
   function drawContents() {
     const bounds = canvas.getBoundingClientRect();
-    background.replaceChildren();
-    foreground.replaceChildren();
     edges = [];
     for (const layer of [background, foreground]) layer.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
     const byPath = new Map<string, HTMLElement[]>();
@@ -42,6 +41,9 @@ export function createMapConnections(canvas: HTMLElement, sources: HTMLElement, 
       byPath.set(path, entries);
     }
     const horizontal = window.matchMedia("(min-width: 761px)").matches;
+    const next = new Map<string, SVGPathElement>();
+    const occurrences = new Map<string, number>();
+    const updates: Array<{ line: SVGPathElement; path: string; workspace: string; geometry: string }> = [];
     for (const source of sources.querySelectorAll<HTMLElement>(".project-chip[data-project-path]")) {
       const sourceBox = source.querySelector<HTMLElement>(".connection-anchor")?.getBoundingClientRect();
       if (!sourceBox?.width || !sourceBox.height) continue;
@@ -49,20 +51,32 @@ export function createMapConnections(canvas: HTMLElement, sources: HTMLElement, 
       for (const target of byPath.get(path) ?? []) {
         const targetBox = target.querySelector<HTMLElement>(".connection-anchor")?.getBoundingClientRect();
         if (!targetBox?.width || !targetBox.height) continue;
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        line.setAttribute("data-project-path", path);
-        line.setAttribute("data-workspace", target.dataset.workspace ?? "");
+        const identity = JSON.stringify([path, target.dataset.workspace ?? ""]);
+        const occurrence = occurrences.get(identity) ?? 0;
+        occurrences.set(identity, occurrence + 1);
+        const key = `${identity}:${occurrence}`;
+        const line = lines.get(key) ?? document.createElementNS("http://www.w3.org/2000/svg", "path");
+        next.set(key, line);
         const startX = sourceBox.left - bounds.left + sourceBox.width / 2;
         const startY = sourceBox.top - bounds.top + sourceBox.height / 2;
         const endX = targetBox.left - bounds.left + targetBox.width / 2;
         const endY = targetBox.top - bounds.top + targetBox.height / 2;
         const middleX = (startX + endX) / 2, middleY = (startY + endY) / 2;
-        line.setAttribute("d", horizontal
+        const geometry = horizontal
           ? `M ${startX} ${startY} C ${middleX} ${startY}, ${middleX} ${endY}, ${endX} ${endY}`
-          : `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`);
+          : `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`;
+        updates.push({ line, path, workspace: target.dataset.workspace ?? "", geometry });
         edges.push({ line, path, workspace: target.dataset.workspace, state: target.dataset.connectionState ?? "current" });
       }
     }
+    // Measure every anchor before changing live SVG geometry.
+    for (const { line, path, workspace, geometry } of updates) {
+      line.setAttribute("data-project-path", path);
+      line.setAttribute("data-workspace", workspace);
+      line.setAttribute("d", geometry);
+    }
+    for (const [key, line] of lines) if (!next.has(key)) line.remove();
+    lines = next;
     highlight();
   }
 

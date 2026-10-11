@@ -180,7 +180,7 @@ test("map geometry coalesces resize and group-toggle requests into one frame", a
   canvas.getBoundingClientRect = () => ({ width: 800, height: 300 });
   const container = { querySelectorAll: () => [] };
   let draws = 0;
-  const layer = () => ({ setAttribute() {}, replaceChildren() { draws++; } });
+  const layer = () => ({ setAttribute() { draws++; } });
   globalThis.window = { matchMedia: () => ({ matches: true }) };
   try {
     const connections = createMapConnections(canvas, container, container, layer(), layer(), () => ({}));
@@ -197,6 +197,52 @@ test("map geometry coalesces resize and group-toggle requests into one frame", a
   } finally {
     delete globalThis.requestAnimationFrame;
   }
+});
+
+test("context approvals expire on container switch or report refresh", async () => {
+  const { contextScope } = await load("context-scope");
+  const connection = { instance: "one" }, report = { root: "/trees" };
+  let current = connection, snapshot = report;
+  const scope = contextScope(connection, report, () => [current, snapshot]);
+  assert.equal(scope.active(), true);
+  let resolve;
+  const confirmation = new Promise(done => { resolve = done; });
+  const approved = confirmation.then(() => scope.active());
+  current = { instance: "two" };
+  resolve(true);
+  assert.equal(await approved, false);
+  assert.equal(scope.connection, connection);
+  current = connection;
+  snapshot = { root: "/trees" };
+  assert.equal(scope.active(), false);
+});
+
+test("map geometry reuses SVG paths and removes obsolete bindings", async () => {
+  const { createMapConnections } = await load("map-connections");
+  const frames = [];
+  globalThis.requestAnimationFrame = callback => (frames.push(callback), frames.length);
+  globalThis.window = { matchMedia: () => ({ matches: true }) };
+  let created = 0, removed = 0;
+  globalThis.document = { createElementNS() {
+    created++;
+    return { setAttribute() {}, remove() { removed++; } };
+  } };
+  const anchor = { getBoundingClientRect: () => ({ left: 10, top: 10, width: 10, height: 10 }) };
+  const chip = { dataset: { projectPath: "/repo", workspace: "dev" }, querySelector: () => anchor };
+  let targets = [chip];
+  const canvas = new EventTarget();
+  canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 300 });
+  canvas.querySelectorAll = () => [];
+  const layer = () => ({ setAttribute() {}, append(line) { line.parentNode = this; } });
+  try {
+    const connections = createMapConnections(canvas, { querySelectorAll: () => [chip] }, { querySelectorAll: () => targets }, layer(), layer(), () => ({}));
+    connections.schedule(); frames.shift()();
+    connections.schedule(); frames.shift()();
+    assert.equal(created, 1);
+    targets = [];
+    connections.schedule(); frames.shift()();
+    assert.equal(removed, 1);
+  } finally { delete globalThis.requestAnimationFrame; }
 });
 
 test("demo backend preserves per-container state without mutating another container", async () => {

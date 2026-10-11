@@ -31,6 +31,36 @@ test('connection gates context operations and disconnected profiles stay usable'
   await expect(page.locator('[data-view-target="contexts"]')).toBeVisible();
 });
 
+test('worktree inventories load on demand and ignore results from a previous target', async ({ page }) => {
+  // Instrument only the Vite fixture module, never native transports or production.
+  await page.route('**/src/demo.ts', async route => {
+    const response = await route.fetch();
+    const source = await response.text();
+    const pattern = /async function demoInvoke\([^)]*\) \{/;
+    expect(source).toMatch(pattern);
+    const body = source.replace(pattern, match => match + `
+      (window.fixtureCalls ??= []).push(command);
+      if (command === 'worktree_inventory') {
+        await new Promise(resolve => { window.releaseFixtureInventory = resolve; });
+        return { worktrees: [{ path: _args.worktreesRoot + '/orphan', project: 'old-target-orphan', dirty: false }] };
+      }
+    `);
+    await route.fulfill({ response, body });
+  });
+  await page.reload();
+  await connect(page);
+  expect(await page.evaluate(() => window.fixtureCalls.filter(name => name === 'worktree_inventory' || name === 'worktree_branches'))).toEqual([]);
+  await page.locator('[data-view-target="worktrees"]').click();
+  await expect.poll(() => page.evaluate(() => window.fixtureCalls.filter(name => name === 'worktree_inventory').length)).toBe(1);
+  await expect.poll(() => page.evaluate(() => typeof window.releaseFixtureInventory)).toBe('function');
+  // A fresh report invalidates pending reads even when the same host is selected.
+  await page.locator('[data-view-target="sandbox"]').click();
+  await page.locator('#sandbox-refresh').click();
+  await expect(page.locator('#sandbox-result')).toContainText('Connected');
+  await page.evaluate(() => window.releaseFixtureInventory());
+  await expect(page.locator('#cleanup-suggestions')).not.toContainText('old-target-orphan');
+});
+
 test('container creator invalidates readiness and approval when its target changes', async ({ page }) => {
   await page.locator('[data-view-target="enclaves"]').click();
   await page.locator('#new-container').click();
@@ -58,6 +88,8 @@ test('selection preserves cards and connection anchors follow desktop and narrow
   await expect(chip).toHaveClass(/traced/);
   expect(await page.evaluate(() => window.originalWorkspaceCard === document.querySelector('#workspace-cards .workspace-card'))).toBe(true);
   expect(await page.evaluate(() => window.__orcanRenderMetrics.snapshot().counters['context-map'].count)).toBe(renderCount);
+  await expect.poll(() => page.locator('#trace-lines path.highlight').count()).toBeGreaterThan(0);
+  await page.evaluate(() => { window.originalContextLine = document.querySelector('#trace-lines path.highlight'); });
   for (const width of [1280, 640]) {
     await page.setViewportSize({ width, height: 900 });
     await expect.poll(() => page.evaluate(path => {
@@ -69,6 +101,7 @@ test('selection preserves cards and connection anchors follow desktop and narrow
       const point = line?.getPointAtLength(0);
       return Boolean(point && Math.abs(point.x - (source.left - canvas.left + source.width / 2)) < 1 && Math.abs(point.y - (source.top - canvas.top + source.height / 2)) < 1);
     }, path)).toBe(true);
+    expect(await page.evaluate(() => window.originalContextLine === document.querySelector('#trace-lines path.highlight'))).toBe(true);
   }
 });
 
@@ -102,6 +135,8 @@ test('100 projects keep filters, both anchors and workspace drafts consistent', 
   await connect(page);
   const sourceChips = page.locator('#sandbox-tray .project-chip');
   await expect(sourceChips).toHaveCount(100);
+  const card = name => page.locator('#workspace-cards .workspace-card').filter({ has: page.locator('header > strong', { hasText: name }) });
+  await card('work-00').locator('header > strong').click();
   await page.locator('#map-focus-clear').click();
   await expect(page.locator('#workspace-cards .workspace-card:not(.new-workspace)')).toHaveCount(10);
   const gitFilter = page.locator('[data-map-filter="git"]');
@@ -111,7 +146,6 @@ test('100 projects keep filters, both anchors and workspace drafts consistent', 
   await expect(gitFilter).not.toHaveClass(/active/);
   await expect(sourceChips).toHaveCount(100);
 
-  const card = name => page.locator('#workspace-cards .workspace-card').filter({ has: page.locator('header > strong', { hasText: name }) });
   await card('work-00').locator('header > strong').click();
   await expect(page.locator('#trace-lines path.highlight')).toHaveCount(report.context.workspaces[0].projects.length);
   for (const width of [1280, 640]) {
