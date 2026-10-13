@@ -304,6 +304,9 @@ orcan_context_worktree_create() {
     fi
 
     local args=(--project-dir "${wt_path}" --config "${ORCAN_CONFIG_FILE}")
+    if [[ -n "${project}" ]]; then
+        args+=(--project-name "${project}")
+    fi
     if [[ -n "${workspace}" ]]; then
         args+=(--workspace "${workspace}")
     fi

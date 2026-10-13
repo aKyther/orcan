@@ -20,6 +20,7 @@ from config_io import (  # noqa: E402
     load_config_or_create,
 )
 from path_guards import PathGuardError, checked_project_dir  # noqa: E402
+from project_names import attachment_name  # noqa: E402
 
 
 def resolve_project(path: str) -> Path:
@@ -66,6 +67,9 @@ def main() -> None:
         action="store_true",
         help="Replace existing workspace or project entry",
     )
+    parser.add_argument(
+        "--project-name", default="", help="Explicit workspace project label"
+    )
     args = parser.parse_args()
 
     project = resolve_project(args.project_dir)
@@ -86,7 +90,10 @@ def main() -> None:
         die("workspaces must be an array")
 
     ws = find_workspace(cfg, ws_name)
-    proj = project_entry(project.name, str(project))
+    name = args.project_name or attachment_name(
+        project, (ws or {}).get("projects") or [], force=args.force
+    )
+    proj = project_entry(name, str(project))
 
     if ws is None:
         ws = {
@@ -100,7 +107,7 @@ def main() -> None:
         if not isinstance(projects, list):
             die(f"workspaces entry {ws_name} has invalid projects[]")
         existing = next(
-            (i for i, item in enumerate(projects) if item.get("name") == project.name),
+            (i for i, item in enumerate(projects) if item.get("name") == name),
             None,
         )
         if existing is not None:
@@ -111,7 +118,7 @@ def main() -> None:
                 action = "updated project"
             else:
                 die(
-                    f"project {project.name!r} already in workspace {ws_name!r} "
+                    f"project {name!r} already in workspace {ws_name!r} "
                     "at a different path; use --force to replace"
                 )
         elif any(entry_has_path(item, project) for item in projects):
@@ -121,7 +128,7 @@ def main() -> None:
             action = "added project"
 
     dump_config(config_path, cfg)
-    print(f"{action}: workspace={ws_name} project={project.name}")
+    print(f"{action}: workspace={ws_name} project={name}")
     print(f"config: {config_path}")
     print("Next: orcan sync && orcan context show")
 

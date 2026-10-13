@@ -370,6 +370,25 @@ class FindPathConflictsTests(unittest.TestCase):
 
 @pytest.mark.integration
 class ApplySelectionTests(GitRepoTests):
+    def test_second_managed_branch_keeps_first_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "api"
+            self.git_init(api)
+            config = root / "orcan.config.json"
+            with mock.patch.dict(
+                os.environ, {"ORCAN_PROJECTS_ROOT": str(root / "managed")}
+            ):
+                for branch in ("feature/first", "feature/second", "feature/second"):
+                    _mod.apply_selection(
+                        config_path=config, workspace="acme", repos=[api], branch=branch
+                    )
+            projects = json.loads(config.read_text())["workspaces"][0]["projects"]
+            self.assertEqual(
+                [p["name"] for p in projects], ["api", "api--feature-second"]
+            )
+            self.assertNotEqual(projects[0]["path"], projects[1]["path"])
+
     def test_mount_as_is(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

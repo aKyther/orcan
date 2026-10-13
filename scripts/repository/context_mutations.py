@@ -1,6 +1,8 @@
 """Curses-free configuration mutations shared by context selection and management."""
 
 from __future__ import annotations
+
+import re
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +10,7 @@ from config_io import die, dump_config, load_config_or_create
 from context_selection import NAME_RE
 from git_worktrees import find_worktree_by_branch, is_under_managed_root, safe_segment
 from managed_workspace import create_managed_workspace, find_workspace
+from project_names import attachment_name
 
 info = print
 
@@ -72,13 +75,24 @@ def apply_selection(
         }
         added = 0
         for proj_name, repo in projects:
-            idx = by_name.get(proj_name)
             existing_wt = find_worktree_by_branch(repo, branch_s)
-            if idx is not None and existing_wt is not None:
-                configured = Path(str(plist[idx].get("path") or "")).resolve()
-                if configured == existing_wt.path:
-                    info(f"  worktree: {proj_name} (already connected) → {configured}")
-                    continue
+            if existing_wt is not None and any(
+                Path(str(p.get("path") or "")).resolve() == existing_wt.path
+                for p in plist
+            ):
+                info(
+                    f"  worktree: {proj_name} (already connected) → {existing_wt.path}"
+                )
+                continue
+            if proj_name in by_name and not force:
+                suffix = re.sub(r"[^A-Za-z0-9._-]+", "-", branch_s).strip(".-")
+                base = f"{proj_name}--{suffix}"
+                proj_name = base
+                number = 2
+                while proj_name in by_name:
+                    proj_name = f"{base}--{number}"
+                    number += 1
+            idx = by_name.get(proj_name)
             info(f"  worktree: {proj_name} ← {repo} @ {branch_s}")
             wt = create_worktree(
                 repo,
@@ -98,6 +112,7 @@ def apply_selection(
                 plist[idx] = entry
             else:
                 plist.append(entry)
+                by_name[proj_name] = len(plist) - 1
                 added += 1
         dump_config(config_path, cfg)
         info(f"updated workspace {ws_name!r} (+{added} managed worktree(s))")
@@ -112,7 +127,16 @@ def apply_selection(
         die("workspaces must be an array")
 
     existing = find_workspace(cfg, ws_name)
-    entries = [{"name": n, "path": str(p)} for n, p in projects]
+    known = list((existing or {}).get("projects") or [])
+    entries = []
+    for name, path in projects:
+        if (path / ".git").is_file():
+            name = attachment_name(path, known, force=force)
+        entry = {"name": name, "path": str(path)}
+        if any(Path(p["path"]).resolve() == path.resolve() for p in known):
+            continue
+        entries.append(entry)
+        known.append(entry)
 
     if existing is None:
         cfg["workspaces"].append({"name": ws_name, "projects": entries})

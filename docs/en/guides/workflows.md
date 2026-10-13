@@ -162,6 +162,13 @@ orcan up --docker-socket --ssh
 
 ## Scenario: optional git worktree
 
+You can attach several worktrees of the same repository to one workspace.
+Existing linked worktrees added through Studio or `orcan context add` use
+`repo--branch` as their workspace directory name (for example `api--feature-login`).
+Branch slashes become hyphens. If labels collide, a numeric suffix is added.
+Attaching the same checkout again preserves its existing name. The original
+checkout keeps its name; each workspace directory links to its checkout path.
+
 **When:** you want a second checkout without changing the clone you use for `main` / pulls.
 
 In the wizard, after you enter a project path, answer **yes** to the advanced worktree question (default is **no** — just mount the path).

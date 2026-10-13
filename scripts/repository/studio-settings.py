@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 
 from config_io import dump_config
+from project_names import attachment_name
 
 
 def save_settings(path: Path, data: dict, expected: bytes) -> None:
@@ -127,6 +128,9 @@ def main() -> None:
             "operation": "project_detach" if detach else "project_add",
             "workspace": args.workspace,
             "project": str(project),
+            "project_name": attachment_name(
+                project, (workspace or {}).get("projects") or []
+            ),
             "project_mode": args.project_mode,
             "creates_workspace": workspace is None and not detach,
             "changes": (

@@ -810,7 +810,9 @@ def _run_curses(args: argparse.Namespace) -> int:
             message = "branch required for selected worktrees (press b)"
             return None
         conflicts = existing_project_names(config_path, workspace) & {
-            p.name for p in selected
+            p.name
+            for p in selected
+            if p not in worktree_paths and not (p / ".git").is_file()
         }
         if conflicts and not _confirm_line(
             stdscr,
