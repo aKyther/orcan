@@ -2497,7 +2497,13 @@ locked facts: container resources, image-provided agent tools, protected
 environment values, managed paths, and launch exposure. Locked environment
 values are intentionally neither displayed nor editable in Studio.</p>
 <p>Each Git project in Contexts carries the state of its Orcan-reported parent.
-Studio shows clean/dirty and ahead/behind inline, checks that parent's tracked
+When a workspace contains several checkouts of one repository, Contexts and
+the relationship map group them under its repository name. Each checkout shows
+its branch and keeps its own status, path, and actions. Groups can be collapsed.
+Studio uses the reported Git repository identity, so unrelated repositories with
+the same name stay separate. This display does not change workspace directory
+names or checkout paths.</p>
+<p>Studio shows clean/dirty and ahead/behind inline, checks that parent's tracked
 branch against <code>origin</code>, then requires confirmation before a <code>git pull
 --ff-only</code>. Updating a parent never rewrites its dependent worktrees; their
 branches can be rebased later by the user or an agent.</p>
@@ -2671,7 +2677,7 @@ Encrypted keys need unlocking on the destination. Containers started with
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 07:50:54 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 13, 2026 12:05:20 UTC">October 13, 2026</span>
   </span>
 
     
