@@ -48,6 +48,32 @@ export function projectName(project: { name?: string; path: string }): string {
   return project.name ?? project.path.split("/").pop() ?? project.path;
 }
 
+/** Group only checkouts whose shared Git identity was reported by the host. */
+export function workspaceRepositoryGroups(report: ProbeReport, projects: ContextProject[]) {
+  const sources = new Map<string, ProbeReport["context"]["update_targets"][number]>();
+  for (const source of report.context.update_targets) {
+    if (source.repository_id && (!sources.has(source.repository_id) || source.role === "worktree_parent")) sources.set(source.repository_id, source);
+  }
+  const checkouts = new Map(projects.filter((project) => project.repository_id && project.kind === "git_repository").map((project) => [project.repository_id, project]));
+  const groups = new Map<string, { key: string; name: string; path: string; projects: ContextProject[] }>();
+  for (const project of projects) {
+    const key = project.repository_id ? `repo:${project.repository_id}` : `path:${project.path}`;
+    let group = groups.get(key);
+    if (!group) {
+      const source = project.repository_id ? sources.get(project.repository_id) : undefined;
+      const checkout = project.repository_id ? checkouts.get(project.repository_id) : undefined;
+      group = { key, name: source?.name ?? projectName(checkout ?? project).split("--")[0], path: source?.path ?? checkout?.path ?? project.path, projects: [] };
+      groups.set(key, group);
+    }
+    group.projects.push(project);
+  }
+  return [...groups.values()];
+}
+
+export function checkoutLabel(project: ContextProject): string {
+  return project.branch ?? (project.kind === "git_worktree" ? "Detached HEAD" : projectName(project));
+}
+
 export function parseDraggedProject(value: string): ProjectRef | undefined {
   try {
     const project: unknown = JSON.parse(value);

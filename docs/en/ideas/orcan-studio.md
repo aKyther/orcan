@@ -369,6 +369,13 @@ environment values, managed paths, and launch exposure. Locked environment
 values are intentionally neither displayed nor editable in Studio.
 
 Each Git project in Contexts carries the state of its Orcan-reported parent.
+When a workspace contains several checkouts of one repository, Contexts and
+the relationship map group them under its repository name. Each checkout shows
+its branch and keeps its own status, path, and actions. Groups can be collapsed.
+Studio uses the reported Git repository identity, so unrelated repositories with
+the same name stay separate. This display does not change workspace directory
+names or checkout paths.
+
 Studio shows clean/dirty and ahead/behind inline, checks that parent's tracked
 branch against `origin`, then requires confirmation before a `git pull
 --ff-only`. Updating a parent never rewrites its dependent worktrees; their

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Studio groups a workspace's checkouts of the same Git repository, with
+  separate branch labels, status, paths, and actions in Contexts and the map.
+
 - Existing linked worktrees attach with `repo--branch` workspace names, with
   numeric suffixes for collisions and unchanged labels on repeated attachment.
 

@@ -35,4 +35,26 @@ function largeReport() {
   };
 }
 
-module.exports = { largeReport };
+function groupedReport() {
+  const report = largeReport();
+  const root = report.paths.projects_root;
+  const trees = report.paths.managed_worktrees_root;
+  const projects = [
+    { name: 'api', path: `${root}/api`, kind: 'git_repository', branch: 'main', repository_id: 'api', dirty: false },
+    { name: 'api--feature-login', path: `${trees}/platform/api--feature-login`, kind: 'git_worktree', branch: 'feature/login', repository_id: 'api', dirty: true },
+    { name: 'custom-fix', path: '/fixture/other/fix', kind: 'git_worktree', branch: 'fix/payments', repository_id: 'api', dirty: false },
+    { name: 'api--detached', path: `${trees}/platform/api--detached`, kind: 'git_worktree', repository_id: 'api', dirty: null },
+    { name: 'api', path: `${root}/unrelated/api`, kind: 'git_repository', branch: 'main', repository_id: 'other-api', dirty: false },
+    { name: 'docs', path: `${root}/docs`, kind: 'directory' },
+  ];
+  report.context.workspaces = [{ name: 'platform', projects }];
+  report.context.managed_projects = projects;
+  report.context.repositories = ['api', 'other-api'].map(repository_id => ({ repository_id, bindings: [{ workspace: 'platform' }] }));
+  report.context.update_targets = projects.filter(project => project.kind === 'git_repository').map(project => ({
+    ...project, role: 'configured_mount', worktree_count: project.repository_id === 'api' ? 3 : 0,
+    read_only: false, eligible: true, upstream: 'origin/main', ahead: 0, behind: 0,
+  }));
+  return report;
+}
+
+module.exports = { largeReport, groupedReport };

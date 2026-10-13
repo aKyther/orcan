@@ -12,7 +12,7 @@ import { actionButton, el, emptyState, listItem, radioValue, setRadio } from "./
 import { activityPanel } from "./activity-panel";
 import { branchPicker } from "./branch-picker";
 import { draftConflicts, loadQueuedChanges, persistQueuedChanges, type QueuedChange } from "./context-drafts";
-import { parentCandidates, parentDirectory, indexParents, indexContext, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, type HealthProject, type ParentCandidate } from "./context-model";
+import { checkoutLabel, workspaceRepositoryGroups, parentCandidates, parentDirectory, indexParents, indexContext, parentLabel, parseDraggedProject, projectAlerts, projectGroup, projectName, type HealthProject, type ParentCandidate } from "./context-model";
 import { loadParentRuns, rememberParentRun } from "./parent-runs";
 import { loadMapState, persistMapState, type MapFilter } from "./map-state";
 import { normalizeProbeReport } from "./probe";
@@ -438,6 +438,8 @@ let restoredMapFor: string | undefined;
 const syncBanner = $("#sync-banner");
 const planDialog = $<HTMLDialogElement>("#plan-dialog");
 const applyDialog = $<HTMLDialogElement>("#apply-dialog");
+// Workspace actions can open these modals from any Studio view.
+document.body.append(planDialog, applyDialog);
 const applyStatus = $("#apply-status");
 const applyChanges = $("#apply-changes");
 const applyConfirm = $<HTMLButtonElement>("#apply-confirm");
@@ -475,8 +477,8 @@ function projectKindIcon(project: ProjectRef): HTMLElement {
   return icon;
 }
 
-function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string, state: "current" | "planned" | "removing" = "current"): HTMLElement {
-  const chip = el("span", { className: `project-chip ${state}`, draggable: true, title: `${project.path}\nDrag onto a workspace to add it` }, el("span", { className: "connection-anchor", ariaHidden: "true" }), el("span", { className: "grip", textContent: "⠿" }), projectKindIcon(project), el("span", { className: "project-name", textContent: project.name }), ...extra);
+function projectChip(project: ProjectRef, extra: HTMLElement[] = [], from?: string, state: "current" | "planned" | "removing" = "current", label = project.name): HTMLElement {
+  const chip = el("span", { className: `project-chip ${state}`, draggable: true, title: `${project.name}\n${project.path}\nDrag onto a workspace to add it` }, el("span", { className: "connection-anchor", ariaHidden: "true" }), el("span", { className: "grip", textContent: "⠿" }), projectKindIcon(project), el("span", { className: "project-name", textContent: label }), ...extra);
   chip.dataset.projectPath = project.path;
   chip.dataset.workspace = from ?? "sandbox";
   chip.dataset.connectionState = state;
@@ -583,7 +585,7 @@ function renderEnclaveMapContents(report: ProbeReport): void {
     card.classList.toggle("focused", focusedWorkspace === workspace.name);
     card.title = "Click empty space to focus this workspace";
     card.addEventListener("click", (event) => {
-      if ((event.target as HTMLElement).closest("button, select, input, .project-chip")) return;
+      if ((event.target as HTMLElement).closest("button, select, input, summary, .project-chip")) return;
       focusedWorkspace = focusedWorkspace === workspace.name ? undefined : workspace.name;
       saveMapState();
       renderEnclaveMap(report);
@@ -591,21 +593,34 @@ function renderEnclaveMapContents(report: ProbeReport): void {
     const list = el("div", { className: "workspace-parent-groups" });
     const rootProjects = el("ul", { className: "workspace-root-projects" });
     const projectGroups = new Map<string, HTMLUListElement>();
+    const repositoryGroups = workspaceRepositoryGroups(report, workspace.projects).filter((group) => group.projects.length > 1);
+    const repositoryByPath = new Map(repositoryGroups.flatMap((group) => group.projects.map((project) => [project.path, group] as const)));
+    const repositoryLists = new Map<string, HTMLUListElement>();
     for (const project of projects) {
       const ref = { name: projectName(project), path: project.path, kind: project.kind };
       const others = (project.repository_id ? sharedIn.get(project.repository_id) ?? [] : []).filter((name) => name !== workspace.name);
       const removing = drafts.some((draft) => draft.action === "detach" && draft.project.path === project.path);
       const alertTags = contextIndex.alerts(project).filter((alert) => alert !== "uncommitted" && alert !== "missing");
-      const tags = [project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), ...alertTags.map((alert) => el("span", { className: "tag warn", textContent: alert })), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` }), removing && el("span", { className: "tag removing", textContent: "detach planned" })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
+      const repository = repositoryByPath.get(project.path);
+      const tags = [!repository && project.branch && el("span", { className: "tag", textContent: project.branch }), project.dirty && el("span", { className: "tag warn", textContent: "uncommitted" }), project.kind === "missing" && el("span", { className: "tag danger", textContent: "missing" }), ...alertTags.map((alert) => el("span", { className: "tag warn", textContent: alert })), others.length > 0 && el("span", { className: "tag", textContent: `also in ${others.join(", ")}` }), removing && el("span", { className: "tag removing", textContent: "detach planned" })].filter((tag): tag is HTMLSpanElement => Boolean(tag));
       const remove = actionButton("✕", () => void reviewChange("detach", workspace.name, ref), "chip-remove");
       remove.title = `Remove ${ref.name} from ${workspace.name} (files stay)`;
       const parent = projectGroup(report, project.path);
-      const projectList = parent
+      const projectList = repository
+        ? repositoryLists.get(repository.key) ?? repositoryLists.set(repository.key, el("ul")).get(repository.key)!
+        : parent
         ? projectGroups.get(parent) ?? projectGroups.set(parent, el("ul")).get(parent)!
         : rootProjects;
-      projectList.append(el("li", {}, projectChip(ref, tags, workspace.name, removing ? "removing" : "current"), remove, el("small", { textContent: project.path })));
+      projectList.append(el("li", {}, projectChip(ref, tags, workspace.name, removing ? "removing" : "current", repository ? checkoutLabel(project) : ref.name), remove, el("small", { textContent: project.path })));
     }
     if (rootProjects.children.length) list.append(rootProjects);
+    for (const group of repositoryGroups) {
+      const projectList = repositoryLists.get(group.key);
+      if (!projectList) continue;
+      const node = el("details", { className: "workspace-repository", open: true }, el("summary", { title: group.path }, el("span", { textContent: group.name }), el("small", { textContent: `${projectList.children.length} checkouts` })), projectList);
+      node.dataset.repositoryKey = group.key;
+      list.append(node);
+    }
     for (const [parent, projectList] of [...projectGroups.entries()].sort(([left], [right]) => left.localeCompare(right))) {
       list.append(el("details", { className: "workspace-parent", open: true }, el("summary", { title: parent }, el("span", { textContent: parentLabel(parent) }), el("small", { textContent: `${projectList.children.length} project${projectList.children.length === 1 ? "" : "s"}` })), projectList));
     }
@@ -1293,25 +1308,43 @@ function renderContextWorkspaceList(report: ProbeReport): void {
       button.title = contextEditMessage();
     }
   }
-  const projects = workspace.projects.map((project) => {
-    const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
-    detach.title = editable ? `Detach ${projectName(project)} from ${workspace.name}` : contextEditMessage();
-    detach.disabled = !editable;
-    const parent = parents.forProject(project);
-    const parentState = parent
-      ? parent.dirty
-        ? `parent ${parent.branch ?? "branch"} dirty`
-        : parent.behind
-          ? `parent ${parent.branch ?? "branch"} · ${parent.behind} behind`
-          : `parent ${parent.branch ?? "branch"} · up to date`
-      : undefined;
-    let update: HTMLButtonElement | undefined;
-    if (parent) {
-      update = actionButton("↻", () => void updateProjectParent(parent, workspace.name, projectName(project)), "context-project-update");
-      update.title = parent.dirty ? "Parent has changes; update is blocked" : `Check and update ${parent.branch ?? "parent"}`;
-      update.disabled = !parent.eligible || parent.dirty !== false || !parent.branch || currentReport?.control?.operations?.parent_update?.available === false;
-    }
-    return el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", {}, el("strong", { textContent: projectName(project) }), el("small", { textContent: [project.branch, project.dirty && "dirty", parentState, project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind })), ...(update ? [update] : []), detach);
+  const projects = workspaceRepositoryGroups(report, workspace.projects).map((group) => {
+    const grouped = group.projects.length > 1;
+    const rows = group.projects.map((project) => {
+      const detach = actionButton("×", () => void reviewChange("detach", workspace.name, { name: projectName(project), path: project.path, kind: project.kind }), "context-project-detach");
+      detach.title = editable ? `Detach ${projectName(project)} from ${workspace.name}` : contextEditMessage();
+      detach.disabled = !editable;
+      const parent = parents.forProject(project);
+      const parentState = parent
+        ? parent.dirty
+          ? `parent ${parent.branch ?? "branch"} dirty`
+          : parent.behind
+            ? `parent ${parent.branch ?? "branch"} · ${parent.behind} behind`
+            : `parent ${parent.branch ?? "branch"} · up to date`
+        : undefined;
+      let update: HTMLButtonElement | undefined;
+      if (parent) {
+        update = actionButton("↻", () => void updateProjectParent(parent, workspace.name, projectName(project)), "context-project-update");
+        update.title = parent.dirty ? "Parent has changes; update is blocked" : `Check and update ${parent.branch ?? "parent"}`;
+        update.disabled = !parent.eligible || parent.dirty !== false || !parent.branch || currentReport?.control?.operations?.parent_update?.available === false;
+      }
+      const label = grouped ? checkoutLabel(project) : projectName(project);
+      const inspect = actionButton(label, () => {
+        inspectedProject = { path: project.path, workspace: workspace.name };
+        tracedPath = project.path;
+        showView("overview");
+        renderProjectInspector(report);
+        mapConnections.highlight();
+      }, "context-project-open");
+      inspect.title = `${projectName(project)}\n${project.path}`;
+      const row = el("div", { className: "context-project-row" }, projectKindIcon({ ...project, name: projectName(project) }), el("div", { className: "context-project-info" }, inspect, el("small", { textContent: [!grouped && project.branch, project.dirty === true && "dirty", grouped && project.dirty === false && "clean", project.dirty === null && "Git status unknown", parentState, project.writable === false && "read-only"].filter(Boolean).join(" · ") || project.kind }), ...(grouped ? [el("code", { textContent: `${projectName(project)} · ${project.path}`, title: project.path })] : [])), ...(update ? [update] : []), detach);
+      row.dataset.projectPath = project.path;
+      return row;
+    });
+    if (!grouped) return rows[0];
+    const node = el("details", { className: "context-repository-group", open: true }, el("summary", { title: group.path }, el("strong", { textContent: group.name }), el("small", { textContent: `${group.projects.length} checkouts` })), el("div", { className: "context-repository-checkouts" }, ...rows));
+    node.dataset.repositoryKey = group.key;
+    return node;
   });
   const open = actionButton("⌁", () => { showView("overview"); renderEnclaveMap(report); enclaveMap.scrollIntoView({ behavior: "smooth", block: "start" }); });
   open.title = "Open relationship map";

@@ -1,5 +1,5 @@
 const { test: base, expect } = require('@playwright/test');
-const { largeReport } = require('./studio-fixtures');
+const { largeReport, groupedReport } = require('./studio-fixtures');
 const test = base.extend({
   runtimeErrors: [async ({ page }, use) => {
     const errors = [];
@@ -34,6 +34,62 @@ async function instrumentDemo(page, code) {
   });
   await page.reload();
 }
+
+test('repository groups keep branch actions, paths and map anchors separate', async ({ page }, testInfo) => {
+  const report = groupedReport();
+  await page.unroute('**/preview-probe.json');
+  await page.route('**/preview-probe.json', route => route.fulfill({ json: report }));
+  await page.reload();
+  await instrumentDemo(page, `
+    if (command === 'membership_action') (window.fixtureMembershipCalls ??= []).push(_args);
+    if (command === 'parent_plan') (window.fixtureParentCalls ??= []).push(_args);
+  `);
+  await connect(page);
+  const mapGroup = page.locator('#workspace-cards .workspace-repository');
+  await expect(mapGroup).toHaveCount(1);
+  await expect(mapGroup.locator('summary')).toHaveText('api4 checkouts');
+  expect(await mapGroup.locator('.project-name').allTextContents().then(labels => labels.sort())).toEqual(['Detached HEAD', 'feature/login', 'fix/payments', 'main']);
+  await expect(page.locator('#workspace-cards .project-chip')).toHaveCount(6);
+  const loginPath = report.context.workspaces[0].projects[1].path;
+  const login = mapGroup.locator('.project-chip').filter({ hasText: 'feature/login' });
+  await login.click();
+  await expect(page.locator('#project-inspector')).toContainText(loginPath);
+  await expect(page.locator('#trace-lines path.highlight')).toHaveCount(1);
+  await mapGroup.locator('summary').click();
+  await expect(mapGroup).not.toHaveAttribute('open');
+  await expect(login).toBeHidden();
+  await mapGroup.locator('summary').click();
+  await expect(login).toBeVisible();
+  await page.locator('[data-view-target="contexts"]').click();
+  const group = page.locator('.context-repository-group');
+  await expect(group).toHaveCount(1);
+  await expect(group.locator('.context-project-open')).toHaveText(['main', 'feature/login', 'fix/payments', 'Detached HEAD']);
+  const row = group.locator('.context-project-row').filter({ hasText: 'feature/login' });
+  await expect(row).toContainText('dirty');
+  await expect(row).toContainText(loginPath);
+  await expect(group.locator('.context-project-row').last()).toContainText('Git status unknown');
+  await group.locator('summary').click();
+  await expect(row).toBeHidden();
+  await group.locator('summary').click();
+  await expect(row).toBeVisible();
+  for (const width of [1280, 640]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(row.getByRole('button', { name: 'feature/login', exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`repository-groups-${width}.png`) });
+  }
+  await row.locator('.context-project-detach').click();
+  await expect(page.locator('#plan-title')).toContainText('Remove api--feature-login from platform');
+  await expect(page.locator('#plan-confirm')).toBeEnabled();
+  expect(await page.evaluate(() => window.fixtureMembershipCalls.at(-1).project)).toBe(loginPath);
+  await page.locator('#plan-dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+  await row.locator('.context-project-update').click();
+  await expect(page.locator('.studio-dialog')).toBeVisible();
+  expect(await page.evaluate(() => window.fixtureParentCalls.at(-1).path)).toBe(report.context.workspaces[0].projects[0].path);
+  await page.locator('.studio-dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+  await row.getByRole('button', { name: 'feature/login', exact: true }).click();
+  await expect(page.locator('#project-inspector')).toContainText(loginPath);
+});
 
 for (const failure of [false, true]) {
   test(`late refresh ${failure ? 'failure' : 'success'} does not replace a newly selected container`, async ({ page }) => {
