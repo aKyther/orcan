@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Context attachment and worktree creation reject workspace metadata paths
+  before writing configuration or creating a branch. Sync errors now include
+  the resolved checkout path to help repair existing entries.
+
 - Studio groups a workspace's checkouts of the same Git repository, with
   separate branch labels, status, paths, and actions in Contexts and the map.
 

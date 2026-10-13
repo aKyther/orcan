@@ -4,16 +4,31 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "repository"))
 
-from path_guards import is_sensitive_path  # noqa: E402
+from path_guards import PathGuardError, checked_workspace_project, is_sensitive_path  # noqa: E402
 
 
 class SensitivePathTests(unittest.TestCase):
+    def test_workspace_links_resolve_to_checkout_but_metadata_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            checkout = root / "sandbox" / "api"
+            checkout.mkdir(parents=True)
+            metadata = root / "home" / "workspaces" / "dev"
+            metadata.mkdir(parents=True)
+            link = metadata / "api"
+            link.symlink_to(checkout, target_is_directory=True)
+            self.assertEqual(checked_workspace_project(link, root / "home"), checkout)
+            for path in (metadata, metadata / "new-checkout"):
+                with self.assertRaisesRegex(PathGuardError, "resolved checkout"):
+                    checked_workspace_project(path, root / "home")
+
     def test_exact_roots(self) -> None:
         for p in ("/", "/home", "/root", "/etc", "/usr", "/var", "/opt"):
             with self.subTest(p=p):

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from config_io import die
+from path_guards import PathGuardError, checked_workspace_project
 
 
 SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -156,7 +157,7 @@ def managed_root(*, ensure: bool = False) -> Path:
 def managed_worktree_path(workspace: str, project: str) -> Path:
     ws = safe_segment(workspace, label="workspace")
     proj = safe_segment(project, label="project")
-    root = managed_root(ensure=True)
+    root = managed_root(ensure=False)
     return (root / ws / proj).resolve()
 
 
@@ -496,6 +497,13 @@ def create_worktree(
         dest = managed_worktree_path(workspace, project)
     else:
         dest = default_worktree_path(repo, branch)
+
+    try:
+        checked_workspace_project(
+            dest, Path(os.environ.get("ORCAN_HOME") or orcan_data_root())
+        )
+    except PathGuardError as exc:
+        fail(f"worktree destination {exc}", code="args")
 
     if dest.is_relative_to(
         (projects_root() / ".worktrees").resolve()

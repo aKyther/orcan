@@ -18,6 +18,57 @@ class CommittedRepoTests(unittest.TestCase):
 
 
 class CreateIntegrationTests(CommittedRepoTests):
+    def test_metadata_destination_is_rejected_before_git_writes(self) -> None:
+        import os
+        import subprocess
+        from unittest import mock
+
+        from git_worktrees import WorktreeCreateError, create_worktree
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = self.repo_factory(root / "api")
+            home = root / "home"
+            dest = home / "workspaces" / "dev" / "api"
+            with (
+                mock.patch.dict(os.environ, {"ORCAN_HOME": str(home)}),
+                self.assertRaisesRegex(WorktreeCreateError, "workspace meta"),
+            ):
+                create_worktree(repo, branch="invalid-location", path=dest, fatal=False)
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {
+                        "ORCAN_HOME": str(home),
+                        "ORCAN_PROJECTS_ROOT": str(home / "workspaces"),
+                    },
+                ),
+                self.assertRaisesRegex(WorktreeCreateError, "workspace meta"),
+            ):
+                create_worktree(
+                    repo,
+                    branch="invalid-managed",
+                    workspace="dev",
+                    project="api",
+                    managed=True,
+                    fatal=False,
+                )
+            self.assertFalse(dest.exists())
+            self.assertFalse(home.exists())
+            branch = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "show-ref",
+                    "--verify",
+                    "refs/heads/invalid-location",
+                ],
+                check=False,
+                capture_output=True,
+            )
+            self.assertNotEqual(branch.returncode, 0)
+
     def test_create_and_list_real_repo(self) -> None:
         import subprocess
 

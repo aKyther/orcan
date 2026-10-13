@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
-ROOT = Path(
-    __import__("os").environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2]
-)
+ROOT = Path(os.environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2])
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config_io import (  # noqa: E402
     default_write_path,
@@ -19,7 +18,7 @@ from config_io import (  # noqa: E402
     find_workspace,
     load_config_or_create,
 )
-from path_guards import PathGuardError, checked_project_dir  # noqa: E402
+from path_guards import PathGuardError, checked_project_dir, checked_workspace_project  # noqa: E402
 from project_names import attachment_name  # noqa: E402
 
 
@@ -83,6 +82,13 @@ def main() -> None:
             config_path = (ROOT / config_path).resolve()
     else:
         config_path = discover_config(ROOT) or default_write_path(ROOT)
+
+    try:
+        checked_workspace_project(
+            project, Path(os.environ.get("ORCAN_HOME") or config_path.parent)
+        )
+    except PathGuardError as exc:
+        die(f"PROJECT_DIR {exc}")
 
     cfg = load_config_or_create(config_path)
     cfg.setdefault("workspaces", [])

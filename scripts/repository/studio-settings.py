@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 
 from config_io import dump_config
+from path_guards import PathGuardError, checked_workspace_project
 from project_names import attachment_name
 
 
@@ -105,6 +107,13 @@ def main() -> None:
         )
         blockers = []
         detach = args.mode.startswith("project-detach")
+        if not detach:
+            try:
+                checked_workspace_project(
+                    project, Path(os.environ.get("ORCAN_HOME") or path.parent)
+                )
+            except PathGuardError as exc:
+                blockers.append(str(exc))
         # `orcan context add` creates a missing workspace, so only detach needs one.
         if workspace is None and detach:
             blockers.append("workspace does not exist")

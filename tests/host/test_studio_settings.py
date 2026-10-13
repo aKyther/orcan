@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-
 import json
 import os
 import subprocess
 from pathlib import Path
+
+import pytest
 
 pytestmark = pytest.mark.integration
 
@@ -41,6 +41,36 @@ def make_home(tmp_path: Path, git_repo_factory) -> tuple[Path, Path]:
         encoding="utf-8",
     )
     return home, project
+
+
+def test_add_plan_rejects_workspace_metadata_but_accepts_checkout_links(
+    tmp_path: Path, git_repo_factory
+) -> None:
+    home, project = make_home(tmp_path, git_repo_factory)
+    metadata = home / "workspaces" / "dev"
+    metadata.mkdir(parents=True)
+    config = home / "orcan.config.json"
+    original = config.read_bytes()
+    report = run_settings(
+        home,
+        "project-add-plan",
+        "--workspace",
+        "review",
+        "--project",
+        str(metadata),
+        "--project-mode",
+        "mount",
+    )
+    assert report["plan"]["ready"] is False
+    assert any("workspace meta" in blocker for blocker in report["plan"]["blockers"])
+    link = metadata / "app"
+    link.symlink_to(project, target_is_directory=True)
+    report = run_settings(
+        home, "project-add-plan", "--workspace", "review", "--project", str(link)
+    )
+    assert report["plan"]["ready"] is True
+    assert report["plan"]["project"] == str(project)
+    assert config.read_bytes() == original
 
 
 def test_attach_to_a_new_workspace_is_planned_as_creating_it(

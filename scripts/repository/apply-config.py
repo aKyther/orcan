@@ -22,12 +22,12 @@ from config_io import load_config as load_user_config
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS  # noqa: E402
 from orcan.identity import validate_identity
 from path_guards import (  # noqa: E402
+    DEFAULT_DEVELOPER_WORKSPACES,
     PathGuardError,
     checked_project_dir,
+    checked_workspace_project,
     is_sensitive_path,
 )
-
-DEFAULT_DEVELOPER_WORKSPACES = "/home/developer/workspaces"
 
 
 def write_text_replace(path: Path, text: str) -> None:
@@ -208,22 +208,10 @@ def parse_projects(
         if path_key in seen_paths:
             die(f"duplicate project path in {label}: {path_key}")
         if repo_root is not None:
-            meta_root = (repo_root / "workspaces").resolve()
-            if _is_under(resolved, meta_root):
-                die(
-                    f"{label}[{i}].path must not live under workspace meta "
-                    f"({meta_root}) — use a path-parity checkout (e.g. under "
-                    f"$ORCAN_PROJECTS_ROOT), not the generated "
-                    f"{DEFAULT_DEVELOPER_WORKSPACES}/<name>/ navigation tree"
-                )
-            dev_ws = Path(DEFAULT_DEVELOPER_WORKSPACES).resolve()
-            if _is_under(resolved, dev_ws):
-                die(
-                    f"{label}[{i}].path must not live under "
-                    f"{DEFAULT_DEVELOPER_WORKSPACES} — that tree is workspace "
-                    f"navigation (symlinks) inside the container, not a project "
-                    f"checkout location"
-                )
+            try:
+                checked_workspace_project(resolved, repo_root)
+            except PathGuardError as exc:
+                die(f"{label}[{i}].path {exc}")
         seen_names.add(name)
         seen_paths.add(path_key)
 

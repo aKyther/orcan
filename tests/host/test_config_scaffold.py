@@ -18,6 +18,32 @@ SCAFFOLD = ROOT / "scripts" / "repository" / "config-scaffold.py"
 
 
 class ConfigScaffoldTests(unittest.TestCase):
+    def test_workspace_metadata_is_rejected_before_config_is_written(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            project = home / "workspaces" / "dev"
+            project.mkdir(parents=True)
+            config = home / "orcan.config.json"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCAFFOLD),
+                    "--config",
+                    str(config),
+                    "--project-dir",
+                    str(project),
+                    "--workspace",
+                    "review",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(str(project), result.stderr)
+            self.assertIn("workspace meta", result.stderr)
+            self.assertFalse(config.exists())
+
     def test_sibling_worktrees_keep_repository_and_branch_labels(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

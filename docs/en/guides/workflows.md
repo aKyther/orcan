@@ -169,6 +169,15 @@ Branch slashes become hyphens. If labels collide, a numeric suffix is added.
 Attaching the same checkout again preserves its existing name. The original
 checkout keeps its name; each workspace directory links to its checkout path.
 
+Project checkouts must live outside Orcan's `workspaces/` metadata directory.
+Adding a project resolves navigation symlinks to their real checkout paths;
+adding a workspace directory itself is rejected before configuration is saved.
+Worktree creation also rejects destinations inside workspace metadata before
+creating a directory or branch. If `sync` reports an existing invalid entry,
+check the indicated `workspaces[i].projects[j].path` in `orcan.config.json` and
+set it to the real checkout path. Renaming its workspace label does not fix its
+checkout location.
+
 **When:** you want a second checkout without changing the clone you use for `main` / pulls.
 
 In the wizard, after you enter a project path, answer **yes** to the advanced worktree question (default is **no** — just mount the path).

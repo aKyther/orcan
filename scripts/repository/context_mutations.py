@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,7 @@ from config_io import die, dump_config, load_config_or_create
 from context_selection import NAME_RE
 from git_worktrees import find_worktree_by_branch, is_under_managed_root, safe_segment
 from managed_workspace import create_managed_workspace, find_workspace
+from path_guards import PathGuardError, checked_workspace_project
 from project_names import attachment_name
 
 info = print
@@ -28,6 +30,11 @@ def apply_selection(
     if not repos:
         die("no repositories selected")
     ws_name = safe_segment(workspace, label="workspace")
+    try:
+        config_root = Path(os.environ.get("ORCAN_HOME") or config_path.parent)
+        repos = [checked_workspace_project(repo, config_root) for repo in repos]
+    except PathGuardError as exc:
+        die(f"project path {exc}")
 
     projects: list[tuple[str, Path]] = []
     used_names: set[str] = set()

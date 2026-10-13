@@ -10,6 +10,7 @@ SENSITIVE_EXACT = frozenset({"/", "/home"})
 
 # Exact match *or* any path under these roots (e.g. /var/lib/docker).
 SENSITIVE_TREES = frozenset({"/root", "/etc", "/usr", "/var", "/opt"})
+DEFAULT_DEVELOPER_WORKSPACES = "/home/developer/workspaces"
 
 
 def is_sensitive_path(path: Path | str) -> bool:
@@ -39,6 +40,24 @@ def is_sensitive_path(path: Path | str) -> bool:
 
 class PathGuardError(ValueError):
     """A project / mount path failed a safety or existence check."""
+
+
+def checked_workspace_project(path: Path | str, config_root: Path) -> Path:
+    """Reject navigation directories while allowing links to real checkouts."""
+    resolved = Path(path).resolve()
+    roots = (
+        (config_root / "workspaces").resolve(),
+        Path(DEFAULT_DEVELOPER_WORKSPACES).resolve(),
+    )
+    for root in roots:
+        if resolved == root or resolved.is_relative_to(root):
+            raise PathGuardError(
+                f"must not live under workspace meta ({root}); "
+                f"resolved checkout: {resolved}. "
+                "Use the real checkout path (for example under "
+                "$ORCAN_PROJECTS_ROOT), not a workspace navigation directory."
+            )
+    return resolved
 
 
 def checked_project_dir(
