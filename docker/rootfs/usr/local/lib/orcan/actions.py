@@ -11,8 +11,9 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -79,8 +80,8 @@ def read_action(directory: Path) -> Action:
     if not isinstance(script, str) or not re.fullmatch(r"[a-zA-Z0-9_-]+\.sh", script):
         raise ValueError("script must name a .sh file in the action directory")
     examples = data["examples"]
-    if not isinstance(examples, list) or not 3 <= len(examples) <= 50:
-        raise ValueError("Provide 3–50 example requests per action")
+    if not isinstance(examples, list) or not 3 <= len(examples) <= 200:
+        raise ValueError("Provide 3–200 example requests per action")
     script_path = directory / script
     source = read_bytes(script_path)
     source.decode("utf-8")
@@ -136,6 +137,7 @@ def load_feedback(project: Path, actions: list[Action]) -> list[tuple[str, str]]
         return []
     records = read_bytes(path, 1024 * 1024).decode("utf-8").splitlines()
     current = {a.id: a.fingerprint for a in actions}
+    defined = {example.casefold() for a in actions for example in a.examples}
     result = []
     for line in records[-MAX_FEEDBACK:]:
         row = json.loads(line)
@@ -145,28 +147,66 @@ def load_feedback(project: Path, actions: list[Action]) -> list[tuple[str, str]]
             row.get("fingerprint") == current.get(row.get("selected_id"))
             and row.get("selected_id") in current
         ):
-            result.append((text(row["text"]), row["selected_id"]))
+            phrase = text(row["text"])
+            if phrase.casefold() not in defined:
+                result.append((phrase, row["selected_id"]))
     return result
 
 
-def remember(
-    project: Path, phrase: str, proposed: str | None, selected: Action
-) -> None:
-    row = {
-        "text": phrase,
-        "proposed_id": proposed,
-        "selected_id": selected.id,
-        "fingerprint": selected.fingerprint,
-    }
-    path = feedback_path(project)
+def remember(project: Path, phrase: str, selected: Action) -> Action:
+    """Append confirmed wording to the alias JSON, without changing its script."""
+    phrase = text(phrase, 500)
+    path = state_dir(project) / "actions.lock"
     descriptor = os.open(
         path, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600
     )
-    with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
-        fcntl.flock(stream, fcntl.LOCK_EX)
-        if os.fstat(stream.fileno()).st_size > 1024 * 1024:
-            raise ValueError("Feedback exceeds 1 MiB; archive it before recording more")
-        stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+    with os.fdopen(descriptor, "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        current = read_action(selected.script.parent)
+        if current.fingerprint != selected.fingerprint:
+            raise ValueError("Action changed; review it again")
+        key = phrase.casefold()
+        for action in load_actions(project):
+            if key in {example.casefold() for example in action.examples}:
+                if action.id != selected.id:
+                    raise ValueError(
+                        f"Phrase already belongs to {action.id}; edit its examples before reassigning"
+                    )
+                return current
+        if len(current.examples) >= 200:
+            raise ValueError(
+                "Alias has 200 examples; prune redundant examples before teaching more"
+            )
+        definition = current.script.parent / "action.json"
+        data = json.loads(read_bytes(definition))
+        data["examples"].append(phrase)
+        updated = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode(
+            "utf-8"
+        )
+        if len(updated) > 65536:
+            raise ValueError("Alias JSON exceeds 64 KiB; shorten its examples")
+        source = read_bytes(current.script)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=definition.parent, delete=False
+            ) as stream:
+                temporary = Path(stream.name)
+                stream.write(updated)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.chmod(temporary, definition.stat().st_mode & 0o777)
+            if read_action(current.script.parent).fingerprint != current.fingerprint:
+                raise ValueError("Action changed during learning; review it again")
+            os.replace(temporary, definition)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+        return replace(
+            current,
+            examples=(*current.examples, phrase),
+            fingerprint=hashlib.sha256(updated + b"\0" + source).hexdigest(),
+        )
 
 
 class Recognizer:
@@ -416,8 +456,8 @@ def ask(project: Path, phrase: str, actions: list[Action], prediction: dict) -> 
     # Check again before learning: changed actions need a fresh review.
     if read_action(selected.script.parent).fingerprint != selected.fingerprint:
         raise ValueError("Action changed; review it again")
-    remember(project, phrase, proposed, selected)
-    return execute(project, selected)
+    learned = remember(project, phrase, selected)
+    return execute(project, learned)
 
 
 def evaluate(actions: list[Action], cases: list[dict], factory=Recognizer) -> dict:
@@ -447,6 +487,7 @@ def evaluate(actions: list[Action], cases: list[dict], factory=Recognizer) -> di
         "cases": len(rows),
         "correct": sum(r["action_id"] == r["expected"] for r in rows),
         "exact_correct": sum(r["exact"] == r["expected"] for r in rows),
+        "training_overlap": sum(r["exact"] is not None for r in rows),
         "false_proposals": sum(
             r["expected"] is None and r["action_id"] is not None for r in rows
         ),

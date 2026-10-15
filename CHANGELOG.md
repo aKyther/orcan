@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Confirmed alias requests now teach their selected action by appending wording
+  directly to its JSON examples, with duplicate/conflict checks and atomic writes.
+  Older feedback journals remain readable but are no longer written.
+
 - Experimental local actions pair JSON descriptions/examples with Bash scripts.
   Offline scikit-learn recognition and optional local Ollama propose actions;
   execution always needs confirmation. Corrections stay in local example memory.

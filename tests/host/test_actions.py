@@ -59,11 +59,19 @@ def test_real_classifier_beats_exact_matching_on_separate_examples(
 def test_approved_correction_improves_previously_uncertain_phrase(project, recognizer):
     catalog = actions.load_actions(project)
     selected = next(a for a in catalog if a.id == "tests.host")
-    actions.remember(project, "odpal tsty", None, selected)
-    learned = actions.Recognizer(catalog, actions.load_feedback(project, catalog))
+    original_script = selected.script.read_bytes()
+    actions.remember(project, "odpal tsty", selected)
+    updated = actions.load_actions(project)
+    learned = actions.Recognizer(updated)
     assert learned.predict("odpal tsty")["action_id"] == "tests.host"
-    selected.script.write_text("#!/bin/bash\necho changed\n")
-    assert actions.load_feedback(project, actions.load_actions(project)) == []
+    definition = json.loads((selected.script.parent / "action.json").read_text())
+    assert definition["examples"][-1] == "odpal tsty"
+    assert selected.script.read_bytes() == original_script
+    assert not actions.feedback_path(project).exists()
+    report = actions.evaluate(
+        updated, [{"text": "odpal tsty", "expected": "tests.host"}], lambda _: learned
+    )
+    assert report["training_overlap"] == 1
 
 
 def test_new_action_can_cover_a_previously_unknown_request(tmp_path):
@@ -92,12 +100,16 @@ def test_conflicting_training_examples_are_reported(project):
 
 def test_decline_never_executes_or_learns(project, monkeypatch):
     catalog = actions.load_actions(project)
+    before = {a.id: (a.script.parent / "action.json").read_bytes() for a in catalog}
     answers = iter(["n"])
     monkeypatch.setattr("builtins.input", lambda _: next(answers))
     assert (
         actions.ask(project, "powiedz czesc", catalog, {"action_id": "demo.hello"}) == 0
     )
     assert not actions.feedback_path(project).exists()
+    assert {
+        a.id: (a.script.parent / "action.json").read_bytes() for a in catalog
+    } == before
 
 
 def test_uncertain_request_does_not_choose_first_action(project, monkeypatch):
@@ -252,12 +264,9 @@ def test_confirmed_script_runs_in_project_without_interpolating_request(
     assert actions.ask(project, phrase, catalog, {"action_id": "demo.hello"}) == 0
     assert str(project) in capfd.readouterr().out
     assert not (project / "injected-file").exists()
-    rows = [
-        json.loads(line)
-        for line in actions.feedback_path(project).read_text().splitlines()
-    ]
-    assert rows[-1]["text"] == phrase
-    assert rows[-1]["selected_id"] == "demo.hello"
+    hello = next(a for a in actions.load_actions(project) if a.id == "demo.hello")
+    assert phrase in hello.examples
+    assert not actions.feedback_path(project).exists()
 
 
 @pytest.mark.integration
@@ -332,6 +341,74 @@ def test_correction_is_recorded_only_after_final_confirmation(project, monkeypat
     answers = iter([str(index), "y"])
     monkeypatch.setattr("builtins.input", lambda _: next(answers))
     assert actions.ask(project, "say hi", catalog, {"action_id": "tests.host"}) == 0
-    row = json.loads(actions.feedback_path(project).read_text().splitlines()[-1])
-    assert row["proposed_id"] == "tests.host"
-    assert row["selected_id"] == "demo.hello"
+    updated = actions.load_actions(project)
+    assert "say hi" in next(a for a in updated if a.id == "demo.hello").examples
+    assert "say hi" not in next(a for a in updated if a.id == "tests.host").examples
+    assert not actions.feedback_path(project).exists()
+
+
+def test_learning_deduplicates_case_and_whitespace(project):
+    selected = next(a for a in actions.load_actions(project) if a.id == "demo.hello")
+    definition = selected.script.parent / "action.json"
+    original = definition.read_bytes()
+    actions.remember(project, "  SAY   HELLO ", selected)
+    assert definition.read_bytes() == original
+    learned = actions.remember(project, "witaj orcanie", selected)
+    after = definition.read_bytes()
+    actions.remember(project, "WITAJ ORCANIE", learned)
+    assert definition.read_bytes() == after
+
+
+def test_learning_refuses_stale_and_conflicting_edits(project):
+    catalog = actions.load_actions(project)
+    hello = next(a for a in catalog if a.id == "demo.hello")
+    definition = hello.script.parent / "action.json"
+    original = definition.read_bytes()
+    with pytest.raises(ValueError, match="already belongs"):
+        actions.remember(project, "zrób testy", hello)
+    assert definition.read_bytes() == original
+    definition.write_bytes(original + b"\n")
+    with pytest.raises(ValueError, match="changed"):
+        actions.remember(project, "witaj orcanie", hello)
+    assert definition.read_bytes() == original + b"\n"
+
+
+def test_failed_atomic_write_keeps_definition(project, monkeypatch):
+    hello = next(a for a in actions.load_actions(project) if a.id == "demo.hello")
+    definition = hello.script.parent / "action.json"
+    original = definition.read_bytes()
+
+    def fail(*args):
+        raise OSError("Simulated write failure")
+
+    monkeypatch.setattr(actions.os, "replace", fail)
+    with pytest.raises(OSError):
+        actions.remember(project, "witaj orcanie", hello)
+    assert definition.read_bytes() == original
+    assert sorted(p.name for p in definition.parent.iterdir()) == [
+        "action.json",
+        "run.sh",
+    ]
+
+
+def test_legacy_journal_remains_readable_but_json_wins(project):
+    catalog = actions.load_actions(project)
+    hello = next(a for a in catalog if a.id == "demo.hello")
+    path = actions.feedback_path(project)
+    path.write_text(
+        json.dumps(
+            {
+                "text": "stare powitanie",
+                "selected_id": hello.id,
+                "fingerprint": hello.fingerprint,
+            }
+        )
+        + "\n"
+    )
+    original = path.read_bytes()
+    assert actions.load_feedback(project, catalog) == [
+        ("stare powitanie", "demo.hello")
+    ]
+    actions.remember(project, "stare powitanie", hello)
+    assert actions.load_feedback(project, actions.load_actions(project)) == []
+    assert path.read_bytes() == original
