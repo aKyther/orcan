@@ -47,6 +47,7 @@ Commands:
   sync         Apply orcan.config.json → .env + mounts/* for Compose
   migrate      Move projects under the managed root (fewer future recreates)
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
+  compact      Check brief size or archive and apply an agent-written summary
   settings     Edit tool settings (tmux, ttyd) — separate from workspaces
   up           Start container (orcan enter; --web-terminal | --web-terminal-auth for browser)
   down         Stop containers
@@ -94,7 +95,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | migrate | context | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
+        init | sync | migrate | context | compact | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;

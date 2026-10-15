@@ -81,6 +81,50 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | Command | Role |
 | --- | --- |
 | `orcan seed [--all] [--dry-run]` | Copy ignore/templates into git checkouts — **rarely needed**; the workspace context pack is enough |
+| `orcan compact [--check]` | Report workspace brief size and revision hash; see [Brief compaction](#brief-compaction) |
+
+## Brief compaction
+
+A session brief keeps the current goal and handoff state in
+`.orcan/session-brief.md`. Old progress reports can make each new agent read
+more than it needs. Orcan recommends a brief within **800 words and 8000 UTF-8
+bytes**. These are size limits, not a model token count.
+
+Run `orcan compact` on the host, or `orcan-compact` inside the container.
+Both accept the same options and return a small JSON result. They use the
+explicit `--workspace PATH`, then `$ORCAN_WORKSPACE_ROOT`, then the nearest
+parent with `.manifest.json`. Checks do not change files.
+
+```bash
+orcan compact --check --workspace /absolute/path/to/workspace
+```
+
+Generated workspace instructions ask the active agent to check at task start
+and milestone handoff. If `needs_compact` is true, the agent writes
+`.orcan/session-brief.next.md`, preserving the current goal, constraints,
+decisions, verified state, open issues, and next steps. Completed history can
+move out of the active brief. The agent then applies the candidate with the
+`sha256` returned by the check:
+
+```bash
+orcan compact --apply .orcan/session-brief.next.md --expected-sha256 HASH
+```
+
+The candidate must be non-empty, smaller than the original, and within both
+limits. Orcan archives the exact original in `.orcan/brief-history/` before
+replacing it. A stale hash refuses the write; the agent must reread and prepare
+a fresh summary. Compaction commands serialize their writes. Other editors
+should avoid editing the brief during an apply. No archive is deleted automatically.
+
+The active agent writes the summary; Orcan does not call a model or require an
+API key. This is instruction-driven upkeep, not a background job or a guarantee
+that every agent will follow the request. Archives are read only when historical
+detail is needed. The candidate can be removed after a successful apply.
+Compaction does not clear the agent's open conversation history.
+
+The host command needs an updated CLI; the container helper needs a rebuilt
+image. Updated generated instructions reach existing workspaces on reconcile
+(for example, `orcan sync`). Existing briefs are preserved.
 
 ## Ritual
 

@@ -28,17 +28,18 @@ Behavioral defaults (think → simplify → surgical edit → verify) live in
 
 ## Shell tools
 
-This image ships faster replacements for the classic Unix tools — use the
-replacement, not the classic one, when running a shell command yourself:
-`rg` instead of `grep -r`, `fd` instead of `find -name`, `eza` instead of
-`ls`, `bat` instead of `cat` when showing a human a file (skip it when
-piping/parsing output), `delta` as the git diff/show pager, `sg`/`ast-grep`
-for structural code search, `jq`/`yq` for JSON/YAML, `hyperfine` for
-benchmarking, `shfmt` to format shell scripts before showing/committing them,
-`difft` (difftastic) for a structural diff when a large refactor's line diff
-is hard to read. A built-in editor/search tool (e.g. a Grep or Glob tool)
-still comes first when one is available — this is only about which shell
-command to reach for otherwise.
+Prefer the smallest sufficient result; speed alone does not save tokens.
+Use built-in read/search tools when suitable.
+
+- Small tasks: `cat` for short files, `sed -n` for line ranges, `grep`/`rg`
+  for known files. Simple listings rarely need metadata.
+- Repository searches: prefer scoped `rg`/`fd`; choose existence (`rg -q`),
+  filenames (`rg -l`), or matching lines (`rg -n`). Expand scope when needed.
+- Complex tasks: use `sg`/`ast-grep` for code structure, `jq`/`yq` for selected
+  data fields, and `difft` when a structural diff clarifies a large change.
+- Prefer plain agent output; `eza`/`bat`/`delta` suit human terminal review.
+- Read enough context to verify changes. Narrow truncated searches; partial output
+  is not complete. Reuse findings until relevant files change.
 
 ## Commits
 

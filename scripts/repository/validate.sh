@@ -171,6 +171,9 @@ require_file "docker/rootfs/usr/local/bin/init-workspace"
 require_file "docker/rootfs/usr/local/bin/orcan-runtime-reconcile"
 require_file "docker/rootfs/usr/local/bin/orcan-runtime-status"
 require_file "docker/rootfs/usr/local/lib/orcan/reconcile.py"
+require_file "docker/rootfs/usr/local/lib/orcan/compact.py"
+require_file "docker/rootfs/usr/local/bin/orcan-compact"
+require_file "cli/commands/compact.sh"
 require_file "docker/rootfs/usr/local/lib/orcan/agent_inbox.py"
 require_file "docker/rootfs/usr/local/lib/orcan/agent_executor.py"
 require_file "docker/rootfs/usr/local/bin/orcan-supervisord"
@@ -311,6 +314,8 @@ for script in \
     docker/rootfs/usr/local/bin/orcan-inbox \
     docker/rootfs/usr/local/lib/orcan/workspaces.py \
     docker/rootfs/usr/local/lib/orcan/reconcile.py \
+    docker/rootfs/usr/local/lib/orcan/compact.py \
+    docker/rootfs/usr/local/bin/orcan-compact \
     docker/rootfs/usr/local/lib/orcan/agent_inbox.py \
     docker/rootfs/usr/local/lib/orcan/agent_executor.py \
     cockpit/src/orcan_cockpit/__init__.py \

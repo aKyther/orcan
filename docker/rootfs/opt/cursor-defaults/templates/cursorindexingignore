@@ -6,6 +6,7 @@ node_modules/
 venv/
 .porg/
 vendor/
+**/.orcan/brief-history/
 
 # Secrets (also in .cursorignore — belt and suspenders for indexing)
 .env

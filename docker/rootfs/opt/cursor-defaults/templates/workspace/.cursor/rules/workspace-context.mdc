@@ -16,6 +16,14 @@ orcan owns **context** (paths, ignores, instructions). `agent` / `claude` are to
 4. After `cd <project>/` — that repo’s own `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/`.
 5. Pack health: `orcan-context-status` (alias `ctx`).
 
+Brief upkeep: at task start and milestone handoff, run `orcan-compact --check`
+(host: `orcan compact`). If unavailable, keep the brief concise manually.
+When `needs_compact` is true, write `.orcan/session-brief.next.md` within 800 words /
+8000 UTF-8 bytes, preserving goal, constraints, decisions, verified state, open issues
+and next steps. Apply with `orcan-compact --apply .orcan/session-brief.next.md
+--expected-sha256 HASH` using the check's hash; remove the candidate after success.
+On conflict, reread. Read `.orcan/brief-history/` only when historical detail is needed.
+
 ## Product checkouts in this workspace
 
 The workspace-root `AGENTS.md` is **generated** (reconcile overwrites it). Lasting product

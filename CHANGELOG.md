@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Agent defaults recommend scoped, plain tool output and choose tools by task
+  size and purpose instead of requiring newer replacements for every command.
+- Brief compaction adds `orcan compact` on the host and `orcan-compact` in the
+  container, with size checks, exact history archives and revision guards.
+  Workspace instructions ask agents to check at task start and milestone handoff.
+
 - Context attachment and worktree creation reject workspace metadata paths
   before writing configuration or creating a branch. Sync errors now include
   the resolved checkout path to help repair existing entries.

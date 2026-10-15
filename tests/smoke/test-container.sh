@@ -29,6 +29,8 @@ command -v orcan-ai-statusline >/dev/null
 command -v cursor-init-project >/dev/null
 command -v orcan-init-projects >/dev/null
 command -v orcan-session-brief >/dev/null
+command -v orcan-compact >/dev/null
+orcan-compact --help >/dev/null
 command -v orcan-workspaces >/dev/null
 command -v orcan-context-status >/dev/null
 command -v cursor-ttyd >/dev/null
@@ -87,6 +89,7 @@ test -x /usr/local/bin/cursor-tmux-workspace-attach
 test -x /usr/local/bin/cursor-tmux-bootstrap-workspaces
 test -x /usr/local/bin/orcan-init-projects
 test -x /usr/local/bin/orcan-session-brief
+test -x /usr/local/bin/orcan-compact
 test -x /usr/local/bin/orcan-workspaces
 test -x /usr/local/bin/orcan-context-status
 test -f /usr/local/lib/orcan/workspaces.py

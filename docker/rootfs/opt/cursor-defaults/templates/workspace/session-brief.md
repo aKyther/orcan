@@ -2,6 +2,8 @@
 
 Optional handoff for agents in this orcan workspace (`agent` and `claude`).
 Create with `orcan-session-brief` — do not invent `PLAN.md` / `TODO.md` instead.
+Keep current state within 800 words / 8000 UTF-8 bytes. At task start and milestone
+handoff, use `orcan-compact --check`; archive older detail through compaction.
 
 ## Goal
 

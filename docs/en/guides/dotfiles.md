@@ -32,6 +32,22 @@ Copy an example (drop the `.example` suffix), edit, open a **new** shell (`orcan
 
 ## Examples
 
+### Tools for agents and terminal review
+
+Orcan's agent defaults recommend the smallest result that answers the question.
+For a small task, a short file read or a search in one known file can be enough.
+For a repository search, scoped `rg` or `fd` helps find relevant files. Use
+`rg -q` to check existence, `rg -l` for filenames, and `rg -n` for matching lines.
+For complex changes, structural search or diff tools can help explain the code.
+
+Tool speed alone does not reduce model tokens. Plain output, selected fields,
+and focused reads keep context small. Agents should expand the read when they
+need surrounding code and narrow a search if its output is truncated.
+Interactive aliases such as `ll` and tools such as `bat` remain available for
+human review; agent shells may load different aliases.
+
+### Personal overrides
+
 ```bash
 DOT="$HOME/.config/orcan/dotfiles"
 cp "$DOT/aliases.sh.example" "$DOT/aliases.sh"

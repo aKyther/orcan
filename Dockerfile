@@ -524,6 +524,7 @@ RUN chmod 0755 \
         /usr/local/bin/cursor-init-project \
         /usr/local/bin/orcan-init-projects \
         /usr/local/bin/orcan-session-brief \
+        /usr/local/bin/orcan-compact \
         /usr/local/bin/orcan-workspaces \
         /usr/local/bin/orcan-context-status \
         /usr/local/bin/orcan-prompt-clean \

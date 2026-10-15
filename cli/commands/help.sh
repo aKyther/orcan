@@ -21,6 +21,8 @@ Commands:
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects
   context show             List workspaces
+  compact [--check]        Report brief size/hash; --apply FILE with
+                           --expected-sha256 HASH archives and replaces it
   context add PATH         Add a project (optional --workspace NAME)
   context add --from-worktree REPO SELECTOR
                            Add an existing git worktree as a project

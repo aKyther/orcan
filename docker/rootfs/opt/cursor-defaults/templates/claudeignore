@@ -11,6 +11,9 @@
 **/secrets/
 **/credentials.json
 
+# Brief history is read only on demand.
+**/.orcan/brief-history/
+
 # Dependencies and virtualenvs
 **/node_modules/
 **/.venv/
