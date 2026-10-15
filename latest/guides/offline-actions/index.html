@@ -2230,7 +2230,7 @@ Neither path implicitly attaches to Docker or intercepts coding-agent messages.<
 <p>Edit these two files for another project. The test example requires the Orcan
 checkout and cached uv test dependencies. <code>diff-check</code> is another bundled example
 that runs <code>git diff --check</code>; it is not a full linter.</p>
-<p>Examples describe intent, not exact aliases. Provide 3–50 varied examples per
+<p>Examples describe intent, not exact aliases. Start with at least 3 varied examples per
 action. More distinct actions are easier to separate than several actions called
 “check everything.” The prototype supports up to 32 actions. IDs must be unique,
 and the script must be a regular <code>.sh</code> file in its action directory. Scripts run
@@ -2238,18 +2238,26 @@ with the project as their working directory. Request text is never interpolated
 into Bash. Scripts retain normal access to the environment where you run them;
 use trusted scripts and inspect the displayed code.</p>
 <h2 id="how-examples-improve-recognition">How examples improve recognition<a class="headerlink" href="#how-examples-improve-recognition" title="Permanent link">&para;</a></h2>
-<p>Confirmed requests and corrections go to <code>.orcan/action-feedback.jsonl</code>, with
-the selected action's revision fingerprint. Cancelling records nothing. A script
-failure does not mean that recognition was wrong: confirmation records the intent,
-and the script's exit code is returned separately.
-Keep the feedback file out of Git (for example, add <code>.orcan/action-feedback.jsonl</code>
-to your repository's ignore rules); action definitions and scripts can be versioned.</p>
-<p>scikit-learn fits a small classifier once per invocation using bundled examples
-and the latest 200 approved requests. This avoids loading executable model files
-and immediately includes changed examples. The feedback file is limited to 1 MiB;
-archive it manually if the helper reports that limit. Changed action definitions
-or scripts invalidate their old feedback. Ollama receives up to 12 recent approved
-examples as context; it does not update its model weights.</p>
+<p>After confirmation, Orcan appends your wording directly to <code>examples</code> in the
+selected alias's <code>action.json</code>. For example, confirming “wez pusc te tsty frnotu”
+for frontend tests teaches that wording to the frontend alias. The Bash script
+does not change. Correcting a proposal teaches the alias you selected, not the
+original proposal. Cancelling changes no examples.</p>
+<p>Duplicate wording is ignored after normalizing case and whitespace. Each alias
+can hold up to 200 examples within its 64 KiB JSON budget. A phrase already
+assigned to another alias is reported as a conflict; edit those examples before
+reassigning it. Writes preserve file permissions and replace the JSON atomically.
+Concurrent Orcan learners serialize writes; changed definitions/scripts require
+a fresh review. Other editors should avoid saving during the short learning step.
+If learning fails, the command stops before executing the script.</p>
+<p>scikit-learn fits a small classifier once per invocation from these JSON examples.
+Your saved wording participates on the next invocation, without downloading or
+loading executable model files. A later script failure does not undo learning:
+confirmation established the intended alias, independently of execution success.</p>
+<p>Older <code>.orcan/action-feedback.jsonl</code> files remain readable for compatibility but
+are no longer written. JSON examples take precedence. Historical records are used
+only while their action revision still matches. Keep old feedback files out of
+Git; definitions and the learned JSON examples can be versioned together.</p>
 <p>A high classifier score is not a guarantee of correct intent. Low scores or
 close alternatives produce no proposal; you can choose an action yourself. The
 bundled “other” examples include questions, negations and compound requests.
@@ -2261,7 +2269,9 @@ operations. Evaluation ignores personal feedback and never runs scripts.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>orcan-actions<span class="w"> </span>init<span class="w"> </span>diff-check
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>orcan-actions<span class="w"> </span>evaluate<span class="w"> </span>/absolute/orcan/tests/fixtures/actions/holdout.json
 </span></code></pre></div>
-<p>Install all three examples before using this particular evaluation file. The
+<p>Install all three examples before using this particular evaluation file. Once you
+teach an evaluation phrase, it is a training example rather than an unseen test.
+The report flags overlapping requests. The
 JSON report includes per-request results, exact-match baseline results, false
 proposals and setup time. It is a small regression fixture, not evidence of
 general language understanding. Keep your own unseen evaluation requests outside
@@ -2343,7 +2353,7 @@ without rebuilding or restarting the live container.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 15, 2026 11:06:56 UTC">October 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 15, 2026 11:41:25 UTC">October 15, 2026</span>
   </span>
 
     
