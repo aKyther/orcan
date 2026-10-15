@@ -1,0 +1,2 @@
+# Local action recognition. Installed at image build time; no runtime downloads.
+scikit-learn==1.7.2

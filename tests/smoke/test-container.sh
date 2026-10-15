@@ -30,6 +30,11 @@ command -v cursor-init-project >/dev/null
 command -v orcan-init-projects >/dev/null
 command -v orcan-session-brief >/dev/null
 command -v orcan-compact >/dev/null
+command -v orcan-actions >/dev/null
+orcan-actions --help >/dev/null
+if [[ -x /opt/orcan-actions/venv/bin/python ]]; then
+    /opt/orcan-actions/venv/bin/python -c 'import sklearn'
+fi
 orcan-compact --help >/dev/null
 command -v orcan-workspaces >/dev/null
 command -v orcan-context-status >/dev/null

@@ -1,0 +1,98 @@
+[
+  {
+    "text": "odpal tsty",
+    "expected": "tests.host"
+  },
+  {
+    "text": "zrub testy",
+    "expected": "tests.host"
+  },
+  {
+    "text": "uruchom testyy hosta",
+    "expected": "tests.host"
+  },
+  {
+    "text": "wez pusc te testy bez budowania dockera",
+    "expected": "tests.host"
+  },
+  {
+    "text": "prosze przetestuj moje zmiany",
+    "expected": "tests.host"
+  },
+  {
+    "text": "puść lokalne testy jednostkowe",
+    "expected": "tests.host"
+  },
+  {
+    "text": "run unit test suite",
+    "expected": "tests.host"
+  },
+  {
+    "text": "sprawdz biale znaki",
+    "expected": "diff.check"
+  },
+  {
+    "text": "wykryj koncowe spacje w diffie",
+    "expected": "diff.check"
+  },
+  {
+    "text": "sprawdz whitespace w moich zmianach",
+    "expected": "diff.check"
+  },
+  {
+    "text": "check the diff for trailing whitespace",
+    "expected": "diff.check"
+  },
+  {
+    "text": "powiedz mi czesc",
+    "expected": "demo.hello"
+  },
+  {
+    "text": "pokaz powitanie prosze",
+    "expected": "demo.hello"
+  },
+  {
+    "text": "say hello to me",
+    "expected": "demo.hello"
+  },
+  {
+    "text": "nie uruchamiaj teraz testow",
+    "expected": null
+  },
+  {
+    "text": "dlaczego te testy sie wysypaly",
+    "expected": null
+  },
+  {
+    "text": "jak moge napisac testy",
+    "expected": null
+  },
+  {
+    "text": "nie sprawdzaj bialych znakow",
+    "expected": null
+  },
+  {
+    "text": "napraw testy a potem zrob commit",
+    "expected": null
+  },
+  {
+    "text": "uruchom testy i potem usun projekt",
+    "expected": null
+  },
+  {
+    "text": "zbuduj mi obraz kontenera",
+    "expected": null
+  },
+  {
+    "text": "sprawdz czy wszystko dziala",
+    "expected": null
+  },
+  {
+    "text": "zamow pizze",
+    "expected": null
+  },
+  {
+    "text": "do not execute the test suite",
+    "expected": null
+  }
+]

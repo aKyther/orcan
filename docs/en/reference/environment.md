@@ -28,6 +28,11 @@ Use this page when debugging `.env` or Compose. Prefer editing `orcan.config.jso
 
 ## Compose naming (optional)
 
+For the experimental offline actions classifier, `INSTALL_ACTIONS_ML=1` at image
+build time includes its separate scikit-learn environment. The default is `0`.
+This does not install Ollama or change coding-agent models. See
+[Offline actions](../guides/offline-actions.md).
+
 | Variable | Role |
 | --- | --- |
 | `COMPOSE_PROJECT_NAME` | Compose project (CLI default `orcan`) |

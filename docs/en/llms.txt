@@ -103,6 +103,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 
 ## Optional
 
+- [Offline actions](https://akyther.github.io/orcan/latest/guides/offline-actions/): Experimental project JSON + Bash actions, local scikit-learn or optional local Ollama, always confirmed; no coding-agent model routing
 - [FAQ](https://akyther.github.io/orcan/latest/faq/)
 - [Changelog](https://akyther.github.io/orcan/latest/changelog/)
 - [Deployment](https://akyther.github.io/orcan/latest/deployment/)

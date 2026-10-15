@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Experimental local actions pair JSON descriptions/examples with Bash scripts.
+  Offline scikit-learn recognition and optional local Ollama propose actions;
+  execution always needs confirmation. Corrections stay in local example memory.
+
 - Agent defaults recommend scoped, plain tool output and choose tools by task
   size and purpose instead of requiring newer replacements for every command.
 - Brief compaction adds `orcan compact` on the host and `orcan-compact` in the

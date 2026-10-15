@@ -21,6 +21,7 @@ Commands:
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects
   context show             List workspaces
+  actions                  Experimental offline actions; see actions --help
   compact [--check]        Report brief size/hash; --apply FILE with
                            --expected-sha256 HASH archives and replaces it
   context add PATH         Add a project (optional --workspace NAME)

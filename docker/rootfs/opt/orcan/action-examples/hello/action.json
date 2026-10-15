@@ -1,0 +1,20 @@
+{
+  "id": "demo.hello",
+  "name": "Pokaż powitanie",
+  "description": "Wyświetla powitanie i katalog projektu. Nie uruchamia testów ani kontroli kodu.",
+  "examples": [
+    "przywitaj się",
+    "pokaż powitanie",
+    "powiedz cześć",
+    "wyświetl hello",
+    "pokaż przykładową akcję",
+    "uruchom powitanie",
+    "chcę zobaczyć demo powitania",
+    "powitaj mnie",
+    "say hello",
+    "show greeting",
+    "run the greeting demo",
+    "display a welcome message"
+  ],
+  "script": "run.sh"
+}

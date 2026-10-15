@@ -124,6 +124,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 
 ## Optional
 
+- [Offline actions]({SITE}/guides/offline-actions/): Experimental project JSON + Bash actions, local scikit-learn or optional local Ollama, always confirmed; no coding-agent model routing
 - [FAQ]({SITE}/faq/)
 - [Changelog]({SITE}/changelog/)
 - [Deployment]({SITE}/deployment/)

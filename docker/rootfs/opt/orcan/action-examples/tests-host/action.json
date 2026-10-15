@@ -1,0 +1,26 @@
+{
+  "id": "tests.host",
+  "name": "Uruchom testy hosta",
+  "description": "Uruchamia testy hosta Orcana przez make test-host, bez budowania obrazu Docker. Wymaga checkoutu Orcana i przygotowanych lokalnych zależności testowych.",
+  "examples": [
+    "zrób testy",
+    "uruchom testy",
+    "odpal testy",
+    "puść testy hosta",
+    "wykonaj testy jednostkowe",
+    "sprawdź zmiany testami",
+    "przetestuj kod lokalnie",
+    "chcę sprawdzić czy kod przechodzi testy",
+    "uruchom testy bez budowania dockera",
+    "sprawdź testy hosta",
+    "przepuść zmiany przez testy",
+    "proszę przetestować repozytorium",
+    "przeprowadź testy kodu",
+    "zweryfikuj poprawność testami",
+    "run host tests",
+    "run the test suite",
+    "execute unit tests",
+    "test the changes without building Docker"
+  ],
+  "script": "run.sh"
+}

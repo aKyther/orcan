@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+lib_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../lib" && pwd)"
+actions_python="${ORCAN_ACTIONS_PYTHON:-/opt/orcan-actions/venv/bin/python}"
+if [[ ! -x "${actions_python}" ]]; then
+    actions_python=python3
+fi
+exec "${actions_python}" "${lib_root}/orcan/actions.py" "$@"

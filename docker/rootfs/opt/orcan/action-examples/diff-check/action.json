@@ -1,0 +1,22 @@
+{
+  "id": "diff.check",
+  "name": "Sprawdź whitespace w zmianach",
+  "description": "Sprawdza błędy whitespace w różnicach Git przez git diff --check. Nie jest pełnym lintem ani testami.",
+  "examples": [
+    "sprawdź whitespace",
+    "sprawdź białe znaki",
+    "wykryj końcowe spacje",
+    "sprawdź spacje w zmianach",
+    "znajdź błędy whitespace w diffie",
+    "sprawdź diff pod kątem spacji",
+    "skontroluj białe znaki w kodzie",
+    "uruchom git diff check",
+    "wykonaj kontrolę whitespace",
+    "zweryfikuj zmiany git pod kątem końcowych spacji",
+    "check whitespace",
+    "check trailing spaces",
+    "run git diff check",
+    "find whitespace errors in the diff"
+  ],
+  "script": "run.sh"
+}

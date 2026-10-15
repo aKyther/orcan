@@ -1,0 +1,40 @@
+# Standalone experiment: no live Orcan service is changed and no images pulled.
+name: orcan-actions-demo
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE:?Set an already installed Ollama image tag or digest}
+    pull_policy: never
+    environment:
+      OLLAMA_NO_CLOUD: "1"
+      OLLAMA_HOST: "127.0.0.1:11434"
+      OLLAMA_MODELS: /models
+    volumes:
+      - ${OLLAMA_MODELS_DIR:?Set an absolute path to an existing Ollama model store}:/models:ro
+    networks: [offline]
+    cpus: 2
+    mem_limit: 4g
+  actions:
+    image: ${ORCAN_ACTIONS_IMAGE:-orcan:latest}
+    pull_policy: never
+    # Sharing only the model container's network namespace makes loopback work.
+    # No Docker socket or host port is exposed. Scripts run in this client.
+    network_mode: service:ollama
+    depends_on: [ollama]
+    working_dir: /project
+    entrypoint:
+      - bash
+      - /source/docker/rootfs/usr/local/bin/orcan-actions
+      - --project
+      - /project
+      - --backend
+      - ollama
+      - --model
+      - ${ORCAN_ACTIONS_MODEL:?Set an already installed local model name}
+    volumes:
+      - ${ORCAN_SOURCE_DIR:?Set the canonical absolute path to the Orcan checkout}:/source:ro
+      - ${ACTIONS_PROJECT_DIR:?Set the canonical absolute project path}:/project
+    stdin_open: true
+    tty: true
+networks:
+  offline:
+    internal: true

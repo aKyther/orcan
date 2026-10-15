@@ -82,6 +82,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | --- | --- |
 | `orcan seed [--all] [--dry-run]` | Copy ignore/templates into git checkouts — **rarely needed**; the workspace context pack is enough |
 | `orcan compact [--check]` | Report workspace brief size and revision hash; see [Brief compaction](#brief-compaction) |
+| `orcan actions` | Experimental offline action recognition and confirmed scripts; see [Offline actions](../guides/offline-actions.md) |
 
 ## Brief compaction
 

@@ -37,6 +37,7 @@ services:
         INSTALL_CODEX: ${INSTALL_CODEX:-1}
         INSTALL_GEMINI: ${INSTALL_GEMINI:-1}
         INSTALL_COPILOT: ${INSTALL_COPILOT:-1}
+        INSTALL_ACTIONS_ML: ${INSTALL_ACTIONS_ML:-0}
         ORCAN_VERSION: ${ORCAN_VERSION:-dev}
     environment:
       TERM: xterm-256color

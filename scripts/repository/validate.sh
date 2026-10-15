@@ -172,6 +172,10 @@ require_file "docker/rootfs/usr/local/bin/orcan-runtime-reconcile"
 require_file "docker/rootfs/usr/local/bin/orcan-runtime-status"
 require_file "docker/rootfs/usr/local/lib/orcan/reconcile.py"
 require_file "docker/rootfs/usr/local/lib/orcan/compact.py"
+require_file "docker/rootfs/usr/local/lib/orcan/actions.py"
+require_file "docker/rootfs/usr/local/bin/orcan-actions"
+require_file "requirements-actions.txt"
+require_file "cli/commands/actions.sh"
 require_file "docker/rootfs/usr/local/bin/orcan-compact"
 require_file "cli/commands/compact.sh"
 require_file "docker/rootfs/usr/local/lib/orcan/agent_inbox.py"
@@ -227,6 +231,7 @@ bash_scripts=(
     docker/rootfs/usr/local/bin/cursor-init-project
     docker/rootfs/usr/local/bin/orcan-init-projects
     docker/rootfs/usr/local/bin/orcan-session-brief
+    docker/rootfs/usr/local/bin/orcan-actions
     docker/rootfs/usr/local/bin/cursor-ttyd
     docker/rootfs/usr/local/bin/orcan-supervisord
     docker/rootfs/usr/local/bin/orcan-supervisor-status
@@ -264,6 +269,7 @@ bash_scripts=(
     cli/commands/pull.sh
     cli/commands/publish.sh
     cli/commands/context.sh
+    cli/commands/actions.sh
     cli/commands/enter.sh
     cli/commands/attach.sh
     cli/commands/settings.sh
@@ -316,6 +322,7 @@ for script in \
     docker/rootfs/usr/local/lib/orcan/reconcile.py \
     docker/rootfs/usr/local/lib/orcan/compact.py \
     docker/rootfs/usr/local/bin/orcan-compact \
+    docker/rootfs/usr/local/lib/orcan/actions.py \
     docker/rootfs/usr/local/lib/orcan/agent_inbox.py \
     docker/rootfs/usr/local/lib/orcan/agent_executor.py \
     cockpit/src/orcan_cockpit/__init__.py \

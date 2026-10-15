@@ -525,6 +525,7 @@ RUN chmod 0755 \
         /usr/local/bin/orcan-init-projects \
         /usr/local/bin/orcan-session-brief \
         /usr/local/bin/orcan-compact \
+        /usr/local/bin/orcan-actions \
         /usr/local/bin/orcan-workspaces \
         /usr/local/bin/orcan-context-status \
         /usr/local/bin/orcan-prompt-clean \
@@ -560,6 +561,18 @@ RUN set -eux; \
     chmod -R a+rX /opt/orcan-cockpit /opt/orcan-cockpit-src; \
     /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles'; \
     test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
+
+# Offline action classification has its own Python environment. Other context
+# helpers remain stdlib-only. Ollama is optional and is not installed here.
+ARG INSTALL_ACTIONS_ML=0
+COPY requirements-actions.txt /opt/orcan/requirements-actions.txt
+RUN if [ "${INSTALL_ACTIONS_ML}" = "1" ]; then \
+        uv venv --python /usr/bin/python3 /opt/orcan-actions/venv \
+        && uv pip install --no-cache --python /opt/orcan-actions/venv/bin/python \
+            -r /opt/orcan/requirements-actions.txt \
+        && /opt/orcan-actions/venv/bin/python -c 'import sklearn, scipy, numpy' \
+        && chmod -R a+rX /opt/orcan-actions; \
+    fi
 
 # ------------------------------------------------------------------------------
 # User
