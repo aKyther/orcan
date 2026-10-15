@@ -1336,6 +1336,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tools-for-agents-and-terminal-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools for agents and terminal review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#personal-overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Personal overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2048,6 +2076,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tools-for-agents-and-terminal-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools for agents and terminal review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#personal-overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Personal overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2154,6 +2210,18 @@
 <p>Image defaults for <strong>terminal look</strong> (ttyd, tmux, starship, fzf, lazygit palette) live under <code>docker/rootfs/</code> — see <a href="../terminal-ui/">Terminal UI</a>. Dotfiles only overlay; they do not replace the image map.</p>
 <p>Copy an example (drop the <code>.example</code> suffix), edit, open a <strong>new</strong> shell (<code>orcan enter</code> or a new tmux pane). For tmux: <code>tmux source-file ~/.tmux.conf</code> or detach/reattach. You do <strong>not</strong> need <code>orcan down</code> after editing these files.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="tools-for-agents-and-terminal-review">Tools for agents and terminal review<a class="headerlink" href="#tools-for-agents-and-terminal-review" title="Permanent link">&para;</a></h3>
+<p>Orcan's agent defaults recommend the smallest result that answers the question.
+For a small task, a short file read or a search in one known file can be enough.
+For a repository search, scoped <code>rg</code> or <code>fd</code> helps find relevant files. Use
+<code>rg -q</code> to check existence, <code>rg -l</code> for filenames, and <code>rg -n</code> for matching lines.
+For complex changes, structural search or diff tools can help explain the code.</p>
+<p>Tool speed alone does not reduce model tokens. Plain output, selected fields,
+and focused reads keep context small. Agents should expand the read when they
+need surrounding code and narrow a search if its output is truncated.
+Interactive aliases such as <code>ll</code> and tools such as <code>bat</code> remain available for
+human review; agent shells may load different aliases.</p>
+<h3 id="personal-overrides">Personal overrides<a class="headerlink" href="#personal-overrides" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">DOT</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/.config/orcan/dotfiles"</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cp<span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/aliases.sh.example"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/aliases.sh"</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nv">$EDITOR</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DOT</span><span class="s2">/aliases.sh"</span>
@@ -2189,7 +2257,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2026 19:44:34 UTC">August 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 15, 2026 10:12:19 UTC">October 15, 2026</span>
   </span>
 
     
