@@ -35,11 +35,12 @@ def load(text: str) -> dict:
             for a in step["argv"]
         ):
             raise ValueError("A selected profile must use its explicit test selectors")
-        patterns = profile.get("junit", [])
-        if not isinstance(patterns, list) or len(patterns) > 20:
-            raise ValueError("Invalid JUnit patterns")
-        for pattern in patterns:
-            relative(pattern)
+        for field in ("junit", "artifacts"):
+            patterns = profile.get(field, [])
+            if not isinstance(patterns, list) or len(patterns) > 20:
+                raise ValueError("Invalid artifact patterns")
+            for pattern in patterns:
+                relative(pattern)
     return profiles
 
 

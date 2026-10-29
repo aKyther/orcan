@@ -124,6 +124,12 @@
       ],
       "junit": [
         ".orcan/*-results.xml"
+      ],
+      "artifacts": [
+        ".orcan-test.executor-smoke/*report.json",
+        ".orcan-test.executor-smoke/container.log",
+        ".orcan-test.executor-smoke/build.log",
+        ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
       ]
     }
   }

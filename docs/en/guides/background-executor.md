@@ -196,3 +196,25 @@ Combine related checks in a profile when they share a snapshot. Selected pytest
 node IDs, Java methods or Scala suites keep scope small; broader suites remain an
 explicit choice. Even without a byte saving, a separate process and worktree can
 be useful. Background execution itself does not promise faster test execution.
+
+
+## Executor stress and resilience checks
+
+`uv run --project executor --locked python executor/smoke/run.py` runs an isolated
+same-container Redis/Celery/Supervisor fixture, using the installed Orcan image as
+a base. It never changes the live Orcan container or its image tag. The fixture
+submits 50 actual pytest jobs through eight producers, with ten duplicate queue
+deliveries and a deliberate 40-pass/10-failure split. It checks one execution per
+job, exact SHA, safe worktree cleanup, bounded agent output and a consumer reconnect
+after 25 completions. It also checks a stopped/restarted worker, broker outage with
+a durable submission and explicit recovery, event replay, and TTL cleanup while
+preserving queued work. These are local functional measurements, not a production
+throughput guarantee or a full JVM run.
+
+A profile may declare `artifacts` as snapshot-relative file globs. The executor
+archives matching files before removing its checkout, including diagnostic logs
+when a step fails. Full files follow the same completed-job TTL and remain available
+through `artifacts` / bounded `logs --artifact ...` reads. Orcan's `executor-final`
+profile uses this to preserve smoke reports and Supervisor logs from nested worktrees.
+Supervisor's fixture socket uses a short container-local path, since Unix sockets
+have a small path limit; diagnostic files are copied to the retained report.

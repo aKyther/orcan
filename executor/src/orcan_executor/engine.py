@@ -202,6 +202,21 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         except Exception as error:
             report.update(status="error", error=f"{type(error).__name__}: {str(error)[:500]}")
         finally:
+            if added:
+                try:
+                    definition = profiles.load((worktree / profiles.CONFIG).read_text())[
+                        job["profile"]
+                    ]
+                    for pattern in definition.get("artifacts", []):
+                        for source in sorted(worktree.glob(pattern)):
+                            if source.is_file() and source.resolve().is_relative_to(
+                                worktree.resolve()
+                            ):
+                                target = attempt / "artifacts" / source.relative_to(worktree)
+                                target.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.copyfile(source, target)
+                except Exception:
+                    report["artifact_error"] = "Some project artifacts could not be archived"
             # Never force-remove a dirty checkout. Keep it and report the path if cleanup is blocked.
             if added:
                 try:
@@ -255,6 +270,8 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         summary = reports.compact(report, log_path)
         summary["seconds"] = report["seconds"]
         summary["metrics"] = report["metrics"].copy()
+        if report.get("artifact_error"):
+            summary["artifact_warning"] = report["artifact_error"]
         if report.get("cleanup"):
             summary["retained_worktree"] = report["cleanup"]["retained_worktree"]
         result = store.finish(job_id, report["status"], summary, report_path)

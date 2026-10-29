@@ -199,3 +199,52 @@ def test_named_instances_have_separate_state_and_queue(monkeypatch):
     monkeypatch.setenv("ORCAN_NAMED_INSTANCE", "beta")
     second = (settings.state_dir(), settings.queue_name())
     assert first[0] != second[0] and first[1] != second[1]
+
+
+def test_duplicate_active_delivery_cannot_start_a_second_attempt(repo):
+    import fcntl
+
+    from orcan_executor.settings import state_dir
+
+    job = submit(repo)
+    directory = state_dir() / "jobs" / job["id"]
+    directory.mkdir(parents=True)
+    with (directory / "run.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        assert engine.run_job(job["id"]) is None
+        assert store.get(job["id"])["attempts"] == 0
+    assert engine.run_job(job["id"])["status"] == "passed"
+
+
+def test_failed_procedure_archives_diagnostics_before_checkout_cleanup(repo):
+    import sys
+
+    config = json.loads((repo / profiles.CONFIG).read_text())
+    config["profiles"]["selected"]["steps"] = [
+        {
+            "argv": [
+                sys.executable,
+                "-c",
+                'from pathlib import Path; import sys; Path("diagnostic.txt").write_text("full trace" * 10000); sys.exit(1)',
+                "{tests}",
+            ]
+        }
+    ]
+    config["profiles"]["selected"]["artifacts"] = ["diagnostic.txt"]
+    (repo / profiles.CONFIG).write_text(json.dumps(config))
+    (repo / ".gitignore").write_text("diagnostic.txt\n")
+    commit(repo)
+    event = engine.run_job(submit(repo)["id"])
+    assert event["status"] == "failed"
+    artifact = Path(event["report"]).parent / "artifacts/diagnostic.txt"
+    assert artifact.stat().st_size == 100000
+    assert "full trace" not in json.dumps(event)
+
+
+def test_parallel_first_submissions_do_not_race_schema_initialization(repo):
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        jobs = list(pool.map(lambda _: submit(repo), range(20)))
+    assert len({job["id"] for job in jobs}) == 20
+    assert len(store.listing()) == 20

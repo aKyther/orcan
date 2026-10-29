@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Python/Java/Scala procedures, snapshot worktrees, compact Redis Stream results,
   bounded log reading, a read-only dashboard and one-hour completed-result retention.
   Generated workspace agent instructions describe availability and the full workflow.
+- Isolated 50-job Redis/Celery stress coverage checks duplicate delivery, consumer
+  reconnect, broker recovery, worker restart and TTL cleanup. Project diagnostics
+  can be archived before executor worktree cleanup.
 
 
 - Confirmed alias requests now teach their selected action by appending wording

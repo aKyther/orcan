@@ -27,7 +27,7 @@ def database(directory: Path | None = None):
                 task TEXT NOT NULL, profile TEXT NOT NULL, selectors TEXT NOT NULL,
                 timeout INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'queued',
                 attempts INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL,
-                started TEXT, finished TEXT, summary TEXT, report TEXT, worktree TEXT
+                started TEXT, finished TEXT, summary TEXT, report TEXT, worktree TEXT, progress TEXT
             );
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT NOT NULL,

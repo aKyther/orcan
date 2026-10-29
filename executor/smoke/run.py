@@ -8,6 +8,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
+from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / ".orcan-test.executor-smoke"
@@ -79,6 +80,7 @@ def main():
                                     "-m",
                                     "pytest",
                                     "-q",
+                                    "-s",
                                     "{tests}",
                                     "--junitxml",
                                     "{junit}",
@@ -103,15 +105,16 @@ def main():
     )
     run(["git", "-C", str(fixture), "add", "."])
     run(["git", "-C", str(fixture), "commit", "-qm", "Smoke fixture"])
+    runtime = STATE / ("runtime-" + uuid4().hex[:12])
     env = [
         "-e",
         "ORCAN_REDIS_ENABLED=1",
         "-e",
         "ORCAN_EXECUTOR_QUEUE=orcan-smoke",
         "-e",
-        f"ORCAN_EXECUTOR_STATE_DIR={STATE}/runtime",
+        f"ORCAN_EXECUTOR_STATE_DIR={runtime}",
         "-e",
-        f"ORCAN_SUPERVISOR_STATE_D={STATE}/supervisor",
+        "ORCAN_SUPERVISOR_STATE_D=/tmp/orcan-executor-smoke-supervisor",
     ]
     started = False
     try:
@@ -181,6 +184,11 @@ def main():
         assert board["stats"]["reduction_percent"] > 0
         ttl = int(docker("exec", NAME, "redis-cli", "ttl", "orcan-smoke:results").strip())
         assert 0 < ttl <= 3600
+        load = json.loads(
+            docker("exec", NAME, python, "/opt/orcan-executor-src/smoke/load.py", str(fixture))
+        )
+        assert load["jobs"] == 50 and load["passed"] == 40 and load["failed"] == 10
+        (STATE / "load-report.json").write_text(json.dumps(load, indent=2))
         # Disabled startup installs no module processes, even with old rendered confs.
         docker(
             "exec",
@@ -213,6 +221,11 @@ def main():
                         "dashboard",
                         "stream TTL",
                         "disabled module",
+                        "50 concurrent submissions + duplicates",
+                        "consumer reconnect",
+                        "broker outage/recovery",
+                        "graceful worker restart",
+                        "TTL cleanup",
                     ],
                 }
             )
@@ -220,10 +233,15 @@ def main():
     finally:
         if started:
             (STATE / "container.log").write_text(docker("logs", NAME))
+            docker(
+                "cp",
+                NAME + ":/tmp/orcan-executor-smoke-supervisor",
+                str(STATE / ("supervisor-" + str(int(time.time())))),
+            )
             docker("stop", "--time", "40", NAME)
             docker("rm", NAME)
         # All executor test worktrees must have been safely cleaned by the worker.
-        owned = STATE / "runtime/worktrees"
+        owned = runtime / "worktrees"
         assert not owned.exists() or not any(p.name == ".git" for p in owned.rglob(".git"))
 
 

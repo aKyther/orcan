@@ -14,6 +14,7 @@ app.conf.update(
     accept_content=["json"],
     task_ignore_result=True,
     task_acks_late=True,
+    worker_cancel_long_running_tasks_on_connection_loss=False,
     worker_prefetch_multiplier=1,
     broker_connection_retry_on_startup=True,
     broker_connection_timeout=3,
