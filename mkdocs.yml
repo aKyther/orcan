@@ -169,6 +169,7 @@ nav:
   - Guides:
       - Workflows: guides/workflows.md
       - User dotfiles: guides/dotfiles.md
+      - Background executor: guides/background-executor.md
       - Offline actions (experimental): guides/offline-actions.md
       - Terminal UI: guides/terminal-ui.md
       - Troubleshooting: guides/troubleshooting.md

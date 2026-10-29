@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `orcan up --with-redis` background executor inside Orcan, with project-owned
+  Python/Java/Scala procedures, snapshot worktrees, compact Redis Stream results,
+  bounded log reading, a read-only dashboard and one-hour completed-result retention.
+  Generated workspace agent instructions describe availability and the full workflow.
+
+
 - Confirmed alias requests now teach their selected action by appending wording
   directly to its JSON examples, with duplicate/conflict checks and atomic writes.
   Older feedback journals remain readable but are no longer written.

@@ -65,6 +65,12 @@ case "${MODE}" in
         ;;
 esac
 
+if [[ "${ORCAN_REDIS_ENABLED:-0}" == "1" ]]; then
+    for service in executor-redis executor-worker executor-web executor-maintenance; do
+        install_program "${CONF_SRC}/${service}.conf"
+    done
+fi
+
 # Render main conf: %(here)s must be STATE_D so sock/logs/programs resolve together.
 RUNTIME_CONF="${STATE_D}/supervisord.conf"
 # Strip the stock comment header's absolute advice; copy template as-is —

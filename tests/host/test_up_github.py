@@ -88,6 +88,7 @@ orcan_load_env() { :; }
 orcan_maybe_hint_upgrade() { :; }
 orcan_compose_ttyd_down_all_variants() { printf 'STOP\\n'; }
 orcan_compose_up_run() { printf 'RUN %s %s %s %s %s %s\\n' "$1" "$2" "$3" "$4" "$5" "$7"; }
+orcan_executor_url() { printf 'http://fixture.test:8765'; }
 orcan_terminal_url() { printf 'http://fixture.test'; }
 orcan_write_git_overlay() { printf '/fixture/ssh'; }
 docker() { printf 'orcan-1 '; }
@@ -309,3 +310,23 @@ def test_network_overlay_still_joins_both_networks(shell, tmp_path):
     assert set(config["services"]["orcan"]["networks"]) == {"default", "orcan_ext"}
     assert config["networks"]["orcan_ext"]["name"] == "fixture-network"
     assert config["networks"]["orcan_ext"]["external"] is True
+
+
+def test_redis_flag_resume_and_plain_reset(shell, tmp_path):
+    result = shell("orcan_cmd_up --with-redis\norcan_cmd_up --resume\n")
+    assert result.returncode == 0, result.stderr
+    assert "WITH_REDIS=1" in (tmp_path / "mounts/last-up.env").read_text()
+    assert "WITH_REDIS=1" in (tmp_path / "mounts/up-state.env").read_text()
+    result = shell("orcan_cmd_up\n")
+    assert result.returncode == 0, result.stderr
+    assert "WITH_REDIS=0" in (tmp_path / "mounts/last-up.env").read_text()
+
+
+def test_redis_compose_overlay_is_opt_in(shell):
+    script = 'unset -f orcan_compose_up_run\nsource cli/lib/compose.sh\norcan_compose_project_args() { local -n out="$1"; out=(); }\ndocker() { printf "%s\\n" "$*"; }\norcan_compose_up_run 0 0 0 0 0 0 config\n'
+    enabled = shell(script, ORCAN_REDIS_ENABLED="1")
+    assert enabled.returncode == 0, enabled.stderr
+    assert "docker-compose.redis.yml" in enabled.stdout
+    disabled = shell(script, ORCAN_REDIS_ENABLED="0")
+    assert disabled.returncode == 0, disabled.stderr
+    assert "docker-compose.redis.yml" not in disabled.stdout

@@ -49,6 +49,7 @@ Commands:
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
   compact      Check brief size or archive and apply an agent-written summary
   actions      Experimental offline action proposals and confirmed local scripts
+  executor     Background procedures (requires up --with-redis)
   settings     Edit tool settings (tmux, ttyd) — separate from workspaces
   up           Start container (orcan enter; --web-terminal | --web-terminal-auth for browser)
   down         Stop containers
@@ -96,7 +97,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | migrate | context | compact | actions | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
+        init | sync | migrate | context | compact | actions | executor | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;

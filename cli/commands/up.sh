@@ -2,6 +2,9 @@
 # shellcheck shell=bash
 
 orcan_cmd_up() {
+    local with_redis=0
+    local ORCAN_REDIS_ENABLED=0
+    export ORCAN_REDIS_ENABLED
     local with_docker=0
     local with_git=0
     local with_gitlab=0
@@ -23,6 +26,10 @@ orcan_cmd_up() {
         case "$1" in
             --docker-socket | --with-docker)
                 with_docker=1
+                shift
+                ;;
+            --with-redis)
+                with_redis=1
                 shift
                 ;;
             --no-docker)
@@ -81,6 +88,7 @@ orcan_cmd_up() {
             -h | --help)
                 printf 'usage: orcan up --resume [--web-terminal-auth USER:PASS]\n'
                 printf '       orcan up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]\n'
+                printf '  --with-redis: enable local background executor, Redis and dashboard (separate port, same ttyd host)\n'
                 printf '  default: local-only container (orcan enter); no browser terminal\n'
                 printf '  --web-terminal | --web-terminal-auth USER:PASS: pick one (| = mutually exclusive)\n'
                 printf '  --web-terminal: publish browser terminal, no password prompt\n'
@@ -105,7 +113,7 @@ orcan_cmd_up() {
     done
 
     if (( resume )); then
-        if ((with_docker || with_git || with_github || with_gitlab || with_network || with_ttyd_opt || ${#github_hostname} || ${#gitlab_hostname})); then
+        if ((with_redis || with_docker || with_git || with_github || with_gitlab || with_network || with_ttyd_opt || ${#github_hostname} || ${#gitlab_hostname})); then
             orcan_usage_error "--resume restores saved flags; only --web-terminal-auth may be passed with it"
         fi
         orcan_load_env
@@ -113,8 +121,9 @@ orcan_cmd_up() {
         last_up="$(orcan_last_up_file)"
         [[ -f "${last_up}" ]] || orcan_die "no previous orcan up recorded (${last_up}) — start with explicit flags"
         # shellcheck disable=SC1090
-        local WITH_GITHUB=0 GITHUB_HOSTNAME="" WITH_GITLAB=0 GITLAB_HOSTNAME=""
+        local WITH_REDIS=0 WITH_GITHUB=0 GITHUB_HOSTNAME="" WITH_GITLAB=0 GITLAB_HOSTNAME=""
         source "${last_up}"
+        with_redis="${WITH_REDIS:-0}"
         with_docker="${WITH_DOCKER:-0}"
         with_git="${WITH_GIT:-0}"
         with_github="${WITH_GITHUB:-0}"
@@ -128,6 +137,8 @@ orcan_cmd_up() {
         fi
         (( with_ttyd_auth )) || with_ttyd="${WITH_TTYD:-0}"
     fi
+
+    ORCAN_REDIS_ENABLED="${with_redis}"
 
     if (( with_docker && with_network )); then
         orcan_usage_error "--docker-socket and --network are mutually exclusive (pick socket control or network reachability, not both)"
@@ -245,8 +256,8 @@ orcan_cmd_up() {
         export TTYD_CREDENTIAL="${ttyd_credential}"
     fi
     orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" up -d
-    orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}"
-    orcan_write_last_up "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_ttyd_auth}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}"
+    orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}" "${with_redis}"
+    orcan_write_last_up "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_ttyd_auth}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}" "${with_redis}"
 
     if (( with_docker )); then
         if ! orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_github}" "${with_gitlab}" exec -T orcan test -S /var/run/docker.sock 2> /dev/null; then
@@ -304,6 +315,10 @@ orcan_cmd_up() {
     fi
     if (( with_network )); then
         printf '  Docker network: %s\n' "${network_name}"
+    fi
+    if (( with_redis )); then
+        printf '  Background executor enabled; dashboard: %s\n' "$(orcan_executor_url)"
+        printf '  Readiness: orcan executor doctor\n'
     fi
     printf '\nStop with: orcan down\n'
     if (( ! with_ttyd )); then

@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "profiles": {
+    "selected": {
+      "requires_tests": true,
+      "steps": [
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "{tests}",
+            "--junitxml",
+            "{junit}"
+          ]
+        }
+      ]
+    },
+    "docs": {
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ]
+    },
+    "executor-final": {
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host/test_executor_module.py",
+            "tests/host/test_up_github.py",
+            "tests/host/test_reconcile.py",
+            "tests/host/test_reconcile_host.py",
+            "tests/host/test_container_identity.py",
+            "tests/host/test_studio_creation_options.py",
+            "--junitxml",
+            ".orcan/host-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/executor-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor",
+            "tests/host/test_executor_module.py",
+            "tests/host/test_up_github.py"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "format",
+            "--check",
+            "executor",
+            "tests/host/test_executor_module.py",
+            "tests/host/test_up_github.py"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "--extend-ignore",
+            "EXE001,RUF100",
+            "docker/rootfs/usr/local/lib/orcan/reconcile.py",
+            "scripts/repository/reconcile-host.py",
+            "scripts/repository/generate-llms-txt.py"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "python",
+            "executor/smoke/run.py"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/*-results.xml"
+      ]
+    }
+  }
+}

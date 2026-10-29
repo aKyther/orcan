@@ -244,6 +244,7 @@ orcan_write_up_state() {
         printf 'GITHUB_HOSTNAME=%q\n' "${7:-}"
         printf 'WITH_GITLAB=%s\n' "${8:-0}"
         printf 'GITLAB_HOSTNAME=%q\n' "${9:-}"
+        printf 'WITH_REDIS=%s\n' "${10:-0}"
     } >"${statef}"
 }
 
@@ -268,6 +269,7 @@ orcan_write_last_up() {
         printf 'GITHUB_HOSTNAME=%q\n' "${8:-}"
         printf 'WITH_GITLAB=%s\n' "${9:-0}"
         printf 'GITLAB_HOSTNAME=%q\n' "${10:-}"
+        printf 'WITH_REDIS=%s\n' "${11:-0}"
     } >"${statef}"
 }
 
@@ -337,6 +339,9 @@ orcan_compose_up_run() {
     fi
     if ((with_gitlab)); then
         cmd+=(-f "$(orcan_compose_gitlab_file)")
+    fi
+    if [[ "${ORCAN_REDIS_ENABLED:-0}" == "1" ]]; then
+        cmd+=(-f "${ORCAN_ROOT}/docker-compose.redis.yml")
     fi
     "${cmd[@]}" "$@"
 }

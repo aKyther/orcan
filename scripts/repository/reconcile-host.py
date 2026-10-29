@@ -109,6 +109,10 @@ def main() -> int:
     if not templates.is_dir():
         die(f"workspace templates missing under ORCAN_ROOT: {templates}")
 
+    # Read only our non-secret capability record, never source shell state here.
+    state = home / "mounts" / "up-state.env"
+    enabled = state.is_file() and "WITH_REDIS=1" in state.read_text().splitlines()
+    os.environ["ORCAN_REDIS_ENABLED"] = "1" if enabled else "0"
     report = apply_workspaces(
         cfg,
         templates,

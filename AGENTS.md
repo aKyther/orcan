@@ -103,6 +103,18 @@ make test-fast              # pure contracts while editing; full suite before ha
 
 `<workspace>/.orcan/tasks/` and `orcan-inbox` provide structured task handoff without copying chat transcripts. See `docs/en/ideas/agent-inbox.md`.
 
+### Optional background executor
+
+`orcan up --with-redis` enables Redis, Celery and a read-only dashboard inside Orcan.
+Implementation: `executor/` (locked Python 3.12), Supervisor program templates and
+`docker-compose.redis.yml`. See `docs/en/guides/background-executor.md`.
+Workspace AGENTS/CLAUDE guidance is generated in `orcan.reconcile.executor_guidance`.
+Keep default execution unchanged when disabled; readiness is checked at runtime.
+Never send successful build output to agents. Completion JSON is bounded; long
+logs and JUnit failures are consumed through bounded artifact reads. Default
+completed-result retention is one hour. Preserve active/dirty worktrees.
+Use isolated smoke fixtures, never restart the live Orcan for verification.
+
 ### UX preview (checkout only)
 
 To confirm a change actually runs (not just `make test-host`), drive the app

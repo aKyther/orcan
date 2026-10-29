@@ -86,6 +86,16 @@ orcan_terminal_url() {
     printf 'http://%s:%s\n' "${bind}" "$(orcan_ttyd_host_port)"
 }
 
+# The dashboard shares ttyd's host/interface selection, on its own port.
+orcan_executor_url() {
+    local bind
+    bind="$(orcan_ttyd_bind)"
+    case "${bind}" in
+        0.0.0.0 | :: | "[::]") bind="localhost" ;;
+    esac
+    printf 'http://%s:%s\n' "${bind}" "${ORCAN_EXECUTOR_PORT:-8765}"
+}
+
 orcan_container_is_running() {
     local name="${1:-}"
     orcan_load_env 2>/dev/null || true

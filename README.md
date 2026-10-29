@@ -91,3 +91,13 @@ make docs-serve   # maintainers — MkDocs from a git checkout
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+### Optional background checks
+
+`orcan up --with-redis` enables an internal Redis broker, a background executor and
+[a local read-only dashboard](docs/en/guides/background-executor.md). Agents can
+submit committed snapshots for Python, Java, Scala and project-defined procedures,
+then continue the conversation. Workspace AGENTS.md / CLAUDE.md explain availability,
+submission, small results, bounded log reading and the default one-hour retention.
+Plain `orcan up` keeps the existing direct workflow.

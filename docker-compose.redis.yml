@@ -1,0 +1,10 @@
+# Optional services run inside Orcan under Supervisor; no sibling Redis container.
+services:
+  orcan:
+    environment:
+      ORCAN_REDIS_ENABLED: "1"
+      TTYD_CREDENTIAL: "${TTYD_CREDENTIAL:-}"
+      ORCAN_EXECUTOR_RETENTION_SECONDS: "${ORCAN_EXECUTOR_RETENTION_SECONDS:-3600}"
+    ports:
+      - "${TTYD_BIND:-0.0.0.0}:${ORCAN_EXECUTOR_PORT:-8765}:8765"
+    stop_grace_period: 45s

@@ -21,6 +21,8 @@ require_file "Dockerfile"
 require_file "docker-compose.yml"
 require_file "docker-compose.docker.yml"
 require_file "docker-compose.ttyd.yml"
+require_file "docker-compose.redis.yml"
+require_file "executor/uv.lock"
 require_file "Makefile"
 require_file "install.sh"
 require_file "bin/orcan"
@@ -396,6 +398,7 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
         ./scripts/repository/update-env.sh >/dev/null
     generated_projects="${validate_home}/mounts/compose-projects.generated.yml"
     compose_base=(docker compose --env-file "${validate_home}/.env" --project-name orcan)
+    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.redis.yml config --quiet
     "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" config --quiet
     "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.docker.yml config --quiet
     "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.ttyd.yml config --quiet

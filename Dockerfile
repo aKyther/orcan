@@ -73,6 +73,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-pip \
         python3-venv \
         python-is-python3 \
+        redis-server \
         redis-tools \
         ripgrep \
         rsync \
@@ -547,7 +548,7 @@ RUN chmod 0755 \
 # Orcan cockpit (agent-launcher) — a real uv-managed Python project
 # (cockpit/pyproject.toml + cockpit/uv.lock at the repo root, NOT under
 # docker/rootfs/ since it isn't a plain vendored file — it's built by uv,
-# not copied verbatim), the only non-stdlib Python in this image. Installed
+# not copied verbatim). Installed
 # into its own isolated venv so orcan-context-* tooling and orcan.workspaces
 # stay stdlib-only, per AGENTS.md. `uv sync --frozen` uses the committed
 # lockfile as-is rather than re-resolving at build time.
@@ -561,6 +562,13 @@ RUN set -eux; \
     chmod -R a+rX /opt/orcan-cockpit /opt/orcan-cockpit-src; \
     /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles'; \
     test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
+
+# Optional runtime module: dependencies are installed once, services stay off
+# unless the user starts Orcan with --with-redis.
+COPY executor/ /opt/orcan-executor-src/
+RUN cd /opt/orcan-executor-src \
+    && UV_PYTHON_INSTALL_DIR=/opt/python UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --locked --no-dev --python 3.12 \
+    && chmod -R a+rX /opt/orcan-executor /opt/orcan-executor-src /opt/python
 
 # Offline action classification has its own Python environment. Other context
 # helpers remain stdlib-only. Ollama is optional and is not installed here.

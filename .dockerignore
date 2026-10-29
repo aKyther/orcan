@@ -26,3 +26,10 @@ temp/
 *.log
 .DS_Store
 workspace/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+.orcan-test.*/
+.orcan-dev-ux/
+**/.git/

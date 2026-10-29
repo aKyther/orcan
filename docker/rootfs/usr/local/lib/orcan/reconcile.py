@@ -20,6 +20,7 @@ docs/en/reference/security.md ("Mount layout tradeoffs").
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from dataclasses import dataclass, field
@@ -323,6 +324,8 @@ def _write_agents_md(
             "",
         ]
     )
+    enabled = os.environ.get("ORCAN_REDIS_ENABLED") == "1"
+    body += executor_guidance(enabled)
     if identity:
         body += (
             "\n\n## Container identity\n\n"
@@ -506,3 +509,66 @@ def apply_workspaces(
             report.stale_workspace_dirs_removed.append(str(child))
 
     return report
+
+
+def executor_guidance(enabled: bool) -> str:
+    state = (
+        "ENABLED (check readiness before submitting)"
+        if enabled
+        else "DISABLED; run checks directly as usual"
+    )
+    return f"""
+
+## Optional Redis background executor
+
+Configured state: **{state}**. This is a configuration snapshot, not a live health check.
+The user enables this module with host `orcan up --with-redis`; plain `orcan up` disables it.
+Run `orcan-executor doctor` inside Orcan to check current broker and worker readiness.
+If disabled or unavailable, use the normal direct workflow and report the limitation.
+
+Commands are installed in the Orcan image: `orcan-executor help` inside the container,
+`orcan executor help` on the host, and `orcan executor url` for the dashboard URL.
+Users and agents do not need to start uv, Celery, Redis or Uvicorn manually.
+
+Use ready background execution for small or long tests, lint, documentation builds and other
+project-approved checks. Small development checks may also run directly. This does not
+authorize broader test scope, arbitrary operations, merge, deploy or another AI agent.
+
+1. In the project, inspect `orcan-executor profiles --repo .`. Procedures live in the
+   committed `.orcan/checks.json`; never assume a profile exists. To add procedures,
+   use `orcan-executor init --repo . --kind python|java|scala|custom` (choose one),
+   review the commands and dependencies, then commit. Existing configs are not overwritten.
+2. Commit intended changes locally on the task branch. Submit that exact snapshot:
+   `orcan-executor submit --repo . --sha HEAD --profile selected --test tests/test_feature.py --task TASK`.
+   Python uses pytest paths/node IDs; Gradle uses class/method selectors; sbt uses suite names.
+   The executor supports custom argv procedures and documentation/quality profiles.
+   Choose a full-suite or coverage profile only when the task calls for that scope.
+3. Record returned job ID and SHA; return control to the conversation. The executor
+   runs in its own detached worktree. Preserve agent worktrees and the Git common directory.
+   New edits require a new committed snapshot and a new job. A locally queued job after
+   broker failure is not confirmed execution; recover explicitly with `recover --job JOB`.
+4. A separate controller process owns `orcan-executor listen --after STREAM_ID`.
+   It emits newline-delimited JSON only for completions, through blocking Redis Stream reads.
+   Never block an interactive agent on this listener or repeatedly poll status.
+   Persist the cursor and deduplicate event_id; reconnect within the retention window.
+   No automatic model invocation occurs. Without a connected controller, report pending
+   verification honestly; inspect `orcan-executor result JOB` when returning to the task.
+5. Success means no detected errors in the requested scope; report it briefly and continue.
+   Skipped tests remain skipped. Final acceptance requires a completed result for the exact SHA.
+   Failure summaries contain counters and at most three short errors, never a full log dump.
+   Read longer diagnostics only as needed with `orcan-executor logs JOB --offset 0 --limit 4000`;
+   follow next_offset to consume further bounded chunks. `artifacts JOB` lists report/XML files;
+   use `logs JOB --artifact report.json` or a listed XML name to read long reports. Use the local dashboard for full reports.
+
+The FastAPI/Uvicorn dashboard uses the same host/Tailscale binding as ttyd on its
+own port (default 8765). `orcan executor url` prints the URL. Redis has no published port.
+Redis carries jobs, procedure lifecycle and compact pytest/JUnit results; SSE updates the page.
+Completed communication history and artifacts expire after **1 hour** by default.
+Unread results can expire too; collect needed evidence promptly. Active jobs are not TTL-pruned.
+The dashboard shows actual use, queue/run time, full-log vs completion-JSON bytes/lines
+and measured data reduction, globally and per job. Tiny quiet jobs can show negative savings.
+Estimated tokens use a 4-byte heuristic and are not a measured model cost. Executor Python
+CPU excludes subprocesses and models; no CPU/GPU saving is claimed. Background execution
+lets the agent return control without waiting; it does not promise faster tests.
+Dirty executor worktrees are retained for safe manual cleanup. Never force-remove them.
+"""
