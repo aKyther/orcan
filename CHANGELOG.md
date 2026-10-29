@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Name the background capability as the executor plugin, retaining `--with-redis` activation; add bounded admission, optional light/heavy lanes, queued cancellation, active-job reuse, explicit result receipts and detail-consumption metrics.
+- Support explicit isolated source snapshots for projects without Git, with bounded file selection and TTL cleanup.
+
+- Use immutable SemVer change tags and separate explicit SHA-pinned release declarations; stop creating checkpoint and CalVer tags.
+
 ### Added
+
+- Uniform image-profile lists support agent versions/npm sources, verified native
+  installer sources, Go/Rust image references and `orcan build --config FILE`.
+- Built-in plugin descriptors and finite validators organize SSH, Docker, ttyd,
+  Redis and cockpit. `--with-ssh` is the preferred SSH capability flag.
+- Explicit workspace/project knowledge with bounded FTS5 retrieval, revision guards
+  and handoff recaps reuses the existing brief/archive without invoking models.
+- Cockpit PTY time/chunk budgets and bounded file reads reduce callback backlog and
+  oversized-state allocation; runtime diagnostics expose cgroup/disk data.
 
 - JSON image build profiles select agents and optional Go/Rust toolchains;
   `orcan build --plan` previews the resolved selection without Docker.

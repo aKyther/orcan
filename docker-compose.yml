@@ -32,6 +32,9 @@ services:
         USER_UID: ${USER_UID:-1000}
         USER_GID: ${USER_GID:-1000}
         DOCKER_GID: ${DOCKER_GID:-999}
+        GO_IMAGE: ${GO_IMAGE:-golang:1.27-bookworm}
+        RUST_IMAGE: ${RUST_IMAGE:-rust:1-bookworm}
+        ORCAN_BUILD_PROFILE_JSON: ${ORCAN_BUILD_PROFILE_JSON:-}
         INSTALL_GO: ${INSTALL_GO:-1}
         INSTALL_RUST: ${INSTALL_RUST:-1}
         INSTALL_CURSOR: ${INSTALL_CURSOR:-1}
@@ -43,6 +46,7 @@ services:
         ORCAN_VERSION: ${ORCAN_VERSION:-dev}
     environment:
       TERM: xterm-256color
+      ORCAN_TMUX_HISTORY_LIMIT: ${TMUX_HISTORY_LIMIT:-20000}
       COLORTERM: truecolor
       # Shell history under $HOME (host: $ORCAN_DATA/history)
       HISTFILE: /home/developer/.local/share/orcan/history/.zsh_history

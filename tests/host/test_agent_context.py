@@ -114,3 +114,13 @@ def test_status_does_not_request_disabled_agent_files(tmp_path, monkeypatch):
         {"name": "demo", "root": str(root), "tmux_session": "demo", "projects": []}
     )
     assert "CLAUDE.md" not in text and ".cursorignore" not in text
+
+
+def test_disabled_executor_guidance_stays_short_and_does_not_dump_instructions(
+    tmp_path,
+):
+    from orcan.reconcile import executor_guidance
+
+    disabled = executor_guidance(False)
+    assert len(disabled.encode()) < 300
+    assert "submit --repo" not in disabled

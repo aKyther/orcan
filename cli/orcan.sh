@@ -47,8 +47,10 @@ Commands:
   sync         Apply orcan.config.json → .env + mounts/* for Compose
   migrate      Move projects under the managed root (fewer future recreates)
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
+  memory       Bounded project knowledge search and archived handoff recaps
   compact      Check brief size or archive and apply an agent-written summary
   actions      Experimental offline action proposals and confirmed local scripts
+  plugins      List built-in capabilities and verify enabled runtime plugins
   executor     Background procedures (requires up --with-redis)
   settings     Edit tool settings (tmux, ttyd) — separate from workspaces
   up           Start container (orcan enter; --web-terminal | --web-terminal-auth for browser)
@@ -97,7 +99,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | migrate | context | compact | actions | executor | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
+        init | sync | migrate | context | compact | memory | actions | executor | plugins | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;

@@ -211,6 +211,7 @@ def test_invalid_or_conflicting_flags_fail_before_lifecycle(shell, args):
     "new,old",
     [
         ("--ssh", "--with-git"),
+        ("--with-ssh", "--ssh"),
         ("--web-terminal", "--with-ttyd"),
         ("--web-terminal-auth user:fixture", "--with-ttyd-auth user:fixture"),
         ("--network fixture", "--with-network fixture"),

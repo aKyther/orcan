@@ -60,3 +60,12 @@ class CockpitStateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_oversized_reconnect_files_are_rejected(tmp_path, monkeypatch):
+    path = tmp_path / "state"
+    monkeypatch.setenv("ORCAN_COCKPIT_STATE_PATH", str(path))
+    path.write_text("x" * 100000)
+    assert state.read_last_session() is None
+    path.with_name("state-recent").write_text('["' + "x" * 100000 + '"]')
+    assert state.read_recent_sessions() == []

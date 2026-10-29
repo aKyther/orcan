@@ -48,3 +48,10 @@ def retention_seconds() -> int:
     if not 60 <= value <= 86400:
         raise ValueError("Retention must be between 60 and 86400 seconds")
     return value
+
+
+def max_pending() -> int:
+    value = int(os.environ.get("ORCAN_EXECUTOR_MAX_PENDING", "100"))
+    if not 1 <= value <= 10000:
+        raise ValueError("Pending limit must be between 1 and 10000")
+    return value

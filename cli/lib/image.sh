@@ -124,6 +124,8 @@ orcan_image_build_local() {
 
     ORCAN_VERSION="${ver}" IMAGE_LOCAL="${image}" \
         INSTALL_CURSOR="${install_cursor}" INSTALL_CLAUDE="${install_claude}" \
+        GO_IMAGE="${GO_IMAGE:-golang:1.27-bookworm}" RUST_IMAGE="${RUST_IMAGE:-rust:1-bookworm}" \
+        ORCAN_BUILD_PROFILE_JSON="${ORCAN_BUILD_PROFILE_JSON:-}" \
         INSTALL_GO="${INSTALL_GO:-1}" INSTALL_RUST="${INSTALL_RUST:-1}" \
         INSTALL_CODEX="${install_codex}" INSTALL_GEMINI="${install_gemini}" INSTALL_COPILOT="${install_copilot}" \
         orcan_compose_build "${build_args[@]}" || return

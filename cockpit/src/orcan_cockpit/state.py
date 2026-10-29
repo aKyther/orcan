@@ -29,8 +29,9 @@ def recent_sessions_path() -> Path:
 def read_last_session() -> str | None:
     """Return the last attached tmux session, ignoring stale/broken state."""
     try:
-        value = state_path().read_text(encoding="utf-8").strip()
-    except OSError:
+        with state_path().open(encoding="utf-8") as source:
+            value = source.read(258).strip()
+    except (OSError, UnicodeError):
         return None
     if not value or "\n" in value or "\x00" in value or len(value) > 256:
         return None
@@ -40,8 +41,12 @@ def read_last_session() -> str | None:
 def read_recent_sessions() -> list[str]:
     """Most-recent workspace sessions, newest first; ignore corrupt state."""
     try:
-        values = json.loads(recent_sessions_path().read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        with recent_sessions_path().open(encoding="utf-8") as source:
+            content = source.read(4097)
+        if len(content) > 4096:
+            return []
+        values = json.loads(content)
+    except (OSError, UnicodeError, json.JSONDecodeError):
         return []
     if not isinstance(values, list):
         return []

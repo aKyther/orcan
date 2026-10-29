@@ -26,7 +26,7 @@ subprocess.run(['bash', '-c', 'source /usr/local/bin/docker-entrypoint; persist_
 links = {path.name for path in (home / 'orcan-map/agents').iterdir()}
 expected = set(selected) | ({'cursor-app'} if 'cursor' in selected else set())
 assert links == expected
-project = root / 'project' 
+project = root / 'project'
 project.mkdir()
 subprocess.run(['orcan-init-project', str(project)], check=True, stdout=subprocess.DEVNULL)
 workspace = root / 'workspaces/demo'
@@ -36,9 +36,60 @@ for path in [project, workspace]:
     assert (path / 'CLAUDE.md').is_file() == ('claude' in selected)
     assert (path / '.claudeignore').is_file() == ('claude' in selected)
     assert (path / '.cursorignore').is_file() == ('cursor' in selected)
+
+listed=json.loads(subprocess.check_output(['orcan-plugins','list'],text=True))
+assert len(listed)==5
+subprocess.run(['orcan-memory','--project',str(project),'remember','tests','--title','Tests','--text','Use selected pytest procedures','--source','README.md'],check=True,stdout=subprocess.DEVNULL)
+found=json.loads(subprocess.check_output(['orcan-memory','--project',str(project),'search','pytest','--budget','1000'],text=True))
+assert found['matches'][0]['id']=='tests'
+assert len(json.dumps(found).encode())<=1000
+candidate=root/'recap';candidate.write_text('Current goal: run tests. Next action: inspect results.')
+subprocess.run(['orcan-memory','--workspace',str(workspace),'recap','--file',str(candidate)],check=True,stdout=subprocess.DEVNULL)
+assert (workspace/'.orcan/session-brief.md').read_text()==candidate.read_text()
 assert (home / '.claude/settings.json').exists() == ('claude' in selected)
 assert (home / '.cursor').exists() == ('cursor' in selected)
 print(json.dumps({'agents':selected,'status':'passed'}))
+"""
+
+
+FLOOD = r"""import asyncio, os, threading
+import pyte
+from orcan_cockpit.pty_terminal import PtyTerminal
+async def check():
+    read_fd,write_fd=os.pipe()
+    os.set_blocking(read_fd,False)
+    term=PtyTerminal(['true'])
+    term._master_fd=read_fd
+    term._screen=pyte.Screen(80,24)
+    term._stream=pyte.Stream(term._screen)
+    term._ready=True
+    term._schedule_refresh=lambda:None
+    total=1024*1024
+    sent=threading.Event()
+    def writer():
+        remaining=total
+        while remaining:
+            remaining-=os.write(write_fd,b'x'*min(remaining,16384))
+        sent.set()
+    thread=threading.Thread(target=writer)
+    loop=asyncio.get_running_loop()
+    loop.add_reader(read_fd,term._on_readable)
+    thread.start()
+    ticks=0
+    deadline=loop.time()+20
+    try:
+        while not sent.is_set():
+            if loop.time()>deadline:
+                raise AssertionError('PTY flood deadline exceeded')
+            await asyncio.sleep(.005)
+            ticks+=1
+        assert ticks>=2,ticks
+        print(ticks)
+    finally:
+        loop.remove_reader(read_fd)
+        os.close(read_fd);os.close(write_fd)
+        thread.join(timeout=1)
+asyncio.run(check())
 """
 
 
@@ -93,6 +144,24 @@ def main():
                 capture_output=True,
             )
             assert json.loads(result.stdout)["status"] == "passed"
+        flood = run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-i",
+                "--network",
+                "none",
+                "-e",
+                "PYTHONPATH=/opt/orcan-cockpit-src/src:/usr/local/lib",
+                context_image,
+                "/opt/orcan-cockpit/venv/bin/python",
+                "-",
+            ],
+            input=FLOOD,
+            capture_output=True,
+        )
+        flood_ticks = int(flood.stdout.strip())
         # Use the exact production conditional RUN block with small fake stage
         # contents, so the test checks layers without downloading full toolchains.
         context = STATE / "tools-context"
@@ -140,6 +209,7 @@ def main():
         report = {
             "status": "passed",
             "agent_combinations": 5,
+            "pty_flood_heartbeat_ticks": flood_ticks,
             "global_settings_and_project_seeds": True,
             "disabled_tool_files_absent": True,
             "fixture_layer_bytes_avoided": sizes["1"] - sizes["0"],

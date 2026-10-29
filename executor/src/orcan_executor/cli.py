@@ -16,7 +16,17 @@ def emit(value):
 def enqueue(job_id: str):
     from .tasks import verify
 
-    verify.apply_async(args=[job_id], task_id=job_id)
+    job = store.get(job_id)
+    definition = profiles.load(
+        engine.git(
+            Path(job["repo"]) if Path(job["repo"]).exists() else Path(job["git_dir"]),
+            "show",
+            job["sha"] + ":" + profiles.CONFIG,
+        )
+    )[job["profile"]]
+    lane = definition.get("lane", "default")
+    queue = queue_name() + (":" + lane if lane != "default" else "")
+    verify.apply_async(args=[job_id], task_id=job_id, queue=queue)
 
 
 def parser():
@@ -27,6 +37,22 @@ def parser():
     submit = commands.add_parser("submit", help="Pin a committed revision and enqueue verification")
     submit.add_argument("--repo", type=Path, required=True)
     submit.add_argument("--sha", default="HEAD")
+    submit.add_argument(
+        "--directory",
+        action="store_true",
+        help="Snapshot explicitly included files without modifying project Git metadata",
+    )
+    submit.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        help="Project-relative regular file to include in a directory snapshot",
+    )
+    submit.add_argument(
+        "--reuse",
+        action="store_true",
+        help="Reuse identical queued/running verification instead of adding work",
+    )
     submit.add_argument("--task", default="")
     submit.add_argument("--profile", default="selected")
     submit.add_argument("--test", action="append", default=[])
@@ -42,6 +68,12 @@ def parser():
     listing.add_argument("--repo", type=Path, default=Path.cwd())
     listing.add_argument("--sha", default="HEAD")
     commands.add_parser("maintenance", help="Local TTL cleanup and outbox recovery service")
+    cancel = commands.add_parser(
+        "cancel", help="Cancel queued obsolete work; running processes are preserved"
+    )
+    cancel.add_argument("job_id")
+    ack = commands.add_parser("ack", help="Record that a completed result was consumed")
+    ack.add_argument("job_id")
     logs = commands.add_parser("logs", help="Read a bounded log chunk; never dump build output")
     artifacts = commands.add_parser(
         "artifacts", help="List a bounded page of full report/XML artifact names"
@@ -81,7 +113,10 @@ def parser():
     web = commands.add_parser("web", help="Serve the local read-only live dashboard")
     web.add_argument("--host", default="127.0.0.1")
     web.add_argument("--port", type=int, default=8765)
-    commands.add_parser("worker", help="Run one local Celery worker in the foreground")
+    worker = commands.add_parser(
+        "worker", help="Run an isolated local Celery worker lane in the foreground"
+    )
+    worker.add_argument("--lane", choices=["default", "light", "heavy"], default="default")
     recover = commands.add_parser(
         "recover", help="Republish pending events and requeue one interrupted/pending job"
     )
@@ -102,7 +137,14 @@ def main(argv=None):
         return 0
     args = parser().parse_args(argv)
     try:
-        if args.command == "maintenance":
+        if args.command == "cancel":
+            emit(engine.cancel(args.job_id))
+            events.publish_pending()
+        elif args.command == "ack":
+            store.acknowledge(args.job_id)
+            emit({"job_id": args.job_id, "acknowledged": True})
+            events.publish_pending()
+        elif args.command == "maintenance":
             from .retention import maintain
 
             maintain()
@@ -145,6 +187,11 @@ def main(argv=None):
                 chunk = source.read(args.limit)
                 position = source.tell()
                 more = bool(source.read(1))
+            store.detail_read(job["id"], len(chunk))
+            try:
+                events.publish_pending()
+            except Exception:
+                pass  # Reading local diagnostics remains possible during broker outages.
             emit(
                 {
                     "job_id": job["id"],
@@ -184,7 +231,10 @@ def main(argv=None):
             if enabled and broker:
                 try:
                     worker = store.board()["worker_running"] and bool(
-                        events.client().get(queue_name() + ":worker-ready")
+                        any(
+                            events.client().get(queue_name() + suffix + ":worker-ready")
+                            for suffix in ("", ":light", ":heavy")
+                        )
                     )
                 except Exception:
                     pass
@@ -198,16 +248,27 @@ def main(argv=None):
                 raise ValueError(
                     "Executor disabled; start Orcan with --with-redis, or run checks directly"
                 )
-            job = engine.submit(
-                args.repo,
-                args.sha,
-                args.task,
-                args.profile,
-                args.test,
-                args.timeout
-                if args.timeout is not None
-                else integer("timeout-seconds", 1800, 21600),
-            )
+            from contextlib import nullcontext
+
+            from .snapshots import snapshot
+
+            if args.include and not args.directory:
+                raise ValueError("--include requires --directory")
+            if args.directory and args.sha != "HEAD":
+                raise ValueError("--directory identifies its own snapshot; omit --sha")
+            source = snapshot(args.repo, args.include) if args.directory else nullcontext(args.repo)
+            with source as repository:
+                job = engine.submit(
+                    repository,
+                    args.sha,
+                    args.task,
+                    args.profile,
+                    args.test,
+                    args.timeout
+                    if args.timeout is not None
+                    else integer("timeout-seconds", 1800, 21600),
+                    reuse=args.reuse,
+                )
             try:
                 enqueue(job["id"])
             except Exception:
@@ -307,12 +368,18 @@ def main(argv=None):
             from .tasks import app
 
             state_dir().mkdir(parents=True, exist_ok=True, mode=0o700)
-            with (state_dir() / "worker.lock").open("a") as lock:
+            suffix = ":" + args.lane if args.lane != "default" else ""
+            worker_queue = queue_name() + suffix
+            lock_name = "worker.lock" if args.lane == "default" else "worker-" + args.lane + ".lock"
+            app.conf.task_default_queue = worker_queue
+            with (state_dir() / lock_name).open("a") as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 app.worker_main(
                     [
                         "worker",
                         "--pool=solo",
+                        "--queues=" + worker_queue,
+                        "--hostname=orcan-" + args.lane + "@%h",
                         "--concurrency=1",
                         "--loglevel=WARNING",
                         "--queues=" + queue_name(),

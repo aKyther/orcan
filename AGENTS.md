@@ -76,7 +76,7 @@ container CMD → orcan-supervisord → keepalive|ttyd
 
 ### SSH inside the container
 
-`orcan up --with-git` mounts host `~/.ssh` read-only. Container
+`orcan up --with-ssh` mounts host `~/.ssh` read-only. Container
 `/usr/local/bin/ssh` delegates to OpenSSH with `ControlPath` set to
 `~/.cache/orcan/ssh/%C` (private directory, mode 700), so multiplexing sockets
 can be created and reused. `ControlMaster` and `ControlPersist` still follow
@@ -101,7 +101,7 @@ make test-fast              # pure contracts while editing; full suite before ha
 
 ### Image profiles and generated context
 
-`orcan build --plan` resolves JSON `build.agents` and optional Go/Rust choices.
+`orcan build --plan` resolves JSON `build.agents` and optional Go/Rust source images.
 The installed `/etc/orcan/agents.json` controls agent-specific workspace/project
 and home seeds. Preserve custom files; prune only unchanged owned workspace defaults.
 The product repository keeps its maintained AGENTS/CLAUDE pair; generated workspaces
@@ -185,26 +185,15 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 `docker/rootfs/` · `cockpit/` (image venv `/opt/orcan-cockpit/venv`) ·
 `scripts/repository/` · `scripts/dev/` · `Makefile` · `docs/` · `tests/`
 
-Three tiers, on explicit maintainer request only — never implied by "fix
-this" / "test this":
-
-- Regular commits (incl. fixes pushed out just to test somewhere) do
-  **not** bump the version or tag — commit normally; `CHANGELOG.md`
-  entries stay under `[Unreleased]`.
-- `make tag` (`PART=patch|minor|major`, default patch) — a personal,
-  frequent SemVer checkpoint: bumps + moves `[Unreleased]` into
-  `[X.Y.Z]` + commits + tags, **fully pushed** (commit and tag both
-  reach origin — nothing local-only). The tag lives under
-  `checkpoint/vX.Y.Z`, not bare `vX.Y.Z`, so it stays invisible to
-  `orcan upgrade`/`downgrade` (they only match `^v[0-9]+\.[0-9]+\.[0-9]+$`)
-  and to `release.yml`'s `v*.*.*` trigger — a checkpoint can never become
-  an update target or fire a release on its own.
-- `make release` (`Q=YY.Q`, default: current quarter) — the rare,
-  deliberate public stop. Ensures a real, pushed bare `vX.Y.Z` tag
-  exists (creating one if `make tag` hasn't already — this is what CI /
-  `orcan upgrade`/`downgrade` / GitHub Releases key off, unchanged),
-  pushes a second bare CalVer tag (e.g. `26.3`) at the same commit, and
-  adds a CHANGELOG divider + extra mike docs alias.
+Versioning is explicit. Ordinary commits keep changes under `[Unreleased]`.
+For the current development flow, increment the patch metadata and synchronized
+mirrors with each intended commit, as requested by the maintainer.
+`make tag PART=patch|minor|major` creates and pushes a normal immutable `vX.Y.Z`
+change tag with synchronized package metadata and changelog. A tag is not a release.
+`make release TAG=vX.Y.Z` declares readiness for that existing remote tag and its
+exact SHA through the manually dispatched release workflow. It never bumps versions,
+adds CalVer/checkpoint tags, or moves/deletes existing tags. Fix forward with a new
+version. Historical tags and changelog sections remain unchanged.
 
 ---
 

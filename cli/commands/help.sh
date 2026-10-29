@@ -21,8 +21,10 @@ Commands:
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects
   context show             List workspaces
+  plugins list|doctor      Built-in plugin catalog and runtime checks
   executor                 Background checks; see executor --help (requires --with-redis)
   actions                  Experimental offline actions; see actions --help
+  memory                   Explicit notes, relevant excerpts and handoff recaps
   compact [--check]        Report brief size/hash; --apply FILE with
                            --expected-sha256 HASH archives and replaces it
   context add PATH         Add a project (optional --workspace NAME)
@@ -41,7 +43,7 @@ Commands:
   studio parent plan       Read-only parent update plan (Git fast-forward safety checks)
   studio parent apply      Apply an approved parent update (--expected-head SHA --yes)
 
-  up [--with-redis] [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]
+  up [--with-redis] [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--with-ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]
                            Start container (local: orcan enter; browser: pick ttyd or ttyd-auth)
                            | = pick one (ttyd vs ttyd-auth; docker vs network)
                            Old --with-* flags remain accepted; see orcan up --help

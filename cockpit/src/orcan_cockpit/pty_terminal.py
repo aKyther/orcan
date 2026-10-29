@@ -35,11 +35,11 @@ import os
 import pty
 import struct
 import subprocess
-import termios
 import tempfile
+import termios
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 import pyte
 from rich.color import Color
@@ -88,7 +88,7 @@ def _pyte_color_to_rich(value: str) -> str | None:
 _style_cache: dict[tuple, Style] = {}
 
 
-def _char_style(char: "pyte.screens.Char", link: str | None = None) -> Style:
+def _char_style(char: pyte.screens.Char, link: str | None = None) -> Style:
     fg, bg = char.fg, char.bg
     if char.reverse:
         fg, bg = bg, fg
@@ -154,7 +154,7 @@ class PtyTerminal(Widget):
         """Posted once, the first time real output arrives — the signal a
         parent uses to swap out its 'attaching…' loading indicator."""
 
-        def __init__(self, pty_terminal: "PtyTerminal") -> None:
+        def __init__(self, pty_terminal: PtyTerminal) -> None:
             self.pty_terminal = pty_terminal
             super().__init__()
 
@@ -167,6 +167,9 @@ class PtyTerminal(Widget):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        from orcan_cockpit.runtime_limits import limits
+
+        self._io_limits = limits()
         self._command = list(command)
         self._session = session
         self._env = env
@@ -359,11 +362,13 @@ class PtyTerminal(Widget):
             return
         got_data = False
         bytes_read = 0
-        while bytes_read < _MAX_READ_BYTES_PER_TICK:
+        budget = self._io_limits["pty_read_bytes"]
+        deadline = time.monotonic() + self._io_limits["pty_read_ms"] / 1000
+        while bytes_read < budget and (bytes_read == 0 or time.monotonic() < deadline):
             try:
                 data = os.read(
                     self._master_fd,
-                    min(65536, _MAX_READ_BYTES_PER_TICK - bytes_read),
+                    min(self._io_limits["pty_chunk_bytes"], budget - bytes_read),
                 )
             except BlockingIOError:
                 break
@@ -404,11 +409,9 @@ class PtyTerminal(Widget):
             # (button 64/65 = '@'/'A') echo as garbage when 1006 is expected.
             self._mouse_sgr = True
         self._schedule_refresh()
-        if bytes_read >= _MAX_READ_BYTES_PER_TICK:
-            # The fd remains registered with add_reader, but scheduling one
-            # follow-up after yielding avoids waiting for a platform-specific
-            # readiness edge while a child is producing a sustained flood.
-            asyncio.get_running_loop().call_soon(self._on_readable)
+        # add_reader uses level-triggered readiness on Linux. Do not also
+        # call_soon ourselves: sustained output can otherwise accumulate an
+        # extra callback chain every event-loop turn. The fd wakes us again.
 
     def _write_pty(self, data: bytes) -> None:
         if self._master_fd is None or not data:

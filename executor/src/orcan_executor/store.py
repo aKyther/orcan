@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .metrics import measure_result, wire
-from .settings import retention_seconds, state_dir
+from .settings import max_pending, retention_seconds, state_dir
 
-TERMINAL = {"passed", "failed", "error", "timed_out"}
+TERMINAL = {"passed", "failed", "error", "timed_out", "cancelled"}
 
 
 def now() -> str:
@@ -22,6 +22,7 @@ def database(directory: Path | None = None):
     connection.row_factory = sqlite3.Row
     try:
         connection.executescript("""
+            BEGIN IMMEDIATE;
             CREATE TABLE IF NOT EXISTS jobs (
                 id TEXT PRIMARY KEY, repo TEXT NOT NULL, git_dir TEXT, sha TEXT NOT NULL,
                 task TEXT NOT NULL, profile TEXT NOT NULL, selectors TEXT NOT NULL,
@@ -39,6 +40,14 @@ def database(directory: Path | None = None):
             connection.execute("ALTER TABLE jobs ADD COLUMN git_dir TEXT")
         if "progress" not in columns:
             connection.execute("ALTER TABLE jobs ADD COLUMN progress TEXT")
+        for name, definition in {
+            "acknowledged": "TEXT",
+            "detail_reads": "INTEGER NOT NULL DEFAULT 0",
+            "detail_bytes": "INTEGER NOT NULL DEFAULT 0",
+        }.items():
+            if name not in columns:
+                connection.execute("ALTER TABLE jobs ADD COLUMN " + name + " " + definition)
+        connection.commit()
         yield connection
         connection.commit()
     except BaseException:
@@ -56,8 +65,29 @@ def event(db, payload: dict) -> dict:
     return payload
 
 
-def create(job: dict) -> None:
+def create(job: dict, reuse: bool = False) -> str:
     with database() as db:
+        db.execute("BEGIN IMMEDIATE")
+        if reuse:
+            existing = db.execute(
+                "SELECT id FROM jobs WHERE git_dir=? AND sha=? AND profile=? AND selectors=? AND timeout=? AND status IN ('queued','running') ORDER BY created LIMIT 1",
+                (
+                    job["git_dir"],
+                    job["sha"],
+                    job["profile"],
+                    json.dumps(job["selectors"]),
+                    job["timeout"],
+                ),
+            ).fetchone()
+            if existing:
+                return existing["id"]
+        count = db.execute(
+            "SELECT COUNT(*) FROM jobs WHERE status IN ('queued','running')"
+        ).fetchone()[0]
+        if count >= max_pending():
+            raise ValueError(
+                "Executor capacity reached; cancel obsolete queued work or wait for a completion event"
+            )
         db.execute(
             "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created) VALUES(?,?,?,?,?,?,?,?,?)",
             (
@@ -82,6 +112,8 @@ def create(job: dict) -> None:
                 "status": "queued",
             },
         )
+
+    return job["id"]
 
 
 def get(job_id: str) -> dict:
@@ -174,7 +206,16 @@ def mark_published(event_id: int) -> None:
 def board() -> dict:
     with database() as db:
         counts = {
-            state: 0 for state in ("queued", "running", "passed", "failed", "error", "timed_out")
+            state: 0
+            for state in (
+                "queued",
+                "running",
+                "passed",
+                "failed",
+                "error",
+                "timed_out",
+                "cancelled",
+            )
         }
         counts.update(
             {
@@ -187,7 +228,7 @@ def board() -> dict:
         ]
         aggregate = dict(
             db.execute("""
-            SELECT COUNT(summary) AS completed_jobs,
+            SELECT COUNT(json_extract(summary, '$.metrics.result_bytes')) AS completed_jobs,
             COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes,
             COALESCE(SUM(json_extract(summary, '$.metrics.log_lines')),0) AS log_lines,
             COALESCE(SUM(json_extract(summary, '$.metrics.result_bytes')),0) AS result_bytes,
@@ -199,6 +240,19 @@ def board() -> dict:
             FROM jobs WHERE summary IS NOT NULL
         """).fetchone()
         )
+        by_status = [
+            dict(row)
+            for row in db.execute(
+                "SELECT status, COUNT(*) AS jobs, COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes, COALESCE(SUM(json_extract(summary, '$.metrics.result_bytes')),0) AS result_bytes FROM jobs WHERE summary IS NOT NULL GROUP BY status"
+            )
+        ]
+        usage = dict(
+            db.execute(
+                "SELECT COUNT(acknowledged) AS acknowledged_jobs, COALESCE(SUM(detail_reads),0) AS detail_reads, COALESCE(SUM(detail_bytes),0) AS detail_bytes FROM jobs"
+            ).fetchone()
+        )
+    aggregate["by_status"] = by_status
+    aggregate.update(usage)
     for job in jobs:
         job["selectors"] = json.loads(job["selectors"])
         job["summary"] = json.loads(job["summary"]) if job["summary"] else None
@@ -212,21 +266,26 @@ def board() -> dict:
     )
     aggregate["estimated_tokens_avoided"] = max(0, aggregate["reduction_bytes"] // 4)
     worker_running = False
-    lock_path = state_dir() / "worker.lock"
-    if lock_path.exists():
-        import fcntl
+    for lock_path in [
+        state_dir() / "worker.lock",
+        state_dir() / "worker-light.lock",
+        state_dir() / "worker-heavy.lock",
+    ]:
+        if lock_path.exists():
+            import fcntl
 
-        with lock_path.open("a") as lock:
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                worker_running = True
+            with lock_path.open("a") as lock:
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    worker_running = True
     return {
         "counts": counts,
         "jobs": jobs,
         "worker_running": worker_running,
         "stats": aggregate,
         "retention_seconds": retention_seconds(),
+        "max_pending": max_pending(),
     }
 
 
@@ -251,3 +310,32 @@ def step(job: dict, index: int, status: str, seconds: float | None = None, total
                 "seconds": seconds,
             },
         )
+
+
+def acknowledge(job_id: str) -> None:
+    with database() as db:
+        row = db.execute("SELECT sha,status FROM jobs WHERE id=?", (job_id,)).fetchone()
+        if row is None or row["status"] not in TERMINAL:
+            raise ValueError("Only a completed result can be acknowledged")
+        changed = db.execute(
+            "UPDATE jobs SET acknowledged=? WHERE id=? AND acknowledged IS NULL", (now(), job_id)
+        ).rowcount
+        if changed:
+            event(
+                db,
+                {
+                    "kind": "acknowledged",
+                    "job_id": job_id,
+                    "sha": row["sha"],
+                    "status": "acknowledged",
+                },
+            )
+
+
+def detail_read(job_id: str, size: int) -> None:
+    with database() as db:
+        db.execute(
+            "UPDATE jobs SET detail_reads=detail_reads+1, detail_bytes=detail_bytes+? WHERE id=?",
+            (size, job_id),
+        )
+        event(db, {"kind": "detail_read", "job_id": job_id, "bytes": size})

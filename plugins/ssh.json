@@ -1,0 +1,10 @@
+{
+  "id": "ssh",
+  "kind": "access",
+  "flags": [
+    "--with-ssh",
+    "--ssh",
+    "--with-git"
+  ],
+  "verifier": "ssh"
+}

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 TMUX_DEFAULTS: dict[str, object] = {
     "initial_windows": 3,
+    "history_limit": 20000,
     "window_prefix": "tab",
 }
 

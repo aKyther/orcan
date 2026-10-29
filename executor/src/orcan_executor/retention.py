@@ -18,7 +18,7 @@ def prune() -> int:
     with store.database() as db:
         jobs = list(
             db.execute(
-                "SELECT * FROM jobs WHERE finished < ? AND status IN ('passed','failed','error','timed_out')",
+                "SELECT * FROM jobs WHERE finished < ? AND status IN ('passed','failed','error','timed_out','cancelled')",
                 (cutoff,),
             )
         )
@@ -70,6 +70,9 @@ def maintain():
 
     while True:
         prune()
+        from .snapshots import prune_snapshots
+
+        prune_snapshots()
         try:
             events.publish_pending()
             connection = events.client()

@@ -1,8 +1,8 @@
 {
   "_comment": "Copy to orcan.config.json and edit absolute paths. Then: make env",
   "build": {
-    "agents": ["codex"],
-    "tools": {"go": false, "rust": false}
+    "agents": [{"name": "codex", "version": "latest"}],
+    "tools": []
   },
   "workspaces": [
     {
@@ -34,6 +34,7 @@
   ],
   "tmux": {
     "initial_windows": 3,
+    "history_limit": 20000,
     "window_prefix": "tab"
   },
   "ttyd": {

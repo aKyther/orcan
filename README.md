@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **4.0.0**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **4.0.1**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -105,8 +105,18 @@ Plain `orcan up` keeps the existing direct workflow.
 
 ### Choose image contents
 
-Set `build.agents` and optional `build.tools.go` / `build.tools.rust` in
+Set `build.agents` and optional `build.tools` in
 `orcan.config.json`, preview with `orcan build --plan`, then run `orcan build`.
 Claude and Cursor context files are generated only for clients installed in the
 image. See [Image profiles](docs/en/guides/image-profiles.md) for precedence,
 workspace updates and safe preservation of custom files.
+
+
+### Runtime plugins, memory and interfaces
+
+`orcan plugins list|validate|doctor` describes and checks built-in SSH, Docker,
+ttyd, Redis and cockpit capabilities. Prefer `--with-ssh` for SSH access.
+`orcan memory` manages explicit knowledge, bounded retrieval and archived handoff
+recaps; project knowledge follows the Git common directory across worktrees.
+See [Orcan flow](docs/en/guides/orcan-flow.md) for commands, source/version selection,
+cockpit I/O budgets, and the separation between build-time and runtime choices.

@@ -1,0 +1,8 @@
+{
+  "id": "executor",
+  "kind": "executor",
+  "flags": [
+    "--with-redis"
+  ],
+  "verifier": "executor"
+}

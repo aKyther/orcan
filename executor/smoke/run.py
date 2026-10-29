@@ -88,6 +88,7 @@ def main():
                             }
                         ],
                     },
+                    "heavy": {"lane": "heavy", "steps": [{"argv": ["true"]}]},
                     "failure": {
                         "steps": [
                             {
@@ -168,6 +169,47 @@ def main():
             received = json.loads(execute("wait", submitted["job_id"], "--timeout", "30"))
             assert received["status"] == status and received["summary"]["tests"] == 1
             assert len(json.dumps(received)) < 3000
+        # Real broker paths for reuse, cancellation, dedicated lanes and explicit receipts.
+        queued = json.loads(
+            execute("submit", "--repo", str(fixture), "--profile", "heavy", "--reuse")
+        )
+        reused = json.loads(
+            execute("submit", "--repo", str(fixture), "--profile", "heavy", "--reuse")
+        )
+        assert reused["job_id"] == queued["job_id"]
+        assert json.loads(execute("cancel", queued["job_id"]))["status"] == "cancelled"
+        assert (
+            json.loads(execute("wait", queued["job_id"], "--timeout", "10"))["status"]
+            == "cancelled"
+        )
+        heavy = json.loads(execute("submit", "--repo", str(fixture), "--profile", "heavy"))
+        docker("exec", "-d", NAME, "orcan-executor", "worker", "--lane", "heavy")
+        assert json.loads(execute("wait", heavy["job_id"], "--timeout", "30"))["status"] == "passed"
+        assert json.loads(execute("ack", job["job_id"]))["acknowledged"]
+        execute("logs", bad["job_id"], "--limit", "100")
+        plain = fixture / "plain"
+        (plain / ".orcan").mkdir(parents=True)
+        (plain / ".orcan/checks.json").write_text((fixture / ".orcan/checks.json").read_text())
+        (plain / "test_example.py").write_text((fixture / "test_example.py").read_text())
+        standalone = json.loads(
+            execute(
+                "submit",
+                "--repo",
+                str(plain),
+                "--directory",
+                "--include",
+                "test_example.py",
+                "--profile",
+                "pytest",
+                "--test",
+                "test_example.py::test_passes",
+            )
+        )
+        assert (
+            json.loads(execute("wait", standalone["job_id"], "--timeout", "30"))["status"]
+            == "passed"
+        )
+        assert not (plain / ".git").exists()
         python = "/opt/orcan-executor/venv/bin/python"
         board = json.loads(
             docker(
@@ -180,6 +222,8 @@ def main():
         )
         assert board["counts"]["passed"] >= 1 and board["counts"]["failed"] >= 1
         assert board["stats"]["completed_jobs"] >= 4
+        assert board["stats"]["acknowledged_jobs"] >= 1
+        assert board["stats"]["detail_reads"] >= 1
         assert board["stats"]["log_bytes"] > board["stats"]["result_bytes"]
         assert board["stats"]["reduction_percent"] > 0
         ttl = int(docker("exec", NAME, "redis-cli", "ttl", "orcan-smoke:results").strip())

@@ -69,6 +69,10 @@ if [[ "${ORCAN_REDIS_ENABLED:-0}" == "1" ]]; then
     for service in executor-redis executor-worker executor-web executor-maintenance; do
         install_program "${CONF_SRC}/${service}.conf"
     done
+    if [[ "${ORCAN_EXECUTOR_SPLIT_LANES:-0}" == "1" ]]; then
+        install_program "${CONF_SRC}/executor-worker-light.conf"
+        install_program "${CONF_SRC}/executor-worker-heavy.conf"
+    fi
 fi
 
 # Render main conf: %(here)s must be STATE_D so sock/logs/programs resolve together.

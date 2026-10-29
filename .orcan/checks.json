@@ -142,9 +142,36 @@
         },
         {
           "argv": [
-            "./tests/host/run.sh",
+            "env",
+            "PYTHONPATH=scripts/repository:docker/rootfs/usr/local/lib:cockpit/src",
+            "uv",
+            "run",
+            "--project",
+            "cockpit",
+            "--locked",
+            "--with-requirements",
+            "requirements-test.txt",
+            "python",
+            "-m",
+            "pytest",
+            "-q",
+            "tests/host",
             "--junitxml",
             ".orcan/context-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/executor-results.xml"
           ]
         },
         {
@@ -170,7 +197,16 @@
             "tests/host/test_container_identity.py",
             "tests/host/test_agents_claude_sync.py",
             "docker/rootfs/usr/local/bin/init-ai-statusline",
-            "docker/rootfs/usr/local/bin/orcan-agent-enabled"
+            "docker/rootfs/usr/local/bin/orcan-agent-enabled",
+            "docker/rootfs/usr/local/lib/orcan/image_profile.py",
+            "docker/rootfs/usr/local/lib/orcan/install_agent.py",
+            "docker/rootfs/usr/local/lib/orcan/memory.py",
+            "docker/rootfs/usr/local/lib/orcan/plugins.py",
+            "tests/host/test_release_changelog.py",
+            "tests/host/test_plugins.py",
+            "tests/host/test_memory.py",
+            "tests/host/test_cockpit_limits.py",
+            "cockpit/src/orcan_cockpit/runtime_limits.py"
           ]
         },
         {
@@ -195,7 +231,16 @@
             "tests/host/test_container_identity.py",
             "tests/host/test_agents_claude_sync.py",
             "docker/rootfs/usr/local/bin/init-ai-statusline",
-            "docker/rootfs/usr/local/bin/orcan-agent-enabled"
+            "docker/rootfs/usr/local/bin/orcan-agent-enabled",
+            "docker/rootfs/usr/local/lib/orcan/image_profile.py",
+            "docker/rootfs/usr/local/lib/orcan/install_agent.py",
+            "docker/rootfs/usr/local/lib/orcan/memory.py",
+            "docker/rootfs/usr/local/lib/orcan/plugins.py",
+            "tests/host/test_release_changelog.py",
+            "tests/host/test_plugins.py",
+            "tests/host/test_memory.py",
+            "tests/host/test_cockpit_limits.py",
+            "cockpit/src/orcan_cockpit/runtime_limits.py"
           ]
         },
         {
@@ -214,14 +259,55 @@
             "python",
             "executor/smoke/context.py"
           ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "format",
+            "--check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "python",
+            "executor/smoke/run.py"
+          ]
         }
       ],
       "junit": [
-        ".orcan/context-results.xml"
+        ".orcan/context-results.xml",
+        ".orcan/executor-results.xml"
       ],
       "artifacts": [
         ".orcan-test.agent-context/report.json",
-        ".orcan-test.agent-context/*.log"
+        ".orcan-test.agent-context/*.log",
+        ".orcan-test.executor-smoke/*report.json",
+        ".orcan-test.executor-smoke/container.log",
+        ".orcan-test.executor-smoke/build.log",
+        ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
       ]
     }
   }

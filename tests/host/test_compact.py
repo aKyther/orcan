@@ -198,3 +198,23 @@ def test_host_and_container_entry_points(workspace):
         ).stdout
         assert "session-brief.md" in files
         assert "brief-history" not in files
+
+
+def test_large_legacy_brief_is_streamed_and_candidate_is_bounded(
+    workspace, monkeypatch
+):
+    brief = seed(workspace, "legacy goal " * 100000)
+    candidate = workspace / "candidate.md"
+    candidate.write_text("New goal")
+    monkeypatch.setattr(
+        Path,
+        "read_bytes",
+        lambda *a: (_ for _ in ()).throw(AssertionError("unbounded read")),
+    )
+    checked = compact.check(workspace)
+    assert checked["words"] == 200000
+    result = compact.apply(workspace, candidate, checked["sha256"])
+    assert result["bytes"] == len("New goal")
+    candidate.write_text("x" * (compact.MAX_BYTES + 10000))
+    with pytest.raises(ValueError, match="non-empty"):
+        compact.apply(workspace, candidate, result["sha256"])

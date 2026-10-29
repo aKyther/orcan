@@ -17,6 +17,8 @@ def load(text: str) -> dict:
             raise ValueError("Invalid profile")
         if not isinstance(profile.get("requires_tests", False), bool):
             raise ValueError("requires_tests must be a boolean")
+        if profile.get("lane", "default") not in {"default", "light", "heavy"}:
+            raise ValueError("Profile lane must be default, light or heavy")
         steps = profile.get("steps")
         if not isinstance(steps, list) or not 1 <= len(steps) <= 20:
             raise ValueError("A profile requires 1..20 steps")

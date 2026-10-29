@@ -22,7 +22,13 @@ def git(repo: Path, *args: str) -> str:
 
 
 def submit(
-    repo: Path, revision: str, task: str, profile: str, selectors: list[str], timeout: int
+    repo: Path,
+    revision: str,
+    task: str,
+    profile: str,
+    selectors: list[str],
+    timeout: int,
+    reuse: bool = False,
 ) -> dict:
     repo = Path(git(repo.resolve(), "rev-parse", "--show-toplevel")).resolve()
     sha = git(repo, "rev-parse", "--verify", "--end-of-options", revision + "^{commit}")
@@ -56,7 +62,10 @@ def submit(
     # Keep the object reachable even if the agent removes its task branch/worktree.
     git(repo, "update-ref", "refs/orcan/executor/jobs/" + job["id"], sha)
     try:
-        store.create(job)
+        existing = store.create(job, reuse=reuse)
+        if existing != job["id"]:
+            git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
+            return store.get(existing)
     except BaseException:
         git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
         raise
@@ -105,6 +114,17 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         job = store.get(job_id)
         if job["status"] in store.TERMINAL:
             return None
+        if job["attempts"] >= 3:
+            report = directory / "report.json"
+            report.write_text(json.dumps({"error": "Interrupted attempt limit reached"}) + "\n")
+            return store.finish(
+                job_id,
+                "error",
+                {
+                    "error": "Three interrupted attempts; inspect executor infrastructure before resubmitting"
+                },
+                report,
+            )
         worktree = worktree_root() / job_id / str(job["attempts"] + 1)
         worktree.parent.mkdir(parents=True, exist_ok=True)
         store.start(job_id, worktree)
@@ -278,3 +298,28 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         report["metrics"] = result["summary"]["metrics"].copy()
         report_path.write_text(json.dumps(report, indent=2) + "\n")
         return result
+
+
+def cancel(job_id: str) -> dict:
+    """Cancel only queued work, serialized with the execution lock; never kill agent processes."""
+    job = store.get(job_id)
+    directory = state_dir() / "jobs" / job["id"]
+    directory.mkdir(parents=True, exist_ok=True)
+    with (directory / "run.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError("Job already running; queued cancellation cannot stop it") from None
+        job = store.get(job_id)
+        if job["status"] != "queued":
+            raise ValueError("Only queued jobs can be cancelled")
+        report = directory / "report.json"
+        report.write_text(
+            json.dumps({"job_id": job_id, "sha": job["sha"], "status": "cancelled"}) + "\n"
+        )
+        return store.finish(
+            job_id,
+            "cancelled",
+            {"message": "Queued verification cancelled; no checks executed"},
+            report,
+        )

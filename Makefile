@@ -230,11 +230,11 @@ bump-minor: ## Low-level: bump product version minor (prefer `make tag`)
 bump-major: ## Low-level: bump product version major (prefer `make tag`)
 	@./scripts/repository/release.sh bump major
 
-tag: ## Checkpoint: bump + CHANGELOG cut + commit + push checkpoint/vX.Y.Z (PART=patch|minor|major)
-	@./scripts/repository/release.sh checkpoint $(or $(PART),patch)
+tag: ## Version changes: bump + CHANGELOG cut + commit + push vX.Y.Z (PART=patch|minor|major)
+	@./scripts/repository/release.sh version $(or $(PART),patch)
 
-release: ## Public release: CalVer divider + push vX.Y.Z + GitHub Release (Q=YY.Q, default: current quarter)
-	@./scripts/repository/release.sh release $(Q)
+release: ## Declare readiness for an existing tag (TAG=vX.Y.Z); no version bump
+	@./scripts/repository/release.sh release "$(TAG)"
 
 release-retract: ## Retract release (VERSION=X.Y.Z Q=YY.Q CONFIRM=RETRACT-vX.Y.Z; no history rewrite)
 	@RELEASE_RETRACT_SKIP_DOCS="$(SKIP_DOCS)" RELEASE_RETRACT_SKIP_GITHUB="$(SKIP_GITHUB)" \

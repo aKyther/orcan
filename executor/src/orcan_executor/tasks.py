@@ -14,6 +14,7 @@ app.conf.update(
     accept_content=["json"],
     task_ignore_result=True,
     task_acks_late=True,
+    task_reject_on_worker_lost=True,
     worker_cancel_long_running_tasks_on_connection_loss=False,
     worker_prefetch_multiplier=1,
     broker_connection_retry_on_startup=True,
@@ -58,7 +59,7 @@ def announce_ready(**kwargs):
 
         while not _heartbeat_stop.is_set():
             try:
-                client().set(queue_name() + ":worker-ready", "1", ex=45)
+                client().set(app.conf.task_default_queue + ":worker-ready", "1", ex=45)
             except Exception:
                 pass
             _heartbeat_stop.wait(10)
@@ -73,6 +74,6 @@ def announce_shutdown(**kwargs):
     try:
         from .events import client
 
-        client().delete(queue_name() + ":worker-ready")
+        client().delete(app.conf.task_default_queue + ":worker-ready")
     except Exception:
         pass

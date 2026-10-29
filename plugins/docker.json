@@ -1,0 +1,9 @@
+{
+  "id": "docker",
+  "kind": "access",
+  "flags": [
+    "--with-docker",
+    "--docker-socket"
+  ],
+  "verifier": "docker"
+}

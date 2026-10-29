@@ -35,12 +35,14 @@ def test_generated_guidance_enabled_and_disabled():
 
 @pytest.mark.integration
 @pytest.mark.parametrize("enabled", ["0", "1"])
-def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled):
+@pytest.mark.parametrize("split", ["0", "1"])
+def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled, split):
     result = subprocess.run(
         ["bash", str(ROOT / "docker/rootfs/usr/local/bin/orcan-supervisord")],
         env={
             **os.environ,
             "ORCAN_REDIS_ENABLED": enabled,
+            "ORCAN_EXECUTOR_SPLIT_LANES": split,
             "ORCAN_SUPERVISOR_DRY_RUN": "1",
             "ORCAN_SUPERVISOR_STATE_D": str(tmp_path),
             "ORCAN_SUPERVISOR_CONF_D": str(
@@ -59,6 +61,8 @@ def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled):
     assert ("executor-worker" in programs) == (enabled == "1")
     assert ("executor-redis" in programs) == (enabled == "1")
     assert ("executor-web" in programs) == (enabled == "1")
+    assert ("executor-worker-heavy" in programs) == (enabled == "1" and split == "1")
+    assert ("executor-worker-light" in programs) == (enabled == "1" and split == "1")
     assert "keepalive" in programs
 
 

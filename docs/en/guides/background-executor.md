@@ -1,11 +1,11 @@
 # Background executor
 
 Long checks can fill an agent conversation with build output and delay the next
-turn. The optional Redis module runs project procedures in the background, checks
+turn. The optional executor plugin runs project procedures in the background, checks
 an exact Git commit and sends a small result. Success carries counters, not logs.
 Failures carry up to three short test messages. Read long diagnostics in chunks.
 
-## Enable the module
+## Enable the plugin
 
 Build an updated Orcan image, then start it from the host:
 
@@ -26,7 +26,7 @@ so use the host's Tailscale address when opening it from another device.
 `--web-terminal-auth USER:PASS` also protects the dashboard with the same credentials.
 Redis remains on container loopback with no published port.
 
-Plain `orcan up` disables the module; `orcan up --resume` restores the saved choice.
+Plain `orcan up` disables the plugin; `orcan up --resume` restores the saved choice.
 It combines with existing SSH, Docker, network and terminal flags. No Docker socket
 is required by the executor itself. Services run as the existing developer user.
 Dependencies are locked in a separate Python 3.12 environment in the image.
@@ -218,3 +218,105 @@ through `artifacts` / bounded `logs --artifact ...` reads. Orcan's `executor-fin
 profile uses this to preserve smoke reports and Supervisor logs from nested worktrees.
 Supervisor's fixture socket uses a short container-local path, since Unix sockets
 have a small path limit; diagnostic files are copied to the retained report.
+
+## Executor plugin, admission and consumption
+
+The plugin ID is `executor`; Redis is its internal communication broker, not the
+execution engine. `--with-redis` remains the activation flag for compatibility.
+Use `orcan plugins list`, `orcan plugins validate` and
+`orcan plugins doctor --plugin executor`. Descriptors live in `plugins/` and do
+not execute third-party hooks. No agent, merge or deployment starts automatically.
+
+Each project owns named procedures in `.orcan/checks.json`. Python/pytest,
+Java/Gradle, Scala/sbt, lint, documentation and small custom checks use the same
+submit/result flow. Choose a scoped procedure rather than silently running a full
+suite. Success reports contain counters; failures contain bounded excerpts with
+an explicit count of omitted failures. Use `artifacts` and paginated `logs` to
+consume all relevant long traces or JUnit XML, without dumping them into context.
+
+```sh
+orcan-executor submit --repo . --sha HEAD --profile selected --test tests/test_api.py --reuse
+orcan-executor cancel JOB_ID
+orcan-executor ack JOB_ID
+```
+
+`--reuse` atomically reuses an identical queued or running check (same Git common
+directory, SHA, procedure, selectors and timeout). Completed checks are not silently
+reused. The returned job may retain its original task label. Without this option,
+independent repeated checks remain possible. `cancel` only cancels queued work;
+it never terminates an agent or a running build. Late deliveries of a cancelled
+job perform no checks. Cancellation also frees admission capacity.
+
+`ack` explicitly records that a terminal result was consumed. It is idempotent,
+does not delete the report, and does not mean the code passed or was accepted.
+Listening and displaying a result alone do not prove it was consumed. The dashboard
+shows confirmed receipts, CLI detail-read counts/bytes, and log/result sizes grouped
+by status. This separates successful-output suppression from failure compaction.
+These measurements exclude model CPU/GPU and do not claim measured token savings.
+
+The default admission limit is **100 queued plus running jobs**, enforced atomically
+across producers. Set `ORCAN_EXECUTOR_MAX_PENDING=50` before starting Orcan to change
+it (range 1..10000). Queue saturation rejects new work with a short actionable error;
+it never drops an existing task. Each worker has prefetch one and executes one task
+at a time. Avoid raising parallelism blindly on memory-constrained JVM workloads.
+
+### Separate lightweight and heavyweight queues
+
+A procedure can declare `"lane": "light"` or `"lane": "heavy"`; omitted means
+`"default"`. Routing reads the committed procedure, not dirty configuration.
+Set `ORCAN_EXECUTOR_SPLIT_LANES=1` when starting Orcan to supervise one additional
+worker for each lane. This permits at most three simultaneous checks, one per lane,
+and keeps lightweight checks out of a queue occupied by JVM work. It does not impose
+CPU or memory quotas. Keep it disabled on small machines unless needed.
+
+For isolated development, foreground `orcan-executor worker --lane light` or
+`--lane heavy` serves the corresponding queue. A lane without a matching worker
+remains queued; the default worker does not steal its jobs. General `doctor`
+readiness means at least one worker is available, not that every optional lane is
+served. Use the Supervisor process list to verify enabled lane workers.
+
+### Recovery and retention
+
+Celery uses late acknowledgements, JSON messages, prefetch one and redelivery after
+worker loss. Per-job locks and terminal-state checks prevent duplicate execution.
+Interrupted execution can be recovered explicitly with `recover --job JOB_ID`;
+after three interrupted starts the job becomes an infrastructure error. Ordinary
+test failures and timeouts are terminal, never automatically retried until green.
+A broker's visibility timeout can delay redelivery; explicit recovery is the prompt
+operator path after checking the previous process has stopped. Child build processes
+inherit the execution lock, preventing a second run while an orphan still executes.
+
+Completed communication/report retention defaults to **one hour**, including
+cancelled jobs. Active jobs are not expired with their results. Worker readiness
+has a renewable 45-second Redis lease. Durable local metadata and a transactional
+outbox permit event recovery after broker loss. Redis Streams carry bounded events;
+full logs and report files stay local. Dirty retained worktrees remain protected.
+
+## Projects without Git
+
+Use an explicit directory snapshot; Orcan does not initialize or modify Git in the
+source project. Scaffold `.orcan/checks.json`, then select the source files required
+by the chosen procedure:
+
+```sh
+orcan-executor init --repo /projects/plain --kind python
+orcan-executor submit --repo /projects/plain --directory \
+  --include pyproject.toml --include uv.lock \
+  --include app.py --include tests/test_app.py \
+  --profile selected --test tests/test_app.py --reuse
+```
+
+The procedure configuration is included automatically. Every `--include` names one
+regular project-relative file; directory traversal, symlinks, Git metadata, `.env`
+files, `runtime.conf` and named SSH private keys are rejected before reading them.
+There is no recursive scan or automatic copying of dependencies, caches or secrets.
+Limit: 512 files, 8 MiB per file and 32 MiB total. This explicit mode is intended for
+small source sets; large projects should use a normal Git workflow.
+
+Orcan privately packages these files in an executor-owned Git snapshot, pins its
+commit and uses the existing isolated-worktree pipeline. The SHA identifies that
+snapshot, **not a commit in the user's project**. Selected files and execute bits
+are stable; edits in the source after submission do not affect execution. Identical
+snapshots are reusable. Unreferenced owned source caches expire after the retention
+period; caches referenced by active or retained jobs remain available. Project
+`.git` metadata, agent worktrees and original files are untouched.

@@ -17,7 +17,7 @@ copyright: >
   <a href="https://github.com/aKyther/orcan/blob/main/LICENSE">MIT</a>
 
 extra:
-  orcan_version: "4.0.0"
+  orcan_version: "4.0.1"
   version:
     provider: mike
     default: latest
@@ -169,6 +169,7 @@ nav:
   - Guides:
       - Workflows: guides/workflows.md
       - User dotfiles: guides/dotfiles.md
+      - Orcan flow: guides/orcan-flow.md
       - Image profiles: guides/image-profiles.md
       - Background executor: guides/background-executor.md
       - Offline actions (experimental): guides/offline-actions.md

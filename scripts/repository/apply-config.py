@@ -557,6 +557,9 @@ def _resolved_runtime_settings(cfg: dict) -> dict:
         die("ttyd and resources must be objects")
 
     tmux_cfg = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else {}
+    history_limit = tmux_cfg.get("history_limit", TMUX_DEFAULTS["history_limit"])
+    if type(history_limit) is not int or not 1000 <= history_limit <= 200000:
+        die("tmux.history_limit must be an integer from 1000 to 200000")
     initial_windows = int(
         tmux_cfg.get("initial_windows", TMUX_DEFAULTS["initial_windows"])
     )
@@ -568,9 +571,31 @@ def _resolved_runtime_settings(cfg: dict) -> dict:
     if renderer not in {"webgl", "canvas"}:
         die("ttyd.renderer must be 'webgl' or 'canvas'")
 
+    cockpit = cfg.get("cockpit", {})
+    if not isinstance(cockpit, dict) or set(cockpit) - {
+        "pty_read_bytes",
+        "pty_read_ms",
+        "pty_chunk_bytes",
+        "peek_chars",
+    }:
+        die(
+            "cockpit supports pty_read_bytes, pty_read_ms, pty_chunk_bytes and peek_chars"
+        )
+    for key, (minimum, maximum) in {
+        "pty_read_bytes": (4096, 1048576),
+        "pty_read_ms": (1, 50),
+        "pty_chunk_bytes": (4096, 65536),
+        "peek_chars": (256, 8192),
+    }.items():
+        if key in cockpit and (
+            type(cockpit[key]) is not int or not minimum <= cockpit[key] <= maximum
+        ):
+            die("Invalid cockpit budget: " + key)
     return {
+        **({"cockpit": cockpit} if cockpit else {}),
         "tmux": {
             "initial_windows": initial_windows,
+            "history_limit": history_limit,
             "window_prefix": window_prefix,
         },
         "ttyd": {
@@ -783,6 +808,9 @@ def main() -> None:
     ensure_env_key(env_path, "WORKSPACE_NAME", primary_ws["name"])
     ensure_env_key(env_path, "WORKSPACE_META_PATH", primary_ws["meta_path"])
 
+    ensure_env_key(
+        env_path, "TMUX_HISTORY_LIMIT", str(built["runtime"]["tmux"]["history_limit"])
+    )
     ttyd = built["runtime"]["ttyd"]
     resources = built["runtime"]["resources"]
     # Studio creates a new configuration exclusively before this first sync.

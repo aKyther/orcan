@@ -1,0 +1,15 @@
+{
+  "id": "ttyd",
+  "kind": "interface",
+  "flags": [
+    "--with-ttyd",
+    "--web-terminal",
+    "--with-ttyd-auth",
+    "--web-terminal-auth"
+  ],
+  "verifier": "ttyd",
+  "modes": [
+    "plain",
+    "basic-auth"
+  ]
+}

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import codecs
+import re
 import fcntl
 import hashlib
 import json
@@ -48,18 +50,54 @@ def measure(data: bytes) -> dict:
     }
 
 
+def measure_file(path: Path) -> dict:
+    """Measure/hash an oversized legacy brief without loading it into memory."""
+    digest = hashlib.sha256()
+    decoder = codecs.getincrementaldecoder("utf-8")()
+    words = size = 0
+    previous_word = False
+    with path.open("rb") as source:
+        while block := source.read(65536):
+            size += len(block)
+            digest.update(block)
+            text = decoder.decode(block)
+            if text:
+                words += len(re.findall(r"\S+", text)) - int(
+                    previous_word and not text[0].isspace()
+                )
+                previous_word = not text[-1].isspace()
+        decoder.decode(b"", final=True)
+    return {
+        "words": words,
+        "bytes": size,
+        "sha256": digest.hexdigest(),
+        "needs_compact": words > MAX_WORDS or size > MAX_BYTES,
+    }
+
+
 def check(root: Path) -> dict:
     path = brief_path(root)
     if not path.exists():
         return {"exists": False, "needs_compact": False}
-    return {"exists": True, **measure(path.read_bytes())}
+    if not path.is_file():
+        raise ValueError("Brief must be a regular file")
+    return {"exists": True, **measure_file(path)}
 
 
-def apply(root: Path, candidate: Path, expected: str) -> dict:
+def apply(
+    root: Path, candidate: Path, expected: str, *, require_smaller: bool = True
+) -> dict:
     path = brief_path(root)
     if candidate.is_symlink() or candidate.resolve() == path.resolve():
         raise ValueError("Use a separate regular candidate file")
-    proposed = candidate.read_bytes()
+    if not candidate.is_file():
+        raise ValueError("Use a separate regular candidate file")
+    with candidate.open("rb") as source:
+        proposed = source.read(MAX_BYTES + 1)
+    if len(proposed) > MAX_BYTES:
+        raise ValueError(
+            f"Candidate must be non-empty and within {MAX_WORDS} words / {MAX_BYTES} bytes"
+        )
     stats = measure(proposed)
     if not proposed.strip() or stats["needs_compact"]:
         raise ValueError(
@@ -70,10 +108,10 @@ def apply(root: Path, candidate: Path, expected: str) -> dict:
         raise ValueError("Refusing a symlinked compact lock")
     with lock.open("a") as handle:
         fcntl.flock(handle, fcntl.LOCK_EX)
-        original = path.read_bytes()
-        if measure(original)["sha256"] != expected:
+        original = measure_file(path) if path.exists() else measure(b"")
+        if original["sha256"] != expected:
             raise ValueError("Brief changed; reread it and prepare a fresh summary")
-        if len(proposed) >= len(original):
+        if require_smaller and len(proposed) >= original["bytes"]:
             raise ValueError("Candidate must be smaller than the current brief")
         archive = path.parent / "brief-history"
         if archive.is_symlink():
@@ -91,7 +129,18 @@ def apply(root: Path, candidate: Path, expected: str) -> dict:
         # Archive successfully before replacing anything. Never prune history here.
         with backup.open("xb") as stream:
             os.chmod(backup, 0o600)
-            stream.write(original)
+            copied = hashlib.sha256()
+            if path.exists():
+                if path.is_symlink() or not path.is_file():
+                    raise ValueError("Brief changed during compaction")
+                with path.open("rb") as source:
+                    while block := source.read(65536):
+                        stream.write(block)
+                        copied.update(block)
+            if copied.hexdigest() != expected:
+                raise ValueError(
+                    "Brief changed during compaction; archived content retained"
+                )
             stream.flush()
             os.fsync(stream.fileno())
         temporary = None
@@ -101,7 +150,11 @@ def apply(root: Path, candidate: Path, expected: str) -> dict:
                 stream.write(proposed)
                 stream.flush()
                 os.fsync(stream.fileno())
-            if path.is_symlink() or path.read_bytes() != original:
+            if (
+                path.is_symlink()
+                or (measure_file(path) if path.exists() else measure(b""))["sha256"]
+                != expected
+            ):
                 raise ValueError(
                     "Brief changed during compaction; original retained in archive"
                 )

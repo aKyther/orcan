@@ -129,19 +129,35 @@ class EscCoalesceFlushTests(unittest.TestCase):
         term._ready = True
         term.refresh = MagicMock()
         loop = MagicMock()
-        chunk = b"x" * 65536
+        chunk = b"x" * 16384
 
         with (
             patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
-            patch.object(
-                pty_terminal.os, "read", side_effect=[chunk, chunk, chunk, chunk]
-            ) as read,
+            patch.object(pty_terminal.os, "read", side_effect=[chunk] * 16) as read,
             patch.object(pty_terminal, "feed_with_osc8"),
+            patch.object(pty_terminal.time, "monotonic", return_value=0),
         ):
             term._on_readable()
 
-        self.assertEqual(read.call_count, 4)
-        loop.call_soon.assert_called_once_with(term._on_readable)
+        self.assertEqual(read.call_count, 16)
+        loop.call_soon.assert_not_called()
+
+    def test_output_flood_also_yields_when_time_budget_expires(self) -> None:
+        term = self._terminal()
+        term._stream = object()
+        term._screen = MagicMock()
+        term._ready = True
+        term.refresh = MagicMock()
+        loop = MagicMock()
+        with (
+            patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
+            patch.object(pty_terminal.os, "read", return_value=b"x" * 16384) as read,
+            patch.object(pty_terminal, "feed_with_osc8"),
+            patch.object(pty_terminal.time, "monotonic", side_effect=[0, 0.02]),
+        ):
+            term._on_readable()
+        self.assertEqual(read.call_count, 1)
+        loop.call_soon.assert_not_called()
 
     def test_large_paste_is_staged_in_a_private_file(self) -> None:
         term = self._terminal()

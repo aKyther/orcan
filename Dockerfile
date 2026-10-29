@@ -4,13 +4,16 @@
 # Tool stages
 # ------------------------------------------------------------------------------
 
+ARG GO_IMAGE=golang:1.27-bookworm
+ARG RUST_IMAGE=rust:1-bookworm
+
 FROM node:22-bookworm-slim AS node-tools
 
 # No network fetch here — final stage installs pnpm with a pinned version.
 
-FROM golang:1.27-bookworm AS go-tools
+FROM ${GO_IMAGE} AS go-tools
 
-FROM rust:1-bookworm AS rust-tools
+FROM ${RUST_IMAGE} AS rust-tools
 
 FROM ghcr.io/astral-sh/uv:latest AS uv-tools
 
@@ -488,6 +491,7 @@ RUN set -eux; \
 # ------------------------------------------------------------------------------
 
 COPY docker/rootfs/ /
+COPY plugins/ /opt/orcan/plugins/
 
 RUN set -eux; \
     ttyd --writable --interface 127.0.0.1 --port 17778 sh >/tmp/ttyd-index-build.log 2>&1 & \
@@ -731,6 +735,7 @@ WORKDIR /home/${USERNAME}
 # Every image is tagged orcan:latest + orcan:<VERSION>. The explicit agent
 # selection is recorded in /etc/orcan/agents.json rather than the tag.
 
+ARG ORCAN_BUILD_PROFILE_JSON=
 ARG INSTALL_CURSOR=1
 ARG INSTALL_CLAUDE=1
 ARG INSTALL_CODEX=1
@@ -739,58 +744,15 @@ ARG INSTALL_COPILOT=1
 ARG ORCAN_VERSION=dev
 
 RUN set -eux; \
-    if [ "${INSTALL_CLAUDE}" = "1" ] || [ "${INSTALL_CLAUDE}" = "true" ]; then \
-        for attempt in 1 2 3; do \
-            if curl -fsSL https://claude.ai/install.sh | bash; then break; fi; \
-            echo "Claude install attempt ${attempt} failed, retrying..." >&2; \
-            sleep 10; \
-        done; \
-        claude --version; \
-    else \
-        printf 'Skipping Claude Code (INSTALL_CLAUDE=%s)\n' "${INSTALL_CLAUDE}" >&2; \
-    fi
-# Claude config lives under ~/.claude (bind: $ORCAN_DATA/claude).
-
-RUN set -eux; \
-    if [ "${INSTALL_CURSOR}" = "1" ] || [ "${INSTALL_CURSOR}" = "true" ]; then \
-        for attempt in 1 2 3; do \
-            if curl -fsSL https://cursor.com/install | bash; then break; fi; \
-            echo "Cursor install attempt ${attempt} failed, retrying..." >&2; \
-            sleep 10; \
-        done; \
-        agent --version; \
-        rm -rf "${HOME}/.cursor"; \
-        mkdir -p "${HOME}/.cursor"; \
-    else \
-        printf 'Skipping Cursor CLI (INSTALL_CURSOR=%s)\n' "${INSTALL_CURSOR}" >&2; \
-    fi
-# Empty ~/.cursor so the first volume mount stays writable; seeded at runtime.
-
-RUN set -eux; \
-    if [ "${INSTALL_CODEX}" = "1" ] || [ "${INSTALL_CODEX}" = "true" ]; then \
-        for attempt in 1 2 3; do \
-            if npm install -g --prefix "${HOME}/.local" @openai/codex; then break; fi; \
-            echo "Codex install attempt ${attempt} failed, retrying..." >&2; \
-            sleep 10; \
-        done; \
-        codex --version; \
-        npm cache clean --force; \
-    else \
-        printf 'Skipping Codex CLI (INSTALL_CODEX=%s)\n' "${INSTALL_CODEX}" >&2; \
-    fi
-# Installed under ~/.local (not pnpm add -g — PNPM_HOME is bind-mounted at
-# runtime from ORCAN_DATA/cache/pnpm, which would shadow a baked-in global
-# with an empty host dir on first boot). ~/.local/bin is already on PATH
-# and is not bind-mounted, same as the Claude/Cursor native installers.
-# Codex config lives under ~/.codex (bind: $ORCAN_DATA/codex).
-
-RUN set -eux; \
-    if [ "${INSTALL_GEMINI}" = "1" ] || [ "${INSTALL_GEMINI}" = "true" ]; then \
-        npm install -g --prefix "${HOME}/.local" @google/gemini-cli; gemini --version; \
-    fi; \
-    if [ "${INSTALL_COPILOT}" = "1" ] || [ "${INSTALL_COPILOT}" = "true" ]; then \
-        npm_config_ignore_scripts=false npm install -g --prefix "${HOME}/.local" @github/copilot; copilot --version; \
-    fi; \
+    for name in claude cursor codex gemini copilot; do \
+        case "$name" in \
+            claude) selected="${INSTALL_CLAUDE}" ;; cursor) selected="${INSTALL_CURSOR}" ;; \
+            codex) selected="${INSTALL_CODEX}" ;; gemini) selected="${INSTALL_GEMINI}" ;; copilot) selected="${INSTALL_COPILOT}" ;; \
+        esac; \
+        if [ "$selected" = "1" ] || [ "$selected" = "true" ]; then \
+            /opt/orcan-executor/venv/bin/python /usr/local/lib/orcan/install_agent.py "$name"; \
+        fi; \
+    done; \
     npm cache clean --force
 
 RUN set -eux; \
@@ -811,6 +773,9 @@ ARG ORCAN_VERSION=dev
 RUN install -d -m 0755 /etc/orcan \
     && mv /tmp/orcan-agents.json /etc/orcan/agents.json \
     && printf '%s\n' "${ORCAN_VERSION}" > /etc/orcan/version \
+    && profile_json="${ORCAN_BUILD_PROFILE_JSON:-}" \
+    && if [ -z "$profile_json" ]; then profile_json='{}'; fi \
+    && printf '%s\n' "$profile_json" > /etc/orcan/build-profile.json \
     && chmod 0644 /etc/orcan/agents.json /etc/orcan/version \
     && chown root:root /etc/orcan/agents.json /etc/orcan/version
 

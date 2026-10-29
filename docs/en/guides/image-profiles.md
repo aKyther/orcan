@@ -7,35 +7,67 @@ like the existing `--agent` flags:
 ```json
 {
   "build": {
-    "agents": ["codex"],
-    "tools": {"go": false, "rust": false}
+    "agents": [
+      {"name": "codex", "version": "latest"},
+      {"name": "claude", "version": "stable"}
+    ],
+    "tools": [
+      {"name": "go", "image": "golang:1.27-bookworm"},
+      {"name": "rust", "image": "rust:1-bookworm"}
+    ]
   },
   "workspaces": []
 }
 ```
 
+Both selections are lists of named objects. `tools: []` omits both optional
+toolchains. A configured build profile installs only the listed optional tools;
+old CLI-only builds without a build profile keep Go/Rust for compatibility.
+Short names such as `"codex"` remain accepted as shorthand for default sources.
+
 ```sh
-orcan build --plan
+orcan build --plan                     # reads build from orcan.config.json
 orcan build
-orcan up --with-redis
+orcan build --config /path/image.json --plan
+orcan build --config /path/image.json
 ```
 
-`--plan` prints the resolved selection without Docker or a generated environment.
-CLI `--agent NAME` and `--all-agents` override the configured agent list, while
-keeping the configured tool choices. Without CLI agents or `build.agents`, the
-build refuses to guess. Unknown agents, tool names and non-boolean tool values
-are rejected before Docker runs. Go and Rust default to enabled for compatibility.
-An explicit `false` keeps their files out of the resulting runtime image layers;
-Orcan does not copy them into the image and delete them in a later layer.
-BuildKit may still fetch the referenced source stages. Actual size and download
-savings depend on Docker's layer cache and the selected toolchain versions.
+`--config` selects the build section only; it does not replace workspace/runtime
+configuration. `--plan` needs neither Docker nor generated environment files.
+CLI `--agent NAME` / `--all-agents` override which agents are selected, retaining
+version/source settings for matching configured names. Unknown names, malformed
+sources, ambiguous versions and conflicting duplicates fail before Docker runs.
 
-This first tool selection supports **Go and Rust**. Node/npm, Python/uv and the
-other existing base tools remain installed. Agents and Orcan helpers can depend
-on them; they are not advertised as individually removable yet. User-mounted
-caches and manually installed binaries are preserved. Selection changes require
-a new image build and container recreation; `sync` alone cannot remove software
-from an existing container. This changes no model/provider routing.
+## Versions and sources
+
+- Codex, Gemini and Copilot use their npm packages. Set `version` to `latest` or
+  an exact published version. Optional `source` supports `type: npm`, a package
+  name and an HTTPS registry, for example an explicitly selected package mirror.
+- Claude uses its native installer with `latest`, `stable` or an exact published
+  version. Cursor uses its current installer for `latest`, or the official
+  architecture-specific archive for an exact CLI release identifier.
+- Custom native installer URLs require HTTPS and a 64-character `sha256` checksum.
+  A mismatch stops before executing the downloaded installer. Custom Cursor
+  archives also need a checksum and the Cursor CLI package layout. Installer
+  links are explicit build inputs, never arbitrary shell expressions.
+- Go/Rust accept a complete `image` reference, including a registry/tag or digest.
+  Alternatively use `version` as the official image tag. Do not specify both.
+  The source must retain the official `/usr/local/go` or `/usr/local/cargo` and
+  `/usr/local/rustup` layout and be compatible with the runtime architecture.
+
+The resolved requested profile is baked at `/etc/orcan/build-profile.json`.
+`latest` and image tags are mutable. Docker can reuse a cached installation;
+use `--no-cache` when deliberately refreshing floating inputs. Agent-managed
+updaters can also change their own runtime versions. This is selection and
+installation pinning, not a promise that every future runtime is immutable.
+
+An omitted tool's files are never copied into a runtime layer and deleted later.
+BuildKit can still fetch referenced source stages; downloads and savings depend
+on the cache and image versions. This first optional-tool set is **Go and Rust**.
+Node/npm, Python/uv and other existing base tools remain required. User-mounted
+caches/manual installations are preserved. Selection changes need a new image
+and recreated container; `sync` cannot remove installed software. No model/provider
+routing is involved. See [Orcan flow](orcan-flow.md) for runtime plugins and memory.
 
 ## Files follow the installed agents
 

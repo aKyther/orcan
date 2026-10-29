@@ -1,0 +1,8 @@
+{
+  "id": "cockpit",
+  "kind": "interface",
+  "flags": [
+    "orcan enter --launcher"
+  ],
+  "verifier": "cockpit"
+}

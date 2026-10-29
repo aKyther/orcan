@@ -3,6 +3,7 @@
 
 orcan_cmd_build() {
     local agents=""
+    local profile_config=""
     local plan=0
     local no_cache=0
     local prune=0
@@ -20,6 +21,11 @@ orcan_cmd_build() {
             --all-agents)
                 agents="cursor+claude+codex+gemini+copilot"
                 shift
+                ;;
+            --config)
+                [[ $# -ge 2 && -f "$2" ]] || orcan_usage_error '--config requires an existing JSON file'
+                profile_config="$2"
+                shift 2
                 ;;
             --plan)
                 plan=1
@@ -50,7 +56,8 @@ usage: orcan build [--plan] [--agent NAME ... | --all-agents] [--no-cache|--forc
 
   --plan: print the resolved JSON profile without building or requiring Docker.
   No --agent flag: use build.agents from orcan.config.json. build.tools can
-  disable Go/Rust (defaults stay enabled); CLI agent flags override the profile.
+  list Go/Rust source images; [] omits both. CLI flags override agent selection.
+  --config FILE: read the build section from a specific JSON file.
 
   NAME: cursor | claude | codex | gemini | copilot
   Builds the standard orcan:latest image. Its /etc/orcan/agents.json records
@@ -69,13 +76,14 @@ EOF
     done
 
     local cfg="" profile values
-    cfg="$(orcan_config_path)" || cfg=""
+    cfg="${profile_config}"
+    if [[ -z "${cfg}" ]]; then cfg="$(orcan_config_path)" || cfg=""; fi
     profile="$(orcan_host_python "${ORCAN_SCRIPTS}/image-profile.py" --config "${cfg}" --agents "${agents}")" || return
     if (( plan )); then
         printf '%s\n' "${profile}"
         return 0
     fi
-    values="$(python3 -c 'import json,sys; p=json.load(sys.stdin); print("+".join(p["agents"])); print(int(p["tools"]["go"])); print(int(p["tools"]["rust"]))' <<<"${profile}")"
+    values="$(python3 -c 'import json,sys; p=json.load(sys.stdin); t={v["name"]:v["image"] for v in p["tools"]}; print("+".join(v["name"] for v in p["agents"])); print(int("go" in t)); print(int("rust" in t)); print(t.get("go","golang:1.27-bookworm")); print(t.get("rust","rust:1-bookworm"))' <<<"${profile}")"
     local -a selection
     mapfile -t selection <<<"${values}"
     agents="${selection[0]}"
@@ -87,6 +95,7 @@ EOF
     orcan_runtime_warn_if_config_stale build
 
     local INSTALL_GO="${selection[1]}" INSTALL_RUST="${selection[2]}"
-    export INSTALL_GO INSTALL_RUST
+    local GO_IMAGE="${selection[3]}" RUST_IMAGE="${selection[4]}" ORCAN_BUILD_PROFILE_JSON="${profile}"
+    export INSTALL_GO INSTALL_RUST GO_IMAGE RUST_IMAGE ORCAN_BUILD_PROFILE_JSON
     orcan_image_build_local "${agents}" "${no_cache}" "${prune}" "${remove_previous}"
 }

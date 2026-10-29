@@ -26,7 +26,7 @@ This repository ships a Makefile only for **maintainers** working in a git check
 | `make docs-llms` | Regenerate `docs/en/llms.txt` (also runs before docs / docs-check) |
 | `make docs-mike-latest` / `docs-mike-release` | Versioned docs deploy |
 | `make tag` | Checkpoint: bump + CHANGELOG cut + commit + tag, all pushed (see [Release process](../development/release.md)) |
-| `make release` | The real, deliberate release: CalVer + tag + push |
+| `make release` | Declare readiness: existing TAG=vX.Y.Z and exact SHA |
 | `make registry-*` | Low-level registry helpers (prefer `orcan publish` / `orcan pull`) |
 
 Deprecated user Make targets (`setup`, `env`, `terminal-docker`, `rebuild`, …) forward to `./bin/orcan` with a deprecation note. **Do not document them to end users** — use `orcan` directly.

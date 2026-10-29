@@ -37,7 +37,7 @@ orcan_cmd_up() {
                 with_docker=0
                 shift
                 ;;
-            --ssh | --with-git)
+            --with-ssh | --ssh | --with-git)
                 with_git=1
                 shift
                 ;;
@@ -87,7 +87,7 @@ orcan_cmd_up() {
                 ;;
             -h | --help)
                 printf 'usage: orcan up --resume [--web-terminal-auth USER:PASS]\n'
-                printf '       orcan up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]\n'
+                printf '       orcan up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--with-ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]\n'
                 printf '  --with-redis: enable local background executor, Redis and dashboard (separate port, same ttyd host)\n'
                 printf '  default: local-only container (orcan enter); no browser terminal\n'
                 printf '  --web-terminal | --web-terminal-auth USER:PASS: pick one (| = mutually exclusive)\n'
@@ -95,15 +95,15 @@ orcan_cmd_up() {
                 printf '  --web-terminal-auth USER:PASS: publish browser terminal with HTTP basic auth\n'
                 printf '  --docker-socket | --network NAME: pick one (| = mutually exclusive)\n'
                 printf '  --docker-socket: mount /var/run/docker.sock (DinD)\n'
-                printf '  --ssh: mount host ~/.ssh (+ agent) for push/pull (key exposure risk)\n'
+                printf '  --with-ssh: mount host ~/.ssh (+ agent) for push/pull (key exposure risk)\n'
                 printf '  --network NAME: join an existing Docker network\n'
                 printf '  --github: provide GitHub authentication (GH_TOKEN or gh auth login)\n'
                 printf '  --github-hostname HOST: GitHub host (default: github.com; Enterprise Server uses GH_ENTERPRISE_TOKEN)\n'
                 printf '  --gitlab: provide GitLab authentication (GITLAB_TOKEN or saved glab login)\n'
                 printf '  --gitlab-hostname HOST: GitLab host (default: gitlab.com)\n'
-                printf '  Compatibility aliases: --with-git, --with-docker, --with-network, --with-ttyd, --with-ttyd-auth\n'
+                printf '  Compatibility aliases: --ssh, --with-git, --with-docker, --with-network, --with-ttyd, --with-ttyd-auth\n'
                 printf '  --resume: restart with the flags of the last orcan up (kept across orcan down)\n'
-                printf '  --docker-socket and --ssh expose credentials/capabilities to agents inside the container.\n'
+                printf '  --docker-socket and --with-ssh expose credentials/capabilities to agents inside the container.\n'
                 return 0
                 ;;
             *)
@@ -199,7 +199,7 @@ orcan_cmd_up() {
         orcan_warn "  Agents/tools inside can control the host Docker engine (full host reach)."
     fi
     if (( with_git )); then
-        orcan_warn "SECURITY: --ssh mounts host ~/.ssh (and SSH agent if set) into the container."
+        orcan_warn "SECURITY: --with-ssh mounts host ~/.ssh (and SSH agent if set) into the container."
         orcan_warn "  Agents/tools inside can use those keys for git push and other SSH access."
     fi
     if ((with_github)); then
@@ -325,7 +325,7 @@ orcan_cmd_up() {
         printf 'Need a browser terminal?  orcan down && orcan up --web-terminal\n'
     fi
     if (( ! with_git )); then
-        printf 'Need git push/pull over SSH?  orcan up --ssh\n'
+        printf 'Need git push/pull over SSH?  orcan up --with-ssh\n'
     fi
     if (( ! with_docker && ! with_network )); then
         printf 'Need Docker socket OR network reachability (pick one, not both)?\n'

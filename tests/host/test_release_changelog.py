@@ -1,30 +1,15 @@
 #!/usr/bin/env python3
-"""Regression tests for the checkpoint/release CHANGELOG.md surgery in
-release.sh, run against a throwaway git repo — never the real checkout.
-
-Model under test:
-  - `checkpoint` (make tag): a frequent SemVer stop, fully pushed (commit
-    + tag). Its tag lives under checkpoint/vX.Y.Z, not bare vX.Y.Z, so it
-    can never be picked up by orcan update/downgrade (cli/lib/git.sh) or
-    fire .github/workflows/release.yml's "v*.*.*" tag-push trigger.
-  - `release` (make release): rare, deliberate, pushes a bare vX.Y.Z;
-    drops a CalVer divider grouping every checkpoint since the previous
-    one.
-
-UpdateHintSafetyTests exercises the *actual* cli/lib/git.sh functions
-(not a reimplementation) against a fixture with both tag kinds pushed,
-so drift between release.sh and cli/lib/git.sh gets caught here.
-"""
+"""Version tags and separate readiness declarations in isolated Git fixtures."""
 
 from __future__ import annotations
-
-import pytest
 
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 pytestmark = pytest.mark.integration
 
@@ -34,7 +19,7 @@ GIT_LIB_SH = ROOT / "cli" / "lib" / "git.sh"
 
 
 def run(args: list[str], cwd: Path, check: bool = True) -> subprocess.CompletedProcess:
-    proc = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+    proc = subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False)
     if check and proc.returncode != 0:
         raise AssertionError(f"{args} failed:\n{proc.stdout}\n{proc.stderr}")
     return proc
@@ -80,20 +65,6 @@ class ReleaseFixture:
     def sh(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
         return run(
             ["bash", "./scripts/repository/release.sh", *args],
-            cwd=self.root,
-            check=check,
-        )
-
-    def retract(
-        self, version: str, calver: str, *, check: bool = True
-    ) -> subprocess.CompletedProcess:
-        return run(
-            [
-                "bash",
-                "-c",
-                "RELEASE_RETRACT_SKIP_DOCS=1 RELEASE_RETRACT_SKIP_GITHUB=1 "
-                f"bash ./scripts/repository/release.sh retract {version} {calver} RETRACT-v{version}",
-            ],
             cwd=self.root,
             check=check,
         )
@@ -158,16 +129,16 @@ class ReleaseTestCase(unittest.TestCase):
         self.fx = ReleaseFixture(Path(self._tmp.name) / "repo", self.template)
 
 
-class CheckpointTests(ReleaseTestCase):
+class VersionTagTests(ReleaseTestCase):
     def test_fixture_changes_do_not_modify_the_template(self) -> None:
         before = self.template.local_head()
         self.fx.add_unreleased("Fixed", "isolated change")
-        self.fx.sh("checkpoint", "patch")
+        self.fx.sh("version", "patch")
         self.assertEqual(self.template.local_head(), before)
         self.assertTrue(self.template.is_clean())
 
     def test_checkpoint_needs_content(self) -> None:
-        proc = self.fx.sh("checkpoint", "patch", check=False)
+        proc = self.fx.sh("version", "patch", check=False)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("nothing to checkpoint", proc.stderr)
         # A checkpoint that dies on validation must leave zero residue —
@@ -178,18 +149,17 @@ class CheckpointTests(ReleaseTestCase):
             self.fx.is_clean(), "checkpoint left the tree dirty after failing"
         )
 
-    def test_checkpoint_bumps_cuts_and_pushes_under_checkpoint_namespace(self) -> None:
+    def test_version_bumps_cuts_and_pushes_normal_semver(self) -> None:
         self.fx.add_unreleased("Fixed", "a real fix")
-        self.fx.sh("checkpoint", "patch")
+        self.fx.sh("version", "patch")
 
         self.assertEqual(self.fx.sh("print").stdout.strip(), "3.0.6")
-        self.assertIn("checkpoint/v3.0.6", self.fx.tags())
-        # Fully pushed — commit AND tag reach origin (nothing local-only)...
-        self.assertIn("checkpoint/v3.0.6", self.fx.remote_tags())
+        self.assertIn("v3.0.6", self.fx.tags())
+        # Commit and immutable change tag both reach origin.
+        self.assertIn("v3.0.6", self.fx.remote_tags())
         self.assertEqual(self.fx.remote_head(), self.fx.local_head())
-        # ...but never as a bare vX.Y.Z — that's what keeps it invisible
-        # to orcan update/downgrade and release.yml's tag-push trigger.
-        self.assertNotIn("v3.0.6", self.fx.remote_tags())
+        # A normal version tag is available independently of publication.
+        self.assertIn("v3.0.6", self.fx.remote_tags())
 
         changelog = self.fx.changelog()
         self.assertIn("## [Unreleased]\n\n## [3.0.6] - ", changelog)
@@ -197,137 +167,52 @@ class CheckpointTests(ReleaseTestCase):
 
     def test_second_checkpoint_without_new_content_fails(self) -> None:
         self.fx.add_unreleased("Fixed", "first fix")
-        self.fx.sh("checkpoint", "patch")
-        proc = self.fx.sh("checkpoint", "patch", check=False)
+        self.fx.sh("version", "patch")
+        proc = self.fx.sh("version", "patch", check=False)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("nothing to checkpoint", proc.stderr)
 
 
 class ReleaseTests(ReleaseTestCase):
-    def test_release_auto_checkpoints_and_pushes(self) -> None:
-        self.fx.add_unreleased("Fixed", "shipped fix")
-        proc = self.fx.sh("release", "26.9")
-        self.assertIn("Released 26.9 → v3.0.6", proc.stdout)
-        # Release ships both a real SemVer tag and its own CalVer tag —
-        # two pointers at the same commit, both on origin.
-        self.assertIn("v3.0.6", self.fx.remote_tags())
-        self.assertIn("26.9", self.fx.remote_tags())
-
-        changelog = self.fx.changelog()
-        self.assertIn("## [Unreleased]\n\n## 26.9 — ", changelog)
-        self.assertIn("## [3.0.6] - ", changelog)
-
-    def test_release_groups_multiple_checkpoints_under_one_divider(self) -> None:
-        self.fx.add_unreleased("Fixed", "fix one")
-        self.fx.sh("checkpoint", "patch")
-        self.fx.add_unreleased("Added", "feature one")
-        self.fx.sh("checkpoint", "minor")
-        self.fx.sh("release", "26.9")
-
-        changelog = self.fx.changelog()
-        divider = changelog.index("## 26.9")
-        v106 = changelog.index("## [3.0.6]")
-        v110 = changelog.index("## [3.1.0]")
-        # Both checkpoints sit below the single release divider.
-        self.assertLess(divider, v106)
-        self.assertLess(divider, v110)
-        # Only the release-time bare tag (v3.1.0, + the 26.9 CalVer tag)
-        # is pushed as a real release; the earlier checkpoint still shows
-        # up, but only under its checkpoint/ namespace.
-        self.assertIn("v3.1.0", self.fx.remote_tags())
-        self.assertIn("26.9", self.fx.remote_tags())
-        self.assertNotIn("v3.0.6", self.fx.remote_tags())
-        self.assertIn("checkpoint/v3.0.6", self.fx.remote_tags())
-
-    def test_release_label_must_look_like_calver(self) -> None:
-        self.fx.add_unreleased("Fixed", "a fix")
-        proc = self.fx.sh("release", "not-a-calver", check=False)
-        self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("release label must look like YY.Q", proc.stderr)
-
-    def test_release_ensures_semver_tag_if_no_prior_checkpoint(self) -> None:
-        # Releasing straight off accumulated Unreleased content, with no
-        # preceding `make tag`, must still end up with a real vX.Y.Z tag.
-        self.fx.add_unreleased("Fixed", "never checkpointed")
-        self.fx.sh("release", "26.9")
-        self.assertIn("v3.0.6", self.fx.tags())
-        self.assertIn("v3.0.6", self.fx.remote_tags())
-
-    def test_release_refuses_to_reuse_a_calver_label(self) -> None:
-        self.fx.add_unreleased("Fixed", "first release")
-        self.fx.sh("release", "26.9")
-        self.fx.add_unreleased("Fixed", "second release")
-        head_before = self.fx.local_head()
+    def test_release_requires_explicit_existing_semver(self):
+        before = self.fx.local_head()
         proc = self.fx.sh("release", "26.9", check=False)
         self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("already exists", proc.stderr)
-        # Regression: this used to auto-checkpoint + commit the CHANGELOG
-        # divider + tag vX.Y.Z *before* discovering the label collision,
-        # leaving a half-finished release (extra local commit/tag) behind.
-        self.assertEqual(
-            self.fx.local_head(), head_before, "release left an extra commit behind"
-        )
-        self.assertTrue(self.fx.is_clean(), "release left the tree dirty after failing")
+        self.assertEqual(self.fx.local_head(), before)
+        self.assertEqual(self.fx.tags(), [])
 
-    def test_retract_reverts_divider_and_removes_public_tags(self) -> None:
-        self.fx.add_unreleased("Fixed", "bad release")
-        self.fx.sh("release", "26.9")
-
-        proc = self.fx.retract("3.0.6", "26.9")
-
-        self.assertIn("Retracted v3.0.6", proc.stdout)
-        self.assertNotIn("v3.0.6", self.fx.tags())
-        self.assertNotIn("26.9", self.fx.tags())
-        self.assertNotIn("v3.0.6", self.fx.remote_tags())
-        self.assertNotIn("26.9", self.fx.remote_tags())
-        self.assertIn("checkpoint/v3.0.6", self.fx.remote_tags())
-        self.assertNotIn("## 26.9 —", self.fx.changelog())
-        self.assertEqual(self.fx.remote_head(), self.fx.local_head())
-
-    def test_retract_requires_exact_confirmation_before_mutating(self) -> None:
-        self.fx.add_unreleased("Fixed", "bad release")
-        self.fx.sh("release", "26.9")
-        head_before = self.fx.local_head()
-        proc = self.fx.sh("retract", "3.0.6", "26.9", "nope", check=False)
-
+    def test_retract_preserves_tags_and_history(self):
+        self.fx.add_unreleased("Fixed", "fix")
+        self.fx.sh("version", "patch")
+        before = self.fx.local_head()
+        proc = self.fx.sh("retract", "3.0.6", check=False)
         self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("set CONFIRM=RETRACT-v3.0.6", proc.stderr)
-        self.assertEqual(self.fx.local_head(), head_before)
+        self.assertIn("immutable", proc.stderr)
+        self.assertEqual(self.fx.local_head(), before)
         self.assertIn("v3.0.6", self.fx.remote_tags())
 
-
-class UpdateHintSafetyTests(ReleaseTestCase):
-    """Exercises the real cli/lib/git.sh functions, not a reimplementation
-    — proves checkpoint/CalVer tags can never surface as an orcan
-    update/downgrade target, only a real release's bare vX.Y.Z can."""
-
-    def test_checkpoints_and_calver_tag_invisible_to_update_targeting(self) -> None:
-        self.fx.add_unreleased("Fixed", "fix one")
-        self.fx.sh("checkpoint", "patch")  # checkpoint/v3.0.6
-        self.fx.add_unreleased("Added", "feature one")
-        self.fx.sh("release", "26.9")  # auto-checkpoints (patch) -> v3.0.7 + 26.9
-
-        self.assertEqual(self.fx.cli_git_fn("orcan_git_latest_release_tag"), "v3.0.7")
-        self.assertEqual(
-            self.fx.cli_git_fn("orcan_git_remote_latest_release_tag"), "v3.0.7"
-        )
-
-    def test_a_deliberately_higher_checkpoint_still_loses(self) -> None:
-        # Even a checkpoint numbered far above any real release must
-        # never outrank it — the namespace, not the version number, is
-        # what update targeting keys off.
-        self.fx.add_unreleased("Fixed", "a fix")
-        self.fx.sh("release", "26.9")  # v3.0.6
-        run(
-            ["git", "tag", "-a", "checkpoint/v9.9.9", "-m", "high checkpoint"],
+    def test_release_dispatches_existing_sha_without_mutation(self):
+        self.fx.add_unreleased("Fixed", "ready")
+        self.fx.sh("version", "patch")
+        before = self.fx.local_head()
+        proc = subprocess.run(
+            [
+                "/usr/bin/bash",
+                "-c",
+                'gh() { printf "%s\\n" "$@"; }; source scripts/repository/release.sh release v3.0.6',
+            ],
             cwd=self.fx.root,
+            check=False,
+            capture_output=True,
+            text=True,
         )
-        run(["git", "push", "-q", "origin", "checkpoint/v9.9.9"], cwd=self.fx.root)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("expected_sha=" + before, proc.stdout)
+        self.assertEqual(self.fx.local_head(), before)
+        self.assertTrue(self.fx.is_clean())
 
-        self.assertEqual(
-            self.fx.cli_git_fn("orcan_git_remote_latest_release_tag"), "v3.0.6"
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_workflow_is_manual_and_sha_pinned(self):
+        workflow = (ROOT / ".github/workflows/release.yml").read_text()
+        self.assertNotIn("  push:", workflow)
+        self.assertIn("expected_sha:", workflow)
+        self.assertIn('git checkout --detach "$EXPECTED_SHA"', workflow)
