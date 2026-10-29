@@ -141,9 +141,18 @@ RUN set -eux; \
 # Go / Rust / uv
 # ------------------------------------------------------------------------------
 
-COPY --from=go-tools /usr/local/go /usr/local/go
-COPY --from=rust-tools /usr/local/cargo /usr/local/cargo
-COPY --from=rust-tools /usr/local/rustup /usr/local/rustup
+# Bind-mounted tool stages do not add their bytes to disabled runtime layers.
+ARG INSTALL_GO=1
+ARG INSTALL_RUST=1
+RUN --mount=from=go-tools,source=/usr/local/go,target=/tmp/orcan-go,ro \
+    if [ "${INSTALL_GO}" = "1" ]; then mkdir -p /usr/local/go; cp -a /tmp/orcan-go/. /usr/local/go/; fi
+RUN --mount=from=rust-tools,source=/usr/local/cargo,target=/tmp/orcan-cargo,ro \
+    --mount=from=rust-tools,source=/usr/local/rustup,target=/tmp/orcan-rustup,ro \
+    if [ "${INSTALL_RUST}" = "1" ]; then \
+        mkdir -p /usr/local/cargo /usr/local/rustup; \
+        cp -a /tmp/orcan-cargo/. /usr/local/cargo/; cp -a /tmp/orcan-rustup/. /usr/local/rustup/; \
+    fi
+RUN mkdir -p /etc/orcan && printf '{"tools":{"go":%s,"rust":%s}}\n' "${INSTALL_GO}" "${INSTALL_RUST}" > /etc/orcan/tools.json
 COPY --from=uv-tools /uv /usr/local/bin/uv
 COPY --from=uv-tools /uvx /usr/local/bin/uvx
 
@@ -524,6 +533,8 @@ RUN chmod 0755 \
         /usr/local/bin/init-workspace \
         /usr/local/bin/cursor-init-project \
         /usr/local/bin/orcan-init-projects \
+        /usr/local/bin/orcan-init-project \
+        /usr/local/bin/orcan-agent-enabled \
         /usr/local/bin/orcan-session-brief \
         /usr/local/bin/orcan-compact \
         /usr/local/bin/orcan-actions \

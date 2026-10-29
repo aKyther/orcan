@@ -4,7 +4,7 @@
 
 set -Eeuo pipefail
 
-TEMPLATES_DIR="${CURSOR_TEMPLATES_DIR:-${HOME:?HOME is not set}/.cursor/templates}"
+TEMPLATES_DIR="${CURSOR_TEMPLATES_DIR:-/opt/cursor-defaults/templates}"
 FORCE=0
 DRY_RUN=0
 TARGET=""
@@ -18,7 +18,7 @@ usage() {
 Usage:
   cursor-init-project [options] [target]
 
-Initialize Cursor files in a project directory.
+Initialize selected agents' files in a project directory.
 
 Default target: $PROJECT_DIR when set, otherwise the current working directory
 
@@ -119,10 +119,13 @@ install_templates() {
 
     if [[ ! -d "${TEMPLATES_DIR}" ]]; then
         printf 'Error: templates directory not found: %s\n' "${TEMPLATES_DIR}" >&2
-        printf 'Hint: start a container once so init-cursor-home can seed ~/.cursor/templates\n' >&2
+        printf 'Hint: rebuild Orcan to install /opt/cursor-defaults/templates\n' >&2
         return 1
     fi
 
+    local has_cursor=0 has_claude=0
+    orcan-agent-enabled cursor && has_cursor=1
+    orcan-agent-enabled claude && has_claude=1
     # Map template names to project paths.
     while IFS= read -r -d '' source_file; do
         relative_path="${source_file#"${TEMPLATES_DIR}"/}"
@@ -132,21 +135,27 @@ install_templates() {
                 dest_name="AGENTS.md"
                 ;;
             CLAUDE.md)
+                (( has_claude )) || continue
                 dest_name="CLAUDE.md"
                 ;;
             cursorignore)
+                (( has_cursor )) || continue
                 dest_name=".cursorignore"
                 ;;
             cursorindexingignore)
+                (( has_cursor )) || continue
                 dest_name=".cursorindexingignore"
                 ;;
             claudeignore)
+                (( has_claude )) || continue
                 dest_name=".claudeignore"
                 ;;
             claude/settings.json)
+                (( has_claude )) || continue
                 dest_name=".claude/settings.json"
                 ;;
             rules/*)
+                (( has_cursor )) || continue
                 dest_name=".cursor/${relative_path}"
                 ;;
             workspace/*|claude/*)
@@ -154,6 +163,7 @@ install_templates() {
                 continue
                 ;;
             *)
+                (( has_cursor )) || continue
                 dest_name=".cursor/templates/${relative_path}"
                 ;;
         esac

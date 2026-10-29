@@ -88,7 +88,15 @@ def project_needs_init(path: str | Path) -> bool:
     root = Path(path)
     if not root.is_dir():
         return False
-    return not any((root / name).is_file() for name in PROJECT_IGNORE_MARKERS)
+    from orcan.agent_context import enabled_agents
+
+    selected = enabled_agents()
+    required = [
+        marker
+        for owner, marker in [("cursor", ".cursorignore"), ("claude", ".claudeignore")]
+        if owner in selected
+    ]
+    return any(not (root / name).is_file() for name in required)
 
 
 def projects_needing_init(ws: dict[str, Any]) -> list[str]:
@@ -131,7 +139,7 @@ def compact_hints(ws: dict[str, Any]) -> str:
             bits.append("init:" + ",".join(missing[:4]))
             if len(missing) > 4:
                 bits.append(f"+{len(missing) - 4}")
-        elif not flags["cursorignore"] and not flags["claudeignore"]:
+        elif project_needs_init(root):
             bits.append("no-ignore")
     else:
         bits.append("missing-root")
@@ -152,6 +160,9 @@ def format_status(ws: dict[str, Any]) -> str:
         lines.append("  (root missing — run orcan sync && recreate container)")
         return "\n".join(lines) + "\n"
 
+    from orcan.agent_context import enabled_agents
+
+    selected = enabled_agents()
     flags = pack_flags(root)
     for key, label in (
         ("manifest", ".manifest.json"),
@@ -164,6 +175,16 @@ def format_status(ws: dict[str, Any]) -> str:
         ("rules", ".cursor/rules/"),
         ("brief", ".orcan/session-brief.md"),
     ):
+        owner = {
+            "claude_md": "claude",
+            "claudeignore": "claude",
+            "claude_settings": "claude",
+            "cursorignore": "cursor",
+            "cursorindexingignore": "cursor",
+            "rules": "cursor",
+        }.get(key)
+        if owner and owner not in selected:
+            continue
         mark = "ok" if flags[key] else "—"
         note = ""
         if key == "brief" and not flags[key]:
@@ -174,9 +195,7 @@ def format_status(ws: dict[str, Any]) -> str:
     lines.append("")
     lines.append(f"projects: {len(ws.get('projects') or [])}")
     if missing:
-        lines.append(
-            "  per-repo ignores absent (ok): " + ", ".join(missing)
-        )
+        lines.append("  per-repo ignores absent (ok): " + ", ".join(missing))
     else:
         lines.append("  per-repo ignores: present (or no projects)")
     return "\n".join(lines) + "\n"

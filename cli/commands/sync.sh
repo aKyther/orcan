@@ -46,8 +46,10 @@ orcan_cmd_sync() {
 # container. Runs even when the container is down.
 orcan_sync_reconcile_host() {
     orcan_info "reconciling workspace meta on host"
-    local host_out
-    host_out="$(ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" \
+    local host_out manifest
+    orcan_load_env
+    manifest="$(orcan_image_agents_manifest "${IMAGE_LOCAL:-orcan:latest}")"
+    host_out="$(ORCAN_CONTEXT_AGENTS_JSON="${manifest}" ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" \
         orcan_host_python "${ORCAN_SCRIPTS}/reconcile-host.py" 2>&1)" || {
         orcan_warn "host workspace reconcile failed"
         return 0

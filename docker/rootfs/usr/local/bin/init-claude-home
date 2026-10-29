@@ -63,6 +63,7 @@ print_summary() {
 }
 
 main() {
+    orcan-agent-enabled claude || return 0
     ensure_dirs
     copy_missing_files
     print_summary

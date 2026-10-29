@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LIB = ROOT / "docker" / "rootfs" / "usr" / "local" / "lib"
+sys.path.insert(0, str(LIB))
 
 # Loaded by file path (not "orcan.reconcile" on sys.path) so this doesn't
 # collide with workspaces/orcan/ in this very checkout — a synced workspace
@@ -68,7 +69,9 @@ class ApplyWorkspacesTests(unittest.TestCase):
         self.ws_root = self.workspaces_parent / "demo"
 
     def _apply(self, cfg: dict):
-        return apply_workspaces(cfg, self.defaults_root, self.workspaces_parent)
+        return apply_workspaces(
+            cfg, self.defaults_root, self.workspaces_parent, agents={"cursor", "claude"}
+        )
 
     def test_creates_symlink_manifest_and_agents_md(self) -> None:
         cfg = _cfg(

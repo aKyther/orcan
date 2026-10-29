@@ -53,7 +53,7 @@ Commands:
   settings     Edit tool settings (tmux, ttyd) — separate from workspaces
   up           Start container (orcan enter; --web-terminal | --web-terminal-auth for browser)
   down         Stop containers
-  build        Build an explicit --agent selection as orcan:latest + orcan:<VERSION>
+  build        Build selected JSON/CLI agents and optional tools (--plan to preview)
   pull         Pull portable all-agents orcan:<VERSION> → orcan:latest
   publish      Manual push of all-agents orcan:latest (not part of build)
   url          Print browser terminal URL

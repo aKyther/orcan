@@ -131,6 +131,98 @@
         ".orcan-test.executor-smoke/build.log",
         ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
       ]
+    },
+    "context-final": {
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "--junitxml",
+            ".orcan/context-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "--extend-ignore",
+            "EXE001,RUF100",
+            "docker/rootfs/usr/local/lib/orcan/agent_context.py",
+            "docker/rootfs/usr/local/lib/orcan/reconcile.py",
+            "scripts/repository/image-profile.py",
+            "executor/smoke/context.py",
+            "tests/host/test_agent_context.py",
+            "tests/host/test_image_profile.py",
+            "tests/host/test_image_agents.py",
+            "tests/host/test_reconcile.py",
+            "tests/host/test_reconcile_host.py",
+            "tests/host/test_container_identity.py",
+            "tests/host/test_agents_claude_sync.py",
+            "docker/rootfs/usr/local/bin/init-ai-statusline",
+            "docker/rootfs/usr/local/bin/orcan-agent-enabled"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "format",
+            "--check",
+            "docker/rootfs/usr/local/lib/orcan/agent_context.py",
+            "docker/rootfs/usr/local/lib/orcan/reconcile.py",
+            "scripts/repository/image-profile.py",
+            "executor/smoke/context.py",
+            "tests/host/test_agent_context.py",
+            "tests/host/test_image_profile.py",
+            "tests/host/test_image_agents.py",
+            "tests/host/test_reconcile.py",
+            "tests/host/test_reconcile_host.py",
+            "tests/host/test_container_identity.py",
+            "tests/host/test_agents_claude_sync.py",
+            "docker/rootfs/usr/local/bin/init-ai-statusline",
+            "docker/rootfs/usr/local/bin/orcan-agent-enabled"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "python",
+            "executor/smoke/context.py"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/context-results.xml"
+      ],
+      "artifacts": [
+        ".orcan-test.agent-context/report.json",
+        ".orcan-test.agent-context/*.log"
+      ]
     }
   }
 }

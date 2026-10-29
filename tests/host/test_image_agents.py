@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-
+import os
 import subprocess
 import unittest
 from pathlib import Path
 
+import pytest
 
 pytestmark = pytest.mark.integration
 
@@ -28,6 +28,11 @@ class BuildAgentSelectionTests(unittest.TestCase):
     def test_build_requires_an_explicit_agent(self) -> None:
         result = subprocess.run(
             ["./bin/orcan", "build"],
+            env={
+                **os.environ,
+                "CONFIG": "",
+                "ORCAN_CONFIG_FILE": str(ROOT / ".absent-test-build-profile.json"),
+            },
             cwd=ROOT,
             text=True,
             capture_output=True,

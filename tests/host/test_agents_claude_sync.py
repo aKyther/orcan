@@ -27,8 +27,8 @@ class AgentsClaudeSyncTests(unittest.TestCase):
         claude = (templates / "CLAUDE.md").read_text(encoding="utf-8")
         self.assertTrue(agents.startswith("# AGENTS.md\n"))
         self.assertTrue(claude.startswith("# CLAUDE.md\n"))
-        self.assertIn("Keep `AGENTS.md` and `CLAUDE.md` identical", agents)
-        self.assertIn("Keep `AGENTS.md` and `CLAUDE.md` identical", claude)
+        self.assertIn("Only create agent-specific files", agents)
+        self.assertIn("Only create agent-specific files", claude)
 
 
 if __name__ == "__main__":

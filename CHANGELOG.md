@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- JSON image build profiles select agents and optional Go/Rust toolchains;
+  `orcan build --plan` previews the resolved selection without Docker.
+- Workspace/project and home initialization now follows the baked agent manifest.
+  Claude/Cursor defaults are seeded only for selected clients; unchanged managed
+  workspace defaults can be removed when switching images, preserving custom files.
+
 - Optional `orcan up --with-redis` background executor inside Orcan, with project-owned
   Python/Java/Scala procedures, snapshot worktrees, compact Redis Stream results,
   bounded log reading, a read-only dashboard and one-hour completed-result retention.

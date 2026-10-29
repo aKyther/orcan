@@ -29,6 +29,13 @@ fix_named_volume_permissions() {
         "${HOME}/.cache" \
         "${HOME}/.local/share/orcan/history"
     do
+        case "${dir}" in
+            */.cursor|*/.config/cursor) orcan-agent-enabled cursor || continue ;;
+            */.claude) orcan-agent-enabled claude || continue ;;
+            */.codex) orcan-agent-enabled codex || continue ;;
+            */.gemini) orcan-agent-enabled gemini || continue ;;
+            */.copilot) orcan-agent-enabled copilot || continue ;;
+        esac
         [[ -e "${dir}" ]] || continue
         if [[ "$(stat -c '%u' "${dir}")" != "${uid}" ]] \
             || [[ ! -w "${dir}" ]] \
@@ -41,6 +48,7 @@ fix_named_volume_permissions() {
 # Claude Code: keep OAuth + ~/.claude.json under the mounted ~/.claude volume.
 # Without CLAUDE_CONFIG_DIR, the CLI also writes ~/.claude.json in ephemeral HOME.
 persist_claude_config() {
+    orcan-agent-enabled claude || return 0
     local config_dir legacy
     config_dir="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}"
     export CLAUDE_CONFIG_DIR="${config_dir}"
@@ -90,7 +98,7 @@ run_init() {
     # Cursor home seeds only matter when the Cursor CLI is in the image —
     # check the actual binary, not a specific variant string, since a
     # cursor-less variant can now be "claude", "codex", or "claude+codex".
-    if ! command -v agent >/dev/null 2>&1; then
+    if ! orcan-agent-enabled cursor; then
         return 0
     fi
     if [[ ! -x "${INIT_SCRIPT}" ]]; then
@@ -101,8 +109,7 @@ run_init() {
 }
 
 run_init_claude_home() {
-    # Harmless even when the `claude` binary itself isn't installed — this
-    # only seeds ~/.claude's config/agents/commands directory structure.
+    orcan-agent-enabled claude || return 0
     if [[ ! -x "${INIT_CLAUDE_HOME_SCRIPT}" ]]; then
         return 0
     fi
@@ -128,12 +135,20 @@ ensure_orcan_home_map() {
         "${HOME}/.cache/go" \
         "${HOME}/.cache/go-build"
 
-    ln -sfn "${HOME}/.cursor" "${root}/agents/cursor"
-    ln -sfn "${HOME}/.config/cursor" "${root}/agents/cursor-app"
-    ln -sfn "${HOME}/.claude" "${root}/agents/claude"
-    ln -sfn "${HOME}/.codex" "${root}/agents/codex"
-    ln -sfn "${HOME}/.gemini" "${root}/agents/gemini"
-    ln -sfn "${HOME}/.copilot" "${root}/agents/copilot"
+    local client target
+    for client in cursor claude codex gemini copilot; do
+        target="${HOME}/.${client}"
+        if orcan-agent-enabled "${client}"; then
+            ln -sfn "${target}" "${root}/agents/${client}"
+        elif [[ -L "${root}/agents/${client}" && "$(readlink "${root}/agents/${client}")" == "${target}" ]]; then
+            rm -- "${root}/agents/${client}"
+        fi
+    done
+    if orcan-agent-enabled cursor; then
+        ln -sfn "${HOME}/.config/cursor" "${root}/agents/cursor-app"
+    elif [[ -L "${root}/agents/cursor-app" && "$(readlink "${root}/agents/cursor-app")" == "${HOME}/.config/cursor" ]]; then
+        rm -- "${root}/agents/cursor-app"
+    fi
     ln -sfn "${HOME}/.cache" "${root}/cache"
     ln -sfn "${history_dir}" "${root}/history"
     ln -sfn "${dotfiles}" "${root}/dotfiles"

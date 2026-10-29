@@ -3,6 +3,7 @@
 
 orcan_cmd_build() {
     local agents=""
+    local plan=0
     local no_cache=0
     local prune=0
     local remove_previous=0
@@ -18,6 +19,10 @@ orcan_cmd_build() {
                 ;;
             --all-agents)
                 agents="cursor+claude+codex+gemini+copilot"
+                shift
+                ;;
+            --plan)
+                plan=1
                 shift
                 ;;
             --no-cache)
@@ -41,7 +46,11 @@ orcan_cmd_build() {
                 ;;
             -h | --help)
                 cat <<'EOF'
-usage: orcan build --agent NAME [--agent NAME ...] | --all-agents [--no-cache|--force] [--prune] [--remove-previous]
+usage: orcan build [--plan] [--agent NAME ... | --all-agents] [--no-cache|--force] [--prune] [--remove-previous]
+
+  --plan: print the resolved JSON profile without building or requiring Docker.
+  No --agent flag: use build.agents from orcan.config.json. build.tools can
+  disable Go/Rust (defaults stay enabled); CLI agent flags override the profile.
 
   NAME: cursor | claude | codex | gemini | copilot
   Builds the standard orcan:latest image. Its /etc/orcan/agents.json records
@@ -59,12 +68,25 @@ EOF
         esac
     done
 
-    [[ -n "${agents}" ]] || orcan_usage_error "choose at least one agent: orcan build --agent codex (or --all-agents)"
+    local cfg="" profile values
+    cfg="$(orcan_config_path)" || cfg=""
+    profile="$(orcan_host_python "${ORCAN_SCRIPTS}/image-profile.py" --config "${cfg}" --agents "${agents}")" || return
+    if (( plan )); then
+        printf '%s\n' "${profile}"
+        return 0
+    fi
+    values="$(python3 -c 'import json,sys; p=json.load(sys.stdin); print("+".join(p["agents"])); print(int(p["tools"]["go"])); print(int(p["tools"]["rust"]))' <<<"${profile}")"
+    local -a selection
+    mapfile -t selection <<<"${values}"
+    agents="${selection[0]}"
+
 
     orcan_require_docker
     orcan_require_env_for_build
     orcan_load_env
     orcan_runtime_warn_if_config_stale build
 
+    local INSTALL_GO="${selection[1]}" INSTALL_RUST="${selection[2]}"
+    export INSTALL_GO INSTALL_RUST
     orcan_image_build_local "${agents}" "${no_cache}" "${prune}" "${remove_previous}"
 }

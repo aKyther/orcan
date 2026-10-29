@@ -113,10 +113,14 @@ def main() -> int:
     state = home / "mounts" / "up-state.env"
     enabled = state.is_file() and "WITH_REDIS=1" in state.read_text().splitlines()
     os.environ["ORCAN_REDIS_ENABLED"] = "1" if enabled else "0"
+    from orcan.agent_context import parse_agents
+
+    agents = parse_agents(os.environ.get("ORCAN_CONTEXT_AGENTS_JSON", "{}"))
     report = apply_workspaces(
         cfg,
         templates,
         home / "workspaces",
+        agents=agents,
     )
     for ws in report.workspaces:
         print(f"workspace ready: {ws.root} ({ws.repo_count} repo(s), tmux={ws.name})")

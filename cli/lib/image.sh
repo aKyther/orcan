@@ -124,6 +124,7 @@ orcan_image_build_local() {
 
     ORCAN_VERSION="${ver}" IMAGE_LOCAL="${image}" \
         INSTALL_CURSOR="${install_cursor}" INSTALL_CLAUDE="${install_claude}" \
+        INSTALL_GO="${INSTALL_GO:-1}" INSTALL_RUST="${INSTALL_RUST:-1}" \
         INSTALL_CODEX="${install_codex}" INSTALL_GEMINI="${install_gemini}" INSTALL_COPILOT="${install_copilot}" \
         orcan_compose_build "${build_args[@]}" || return
     docker tag "${image}" "orcan:${ver}" 2>/dev/null || true

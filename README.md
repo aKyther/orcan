@@ -101,3 +101,12 @@ submit committed snapshots for Python, Java, Scala and project-defined procedure
 then continue the conversation. Workspace AGENTS.md / CLAUDE.md explain availability,
 submission, small results, bounded log reading and the default one-hour retention.
 Plain `orcan up` keeps the existing direct workflow.
+
+
+### Choose image contents
+
+Set `build.agents` and optional `build.tools.go` / `build.tools.rust` in
+`orcan.config.json`, preview with `orcan build --plan`, then run `orcan build`.
+Claude and Cursor context files are generated only for clients installed in the
+image. See [Image profiles](docs/en/guides/image-profiles.md) for precedence,
+workspace updates and safe preservation of custom files.

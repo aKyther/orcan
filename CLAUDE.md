@@ -99,6 +99,14 @@ make test-host TEST_ARGS="tests/host/test_attach_cli.py"
 make test-fast              # pure contracts while editing; full suite before handoff
 ```
 
+### Image profiles and generated context
+
+`orcan build --plan` resolves JSON `build.agents` and optional Go/Rust choices.
+The installed `/etc/orcan/agents.json` controls agent-specific workspace/project
+and home seeds. Preserve custom files; prune only unchanged owned workspace defaults.
+The product repository keeps its maintained AGENTS/CLAUDE pair; generated workspaces
+create CLAUDE.md only for Claude. See `docs/en/guides/image-profiles.md`.
+
 ### Agent inbox
 
 `<workspace>/.orcan/tasks/` and `orcan-inbox` provide structured task handoff without copying chat transcripts. See `docs/en/ideas/agent-inbox.md`.

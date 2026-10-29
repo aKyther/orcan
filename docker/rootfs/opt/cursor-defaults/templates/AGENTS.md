@@ -3,7 +3,8 @@
 ## Purpose
 
 Short instructions for coding agents working in this repository.
-**Keep `AGENTS.md` and `CLAUDE.md` identical** (Cursor loads `AGENTS.md`; Claude Code loads `CLAUDE.md`).
+When Claude is installed, keep shared instructions in `AGENTS.md` and `CLAUDE.md` aligned.
+Only create agent-specific files for clients installed in the image.
 
 Replace project-specific sections below with real setup and checks.
 

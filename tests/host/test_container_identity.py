@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+
 from ._scripts_loader import load_script
 
 pytestmark = pytest.mark.integration
@@ -129,7 +130,9 @@ def test_current_and_future_workspaces_keep_base_and_repository_rules(tmp_path):
                 ],
             }
         )
-        apply_workspaces(cfg, templates, tmp_path / "workspaces")
+        apply_workspaces(
+            cfg, templates, tmp_path / "workspaces", agents={"cursor", "claude"}
+        )
     for ws in cfg["workspaces"]:
         root = Path(ws["root"])
         before = (root / "AGENTS.md").read_text()
@@ -138,7 +141,9 @@ def test_current_and_future_workspaces_keep_base_and_repository_rules(tmp_path):
         assert (root / "CLAUDE.md").read_text() == before
         custom = root / ".cursor/rules/custom.mdc"
         custom.write_text("Keep my custom rule")
-        apply_workspaces(cfg, templates, tmp_path / "workspaces")
+        apply_workspaces(
+            cfg, templates, tmp_path / "workspaces", agents={"cursor", "claude"}
+        )
         assert custom.read_text() == "Keep my custom rule"
         assert (root / "AGENTS.md").read_text() == before
     assert (repo / "AGENTS.md").read_text() == "Repository-specific rules\n"

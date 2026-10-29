@@ -46,6 +46,40 @@
         }
       }
     },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agents": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "cursor",
+              "claude",
+              "codex",
+              "gemini",
+              "copilot"
+            ]
+          }
+        },
+        "tools": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "go": {
+              "type": "boolean",
+              "default": true
+            },
+            "rust": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    },
     "image": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/:@-]*$",

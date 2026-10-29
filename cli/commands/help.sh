@@ -46,8 +46,9 @@ Commands:
                            | = pick one (ttyd vs ttyd-auth; docker vs network)
                            Old --with-* flags remain accepted; see orcan up --help
   down                     Stop containers
-  build --agent NAME [...] | --all-agents [--force]
-                           Explicit image contents; NAME is cursor, claude,
+  build [--plan] [--agent NAME ... | --all-agents] [--force]
+                           Uses JSON build profile, or explicit CLI agents.
+                           NAME is cursor, claude,
                            codex, gemini, or copilot. Always tags standard Orcan.
   pull                     Pull all-agents orcan:<VERSION> → orcan:latest
   publish                  Manual push of all-agents orcan:latest (maintainers)

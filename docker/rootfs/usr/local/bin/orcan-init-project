@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Agent-neutral spelling; cursor-init-project remains a compatibility alias.
+set -Eeuo pipefail
+exec cursor-init-project "$@"

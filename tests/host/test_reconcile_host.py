@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import sys
 import tempfile
 import unittest
@@ -14,6 +13,7 @@ from ._scripts_loader import load_script
 
 ROOT = Path(__file__).resolve().parents[2]
 LIB = ROOT / "docker" / "rootfs" / "usr" / "local" / "lib"
+sys.path.insert(0, str(LIB))
 
 reconcile_host = load_script("reconcile-host.py")
 

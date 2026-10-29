@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run cursor-init-project on every project path in /etc/orcan/config.json (missing-only).
+# Run orcan-init-project on every project path in /etc/orcan/config.json (missing-only).
 # Usage: orcan-init-projects [--dry-run] [--force]
 set -Eeuo pipefail
 
@@ -10,7 +10,7 @@ usage() {
     cat <<'EOF'
 Usage: orcan-init-projects [--dry-run] [--force]
 
-Seed Cursor/Claude ignore files and templates into every configured project
+Seed installed agents' ignore files and templates into every configured project
 checkout (missing-only unless --force). Does not run at container start.
 EOF
 }
@@ -57,7 +57,7 @@ for path in "${PATHS[@]}"; do
         continue
     fi
     printf '=== %s ===\n' "${path}"
-    if cursor-init-project "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}" "${path}"; then
+    if orcan-init-project "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}" "${path}"; then
         :
     else
         fail=1

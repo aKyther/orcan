@@ -1,5 +1,9 @@
 {
   "_comment": "Copy to orcan.config.json and edit absolute paths. Then: make env",
+  "build": {
+    "agents": ["codex"],
+    "tools": {"go": false, "rust": false}
+  },
   "workspaces": [
     {
       "name": "gotibooks",
