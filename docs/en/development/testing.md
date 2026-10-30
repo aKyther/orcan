@@ -422,7 +422,7 @@ are ignored and Escape closes the brief. It never attaches to a user's tmux.
 
 ```bash
 ./tests/host/run.sh tests/host/test_cockpit_probe.py tests/host/test_cockpit_paint_skip.py
-uv run --project cockpit --locked python tests/smoke/test-cockpit-responsiveness.py
+PYTHONPATH=docker/rootfs/usr/local/lib uv run --project cockpit --locked python tests/smoke/test-cockpit-responsiveness.py
 ```
 
 `tests/smoke/cockpit-load.py` adds a finite real PTY/private-tmux benchmark.

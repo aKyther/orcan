@@ -507,6 +507,8 @@
         },
         {
           "argv": [
+            "env",
+            "PYTHONPATH=docker/rootfs/usr/local/lib",
             "uv",
             "run",
             "--project",
