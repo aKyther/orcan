@@ -89,6 +89,7 @@ def test_ownership_failure_is_reported(tmp_path, monkeypatch):
     assert not ownership.update_ownership(str(tmp_path), 1, 1, [])
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "arguments", ["--chown-exclude", "--chown-exclude relative/path"]
 )
