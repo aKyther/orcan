@@ -382,7 +382,6 @@ def main(argv=None):
                         "--hostname=orcan-" + args.lane + "@%h",
                         "--concurrency=1",
                         "--loglevel=WARNING",
-                        "--queues=" + queue_name(),
                         "--without-gossip",
                         "--without-mingle",
                     ]

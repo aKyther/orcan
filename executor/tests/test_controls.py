@@ -119,3 +119,20 @@ def test_cancelled_results_follow_completed_ttl(repo):
     assert retention.prune() == 1
     assert store.listing() == []
     assert engine.git(repo, "for-each-ref", "refs/orcan/executor/jobs") == ""
+
+
+@pytest.mark.parametrize("lane", ["default", "light", "heavy"])
+def test_worker_consumes_exactly_the_selected_lane(monkeypatch, lane):
+    from orcan_executor.settings import queue_name
+    from orcan_executor.tasks import app
+
+    worker = Mock()
+    monkeypatch.setattr(app, "worker_main", worker)
+    original_queue = app.conf.task_default_queue
+    try:
+        assert cli.main(["worker", "--lane", lane]) == 0
+        queues = [arg for arg in worker.call_args.args[0] if arg.startswith("--queues=")]
+        expected = queue_name() + (":" + lane if lane != "default" else "")
+        assert queues == ["--queues=" + expected]
+    finally:
+        app.conf.task_default_queue = original_queue

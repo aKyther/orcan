@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve the selected executor worker lane: remove a duplicate Celery queue argument that redirected heavy/light workers to the default queue.
+
 ### Changed
 
 - Name the background capability as the executor plugin, retaining `--with-redis` activation; add bounded admission, optional light/heavy lanes, queued cancellation, active-job reuse, explicit result receipts and detail-consumption metrics.
