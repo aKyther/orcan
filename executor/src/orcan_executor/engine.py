@@ -6,6 +6,7 @@ import shutil
 import signal
 import subprocess
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
@@ -339,3 +340,31 @@ def cancel(job_id: str) -> dict:
             {"message": "Queued verification cancelled; no checks executed"},
             report,
         )
+
+
+@contextmanager
+def recovery_guard(job_id: str):
+    """Hold the execution lock through explicit republish; never restart a live child."""
+    job = store.get(job_id)
+    if job["status"] in store.TERMINAL or job["details_expired"]:
+        raise ValueError("Completed jobs cannot be recovered; submit a new check if needed")
+    directory = state_dir() / "jobs" / job["id"]
+    directory.mkdir(parents=True, exist_ok=True)
+    with (directory / "run.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError(
+                "Execution lock is still held; a worker or child may be active. Recovery refused"
+            ) from None
+        with store.database() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT status,attempts FROM jobs WHERE id=?", (job_id,)).fetchone()
+            if row is None or row["status"] in store.TERMINAL:
+                raise ValueError("Job completed while recovery was requested")
+            db.execute(
+                "UPDATE jobs SET status='queued',publication_state='recovery_pending',recovery_count=recovery_count+1 WHERE id=?",
+                (job_id,),
+            )
+            store.event(db, {"kind": "recovery_requested", "job_id": job_id, "sha": job["sha"]})
+        yield store.get(job_id)

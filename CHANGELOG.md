@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Sanitized Redis/AOF diagnostics, heartbeat timestamps, durable communication counters, queue median/p95 and stale-sample warnings in the dashboard and cockpit.
+- Guarded explicit recovery for interrupted jobs, preserving active child processes and old worktrees; track publication uncertainty and recovery attempts.
+- Configurable Redis memory and visibility-timeout budgets, with bounded health snapshots and coalesced events during outages.
+
+### Added
+
 - Executor settings wizard, atomic cross-lane running-job limits, profile timeouts, queue-specific readiness and durable local recovery for unavailable workers.
 - Cockpit Jobs overview and local dashboard charts for throughput, queue/run times and log/result/detail bytes, with accessible tables and repository/profile/queue usage.
 - Measured waited-for child CPU time; agent guidance distinguishes resource limits, estimated token reduction and unavailable model cost.

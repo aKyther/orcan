@@ -27,12 +27,29 @@ def enqueue(job_id: str):
     lane = definition.get("lane", "default")
     from .readiness import lanes
 
-    if not lanes()[lane]["ready"]:
+    try:
+        lane_ready = lanes()[lane]["ready"]
+    except Exception:
+        store.publication(job_id, "readiness_unavailable")
+        store.communication("enqueue_failures")
+        raise RuntimeError("Queue readiness unavailable; inspect diagnostics") from None
+    if not lane_ready:
+        store.publication(job_id, "lane_unavailable")
+        store.communication("enqueue_failures")
         raise ValueError(
             f"Worker for lane {lane} is unavailable; enable the lane and recover this local job"
         )
     queue = queue_name() + (":" + lane if lane != "default" else "")
-    verify.apply_async(args=[job_id], task_id=job_id, queue=queue)
+    try:
+        verify.apply_async(args=[job_id], task_id=job_id, queue=queue)
+    except Exception:
+        store.publication(job_id, "uncertain")
+        store.communication("enqueue_failures")
+        raise RuntimeError(
+            "Queue publication failed; acceptance is uncertain; inspect diagnostics before recovery"
+        ) from None
+    store.publication(job_id, "published")
+    store.communication("enqueue_published")
 
 
 def parser():
@@ -126,6 +143,9 @@ def parser():
     )
     doctor.add_argument("--lane", choices=["default", "light", "heavy"])
     commands.add_parser("settings", help="Effective executor configuration and its source")
+    commands.add_parser(
+        "diagnostics", help="Read-only Redis, communication and interrupted-job diagnostics"
+    )
     commands.add_parser("overview", help="Bounded task summary for the terminal cockpit; no logs")
     status = commands.add_parser("status")
     status.add_argument("--failures", action="store_true")
@@ -210,6 +230,10 @@ def main(argv=None):
                     ],
                 }
             )
+        elif args.command == "diagnostics":
+            from .diagnostics import sample
+
+            emit({"live": sample(), "communication": store.diagnostics_snapshot()})
         elif args.command == "overview":
             from .readiness import lanes
 
@@ -223,6 +247,14 @@ def main(argv=None):
                     "counts": board["counts"],
                     "settings": effective(),
                     "lanes": lane_states,
+                    "communication": {
+                        "pending_events": board["communication"]["pending_events"],
+                        "health_stale": board["communication"]["health_stale"],
+                        "redis_status": (board["communication"]["health"] or {}).get("status"),
+                        "interrupted_jobs": (board["communication"]["health"] or {})
+                        .get("jobs", {})
+                        .get("interrupted", 0),
+                    },
                     "jobs": [
                         {
                             key: job[key]
@@ -237,6 +269,8 @@ def main(argv=None):
                                 "started",
                                 "progress",
                                 "details_expired",
+                                "publication_state",
+                                "recovery_count",
                             )
                         }
                         | {"seconds": (job["summary"] or {}).get("seconds")}
@@ -449,6 +483,7 @@ def main(argv=None):
                         "job_id": job["id"],
                         "sha": job["sha"],
                         "status": "queued_locally",
+                        "publication_state": store.get(job["id"])["publication_state"],
                         "error": (str(error) + "; run orcan-executor recover --job " + job["id"])
                         if isinstance(error, ValueError)
                         else "Broker unavailable; start Redis and run orcan-executor recover --job "
@@ -523,8 +558,7 @@ def main(argv=None):
                 emit(payload)
         elif args.command == "recover":
             if args.job:
-                job = store.get(args.job)
-                if job["status"] not in store.TERMINAL:
+                with engine.recovery_guard(args.job) as job:
                     enqueue(job["id"])
             emit(
                 {

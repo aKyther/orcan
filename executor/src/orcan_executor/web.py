@@ -105,7 +105,14 @@ async def frames(request: Request, hours: int = 3):
             # Blocking Redis read, with SSE keepalive on an otherwise quiet connection.
             batches = await connection.xread({stream_name(): cursor}, count=50, block=15000)
             if not batches:
-                yield ": keepalive\n\n"
+                # Refresh cached local diagnostics even if Redis writes fail or
+                # maintenance stops. This adds no Redis polling or model turn.
+                snapshot = await asyncio.to_thread(store.board, hours)
+                yield (
+                    "event: snapshot\ndata: "
+                    + json.dumps({**snapshot, "redis_online": True})
+                    + "\n\n"
+                )
                 continue
             for _, messages in batches:
                 cursor = messages[-1][0]

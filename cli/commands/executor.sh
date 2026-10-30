@@ -14,6 +14,7 @@ Inside Orcan:  orcan-executor COMMAND ...
   url                       Dashboard URL (same ttyd host, separate port; default 8765)
   doctor [--lane LANE]       Check broker and the matching local worker lease/lock
   settings                  Effective queue/parallel limits, timeout and retention
+  diagnostics               Sanitized Redis/AOF, publication and execution-lock health
   overview                  Bounded task overview used by the cockpit
   init --repo PATH --kind python|java|scala|custom
                             Scaffold project procedures; review and commit them
@@ -35,7 +36,7 @@ Inside Orcan:  orcan-executor COMMAND ...
   logs JOB [--artifact report.json] --offset 0 --limit 4000
                             Consume long diagnostics in bounded chunks
   listen --after STREAM_ID  Completion JSONL; separate controller process only
-  recover [--job JOB]        Recover delivery after a broker/worker interruption
+  recover [--job JOB]        Guarded recovery; refuses active execution and completed jobs
 
 Use reviewed profiles for heavy builds, analysis, generation, reports and tests.
 Default detailed-result retention: 1 hour; compact history: 30 days / 10000 expired entries. Never block an interactive agent on

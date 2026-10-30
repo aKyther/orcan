@@ -511,6 +511,13 @@ when available, with explicit tool parallelism (for example Gradle --max-workers
 Profiles may set timeout_seconds; explicit --timeout wins over profile and runtime defaults.
 The global max_running cap limits simultaneous jobs, not each build's threads or RAM.
 CPU/RAM quotas are container-wide; do not assume Celery isolates subprocess resources.
+Use diagnostics to inspect sanitized Redis/AOF health, communication failures and
+interrupted-job candidates before recovery. Dashboard samples older than 90s are stale.
+A missing worker heartbeat is not proof that a child stopped. recover --job refuses
+an execution lock still held by a worker/child and refuses completed jobs. It keeps
+old worktrees and rechecks state under lock; never force-remove a lock or checkout.
+Publication state uncertain means acceptance is unknown, not definitely unsent.
+Recovery is explicit; no automatic resend of failed tests or uncertain notifications.
 Capacity waits are retried without running the procedure; never retry failed tests blindly.
 If no notification integration is available, report pending work and return control rather
 than polling or running an interactive listener.

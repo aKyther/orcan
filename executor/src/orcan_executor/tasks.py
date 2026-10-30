@@ -6,7 +6,7 @@ from redis.exceptions import RedisError
 from . import store
 from .engine import run_job
 from .events import publish_pending
-from .settings import broker_url, queue_name
+from .settings import broker_url, queue_name, visibility_timeout
 
 app = Celery("orcan_executor", broker=broker_url())
 app.conf.update(
@@ -21,7 +21,7 @@ app.conf.update(
     broker_connection_retry_on_startup=True,
     broker_connection_timeout=3,
     broker_transport_options={
-        "visibility_timeout": 86400,
+        "visibility_timeout": visibility_timeout(),
         "socket_connect_timeout": 3,
         "socket_timeout": 3,
     },
@@ -64,7 +64,10 @@ def announce_ready(**kwargs):
 
         while not _heartbeat_stop.is_set():
             try:
-                client().set(app.conf.task_default_queue + ":worker-ready", "1", ex=45)
+                with client() as connection:
+                    connection.set(
+                        app.conf.task_default_queue + ":worker-ready", store.now(), ex=45
+                    )
             except Exception:
                 pass
             _heartbeat_stop.wait(10)

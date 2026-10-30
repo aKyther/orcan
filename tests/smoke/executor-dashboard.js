@@ -19,6 +19,10 @@ job=dict(id='fixture',repo='/fixture/project',git_dir='/fixture/git',sha='a'*40,
 store.create(job)
 store.start('fixture',Path('/fixture/worktree'))
 store.finish('fixture','passed',dict(tests=0,passed=0,failed=0,errors=0,skipped=0,seconds=5,metrics=dict(log_bytes=1000000,log_lines=1000,queue_seconds=1,executor_cpu_seconds=0.01,child_cpu_seconds=2)),Path('/fixture/report.json'))
+store.create(job | dict(id='orphan',sha='b'*40,task='Interrupted fixture'))
+store.start('orphan',Path('/fixture/interrupted'))
+store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis=dict(used_memory_bytes=900,maxmemory_bytes=1000,aof_enabled=1,aof_write_status='err'),warnings=['aof_write_error','interrupted_jobs'],lanes={},jobs=dict(interrupted=1,oldest_queued_seconds=None,jobs=[dict(id='orphan',sha='b'*40,condition='interrupted')])))
+
 `;
     const seed = spawnSync('uv', ['run', '--project', 'executor', '--locked', 'python', '-c', fixture], {env, encoding:'utf8'});
     assert.equal(seed.status, 0, seed.stderr?.slice(-2000));
@@ -39,6 +43,8 @@ store.finish('fixture','passed',dict(tests=0,passed=0,failed=0,errors=0,skipped=
     await page.goto(url);
     await page.waitForFunction(() => document.getElementById('passed').textContent === '1');
     assert.equal(await page.locator('canvas').count(), 3);
+    assert.ok((await page.locator('#redis-health').innerText()).includes('degraded'));
+    assert.ok((await page.locator('#recovery-candidates').innerText()).includes('orcan-executor recover --job orphan'));
     assert.equal(await page.locator('#timeline-rows tr').count(), 1);
     assert.ok(await page.locator('#tasks-chart').evaluate(canvas => canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some(value => value !== 0)));
     await page.locator('#jobs tr').first().click();

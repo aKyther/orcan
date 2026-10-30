@@ -128,6 +128,12 @@ Use `orcan-executor doctor --lane LANE` for the profile queue and inspect effect
 `settings` before heavy submissions. The shared `max_running` cap limits jobs,
 not tool threads or per-job CPU/RAM. Keep Gradle/compiler parallelism explicit.
 Profiles may declare timeout_seconds; --timeout wins over profile/runtime defaults.
+Use `orcan-executor diagnostics` for sanitized Redis memory/AOF, publication failures,
+heartbeat timestamps and interrupted-job candidates. Cached diagnostics older than 90s
+are stale. Never infer stopped execution from a missing heartbeat alone: child
+processes may hold run.lock. `recover --job` rechecks the execution lock and refuses
+active or completed jobs; it does not retry failed tests or delete old worktrees.
+Redis memory and visibility-timeout budgets are configurable through orcan settings.
 Treat queued_locally as pending recovery, including missing lane workers. Do not
 poll or block on listeners. Prefer session notifications and return control.
 Dashboard charts compare measured log/result/detail bytes and elapsed times;

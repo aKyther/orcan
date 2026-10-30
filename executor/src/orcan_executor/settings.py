@@ -74,6 +74,20 @@ def default_timeout() -> int:
     return value
 
 
+def redis_memory_mb() -> int:
+    value = int(os.environ.get("ORCAN_EXECUTOR_REDIS_MEMORY_MB", "128"))
+    if not 32 <= value <= 4096:
+        raise ValueError("Redis memory limit must be between 32 and 4096 MiB")
+    return value
+
+
+def visibility_timeout() -> int:
+    value = int(os.environ.get("ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS", "86400"))
+    if not 22200 <= value <= 86400:
+        raise ValueError("Visibility timeout must be between 22200 and 86400 seconds")
+    return value
+
+
 def effective() -> dict:
     return {
         "split_lanes": os.environ.get("ORCAN_EXECUTOR_SPLIT_LANES", "0") == "1",
@@ -81,6 +95,8 @@ def effective() -> dict:
         "max_running": max_running(),
         "timeout_seconds": default_timeout(),
         "retention_seconds": retention_seconds(),
+        "redis_memory_mb": redis_memory_mb(),
+        "visibility_timeout_seconds": visibility_timeout(),
         "history_days": HISTORY_DAYS,
         "history_limit": HISTORY_LIMIT,
         "source": "process environment with built-in defaults; JSON is materialized by orcan sync",

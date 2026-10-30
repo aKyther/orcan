@@ -53,6 +53,14 @@ def format_overview(value: dict) -> str:
         f"Queued: {counts.get('queued', 0)} · running: {counts.get('running', 0)} · passed: {counts.get('passed', 0)}",
         f"Parallel job cap: {settings.get('max_running', '?')} · queue cap: {settings.get('max_pending', '?')}",
     ]
+    communication = value.get("communication", {})
+    lines.append(
+        f"Redis: {communication.get('redis_status') or 'no sample'} · "
+        f"pending events: {communication.get('pending_events', 0)} · "
+        f"interrupted candidates: {communication.get('interrupted_jobs', 0)}"
+    )
+    if communication.get("health_stale"):
+        lines.append("Cached diagnostics are stale; run orcan-executor diagnostics")
     for lane, state in value.get("lanes", {}).items():
         status = (
             "ready"

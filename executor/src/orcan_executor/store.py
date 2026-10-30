@@ -1,4 +1,5 @@
 import json
+import math
 import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
@@ -43,6 +44,12 @@ def database(directory: Path | None = None):
                 status TEXT NOT NULL, created TEXT NOT NULL, finished TEXT, reason TEXT,
                 PRIMARY KEY(job_id,thread_id)
             );
+            CREATE TABLE IF NOT EXISTS communication (
+                name TEXT PRIMARY KEY, amount INTEGER NOT NULL DEFAULT 0, updated TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS health (
+                id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT NOT NULL,
                 published INTEGER NOT NULL DEFAULT 0
@@ -56,6 +63,8 @@ def database(directory: Path | None = None):
         for name, definition in {
             "details_expired": "INTEGER NOT NULL DEFAULT 0",
             "lane": "TEXT",
+            "publication_state": "TEXT NOT NULL DEFAULT 'unknown'",
+            "recovery_count": "INTEGER NOT NULL DEFAULT 0",
             "acknowledged": "TEXT",
             "detail_reads": "INTEGER NOT NULL DEFAULT 0",
             "detail_bytes": "INTEGER NOT NULL DEFAULT 0",
@@ -273,7 +282,9 @@ def board(hours: int | None = None) -> dict:
         )
         jobs = [
             dict(row)
-            for row in db.execute("SELECT * FROM scoped_jobs ORDER BY created DESC LIMIT 100")
+            for row in db.execute(
+                "SELECT * FROM scoped_jobs ORDER BY status IN ('queued','running') DESC,created DESC LIMIT 100"
+            )
         ]
         aggregate = dict(
             db.execute("""
@@ -311,7 +322,7 @@ def board(hours: int | None = None) -> dict:
         delivery_jobs = [
             dict(row)
             for row in db.execute(
-                "SELECT d.job_id,d.thread_id,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM scoped_deliveries d JOIN (SELECT id FROM scoped_jobs ORDER BY created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
+                "SELECT d.job_id,d.thread_id,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM scoped_deliveries d JOIN (SELECT id FROM scoped_jobs ORDER BY status IN ('queued','running') DESC,created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
             )
         ]
         notification_stats = dict(
@@ -372,6 +383,19 @@ def board(hours: int | None = None) -> dict:
                 (cutoff,),
             )
         ]
+    with database() as db:
+        samples = sorted(
+            row[0]
+            for row in db.execute(
+                "SELECT json_extract(summary,'$.metrics.queue_seconds') FROM jobs WHERE finished>=? "
+                "AND json_type(summary,'$.metrics.queue_seconds') IN ('integer','real')",
+                (cutoff,),
+            )
+        )
+    aggregate["queue_p50_seconds"] = samples[math.ceil(len(samples) * 0.5) - 1] if samples else None
+    aggregate["queue_p95_seconds"] = (
+        samples[math.ceil(len(samples) * 0.95) - 1] if samples else None
+    )
     aggregate["return_with_details_bytes"] = (
         aggregate["result_bytes"] + aggregate["detail_wire_bytes"]
     )
@@ -396,6 +420,7 @@ def board(hours: int | None = None) -> dict:
         "counts": counts,
         "jobs": jobs,
         "timeline": timeline,
+        "communication": diagnostics_snapshot(),
         "timeline_bucket_seconds": interval,
         "profile_usage": profiles,
         "settings": effective(),
@@ -461,3 +486,62 @@ def detail_read(job_id: str, size: int, wire_bytes: int = 0) -> None:
             (size, wire_bytes, job_id),
         )
         event(db, {"kind": "detail_read", "job_id": job_id, "bytes": size})
+
+
+def communication(name: str, amount: int = 1) -> None:
+    if name not in {"stream_published", "stream_failures", "enqueue_published", "enqueue_failures"}:
+        raise ValueError("Unknown communication counter")
+    with database() as db:
+        db.execute(
+            "INSERT INTO communication(name,amount,updated) VALUES(?,?,?) "
+            "ON CONFLICT(name) DO UPDATE SET amount=amount+excluded.amount,updated=excluded.updated",
+            (name, amount, now()),
+        )
+
+
+def publication(job_id: str, state: str) -> None:
+    if state not in {
+        "published",
+        "lane_unavailable",
+        "readiness_unavailable",
+        "uncertain",
+        "recovery_pending",
+    }:
+        raise ValueError("Unknown publication state")
+    with database() as db:
+        db.execute("UPDATE jobs SET publication_state=? WHERE id=?", (state, job_id))
+
+
+def save_health(payload: dict) -> None:
+    with database() as db:
+        db.execute("INSERT OR REPLACE INTO health(id,payload) VALUES(1,?)", (wire(payload),))
+        # Coalesce local health events so outages do not build an unbounded outbox.
+        db.execute("DELETE FROM events WHERE json_extract(payload,'$.kind')='health'")
+        event(db, {"kind": "health", "sampled_at": payload["sampled_at"]})
+
+
+def diagnostics_snapshot() -> dict:
+    with database() as db:
+        counters = {
+            row["name"]: {"count": row["amount"], "updated": row["updated"]}
+            for row in db.execute("SELECT * FROM communication")
+        }
+        pending = db.execute("SELECT COUNT(*) FROM events WHERE published=0").fetchone()[0]
+        row = db.execute("SELECT payload FROM health WHERE id=1").fetchone()
+    health = json.loads(row["payload"]) if row else None
+    age = None
+    if health:
+        try:
+            age = max(
+                0,
+                (datetime.now(UTC) - datetime.fromisoformat(health["sampled_at"])).total_seconds(),
+            )
+        except (ValueError, TypeError, KeyError):
+            pass
+    return {
+        "counters": counters,
+        "pending_events": pending,
+        "health": health,
+        "health_age_seconds": round(age, 1) if age is not None else None,
+        "health_stale": age is None or age > 90,
+    }

@@ -404,3 +404,11 @@ is written to `/tmp/orcan-executor-dashboard.png`; override with
 `ORCAN_DASHBOARD_SCREENSHOT`. Missing browser libraries are an environment failure,
 not a passing browser test. The committed `cockpit-executor-final` profile runs
 host/executor tests, the fake cockpit smoke, JavaScript syntax and strict docs.
+
+Redis communication tests run an isolated Redis process over a private temporary
+Unix socket (when `redis-server` is installed), verify health and stream persistence
+across a graceful AOF restart, and clean up that process only. This is not a claim
+about crash-loss guarantees. Recovery tests use a real child process inheriting
+an execution lock to prove that recovery refuses an active child. Other tests
+cover partial publication, durable outbox replay, stale/coalesced samples and
+sanitized connection failures. No live broker is restarted.

@@ -94,17 +94,23 @@ def prune() -> int:
             (history_cutoff, HISTORY_LIMIT),
         )
         db.execute("DELETE FROM deliveries WHERE job_id NOT IN (SELECT id FROM jobs)")
+        db.execute(
+            "DELETE FROM events WHERE json_extract(payload,'$.job_id') IS NOT NULL "
+            "AND json_extract(payload,'$.job_id') NOT IN (SELECT id FROM jobs)"
+        )
     return removed
 
 
 def maintain():
     from . import events
+    from .diagnostics import sample
 
     while True:
         prune()
         from .snapshots import prune_snapshots
 
         prune_snapshots()
+        store.save_health(sample())
         try:
             events.publish_pending()
             connection = events.client()

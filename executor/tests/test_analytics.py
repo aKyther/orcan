@@ -19,6 +19,7 @@ def test_timeline_and_profile_usage_match_measured_totals(repo):
     )
     assert stats["reduction_with_details_bytes"] == stats["log_bytes"] - stats["result_bytes"] - 180
     assert stats["child_cpu_seconds"] >= 0
+    assert stats["queue_p50_seconds"] == stats["queue_p95_seconds"] == bucket["queue_seconds"]
     assert board["profile_usage"][0]["profile"] == "quality"
     assert board["timeline_bucket_seconds"] == 300
     assert store.board(720)["timeline_bucket_seconds"] == 86400

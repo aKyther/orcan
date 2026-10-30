@@ -8,7 +8,15 @@ from ._scripts_loader import load_script
 
 @pytest.mark.parametrize(
     "value",
-    [{"max_running": 0}, {"max_running": True}, {"split_lanes": 1}, {"unknown": 3}, []],
+    [
+        {"redis_memory_mb": 16},
+        {"visibility_timeout_seconds": 21600},
+        {"max_running": 0},
+        {"max_running": True},
+        {"split_lanes": 1},
+        {"unknown": 3},
+        [],
+    ],
 )
 def test_invalid_executor_configuration_is_rejected(value):
     with pytest.raises(ValueError):
@@ -30,7 +38,7 @@ def test_settings_wizard_edits_executor_without_touching_workspaces(monkeypatch)
     wizard = load_script("settings-wizard.py")
     original = [{"name": "preserved", "projects": []}]
     cfg = {"workspaces": original}
-    answers = iter(["2", "40", "900", "7200"])
+    answers = iter(["2", "40", "900", "7200", "128", "86400"])
     monkeypatch.setattr(wizard, "ask", lambda *args: next(answers))
     monkeypatch.setattr(wizard, "ask_yes_no", lambda *args, **kwargs: True)
     wizard.edit_executor(cfg)
@@ -41,4 +49,6 @@ def test_settings_wizard_edits_executor_without_touching_workspaces(monkeypatch)
         "max_pending": 40,
         "timeout_seconds": 900,
         "retention_seconds": 7200,
+        "redis_memory_mb": 128,
+        "visibility_timeout_seconds": 86400,
     }

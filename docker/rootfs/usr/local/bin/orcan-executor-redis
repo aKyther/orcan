@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 state="$(/opt/orcan-executor/venv/bin/python -c 'from orcan_executor.settings import state_dir; print(state_dir())')"
+memory_mb="$(/opt/orcan-executor/venv/bin/python -c 'from orcan_executor.settings import redis_memory_mb; print(redis_memory_mb())')"
 mkdir -p "${state}/redis"
 chmod 700 "${state}" "${state}/redis"
 exec redis-server --bind 127.0.0.1 --protected-mode yes --port 6379 \
     --dir "${state}/redis" --appendonly yes --appendfsync everysec \
-    --save '' --maxmemory 128mb --maxmemory-policy noeviction
+    --save '' --maxmemory "${memory_mb}mb" --maxmemory-policy noeviction

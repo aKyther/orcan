@@ -6,12 +6,16 @@ DEFAULTS = {
     "max_running": 2,
     "timeout_seconds": 1800,
     "retention_seconds": 3600,
+    "redis_memory_mb": 128,
+    "visibility_timeout_seconds": 86400,
 }
 LIMITS = {
     "max_pending": (1, 10000),
     "max_running": (1, 3),
     "timeout_seconds": (1, 21600),
     "retention_seconds": (60, 86400),
+    "redis_memory_mb": (32, 4096),
+    "visibility_timeout_seconds": (22200, 86400),
 }
 ENVIRONMENT = {
     "split_lanes": "ORCAN_EXECUTOR_SPLIT_LANES",
@@ -19,6 +23,8 @@ ENVIRONMENT = {
     "max_running": "ORCAN_EXECUTOR_MAX_RUNNING",
     "timeout_seconds": "ORCAN_EXECUTOR_TIMEOUT_SECONDS",
     "retention_seconds": "ORCAN_EXECUTOR_RETENTION_SECONDS",
+    "redis_memory_mb": "ORCAN_EXECUTOR_REDIS_MEMORY_MB",
+    "visibility_timeout_seconds": "ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS",
 }
 
 

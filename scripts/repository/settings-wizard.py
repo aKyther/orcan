@@ -53,7 +53,8 @@ def summarize(cfg: dict[str, Any]) -> None:
     info(
         f"  executor: split lanes={executor['split_lanes']}, max running={executor['max_running']}, "
         f"pending={executor['max_pending']}, timeout={executor['timeout_seconds']}s, "
-        f"log retention={executor['retention_seconds']}s"
+        f"log retention={executor['retention_seconds']}s, Redis={executor['redis_memory_mb']} MiB, "
+        f"visibility={executor['visibility_timeout_seconds']}s"
     )
 
 
@@ -137,6 +138,11 @@ def edit_executor(cfg: dict[str, Any]) -> None:
             ("max_pending", "Maximum queued plus running jobs (1..10000)"),
             ("timeout_seconds", "Default job timeout in seconds (1..21600)"),
             ("retention_seconds", "Detailed log retention in seconds (60..86400)"),
+            ("redis_memory_mb", "Redis memory budget in MiB (32..4096)"),
+            (
+                "visibility_timeout_seconds",
+                "Redis visibility timeout in seconds (22200..86400)",
+            ),
         ]:
             proposed[key] = int(ask(label, str(current[key])))
         cfg["executor"] = current | resolve_executor(proposed)

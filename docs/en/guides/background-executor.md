@@ -56,7 +56,9 @@ Use `orcan settings` to edit the executor section without changing workspaces:
     "max_running": 2,
     "max_pending": 100,
     "timeout_seconds": 1800,
-    "retention_seconds": 3600
+    "retention_seconds": 3600,
+    "redis_memory_mb": 128,
+    "visibility_timeout_seconds": 86400
   }
 }
 ```
@@ -88,6 +90,67 @@ lease. `doctor` without a lane reports whether any worker is ready. Submission
 will not publish a task into an unavailable lane: it preserves a local queued job
 and reports `queued_locally` with recovery instructions. Start/fix the lane worker,
 then use `recover --job JOB`. Optional lane readiness is also shown by plugin doctor.
+
+## Redis diagnostics and controlled recovery
+
+`orcan-executor diagnostics` inspects the local instance without changing jobs.
+It returns only selected numeric Redis INFO fields, AOF write status, worker
+heartbeat timestamps, publication counters and execution-lock conditions. It does
+not return Redis configuration, client lists, broker URLs or raw exceptions.
+
+The maintenance service samples health about every 30 seconds and stores only the
+latest bounded snapshot in SQLite. Health events wake the existing dashboard SSE
+connection; they coalesce in the durable outbox during an outage. The dashboard
+reads cached health without polling Redis. Its SSE keepalive also refreshes local
+cached data so a stopped sampler becomes visibly stale after 90 seconds.
+
+The Redis panel shows memory against its actual limit, AOF state, recorded key
+evictions and error replies, event backlog, publication failures, lane heartbeats
+and possible interrupted jobs. Communication counters are cumulative for the local
+instance; Redis server counters are cumulative since its restart. Queue median/p95
+use completed jobs in the selected time window. Oldest queued age and interrupted
+candidates describe the current instance, not a historical window.
+
+`executor.redis_memory_mb` accepts 32..4096 MiB (default 128) and changes the Redis
+process's maxmemory budget after recreation. The noeviction policy remains: a full
+broker can reject new writes, rather than silently evict task keys. This is a Redis
+budget, not a whole-container reservation. Memory pressure is reported from 85%.
+AOF stays enabled with fsync every second; this does not guarantee zero data loss
+on host failure. Back up persistent state if needed.
+
+`executor.visibility_timeout_seconds` accepts 22200..86400 seconds (default 86400).
+The lower bound leaves a margin above the maximum six-hour task deadline. A long
+visibility timeout may delay broker redelivery after a crash. Explicit recovery
+can be used without waiting for it, but only after verifying execution stopped.
+All workers sharing a queue must use the same visibility timeout.
+
+A running row with a free execution lock is an interrupted-job **candidate**.
+A missing heartbeat alone is insufficient: a child JVM may still hold the inherited
+lock. An unreadable lock is unknown, not free. Inspection covers at most 100 active
+rows, with running jobs first. Active rows are prioritized in the dashboard list.
+
+```sh
+orcan-executor diagnostics
+orcan-executor doctor --lane heavy
+orcan-executor recover --job JOB
+```
+
+Recovery locks the job again, rechecks its state and holds that lock through
+publication. It refuses a lock held by any process, and refuses a completed job.
+A confirmed interrupted row becomes queued, freeing its stale running slot. Failed
+publication leaves a durable pending job for a later explicit recovery. The job's
+SHA and attempt count remain pinned; previous worktrees are preserved. The existing
+three-attempt interruption limit still terminates exhausted jobs without rerunning
+their procedure. No failed test or uncertain Codex notification is automatically resent.
+
+Publication states distinguish `published`, `lane_unavailable`,
+`readiness_unavailable`, `uncertain`, `recovery_pending` and legacy `unknown`. An error while publishing
+may mean acceptance is uncertain. Repeated delivery can happen; execution locks
+and terminal-state checks prevent concurrent or completed-job execution. Stream
+publication also remains at least once; consumers deduplicate event IDs.
+
+Official references: [Redis INFO](https://redis.io/docs/latest/commands/info/) and
+[Celery Redis visibility timeout](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/redis.html).
 
 ## Jobs in the cockpit and dashboard measurements
 
