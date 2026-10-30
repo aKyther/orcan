@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `orcan sync --no-chown "external"` skips ownership traversal by name at any depth; repeatable quoted globs such as `"external*"` are supported.
+
+### Added
+
 - `orcan sync --chown-exclude /absolute/path` skips ownership changes and traversal of selected data subtrees, including SSHFS mounts; the flag can be repeated.
 
 ### Documentation

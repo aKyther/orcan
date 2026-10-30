@@ -15,8 +15,9 @@ ownership = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ownership)
 
 
+@pytest.mark.parametrize("by_name", [False, True])
 def test_exclusions_prune_before_stat_and_preserve_symlink_targets(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, by_name
 ):
     data = tmp_path / "data"
     data.mkdir()
@@ -61,7 +62,11 @@ def test_exclusions_prune_before_stat_and_preserve_symlink_targets(
     monkeypatch.setattr(ownership.os, "scandir", Scan)
     monkeypatch.setattr(ownership.os, "chown", chown)
     assert ownership.update_ownership(
-        str(data), 123, 456, [str(excluded / ".." / excluded.name), str(other)]
+        str(data),
+        123,
+        456,
+        [] if by_name else [str(excluded / ".." / excluded.name), str(other)],
+        ["remote [[]1]", "second*"] if by_name else [],
     )
     assert set(scanned) == {str(data), str(sibling)}
     assert set(changed) == {
@@ -110,3 +115,49 @@ def test_sync_rejects_invalid_exclusion_before_changes(arguments):
     )
     assert result.returncode == 2
     assert "requires an absolute directory path" in result.stderr
+
+
+@pytest.mark.parametrize("pattern", ["external", "extern*", "externa?"])
+def test_name_patterns_match_at_any_depth(tmp_path, monkeypatch, pattern):
+    data = tmp_path / "data"
+    nested = data / "nested"
+    for parent in (data, nested):
+        (parent / "external" / "untouched").mkdir(parents=True)
+        (parent / "external-backup").mkdir()
+    changed = []
+    monkeypatch.setattr(
+        ownership.os, "chown", lambda path, *args, **kwargs: changed.append(path)
+    )
+    assert ownership.update_ownership(str(data), 1, 1, [], [pattern])
+    assert str(data) in changed and str(nested) in changed
+    assert not any("external" in Path(path).parts for path in changed)
+    assert (str(nested / "external-backup") in changed) == (pattern != "extern*")
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        "--no-chown",
+        "--no-chown ''",
+        "--no-chown --prune-orphans",
+        "--no-chown relative/path",
+    ],
+)
+def test_sync_rejects_invalid_name_pattern(arguments):
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            (
+                'source cli/commands/sync.sh; orcan_usage_error() { echo "$*" >&2; }; '
+                f"orcan_cmd_sync {arguments}"
+            ),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "requires a directory name or glob without slashes" in result.stderr

@@ -11,6 +11,14 @@ orcan_cmd_sync() {
         shift
         case "${arg}" in
             --prune-orphans) prune_orphans=1 ;;
+            --no-chown)
+                [[ $# -gt 0 && -n "$1" && "$1" != --* && "$1" != */* ]] || {
+                    orcan_usage_error "orcan sync: --no-chown requires a directory name or glob without slashes"
+                    return 2
+                }
+                ownership_args+=(--no-chown "$1")
+                shift
+                ;;
             --chown-exclude)
                 [[ $# -gt 0 && "$1" == /* ]] || {
                     orcan_usage_error "orcan sync: --chown-exclude requires an absolute directory path"

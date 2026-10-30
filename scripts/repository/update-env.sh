@@ -10,6 +10,14 @@ set -Eeuo pipefail
 ownership_args=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --no-chown)
+            [[ $# -gt 1 && -n "$2" && "$2" != --* && "$2" != */* ]] || {
+                printf 'Error: --no-chown requires a directory name or glob without slashes\n' >&2
+                exit 2
+            }
+            ownership_args+=(--pattern "$2")
+            shift 2
+            ;;
         --chown-exclude)
             [[ $# -gt 1 && "$2" == /* ]] || {
                 printf 'Error: --chown-exclude requires an absolute directory path\n' >&2

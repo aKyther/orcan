@@ -19,6 +19,8 @@ Commands:
                            only, never kill one that might have an active agent)
                            --chown-exclude /absolute/path skips ownership changes
                            for that subtree; repeat for multiple directories
+                           --no-chown 'external*' matches names at any depth
+                           (ownership only); repeat for multiple patterns
   migrate [--yes]          Move projects under managed root (dry-run by default)
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects
