@@ -44,6 +44,10 @@ def database(directory: Path | None = None):
                 status TEXT NOT NULL, created TEXT NOT NULL, finished TEXT, reason TEXT,
                 PRIMARY KEY(job_id,thread_id)
             );
+            CREATE TABLE IF NOT EXISTS fairness (
+                repo_key TEXT NOT NULL, lane TEXT NOT NULL, last_served INTEGER NOT NULL,
+                served_at TEXT NOT NULL, PRIMARY KEY(repo_key,lane)
+            );
             CREATE TABLE IF NOT EXISTS communication (
                 name TEXT PRIMARY KEY, amount INTEGER NOT NULL DEFAULT 0, updated TEXT NOT NULL
             );
@@ -65,6 +69,13 @@ def database(directory: Path | None = None):
             "lane": "TEXT",
             "publication_state": "TEXT NOT NULL DEFAULT 'unknown'",
             "recovery_count": "INTEGER NOT NULL DEFAULT 0",
+            "replace_group": "TEXT",
+            "replace_owner": "TEXT",
+            "superseded_by": "TEXT",
+            "admission_reason": "TEXT",
+            "fair_wait_for": "TEXT",
+            "fair_wait_started": "TEXT",
+            "fairness_bypasses": "INTEGER NOT NULL DEFAULT 0",
             "acknowledged": "TEXT",
             "detail_reads": "INTEGER NOT NULL DEFAULT 0",
             "detail_bytes": "INTEGER NOT NULL DEFAULT 0",
@@ -79,6 +90,12 @@ def database(directory: Path | None = None):
         }.items():
             if name not in delivery_columns:
                 connection.execute("ALTER TABLE deliveries ADD COLUMN " + name + " " + definition)
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS jobs_replace_scope ON jobs(git_dir,replace_group,replace_owner,status)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS jobs_lane_queue ON jobs(lane,status,publication_state,created)"
+        )
         connection.commit()
         yield connection
         connection.commit()
@@ -97,7 +114,7 @@ def event(db, payload: dict) -> dict:
     return payload
 
 
-def create(job: dict, reuse: bool = False) -> str:
+def create(job: dict, reuse: bool = False, replacements: list[str] | None = None) -> str:
     with database() as db:
         db.execute("BEGIN IMMEDIATE")
         if reuse:
@@ -113,15 +130,33 @@ def create(job: dict, reuse: bool = False) -> str:
             ).fetchone()
             if existing:
                 return existing["id"]
+        replace_ids = {row["id"] for row in _replacement_rows(db, job)} & set(replacements or [])
         count = db.execute(
             "SELECT COUNT(*) FROM jobs WHERE status IN ('queued','running')"
         ).fetchone()[0]
-        if count >= max_pending():
+        if count - len(replace_ids) >= max_pending():
             raise ValueError(
                 "Executor capacity reached; cancel obsolete queued work or wait for a completion event"
             )
+        for old_id in sorted(replace_ids):
+            db.execute("UPDATE jobs SET superseded_by=? WHERE id=?", (job["id"], old_id))
+            _finish(
+                db,
+                old_id,
+                "cancelled",
+                {
+                    "tests": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "errors": 0,
+                    "skipped": 0,
+                    "message": "Superseded before execution by a newer snapshot",
+                    "superseded_by": job["id"],
+                },
+                None,
+            )
         db.execute(
-            "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created,lane) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created,lane,replace_group,replace_owner) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 job["id"],
                 job["repo"],
@@ -133,6 +168,8 @@ def create(job: dict, reuse: bool = False) -> str:
                 job["timeout"],
                 now(),
                 job.get("lane", "default"),
+                job.get("replace_group"),
+                job.get("replace_owner"),
             ),
         )
         event(
@@ -181,13 +218,46 @@ def start(job_id: str, worktree: Path) -> bool:
             "SELECT COUNT(*) FROM jobs WHERE status='running' AND id<>?", (job_id,)
         ).fetchone()[0]
         if running >= max_running():
+            db.execute(
+                "UPDATE jobs SET admission_reason='capacity' WHERE id=? AND status='queued' "
+                "AND COALESCE(admission_reason,'')<>'capacity'",
+                (job_id,),
+            )
             return False
+        candidate = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+        if candidate is None or candidate["status"] not in {"queued", "running"}:
+            return False
+        lane = candidate["lane"] or "default"
+        winner = db.execute(
+            "SELECT j.id FROM jobs j LEFT JOIN fairness f "
+            "ON f.repo_key=COALESCE(j.git_dir,j.repo) AND f.lane=COALESCE(j.lane,'default') "
+            "WHERE COALESCE(j.lane,'default')=? AND (j.status='queued' OR (j.id=? AND j.status='running')) "
+            "AND (j.publication_state='published' OR j.id=?) "
+            "ORDER BY COALESCE(f.last_served,0),j.created,j.id LIMIT 1",
+            (lane, job_id, job_id),
+        ).fetchone()
+        bypass = False
+        if candidate["status"] == "queued" and winner is not None and winner["id"] != job_id:
+            since = candidate["fair_wait_started"]
+            if candidate["fair_wait_for"] != winner["id"] or not since:
+                db.execute(
+                    "UPDATE jobs SET admission_reason='fair_turn',fair_wait_for=?,fair_wait_started=? WHERE id=?",
+                    (winner["id"], now(), job_id),
+                )
+                return False
+            waited = (datetime.now(UTC) - datetime.fromisoformat(since)).total_seconds()
+            if waited < 30:
+                return False
+            # A published row may outlive a lost broker message. Do not let one
+            # absent delivery block every other repo forever; never run it here.
+            bypass = True
         db.execute(
-            "UPDATE jobs SET status='running', attempts=attempts+1, started=?, finished=NULL, worktree=? WHERE id=?",
-            (now(), str(worktree), job_id),
+            "UPDATE jobs SET status='running', admission_reason=NULL, fair_wait_for=NULL,fair_wait_started=NULL,"
+            "fairness_bypasses=fairness_bypasses+?, attempts=attempts+1, started=?, finished=NULL, worktree=? WHERE id=?",
+            (int(bypass), now(), str(worktree), job_id),
         )
         row = db.execute("SELECT task,sha FROM jobs WHERE id=?", (job_id,)).fetchone()
-        event(
+        turn = event(
             db,
             {
                 "kind": "running",
@@ -199,31 +269,40 @@ def start(job_id: str, worktree: Path) -> bool:
             },
         )
 
+        db.execute(
+            "INSERT INTO fairness(repo_key,lane,last_served,served_at) VALUES(?,?,?,?) "
+            "ON CONFLICT(repo_key,lane) DO UPDATE SET last_served=excluded.last_served,served_at=excluded.served_at",
+            (candidate["git_dir"] or candidate["repo"], lane, turn["event_id"], now()),
+        )
     return True
 
 
 def finish(job_id: str, status: str, summary: dict, report: Path) -> dict:
+    with database() as db:
+        return _finish(db, job_id, status, summary, report)
+
+
+def _finish(db, job_id: str, status: str, summary: dict, report: Path | None) -> dict:
     if status not in TERMINAL:
         raise ValueError("Expected a terminal status")
-    with database() as db:
-        row = db.execute("SELECT task,sha,attempts FROM jobs WHERE id=?", (job_id,)).fetchone()
-        if row is None:
-            raise ValueError("Unknown job ID")
-        payload = {
-            "job_id": job_id,
-            "task_id": row["task"],
-            "sha": row["sha"],
-            "attempt": row["attempts"],
-            "status": status,
-            "summary": summary,
-            "report": str(report),
-        }
-        payload["kind"] = "finished"
-        event(db, payload)
-        db.execute(
-            "UPDATE jobs SET status=?,finished=?,summary=?,report=? WHERE id=?",
-            (status, now(), json.dumps(summary), str(report), job_id),
-        )
+    row = db.execute("SELECT task,sha,attempts FROM jobs WHERE id=?", (job_id,)).fetchone()
+    if row is None:
+        raise ValueError("Unknown job ID")
+    payload = {
+        "job_id": job_id,
+        "task_id": row["task"],
+        "sha": row["sha"],
+        "attempt": row["attempts"],
+        "status": status,
+        "summary": summary,
+        "report": str(report) if report is not None else None,
+    }
+    payload["kind"] = "finished"
+    event(db, payload)
+    db.execute(
+        "UPDATE jobs SET status=?,finished=?,summary=?,report=?,admission_reason=NULL WHERE id=?",
+        (status, now(), json.dumps(summary), str(report) if report is not None else None, job_id),
+    )
     return payload
 
 
@@ -289,6 +368,8 @@ def board(hours: int | None = None) -> dict:
         aggregate = dict(
             db.execute("""
             SELECT COUNT(json_extract(summary, '$.metrics.result_bytes')) AS completed_jobs,
+            COALESCE(SUM(superseded_by IS NOT NULL),0) AS superseded_jobs,
+            COALESCE(SUM(fairness_bypasses),0) AS fairness_bypasses,
             COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes,
             COALESCE(SUM(json_extract(summary, '$.metrics.log_lines')),0) AS log_lines,
             COALESCE(SUM(json_extract(summary, '$.metrics.result_bytes')),0) AS result_bytes,
@@ -545,3 +626,40 @@ def diagnostics_snapshot() -> dict:
         "health_age_seconds": round(age, 1) if age is not None else None,
         "health_stale": age is None or age > 90,
     }
+
+
+def _replacement_rows(db, job: dict) -> list:
+    if not job.get("replace_group"):
+        return []
+    return list(
+        db.execute(
+            "SELECT id,sha FROM jobs j WHERE j.status='queued' AND j.sha<>? AND j.git_dir=? "
+            "AND j.profile=? AND j.selectors=? AND j.timeout=? AND COALESCE(j.lane,'default')=? "
+            "AND j.replace_group=? AND j.replace_owner=? "
+            "AND NOT EXISTS (SELECT 1 FROM deliveries d WHERE d.job_id=j.id AND d.thread_id<>?) "
+            "ORDER BY j.created,j.id LIMIT 100",
+            (
+                job["sha"],
+                job["git_dir"],
+                job["profile"],
+                json.dumps(job["selectors"]),
+                job["timeout"],
+                job.get("lane", "default"),
+                job["replace_group"],
+                job["replace_owner"],
+                job["replace_owner"],
+            ),
+        )
+    )
+
+
+def replacement_candidates(job: dict) -> list[dict]:
+    with database() as db:
+        return [dict(row) for row in _replacement_rows(db, job)]
+
+
+def superseded_count(job_id: str) -> int:
+    with database() as db:
+        return db.execute("SELECT COUNT(*) FROM jobs WHERE superseded_by=?", (job_id,)).fetchone()[
+            0
+        ]

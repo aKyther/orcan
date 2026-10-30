@@ -519,6 +519,14 @@ old worktrees and rechecks state under lock; never force-remove a lock or checko
 Publication state uncertain means acceptance is unknown, not definitely unsent.
 Recovery is explicit; no automatic resend of failed tests or uncertain notifications.
 Capacity waits are retried without running the procedure; never retry failed tests blindly.
+Repository turns rotate per lane, with FIFO inside each Git common directory.
+Worktrees share a turn; unrelated lanes and the global parallel cap remain separate.
+For the same continuing task, opt in to --replace-pending UNIQUE_TASK_GROUP and use
+the explicit requesting session UUID. Matching owned queued ancestor-SHA checks
+may be cancelled atomically. Do not share groups across independent tasks/sessions.
+Running/claimed/shared checks and divergent histories are preserved. --reuse is a
+separate alternative for identical SHA; it cannot combine with replacement.
+A superseded cancellation is not acceptance of the new SHA; await its own result.
 If no notification integration is available, report pending work and return control rather
 than polling or running an interactive listener.
 Return control after submission; receive the compact result through the registered

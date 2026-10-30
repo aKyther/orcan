@@ -79,6 +79,16 @@ def format_overview(value: dict) -> str:
                 f"Job: {job['id']}",
             ]
         )
+        if job.get("admission_reason"):
+            lines.append(
+                "Waiting: "
+                + {
+                    "capacity": "parallel job limit",
+                    "fair_turn": "another repository's turn",
+                }.get(job["admission_reason"], "admission")
+            )
+        if job.get("superseded_by"):
+            lines.append("Superseded by job: " + job["superseded_by"])
         if job.get("progress"):
             step = job["progress"]
             lines.append(f"Step {step['index']}/{step['total']}: {step['status']}")

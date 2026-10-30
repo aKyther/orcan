@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rotate executor admission by repository within each lane, preserving FIFO and shared worktree identity; show capacity versus fairness waits.
+- Add opt-in `submit --replace-pending GROUP` for matching owned ancestor checks, protecting running/shared work and preserving superseded history, refs and notifications.
+
+### Added
+
 - Sanitized Redis/AOF diagnostics, heartbeat timestamps, durable communication counters, queue median/p95 and stale-sample warnings in the dashboard and cockpit.
 - Guarded explicit recovery for interrupted jobs, preserving active child processes and old worktrees; track publication uncertainty and recovery attempts.
 - Configurable Redis memory and visibility-timeout budgets, with bounded health snapshots and coalesced events during outages.

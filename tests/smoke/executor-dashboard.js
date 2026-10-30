@@ -19,6 +19,10 @@ job=dict(id='fixture',repo='/fixture/project',git_dir='/fixture/git',sha='a'*40,
 store.create(job)
 store.start('fixture',Path('/fixture/worktree'))
 store.finish('fixture','passed',dict(tests=0,passed=0,failed=0,errors=0,skipped=0,seconds=5,metrics=dict(log_bytes=1000000,log_lines=1000,queue_seconds=1,executor_cpu_seconds=0.01,child_cpu_seconds=2)),Path('/fixture/report.json'))
+store.create(job | dict(id='obsolete',sha='c'*40,task='Superseded fixture',replace_group='fixture-build',replace_owner=''))
+with store.database() as db:
+    db.execute("UPDATE jobs SET superseded_by='fixture' WHERE id='obsolete'")
+    store._finish(db,'obsolete','cancelled',dict(tests=0,passed=0,failed=0,errors=0,skipped=0,superseded_by='fixture'),None)
 store.create(job | dict(id='orphan',sha='b'*40,task='Interrupted fixture'))
 store.start('orphan',Path('/fixture/interrupted'))
 store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis=dict(used_memory_bytes=900,maxmemory_bytes=1000,aof_enabled=1,aof_write_status='err'),warnings=['aof_write_error','interrupted_jobs'],lanes={},jobs=dict(interrupted=1,oldest_queued_seconds=None,jobs=[dict(id='orphan',sha='b'*40,condition='interrupted')])))
@@ -49,6 +53,9 @@ store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis
     assert.ok(await page.locator('#tasks-chart').evaluate(canvas => canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some(value => value !== 0)));
     await page.locator('#jobs tr').first().click();
     assert.ok((await page.locator('#detail').innerText()).includes('heavy'));
+    await page.locator('#jobs tr').filter({hasText:'Superseded fixture'}).click();
+    assert.ok((await page.locator('#detail').innerText()).includes('Zastąpione przez zadanie'));
+    assert.ok((await page.locator('#measurement-note').innerText()).includes('Zastąpione przed uruchomieniem: 1'));
     await page.selectOption('#hours', '720');
     await page.waitForFunction(() => document.getElementById('measurement-note').textContent.includes('720 godzin'));
     await page.screenshot({path: process.env.ORCAN_DASHBOARD_SCREENSHOT || '/tmp/orcan-executor-dashboard.png', fullPage:true});

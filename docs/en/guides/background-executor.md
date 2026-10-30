@@ -470,6 +470,62 @@ is retained locally with queued_locally until explicitly recovered; the default 
 readiness means at least one worker is available, not that every optional lane is
 served. Use doctor --lane LANE and the Supervisor process list to verify enabled lane workers.
 
+### Fair admission and pending replacement
+
+Admission rotates repository turns within each lane. Worktrees sharing a Git common
+directory share one turn. FIFO is normally preserved within a repository (with
+the missing-delivery fallback below). A repository that
+has not had a turn is served before one that has; otherwise the least recently
+served repository goes next. A lone repository can keep using available capacity.
+Only known-published queued entries and the current dequeued entry participate;
+locally unsent rows do not block a healthy queue.
+
+This is non-preemptive admission fairness, not a CPU-time quota or one global
+ordering across lanes. Running work is never interrupted. Existing capacity/fairness
+waits use Celery's bounded-delay retries (currently three seconds), without consuming
+an execution attempt. If the same preferred queued entry is not delivered for 30
+seconds, another entry may proceed and records a fairness bypass. This prevents a
+lost broker message from blocking the whole lane forever; it does not restart the
+missing job. The counter is visible in statistics. No separate polling agent or scheduler is started. The Jobs
+panel and dashboard distinguish waiting for capacity from waiting for another repo.
+Fairness records expire after 30 inactive days; active repositories remain tracked.
+
+For a continuing task whose latest revision replaces its earlier pending check:
+
+```sh
+orcan-executor submit --repo . --sha HEAD --profile selected \
+  --test tests/test_feature.py --task feature-check \
+  --replace-pending feature-check --notify-codex-thread "$CODEX_THREAD_ID"
+```
+
+Use a unique group for that task/workstream. The group is 1..80 ASCII letters,
+digits or `._:/-`, starting with a letter or digit. Without the flag, no existing
+job is replaced. `--reuse` is a separate, mutually exclusive choice for identical
+SHA checks. Replacement is unavailable for non-Git directory snapshots.
+
+Replacement requires the same Git common directory, group, owner session, profile,
+ordered selectors, lane and timeout, plus a different SHA that is a descendant of
+the old SHA. For manual submissions without a notification target, the owner scope
+is empty: choose a group unique to that manual workstream. No session is inferred.
+A check subscribed to by another session is protected. Running or already claimed
+work is protected even if its row still briefly says queued. Equal, older,
+divergent or rebased commits do not automatically cancel each other.
+
+Scoped submissions are serialized through a bounded set of 64 lock files. The scan
+checks at most 100 candidates with a short ancestry-check budget; unknown or busy
+candidates are preserved. Locks are held through a single SQLite transaction that
+cancels eligible old rows and accepts the new row. Replaced jobs release queue
+capacity, so a full queue can accept their replacement atomically. A failed new
+admission does not cancel old work.
+
+Old entries become `cancelled`, retain `superseded_by` pointing to the new job and
+keep their pinned refs until artifact TTL cleanup. Existing notification subscribers
+receive a cancellation with that link. The dashboard counts replaced entries but
+records no execution duration or test run for them. A superseded result is **not**
+acceptance of the new commit. Read and acknowledge the new job's exact-SHA result.
+If the broker is unavailable, replacement metadata remains durable and the new job
+reports queued_locally; explicitly recover it after readiness is restored.
+
 ### Recovery and retention
 
 Celery uses late acknowledgements, JSON messages, prefetch one and redelivery after

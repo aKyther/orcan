@@ -21,6 +21,8 @@ Inside Orcan:  orcan-executor COMMAND ...
   profiles --repo PATH      List procedures from the committed snapshot
   submit --repo PATH --sha HEAD --profile selected --test SELECTOR --task TASK
                             Queue a committed snapshot; return job ID and SHA
+  submit ... --replace-pending GROUP
+                            Replace matching owned pending ancestor checks; never running jobs
   submit ... --notify-codex-thread UUID
                             Opt in to a compact message in that local Codex session
   notify JOB --codex-thread UUID

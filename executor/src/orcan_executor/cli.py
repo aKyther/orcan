@@ -75,10 +75,16 @@ def parser():
         default=[],
         help="Project-relative regular file to include in a directory snapshot",
     )
-    submit.add_argument(
+    selection = submit.add_mutually_exclusive_group()
+    selection.add_argument(
         "--reuse",
         action="store_true",
         help="Reuse identical queued/running verification instead of adding work",
+    )
+    selection.add_argument(
+        "--replace-pending",
+        metavar="GROUP",
+        help="Replace only matching owned pending checks at ancestor commits; never running work",
     )
     submit.add_argument("--task", default="")
     submit.add_argument("--profile", default="selected")
@@ -223,6 +229,7 @@ def main(argv=None):
                                 "started",
                                 "finished",
                                 "details_expired",
+                                "superseded_by",
                             )
                         }
                         | {"seconds": (job["summary"] or {}).get("seconds")}
@@ -271,6 +278,8 @@ def main(argv=None):
                                 "details_expired",
                                 "publication_state",
                                 "recovery_count",
+                                "superseded_by",
+                                "admission_reason",
                             )
                         }
                         | {"seconds": (job["summary"] or {}).get("seconds")}
@@ -453,6 +462,10 @@ def main(argv=None):
 
             if args.include and not args.directory:
                 raise ValueError("--include requires --directory")
+            if args.directory and args.replace_pending:
+                raise ValueError(
+                    "--replace-pending requires project Git history; directory snapshots are not supported"
+                )
             if args.directory and args.sha != "HEAD":
                 raise ValueError("--directory identifies its own snapshot; omit --sha")
             from .notifications import register, thread_id
@@ -472,6 +485,8 @@ def main(argv=None):
                     args.test,
                     args.timeout,
                     reuse=args.reuse,
+                    replace_pending=args.replace_pending,
+                    replace_owner=target or "",
                 )
                 if target:
                     register(job["id"], target)
@@ -484,6 +499,7 @@ def main(argv=None):
                         "sha": job["sha"],
                         "status": "queued_locally",
                         "publication_state": store.get(job["id"])["publication_state"],
+                        "superseded_count": job.get("superseded_count", 0),
                         "error": (str(error) + "; run orcan-executor recover --job " + job["id"])
                         if isinstance(error, ValueError)
                         else "Broker unavailable; start Redis and run orcan-executor recover --job "
@@ -497,6 +513,14 @@ def main(argv=None):
                 pass  # The durable outbox can be recovered after an event transport outage.
             emit(
                 {"job_id": job["id"], "sha": job["sha"], "task_id": job["task"], "status": "queued"}
+                | (
+                    {
+                        "replace_group": args.replace_pending,
+                        "superseded_count": job.get("superseded_count", 0),
+                    }
+                    if args.replace_pending
+                    else {}
+                )
             )
         elif args.command == "status":
             emit(store.listing(args.failures))
@@ -523,6 +547,8 @@ def main(argv=None):
                             "summary",
                             "report",
                             "worktree",
+                            "superseded_by",
+                            "replace_group",
                         )
                     }
                 )

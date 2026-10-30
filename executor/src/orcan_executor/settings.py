@@ -99,5 +99,6 @@ def effective() -> dict:
         "visibility_timeout_seconds": visibility_timeout(),
         "history_days": HISTORY_DAYS,
         "history_limit": HISTORY_LIMIT,
+        "scheduling": "repo_round_robin_per_lane",
         "source": "process environment with built-in defaults; JSON is materialized by orcan sync",
     }

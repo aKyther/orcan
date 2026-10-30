@@ -128,6 +128,14 @@ Use `orcan-executor doctor --lane LANE` for the profile queue and inspect effect
 `settings` before heavy submissions. The shared `max_running` cap limits jobs,
 not tool threads or per-job CPU/RAM. Keep Gradle/compiler parallelism explicit.
 Profiles may declare timeout_seconds; --timeout wins over profile/runtime defaults.
+Pending admission rotates repository turns per lane (Git common directory groups
+worktrees), with FIFO inside each repository and the shared global cap unchanged.
+For a continuing owned task, opt in with submit --replace-pending UNIQUE_TASK_GROUP
+and the explicit session notification UUID. Only unclaimed queued ancestor-SHA
+checks with the same group/owner/profile/selectors/lane/timeout may be replaced.
+Never reuse a replacement group across independent tasks. Running/shared work is
+protected; divergent/rebased histories require explicit review/cancellation.
+Superseded cancellation does not verify the newer SHA; consume its own result.
 Use `orcan-executor diagnostics` for sanitized Redis memory/AOF, publication failures,
 heartbeat timestamps and interrupted-job candidates. Cached diagnostics older than 90s
 are stale. Never infer stopped execution from a missing heartbeat alone: child

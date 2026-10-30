@@ -85,6 +85,8 @@ def message(job: dict) -> str:
         "task": clip(job["task"], 160),
         "profile": job["profile"],
     }
+    if job.get("superseded_by"):
+        result["superseded_by"] = job["superseded_by"]
     result["counts"] = {
         key: summary.get(key, 0) for key in ("tests", "passed", "failed", "errors", "skipped")
     }

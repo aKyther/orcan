@@ -93,6 +93,11 @@ def prune() -> int:
             "(SELECT id FROM jobs WHERE details_expired=1 ORDER BY finished DESC LIMIT -1 OFFSET ?))",
             (history_cutoff, HISTORY_LIMIT),
         )
+        db.execute(
+            "DELETE FROM fairness WHERE served_at<? AND NOT EXISTS (SELECT 1 FROM jobs "
+            "WHERE status IN ('queued','running') AND COALESCE(git_dir,repo)=fairness.repo_key)",
+            (history_cutoff,),
+        )
         db.execute("DELETE FROM deliveries WHERE job_id NOT IN (SELECT id FROM jobs)")
         db.execute(
             "DELETE FROM events WHERE json_extract(payload,'$.job_id') IS NOT NULL "

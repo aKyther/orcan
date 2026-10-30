@@ -1,15 +1,17 @@
 import fcntl
+import hashlib
 import json
 import os
+import re
 import resource
 import shutil
 import signal
 import subprocess
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from datetime import datetime
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from . import profiles, reports, store
 from .metrics import log_size
@@ -30,7 +32,17 @@ def submit(
     selectors: list[str],
     timeout: int | None,
     reuse: bool = False,
+    replace_pending: str | None = None,
+    replace_owner: str = "",
 ) -> dict:
+    if replace_pending is not None and (
+        reuse or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}", replace_pending)
+    ):
+        raise ValueError(
+            "Replacement requires a group of 1..80 ASCII name characters and cannot combine with --reuse"
+        )
+    if replace_owner:
+        replace_owner = str(UUID(replace_owner))
     repo = Path(git(repo.resolve(), "rev-parse", "--show-toplevel")).resolve()
     sha = git(repo, "rev-parse", "--verify", "--end-of-options", revision + "^{commit}")
     selectors = list(dict.fromkeys(value.strip() for value in selectors))
@@ -65,17 +77,22 @@ def submit(
         lane=definitions[profile].get("lane", "default"),
         selectors=selectors,
         timeout=timeout,
+        replace_group=replace_pending,
+        replace_owner=replace_owner,
     )
     # Keep the object reachable even if the agent removes its task branch/worktree.
     git(repo, "update-ref", "refs/orcan/executor/jobs/" + job["id"], sha)
     try:
-        existing = store.create(job, reuse=reuse)
+        with replacement_guard(job) as candidates:
+            existing = store.create(job, reuse=reuse, replacements=candidates)
         if existing != job["id"]:
             git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
             return store.get(existing)
     except BaseException:
         git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
         raise
+    if replace_pending:
+        job["superseded_count"] = store.superseded_count(job["id"])
     return job
 
 
@@ -111,6 +128,8 @@ def execute(command: list[str], cwd: Path, log, timeout: float, lock_fd: int) ->
 def run_job(job_id: str, on_started=None) -> dict | None:
     # Validate the ID by DB lookup before using it as a path component.
     job = store.get(job_id)
+    if job["status"] in store.TERMINAL:
+        return None  # Late messages must not recreate expired completed-job directories.
     directory = state_dir() / "jobs" / job["id"]
     directory.mkdir(parents=True, exist_ok=True)
     with (directory / "run.lock").open("a") as lock:
@@ -368,3 +387,62 @@ def recovery_guard(job_id: str):
             )
             store.event(db, {"kind": "recovery_requested", "job_id": job_id, "sha": job["sha"]})
         yield store.get(job_id)
+
+
+@contextmanager
+def replacement_guard(job: dict):
+    """Serialize bounded replacement scans and hold old execution locks until commit."""
+    if not job.get("replace_group"):
+        yield []
+        return
+    scope = json.dumps(
+        [
+            job[key]
+            for key in (
+                "git_dir",
+                "profile",
+                "selectors",
+                "timeout",
+                "lane",
+                "replace_group",
+                "replace_owner",
+            )
+        ]
+    )
+    stripe = int(hashlib.sha256(scope.encode()).hexdigest(), 16) % 64
+    root = state_dir() / "replacement-locks"
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with ExitStack() as stack:
+        group_lock = stack.enter_context((root / str(stripe)).open("a"))
+        fcntl.flock(group_lock, fcntl.LOCK_EX)
+        candidates = []
+        began = time.monotonic()
+        for old in store.replacement_candidates(job):
+            if time.monotonic() - began > 10:
+                break
+            try:
+                ancestry = subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        job["repo"],
+                        "merge-base",
+                        "--is-ancestor",
+                        old["sha"],
+                        job["sha"],
+                    ],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5,
+                )
+                if ancestry.returncode:
+                    continue
+                directory = state_dir() / "jobs" / old["id"]
+                directory.mkdir(parents=True, exist_ok=True)
+                lock = stack.enter_context((directory / "run.lock").open("a"))
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except (OSError, subprocess.TimeoutExpired):
+                continue  # Unknown/claimed work is preserved, never force-cancelled.
+            candidates.append(old["id"])
+        yield candidates
