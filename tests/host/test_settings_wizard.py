@@ -73,7 +73,7 @@ class MainWorkspacesUntouchedTests(unittest.TestCase):
             with (
                 patch("sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]),
                 patch("sys.stdin.isatty", return_value=True),
-                patch("builtins.input", side_effect=["n", "n", "y"]),
+                patch("builtins.input", side_effect=["n", "n", "n", "y"]),
             ):
                 sw.main()
             data = json.loads(cfg_path.read_text(encoding="utf-8"))
