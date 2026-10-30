@@ -719,6 +719,9 @@ class MainScreen(Screen):
         if not onboarding_already_seen():
             self.set_timer(0.3, self._show_first_run)
 
+    def on_workspace_list_rows_updated(self, _message: WorkspaceList.RowsUpdated) -> None:
+        self._refresh_placeholder()
+
     def _start_workspace_restore(self) -> None:
         self.run_worker(
             self._restore_workspace(),
@@ -737,7 +740,9 @@ class MainScreen(Screen):
                 await asyncio.sleep(delay)
             if self._current_session is not None:
                 return
-            workspace_list.refresh_rows()
+            await workspace_list.refresh_rows_async()
+            if self._current_session is not None:
+                return
             for index, row in enumerate(workspace_list.rows):
                 if row["session"] != session:
                     continue

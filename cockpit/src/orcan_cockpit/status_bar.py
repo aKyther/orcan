@@ -12,6 +12,7 @@ from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.widgets import Static
 
+from orcan_cockpit.probe import SingleFlightProbe
 from orcan_cockpit.status import Tier, format_status_line, git_branch
 from orcan_cockpit.tmux_chrome import session_breadcrumb
 
@@ -29,6 +30,8 @@ class StatusBar(Widget):
         self.tier: Tier = "full"
         self.focus: str | None = None
         self._painted_line: str | None = None
+        self._branch_probe = SingleFlightProbe()
+        self._breadcrumb_probe = SingleFlightProbe()
 
     def compose(self) -> ComposeResult:
         yield Static(id="status-body")
@@ -110,12 +113,14 @@ class StatusBar(Widget):
     ) -> None:
         """Read Git/tmux outside the UI loop, then paint one current result."""
         branch_task = (
-            asyncio.to_thread(git_branch, str(workspace_root))
+            self._branch_probe.read(
+                str(workspace_root), partial(git_branch, str(workspace_root))
+            )
             if detailed and workspace_root
             else _empty_probe()
         )
         breadcrumb_task = (
-            asyncio.to_thread(session_breadcrumb, session)
+            self._breadcrumb_probe.read(session, partial(session_breadcrumb, session))
             if detailed and session
             else _empty_probe()
         )

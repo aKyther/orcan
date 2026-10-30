@@ -412,3 +412,45 @@ about crash-loss guarantees. Recovery tests use a real child process inheriting
 an execution lock to prove that recovery refuses an active child. Other tests
 cover partial publication, durable outbox replay, stale/coalesced samples and
 sanitized connection failures. No live broker is restarted.
+
+
+## Cockpit responsiveness
+
+The deterministic regression blocks discovery, Git details and brief reads while
+checking that input works, repeated refreshes share one read, obsolete results
+are ignored and Escape closes the brief. It never attaches to a user's tmux.
+
+```bash
+./tests/host/run.sh tests/host/test_cockpit_probe.py tests/host/test_cockpit_paint_skip.py
+uv run --project cockpit --locked python tests/smoke/test-cockpit-responsiveness.py
+```
+
+`tests/smoke/cockpit-load.py` adds a finite real PTY/private-tmux benchmark.
+It generates terminal output and synthetic slow metadata, then adds a busy child
+process. Each case runs for four seconds by default (`--seconds 1..30`). JSON
+reports sent/acknowledged/pending keys, nearest-rank p95/max key-to-ACK latency,
+event-loop lag, read-callback duration and received bytes. Pending keys must be
+reported alongside latency: a missing ACK is not a fast response. This headless
+harness does not measure ttyd, browser rendering or network latency.
+
+Run heavy cases in a capped disposable container with an existing compatible
+Orcan image. Resolve checkout paths before Docker bind mounts. No user home,
+Docker socket or live tmux server is mounted; the image is not rebuilt or restarted.
+
+```bash
+repo=$(pwd -P)
+docker run --rm --cpus=0.5 --memory=512m --pids-limit=128 --network=none \
+  --tmpfs /tmp:rw,size=128m \
+  --entrypoint /opt/orcan-cockpit/venv/bin/python \
+  --mount "type=bind,source=$repo/cockpit/src,target=/source/cockpit/src,readonly" \
+  --mount "type=bind,source=$repo/docker/rootfs/usr/local/lib/orcan,target=/source/orcan,readonly" \
+  --mount "type=bind,source=$repo/tests/smoke/cockpit-load.py,target=/load-test.py,readonly" \
+  -e PYTHONPATH=/source/cockpit/src:/source -e HOME=/tmp \
+  orcan:latest /load-test.py --seconds 4
+```
+
+Compare the same image, CPU quota, duration and harness on both revisions.
+Repeat noisy cases before drawing conclusions; a short run is a diagnostic,
+not a performance guarantee. Check a normal CPU budget as well as the deliberately
+restricted 0.5-CPU case. Do not add machine-specific latency thresholds to CI;
+the deterministic blocked-read regression supplies the stable acceptance check.

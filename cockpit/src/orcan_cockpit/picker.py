@@ -18,8 +18,8 @@ from typing import Any
 
 from libtmux import Server
 from libtmux.exc import LibTmuxException
-
 from orcan.workspaces import compact_hints, iter_workspaces, load_config
+
 from orcan_cockpit.session_glance import format_glance, glance_lines
 from orcan_cockpit.status import git_branch
 from orcan_cockpit.theme import ACCENT, ACCENT_DIM, TEXT_MUTED
@@ -249,8 +249,11 @@ def run_fallback_menu() -> int:
 
 from textual import events  # noqa: E402
 from textual.app import ComposeResult  # noqa: E402
+from textual.message import Message  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets import Label, ListItem, ListView, Static  # noqa: E402
+
+from orcan_cockpit.probe import SingleFlightProbe  # noqa: E402
 from orcan_cockpit.state import read_recent_sessions  # noqa: E402
 from orcan_cockpit.tmux_chrome import open_project_pane  # noqa: E402
 
@@ -279,6 +282,9 @@ class WorkspaceList(Widget):
 
     can_focus = True
 
+    class RowsUpdated(Message):
+        """Workspace discovery completed without blocking the UI."""
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.rows: list[dict[str, Any]] = []
@@ -296,6 +302,14 @@ class WorkspaceList(Widget):
         self._list_structure: tuple[str, ...] | None = None
         self._glance_text: str | None = None
         self._project_actions: list[tuple[str, str]] = []
+        self._rows_probe = SingleFlightProbe()
+        self._details_probe = SingleFlightProbe()
+        self._glance_probe = SingleFlightProbe()
+        self._details_generation = 0
+        self._glance_generation = 0
+        self._details_key = None
+        self._glance_key = None
+        self._details_text = None
 
     def compose(self) -> ComposeResult:
         yield Static(id="workspace-filter")
@@ -375,10 +389,26 @@ class WorkspaceList(Widget):
         # change; opening it always triggers one immediate fresh read below.
         if not self._is_visible_overlay():
             return
+        self.run_worker(
+            self.refresh_rows_async(),
+            group="workspace-rows",
+            exclusive=True,
+            exit_on_error=False,
+        )
+
+    async def refresh_rows_async(self) -> None:
+        if not self._is_visible_overlay():
+            return
         try:
-            self._all_rows = order_workspace_rows(
-                list_workspace_rows(), read_recent_sessions()
+            rows = await self._rows_probe.read(
+                "rows",
+                lambda: order_workspace_rows(
+                    list_workspace_rows(), read_recent_sessions()
+                ),
             )
+            if not self._is_visible_overlay():
+                return
+            self._all_rows = rows
         except (OSError, ValueError) as exc:
             self.notify(f"Error reading config: {exc}", severity="error")
             self._all_rows = []
@@ -386,6 +416,7 @@ class WorkspaceList(Widget):
         self._render_rows()
         self._update_details()
         self._update_glance()
+        self.post_message(self.RowsUpdated())
 
     def _is_visible_overlay(self) -> bool:
         """Whether this picker and each parent are displayed in Textual 6.x."""
@@ -464,51 +495,111 @@ class WorkspaceList(Widget):
             return None
         return self.rows[index]
 
+    @staticmethod
+    def _probe_key(row, active_session=None):
+        return (
+            row["session"],
+            row["root"],
+            row["live"],
+            repr(row.get("projects")),
+            active_session,
+        )
+
     def _update_glance(self) -> None:
+        self._glance_generation += 1
+        generation = self._glance_generation
         glance = self.query_one("#workspace-glance", Static)
         glance.display = self._expanded
         row = self._highlighted_row()
         if not self._expanded or row is None:
+            self._glance_key = None
             if self._glance_text != "":
                 self._glance_text = ""
                 glance.update("")
             return
-        if row is None:
-            text = format_glance([], empty_hint=_GLANCE_EMPTY)
-        else:
-            lines = glance_lines(
-                row["session"],
-                row["root"],
-                live=bool(row["live"]),
-                projects=row.get("projects"),
-            )
-            text = format_glance(lines, empty_hint=_GLANCE_EMPTY)
-        if text == self._glance_text:
+        key = self._probe_key(row)
+        if key != self._glance_key:
+            self._glance_key = key
+            self._glance_text = None
+            glance.update("Loading activity…")
+        self.run_worker(
+            self._resolve_glance(row, key, generation),
+            group="workspace-glance",
+            exclusive=True,
+            exit_on_error=False,
+        )
+
+    async def _resolve_glance(self, row, key, generation) -> None:
+        text = await self._glance_probe.read(
+            key,
+            lambda: format_glance(
+                glance_lines(
+                    row["session"],
+                    row["root"],
+                    live=bool(row["live"]),
+                    projects=row.get("projects"),
+                ),
+                empty_hint=_GLANCE_EMPTY,
+            ),
+        )
+        if (
+            generation != self._glance_generation
+            or not self._expanded
+            or not self._is_visible_overlay()
+        ):
             return
-        self._glance_text = text
-        glance.update(text)
+        if text != self._glance_text:
+            self._glance_text = text
+            self.query_one("#workspace-glance", Static).update(text)
 
     def _update_details(self) -> None:
+        self._details_generation += 1
+        generation = self._details_generation
         details = self.query_one("#workspace-details", Static)
         details.display = self._expanded
         row = self._highlighted_row()
         if not self._expanded or row is None:
+            self._details_key = None
+            self._details_text = None
             details.update("")
             self._update_project_actions(None)
             return
-        expanded = format_workspace_row_text(
-            row,
-            active_session=self.active_session,
-            expanded=True,
-        ).splitlines()[1:]
-        session_state = "running" if row["live"] else "stopped"
-        details.update(
-            "\n".join(
-                expanded
-                + [f"   [{TEXT_MUTED}]tmux {row['session']} · {session_state}[/]"]
-            )
-        )
         self._update_project_actions(row)
+        key = self._probe_key(row, self.active_session)
+        if key != self._details_key:
+            self._details_key = key
+            self._details_text = None
+            details.update("Loading details…")
+        self.run_worker(
+            self._resolve_details(row, key, generation, self.active_session),
+            group="workspace-details",
+            exclusive=True,
+            exit_on_error=False,
+        )
+
+    async def _resolve_details(self, row, key, generation, active_session) -> None:
+        expanded = await self._details_probe.read(
+            key,
+            lambda: format_workspace_row_text(
+                row,
+                active_session=active_session,
+                expanded=True,
+            ),
+        )
+        if (
+            generation != self._details_generation
+            or not self._expanded
+            or not self._is_visible_overlay()
+        ):
+            return
+        session_state = "running" if row["live"] else "stopped"
+        text = "\n".join(
+            expanded.splitlines()[1:]
+            + [f"   [{TEXT_MUTED}]tmux {row['session']} · {session_state}[/]"]
+        )
+        if text != self._details_text:
+            self._details_text = text
+            self.query_one("#workspace-details", Static).update(text)
 
     def _update_project_actions(self, row: dict[str, Any] | None) -> None:
         self._project_actions = []

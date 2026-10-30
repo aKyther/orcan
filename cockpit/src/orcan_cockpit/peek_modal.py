@@ -9,6 +9,7 @@ from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import Button, Static
 
 from orcan_cockpit.peek import build_peek_text
+from orcan_cockpit.probe import SingleFlightProbe
 from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
 from orcan_cockpit.theme import css
 
@@ -50,19 +51,33 @@ class PeekModal(SheetModal):
     def __init__(self, workspace_root: str | Path, **kwargs) -> None:
         super().__init__(**kwargs)
         self.workspace_root = Path(workspace_root)
+        self._probe = SingleFlightProbe()
 
     def compose(self) -> ComposeResult:
-        text = build_peek_text(self.workspace_root)
         with Container(classes="sheet", id="peek-dialog"):
             with Horizontal(classes="sheet-header"):
                 yield Static("SESSION BRIEF", classes="sheet-title")
                 yield Button("Close", id="peek-close", classes="sheet-close")
             with VerticalScroll():
-                yield Static(text, classes="peek-body")
+                yield Static(
+                    "Loading brief…", classes="peek-body", id="peek-body", markup=False
+                )
                 yield Static(
                     "Enter / Esc to close",
                     classes="peek-footer",
                 )
+
+    def on_mount(self) -> None:
+        super().on_mount()
+        self.run_worker(
+            self._load_brief(), group="peek", exclusive=True, exit_on_error=False
+        )
+
+    async def _load_brief(self) -> None:
+        text = await self._probe.read(
+            str(self.workspace_root), lambda: build_peek_text(self.workspace_root)
+        )
+        self.query_one("#peek-body", Static).update(text)
 
     def action_dismiss_close(self) -> None:
         self.dismiss("close")

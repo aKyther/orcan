@@ -345,3 +345,23 @@ refresh and Escape to return to tmux. No task is acknowledged by displaying it.
 Use `orcan-executor result JOB` for results and `cancel JOB` for obsolete queued
 work. The browser dashboard adds historical charts and measured byte comparisons;
 see [Background executor](background-executor.md).
+
+
+## Responsiveness under load
+
+Workspace discovery, expanded Git details, activity previews, command-palette
+workspace lookup and brief loading run outside the UI event loop. Each probe
+keeps at most one blocking read in flight, even when a refresh cancels its UI
+waiter. Late details from a previous selection do not replace the current view.
+A slow filesystem can leave metadata loading, while the interface remains usable.
+This does not cancel a kernel-level blocked filesystem operation.
+
+The embedded terminal already limits work per read callback and reuses unchanged
+rendered lines. These budgets are cooperative: a parser chunk or OS scheduling
+can exceed the target duration. CPU starvation, output floods and browser/network
+latency can still delay typing. Leave CPU capacity for interactive work and limit
+parallel build/test processes separately from executor job admission.
+
+See [responsiveness checks](../development/testing.md#cockpit-responsiveness)
+for deterministic regressions and a private-tmux load benchmark. Headless results
+measure internal key-to-ACK and event-loop latency, not browser display latency.

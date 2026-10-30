@@ -11,16 +11,21 @@ from functools import partial
 from textual.command import Hit, Hits, Provider
 
 from orcan_cockpit.picker import list_workspace_rows
+from orcan_cockpit.probe import SingleFlightProbe
 
 
 class WorkspaceCommands(Provider):
     """Fuzzy "switch to workspace <name>" — reuses the same row lookup and
     attach path WorkspaceList itself uses, no duplicated logic."""
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._rows_probe = SingleFlightProbe()
+
     async def search(self, query: str) -> Hits:
         matcher = self.matcher(query)
         try:
-            rows = list_workspace_rows()
+            rows = await self._rows_probe.read("rows", list_workspace_rows)
         except (OSError, ValueError):
             return
         for row in rows:

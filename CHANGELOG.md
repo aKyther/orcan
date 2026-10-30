@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep cockpit workspace discovery, Git details, activity previews and brief loading off the UI loop; coalesce slow probes and reject obsolete view results.
+- Prevent periodic chrome probes from accumulating background threads when their UI awaiters are cancelled.
+
+### Added
+
+- Deterministic cockpit responsiveness regressions and a finite private-tmux load benchmark for input, output floods, slow metadata and CPU contention.
+
 ### Added
 
 - Rotate executor admission by repository within each lane, preserving FIFO and shared worktree identity; show capacity versus fairness waits.

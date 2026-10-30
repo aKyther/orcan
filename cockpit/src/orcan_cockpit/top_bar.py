@@ -6,7 +6,6 @@ the workspace chrome into a systems dashboard.
 
 from __future__ import annotations
 
-import asyncio
 from functools import partial
 
 from rich.cells import cell_len
@@ -14,6 +13,7 @@ from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.widgets import Static
 
+from orcan_cockpit.probe import SingleFlightProbe
 from orcan_cockpit.rail import UtilityRail
 from orcan_cockpit.shortcuts import product_version
 from orcan_cockpit.status import now_hhmm, read_loadavg, read_mem_percent
@@ -30,6 +30,7 @@ class TopBar(Widget):
         self._painted_workspace: str | None = None
         self._workspace_name: str | None = None
         self._session: str | None = None
+        self._agent_probe = SingleFlightProbe()
 
     def compose(self) -> ComposeResult:
         # 🌀 (cyclone) not ◆ — orcan's own branding is elemental (hurricane/
@@ -129,7 +130,9 @@ class TopBar(Widget):
         self, workspace_name: str | None, session: str | None
     ) -> None:
         """Keep tmux/process probing out of the embedded terminal's UI loop."""
-        agent = await asyncio.to_thread(session_agent_label, session)
+        agent = await self._agent_probe.read(
+            session, partial(session_agent_label, session)
+        )
         if self._workspace_name != workspace_name or self._session != session:
             return
         if workspace_name:

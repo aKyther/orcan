@@ -1,6 +1,6 @@
 [project]
 name = "orcan-cockpit"
-version = "4.0.12"
+version = "4.0.13"
 description = "Textual app behind agent-launcher: workspace picker + a live tmux session embedded in its own pty."
 requires-python = ">=3.11"
 dependencies = [

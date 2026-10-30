@@ -507,6 +507,41 @@
         },
         {
           "argv": [
+            "uv",
+            "run",
+            "--project",
+            "cockpit",
+            "--locked",
+            "python",
+            "tests/smoke/test-cockpit-responsiveness.py"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "--extend-select",
+            "E402",
+            "--extend-ignore",
+            "RUF012",
+            "cockpit/src/orcan_cockpit/probe.py",
+            "cockpit/src/orcan_cockpit/picker.py",
+            "cockpit/src/orcan_cockpit/commands.py",
+            "cockpit/src/orcan_cockpit/peek_modal.py",
+            "cockpit/src/orcan_cockpit/status_bar.py",
+            "cockpit/src/orcan_cockpit/top_bar.py",
+            "tests/host/test_cockpit_probe.py",
+            "tests/smoke/test-cockpit-responsiveness.py",
+            "tests/smoke/cockpit-load.py"
+          ]
+        },
+        {
+          "argv": [
             "node",
             "--check",
             "executor/src/orcan_executor/dashboard-charts.js"
