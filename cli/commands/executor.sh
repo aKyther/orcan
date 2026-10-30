@@ -4,7 +4,7 @@ orcan_cmd_executor() {
     case "${1:-help}" in
         help|-h|--help)
             cat <<'EOF'
-Orcan background executor (optional --with-redis module)
+Orcan background executor plugin (enabled by --with-redis)
 
 Enable: orcan up --with-redis
 Host commands: orcan executor COMMAND ...
@@ -18,6 +18,14 @@ Inside Orcan:  orcan-executor COMMAND ...
   profiles --repo PATH      List procedures from the committed snapshot
   submit --repo PATH --sha HEAD --profile selected --test SELECTOR --task TASK
                             Queue a committed snapshot; return job ID and SHA
+  submit ... --notify-codex-thread UUID
+                            Opt in to a compact message in that local Codex session
+  notify JOB --codex-thread UUID
+                            Attach a session to an already submitted job
+  deliveries [--job JOB]     Notification states: queued is not consumed
+  ack JOB [--codex-thread UUID]
+                            Confirm consumption; does not accept code or test outcome
+  stats                     Payload bytes, reductions, timings; model tokens unavailable
   result JOB                Read the small result once it is available
   status [--failures]        Bounded list of retained jobs
   artifacts JOB             List full report and JUnit XML files, 50 per page

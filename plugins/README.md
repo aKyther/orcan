@@ -10,3 +10,7 @@ External code installation and automatic agent invocation are not plugin discove
 The `executor` plugin owns Celery tasks, compact reports and the dashboard. Redis
 is its internal broker. Enable it with `--with-redis`; inspect it with
 `orcan plugins doctor --plugin executor` and `orcan executor help`.
+
+Explicit `--notify-codex-thread UUID` subscriptions allow the executor notification
+controller to queue compact results in a local Codex session. Queued delivery and
+explicit session consumption are separate states; this is not a generic agent launcher.

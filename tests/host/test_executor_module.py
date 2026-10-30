@@ -61,6 +61,7 @@ def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled, split):
     assert ("executor-worker" in programs) == (enabled == "1")
     assert ("executor-redis" in programs) == (enabled == "1")
     assert ("executor-web" in programs) == (enabled == "1")
+    assert ("executor-notifications" in programs) == (enabled == "1")
     assert ("executor-worker-heavy" in programs) == (enabled == "1" and split == "1")
     assert ("executor-worker-light" in programs) == (enabled == "1" and split == "1")
     assert "keepalive" in programs
@@ -82,6 +83,9 @@ def test_public_help_is_available_without_docker():
         "logs",
         "--with-redis",
         "No manual uv",
+        "--notify-codex-thread",
+        "deliveries",
+        "stats",
     ]:
         assert text in result.stdout
 

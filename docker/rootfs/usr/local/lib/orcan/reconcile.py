@@ -507,6 +507,9 @@ Host help: `orcan executor help`; inside Orcan: `orcan-executor help`.
    Small or long approved checks run in a separate detached worktree. Record job ID and SHA; return control.
    New edits require a new committed snapshot. A queued_locally response needs explicit recovery.
    Use --reuse for identical active checks; cancel JOB stops queued obsolete work.
+   Codex may opt in with --notify-codex-thread UUID (its own CODEX_THREAD_ID when available).
+   Never guess the target session. The supervised notification controller queues a compact result;
+   queued is not consumed. After reading it use ack JOB --codex-thread UUID. No tmux typing is used.
 3. A separate controller owns `orcan-executor listen --after STREAM_ID` (blocking JSONL).
    Never block the interactive agent on this listener or repeatedly poll status. Save cursor; deduplicate event_id.
    Without a connected controller, report verification pending. Acceptance requires a completed result for the exact SHA.
@@ -519,5 +522,5 @@ Host help: `orcan executor help`; inside Orcan: `orcan-executor help`.
 Dashboard: same host/Tailscale as ttyd, separate default port 8765 (`orcan executor url`).
 It shows usage and measured log/result reduction; token estimates are approximate. Metrics stay out of agent results.
 After consuming a terminal result, run `orcan-executor ack JOB`; this records use, not test acceptance.
-Redis/Celery are local processes in Orcan. No automatic AI invocation, merge, push or deployment occurs.
+Redis/Celery are local processes in Orcan. No automatic AI invocation occurs without explicit notification opt-in; no automatic merge, push or deployment occurs.
 """

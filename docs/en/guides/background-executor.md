@@ -225,7 +225,7 @@ The plugin ID is `executor`; Redis is its internal communication broker, not the
 execution engine. `--with-redis` remains the activation flag for compatibility.
 Use `orcan plugins list`, `orcan plugins validate` and
 `orcan plugins doctor --plugin executor`. Descriptors live in `plugins/` and do
-not execute third-party hooks. No agent, merge or deployment starts automatically.
+not execute third-party hooks. No agent message is sent without explicit notification opt-in; no merge or deployment starts automatically.
 
 Each project owns named procedures in `.orcan/checks.json`. Python/pytest,
 Java/Gradle, Scala/sbt, lint, documentation and small custom checks use the same
@@ -320,3 +320,116 @@ are stable; edits in the source after submission do not affect execution. Identi
 snapshots are reusable. Unreferenced owned source caches expire after the retention
 period; caches referenced by active or retained jobs remain available. Project
 `.git` metadata, agent worktrees and original files are untouched.
+
+## Deliver compact results to a Codex session
+
+The executor can opt in to **local** `codex queue` notifications. A dedicated
+Supervisor service (`executor-notifications`) consumes Redis Stream events and
+passes a bounded result to the explicitly selected conversation. It does not type
+into tmux, open a separate chat, choose a model, or use a remote execution endpoint.
+The normal submit/listen flow remains unchanged when no destination is registered.
+
+```sh
+# Run inside the Codex session that requested the check.
+# Use CODEX_THREAD_ID only when supplied by that session; never guess a destination.
+orcan-executor submit --repo . --sha HEAD --profile selected \
+  --test tests/test_api.py --task api-check --reuse \
+  --notify-codex-thread "$CODEX_THREAD_ID"
+
+# Or attach a known session UUID to an existing job, including a completed job:
+orcan-executor notify JOB_ID --codex-thread SESSION_UUID
+orcan-executor deliveries --job JOB_ID
+
+# After the target agent actually consumes the result:
+orcan-executor ack JOB_ID --codex-thread SESSION_UUID
+orcan-executor stats
+```
+
+All commands also work through `orcan executor` on the host. UUIDs are required;
+session names, `--last`, and inferred destinations are intentionally unsupported.
+Empty or invalid submit destinations are rejected before creating a job. `--reuse`
+can share an active check between sessions; each session has an independent delivery
+record, with at most 16 subscriptions per job. Re-registering the same job and UUID
+is idempotent. A notification contains at most **4096 UTF-8 bytes**: job ID, exact
+SHA, status, counters, bounded failure excerpts, and commands for details and receipt.
+Successful stdout and dashboard instrumentation are excluded. Diagnostic excerpts
+are explicitly marked as untrusted project output.
+
+| State | Meaning |
+| --- | --- |
+| `pending` | Registered; waiting for a terminal result or the controller |
+| `sending` | The controller has claimed the attempt |
+| `queued` | `codex queue` exited successfully; consumption is unconfirmed |
+| `consumed` | The specific session explicitly acknowledged the result |
+| `unavailable` | Codex could not be started; no delivery was attempted |
+| `unknown` | Timeout, nonzero exit, or an interrupted attempt; acceptance is uncertain |
+
+The controller has a single local process lock. Per-job execution locks and an
+atomic delivery claim prevent duplicate attempts from replayed events or concurrent
+handlers. On restart, durable pending registrations are recovered even if Redis
+history has been lost or trimmed. Broker reconnection retries transport only.
+A registration for a running job waits for its completion event.
+
+**This adapter does not claim exactly-once delivery.** The CLI does not let Orcan
+supply a provider idempotency key. A crash after Codex accepted a message but before
+Orcan stored the outcome is ambiguous. `sending` becomes `unknown` on controller
+restart, with no automatic resend. Nonzero exits and timeouts are also not retried.
+Re-registering preserves these states; inspect the target queue before manually
+sending a replacement. This first adapter has no automatic retry for unavailable
+Codex either. Install/select Codex and verify the controller before opting in.
+
+A successful CLI exit means the message was queued, not that an active turn was
+steered or an idle conversation started working. Delivery depends on the Codex
+session consuming its queue. A session receipt confirms reading, **not that the
+checks passed, the commit is accepted, or code should be merged**. Standard `ack JOB`
+records job consumption without claiming consumption by any specific session.
+
+Install a Codex image profile that includes a CLI with `codex queue --help` support.
+After upgrading Orcan, rebuild the image and recreate the container with
+`--with-redis` to install the supervised controller. `orcan sync` updates generated
+agent guidance but cannot add a service or binary to an older running image.
+Use the existing `orcan-supervisor-status` helper inside Orcan to inspect services. A manually started controller must run in
+its own process, never as an indefinite listener in an interactive agent turn.
+
+Notification records share the job's default one-hour completed-result TTL. Queued
+or running jobs and their registrations are retained; notification attempts hold
+the same lock as cleanup. Expiry is not proof that a message was consumed, and
+local expiry cannot delete a message already accepted by Codex.
+
+The supported command is documented in the [Codex CLI reference](https://learn.chatgpt.com/docs/developer-commands).
+The [App Server protocol](https://learn.chatgpt.com/docs/app-server) exposes session
+and turn operations over JSON-RPC. A future adapter can use that protocol to track
+queue identifiers and active turns directly; this implementation invokes the CLI.
+
+## Measure the benefit without inventing model usage
+
+Celery schedules work; **compacting the output** reduces the text supplied to the
+agent. The dashboard and `stats` distinguish:
+
+- Full log bytes/lines versus canonical compact completion JSONL bytes. Reduction
+  may be negative for quiet tasks. Success and failure totals are also shown separately.
+- Raw detail bytes versus the exact emitted CLI JSONL bytes, including escaping and
+  metadata. Re-reading a chunk counts again. Dashboard downloads are not CLI reads.
+- Notification payload bytes attempted, accepted by the Codex queue, explicitly
+  consumed by sessions, and of uncertain status. Acknowledging a session does not
+  count its message twice. Shared checks may produce one notification per session.
+- Queue time, execution time, and local adapter duration. Adapter duration includes
+  the CLI operation, not model response time. Executor CPU measures only the Python
+  executor process, excluding child tools and model CPU/GPU.
+
+Do not add canonical completion bytes to notification bytes as if both were always
+read by the same agent: these are separate delivery paths, not a complete ledger of
+all agent input. The reports do not count the rest of a conversation or tool usage.
+
+Token estimates use a labeled **UTF-8 bytes / 4 heuristic**. They are not tokenizer
+counts or measured token savings. Codex queue does not return provider usage,
+cached-input counts, reasoning/output tokens or billing cost; `stats` reports
+measured model tokens and cost as unavailable. Fewer payload bytes do not establish
+how much model compute, cost or wall time was saved. Provider-reported usage would
+need a separate session integration and an explicit comparison baseline.
+
+For evaluation, compare the same procedure, SHA and test scope. Inspect failures
+separately: a compact error is useful only if the agent can recover the necessary
+trace through bounded reads. Watch pending/unknown notifications, receipt counts,
+queue delays and repeated detail reads alongside byte reduction. Statistics cover
+retained jobs, not an unbounded lifetime history.

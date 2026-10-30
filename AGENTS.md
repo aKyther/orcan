@@ -122,6 +122,10 @@ Never send successful build output to agents. Completion JSON is bounded; long
 logs and JUnit failures are consumed through bounded artifact reads. Default
 completed-result retention is one hour. Preserve active/dirty worktrees.
 Use isolated smoke fixtures, never restart the live Orcan for verification.
+`executor/src/orcan_executor/notifications.py` owns explicit local Codex queue delivery. No destination
+means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.
+Use fake transports in tests, never a real session/model. Payload bytes are measured;
+model token usage/cost remain unavailable without provider-reported usage.
 
 ### UX preview (checkout only)
 

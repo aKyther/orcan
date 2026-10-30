@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Explicit Codex queue result notifications with a separate event-driven controller, bounded payloads, per-session receipts, replay protection, and visible uncertain delivery states.
+- Notification byte/timing measurements and exact bounded log JSONL accounting; provider token usage and cost are explicitly unavailable.
+
+
 ### Fixed
 
 - Preserve the selected executor worker lane: remove a duplicate Celery queue argument that redirected heavy/light workers to the default queue.

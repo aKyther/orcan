@@ -210,6 +210,49 @@ def main():
             == "passed"
         )
         assert not (plain / ".git").exists()
+        thread = "019bcf10-1000-7000-8000-000000000001"
+        notification_job = json.loads(
+            execute(
+                "submit",
+                "--repo",
+                str(fixture),
+                "--profile",
+                "pytest",
+                "--test",
+                "test_example.py::test_passes",
+                "--notify-codex-thread",
+                thread,
+            )
+        )
+        assert (
+            json.loads(execute("wait", notification_job["job_id"], "--timeout", "30"))["status"]
+            == "passed"
+        )
+        # Finite fixture-only observation of the fake transport; never contacts a model.
+        notification_deadline = time.monotonic() + 20
+        while True:
+            deliveries = json.loads(execute("deliveries", "--job", notification_job["job_id"]))
+            if deliveries and deliveries[0]["status"] not in {"pending", "sending"}:
+                break
+            if time.monotonic() >= notification_deadline:
+                raise RuntimeError("Notification fixture deadline exceeded")
+            time.sleep(0.1)
+        assert deliveries[0]["status"] == "queued", deliveries
+        messages = (runtime / "notification-smoke.jsonl").read_text().splitlines()
+        assert len(messages) == 1
+        assert json.loads(messages[0])["thread"] == thread
+        execute("notify", notification_job["job_id"], "--codex-thread", thread)
+        assert json.loads(execute("ack", notification_job["job_id"], "--codex-thread", thread))[
+            "acknowledged"
+        ]
+        assert (
+            json.loads(execute("deliveries", "--job", notification_job["job_id"]))[0]["status"]
+            == "consumed"
+        )
+        assert len((runtime / "notification-smoke.jsonl").read_text().splitlines()) == 1
+        notify_stats = json.loads(execute("stats"))["notification_stats"]
+        assert notify_stats["accepted_bytes"] == len(json.loads(messages[0])["message"].encode())
+        assert notify_stats["consumed_bytes"] == notify_stats["accepted_bytes"]
         python = "/opt/orcan-executor/venv/bin/python"
         board = json.loads(
             docker(

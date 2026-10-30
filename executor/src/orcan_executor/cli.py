@@ -38,6 +38,10 @@ def parser():
     submit.add_argument("--repo", type=Path, required=True)
     submit.add_argument("--sha", default="HEAD")
     submit.add_argument(
+        "--notify-codex-thread",
+        help="Explicit local Codex session UUID to receive the compact result",
+    )
+    submit.add_argument(
         "--directory",
         action="store_true",
         help="Snapshot explicitly included files without modifying project Git metadata",
@@ -67,13 +71,31 @@ def parser():
     listing = commands.add_parser("profiles", help="List procedures from a committed snapshot")
     listing.add_argument("--repo", type=Path, default=Path.cwd())
     listing.add_argument("--sha", default="HEAD")
+    commands.add_parser(
+        "stats",
+        help="Bounded measurements, payload bytes and delivery states; token counts are estimates",
+    )
     commands.add_parser("maintenance", help="Local TTL cleanup and outbox recovery service")
+    notify = commands.add_parser(
+        "notify", help="Attach an explicit Codex session to an existing job"
+    )
+    notify.add_argument("job_id")
+    notify.add_argument("--codex-thread", required=True)
+    deliveries = commands.add_parser(
+        "deliveries", help="Bounded notification states; queued does not mean consumed"
+    )
+    deliveries.add_argument("--job")
+    commands.add_parser(
+        "notification-controller",
+        help="Event-driven result delivery service; separate process only",
+    )
     cancel = commands.add_parser(
         "cancel", help="Cancel queued obsolete work; running processes are preserved"
     )
     cancel.add_argument("job_id")
     ack = commands.add_parser("ack", help="Record that a completed result was consumed")
     ack.add_argument("job_id")
+    ack.add_argument("--codex-thread", help="Confirm consumption by a registered Codex session")
     logs = commands.add_parser("logs", help="Read a bounded log chunk; never dump build output")
     artifacts = commands.add_parser(
         "artifacts", help="List a bounded page of full report/XML artifact names"
@@ -137,11 +159,46 @@ def main(argv=None):
         return 0
     args = parser().parse_args(argv)
     try:
-        if args.command == "cancel":
+        if args.command == "notification-controller":
+            from .notifications import controller
+
+            controller()
+        elif args.command == "notify":
+            from .notifications import register
+
+            emit(register(args.job_id, args.codex_thread))
+            events.publish_pending()
+        elif args.command == "stats":
+            board = store.board()
+            board["stats"]["measured_model_tokens"] = None
+            board["stats"]["measured_model_cost"] = None
+            emit(
+                {
+                    key: board[key]
+                    for key in (
+                        "stats",
+                        "counts",
+                        "delivery_counts",
+                        "notification_stats",
+                        "retention_seconds",
+                        "max_pending",
+                    )
+                }
+            )
+        elif args.command == "deliveries":
+            from .notifications import listing
+
+            emit(listing(args.job))
+        elif args.command == "cancel":
             emit(engine.cancel(args.job_id))
             events.publish_pending()
         elif args.command == "ack":
-            store.acknowledge(args.job_id)
+            if args.codex_thread:
+                from .notifications import acknowledge
+
+                acknowledge(args.job_id, args.codex_thread)
+            else:
+                store.acknowledge(args.job_id)
             emit({"job_id": args.job_id, "acknowledged": True})
             events.publish_pending()
         elif args.command == "maintenance":
@@ -187,19 +244,18 @@ def main(argv=None):
                 chunk = source.read(args.limit)
                 position = source.tell()
                 more = bool(source.read(1))
-            store.detail_read(job["id"], len(chunk))
+            payload = {
+                "job_id": job["id"],
+                "text": chunk.decode("utf-8", errors="replace"),
+                "next_offset": position,
+                "more": more,
+            }
+            store.detail_read(job["id"], len(chunk), len(wire(payload).encode()) + 1)
             try:
                 events.publish_pending()
             except Exception:
                 pass  # Reading local diagnostics remains possible during broker outages.
-            emit(
-                {
-                    "job_id": job["id"],
-                    "text": chunk.decode("utf-8", errors="replace"),
-                    "next_offset": position,
-                    "more": more,
-                }
-            )
+            emit(payload)
         elif args.command == "init":
             destination = args.repo.resolve() / profiles.CONFIG
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -256,6 +312,13 @@ def main(argv=None):
                 raise ValueError("--include requires --directory")
             if args.directory and args.sha != "HEAD":
                 raise ValueError("--directory identifies its own snapshot; omit --sha")
+            from .notifications import register, thread_id
+
+            target = (
+                thread_id(args.notify_codex_thread)
+                if args.notify_codex_thread is not None
+                else None
+            )
             source = snapshot(args.repo, args.include) if args.directory else nullcontext(args.repo)
             with source as repository:
                 job = engine.submit(
@@ -269,6 +332,8 @@ def main(argv=None):
                     else integer("timeout-seconds", 1800, 21600),
                     reuse=args.reuse,
                 )
+                if target:
+                    register(job["id"], target)
             try:
                 enqueue(job["id"])
             except Exception:

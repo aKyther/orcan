@@ -59,6 +59,7 @@ def prune() -> int:
                 db.execute(
                     "DELETE FROM events WHERE json_extract(payload, '$.job_id') = ?", (job["id"],)
                 )
+                db.execute("DELETE FROM deliveries WHERE job_id=?", (job["id"],))
                 db.execute("DELETE FROM jobs WHERE id=?", (job["id"],))
             shutil.rmtree(directory)
             removed += 1

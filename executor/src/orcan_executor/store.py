@@ -30,6 +30,11 @@ def database(directory: Path | None = None):
                 attempts INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL,
                 started TEXT, finished TEXT, summary TEXT, report TEXT, worktree TEXT, progress TEXT
             );
+            CREATE TABLE IF NOT EXISTS deliveries (
+                job_id TEXT NOT NULL, thread_id TEXT NOT NULL,
+                status TEXT NOT NULL, created TEXT NOT NULL, finished TEXT, reason TEXT,
+                PRIMARY KEY(job_id,thread_id)
+            );
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT NOT NULL,
                 published INTEGER NOT NULL DEFAULT 0
@@ -44,9 +49,17 @@ def database(directory: Path | None = None):
             "acknowledged": "TEXT",
             "detail_reads": "INTEGER NOT NULL DEFAULT 0",
             "detail_bytes": "INTEGER NOT NULL DEFAULT 0",
+            "detail_wire_bytes": "INTEGER NOT NULL DEFAULT 0",
         }.items():
             if name not in columns:
                 connection.execute("ALTER TABLE jobs ADD COLUMN " + name + " " + definition)
+        delivery_columns = {row[1] for row in connection.execute("PRAGMA table_info(deliveries)")}
+        for name, definition in {
+            "message_bytes": "INTEGER NOT NULL DEFAULT 0",
+            "adapter_seconds": "REAL NOT NULL DEFAULT 0",
+        }.items():
+            if name not in delivery_columns:
+                connection.execute("ALTER TABLE deliveries ADD COLUMN " + name + " " + definition)
         connection.commit()
         yield connection
         connection.commit()
@@ -248,12 +261,35 @@ def board() -> dict:
         ]
         usage = dict(
             db.execute(
-                "SELECT COUNT(acknowledged) AS acknowledged_jobs, COALESCE(SUM(detail_reads),0) AS detail_reads, COALESCE(SUM(detail_bytes),0) AS detail_bytes FROM jobs"
+                "SELECT COUNT(acknowledged) AS acknowledged_jobs, COALESCE(SUM(detail_reads),0) AS detail_reads, COALESCE(SUM(detail_bytes),0) AS detail_bytes, COALESCE(SUM(detail_wire_bytes),0) AS detail_wire_bytes FROM jobs"
             ).fetchone()
+        )
+        delivery_counts = {
+            row["status"]: row["amount"]
+            for row in db.execute(
+                "SELECT status,COUNT(*) AS amount FROM deliveries GROUP BY status"
+            )
+        }
+        delivery_jobs = [
+            dict(row)
+            for row in db.execute(
+                "SELECT d.job_id,d.thread_id,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM deliveries d JOIN (SELECT id FROM jobs ORDER BY created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
+            )
+        ]
+        notification_stats = dict(
+            db.execute("""
+            SELECT COALESCE(SUM(message_bytes>0),0) AS attempted_messages,
+            COALESCE(SUM(message_bytes),0) AS attempted_bytes,
+            COALESCE(SUM(CASE WHEN status IN ('queued','consumed') THEN message_bytes ELSE 0 END),0) AS accepted_bytes,
+            COALESCE(SUM(CASE WHEN status='consumed' THEN message_bytes ELSE 0 END),0) AS consumed_bytes,
+            COALESCE(SUM(CASE WHEN status='unknown' THEN message_bytes ELSE 0 END),0) AS uncertain_bytes,
+            COALESCE(SUM(adapter_seconds),0) AS adapter_seconds FROM deliveries
+        """).fetchone()
         )
     aggregate["by_status"] = by_status
     aggregate.update(usage)
     for job in jobs:
+        job["deliveries"] = [d for d in delivery_jobs if d["job_id"] == job["id"]]
         job["selectors"] = json.loads(job["selectors"])
         job["summary"] = json.loads(job["summary"]) if job["summary"] else None
     for job in jobs:
@@ -286,6 +322,8 @@ def board() -> dict:
         "stats": aggregate,
         "retention_seconds": retention_seconds(),
         "max_pending": max_pending(),
+        "delivery_counts": delivery_counts,
+        "notification_stats": notification_stats,
     }
 
 
@@ -332,10 +370,10 @@ def acknowledge(job_id: str) -> None:
             )
 
 
-def detail_read(job_id: str, size: int) -> None:
+def detail_read(job_id: str, size: int, wire_bytes: int = 0) -> None:
     with database() as db:
         db.execute(
-            "UPDATE jobs SET detail_reads=detail_reads+1, detail_bytes=detail_bytes+? WHERE id=?",
-            (size, job_id),
+            "UPDATE jobs SET detail_reads=detail_reads+1, detail_bytes=detail_bytes+?, detail_wire_bytes=detail_wire_bytes+? WHERE id=?",
+            (size, wire_bytes, job_id),
         )
         event(db, {"kind": "detail_read", "job_id": job_id, "bytes": size})
