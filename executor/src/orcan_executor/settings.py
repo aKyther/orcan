@@ -4,6 +4,9 @@ import os
 import re
 from pathlib import Path
 
+HISTORY_DAYS = 30
+HISTORY_LIMIT = 10000
+
 
 def namespace() -> str:
     value = os.environ.get("ORCAN_NAMED_INSTANCE") or "default"

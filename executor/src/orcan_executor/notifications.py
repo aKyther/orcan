@@ -33,7 +33,9 @@ def register(job_id: str, thread: str) -> dict:
     thread = thread_id(thread)
     with store.database() as db:
         db.execute("BEGIN IMMEDIATE")
-        if not db.execute("SELECT 1 FROM jobs WHERE id=?", (job_id,)).fetchone():
+        if not db.execute(
+            "SELECT 1 FROM jobs WHERE id=? AND details_expired=0", (job_id,)
+        ).fetchone():
             raise ValueError("Unknown job ID")
         existing = db.execute(
             "SELECT * FROM deliveries WHERE job_id=? AND thread_id=?", (job_id, thread)
@@ -57,7 +59,11 @@ def listing(job_id: str | None = None) -> list[dict]:
     with store.database() as db:
         rows = db.execute(
             "SELECT * FROM deliveries "
-            + ("WHERE job_id=? " if job_id else "")
+            + (
+                "WHERE job_id=? AND job_id IN (SELECT id FROM jobs WHERE details_expired=0) "
+                if job_id
+                else "WHERE job_id IN (SELECT id FROM jobs WHERE details_expired=0) "
+            )
             + "ORDER BY created DESC,thread_id LIMIT 100",
             (job_id,) if job_id else (),
         )
@@ -165,7 +171,7 @@ def deliver(job_id: str) -> int:
         job = store.get(job_id)
     except ValueError:
         return 0  # A stream can still contain a result whose local TTL has elapsed.
-    if job["status"] not in store.TERMINAL:
+    if job["status"] not in store.TERMINAL or job["details_expired"]:
         return 0
     directory = state_dir() / "jobs" / job_id
     directory.mkdir(parents=True, exist_ok=True)
@@ -179,6 +185,8 @@ def deliver(job_id: str) -> int:
         try:
             job = store.get(job_id)
         except ValueError:
+            return 0
+        if job["details_expired"]:
             return 0
         for destination in listing(job_id):
             if destination["status"] != "pending":
@@ -266,7 +274,7 @@ def controller() -> None:
 def acknowledge(job_id: str, thread: str) -> None:
     thread = thread_id(thread)
     job = store.get(job_id)
-    if job["status"] not in store.TERMINAL:
+    if job["status"] not in store.TERMINAL or job["details_expired"]:
         raise ValueError("Only a completed result can be acknowledged")
     with store.database() as db:
         existing = db.execute(

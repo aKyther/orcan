@@ -405,6 +405,64 @@
         ".orcan-test.executor-smoke/build.log",
         ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
       ]
+    },
+    "history-final": {
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/history-executor-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host/test_reconcile.py",
+            "tests/host/test_reconcile_host.py",
+            "tests/host/test_agent_context.py",
+            "tests/host/test_executor_module.py",
+            "tests/host/test_version.py",
+            "tests/host/test_agents_claude_sync.py",
+            "--junitxml",
+            ".orcan/history-host-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/history-*-results.xml"
+      ]
     }
   }
 }

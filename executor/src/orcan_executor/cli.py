@@ -71,10 +71,15 @@ def parser():
     listing = commands.add_parser("profiles", help="List procedures from a committed snapshot")
     listing.add_argument("--repo", type=Path, default=Path.cwd())
     listing.add_argument("--sha", default="HEAD")
-    commands.add_parser(
+    stats = commands.add_parser(
         "stats",
         help="Bounded measurements, payload bytes and delivery states; token counts are estimates",
     )
+    stats.add_argument("--hours", type=int, default=720, help="History window: 1..720 hours")
+    history = commands.add_parser(
+        "history", help="Compact job history without logs; up to 100 entries"
+    )
+    history.add_argument("--hours", type=int, default=3)
     commands.add_parser("maintenance", help="Local TTL cleanup and outbox recovery service")
     notify = commands.add_parser(
         "notify", help="Attach an explicit Codex session to an existing job"
@@ -168,8 +173,34 @@ def main(argv=None):
 
             emit(register(args.job_id, args.codex_thread))
             events.publish_pending()
+        elif args.command == "history":
+            board = store.board(args.hours)
+            emit(
+                {
+                    "window_hours": board["window_hours"],
+                    "jobs": [
+                        {
+                            key: job[key]
+                            for key in (
+                                "id",
+                                "repo",
+                                "sha",
+                                "task",
+                                "profile",
+                                "status",
+                                "created",
+                                "started",
+                                "finished",
+                                "details_expired",
+                            )
+                        }
+                        | {"seconds": (job["summary"] or {}).get("seconds")}
+                        for job in board["jobs"]
+                    ],
+                }
+            )
         elif args.command == "stats":
-            board = store.board()
+            board = store.board(args.hours)
             board["stats"]["measured_model_tokens"] = None
             board["stats"]["measured_model_cost"] = None
             emit(
@@ -181,6 +212,9 @@ def main(argv=None):
                         "delivery_counts",
                         "notification_stats",
                         "retention_seconds",
+                        "history_days",
+                        "history_limit",
+                        "window_hours",
                         "max_pending",
                     )
                 }

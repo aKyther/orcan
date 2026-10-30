@@ -120,7 +120,10 @@ Workspace AGENTS/CLAUDE guidance is generated in `orcan.reconcile.executor_guida
 Keep default execution unchanged when disabled; readiness is checked at runtime.
 Never send successful build output to agents. Completion JSON is bounded; long
 logs and JUnit failures are consumed through bounded artifact reads. Default
-completed-result retention is one hour. Preserve active/dirty worktrees.
+detailed-result retention is one hour; compact history/measurements remain for 30 days
+(up to 10000 expired entries). Prefer committed executor profiles for approved heavy
+builds, analysis, code/report generation and docs, as well as tests. Quick reads and
+interactive edits stay direct. Preserve active/dirty worktrees.
 Use isolated smoke fixtures, never restart the live Orcan for verification.
 `executor/src/orcan_executor/notifications.py` owns explicit local Codex queue delivery. No destination
 means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.

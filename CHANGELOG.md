@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Preserve compact executor history and numeric measurements for 30 days after log expiry, capped at 10000 expired entries; add dashboard time windows and `history --hours` / `stats --hours`.
+- Guide agents to use reviewed executor profiles for approved heavy builds, analysis, generation and reports, as well as tests.
+
+### Added
+
 - `orcan sync --no-chown "external"` skips ownership traversal by name at any depth; repeatable quoted globs such as `"external*"` are supported.
 
 ### Added

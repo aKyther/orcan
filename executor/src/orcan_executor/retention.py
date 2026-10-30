@@ -1,6 +1,7 @@
 """Bounded communication history and completed artifacts; active work is never pruned."""
 
 import fcntl
+import json
 import shutil
 import subprocess
 import time
@@ -8,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from . import store
-from .settings import retention_seconds, state_dir, worktree_root
+from .settings import HISTORY_DAYS, HISTORY_LIMIT, retention_seconds, state_dir, worktree_root
 
 
 def prune() -> int:
@@ -18,7 +19,7 @@ def prune() -> int:
     with store.database() as db:
         jobs = list(
             db.execute(
-                "SELECT * FROM jobs WHERE finished < ? AND status IN ('passed','failed','error','timed_out','cancelled')",
+                "SELECT * FROM jobs WHERE details_expired=0 AND finished < ? AND status IN ('passed','failed','error','timed_out','cancelled')",
                 (cutoff,),
             )
         )
@@ -59,10 +60,40 @@ def prune() -> int:
                 db.execute(
                     "DELETE FROM events WHERE json_extract(payload, '$.job_id') = ?", (job["id"],)
                 )
-                db.execute("DELETE FROM deliveries WHERE job_id=?", (job["id"],))
-                db.execute("DELETE FROM jobs WHERE id=?", (job["id"],))
+                summary = json.loads(job["summary"] or "{}")
+                # Keep counters and measurements, never diagnostic text or artifact paths.
+                compact = {
+                    key: value
+                    for key, value in summary.items()
+                    if key in {"tests", "passed", "failed", "errors", "skipped", "seconds"}
+                    and isinstance(value, (int, float))
+                }
+                compact["metrics"] = {
+                    key: value
+                    for key, value in summary.get("metrics", {}).items()
+                    if isinstance(value, (int, float)) or value is None
+                }
+                db.execute(
+                    "UPDATE jobs SET details_expired=1,summary=?,report=NULL,worktree=NULL,"
+                    "progress=NULL,selectors='[]',git_dir=NULL WHERE id=?",
+                    (json.dumps(compact), job["id"]),
+                )
+                db.execute(
+                    "UPDATE deliveries SET status='expired',reason='Result details expired before delivery' "
+                    "WHERE job_id=? AND status='pending'",
+                    (job["id"],),
+                )
             shutil.rmtree(directory)
             removed += 1
+    history_cutoff = (datetime.now(UTC) - timedelta(days=HISTORY_DAYS)).isoformat()
+    with store.database() as db:
+        # Active jobs and dirty retained worktrees are outside both history limits.
+        db.execute(
+            "DELETE FROM jobs WHERE details_expired=1 AND (finished < ? OR id IN "
+            "(SELECT id FROM jobs WHERE details_expired=1 ORDER BY finished DESC LIMIT -1 OFFSET ?))",
+            (history_cutoff, HISTORY_LIMIT),
+        )
+        db.execute("DELETE FROM deliveries WHERE job_id NOT IN (SELECT id FROM jobs)")
     return removed
 
 

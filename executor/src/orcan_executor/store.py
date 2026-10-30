@@ -1,11 +1,11 @@
 import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from .metrics import measure_result, wire
-from .settings import max_pending, retention_seconds, state_dir
+from .settings import HISTORY_DAYS, HISTORY_LIMIT, max_pending, retention_seconds, state_dir
 
 TERMINAL = {"passed", "failed", "error", "timed_out", "cancelled"}
 
@@ -46,6 +46,7 @@ def database(directory: Path | None = None):
         if "progress" not in columns:
             connection.execute("ALTER TABLE jobs ADD COLUMN progress TEXT")
         for name, definition in {
+            "details_expired": "INTEGER NOT NULL DEFAULT 0",
             "acknowledged": "TEXT",
             "detail_reads": "INTEGER NOT NULL DEFAULT 0",
             "detail_bytes": "INTEGER NOT NULL DEFAULT 0",
@@ -216,8 +217,22 @@ def mark_published(event_id: int) -> None:
         db.execute("UPDATE events SET published=1 WHERE id=?", (event_id,))
 
 
-def board() -> dict:
+def board(hours: int | None = None) -> dict:
+    if hours is not None and not 1 <= hours <= 720:
+        raise ValueError("History window must be between 1 and 720 hours")
     with database() as db:
+        cutoff = (datetime.now(UTC) - timedelta(hours=hours or 720)).isoformat()
+        db.execute("CREATE TEMP TABLE history_window(cutoff TEXT)")
+        db.execute("INSERT INTO history_window VALUES(?)", (cutoff,))
+        db.execute(
+            "CREATE TEMP VIEW scoped_jobs AS SELECT * FROM jobs WHERE "
+            "status IN ('queued','running') OR COALESCE(finished,created) >= "
+            "(SELECT cutoff FROM history_window)"
+        )
+        db.execute(
+            "CREATE TEMP VIEW scoped_deliveries AS SELECT d.* FROM deliveries d "
+            "JOIN scoped_jobs j ON j.id=d.job_id"
+        )
         counts = {
             state: 0
             for state in (
@@ -233,11 +248,14 @@ def board() -> dict:
         counts.update(
             {
                 row["status"]: row["amount"]
-                for row in db.execute("SELECT status,COUNT(*) AS amount FROM jobs GROUP BY status")
+                for row in db.execute(
+                    "SELECT status,COUNT(*) AS amount FROM scoped_jobs GROUP BY status"
+                )
             }
         )
         jobs = [
-            dict(row) for row in db.execute("SELECT * FROM jobs ORDER BY created DESC LIMIT 100")
+            dict(row)
+            for row in db.execute("SELECT * FROM scoped_jobs ORDER BY created DESC LIMIT 100")
         ]
         aggregate = dict(
             db.execute("""
@@ -249,31 +267,32 @@ def board() -> dict:
             COALESCE(SUM(json_extract(summary, '$.skipped')),0) AS skipped,
             COALESCE(AVG(json_extract(summary, '$.metrics.queue_seconds')),0) AS average_queue_seconds,
             COALESCE(AVG(json_extract(summary, '$.seconds')),0) AS average_run_seconds,
+            COALESCE(SUM(json_extract(summary, '$.seconds')),0) AS total_run_seconds,
             COALESCE(SUM(json_extract(summary, '$.metrics.executor_cpu_seconds')),0) AS executor_cpu_seconds
-            FROM jobs WHERE summary IS NOT NULL
+            FROM scoped_jobs WHERE summary IS NOT NULL
         """).fetchone()
         )
         by_status = [
             dict(row)
             for row in db.execute(
-                "SELECT status, COUNT(*) AS jobs, COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes, COALESCE(SUM(json_extract(summary, '$.metrics.result_bytes')),0) AS result_bytes FROM jobs WHERE summary IS NOT NULL GROUP BY status"
+                "SELECT status, COUNT(*) AS jobs, COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes, COALESCE(SUM(json_extract(summary, '$.metrics.result_bytes')),0) AS result_bytes FROM scoped_jobs WHERE summary IS NOT NULL GROUP BY status"
             )
         ]
         usage = dict(
             db.execute(
-                "SELECT COUNT(acknowledged) AS acknowledged_jobs, COALESCE(SUM(detail_reads),0) AS detail_reads, COALESCE(SUM(detail_bytes),0) AS detail_bytes, COALESCE(SUM(detail_wire_bytes),0) AS detail_wire_bytes FROM jobs"
+                "SELECT COUNT(acknowledged) AS acknowledged_jobs, COALESCE(SUM(detail_reads),0) AS detail_reads, COALESCE(SUM(detail_bytes),0) AS detail_bytes, COALESCE(SUM(detail_wire_bytes),0) AS detail_wire_bytes FROM scoped_jobs"
             ).fetchone()
         )
         delivery_counts = {
             row["status"]: row["amount"]
             for row in db.execute(
-                "SELECT status,COUNT(*) AS amount FROM deliveries GROUP BY status"
+                "SELECT status,COUNT(*) AS amount FROM scoped_deliveries GROUP BY status"
             )
         }
         delivery_jobs = [
             dict(row)
             for row in db.execute(
-                "SELECT d.job_id,d.thread_id,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM deliveries d JOIN (SELECT id FROM jobs ORDER BY created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
+                "SELECT d.job_id,d.thread_id,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM scoped_deliveries d JOIN (SELECT id FROM scoped_jobs ORDER BY created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
             )
         ]
         notification_stats = dict(
@@ -283,7 +302,7 @@ def board() -> dict:
             COALESCE(SUM(CASE WHEN status IN ('queued','consumed') THEN message_bytes ELSE 0 END),0) AS accepted_bytes,
             COALESCE(SUM(CASE WHEN status='consumed' THEN message_bytes ELSE 0 END),0) AS consumed_bytes,
             COALESCE(SUM(CASE WHEN status='unknown' THEN message_bytes ELSE 0 END),0) AS uncertain_bytes,
-            COALESCE(SUM(adapter_seconds),0) AS adapter_seconds FROM deliveries
+            COALESCE(SUM(adapter_seconds),0) AS adapter_seconds FROM scoped_deliveries
         """).fetchone()
         )
     aggregate["by_status"] = by_status
@@ -321,6 +340,9 @@ def board() -> dict:
         "worker_running": worker_running,
         "stats": aggregate,
         "retention_seconds": retention_seconds(),
+        "history_days": HISTORY_DAYS,
+        "history_limit": HISTORY_LIMIT,
+        "window_hours": hours or 720,
         "max_pending": max_pending(),
         "delivery_counts": delivery_counts,
         "notification_stats": notification_stats,

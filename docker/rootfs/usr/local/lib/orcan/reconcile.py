@@ -498,6 +498,14 @@ def executor_guidance(enabled: bool) -> str:
 
 Check `orcan-executor doctor` before use; the flag alone does not mean services are ready.
 Host help: `orcan executor help`; inside Orcan: `orcan-executor help`.
+When ready, prefer the executor for approved heavy or verbose work: builds, compilation,
+tests, static analysis, code generation, documentation and report generation.
+Use committed project profiles for these tasks, not only test profiles. A non-test
+profile needs no --test and must not claim that tests ran. Keep quick reads and small
+interactive edits direct. Do not enqueue unapproved deployment or destructive operations.
+If a procedure is missing, review and commit a suitable profile before submitting.
+Return control after submission; receive the compact result through the registered
+session notification. Do not block the conversation waiting for a long task.
 
 1. Inspect committed project procedures with `orcan-executor profiles --repo .`.
    Explicit `init --kind python|java|scala|custom` scaffolds them; review and commit.
@@ -516,7 +524,8 @@ Host help: `orcan executor help`; inside Orcan: `orcan-executor help`.
 4. Success contains counters, never stdout; report it briefly. Skips did not run.
    Failures contain at most three short errors. Use `logs JOB --offset 0 --limit 4000` only as needed;
    follow next_offset. `artifacts JOB` lists full JSON/XML for bounded `logs --artifact NAME` reading.
-5. Completed results/artifacts expire after 1 hour by default, even unread. Active jobs do not expire.
+5. Detailed results/artifacts expire after 1 hour by default, even unread. Compact history and measurements
+   remain for 30 days (up to 10000 expired entries). Use history --hours 3 or stats --hours 3. Active jobs do not expire.
    Dirty executor worktrees are retained; never force-remove them. Keep the Git common directory available.
 
 Dashboard: same host/Tailscale as ttyd, separate default port 8765 (`orcan executor url`).

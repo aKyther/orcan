@@ -9,7 +9,7 @@ import secrets
 from pathlib import Path
 
 import redis.asyncio as redis
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
 from redis.exceptions import RedisError
 
@@ -43,8 +43,8 @@ def index():
 
 
 @app.get("/api/board")
-def board():
-    return store.board()
+def board(hours: int = Query(default=3, ge=1, le=720)):
+    return store.board(hours)
 
 
 def artifact(job_id: str, name: str) -> Path:
@@ -72,7 +72,7 @@ def log(job_id: str):
     )
 
 
-async def frames(request: Request):
+async def frames(request: Request, hours: int = 3):
     connection = redis.Redis.from_url(broker_url(), decode_responses=True, socket_connect_timeout=3)
     try:
         try:
@@ -83,12 +83,12 @@ async def frames(request: Request):
                 latest = await connection.xrevrange(stream_name(), count=1)
                 cursor = latest[0][0] if latest else "0-0"
         except RedisError:
-            snapshot = await asyncio.to_thread(store.board)
+            snapshot = await asyncio.to_thread(store.board, hours)
             yield (
                 "event: snapshot\ndata: " + json.dumps({**snapshot, "redis_online": False}) + "\n\n"
             )
             return
-        snapshot = await asyncio.to_thread(store.board)
+        snapshot = await asyncio.to_thread(store.board, hours)
         yield (
             f"id: {cursor}\nevent: snapshot\ndata: "
             + json.dumps({**snapshot, "redis_online": True})
@@ -102,7 +102,7 @@ async def frames(request: Request):
                 continue
             for _, messages in batches:
                 cursor = messages[-1][0]
-            snapshot = await asyncio.to_thread(store.board)
+            snapshot = await asyncio.to_thread(store.board, hours)
             yield (
                 f"id: {cursor}\nevent: snapshot\ndata: "
                 + json.dumps({**snapshot, "redis_online": True})
@@ -115,9 +115,9 @@ async def frames(request: Request):
 
 
 @app.get("/api/events")
-async def event_stream(request: Request):
+async def event_stream(request: Request, hours: int = Query(default=3, ge=1, le=720)):
     return StreamingResponse(
-        frames(request),
+        frames(request, hours),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

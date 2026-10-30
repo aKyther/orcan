@@ -151,6 +151,55 @@ records consumption; it does not turn a failed check into a passed check.
 A healthy worker alone does not verify this full path. The first completed job
 checks submission, isolated worktree execution and result retrieval together.
 
+## Heavy tasks beyond tests
+
+When the executor is ready, agents should prefer it for approved heavy or verbose
+work: compilation, builds, static analysis, code generation, reports and docs, as
+well as tests. Keep quick reads and small interactive edits direct. Use a reviewed,
+committed project profile; the executor is not permission to deploy or change
+external systems. A missing profile must be prepared and committed first.
+
+For example, a Java `build` profile can contain:
+
+```json
+{"steps": [{"argv": ["./gradlew", "--console=plain", "--max-workers=1", "classes"]}]}
+```
+
+Add it under `profiles` in `.orcan/checks.json` and commit. Then submit
+`orcan-executor submit --repo . --sha HEAD --profile build --task compile`.
+No `--test` is needed. Zero test counters mean no tests were reported, not a failed
+build. Register the requesting Codex session with `--notify-codex-thread` when
+available and return control; the controller delivers the compact result.
+Profiles may declare output files with `artifacts` for bounded retrieval before TTL.
+
+## Compact history and time windows
+
+Detailed reports, logs, notification subscriptions and pinned snapshots have a
+short lifetime. Compact job records and numeric measurements remain available
+for **30 days**, with at most **10000 expired entries**. Cleanup strips diagnostic
+text, test selectors, progress, artifact/worktree paths and the Git-directory path.
+It preserves the task, repository, SHA, profile, status, timestamps, elapsed time,
+test counters, byte measurements and delivery/receipt measurements. Active jobs
+and dirty retained worktrees are never removed by these history limits.
+
+The dashboard defaults to the **last 3 hours**. Choose 24 hours, 7 days or 30 days.
+Counts and measurements use the selected completion-time window; active jobs are
+always visible. The list shows at most 100 recent submissions. An expired entry
+has no report or log link. Total execution time is measured job duration, not a
+claim about saved developer/model time.
+
+```sh
+orcan-executor history --hours 3
+orcan-executor stats --hours 3
+```
+
+`stats` without a window covers up to 30 days. History is local to the Orcan
+instance and stored in its persistent SQLite database, not in Redis. Restarts
+preserve it when the history mount is preserved. Old rows already deleted by an
+earlier version cannot be recovered. Profile definitions work in an isolated
+snapshot; a build that needs uncommitted local files requires a suitable committed
+profile or explicitly selected directory snapshot.
+
 ## Communication and retention
 
 Celery uses a dedicated Redis queue, late acknowledgements and one prefetched job.
@@ -163,7 +212,7 @@ The default retention is **3600 seconds after completion**. Set
 `ORCAN_EXECUTOR_RETENTION_SECONDS` at `orcan up` to a value from 60 to 86400.
 Stream entries are age-trimmed and capped at 10000; an inactive stream expires.
 Under high volume, a stream cursor can fall behind the retained history before
-an hour. Completed reports, logs, SQLite rows and pinned refs are cleaned locally
+an hour. Completed reports, logs and pinned refs are cleaned locally
 within roughly 30 seconds after their deadline. Unread results can expire too.
 Save evidence you need before that deadline. Active and queued jobs do not expire.
 Dirty retained worktrees keep their job evidence until safe cleanup is possible.
@@ -405,7 +454,7 @@ agent guidance but cannot add a service or binary to an older running image.
 Use the existing `orcan-supervisor-status` helper inside Orcan to inspect services. A manually started controller must run in
 its own process, never as an indefinite listener in an interactive agent turn.
 
-Notification records share the job's default one-hour completed-result TTL. Queued
+Notification delivery is limited by the default one-hour detailed-result TTL; compact delivery states and numeric measurements remain with history. Queued
 or running jobs and their registrations are retained; notification attempts hold
 the same lock as cleanup. Expiry is not proof that a message was consumed, and
 local expiry cannot delete a message already accepted by Codex.
