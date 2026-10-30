@@ -199,13 +199,13 @@
     
       <div class="orcan-version-select" hidden>
         <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
-          <span class="orcan-version-select__label">v4.0.7</span>
+          <span class="orcan-version-select__label">v4.0.8</span>
           <span class="orcan-version-select__caret" aria-hidden="true"></span>
         </button>
         <ul class="orcan-version-select__list" role="listbox" hidden></ul>
       </div>
       <a class="orcan-header-version" href="../../changelog/" title="Product SemVer — open changelog">
-        <span class="orcan-header-version__label">v4.0.7</span>
+        <span class="orcan-header-version__label">v4.0.8</span>
       </a>
     
     
@@ -1445,6 +1445,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#heavy-tasks-beyond-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heavy tasks beyond tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compact-history-and-time-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compact history and time windows
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#communication-and-retention" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2301,6 +2323,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#heavy-tasks-beyond-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heavy tasks beyond tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compact-history-and-time-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compact history and time windows
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#communication-and-retention" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2556,6 +2600,43 @@ commit. Run <code>orcan-executor ack JOB</code> after reading the result. An ack
 records consumption; it does not turn a failed check into a passed check.</p>
 <p>A healthy worker alone does not verify this full path. The first completed job
 checks submission, isolated worktree execution and result retrieval together.</p>
+<h2 id="heavy-tasks-beyond-tests">Heavy tasks beyond tests<a class="headerlink" href="#heavy-tasks-beyond-tests" title="Permanent link">&para;</a></h2>
+<p>When the executor is ready, agents should prefer it for approved heavy or verbose
+work: compilation, builds, static analysis, code generation, reports and docs, as
+well as tests. Keep quick reads and small interactive edits direct. Use a reviewed,
+committed project profile; the executor is not permission to deploy or change
+external systems. A missing profile must be prepared and committed first.</p>
+<p>For example, a Java <code>build</code> profile can contain:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span><span class="nt">"steps"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"argv"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"./gradlew"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--console=plain"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--max-workers=1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"classes"</span><span class="p">]}]}</span>
+</span></code></pre></div>
+<p>Add it under <code>profiles</code> in <code>.orcan/checks.json</code> and commit. Then submit
+<code>orcan-executor submit --repo . --sha HEAD --profile build --task compile</code>.
+No <code>--test</code> is needed. Zero test counters mean no tests were reported, not a failed
+build. Register the requesting Codex session with <code>--notify-codex-thread</code> when
+available and return control; the controller delivers the compact result.
+Profiles may declare output files with <code>artifacts</code> for bounded retrieval before TTL.</p>
+<h2 id="compact-history-and-time-windows">Compact history and time windows<a class="headerlink" href="#compact-history-and-time-windows" title="Permanent link">&para;</a></h2>
+<p>Detailed reports, logs, notification subscriptions and pinned snapshots have a
+short lifetime. Compact job records and numeric measurements remain available
+for <strong>30 days</strong>, with at most <strong>10000 expired entries</strong>. Cleanup strips diagnostic
+text, test selectors, progress, artifact/worktree paths and the Git-directory path.
+It preserves the task, repository, SHA, profile, status, timestamps, elapsed time,
+test counters, byte measurements and delivery/receipt measurements. Active jobs
+and dirty retained worktrees are never removed by these history limits.</p>
+<p>The dashboard defaults to the <strong>last 3 hours</strong>. Choose 24 hours, 7 days or 30 days.
+Counts and measurements use the selected completion-time window; active jobs are
+always visible. The list shows at most 100 recent submissions. An expired entry
+has no report or log link. Total execution time is measured job duration, not a
+claim about saved developer/model time.</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan-executor<span class="w"> </span><span class="nb">history</span><span class="w"> </span>--hours<span class="w"> </span><span class="m">3</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>orcan-executor<span class="w"> </span>stats<span class="w"> </span>--hours<span class="w"> </span><span class="m">3</span>
+</span></code></pre></div>
+<p><code>stats</code> without a window covers up to 30 days. History is local to the Orcan
+instance and stored in its persistent SQLite database, not in Redis. Restarts
+preserve it when the history mount is preserved. Old rows already deleted by an
+earlier version cannot be recovered. Profile definitions work in an isolated
+snapshot; a build that needs uncommitted local files requires a suitable committed
+profile or explicitly selected directory snapshot.</p>
 <h2 id="communication-and-retention">Communication and retention<a class="headerlink" href="#communication-and-retention" title="Permanent link">&para;</a></h2>
 <p>Celery uses a dedicated Redis queue, late acknowledgements and one prefetched job.
 Per-job OS locks prevent duplicate active execution. There is no automatic retry
@@ -2566,7 +2647,7 @@ listener emits only completed results. No periodic model/status polling is neede
 <code>ORCAN_EXECUTOR_RETENTION_SECONDS</code> at <code>orcan up</code> to a value from 60 to 86400.
 Stream entries are age-trimmed and capped at 10000; an inactive stream expires.
 Under high volume, a stream cursor can fall behind the retained history before
-an hour. Completed reports, logs, SQLite rows and pinned refs are cleaned locally
+an hour. Completed reports, logs and pinned refs are cleaned locally
 within roughly 30 seconds after their deadline. Unread results can expire too.
 Save evidence you need before that deadline. Active and queued jobs do not expire.
 Dirty retained worktrees keep their job evidence until safe cleanup is possible.</p>
@@ -2575,9 +2656,9 @@ under <code>~/.local/share/orcan/history/executor/INSTANCE</code> (default insta
 mount. Named instances use separate state and default queue names. Redis uses AOF and a 128 MiB no-eviction limit. Large log files are never
 copied into broker memory. Queue/outbox publication failures leave local evidence;
 commands do not expose credential-bearing broker errors.</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>orcan-executor<span class="w"> </span>recover<span class="w"> </span>--job<span class="w"> </span>JOB<span class="w">       </span><span class="c1"># explicitly requeue a pending/interrupted job</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>orcan-executor<span class="w"> </span>recover<span class="w">                </span><span class="c1"># publish pending events</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>orcan-executor<span class="w"> </span>recover<span class="w"> </span>--replay-events
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan-executor<span class="w"> </span>recover<span class="w"> </span>--job<span class="w"> </span>JOB<span class="w">       </span><span class="c1"># explicitly requeue a pending/interrupted job</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan-executor<span class="w"> </span>recover<span class="w">                </span><span class="c1"># publish pending events</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>orcan-executor<span class="w"> </span>recover<span class="w"> </span>--replay-events
 </span></code></pre></div>
 <p>Stop an old worker/build before recovering an interrupted job. A build inherits
 its job lock so recovery cannot run another copy while that build survives.
@@ -2634,9 +2715,9 @@ submit/result flow. Choose a scoped procedure rather than silently running a ful
 suite. Success reports contain counters; failures contain bounded excerpts with
 an explicit count of omitted failures. Use <code>artifacts</code> and paginated <code>logs</code> to
 consume all relevant long traces or JUnit XML, without dumping them into context.</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>.<span class="w"> </span>--sha<span class="w"> </span>HEAD<span class="w"> </span>--profile<span class="w"> </span>selected<span class="w"> </span>--test<span class="w"> </span>tests/test_api.py<span class="w"> </span>--reuse
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>orcan-executor<span class="w"> </span>cancel<span class="w"> </span>JOB_ID
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>orcan-executor<span class="w"> </span>ack<span class="w"> </span>JOB_ID
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>.<span class="w"> </span>--sha<span class="w"> </span>HEAD<span class="w"> </span>--profile<span class="w"> </span>selected<span class="w"> </span>--test<span class="w"> </span>tests/test_api.py<span class="w"> </span>--reuse
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>orcan-executor<span class="w"> </span>cancel<span class="w"> </span>JOB_ID
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>orcan-executor<span class="w"> </span>ack<span class="w"> </span>JOB_ID
 </span></code></pre></div>
 <p><code>--reuse</code> atomically reuses an identical queued or running check (same Git common
 directory, SHA, procedure, selectors and timeout). Completed checks are not silently
@@ -2685,11 +2766,11 @@ full logs and report files stay local. Dirty retained worktrees remain protected
 <p>Use an explicit directory snapshot; Orcan does not initialize or modify Git in the
 source project. Scaffold <code>.orcan/checks.json</code>, then select the source files required
 by the chosen procedure:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan-executor<span class="w"> </span>init<span class="w"> </span>--repo<span class="w"> </span>/projects/plain<span class="w"> </span>--kind<span class="w"> </span>python
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>/projects/plain<span class="w"> </span>--directory<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--include<span class="w"> </span>pyproject.toml<span class="w"> </span>--include<span class="w"> </span>uv.lock<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>--include<span class="w"> </span>app.py<span class="w"> </span>--include<span class="w"> </span>tests/test_app.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>--profile<span class="w"> </span>selected<span class="w"> </span>--test<span class="w"> </span>tests/test_app.py<span class="w"> </span>--reuse
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>orcan-executor<span class="w"> </span>init<span class="w"> </span>--repo<span class="w"> </span>/projects/plain<span class="w"> </span>--kind<span class="w"> </span>python
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>/projects/plain<span class="w"> </span>--directory<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>--include<span class="w"> </span>pyproject.toml<span class="w"> </span>--include<span class="w"> </span>uv.lock<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span>--include<span class="w"> </span>app.py<span class="w"> </span>--include<span class="w"> </span>tests/test_app.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span>--profile<span class="w"> </span>selected<span class="w"> </span>--test<span class="w"> </span>tests/test_app.py<span class="w"> </span>--reuse
 </span></code></pre></div>
 <p>The procedure configuration is included automatically. Every <code>--include</code> names one
 regular project-relative file; directory traversal, symlinks, Git metadata, <code>.env</code>
@@ -2710,19 +2791,19 @@ Supervisor service (<code>executor-notifications</code>) consumes Redis Stream e
 passes a bounded result to the explicitly selected conversation. It does not type
 into tmux, open a separate chat, choose a model, or use a remote execution endpoint.
 The normal submit/listen flow remains unchanged when no destination is registered.</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Run inside the Codex session that requested the check.</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># Use CODEX_THREAD_ID only when supplied by that session; never guess a destination.</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>.<span class="w"> </span>--sha<span class="w"> </span>HEAD<span class="w"> </span>--profile<span class="w"> </span>selected<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span>--test<span class="w"> </span>tests/test_api.py<span class="w"> </span>--task<span class="w"> </span>api-check<span class="w"> </span>--reuse<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span>--notify-codex-thread<span class="w"> </span><span class="s2">"</span><span class="nv">$CODEX_THREAD_ID</span><span class="s2">"</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Or attach a known session UUID to an existing job, including a completed job:</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>orcan-executor<span class="w"> </span>notify<span class="w"> </span>JOB_ID<span class="w"> </span>--codex-thread<span class="w"> </span>SESSION_UUID
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>orcan-executor<span class="w"> </span>deliveries<span class="w"> </span>--job<span class="w"> </span>JOB_ID
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="c1"># After the target agent actually consumes the result:</span>
-</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>orcan-executor<span class="w"> </span>ack<span class="w"> </span>JOB_ID<span class="w"> </span>--codex-thread<span class="w"> </span>SESSION_UUID
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>orcan-executor<span class="w"> </span>stats
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Run inside the Codex session that requested the check.</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># Use CODEX_THREAD_ID only when supplied by that session; never guess a destination.</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>.<span class="w"> </span>--sha<span class="w"> </span>HEAD<span class="w"> </span>--profile<span class="w"> </span>selected<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span>--test<span class="w"> </span>tests/test_api.py<span class="w"> </span>--task<span class="w"> </span>api-check<span class="w"> </span>--reuse<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span>--notify-codex-thread<span class="w"> </span><span class="s2">"</span><span class="nv">$CODEX_THREAD_ID</span><span class="s2">"</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="c1"># Or attach a known session UUID to an existing job, including a completed job:</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>orcan-executor<span class="w"> </span>notify<span class="w"> </span>JOB_ID<span class="w"> </span>--codex-thread<span class="w"> </span>SESSION_UUID
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>orcan-executor<span class="w"> </span>deliveries<span class="w"> </span>--job<span class="w"> </span>JOB_ID
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="c1"># After the target agent actually consumes the result:</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>orcan-executor<span class="w"> </span>ack<span class="w"> </span>JOB_ID<span class="w"> </span>--codex-thread<span class="w"> </span>SESSION_UUID
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>orcan-executor<span class="w"> </span>stats
 </span></code></pre></div>
 <p>All commands also work through <code>orcan executor</code> on the host. UUIDs are required;
 session names, <code>--last</code>, and inferred destinations are intentionally unsupported.
@@ -2790,7 +2871,7 @@ After upgrading Orcan, rebuild the image and recreate the container with
 agent guidance but cannot add a service or binary to an older running image.
 Use the existing <code>orcan-supervisor-status</code> helper inside Orcan to inspect services. A manually started controller must run in
 its own process, never as an indefinite listener in an interactive agent turn.</p>
-<p>Notification records share the job's default one-hour completed-result TTL. Queued
+<p>Notification delivery is limited by the default one-hour detailed-result TTL; compact delivery states and numeric measurements remain with history. Queued
 or running jobs and their registrations are retained; notification attempts hold
 the same lock as cleanup. Expiry is not proof that a message was consumed, and
 local expiry cannot delete a message already accepted by Codex.</p>
@@ -2849,7 +2930,7 @@ retained jobs, not an unbounded lifetime history.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 30, 2026 07:47:10 UTC">October 30, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 30, 2026 10:50:04 UTC">October 30, 2026</span>
   </span>
 
     
