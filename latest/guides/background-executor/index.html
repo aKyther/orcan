@@ -199,13 +199,13 @@
     
       <div class="orcan-version-select" hidden>
         <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
-          <span class="orcan-version-select__label">v4.0.3</span>
+          <span class="orcan-version-select__label">v4.0.7</span>
           <span class="orcan-version-select__caret" aria-hidden="true"></span>
         </button>
         <ul class="orcan-version-select__list" role="listbox" hidden></ul>
       </div>
       <a class="orcan-header-version" href="../../changelog/" title="Product SemVer — open changelog">
-        <span class="orcan-header-version__label">v4.0.3</span>
+        <span class="orcan-header-version__label">v4.0.7</span>
       </a>
     
     
@@ -1434,6 +1434,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#first-verification-after-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First verification after startup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#communication-and-retention" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2279,6 +2290,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#first-verification-after-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First verification after startup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#communication-and-retention" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2524,6 +2546,16 @@ Log reads return <code>next_offset</code> and <code>more</code>; each read is ca
 The dashboard offers full JSON and log downloads. It has no submit, merge or deploy
 controls. Successful stdout never enters a completion event. A passed result means
 no detected error in that procedure; skipped integration tests did not run.</p>
+<h2 id="first-verification-after-startup">First verification after startup<a class="headerlink" href="#first-verification-after-startup" title="Permanent link">&para;</a></h2>
+<p>Run <code>orcan-executor doctor</code> inside Orcan. All readiness fields should be true.
+List committed procedures with <code>orcan-executor profiles --repo .</code>, then submit
+one small check from a committed revision. Save the returned job ID and SHA.</p>
+<p>Open the dashboard to follow the job. After completion, read
+<code>orcan-executor result JOB</code> and confirm that the result SHA matches the submitted
+commit. Run <code>orcan-executor ack JOB</code> after reading the result. An acknowledgement
+records consumption; it does not turn a failed check into a passed check.</p>
+<p>A healthy worker alone does not verify this full path. The first completed job
+checks submission, isolated worktree execution and result retrieval together.</p>
 <h2 id="communication-and-retention">Communication and retention<a class="headerlink" href="#communication-and-retention" title="Permanent link">&para;</a></h2>
 <p>Celery uses a dedicated Redis queue, late acknowledgements and one prefetched job.
 Per-job OS locks prevent duplicate active execution. There is no automatic retry
@@ -2817,7 +2849,7 @@ retained jobs, not an unbounded lifetime history.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 30, 2026 06:41:04 UTC">October 30, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 30, 2026 07:47:10 UTC">October 30, 2026</span>
   </span>
 
     
