@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://akyther.github.io/orcan/latest/guides/background-executor/">
       
       
-        <link rel="prev" href="../dotfiles/">
+        <link rel="prev" href="../image-profiles/">
       
       
         <link rel="next" href="../offline-actions/">
@@ -199,13 +199,13 @@
     
       <div class="orcan-version-select" hidden>
         <button type="button" class="orcan-version-select__current" aria-expanded="false" aria-haspopup="listbox" aria-label="Select documentation version">
-          <span class="orcan-version-select__label">v4.0.0</span>
+          <span class="orcan-version-select__label">v4.0.3</span>
           <span class="orcan-version-select__caret" aria-hidden="true"></span>
         </button>
         <ul class="orcan-version-select__list" role="listbox" hidden></ul>
       </div>
       <a class="orcan-header-version" href="../../changelog/" title="Product SemVer — open changelog">
-        <span class="orcan-header-version__label">v4.0.0</span>
+        <span class="orcan-header-version__label">v4.0.3</span>
       </a>
     
     
@@ -1271,6 +1271,62 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../orcan-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orcan flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../image-profiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Image profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1334,10 +1390,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enable-the-module" class="md-nav__link">
+  <a href="#enable-the-plugin" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Enable the module
+        Enable the plugin
       
     </span>
   </a>
@@ -1404,6 +1460,78 @@
     <span class="md-ellipsis">
       
         Executor stress and resilience checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#executor-plugin-admission-and-consumption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executor plugin, admission and consumption
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Executor plugin, admission and consumption">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#separate-lightweight-and-heavyweight-queues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Separate lightweight and heavyweight queues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-and-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery and retention
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#projects-without-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projects without Git
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deliver-compact-results-to-a-codex-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deliver compact results to a Codex session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measure-the-benefit-without-inventing-model-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measure the benefit without inventing model usage
       
     </span>
   </a>
@@ -2107,10 +2235,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enable-the-module" class="md-nav__link">
+  <a href="#enable-the-plugin" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Enable the module
+        Enable the plugin
       
     </span>
   </a>
@@ -2183,6 +2311,78 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#executor-plugin-admission-and-consumption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executor plugin, admission and consumption
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Executor plugin, admission and consumption">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#separate-lightweight-and-heavyweight-queues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Separate lightweight and heavyweight queues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-and-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery and retention
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#projects-without-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projects without Git
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deliver-compact-results-to-a-codex-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deliver compact results to a Codex session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measure-the-benefit-without-inventing-model-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measure the benefit without inventing model usage
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2218,10 +2418,10 @@
 
 <h1 id="background-executor">Background executor<a class="headerlink" href="#background-executor" title="Permanent link">&para;</a></h1>
 <p>Long checks can fill an agent conversation with build output and delay the next
-turn. The optional Redis module runs project procedures in the background, checks
+turn. The optional executor plugin runs project procedures in the background, checks
 an exact Git commit and sends a small result. Success carries counters, not logs.
 Failures carry up to three short test messages. Read long diagnostics in chunks.</p>
-<h2 id="enable-the-module">Enable the module<a class="headerlink" href="#enable-the-module" title="Permanent link">&para;</a></h2>
+<h2 id="enable-the-plugin">Enable the plugin<a class="headerlink" href="#enable-the-plugin" title="Permanent link">&para;</a></h2>
 <p>Build an updated Orcan image, then start it from the host:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>orcan<span class="w"> </span>up<span class="w"> </span>--with-redis
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>orcan<span class="w"> </span>executor<span class="w"> </span>doctor
@@ -2237,7 +2437,7 @@ changing ttyd. <code>orcan executor url</code> prints the URL; wildcard binds pr
 so use the host's Tailscale address when opening it from another device.
 <code>--web-terminal-auth USER:PASS</code> also protects the dashboard with the same credentials.
 Redis remains on container loopback with no published port.</p>
-<p>Plain <code>orcan up</code> disables the module; <code>orcan up --resume</code> restores the saved choice.
+<p>Plain <code>orcan up</code> disables the plugin; <code>orcan up --resume</code> restores the saved choice.
 It combines with existing SSH, Docker, network and terminal flags. No Docker socket
 is required by the executor itself. Services run as the existing developer user.
 Dependencies are locked in a separate Python 3.12 environment in the image.</p>
@@ -2390,6 +2590,211 @@ through <code>artifacts</code> / bounded <code>logs --artifact ...</code> reads.
 profile uses this to preserve smoke reports and Supervisor logs from nested worktrees.
 Supervisor's fixture socket uses a short container-local path, since Unix sockets
 have a small path limit; diagnostic files are copied to the retained report.</p>
+<h2 id="executor-plugin-admission-and-consumption">Executor plugin, admission and consumption<a class="headerlink" href="#executor-plugin-admission-and-consumption" title="Permanent link">&para;</a></h2>
+<p>The plugin ID is <code>executor</code>; Redis is its internal communication broker, not the
+execution engine. <code>--with-redis</code> remains the activation flag for compatibility.
+Use <code>orcan plugins list</code>, <code>orcan plugins validate</code> and
+<code>orcan plugins doctor --plugin executor</code>. Descriptors live in <code>plugins/</code> and do
+not execute third-party hooks. No agent message is sent without explicit notification opt-in; no merge or deployment starts automatically.</p>
+<p>Each project owns named procedures in <code>.orcan/checks.json</code>. Python/pytest,
+Java/Gradle, Scala/sbt, lint, documentation and small custom checks use the same
+submit/result flow. Choose a scoped procedure rather than silently running a full
+suite. Success reports contain counters; failures contain bounded excerpts with
+an explicit count of omitted failures. Use <code>artifacts</code> and paginated <code>logs</code> to
+consume all relevant long traces or JUnit XML, without dumping them into context.</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>.<span class="w"> </span>--sha<span class="w"> </span>HEAD<span class="w"> </span>--profile<span class="w"> </span>selected<span class="w"> </span>--test<span class="w"> </span>tests/test_api.py<span class="w"> </span>--reuse
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>orcan-executor<span class="w"> </span>cancel<span class="w"> </span>JOB_ID
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>orcan-executor<span class="w"> </span>ack<span class="w"> </span>JOB_ID
+</span></code></pre></div>
+<p><code>--reuse</code> atomically reuses an identical queued or running check (same Git common
+directory, SHA, procedure, selectors and timeout). Completed checks are not silently
+reused. The returned job may retain its original task label. Without this option,
+independent repeated checks remain possible. <code>cancel</code> only cancels queued work;
+it never terminates an agent or a running build. Late deliveries of a cancelled
+job perform no checks. Cancellation also frees admission capacity.</p>
+<p><code>ack</code> explicitly records that a terminal result was consumed. It is idempotent,
+does not delete the report, and does not mean the code passed or was accepted.
+Listening and displaying a result alone do not prove it was consumed. The dashboard
+shows confirmed receipts, CLI detail-read counts/bytes, and log/result sizes grouped
+by status. This separates successful-output suppression from failure compaction.
+These measurements exclude model CPU/GPU and do not claim measured token savings.</p>
+<p>The default admission limit is <strong>100 queued plus running jobs</strong>, enforced atomically
+across producers. Set <code>ORCAN_EXECUTOR_MAX_PENDING=50</code> before starting Orcan to change
+it (range 1..10000). Queue saturation rejects new work with a short actionable error;
+it never drops an existing task. Each worker has prefetch one and executes one task
+at a time. Avoid raising parallelism blindly on memory-constrained JVM workloads.</p>
+<h3 id="separate-lightweight-and-heavyweight-queues">Separate lightweight and heavyweight queues<a class="headerlink" href="#separate-lightweight-and-heavyweight-queues" title="Permanent link">&para;</a></h3>
+<p>A procedure can declare <code>"lane": "light"</code> or <code>"lane": "heavy"</code>; omitted means
+<code>"default"</code>. Routing reads the committed procedure, not dirty configuration.
+Set <code>ORCAN_EXECUTOR_SPLIT_LANES=1</code> when starting Orcan to supervise one additional
+worker for each lane. This permits at most three simultaneous checks, one per lane,
+and keeps lightweight checks out of a queue occupied by JVM work. It does not impose
+CPU or memory quotas. Keep it disabled on small machines unless needed.</p>
+<p>For isolated development, foreground <code>orcan-executor worker --lane light</code> or
+<code>--lane heavy</code> serves the corresponding queue. A lane without a matching worker
+remains queued; the default worker does not steal its jobs. General <code>doctor</code>
+readiness means at least one worker is available, not that every optional lane is
+served. Use the Supervisor process list to verify enabled lane workers.</p>
+<h3 id="recovery-and-retention">Recovery and retention<a class="headerlink" href="#recovery-and-retention" title="Permanent link">&para;</a></h3>
+<p>Celery uses late acknowledgements, JSON messages, prefetch one and redelivery after
+worker loss. Per-job locks and terminal-state checks prevent duplicate execution.
+Interrupted execution can be recovered explicitly with <code>recover --job JOB_ID</code>;
+after three interrupted starts the job becomes an infrastructure error. Ordinary
+test failures and timeouts are terminal, never automatically retried until green.
+A broker's visibility timeout can delay redelivery; explicit recovery is the prompt
+operator path after checking the previous process has stopped. Child build processes
+inherit the execution lock, preventing a second run while an orphan still executes.</p>
+<p>Completed communication/report retention defaults to <strong>one hour</strong>, including
+cancelled jobs. Active jobs are not expired with their results. Worker readiness
+has a renewable 45-second Redis lease. Durable local metadata and a transactional
+outbox permit event recovery after broker loss. Redis Streams carry bounded events;
+full logs and report files stay local. Dirty retained worktrees remain protected.</p>
+<h2 id="projects-without-git">Projects without Git<a class="headerlink" href="#projects-without-git" title="Permanent link">&para;</a></h2>
+<p>Use an explicit directory snapshot; Orcan does not initialize or modify Git in the
+source project. Scaffold <code>.orcan/checks.json</code>, then select the source files required
+by the chosen procedure:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>orcan-executor<span class="w"> </span>init<span class="w"> </span>--repo<span class="w"> </span>/projects/plain<span class="w"> </span>--kind<span class="w"> </span>python
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>/projects/plain<span class="w"> </span>--directory<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--include<span class="w"> </span>pyproject.toml<span class="w"> </span>--include<span class="w"> </span>uv.lock<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>--include<span class="w"> </span>app.py<span class="w"> </span>--include<span class="w"> </span>tests/test_app.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>--profile<span class="w"> </span>selected<span class="w"> </span>--test<span class="w"> </span>tests/test_app.py<span class="w"> </span>--reuse
+</span></code></pre></div>
+<p>The procedure configuration is included automatically. Every <code>--include</code> names one
+regular project-relative file; directory traversal, symlinks, Git metadata, <code>.env</code>
+files, <code>runtime.conf</code> and named SSH private keys are rejected before reading them.
+There is no recursive scan or automatic copying of dependencies, caches or secrets.
+Limit: 512 files, 8 MiB per file and 32 MiB total. This explicit mode is intended for
+small source sets; large projects should use a normal Git workflow.</p>
+<p>Orcan privately packages these files in an executor-owned Git snapshot, pins its
+commit and uses the existing isolated-worktree pipeline. The SHA identifies that
+snapshot, <strong>not a commit in the user's project</strong>. Selected files and execute bits
+are stable; edits in the source after submission do not affect execution. Identical
+snapshots are reusable. Unreferenced owned source caches expire after the retention
+period; caches referenced by active or retained jobs remain available. Project
+<code>.git</code> metadata, agent worktrees and original files are untouched.</p>
+<h2 id="deliver-compact-results-to-a-codex-session">Deliver compact results to a Codex session<a class="headerlink" href="#deliver-compact-results-to-a-codex-session" title="Permanent link">&para;</a></h2>
+<p>The executor can opt in to <strong>local</strong> <code>codex queue</code> notifications. A dedicated
+Supervisor service (<code>executor-notifications</code>) consumes Redis Stream events and
+passes a bounded result to the explicitly selected conversation. It does not type
+into tmux, open a separate chat, choose a model, or use a remote execution endpoint.
+The normal submit/listen flow remains unchanged when no destination is registered.</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Run inside the Codex session that requested the check.</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># Use CODEX_THREAD_ID only when supplied by that session; never guess a destination.</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>orcan-executor<span class="w"> </span>submit<span class="w"> </span>--repo<span class="w"> </span>.<span class="w"> </span>--sha<span class="w"> </span>HEAD<span class="w"> </span>--profile<span class="w"> </span>selected<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span>--test<span class="w"> </span>tests/test_api.py<span class="w"> </span>--task<span class="w"> </span>api-check<span class="w"> </span>--reuse<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span>--notify-codex-thread<span class="w"> </span><span class="s2">"</span><span class="nv">$CODEX_THREAD_ID</span><span class="s2">"</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Or attach a known session UUID to an existing job, including a completed job:</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>orcan-executor<span class="w"> </span>notify<span class="w"> </span>JOB_ID<span class="w"> </span>--codex-thread<span class="w"> </span>SESSION_UUID
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>orcan-executor<span class="w"> </span>deliveries<span class="w"> </span>--job<span class="w"> </span>JOB_ID
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="c1"># After the target agent actually consumes the result:</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>orcan-executor<span class="w"> </span>ack<span class="w"> </span>JOB_ID<span class="w"> </span>--codex-thread<span class="w"> </span>SESSION_UUID
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>orcan-executor<span class="w"> </span>stats
+</span></code></pre></div>
+<p>All commands also work through <code>orcan executor</code> on the host. UUIDs are required;
+session names, <code>--last</code>, and inferred destinations are intentionally unsupported.
+Empty or invalid submit destinations are rejected before creating a job. <code>--reuse</code>
+can share an active check between sessions; each session has an independent delivery
+record, with at most 16 subscriptions per job. Re-registering the same job and UUID
+is idempotent. A notification contains at most <strong>4096 UTF-8 bytes</strong>: job ID, exact
+SHA, status, counters, bounded failure excerpts, and commands for details and receipt.
+Successful stdout and dashboard instrumentation are excluded. Diagnostic excerpts
+are explicitly marked as untrusted project output.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pending</code></td>
+<td>Registered; waiting for a terminal result or the controller</td>
+</tr>
+<tr>
+<td><code>sending</code></td>
+<td>The controller has claimed the attempt</td>
+</tr>
+<tr>
+<td><code>queued</code></td>
+<td><code>codex queue</code> exited successfully; consumption is unconfirmed</td>
+</tr>
+<tr>
+<td><code>consumed</code></td>
+<td>The specific session explicitly acknowledged the result</td>
+</tr>
+<tr>
+<td><code>unavailable</code></td>
+<td>Codex could not be started; no delivery was attempted</td>
+</tr>
+<tr>
+<td><code>unknown</code></td>
+<td>Timeout, nonzero exit, or an interrupted attempt; acceptance is uncertain</td>
+</tr>
+</tbody>
+</table>
+<p>The controller has a single local process lock. Per-job execution locks and an
+atomic delivery claim prevent duplicate attempts from replayed events or concurrent
+handlers. On restart, durable pending registrations are recovered even if Redis
+history has been lost or trimmed. Broker reconnection retries transport only.
+A registration for a running job waits for its completion event.</p>
+<p><strong>This adapter does not claim exactly-once delivery.</strong> The CLI does not let Orcan
+supply a provider idempotency key. A crash after Codex accepted a message but before
+Orcan stored the outcome is ambiguous. <code>sending</code> becomes <code>unknown</code> on controller
+restart, with no automatic resend. Nonzero exits and timeouts are also not retried.
+Re-registering preserves these states; inspect the target queue before manually
+sending a replacement. This first adapter has no automatic retry for unavailable
+Codex either. Install/select Codex and verify the controller before opting in.</p>
+<p>A successful CLI exit means the message was queued, not that an active turn was
+steered or an idle conversation started working. Delivery depends on the Codex
+session consuming its queue. A session receipt confirms reading, <strong>not that the
+checks passed, the commit is accepted, or code should be merged</strong>. Standard <code>ack JOB</code>
+records job consumption without claiming consumption by any specific session.</p>
+<p>Install a Codex image profile that includes a CLI with <code>codex queue --help</code> support.
+After upgrading Orcan, rebuild the image and recreate the container with
+<code>--with-redis</code> to install the supervised controller. <code>orcan sync</code> updates generated
+agent guidance but cannot add a service or binary to an older running image.
+Use the existing <code>orcan-supervisor-status</code> helper inside Orcan to inspect services. A manually started controller must run in
+its own process, never as an indefinite listener in an interactive agent turn.</p>
+<p>Notification records share the job's default one-hour completed-result TTL. Queued
+or running jobs and their registrations are retained; notification attempts hold
+the same lock as cleanup. Expiry is not proof that a message was consumed, and
+local expiry cannot delete a message already accepted by Codex.</p>
+<p>The supported command is documented in the <a href="https://learn.chatgpt.com/docs/developer-commands">Codex CLI reference</a>.
+The <a href="https://learn.chatgpt.com/docs/app-server">App Server protocol</a> exposes session
+and turn operations over JSON-RPC. A future adapter can use that protocol to track
+queue identifiers and active turns directly; this implementation invokes the CLI.</p>
+<h2 id="measure-the-benefit-without-inventing-model-usage">Measure the benefit without inventing model usage<a class="headerlink" href="#measure-the-benefit-without-inventing-model-usage" title="Permanent link">&para;</a></h2>
+<p>Celery schedules work; <strong>compacting the output</strong> reduces the text supplied to the
+agent. The dashboard and <code>stats</code> distinguish:</p>
+<ul>
+<li>Full log bytes/lines versus canonical compact completion JSONL bytes. Reduction
+  may be negative for quiet tasks. Success and failure totals are also shown separately.</li>
+<li>Raw detail bytes versus the exact emitted CLI JSONL bytes, including escaping and
+  metadata. Re-reading a chunk counts again. Dashboard downloads are not CLI reads.</li>
+<li>Notification payload bytes attempted, accepted by the Codex queue, explicitly
+  consumed by sessions, and of uncertain status. Acknowledging a session does not
+  count its message twice. Shared checks may produce one notification per session.</li>
+<li>Queue time, execution time, and local adapter duration. Adapter duration includes
+  the CLI operation, not model response time. Executor CPU measures only the Python
+  executor process, excluding child tools and model CPU/GPU.</li>
+</ul>
+<p>Do not add canonical completion bytes to notification bytes as if both were always
+read by the same agent: these are separate delivery paths, not a complete ledger of
+all agent input. The reports do not count the rest of a conversation or tool usage.</p>
+<p>Token estimates use a labeled <strong>UTF-8 bytes / 4 heuristic</strong>. They are not tokenizer
+counts or measured token savings. Codex queue does not return provider usage,
+cached-input counts, reasoning/output tokens or billing cost; <code>stats</code> reports
+measured model tokens and cost as unavailable. Fewer payload bytes do not establish
+how much model compute, cost or wall time was saved. Provider-reported usage would
+need a separate session integration and an explicit comparison baseline.</p>
+<p>For evaluation, compare the same procedure, SHA and test scope. Inspect failures
+separately: a compact error is useful only if the agent can recover the necessary
+trace through bounded reads. Watch pending/unknown notifications, receipt counts,
+queue delays and repeated detail reads alongside byte reduction. Statistics cover
+retained jobs, not an unbounded lifetime history.</p>
 
 
 
@@ -2412,7 +2817,7 @@ have a small path limit; diagnostic files are copied to the retained report.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 29, 2026 16:53:42 UTC">October 29, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 30, 2026 06:41:04 UTC">October 30, 2026</span>
   </span>
 
     
@@ -2459,7 +2864,7 @@ have a small path limit; diagnostic files are copied to the retained report.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../dotfiles/" class="md-footer__link md-footer__link--prev" aria-label="Previous: User dotfiles">
+          <a href="../image-profiles/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Image profiles">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2469,7 +2874,7 @@ have a small path limit; diagnostic files are copied to the retained report.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                User dotfiles
+                Image profiles
               </div>
             </div>
           </a>
