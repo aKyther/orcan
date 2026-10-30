@@ -137,6 +137,20 @@ The dashboard offers full JSON and log downloads. It has no submit, merge or dep
 controls. Successful stdout never enters a completion event. A passed result means
 no detected error in that procedure; skipped integration tests did not run.
 
+## First verification after startup
+
+Run `orcan-executor doctor` inside Orcan. All readiness fields should be true.
+List committed procedures with `orcan-executor profiles --repo .`, then submit
+one small check from a committed revision. Save the returned job ID and SHA.
+
+Open the dashboard to follow the job. After completion, read
+`orcan-executor result JOB` and confirm that the result SHA matches the submitted
+commit. Run `orcan-executor ack JOB` after reading the result. An acknowledgement
+records consumption; it does not turn a failed check into a passed check.
+
+A healthy worker alone does not verify this full path. The first completed job
+checks submission, isolated worktree execution and result retrieval together.
+
 ## Communication and retention
 
 Celery uses a dedicated Redis queue, late acknowledgements and one prefetched job.

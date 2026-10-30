@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Explain the first executor verification, exact-SHA result retrieval and acknowledgement after startup.
+
 ### Added
 
 - Explicit Codex queue result notifications with a separate event-driven controller, bounded payloads, per-session receipts, replay protection, and visible uncertain delivery states.
