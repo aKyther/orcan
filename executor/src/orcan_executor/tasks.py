@@ -3,6 +3,7 @@ import logging
 from celery import Celery
 from redis.exceptions import RedisError
 
+from . import store
 from .engine import run_job
 from .events import publish_pending
 from .settings import broker_url, queue_name
@@ -37,9 +38,13 @@ def flush_events():
         )
 
 
-@app.task(name="orcan_executor.verify")
-def verify(job_id: str):
-    run_job(job_id, on_started=flush_events)
+@app.task(name="orcan_executor.verify", bind=True)
+def verify(self, job_id: str):
+    result = run_job(job_id, on_started=flush_events)
+    if result is None and store.get(job_id)["status"] == "queued":
+        # Global capacity admission is atomic in SQLite. Do not occupy an execution
+        # slot while waiting, or classify capacity pressure as a failed procedure.
+        raise self.retry(countdown=3, max_retries=None)
     flush_events()
 
 

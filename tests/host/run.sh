@@ -5,7 +5,7 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-export PYTHONPATH="${ROOT_DIR}/scripts/repository:${ROOT_DIR}/cockpit/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="${ROOT_DIR}/scripts/repository:${ROOT_DIR}/docker/rootfs/usr/local/lib:${ROOT_DIR}/cockpit/src${PYTHONPATH:+:$PYTHONPATH}"
 
 if ! command -v uv >/dev/null 2>&1; then
     printf 'Host tests require uv. Install uv, then rerun make test-host.\n' >&2

@@ -12,7 +12,7 @@ from uuid import uuid4
 
 from . import profiles, reports, store
 from .metrics import log_size
-from .settings import state_dir, worktree_root
+from .settings import default_timeout, state_dir, worktree_root
 
 
 def git(repo: Path, *args: str) -> str:
@@ -27,7 +27,7 @@ def submit(
     task: str,
     profile: str,
     selectors: list[str],
-    timeout: int,
+    timeout: int | None,
     reuse: bool = False,
 ) -> dict:
     repo = Path(git(repo.resolve(), "rev-parse", "--show-toplevel")).resolve()
@@ -39,11 +39,16 @@ def submit(
         or any(item.startswith("-") or len(item) > 300 for item in selectors)
     ):
         raise ValueError("Invalid task label or test selector")
-    if not 1 <= timeout <= 21600:
-        raise ValueError("Timeout must be between 1 and 21600 seconds")
     definitions = profiles.load(git(repo, "show", sha + ":" + profiles.CONFIG))
     if profile not in definitions:
         raise ValueError("Unknown profile; use orcan-executor profiles --repo PATH")
+    timeout = (
+        timeout
+        if timeout is not None
+        else definitions[profile].get("timeout_seconds", default_timeout())
+    )
+    if not 1 <= timeout <= 21600:
+        raise ValueError("Timeout must be between 1 and 21600 seconds")
     required = definitions[profile].get("requires_tests", False)
     if required and (not selectors or any(not item for item in selectors)):
         raise ValueError("This profile requires explicit --test selectors")
@@ -56,6 +61,7 @@ def submit(
         sha=sha,
         task=task,
         profile=profile,
+        lane=definitions[profile].get("lane", "default"),
         selectors=selectors,
         timeout=timeout,
     )
@@ -127,7 +133,8 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             )
         worktree = worktree_root() / job_id / str(job["attempts"] + 1)
         worktree.parent.mkdir(parents=True, exist_ok=True)
-        store.start(job_id, worktree)
+        if not store.start(job_id, worktree):
+            return None
         if on_started is not None:
             on_started()
         job = store.get(job_id)
@@ -136,6 +143,7 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         log_path = attempt / "output.log"
         began = time.monotonic()
         cpu_start = resource.getrusage(resource.RUSAGE_SELF)
+        child_cpu_start = resource.getrusage(resource.RUSAGE_CHILDREN)
         report = dict(
             job_id=job_id,
             sha=job["sha"],
@@ -268,6 +276,7 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         report["seconds"] = round(time.monotonic() - began, 3)
         log_bytes, log_lines = log_size(log_path)
         cpu_end = resource.getrusage(resource.RUSAGE_SELF)
+        child_cpu_end = resource.getrusage(resource.RUSAGE_CHILDREN)
         report["metrics"] = {
             "log_bytes": log_bytes,
             "log_lines": log_lines,
@@ -280,6 +289,13 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                     ).total_seconds(),
                 ),
                 3,
+            ),
+            "child_cpu_seconds": round(
+                child_cpu_end.ru_utime
+                + child_cpu_end.ru_stime
+                - child_cpu_start.ru_utime
+                - child_cpu_start.ru_stime,
+                6,
             ),
             "executor_cpu_seconds": round(
                 cpu_end.ru_utime + cpu_end.ru_stime - cpu_start.ru_utime - cpu_start.ru_stime, 6

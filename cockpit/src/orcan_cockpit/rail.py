@@ -22,6 +22,7 @@ class UtilityRail(Widget):
         yield Button(
             "?", id="rail-shortcuts", tooltip="Keyboard shortcuts (app + tmux)"
         )
+        yield Button("Jobs", id="rail-jobs", tooltip="Background jobs and queue readiness")
         yield Button(
             "Exit",
             id="rail-exit",
@@ -32,6 +33,8 @@ class UtilityRail(Widget):
         event.stop()
         if event.button.id == "rail-shortcuts":
             self.post_message(self.ToolSelected("shortcuts"))
+        elif event.button.id == "rail-jobs":
+            self.post_message(self.ToolSelected("jobs"))
         elif event.button.id == "rail-exit":
             self.post_message(self.ToolSelected("exit"))
 

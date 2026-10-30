@@ -5,9 +5,9 @@ orcan_cmd_settings() {
     if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
         printf 'usage: orcan settings\n'
         printf '  Interactive: edit tool-level settings (tmux windows/prefix,\n'
-        printf '  ttyd port/font) in orcan.config.json. Separate from `orcan init`\n'
+        printf '  ttyd port/font, executor queues/limits) in orcan.config.json. Separate from `orcan init`\n'
         printf '  (workspaces/projects) — never touches workspace data.\n'
-        printf '  After changing: orcan down && orcan up\n'
+        printf '  After changing: orcan sync, then recreate with your runtime flags\n'
         return 0
     fi
 

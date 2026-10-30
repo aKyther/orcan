@@ -25,6 +25,7 @@ from textual.widgets import ListView, Static
 from orcan_cockpit.about_modal import AboutModal
 from orcan_cockpit.commands import WorkspaceCommands
 from orcan_cockpit.first_run import FirstRunModal
+from orcan_cockpit.jobs_modal import JobsModal
 from orcan_cockpit.onboarding import onboarding_already_seen
 from orcan_cockpit.peek_modal import PeekModal
 from orcan_cockpit.picker import WorkspaceList, bootstrap_workspace
@@ -966,6 +967,9 @@ class MainScreen(Screen):
     def action_open_shortcuts(self) -> None:
         self.app.push_screen(ShortcutsModal())
 
+    def action_open_jobs(self) -> None:
+        self.app.push_screen(JobsModal())
+
     def action_open_peek(self) -> None:
         if not self._current_root:
             self.notify("Attach a workspace first", severity="warning")
@@ -992,6 +996,9 @@ class MainScreen(Screen):
         )
 
     def on_utility_rail_tool_selected(self, message: UtilityRail.ToolSelected) -> None:
+        if message.tool == "jobs":
+            self.action_open_jobs()
+            return
         if message.tool == "shortcuts":
             self.action_open_shortcuts()
         elif message.tool == "exit":
@@ -1030,6 +1037,7 @@ class CockpitApp(App):
             "Open workspace picker", "F4", screen.action_toggle_workspaces
         )
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
+        yield SystemCommand("Background jobs", "Queue readiness and recent tasks", screen.action_open_jobs)
         yield SystemCommand("Peek session brief", "F5", screen.action_open_peek)
         yield SystemCommand(
             "Switch to previous workspace", "F6", screen.action_switch_recent_workspace

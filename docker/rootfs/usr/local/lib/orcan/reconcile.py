@@ -497,6 +497,8 @@ def executor_guidance(enabled: bool) -> str:
 ## Background executor: ENABLED configuration
 
 Check `orcan-executor doctor` before use; the flag alone does not mean services are ready.
+Use `doctor --lane heavy|light|default` for the profile queue. A configured lane is not a ready worker.
+`orcan-executor settings` shows effective parallel/queue limits, default timeout and retention.
 Host help: `orcan executor help`; inside Orcan: `orcan-executor help`.
 When ready, prefer the executor for approved heavy or verbose work: builds, compilation,
 tests, static analysis, code generation, documentation and report generation.
@@ -504,6 +506,14 @@ Use committed project profiles for these tasks, not only test profiles. A non-te
 profile needs no --test and must not claim that tests ran. Keep quick reads and small
 interactive edits direct. Do not enqueue unapproved deployment or destructive operations.
 If a procedure is missing, review and commit a suitable profile before submitting.
+Choose a lane supported by a ready worker; heavy JVM builds should use the heavy lane
+when available, with explicit tool parallelism (for example Gradle --max-workers=1).
+Profiles may set timeout_seconds; explicit --timeout wins over profile and runtime defaults.
+The global max_running cap limits simultaneous jobs, not each build's threads or RAM.
+CPU/RAM quotas are container-wide; do not assume Celery isolates subprocess resources.
+Capacity waits are retried without running the procedure; never retry failed tests blindly.
+If no notification integration is available, report pending work and return control rather
+than polling or running an interactive listener.
 Return control after submission; receive the compact result through the registered
 session notification. Do not block the conversation waiting for a long task.
 
@@ -515,6 +525,7 @@ session notification. Do not block the conversation waiting for a long task.
    Small or long approved checks run in a separate detached worktree. Record job ID and SHA; return control.
    New edits require a new committed snapshot. A queued_locally response needs explicit recovery.
    Use --reuse for identical active checks; cancel JOB stops queued obsolete work.
+   A queued_locally response can mean broker outage OR a missing lane worker; fix readiness before recover.
    Codex may opt in with --notify-codex-thread UUID (its own CODEX_THREAD_ID when available).
    Never guess the target session. The supervised notification controller queues a compact result;
    queued is not consumed. After reading it use ack JOB --codex-thread UUID. No tmux typing is used.
@@ -529,7 +540,8 @@ session notification. Do not block the conversation waiting for a long task.
    Dirty executor worktrees are retained; never force-remove them. Keep the Git common directory available.
 
 Dashboard: same host/Tailscale as ttyd, separate default port 8765 (`orcan executor url`).
-It shows usage and measured log/result reduction; token estimates are approximate. Metrics stay out of agent results.
+It shows measured log/result/detail bytes, task throughput and queue/run times over selected history windows.
+Execution duration is not time saved; token estimates are bytes/4, not provider usage or cost. Metrics stay out of agent results.
 After consuming a terminal result, run `orcan-executor ack JOB`; this records use, not test acceptance.
 Redis/Celery are local processes in Orcan. No automatic AI invocation occurs without explicit notification opt-in; no automatic merge, push or deployment occurs.
 """

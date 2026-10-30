@@ -45,6 +45,75 @@ Celery or Uvicorn commands. Host commands take the same subcommands and canonica
 repository paths as the container CLI. `orcan up --with-redis` is the only runtime
 opt-in. Agents learn these commands from their generated workspace context.
 
+## Configure queues and execution budgets
+
+Use `orcan settings` to edit the executor section without changing workspaces:
+
+```json
+{
+  "executor": {
+    "split_lanes": true,
+    "max_running": 2,
+    "max_pending": 100,
+    "timeout_seconds": 1800,
+    "retention_seconds": 3600
+  }
+}
+```
+
+`orcan sync` validates these values and materializes an explicitly configured
+executor section into the runtime environment. Then recreate the container with
+its intended access flags, including `--with-redis`. Sync alone does not restart
+workers. Without an executor section, existing environment settings remain valid.
+`orcan-executor settings` shows the effective process settings and their source.
+
+`max_running` (1..3, default 2) is an atomic instance-wide admission cap shared by
+all lanes. Workers defer capacity-blocked jobs for a later attempt without running
+their procedures or consuming an execution attempt. Failed procedures are not
+retried by this mechanism. Queued jobs can still be cancelled. A stale running job
+after worker loss occupies capacity until explicitly recovered.
+
+This cap limits jobs, not CPU or memory. Docker's `resources.cpus` and
+`resources.memory` limits apply to the whole container. Gradle/JVM/compiler
+parallelism must be set in project commands. For a small JVM environment, start
+with one heavy build and a lightweight lane, then measure resource pressure.
+Do not assume that three worker processes mean three total OS processes.
+
+A profile may set `"timeout_seconds": 600`. Explicit `submit --timeout` wins,
+then the committed profile timeout, then the runtime default. `max_pending`
+remains 1..10000; detailed-result retention remains 60..86400 seconds.
+
+Use `doctor --lane heavy` to require a matching live worker lock and readiness
+lease. `doctor` without a lane reports whether any worker is ready. Submission
+will not publish a task into an unavailable lane: it preserves a local queued job
+and reports `queued_locally` with recovery instructions. Start/fix the lane worker,
+then use `recover --job JOB`. Optional lane readiness is also shown by plugin doctor.
+
+## Jobs in the cockpit and dashboard measurements
+
+Open **Jobs** in the cockpit utility rail or **Background jobs** in its command
+palette. The panel shows the instance's latest 20 jobs from the last three hours,
+plus active jobs, profile queue, step, commit and readiness. Refresh explicitly
+with the button or `r`; Escape closes it. It does not type into tmux or acknowledge
+results. Use the shown CLI commands for result retrieval or queued cancellation.
+The dashboard remains available through `orcan executor url`.
+
+Dashboard charts use local JavaScript without a CDN. They show completed tasks,
+log bytes against compact completion plus CLI detail bytes, and average queue/run
+time. A table exposes the same values. Time buckets use completion timestamps;
+lines connect buckets that contain completed jobs. Profile/repository/queue usage
+shows which procedures used the executor.
+
+The result-plus-details comparison is a baseline against reading all logs, not a
+measurement of actual model input. Notification bytes are separate to avoid
+counting a delivered result twice. A negative difference is shown honestly.
+Task duration is not developer time saved. Token figures remain a bytes/4 estimate;
+actual model tokens, cached input and billing costs are unavailable.
+
+Child CPU counters cover OS-accounted waited-for child processes during the job,
+including tools that exit and are reaped. They exclude still-running JVM daemons,
+unreaped descendants and remote models. They are not whole-container CPU usage.
+
 ## Define project procedures
 
 Inside Orcan, in a project:
@@ -328,15 +397,15 @@ at a time. Avoid raising parallelism blindly on memory-constrained JVM workloads
 A procedure can declare `"lane": "light"` or `"lane": "heavy"`; omitted means
 `"default"`. Routing reads the committed procedure, not dirty configuration.
 Set `ORCAN_EXECUTOR_SPLIT_LANES=1` when starting Orcan to supervise one additional
-worker for each lane. This permits at most three simultaneous checks, one per lane,
+worker for each lane. This starts three workers, one per lane; the global max_running cap (default 2) limits simultaneous checks,
 and keeps lightweight checks out of a queue occupied by JVM work. It does not impose
 CPU or memory quotas. Keep it disabled on small machines unless needed.
 
 For isolated development, foreground `orcan-executor worker --lane light` or
 `--lane heavy` serves the corresponding queue. A lane without a matching worker
-remains queued; the default worker does not steal its jobs. General `doctor`
+is retained locally with queued_locally until explicitly recovered; the default worker does not steal its jobs. General `doctor`
 readiness means at least one worker is available, not that every optional lane is
-served. Use the Supervisor process list to verify enabled lane workers.
+served. Use doctor --lane LANE and the Supervisor process list to verify enabled lane workers.
 
 ### Recovery and retention
 

@@ -42,6 +42,13 @@ def index():
     return HTMLResponse(Path(__file__).with_name("dashboard.html").read_text())
 
 
+@app.get("/assets/charts.js")
+def charts():
+    return FileResponse(
+        Path(__file__).with_name("dashboard-charts.js"), media_type="text/javascript"
+    )
+
+
 @app.get("/api/board")
 def board(hours: int = Query(default=3, ge=1, le=720)):
     return store.board(hours)

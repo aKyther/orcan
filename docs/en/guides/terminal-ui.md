@@ -335,3 +335,13 @@ Cursor rule (auto when touching these paths): `.cursor/rules/terminal-ui.mdc`.
 - [Docker reference](../reference/docker.md) — image contents including tmux 3.6a
 - [Environment variables](../reference/environment.md) — `TTYD_THEME`, fonts
 - [AI project context](../ai/project-context.md) — agent ritual
+
+## Background jobs
+
+The utility rail's **Jobs** button and command palette's **Background jobs** open
+an on-demand executor overview. It shows queue readiness, the global job cap and
+recent instance jobs with repository, SHA, profile, lane and step. Press `r` to
+refresh and Escape to return to tmux. No task is acknowledged by displaying it.
+Use `orcan-executor result JOB` for results and `cancel JOB` for obsolete queued
+work. The browser dashboard adds historical charts and measured byte comparisons;
+see [Background executor](background-executor.md).

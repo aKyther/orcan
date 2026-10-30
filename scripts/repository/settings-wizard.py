@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Interactive wizard to edit tool-level settings (tmux / ttyd) in
 orcan.config.json — separate from `orcan init`'s workspace/project editing
-(config-wizard.py / context_tui.py). Only touches the top-level "tmux" and
-"ttyd" keys; never reads or writes "workspaces".
+(config-wizard.py / context_tui.py). Only touches the top-level "tmux", "ttyd" and "executor" keys; never reads or writes "workspaces".
 """
 
 from __future__ import annotations
@@ -15,13 +14,18 @@ from typing import Any
 
 ROOT = Path(os.environ.get("ORCAN_HOME") or Path(__file__).resolve().parents[2])
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config_io import (  # noqa: E402
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2] / "docker/rootfs/usr/local/lib")
+)
+from config_io import (
     discover_config,
     dump_config,
     load_config,
 )
-from defaults import TMUX_DEFAULTS as DEFAULT_TMUX, TTYD_DEFAULTS as DEFAULT_TTYD  # noqa: E402
-from wizard_ui import (  # noqa: E402
+from defaults import TMUX_DEFAULTS as DEFAULT_TMUX
+from defaults import TTYD_DEFAULTS as DEFAULT_TTYD
+from orcan.executor_config import resolve as resolve_executor
+from wizard_ui import (
     ask,
     ask_yes_no,
     die,
@@ -44,6 +48,12 @@ def summarize(cfg: dict[str, Any]) -> None:
     info(
         f"  ttyd: host {ttyd.get('bind', '0.0.0.0')}:{ttyd.get('host_port', '?')}, "
         f"font {ttyd.get('font_size', '?')}"
+    )
+    executor = resolve_executor(cfg.get("executor", {}))
+    info(
+        f"  executor: split lanes={executor['split_lanes']}, max running={executor['max_running']}, "
+        f"pending={executor['max_pending']}, timeout={executor['timeout_seconds']}s, "
+        f"log retention={executor['retention_seconds']}s"
     )
 
 
@@ -115,6 +125,28 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
         warn("invalid ttyd numbers — settings unchanged")
 
 
+def edit_executor(cfg: dict[str, Any]) -> None:
+    current = resolve_executor(cfg.get("executor", {}))
+    proposed = dict(current)
+    proposed["split_lanes"] = ask_yes_no(
+        "Enable default/light/heavy workers?", default=current["split_lanes"]
+    )
+    try:
+        for key, label in [
+            ("max_running", "Maximum simultaneous jobs across workers (1..3)"),
+            ("max_pending", "Maximum queued plus running jobs (1..10000)"),
+            ("timeout_seconds", "Default job timeout in seconds (1..21600)"),
+            ("retention_seconds", "Detailed log retention in seconds (60..86400)"),
+        ]:
+            proposed[key] = int(ask(label, str(current[key])))
+        cfg["executor"] = current | resolve_executor(proposed)
+    except ValueError as error:
+        warn(f"{error} — executor settings unchanged")
+    info(
+        "Requires --with-redis. The parallel job cap is enforced; CPU/RAM remain container-wide limits."
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -158,6 +190,12 @@ def main() -> None:
         heading("ttyd")
         edit_ttyd(cfg)
 
+    if ask_yes_no(
+        "Change executor (queues / parallel jobs / timeout / retention)?", default=False
+    ):
+        heading("executor")
+        edit_executor(cfg)
+
     cfg.setdefault("tmux", dict(DEFAULT_TMUX))
     cfg.setdefault("ttyd", dict(DEFAULT_TTYD))
 
@@ -170,7 +208,9 @@ def main() -> None:
     dump_config(config_path, cfg)
     success(f"saved {config_path}")
     info()
-    info("Next: orcan down && orcan up (tmux/ttyd changes need a container restart)")
+    info(
+        "Next: orcan sync, then recreate with your runtime flags (including --with-redis); settings are not applied to a running process automatically"
+    )
 
 
 if __name__ == "__main__":

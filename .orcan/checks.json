@@ -463,6 +463,80 @@
       "junit": [
         ".orcan/history-*-results.xml"
       ]
+    },
+    "cockpit-executor-final": {
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/cockpit-executor-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/cockpit-host-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "cockpit",
+            "--locked",
+            "python",
+            "tests/smoke/test-cockpit-jobs.py"
+          ]
+        },
+        {
+          "argv": [
+            "node",
+            "--check",
+            "executor/src/orcan_executor/dashboard-charts.js"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor",
+            "cockpit/src/orcan_cockpit/jobs_modal.py",
+            "tests/host/test_executor_settings.py",
+            "tests/smoke/test-cockpit-jobs.py"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/cockpit-*-results.xml"
+      ]
     }
   }
 }

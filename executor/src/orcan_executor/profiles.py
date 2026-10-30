@@ -19,6 +19,11 @@ def load(text: str) -> dict:
             raise ValueError("requires_tests must be a boolean")
         if profile.get("lane", "default") not in {"default", "light", "heavy"}:
             raise ValueError("Profile lane must be default, light or heavy")
+        if "timeout_seconds" in profile and (
+            type(profile["timeout_seconds"]) is not int
+            or not 1 <= profile["timeout_seconds"] <= 21600
+        ):
+            raise ValueError("Profile timeout_seconds must be an integer from 1 to 21600")
         steps = profile.get("steps")
         if not isinstance(steps, list) or not 1 <= len(steps) <= 20:
             raise ValueError("A profile requires 1..20 steps")

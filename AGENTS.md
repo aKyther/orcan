@@ -124,6 +124,14 @@ detailed-result retention is one hour; compact history/measurements remain for 3
 (up to 10000 expired entries). Prefer committed executor profiles for approved heavy
 builds, analysis, code/report generation and docs, as well as tests. Quick reads and
 interactive edits stay direct. Preserve active/dirty worktrees.
+Use `orcan-executor doctor --lane LANE` for the profile queue and inspect effective
+`settings` before heavy submissions. The shared `max_running` cap limits jobs,
+not tool threads or per-job CPU/RAM. Keep Gradle/compiler parallelism explicit.
+Profiles may declare timeout_seconds; --timeout wins over profile/runtime defaults.
+Treat queued_locally as pending recovery, including missing lane workers. Do not
+poll or block on listeners. Prefer session notifications and return control.
+Dashboard charts compare measured log/result/detail bytes and elapsed times;
+bytes/4 token estimates and summed task duration are not actual model costs or time saved.
 Use isolated smoke fixtures, never restart the live Orcan for verification.
 `executor/src/orcan_executor/notifications.py` owns explicit local Codex queue delivery. No destination
 means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.

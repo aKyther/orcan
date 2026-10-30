@@ -12,7 +12,9 @@ Inside Orcan:  orcan-executor COMMAND ...
 
   help / --help             This guide; no running container required
   url                       Dashboard URL (same ttyd host, separate port; default 8765)
-  doctor                    Check module, broker and worker readiness
+  doctor [--lane LANE]       Check broker and the matching local worker lease/lock
+  settings                  Effective queue/parallel limits, timeout and retention
+  overview                  Bounded task overview used by the cockpit
   init --repo PATH --kind python|java|scala|custom
                             Scaffold project procedures; review and commit them
   profiles --repo PATH      List procedures from the committed snapshot
@@ -25,7 +27,8 @@ Inside Orcan:  orcan-executor COMMAND ...
   deliveries [--job JOB]     Notification states: queued is not consumed
   ack JOB [--codex-thread UUID]
                             Confirm consumption; does not accept code or test outcome
-  stats                     Payload bytes, reductions, timings; model tokens unavailable
+  stats [--hours N]         Payload bytes, reductions, timings; model tokens unavailable
+  history [--hours N]       Compact history; default last 3 hours
   result JOB                Read the small result once it is available
   status [--failures]        Bounded list of retained jobs
   artifacts JOB             List full report and JUnit XML files, 50 per page
@@ -34,8 +37,8 @@ Inside Orcan:  orcan-executor COMMAND ...
   listen --after STREAM_ID  Completion JSONL; separate controller process only
   recover [--job JOB]        Recover delivery after a broker/worker interruption
 
-Use long or small approved checks without flooding the agent with successful logs.
-Default completed-result retention: 1 hour. Never block an interactive agent on
+Use reviewed profiles for heavy builds, analysis, generation, reports and tests.
+Default detailed-result retention: 1 hour; compact history: 30 days / 10000 expired entries. Never block an interactive agent on
 listen or poll status repeatedly. Full suites require an explicit scope choice.
 No manual uv, Celery or Uvicorn setup is needed in the built Orcan image.
 Guide: docs/en/guides/background-executor.md

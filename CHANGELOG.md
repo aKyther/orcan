@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Executor settings wizard, atomic cross-lane running-job limits, profile timeouts, queue-specific readiness and durable local recovery for unavailable workers.
+- Cockpit Jobs overview and local dashboard charts for throughput, queue/run times and log/result/detail bytes, with accessible tables and repository/profile/queue usage.
+- Measured waited-for child CPU time; agent guidance distinguishes resource limits, estimated token reduction and unavailable model cost.
+
+### Added
+
 - Preserve compact executor history and numeric measurements for 30 days after log expiry, capped at 10000 expired entries; add dashboard time windows and `history --hours` / `stats --hours`.
 - Guide agents to use reviewed executor profiles for approved heavy builds, analysis, generation and reports, as well as tests.
 

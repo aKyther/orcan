@@ -6,7 +6,7 @@ from pathlib import Path
 
 from . import engine, events, profiles, store
 from .metrics import model_result, wire
-from .settings import integer, queue_name, state_dir
+from .settings import effective, queue_name, state_dir
 
 
 def emit(value):
@@ -25,6 +25,12 @@ def enqueue(job_id: str):
         )
     )[job["profile"]]
     lane = definition.get("lane", "default")
+    from .readiness import lanes
+
+    if not lanes()[lane]["ready"]:
+        raise ValueError(
+            f"Worker for lane {lane} is unavailable; enable the lane and recover this local job"
+        )
     queue = queue_name() + (":" + lane if lane != "default" else "")
     verify.apply_async(args=[job_id], task_id=job_id, queue=queue)
 
@@ -115,7 +121,12 @@ def parser():
     )
     logs.add_argument("--offset", type=int, default=0)
     logs.add_argument("--limit", type=int, default=4000)
-    commands.add_parser("doctor", help="Bounded readiness check; exit nonzero when unavailable")
+    doctor = commands.add_parser(
+        "doctor", help="Bounded readiness check; optionally require a particular lane"
+    )
+    doctor.add_argument("--lane", choices=["default", "light", "heavy"])
+    commands.add_parser("settings", help="Effective executor configuration and its source")
+    commands.add_parser("overview", help="Bounded task summary for the terminal cockpit; no logs")
     status = commands.add_parser("status")
     status.add_argument("--failures", action="store_true")
     result = commands.add_parser("result")
@@ -199,6 +210,42 @@ def main(argv=None):
                     ],
                 }
             )
+        elif args.command == "overview":
+            from .readiness import lanes
+
+            board = store.board(3)
+            try:
+                lane_states = lanes()
+            except Exception:
+                lane_states = {}
+            emit(
+                {
+                    "counts": board["counts"],
+                    "settings": effective(),
+                    "lanes": lane_states,
+                    "jobs": [
+                        {
+                            key: job[key]
+                            for key in (
+                                "id",
+                                "repo",
+                                "sha",
+                                "task",
+                                "profile",
+                                "status",
+                                "created",
+                                "started",
+                                "progress",
+                                "details_expired",
+                            )
+                        }
+                        | {"seconds": (job["summary"] or {}).get("seconds")}
+                        for job in board["jobs"][:20]
+                    ],
+                }
+            )
+        elif args.command == "settings":
+            emit(effective())
         elif args.command == "stats":
             board = store.board(args.hours)
             board["stats"]["measured_model_tokens"] = None
@@ -306,7 +353,23 @@ def main(argv=None):
                 args.repo, "rev-parse", "--verify", "--end-of-options", args.sha + "^{commit}"
             )
             definitions = profiles.load(engine.git(args.repo, "show", sha + ":" + profiles.CONFIG))
-            emit({"sha": sha, "profiles": list(definitions)})
+            emit(
+                {
+                    "sha": sha,
+                    "profiles": list(definitions),
+                    "procedures": [
+                        {
+                            "name": name,
+                            "lane": profile.get("lane", "default"),
+                            "timeout_seconds": profile.get(
+                                "timeout_seconds", effective()["timeout_seconds"]
+                            ),
+                            "requires_tests": profile.get("requires_tests", False),
+                        }
+                        for name, profile in definitions.items()
+                    ],
+                }
+            )
         elif args.command == "doctor":
             import os
 
@@ -317,19 +380,31 @@ def main(argv=None):
                     broker = bool(events.client().ping())
                 except Exception:
                     pass
-            worker = False
+            from .readiness import lanes
+
+            lane_states = {}
             if enabled and broker:
                 try:
-                    worker = store.board()["worker_running"] and bool(
-                        any(
-                            events.client().get(queue_name() + suffix + ":worker-ready")
-                            for suffix in ("", ":light", ":heavy")
-                        )
-                    )
+                    lane_states = lanes()
                 except Exception:
                     pass
+            worker = (
+                lane_states.get(args.lane, {}).get("ready", False)
+                if args.lane
+                else any(value["ready"] for value in lane_states.values())
+            )
             ready = enabled and broker and worker
-            emit({"enabled": enabled, "broker": broker, "worker": worker, "ready": ready})
+            emit(
+                {
+                    "enabled": enabled,
+                    "broker": broker,
+                    "worker": worker,
+                    "ready": ready,
+                    "lane": args.lane,
+                    "lanes": lane_states,
+                    "settings": effective(),
+                }
+            )
             return 0 if ready else 2
         elif args.command == "submit":
             import os
@@ -361,22 +436,22 @@ def main(argv=None):
                     args.task,
                     args.profile,
                     args.test,
-                    args.timeout
-                    if args.timeout is not None
-                    else integer("timeout-seconds", 1800, 21600),
+                    args.timeout,
                     reuse=args.reuse,
                 )
                 if target:
                     register(job["id"], target)
             try:
                 enqueue(job["id"])
-            except Exception:
+            except Exception as error:
                 emit(
                     {
                         "job_id": job["id"],
                         "sha": job["sha"],
                         "status": "queued_locally",
-                        "error": "Broker unavailable; start Redis and run orcan-executor recover --job "
+                        "error": (str(error) + "; run orcan-executor recover --job " + job["id"])
+                        if isinstance(error, ValueError)
+                        else "Broker unavailable; start Redis and run orcan-executor recover --job "
                         + job["id"],
                     }
                 )

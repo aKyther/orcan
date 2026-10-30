@@ -5,7 +5,15 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from .metrics import measure_result, wire
-from .settings import HISTORY_DAYS, HISTORY_LIMIT, max_pending, retention_seconds, state_dir
+from .settings import (
+    HISTORY_DAYS,
+    HISTORY_LIMIT,
+    effective,
+    max_pending,
+    max_running,
+    retention_seconds,
+    state_dir,
+)
 
 TERMINAL = {"passed", "failed", "error", "timed_out", "cancelled"}
 
@@ -47,6 +55,7 @@ def database(directory: Path | None = None):
             connection.execute("ALTER TABLE jobs ADD COLUMN progress TEXT")
         for name, definition in {
             "details_expired": "INTEGER NOT NULL DEFAULT 0",
+            "lane": "TEXT",
             "acknowledged": "TEXT",
             "detail_reads": "INTEGER NOT NULL DEFAULT 0",
             "detail_bytes": "INTEGER NOT NULL DEFAULT 0",
@@ -103,7 +112,7 @@ def create(job: dict, reuse: bool = False) -> str:
                 "Executor capacity reached; cancel obsolete queued work or wait for a completion event"
             )
         db.execute(
-            "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created) VALUES(?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created,lane) VALUES(?,?,?,?,?,?,?,?,?,?)",
             (
                 job["id"],
                 job["repo"],
@@ -114,6 +123,7 @@ def create(job: dict, reuse: bool = False) -> str:
                 json.dumps(job["selectors"]),
                 job["timeout"],
                 now(),
+                job.get("lane", "default"),
             ),
         )
         event(
@@ -155,8 +165,14 @@ def listing(failures: bool = False) -> list[dict]:
         ]
 
 
-def start(job_id: str, worktree: Path) -> None:
+def start(job_id: str, worktree: Path) -> bool:
     with database() as db:
+        db.execute("BEGIN IMMEDIATE")
+        running = db.execute(
+            "SELECT COUNT(*) FROM jobs WHERE status='running' AND id<>?", (job_id,)
+        ).fetchone()[0]
+        if running >= max_running():
+            return False
         db.execute(
             "UPDATE jobs SET status='running', attempts=attempts+1, started=?, finished=NULL, worktree=? WHERE id=?",
             (now(), str(worktree), job_id),
@@ -173,6 +189,8 @@ def start(job_id: str, worktree: Path) -> None:
                 "worktree": str(worktree),
             },
         )
+
+    return True
 
 
 def finish(job_id: str, status: str, summary: dict, report: Path) -> dict:
@@ -268,6 +286,7 @@ def board(hours: int | None = None) -> dict:
             COALESCE(AVG(json_extract(summary, '$.metrics.queue_seconds')),0) AS average_queue_seconds,
             COALESCE(AVG(json_extract(summary, '$.seconds')),0) AS average_run_seconds,
             COALESCE(SUM(json_extract(summary, '$.seconds')),0) AS total_run_seconds,
+            COALESCE(SUM(json_extract(summary, '$.metrics.child_cpu_seconds')),0) AS child_cpu_seconds,
             COALESCE(SUM(json_extract(summary, '$.metrics.executor_cpu_seconds')),0) AS executor_cpu_seconds
             FROM scoped_jobs WHERE summary IS NOT NULL
         """).fetchone()
@@ -320,6 +339,45 @@ def board(hours: int | None = None) -> dict:
         else None
     )
     aggregate["estimated_tokens_avoided"] = max(0, aggregate["reduction_bytes"] // 4)
+    interval = (
+        300
+        if hours and hours <= 3
+        else 3600
+        if hours and hours <= 24
+        else 21600
+        if hours and hours <= 168
+        else 86400
+    )
+    with database() as db:
+        cutoff = (datetime.now(UTC) - timedelta(hours=hours or 720)).isoformat()
+        timeline = [
+            dict(row)
+            for row in db.execute(
+                "SELECT CAST(strftime('%s',finished) AS INTEGER)/?*? AS bucket, "
+                "COUNT(*) AS jobs, SUM(status='passed') AS passed, SUM(status<>'passed') AS problems, "
+                "COALESCE(SUM(json_extract(summary,'$.metrics.log_bytes')),0) AS log_bytes, "
+                "COALESCE(SUM(json_extract(summary,'$.metrics.result_bytes')),0) AS result_bytes, "
+                "COALESCE(SUM(detail_wire_bytes),0) AS detail_wire_bytes, "
+                "COALESCE(AVG(json_extract(summary,'$.metrics.queue_seconds')),0) AS queue_seconds, "
+                "COALESCE(AVG(json_extract(summary,'$.seconds')),0) AS run_seconds "
+                "FROM jobs WHERE finished>=? GROUP BY bucket ORDER BY bucket",
+                (interval, interval, cutoff),
+            )
+        ]
+        profiles = [
+            dict(row)
+            for row in db.execute(
+                "SELECT repo,profile,lane,COUNT(*) AS jobs,COALESCE(SUM(json_extract(summary,'$.seconds')),0) AS seconds "
+                "FROM jobs WHERE finished>=? GROUP BY repo,profile,lane ORDER BY jobs DESC LIMIT 20",
+                (cutoff,),
+            )
+        ]
+    aggregate["return_with_details_bytes"] = (
+        aggregate["result_bytes"] + aggregate["detail_wire_bytes"]
+    )
+    aggregate["reduction_with_details_bytes"] = (
+        aggregate["log_bytes"] - aggregate["return_with_details_bytes"]
+    )
     worker_running = False
     for lock_path in [
         state_dir() / "worker.lock",
@@ -337,6 +395,10 @@ def board(hours: int | None = None) -> dict:
     return {
         "counts": counts,
         "jobs": jobs,
+        "timeline": timeline,
+        "timeline_bucket_seconds": interval,
+        "profile_usage": profiles,
+        "settings": effective(),
         "worker_running": worker_running,
         "stats": aggregate,
         "retention_seconds": retention_seconds(),

@@ -17,11 +17,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(
     0, str(Path(__file__).resolve().parents[2] / "docker/rootfs/usr/local/lib")
 )
-from config_io import die, discover_config  # noqa: E402
+from config_io import die, discover_config
 from config_io import load_config as load_user_config
-from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS  # noqa: E402
+from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS
+from orcan.executor_config import ENVIRONMENT as EXECUTOR_ENVIRONMENT
+from orcan.executor_config import resolve as resolve_executor
 from orcan.identity import validate_identity
-from path_guards import (  # noqa: E402
+from path_guards import (
     DEFAULT_DEVELOPER_WORKSPACES,
     PathGuardError,
     checked_project_dir,
@@ -591,8 +593,10 @@ def _resolved_runtime_settings(cfg: dict) -> dict:
             type(cockpit[key]) is not int or not minimum <= cockpit[key] <= maximum
         ):
             die("Invalid cockpit budget: " + key)
+    executor = resolve_executor(cfg.get("executor", {}))
     return {
         **({"cockpit": cockpit} if cockpit else {}),
+        "executor": executor,
         "tmux": {
             "initial_windows": initial_windows,
             "history_limit": history_limit,
@@ -813,6 +817,10 @@ def main() -> None:
     )
     ttyd = built["runtime"]["ttyd"]
     resources = built["runtime"]["resources"]
+    if config_path and "executor" in load_config(config_path):
+        for key, variable in EXECUTOR_ENVIRONMENT.items():
+            value = built["runtime"]["executor"][key]
+            ensure_env_key(env_path, variable, str(int(value)) if isinstance(value, bool) else str(value))
     # Studio creates a new configuration exclusively before this first sync.
     # Its explicit limits/port must win over copied example values; ordinary
     # sync continues preserving existing host-specific overrides.

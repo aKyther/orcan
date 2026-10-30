@@ -89,6 +89,9 @@ def test_profile_lane_routes_work_without_changing_global_queue(repo, monkeypatc
     job = submit(repo)
     send = Mock()
     monkeypatch.setattr(verify, "apply_async", send)
+    from orcan_executor import readiness
+
+    monkeypatch.setattr(readiness, "lanes", lambda: {"heavy": {"ready": True}})
     cli.enqueue(job["id"])
     assert send.call_args.kwargs["queue"].endswith(":heavy")
     assert send.call_args.kwargs["task_id"] == job["id"]

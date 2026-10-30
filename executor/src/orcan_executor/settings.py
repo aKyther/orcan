@@ -58,3 +58,30 @@ def max_pending() -> int:
     if not 1 <= value <= 10000:
         raise ValueError("Pending limit must be between 1 and 10000")
     return value
+
+
+def max_running() -> int:
+    value = int(os.environ.get("ORCAN_EXECUTOR_MAX_RUNNING", "2"))
+    if not 1 <= value <= 3:
+        raise ValueError("Running limit must be between 1 and 3")
+    return value
+
+
+def default_timeout() -> int:
+    value = int(os.environ.get("ORCAN_EXECUTOR_TIMEOUT_SECONDS", "1800"))
+    if not 1 <= value <= 21600:
+        raise ValueError("Default timeout must be between 1 and 21600 seconds")
+    return value
+
+
+def effective() -> dict:
+    return {
+        "split_lanes": os.environ.get("ORCAN_EXECUTOR_SPLIT_LANES", "0") == "1",
+        "max_pending": max_pending(),
+        "max_running": max_running(),
+        "timeout_seconds": default_timeout(),
+        "retention_seconds": retention_seconds(),
+        "history_days": HISTORY_DAYS,
+        "history_limit": HISTORY_LIMIT,
+        "source": "process environment with built-in defaults; JSON is materialized by orcan sync",
+    }

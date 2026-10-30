@@ -39,6 +39,7 @@ def check(name: str) -> dict:
         raise ValueError("Unknown plugin")
     enabled = ready = False
     detail = ""
+    lane_states = {}
     if name == "executor":
         enabled = os.environ.get("ORCAN_REDIS_ENABLED") == "1"
         if enabled:
@@ -51,6 +52,14 @@ def check(name: str) -> dict:
                     timeout=10,
                 )
                 ready = process.returncode == 0
+                try:
+                    report = json.loads(process.stdout[:32768])
+                    lane_states = {
+                        key: {"ready": bool(value.get("ready")), "configured": bool(value.get("configured"))}
+                        for key, value in report.get("lanes", {}).items() if key in {"default", "light", "heavy"}
+                    }
+                except (ValueError, AttributeError, TypeError):
+                    pass
                 detail = (
                     "broker and worker ready"
                     if ready
@@ -94,6 +103,9 @@ def check(name: str) -> dict:
         "ready": bool(ready),
         "detail": detail,
     }
+    if name == "executor":
+        result["lanes"] = lane_states
+        result["remedy"] = "orcan-executor doctor --lane LANE; inspect Supervisor workers, then recover locally queued jobs" if enabled else "Enable with host orcan up --with-redis"
     if name == "cockpit":
         result["resources"] = resources()
     return result

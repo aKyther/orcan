@@ -387,3 +387,20 @@ Versioned docs URLs: https://akyther.github.io/orcan/latest/ — see [Deployment
 - [Release process](release.md)
 - [Makefile](../reference/makefile.md)
 - [Path parity](../concepts/path-parity.md)
+
+## Executor cockpit and chart checks
+
+`uv run --project cockpit --locked python tests/smoke/test-cockpit-jobs.py`
+checks the Jobs sheet with a fake executor, without touching a user tmux session.
+`uv run --project executor --locked pytest executor/tests` covers admission races,
+lane leases, timeouts, compact history and chart aggregations.
+
+With local Playwright/Chromium and its system libraries available, run
+`NODE_PATH="$PWD/.orcan-dev-ux/playwright-node/node_modules" node tests/smoke/executor-dashboard.js`.
+It creates synthetic SQLite data and a temporary loopback server, checks chart
+rendering, tables, details, period changes and a narrow viewport, then removes its
+own fixtures. It does not connect to a live executor or Codex session. A screenshot
+is written to `/tmp/orcan-executor-dashboard.png`; override with
+`ORCAN_DASHBOARD_SCREENSHOT`. Missing browser libraries are an environment failure,
+not a passing browser test. The committed `cockpit-executor-final` profile runs
+host/executor tests, the fake cockpit smoke, JavaScript syntax and strict docs.
