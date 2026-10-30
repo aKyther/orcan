@@ -7,6 +7,21 @@
 
 set -Eeuo pipefail
 
+ownership_args=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --chown-exclude)
+            [[ $# -gt 1 && "$2" == /* ]] || {
+                printf 'Error: --chown-exclude requires an absolute directory path\n' >&2
+                exit 2
+            }
+            ownership_args+=(--exclude "$2")
+            shift 2
+            ;;
+        *) printf 'Error: unknown update-env argument: %s\n' "$1" >&2; exit 2 ;;
+    esac
+done
+
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ORCAN_ROOT="${ORCAN_ROOT:-$(cd -- "${SCRIPT_DIR}/../.." && pwd)}"
 ORCAN_HOME="${ORCAN_HOME:-${ORCAN_ROOT}}"
@@ -232,7 +247,15 @@ if [[ -d "${DOTFILES_SRC}" ]]; then
     done
 fi
 
-if chown -R "${USER_UID}:${USER_GID}" "${ORCAN_DATA}" 2>/dev/null; then
+ownership_cmd=(chown -R "${USER_UID}:${USER_GID}" "${ORCAN_DATA}")
+if (( ${#ownership_args[@]} )); then
+    printf 'Updating data ownership with directory exclusions (this invocation only)\n'
+    ownership_cmd=("${ORCAN_ROOT}/scripts/repository/python.sh"
+        "${ORCAN_ROOT}/scripts/repository/data-ownership.py"
+        --uid "${USER_UID}" --gid "${USER_GID}" --root "${ORCAN_DATA}"
+        "${ownership_args[@]}")
+fi
+if "${ownership_cmd[@]}" 2>/dev/null; then
     :
 else
     printf 'Warning: could not chown %s (UID=%s GID=%s); fix ownership if mounts fail\n' \

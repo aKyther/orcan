@@ -4,13 +4,21 @@
 orcan_cmd_sync() {
     local prune_orphans=0
     local arg
-    local -a rest=()
+    local -a ownership_args=()
 
     while [[ $# -gt 0 ]]; do
         arg="$1"
         shift
         case "${arg}" in
             --prune-orphans) prune_orphans=1 ;;
+            --chown-exclude)
+                [[ $# -gt 0 && "$1" == /* ]] || {
+                    orcan_usage_error "orcan sync: --chown-exclude requires an absolute directory path"
+                    return 2
+                }
+                ownership_args+=(--chown-exclude "$1")
+                shift
+                ;;
             *) orcan_usage_error "orcan sync: unknown argument: ${arg}" ;;
         esac
     done
@@ -31,7 +39,7 @@ orcan_cmd_sync() {
         PROJECT_DIR="${PROJECT_DIR:-${ORCAN_HOME}}" \
         ORCAN_HOME="${ORCAN_HOME}" \
         ORCAN_ROOT="${ORCAN_ROOT}" \
-        "${ORCAN_SCRIPTS}/update-env.sh"
+        "${ORCAN_SCRIPTS}/update-env.sh" "${ownership_args[@]}"
 
     orcan_sync_reconcile_host
     orcan_sync_reconcile_running_container "${prune_orphans}"

@@ -17,6 +17,8 @@ Commands:
                            reconcile into a running container. --prune-orphans
                            also kills orphaned tmux sessions (default: report
                            only, never kill one that might have an active agent)
+                           --chown-exclude /absolute/path skips ownership changes
+                           for that subtree; repeat for multiple directories
   migrate [--yes]          Move projects under managed root (dry-run by default)
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects

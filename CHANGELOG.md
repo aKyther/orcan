@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `orcan sync --chown-exclude /absolute/path` skips ownership changes and traversal of selected data subtrees, including SSHFS mounts; the flag can be repeated.
+
 ### Documentation
 
 - Explain the first executor verification, exact-SHA result retrieval and acknowledgement after startup.
