@@ -56,6 +56,7 @@ store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis
     assert.ok(await page.locator('#timeline-rows tr').count() > 1);
     assert.ok((await page.locator('#coverage-note').innerText()).includes('Zakończone zadania: 3'));
     assert.ok((await page.locator('#coverage-note').innerText()).includes('Odzyskane wpisy: 1'));
+    await page.getByText('Dane wykresów i zastosowania', {exact:true}).click();
     assert.ok((await page.locator('#timeline-rows').innerText()).includes('brak pełnych danych'));
     assert.ok(await page.locator('#tasks-chart').evaluate(canvas => canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some(value => value !== 0)));
     await page.locator('#jobs tr').first().click();

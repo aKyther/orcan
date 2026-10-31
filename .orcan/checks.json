@@ -586,6 +586,26 @@
         },
         {
           "argv": [
+            "node",
+            "--test",
+            "tests/smoke/test-executor-charts.cjs"
+          ]
+        },
+        {
+          "argv": [
+            "env",
+            "ORCAN_DASHBOARD_SCREENSHOT=.orcan/charts-dashboard.png",
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "python",
+            "executor/smoke/dashboard.py"
+          ]
+        },
+        {
+          "argv": [
             "uv",
             "run",
             "--project",
@@ -633,24 +653,6 @@
         },
         {
           "argv": [
-            "node",
-            "--test",
-            "tests/smoke/test-executor-charts.cjs"
-          ]
-        },
-        {
-          "argv": [
-            "uv",
-            "run",
-            "--project",
-            "executor",
-            "--locked",
-            "python",
-            "executor/smoke/dashboard.py"
-          ]
-        },
-        {
-          "argv": [
             "make",
             "docs-check"
           ]
@@ -658,6 +660,9 @@
       ],
       "junit": [
         ".orcan/charts-*-results.xml"
+      ],
+      "artifacts": [
+        ".orcan/charts-dashboard.png"
       ]
     }
   }
