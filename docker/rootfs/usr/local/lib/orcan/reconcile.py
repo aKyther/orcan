@@ -512,10 +512,12 @@ successful command/test output into the session. For pytest, request JUnit XML w
 profile's junit globs (including custom test tasks). Other test runners should emit
 JUnit XML or use a reviewed project wrapper that produces it. Preserve the command's
 real exit code; never hide failure with `|| true` or a pipeline that reports success.
-A test profile must actually produce its expected report; missing XML or zero tests
-is not evidence that the intended tests passed. Non-test procedures rely on the
-command exit code; retain full diagnostics as artifacts. Without structured failures,
-the compact fallback may contain mixed log lines; do not claim it is failure-only.
+Set require_junit=true for test profiles (minimum_tests defaults to 1). Required
+reports must be generated or updated during this run. Missing, unchanged, malformed
+or insufficient reports prevent success; missing XML or zero tests is not evidence
+that the intended tests passed. Non-test procedures rely on the real exit code.
+New failures provide diagnostics.json and a failed step log reference, without
+attaching raw mixed output. Read the failed step artifact only when needed.
 Use the compact result first: status, exact SHA, counters and bounded failure messages.
 Do not fetch full logs or passed-case output after success. On failure, list artifacts
 and read only the relevant failed-case report or bounded diagnostic fragment; broaden

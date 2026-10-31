@@ -12,7 +12,8 @@
             "{junit}"
           ]
         }
-      ]
+      ],
+      "require_junit": true
     },
     "docs": {
       "steps": [
@@ -130,7 +131,8 @@
         ".orcan-test.executor-smoke/container.log",
         ".orcan-test.executor-smoke/build.log",
         ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
-      ]
+      ],
+      "require_junit": true
     },
     "context-final": {
       "steps": [
@@ -308,7 +310,8 @@
         ".orcan-test.executor-smoke/container.log",
         ".orcan-test.executor-smoke/build.log",
         ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
-      ]
+      ],
+      "require_junit": true
     },
     "notification-final": {
       "steps": [
@@ -404,7 +407,8 @@
         ".orcan-test.executor-smoke/container.log",
         ".orcan-test.executor-smoke/build.log",
         ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
-      ]
+      ],
+      "require_junit": true
     },
     "history-final": {
       "steps": [
@@ -462,7 +466,8 @@
       ],
       "junit": [
         ".orcan/history-*-results.xml"
-      ]
+      ],
+      "require_junit": true
     },
     "cockpit-executor-final": {
       "steps": [
@@ -573,7 +578,8 @@
       ],
       "junit": [
         ".orcan/cockpit-*-results.xml"
-      ]
+      ],
+      "require_junit": true
     },
     "charts-final": {
       "timeout_seconds": 1800,
@@ -663,7 +669,8 @@
       ],
       "artifacts": [
         ".orcan/charts-dashboard.png"
-      ]
+      ],
+      "require_junit": true
     },
     "worker-pool-final": {
       "timeout_seconds": 1200,
@@ -737,7 +744,83 @@
       ],
       "junit": [
         ".orcan/worker-pool-*.xml"
-      ]
+      ],
+      "require_junit": true
+    },
+    "result-contract-final": {
+      "timeout_seconds": 1200,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/result-contract-executor.xml"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/result-contract-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "format",
+            "--check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "node",
+            "--test",
+            "tests/smoke/test-executor-charts.cjs"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/result-contract-*.xml"
+      ],
+      "require_junit": true
     }
   }
 }

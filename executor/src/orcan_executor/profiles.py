@@ -24,6 +24,14 @@ def load(text: str) -> dict:
             or not 1 <= profile["timeout_seconds"] <= 21600
         ):
             raise ValueError("Profile timeout_seconds must be an integer from 1 to 21600")
+        if type(profile.get("require_junit", False)) is not bool:
+            raise ValueError("require_junit must be a boolean")
+        if "minimum_tests" in profile and (
+            not profile.get("require_junit")
+            or type(profile["minimum_tests"]) is not int
+            or not 0 <= profile["minimum_tests"] <= 1000000000
+        ):
+            raise ValueError("minimum_tests requires require_junit and a non-negative integer")
         steps = profile.get("steps")
         if not isinstance(steps, list) or not 1 <= len(steps) <= 20:
             raise ValueError("A profile requires 1..20 steps")
@@ -42,6 +50,10 @@ def load(text: str) -> dict:
             for a in step["argv"]
         ):
             raise ValueError("A selected profile must use its explicit test selectors")
+        if profile.get("require_junit") and not (
+            profile.get("junit") or any("{junit}" in step["argv"] for step in steps)
+        ):
+            raise ValueError("require_junit needs junit globs or a {junit} output argument")
         for field in ("junit", "artifacts"):
             patterns = profile.get(field, [])
             if not isinstance(patterns, list) or len(patterns) > 20:
@@ -136,4 +148,7 @@ def template(kind: str, root: Path) -> dict:
         }
     else:
         profiles = {"quality": profile(["git", "diff", "--check", "HEAD^", "HEAD"])}
+    for name, definition in profiles.items():
+        if kind in {"python", "java", "scala"} and name in {"selected", "full"}:
+            definition["require_junit"] = True
     return {"version": 1, "profiles": profiles}

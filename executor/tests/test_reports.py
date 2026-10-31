@@ -41,3 +41,22 @@ def test_success_summary_discards_all_stdout_and_traces(tmp_path):
     summary = reports.compact(result, log)
     assert len(json.dumps(summary)) < 100
     assert "log_tail" not in summary
+
+
+def test_failure_without_message_uses_failure_text_not_passed_output(tmp_path):
+    (tmp_path / "TEST.xml").write_text(
+        '<testsuite><testcase name="ok"><system-out>OK_NOISE</system-out></testcase><testcase name="bad"><failure>AssertionError: wrong value</failure></testcase></testsuite>'
+    )
+    result = reports.junit(tmp_path)
+    assert result["failures"][0]["message"] == "AssertionError: wrong value"
+    assert "OK_NOISE" not in json.dumps(result)
+
+
+def test_namespaced_junit_keeps_failure_only(tmp_path):
+    (tmp_path / "TEST.xml").write_text(
+        '<testsuite xmlns="urn:junit"><testcase name="ok"><system-out>OK_NOISE</system-out></testcase><testcase name="bad"><error message="broken"/></testcase></testsuite>'
+    )
+    result = reports.junit(tmp_path)
+    assert result["passed"] == result["errors"] == 1
+    assert result["failures"][0]["message"] == "broken"
+    assert "OK_NOISE" not in json.dumps(result)

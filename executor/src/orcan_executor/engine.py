@@ -203,19 +203,52 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                 added = True
                 job["artifact_dir"] = str(attempt)
                 steps = commands(worktree, job)
+                definition = profiles.load((worktree / profiles.CONFIG).read_text())[job["profile"]]
+                report_inputs = {}
+                if definition.get("require_junit"):
+                    for pattern in definition.get("junit", []):
+                        for source in worktree.glob(pattern):
+                            if source.is_file() and source.resolve().is_relative_to(
+                                worktree.resolve()
+                            ):
+                                stat = source.stat()
+                                report_inputs[source.resolve()] = (
+                                    stat.st_ino,
+                                    stat.st_size,
+                                    stat.st_mtime_ns,
+                                )
                 for index, (command, cwd) in enumerate(steps, 1):
                     store.step(job, index, "step_started", total=len(steps))
                     if on_started is not None:
                         on_started()
                     step_start = time.monotonic()
-                    code = execute(
-                        command,
-                        cwd,
-                        log,
-                        job["timeout"] - (time.monotonic() - began),
-                        lock.fileno(),
+                    step_path = attempt / "steps" / f"step-{index:03d}.log"
+                    step_path.parent.mkdir(exist_ok=True)
+                    record = dict(
+                        step=index,
+                        argv=command,
+                        exit_code=None,
+                        outcome="error",
+                        log=str(step_path.relative_to(attempt)),
                     )
-                    report["commands"].append(dict(argv=command, exit_code=code))
+                    report["commands"].append(record)
+                    try:
+                        with step_path.open("wb") as step_log:
+                            code = execute(
+                                command,
+                                cwd,
+                                step_log,
+                                job["timeout"] - (time.monotonic() - began),
+                                lock.fileno(),
+                            )
+                        record.update(exit_code=code, outcome="passed" if code == 0 else "failed")
+                    except subprocess.TimeoutExpired:
+                        record["outcome"] = "timed_out"
+                        raise
+                    finally:
+                        with step_path.open("rb") as step_log:
+                            shutil.copyfileobj(step_log, log)
+                        log.flush()
                     store.step(
                         job,
                         index,
@@ -230,14 +263,30 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             junit_dir = attempt / "junit"
             junit_dir.mkdir()
             definition = profiles.load((worktree / profiles.CONFIG).read_text())[job["profile"]]
+            missing_reports = []
+            copied = set()
             for pattern in definition.get("junit", []):
+                matched = False
                 for source in sorted(worktree.glob(pattern)):
                     if source.is_file() and source.resolve().is_relative_to(worktree.resolve()):
-                        shutil.copyfile(
-                            source, junit_dir / f"TEST-{len(list(junit_dir.iterdir()))}.xml"
-                        )
-            if (attempt / "junit.xml").is_file():
-                shutil.copyfile(attempt / "junit.xml", junit_dir / "TEST-pytest.xml")
+                        stat = source.stat()
+                        if report_inputs.get(source.resolve()) == (
+                            stat.st_ino,
+                            stat.st_size,
+                            stat.st_mtime_ns,
+                        ):
+                            continue  # A report shipped in the snapshot is not execution evidence.
+                        matched = True
+                        if source.resolve() not in copied:
+                            shutil.copyfile(source, junit_dir / f"TEST-{len(copied)}.xml")
+                            copied.add(source.resolve())
+                if not matched:
+                    missing_reports.append(pattern)
+            automatic = attempt / "junit.xml"
+            if automatic.is_file():
+                shutil.copyfile(automatic, junit_dir / "TEST-pytest.xml")
+            elif any("{junit}" in step["argv"] for step in definition["steps"]):
+                missing_reports.append("{junit}")
             report.update(reports.junit(junit_dir))
             report["status"] = (
                 "passed"
@@ -245,6 +294,15 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                 and not (report["failed"] or report["errors"])
                 else "failed"
             )
+            if definition.get("require_junit"):
+                if missing_reports or not any(junit_dir.glob("*.xml")):
+                    report["error"] = "Required JUnit reports missing or unchanged: " + ", ".join(
+                        missing_reports
+                    )
+                elif report["tests"] < definition.get("minimum_tests", 1):
+                    report["error"] = "JUnit report contains fewer tests than the required minimum"
+                if report.get("error") and report["status"] == "passed":
+                    report["status"] = "error"
         except subprocess.TimeoutExpired:
             report.update(status="timed_out", error="Verification exceeded its configured timeout")
         except Exception as error:
@@ -324,6 +382,26 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         report_path = attempt / "report.json"
         report_path.write_text(json.dumps(report, indent=2) + "\n")
         summary = reports.compact(report, log_path)
+        if report["status"] != "passed":
+            diagnostic = {
+                key: report[key]
+                for key in (
+                    "job_id",
+                    "sha",
+                    "profile",
+                    "status",
+                    "tests",
+                    "passed",
+                    "failed",
+                    "errors",
+                    "skipped",
+                )
+            }
+            diagnostic["failures"] = report["failures"]
+            for key in ("error", "failed_step", "diagnostic_note"):
+                if key in summary:
+                    diagnostic[key] = summary[key]
+            (attempt / "diagnostics.json").write_text(json.dumps(diagnostic, indent=2) + "\n")
         summary["seconds"] = report["seconds"]
         summary["metrics"] = report["metrics"].copy()
         if report.get("artifact_error"):

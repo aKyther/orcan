@@ -122,12 +122,15 @@ Never send successful build output to agents. Completion JSON is bounded; long
 logs and JUnit failures are consumed through bounded artifact reads.
 Configure pytest with `--junitxml {junit}` and JVM profiles with accurate `junit`
 globs, including custom test tasks. Preserve real exit codes; do not mask failures.
-Missing reports or zero tests do not prove that the intended tests passed.
+Set `require_junit: true` on test profiles; `minimum_tests` defaults to 1.
+Required reports must be generated or updated by this run; missing, unchanged,
+malformed or insufficient reports cannot produce a passed result.
 Consume compact status/SHA/counters/errors first. Never fetch passed-case output
 or full successful logs into the agent session. For failures, inspect only relevant
 artifacts and bounded diagnostic fragments; widen reads only when needed.
-Non-test procedures use exit codes; without structured failures, a compact log-tail
-fallback may include successful lines. Do not describe that fallback as failure-only.
+Non-test procedures use exit codes. New failures point to `diagnostics.json` and
+the failed step log; raw mixed output is never attached automatically. Read that
+step artifact only if structured errors do not explain the failure.
 Default
 detailed-result retention is one hour; compact history/measurements remain for 30 days
 (up to 10000 expired entries). Prefer committed executor profiles for approved heavy

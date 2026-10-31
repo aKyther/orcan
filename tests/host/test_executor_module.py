@@ -34,7 +34,8 @@ def test_generated_guidance_enabled_and_disabled():
         "real exit code",
         "missing XML or zero tests",
         "Do not fetch full logs or passed-case output after success",
-        "fallback may contain mixed log lines",
+        "Set require_junit=true",
+        "without\nattaching raw mixed output",
         "1..5 workers",
     ]:
         assert text in enabled

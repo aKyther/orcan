@@ -93,7 +93,11 @@ def message(job: dict) -> str:
     if job["status"] != "passed":
         result["diagnostics"] = {
             "problems": [
-                {"test": clip(p["test"], 160), "message": clip(p["message"], 320)}
+                {
+                    "test": clip(p["test"], 160),
+                    "message": clip(p["message"], 320),
+                    **({"artifact": clip(p["artifact"], 160)} if p.get("artifact") else {}),
+                }
                 for p in summary.get("problems", [])[:3]
             ],
             "omitted_failures": summary.get("omitted_failures", 0),
@@ -101,7 +105,14 @@ def message(job: dict) -> str:
         for name, maximum in (("error", 400), ("log_tail", 800)):
             if summary.get(name):
                 result["diagnostics"][name] = clip(summary[name], maximum)
-        result["details"] = "orcan-executor logs " + job["id"] + " --offset 0 --limit 4000"
+        if summary.get("failed_step"):
+            result["diagnostics"]["failed_step"] = summary["failed_step"]
+        if summary.get("diagnostic_note"):
+            result["diagnostics"]["note"] = clip(summary["diagnostic_note"], 200)
+        artifact = " --artifact diagnostics.json" if summary.get("diagnostic_artifact") else ""
+        result["details"] = (
+            "orcan-executor logs " + job["id"] + artifact + " --offset 0 --limit 4000"
+        )
     result["receipt"] = "After consuming this result: orcan-executor ack " + job["id"]
     if job.get("notification_thread"):
         result["receipt"] += " --codex-thread " + job["notification_thread"]

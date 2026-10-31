@@ -55,15 +55,28 @@ or use a reviewed wrapper that preserves the real command exit code.
 
 Do not hide errors with `|| true` or a pipeline that turns a failing command into
 success. Check that the expected report exists and the intended test scope ran;
-missing XML or zero tests is not evidence that the tests passed. This is a caller
-responsibility: the executor does not currently enforce a required-report policy.
+missing XML or zero tests is not evidence that the tests passed. Set
+`"require_junit": true` on test profiles to enforce this contract. The default
+`minimum_tests` is 1; set a non-negative value explicitly if a different minimum
+is expected. Every declared `junit` glob must match an execution-generated or
+updated report, and `{junit}` output must exist when used. Missing, unchanged or
+malformed reports and insufficient test counts prevent a passed result. An empty
+suite is accepted only with an explicit `minimum_tests: 0` and an existing valid
+report. New Python, Java and Scala test profile templates enable `require_junit`;
+existing profiles keep their policy until explicitly updated.
 
 Successful output stays in disk artifacts. Return status, exact SHA and counters;
 on failure, include bounded failure diagnostics. Read a failed-case report or a
 small relevant log fragment only when the compact result is insufficient. Do not
 load full logs or passed-case output after success. Non-test procedures use exit
-codes. Without structured failures, the fallback log tail can contain successful
-lines; it is bounded, but is not a failure-only parser.
+codes. Each executed step writes a separate `steps/step-NNN.log`. Its complete
+output is appended to `output.log` when the step exits, including on timeout.
+A failed run also writes `diagnostics.json`: counters, structured failures and
+references to JUnit files and the failed step log. The notification points to this
+artifact, not to a combined log tail. If no structured failure is available, it
+reports the step, outcome and exit code and explains that the step artifact must
+be inspected. It does not guess which raw output lines are errors. Legacy saved
+results may still contain their old log-tail diagnostics.
 
 ## Configure queues and execution budgets
 

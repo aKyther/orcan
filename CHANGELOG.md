@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Enforce opt-in JUnit report presence, freshness and minimum test counts; enable the policy in new test templates. Archive per-step logs and failure-only diagnostic indexes, and replace automatic mixed-log tails with failed-step references.
+
 - Teach executor callers to produce structured test reports, preserve exit codes and keep successful output out of agent context; document the mixed-log fallback limitation.
 
 - Configure one to five independent executor workers on a shared queue, with per-worker readiness and a separate global running-job cap. Shared-queue mode routes every profile to that queue; split lanes remain available.
