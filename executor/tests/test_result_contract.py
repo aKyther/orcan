@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from conftest import commit
 
-from orcan_executor import engine, notifications, profiles
+from orcan_executor import engine, notifications, profiles, store
 
 
 def procedure(repo, scripts, **policy):
@@ -33,7 +33,7 @@ def test_exit_zero_without_required_test_evidence_is_error(repo, xml):
         script += f"from pathlib import Path\nPath('tests.xml').write_text({xml!r})\n"
     result, root = procedure(repo, [script], require_junit=True, junit=["tests.xml"])
     assert result["status"] == "error"
-    assert "PASSED_NOISE" not in notifications.message(result)
+    assert "PASSED_NOISE" not in notifications.message(store.get(result["job_id"]))
     assert "log_tail" not in result["summary"]
     assert (root / "diagnostics.json").is_file()
 
@@ -76,7 +76,7 @@ def test_failed_non_test_step_does_not_send_any_raw_output(repo):
     assert summary["failed_step"] == dict(
         step=2, exit_code=7, outcome="failed", log="steps/step-002.log"
     )
-    message = notifications.message(result)
+    message = notifications.message(store.get(result["job_id"]))
     assert "SUCCESSFUL_STEP_SECRET_NOISE" not in message
     assert "FAILED_STEP_OK_LINE" not in message
     assert (
@@ -106,7 +106,7 @@ def test_structured_failure_has_no_passed_case_content_or_prior_step_noise(repo)
     assert result["status"] == "failed"
     assert result["summary"]["tests"] == 2  # Overlapping report globs do not double count cases.
     assert result["summary"]["passed"] == 1
-    message = notifications.message(result)
+    message = notifications.message(store.get(result["job_id"]))
     assert "expected 4, got 5" in message
     for noise in ("PASSED_CASE_NOISE", "SUCCESSFUL_BUILD_NOISE", "MIXED_OK_LINE", "FAILURE_TRACE"):
         assert noise not in message
@@ -149,7 +149,7 @@ def test_bad():
     assert result["summary"]["tests"] == 2
     assert result["summary"]["passed"] == result["summary"]["failed"] == 1
     assert "assert 4 == 5" in result["summary"]["problems"][0]["message"]
-    assert "PYTEST_PASSED_OUTPUT" not in notifications.message(result)
+    assert "PYTEST_PASSED_OUTPUT" not in notifications.message(store.get(result["job_id"]))
 
 
 def test_timeout_points_to_the_interrupted_step_without_raw_log(repo):
@@ -159,7 +159,7 @@ def test_timeout_points_to_the_interrupted_step_without_raw_log(repo):
     result = engine.run_job(job["id"])
     assert result["status"] == "timed_out"
     assert result["summary"]["failed_step"]["outcome"] == "timed_out"
-    assert "NOISE" not in notifications.message(result)
+    assert "NOISE" not in notifications.message(store.get(result["job_id"]))
     assert (Path(result["report"]).parent / "steps/step-001.log").read_text() == "NOISE\n"
 
 
@@ -200,7 +200,7 @@ def test_malformed_required_report_is_error_without_raw_output(repo):
     )
     assert result["status"] == "error"
     assert "ParseError" in result["summary"]["error"]
-    assert "PASSED_NOISE" not in notifications.message(result)
+    assert "PASSED_NOISE" not in notifications.message(store.get(result["job_id"]))
     assert (root / "junit/TEST-0.xml").is_file()
 
 
