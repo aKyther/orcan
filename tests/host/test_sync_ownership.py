@@ -160,6 +160,7 @@ def test_sync_rejects_invalid_name_pattern(arguments):
     assert "requires a directory name or glob without slashes" in result.stderr
 
 
+@pytest.mark.integration
 def test_saved_policy_survives_project_addition_and_prunes_before_stat(
     tmp_path, monkeypatch
 ):
