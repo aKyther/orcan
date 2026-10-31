@@ -821,6 +821,35 @@
         ".orcan/result-contract-*.xml"
       ],
       "require_junit": true
+    },
+    "ownership-final": {
+      "timeout_seconds": 1200,
+      "require_junit": true,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/ownership-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/ownership-host.xml"
+      ]
     }
   }
 }

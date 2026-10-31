@@ -1,18 +1,15 @@
 """Ownership exclusions must prune remote mounts before inspecting them."""
 
-import importlib.util
 import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
+from ._scripts_loader import load_script
+
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location(
-    "data_ownership", ROOT / "scripts/repository/data-ownership.py"
-)
-ownership = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(ownership)
+ownership = load_script("data-ownership.py")
 
 
 @pytest.mark.parametrize("by_name", [False, True])
@@ -161,3 +158,187 @@ def test_sync_rejects_invalid_name_pattern(arguments):
     )
     assert result.returncode == 2
     assert "requires a directory name or glob without slashes" in result.stderr
+
+
+def test_saved_policy_survives_project_addition_and_prunes_before_stat(
+    tmp_path, monkeypatch
+):
+    import json
+
+    config = tmp_path / "orcan.config.json"
+    project = tmp_path / "project"
+    project.mkdir()
+    config.write_text(json.dumps({"workspaces": [], "custom": {"keep": True}}))
+    data = tmp_path / "data"
+    excluded = data / "external mount"
+    excluded.mkdir(parents=True)
+    ownership.ownership_policy(config, [], ["external*"], save=True)
+    # Use the actual scaffold command used by `orcan init PATH`.
+    result = subprocess.run(
+        [
+            "python3",
+            str(ROOT / "scripts/repository/config-scaffold.py"),
+            "--config",
+            str(config),
+            "--project-dir",
+            str(project),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    paths, names = ownership.ownership_policy(
+        config, [], []
+    )  # Automatic sync has no flags.
+    changed = []
+    monkeypatch.setattr(
+        ownership.os, "chown", lambda path, *a, **k: changed.append(path)
+    )
+    original = os.scandir
+
+    def scan(path):
+        assert path != str(excluded), "automatic sync entered a protected directory"
+        return original(path)
+
+    monkeypatch.setattr(ownership.os, "scandir", scan)
+    assert ownership.update_ownership(str(data), 1, 1, paths, names)
+    assert changed == [str(data)]
+    saved = json.loads(config.read_text())
+    assert saved["custom"] == {"keep": True}
+    assert saved["ownership"]["excluded_names"] == ["external*"]
+    assert saved["workspaces"]
+
+
+def test_policy_merges_flags_without_losing_config_and_can_be_removed(tmp_path):
+    import json
+
+    config = tmp_path / "orcan.config.json"
+    config.write_text(json.dumps({"workspaces": [], "executor": {"workers": 5}}))
+    ownership.ownership_policy(
+        config, [str(tmp_path / "remote")], ["external*"], save=True
+    )
+    ownership.ownership_policy(config, [], ["external*", "archive?"], save=True)
+    value = json.loads(config.read_text())
+    assert value["executor"] == {"workers": 5}
+    assert value["ownership"]["excluded_names"] == ["external*", "archive?"]
+    assert value["ownership"]["excluded_paths"] == [str(tmp_path / "remote")]
+    value["ownership"] = {"excluded_paths": [], "excluded_names": []}
+    config.write_text(json.dumps(value))
+    assert ownership.ownership_policy(config, [], []) == ([], [])
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        [],
+        {"excluded_names": "external"},
+        {"excluded_paths": ["relative"]},
+        {"excluded_names": ["remote/path"]},
+        {"excluded_names": [True]},
+        {"unknown": []},
+    ],
+)
+def test_invalid_persistent_policy_is_rejected_without_changes(tmp_path, policy):
+    import json
+
+    config = tmp_path / "orcan.config.json"
+    config.write_text(json.dumps({"ownership": policy}))
+    before = config.read_bytes()
+    with pytest.raises(ValueError):
+        ownership.ownership_policy(config, [], [], save=True)
+    assert config.read_bytes() == before
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["--no-chown", "external*", "--chown-exclude", "/remote mount"],
+        ["--cli", "--no-chown", "external"],
+        [],
+    ],
+)
+def test_init_forwards_ownership_flags_to_automatic_sync(tmp_path, flags):
+    # Real init parsing; its sourced sync implementation records received argv.
+    import json
+    import shutil
+
+    init = tmp_path / "init.sh"
+    shutil.copyfile(ROOT / "cli/commands/init.sh", init)
+    (tmp_path / "sync.sh").write_text(
+        'orcan_cmd_sync() { python3 -c "import json,sys; print(json.dumps(sys.argv[1:]))" "$@"; }\n'
+    )
+    shell = """source "$1"
+shift
+orcan_require_python() { :; }
+orcan_ensure_home_env_example() { :; }
+orcan_host_python() { :; }
+orcan_info() { :; }
+orcan_ok() { :; }
+orcan_usage_error() { echo "$*" >&2; return 2; }
+ORCAN_HOME="$TEST_HOME"
+ORCAN_CONFIG_FILE="$TEST_HOME/orcan.config.json"
+ORCAN_SCRIPTS="$TEST_HOME"
+orcan_cmd_init "$@"
+"""
+    result = subprocess.run(
+        ["bash", "-c", shell, "test", str(init), str(tmp_path), *flags],
+        env={**os.environ, "TEST_HOME": str(tmp_path)},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == [arg for arg in flags if arg != "--cli"]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "arguments", ["--no-chown", "--no-chown relative/path", "--chown-exclude relative"]
+)
+def test_init_rejects_invalid_ownership_flags_before_wizard(arguments):
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            'source cli/commands/init.sh; orcan_usage_error() { echo "$*" >&2; }; '
+            f"orcan_cmd_init {arguments}",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+
+
+@pytest.mark.integration
+def test_update_env_rejects_invalid_saved_policy_before_runtime_materialization(
+    tmp_path,
+):
+    import json
+
+    config = tmp_path / "orcan.config.json"
+    config.write_text(json.dumps({"ownership": {"excluded_paths": ["relative"]}}))
+    result = subprocess.run(
+        ["bash", str(ROOT / "scripts/repository/update-env.sh")],
+        env={
+            **os.environ,
+            "ORCAN_ROOT": str(ROOT),
+            "ORCAN_HOME": str(tmp_path),
+            "CONFIG": str(config),
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "requires absolute directory paths" in result.stderr
+    assert not (tmp_path / "mounts").exists()
+    assert not (tmp_path / ".env").exists()
+
+
+def test_absent_configuration_does_not_create_an_empty_workspace_policy(tmp_path):
+    config = tmp_path / "orcan.config.json"
+    assert ownership.ownership_policy(config, [], [], save=True) == ([], [])
+    assert not config.exists()
+    with pytest.raises(ValueError, match="orcan init PATH"):
+        ownership.ownership_policy(config, [], ["external*"], save=True)
+    assert not config.exists()

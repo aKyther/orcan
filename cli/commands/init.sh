@@ -5,24 +5,43 @@ orcan_cmd_init() {
     local project_dir=""
     local workspace="${WORKSPACE:-}"
     local cli_mode=""
+    local -a ownership_args=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -h | --help)
-                printf 'usage: orcan init [PATH] [--cli]\n'
+                printf 'usage: orcan init [PATH] [--cli] [--no-chown PATTERN] [--chown-exclude /path]\n'
                 printf '  No PATH: TUI to create/edit workspaces (default) — pick a folder,\n'
                 printf '           multi-select repos, or manage what is already configured.\n'
                 printf '           --cli: old sequential prompt wizard instead of the TUI.\n'
                 printf '  PATH:    non-interactive — connect one project from PATH (or confirm it is\n'
                 printf '           already connected), then sync; useful for scripts/CI.\n'
-                printf '  Either way, finishes with orcan sync.\n'
+                printf '  Either way, finishes with orcan sync; saved ownership exclusions apply.\n'
+                printf '  Ownership flags are forwarded to sync and saved for later invocations.\n'
                 printf '  Tool settings (tmux, ttyd): orcan settings (separate from this).\n'
                 return 0
+                ;;
+            --no-chown)
+                [[ $# -gt 1 && -n "$2" && "$2" != --* && "$2" != */* ]] || {
+                    orcan_usage_error "orcan init: --no-chown requires a directory name or glob without slashes"
+                    return 2
+                }
+                ownership_args+=(--no-chown "$2")
+                shift 2
+                ;;
+            --chown-exclude)
+                [[ $# -gt 1 && "$2" == /* ]] || {
+                    orcan_usage_error "orcan init: --chown-exclude requires an absolute directory path"
+                    return 2
+                }
+                ownership_args+=(--chown-exclude "$2")
+                shift 2
                 ;;
             --cli)
                 cli_mode=1
                 shift
                 ;;
+            --*) orcan_usage_error "orcan init: unknown argument: $1"; return 2 ;;
             *)
                 if [[ -n "${project_dir}" ]]; then
                     orcan_usage_error "unexpected argument: $1"
@@ -68,7 +87,7 @@ orcan_cmd_init() {
 
     # shellcheck source=sync.sh
     source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync.sh"
-    orcan_cmd_sync
+    orcan_cmd_sync "${ownership_args[@]}"
     ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-show.py" || true
     orcan_ok "init done"
     orcan_info "next: orcan build && orcan up"

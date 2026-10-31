@@ -13,6 +13,8 @@ Commands:
                            --cli: old sequential prompt wizard instead
                            PATH: non-interactive scaffold (scripts/CI)
                            Either way: scaffold/wizard + sync + show
+                           Accepts --no-chown PATTERN / --chown-exclude /path;
+                           saved ownership exclusions also apply to automatic sync
   sync [--prune-orphans]   Materialise .env + mounts/* for Compose; live
                            reconcile into a running container. --prune-orphans
                            also kills orphaned tmux sessions (default: report
@@ -21,6 +23,8 @@ Commands:
                            for that subtree; repeat for multiple directories
                            --no-chown 'external*' matches names at any depth
                            (ownership only); repeat for multiple patterns
+                           Exclusions persist in orcan.config.json ownership;
+                           edit its excluded_names/excluded_paths to remove them
   migrate [--yes]          Move projects under managed root (dry-run by default)
   settings                 Edit tool settings (tmux windows/prefix, ttyd
                            port/font) — separate from workspaces/projects

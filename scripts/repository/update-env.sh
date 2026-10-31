@@ -49,6 +49,24 @@ if [[ -S /var/run/docker.sock ]]; then
     DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
 fi
 
+# Prefer explicit CONFIG, else orcan.config.json in home (or legacy root).
+if [[ -z "${CONFIG}" && -f "${ORCAN_HOME}/orcan.config.json" ]]; then
+    CONFIG="${ORCAN_HOME}/orcan.config.json"
+fi
+if [[ -z "${CONFIG}" && -f "${ORCAN_ROOT}/orcan.config.json" ]]; then
+    CONFIG="${ORCAN_ROOT}/orcan.config.json"
+fi
+
+# Validate/save the ownership policy before materializing runtime files or walking data.
+# This is shared by explicit sync and implicit sync from init/build/other callers.
+ownership_config="${CONFIG:-${ORCAN_HOME}/orcan.config.json}"
+"${ORCAN_ROOT}/scripts/repository/python.sh" \
+    "${ORCAN_ROOT}/scripts/repository/data-ownership.py" \
+    --config "${ownership_config}" --save-policy --check-only "${ownership_args[@]}"
+if (( ${#ownership_args[@]} )); then
+    printf 'Ownership exclusions saved in %s; future sync/init calls reuse them\n' "${ownership_config}"
+fi
+
 # Seed .env.example into home when using a split ORCAN_HOME.
 if [[ ! -f "${ORCAN_HOME}/.env.example" && -f "${ORCAN_ROOT}/.env.example" ]]; then
     cp -- "${ORCAN_ROOT}/.env.example" "${ORCAN_HOME}/.env.example"
@@ -83,14 +101,6 @@ ensure_env_key() {
         printf '%s=%s\n' "${key}" "${value}" >> .env
     fi
 }
-
-# Prefer explicit CONFIG, else orcan.config.json in home (or legacy root).
-if [[ -z "${CONFIG}" && -f "${ORCAN_HOME}/orcan.config.json" ]]; then
-    CONFIG="${ORCAN_HOME}/orcan.config.json"
-fi
-if [[ -z "${CONFIG}" && -f "${ORCAN_ROOT}/orcan.config.json" ]]; then
-    CONFIG="${ORCAN_ROOT}/orcan.config.json"
-fi
 
 # Resolved early (before apply-config.py) so it can see ORCAN_PROJECTS_ROOT
 # and skip generating a per-project Compose bind for anything already under
@@ -255,14 +265,10 @@ if [[ -d "${DOTFILES_SRC}" ]]; then
     done
 fi
 
-ownership_cmd=(chown -R "${USER_UID}:${USER_GID}" "${ORCAN_DATA}")
-if (( ${#ownership_args[@]} )); then
-    printf 'Updating data ownership with directory exclusions (this invocation only)\n'
-    ownership_cmd=("${ORCAN_ROOT}/scripts/repository/python.sh"
-        "${ORCAN_ROOT}/scripts/repository/data-ownership.py"
-        --uid "${USER_UID}" --gid "${USER_GID}" --root "${ORCAN_DATA}"
-        "${ownership_args[@]}")
-fi
+ownership_cmd=("${ORCAN_ROOT}/scripts/repository/python.sh"
+    "${ORCAN_ROOT}/scripts/repository/data-ownership.py"
+    --config "${ownership_config}"
+    --uid "${USER_UID}" --gid "${USER_GID}" --root "${ORCAN_DATA}")
 if "${ownership_cmd[@]}" 2>/dev/null; then
     :
 else

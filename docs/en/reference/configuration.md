@@ -66,3 +66,27 @@ Activation still requires `orcan up --with-redis`; a configured section alone do
 not start services. Run `orcan sync` and recreate with the intended runtime flags
 to apply changed process settings. See [Background executor](../guides/background-executor.md#configure-queues-and-execution-budgets)
 for supported fields, precedence, bounds and measured dashboard statistics.
+
+## Persistent ownership exclusions
+
+`orcan sync --no-chown 'external*'` saves name patterns in
+`ownership.excluded_names`. `--chown-exclude /absolute/path` saves lexical paths
+in `ownership.excluded_paths`. Both flags are also accepted by `orcan init` and
+forwarded to its automatic sync. Repeated calls merge and deduplicate exclusions.
+Every ownership update reloads these rules, so adding a project does not bypass
+an existing exclusion. Directories are pruned before their type is inspected;
+symlink targets are not followed. Edit the arrays to remove an exclusion.
+
+```json
+{
+  "ownership": {
+    "excluded_names": ["external*"],
+    "excluded_paths": ["/data/remote mount"]
+  }
+}
+```
+
+Invalid ownership configuration stops sync before runtime files are generated or
+data ownership is changed. Flags require an existing configuration; first-time
+setup can use `orcan init /absolute/project --no-chown 'external*'`. Saved policies
+apply to all workspaces using that configuration. They affect ownership only.

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Persist ownership exclusions across explicit and automatic sync, including project additions through init; accept ownership flags in init and reject invalid saved policies before touching runtime files.
+
 ### Added
 
 - Enforce opt-in JUnit report presence, freshness and minimum test counts; enable the policy in new test templates. Archive per-step logs and failure-only diagnostic indexes, and replace automatic mixed-log tails with failed-step references.
