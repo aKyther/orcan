@@ -159,3 +159,22 @@ def test_isolated_redis_aof_restart_preserves_stream_and_health(monkeypatch):
             if process.poll() is None:
                 process.terminate()
                 process.wait(timeout=5)
+
+
+def test_partially_available_shared_pool_reports_missing_worker(monkeypatch):
+    connection = Mock()
+    connection.info.return_value = {"aof_enabled": 1}
+    monkeypatch.setattr(events, "client", lambda: connection)
+    monkeypatch.setattr(
+        diagnostics,
+        "lanes",
+        lambda: {
+            "default": {
+                "configured": True,
+                "ready": True,
+                "configured_workers": 3,
+                "ready_workers": 2,
+            },
+        },
+    )
+    assert "worker_unavailable" in diagnostics.sample()["warnings"]

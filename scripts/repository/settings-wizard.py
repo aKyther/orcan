@@ -51,7 +51,7 @@ def summarize(cfg: dict[str, Any]) -> None:
     )
     executor = resolve_executor(cfg.get("executor", {}))
     info(
-        f"  executor: split lanes={executor['split_lanes']}, max running={executor['max_running']}, "
+        f"  executor: workers={executor['workers']}, split lanes={executor['split_lanes']}, max running={executor['max_running']}, "
         f"pending={executor['max_pending']}, timeout={executor['timeout_seconds']}s, "
         f"log retention={executor['retention_seconds']}s, Redis={executor['redis_memory_mb']} MiB, "
         f"visibility={executor['visibility_timeout_seconds']}s"
@@ -134,6 +134,7 @@ def edit_executor(cfg: dict[str, Any]) -> None:
     )
     try:
         for key, label in [
+            ("workers", "Workers on the shared queue (1..3; use 1 with split lanes)"),
             ("max_running", "Maximum simultaneous jobs across workers (1..3)"),
             ("max_pending", "Maximum queued plus running jobs (1..10000)"),
             ("timeout_seconds", "Default job timeout in seconds (1..21600)"),

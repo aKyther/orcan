@@ -88,9 +88,27 @@ def visibility_timeout() -> int:
     return value
 
 
+def worker_count() -> int:
+    value = int(os.environ.get("ORCAN_EXECUTOR_WORKERS", "1"))
+    if not 1 <= value <= 3:
+        raise ValueError("Worker count must be between 1 and 3")
+    if split_lanes() and value != 1:
+        raise ValueError("Worker count must be 1 when split lanes are enabled")
+    return value
+
+
+def split_lanes() -> bool:
+    return os.environ.get("ORCAN_EXECUTOR_SPLIT_LANES", "0") == "1"
+
+
+def execution_lane(lane: str) -> str:
+    return lane if split_lanes() else "default"
+
+
 def effective() -> dict:
     return {
-        "split_lanes": os.environ.get("ORCAN_EXECUTOR_SPLIT_LANES", "0") == "1",
+        "split_lanes": split_lanes(),
+        "workers": worker_count(),
         "max_pending": max_pending(),
         "max_running": max_running(),
         "timeout_seconds": default_timeout(),

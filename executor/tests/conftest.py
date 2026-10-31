@@ -13,6 +13,8 @@ def commit(repo):
 @pytest.fixture(autouse=True)
 def isolated_state(tmp_path, monkeypatch):
     monkeypatch.delenv("TTYD_CREDENTIAL", raising=False)
+    monkeypatch.delenv("ORCAN_EXECUTOR_WORKERS", raising=False)
+    monkeypatch.delenv("ORCAN_EXECUTOR_SPLIT_LANES", raising=False)
     monkeypatch.setenv("ORCAN_EXECUTOR_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setenv("ORCAN_EXECUTOR_QUEUE", "orcan-executor-tests")
     monkeypatch.setenv("ORCAN_REDIS_ENABLED", "1")

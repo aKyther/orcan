@@ -154,7 +154,8 @@ def test_replacement_requires_an_explicit_valid_group_and_disallows_reuse(repo):
 
 
 @pytest.mark.parametrize("scope", ["selectors", "profile", "lane"])
-def test_other_profile_test_scope_or_lane_is_preserved(repo, scope):
+def test_other_profile_test_scope_or_lane_is_preserved(repo, scope, monkeypatch):
+    monkeypatch.setenv("ORCAN_EXECUTOR_SPLIT_LANES", "1")
     profile, selectors = ("selected", ["TestA"]) if scope == "selectors" else ("quality", [])
     old = engine.submit(repo, "HEAD", "scope", profile, selectors, 30, replace_pending="scope")
     if scope == "lane":

@@ -80,6 +80,7 @@ def test_ack_is_explicit_idempotent_and_detail_metrics_are_separate(repo):
 
 
 def test_profile_lane_routes_work_without_changing_global_queue(repo, monkeypatch):
+    monkeypatch.setenv("ORCAN_EXECUTOR_SPLIT_LANES", "1")
     from orcan_executor.tasks import verify
 
     config = json.loads((repo / profiles.CONFIG).read_text())

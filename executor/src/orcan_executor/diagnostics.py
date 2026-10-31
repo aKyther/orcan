@@ -120,7 +120,11 @@ def sample() -> dict:
         if snapshot["redis"].get("evicted_keys", 0):
             snapshot["warnings"].append("redis_evictions_recorded")
         snapshot["lanes"] = lanes()
-        if any(value["configured"] and not value["ready"] for value in snapshot["lanes"].values()):
+        if any(
+            value["configured"]
+            and value.get("ready_workers", int(value["ready"])) < value.get("configured_workers", 1)
+            for value in snapshot["lanes"].values()
+        ):
             snapshot["warnings"].append("worker_unavailable")
     except Exception:
         # No broker URL, exception text, client list, configuration or credentials.

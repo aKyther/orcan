@@ -61,7 +61,7 @@ User guide: [Getting started — Configuration](../getting-started/configuration
 ## Executor settings
 
 The optional `executor` object configures queue lanes, admission limits, default
-job timeout, detailed-result retention, Redis memory and visibility timeout. Use `orcan settings` to edit it.
+shared-queue worker count (1..3), job timeout, detailed-result retention, Redis memory and visibility timeout. Use `orcan settings` to edit it.
 Activation still requires `orcan up --with-redis`; a configured section alone does
 not start services. Run `orcan sync` and recreate with the intended runtime flags
 to apply changed process settings. See [Background executor](../guides/background-executor.md#configure-queues-and-execution-budgets)

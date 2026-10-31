@@ -57,6 +57,12 @@ from celery.signals import worker_ready, worker_shutdown  # noqa: E402
 _heartbeat_stop = Event()
 
 
+def readiness_key():
+    from .readiness import worker_lease
+
+    return worker_lease(app.conf.task_default_queue, app.conf.get("orcan_worker_slot", 1))
+
+
 @worker_ready.connect
 def announce_ready(**kwargs):
     def heartbeat():
@@ -65,9 +71,7 @@ def announce_ready(**kwargs):
         while not _heartbeat_stop.is_set():
             try:
                 with client() as connection:
-                    connection.set(
-                        app.conf.task_default_queue + ":worker-ready", store.now(), ex=45
-                    )
+                    connection.set(readiness_key(), store.now(), ex=45)
             except Exception:
                 pass
             _heartbeat_stop.wait(10)
@@ -82,6 +86,7 @@ def announce_shutdown(**kwargs):
     try:
         from .events import client
 
-        client().delete(app.conf.task_default_queue + ":worker-ready")
+        with client() as connection:
+            connection.delete(readiness_key())
     except Exception:
         pass

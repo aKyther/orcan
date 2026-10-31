@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 
 from . import profiles, reports, store
 from .metrics import log_size
-from .settings import default_timeout, state_dir, worktree_root
+from .settings import default_timeout, execution_lane, state_dir, worktree_root
 
 
 def git(repo: Path, *args: str) -> str:
@@ -74,7 +74,7 @@ def submit(
         sha=sha,
         task=task,
         profile=profile,
-        lane=definitions[profile].get("lane", "default"),
+        lane=execution_lane(definitions[profile].get("lane", "default")),
         selectors=selectors,
         timeout=timeout,
         replace_group=replace_pending,

@@ -11,6 +11,10 @@ from ._scripts_loader import load_script
     [
         {"redis_memory_mb": 16},
         {"visibility_timeout_seconds": 21600},
+        {"workers": 0},
+        {"workers": 4},
+        {"workers": True},
+        {"workers": 2, "split_lanes": True},
         {"max_running": 0},
         {"max_running": True},
         {"split_lanes": 1},
@@ -38,13 +42,14 @@ def test_settings_wizard_edits_executor_without_touching_workspaces(monkeypatch)
     wizard = load_script("settings-wizard.py")
     original = [{"name": "preserved", "projects": []}]
     cfg = {"workspaces": original}
-    answers = iter(["2", "40", "900", "7200", "128", "86400"])
+    answers = iter(["1", "2", "40", "900", "7200", "128", "86400"])
     monkeypatch.setattr(wizard, "ask", lambda *args: next(answers))
     monkeypatch.setattr(wizard, "ask_yes_no", lambda *args, **kwargs: True)
     wizard.edit_executor(cfg)
     assert cfg["workspaces"] is original
     assert cfg["executor"] == {
         "split_lanes": True,
+        "workers": 1,
         "max_running": 2,
         "max_pending": 40,
         "timeout_seconds": 900,

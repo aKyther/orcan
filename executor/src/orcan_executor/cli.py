@@ -6,7 +6,7 @@ from pathlib import Path
 
 from . import engine, events, profiles, store
 from .metrics import model_result, wire
-from .settings import effective, queue_name, state_dir
+from .settings import effective, execution_lane, queue_name, state_dir
 
 
 def emit(value):
@@ -24,7 +24,7 @@ def enqueue(job_id: str):
             job["sha"] + ":" + profiles.CONFIG,
         )
     )[job["profile"]]
-    lane = definition.get("lane", "default")
+    lane = job.get("lane") or execution_lane(definition.get("lane", "default"))
     from .readiness import lanes
 
     try:
@@ -181,6 +181,7 @@ def parser():
         "worker", help="Run an isolated local Celery worker lane in the foreground"
     )
     worker.add_argument("--lane", choices=["default", "light", "heavy"], default="default")
+    worker.add_argument("--slot", type=int, choices=[1, 2, 3], default=1)
     recover = commands.add_parser(
         "recover", help="Republish pending events and requeue one interrupted/pending job"
     )
@@ -604,8 +605,13 @@ def main(argv=None):
             state_dir().mkdir(parents=True, exist_ok=True, mode=0o700)
             suffix = ":" + args.lane if args.lane != "default" else ""
             worker_queue = queue_name() + suffix
-            lock_name = "worker.lock" if args.lane == "default" else "worker-" + args.lane + ".lock"
+            from .readiness import worker_lock
+
+            if args.lane != "default" and args.slot != 1:
+                raise ValueError("Additional worker slots serve only the default queue")
             app.conf.task_default_queue = worker_queue
+            app.conf.orcan_worker_slot = args.slot
+            lock_name = worker_lock(args.lane, args.slot)
             with (state_dir() / lock_name).open("a") as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 app.worker_main(
@@ -613,7 +619,7 @@ def main(argv=None):
                         "worker",
                         "--pool=solo",
                         "--queues=" + worker_queue,
-                        "--hostname=orcan-" + args.lane + "@%h",
+                        "--hostname=orcan-" + args.lane + "-" + str(args.slot) + "@%h",
                         "--concurrency=1",
                         "--loglevel=WARNING",
                         "--without-gossip",

@@ -588,6 +588,8 @@ def board(hours: int | None = None) -> dict:
     worker_running = False
     for lock_path in [
         state_dir() / "worker.lock",
+        state_dir() / "worker-2.lock",
+        state_dir() / "worker-3.lock",
         state_dir() / "worker-light.lock",
         state_dir() / "worker-heavy.lock",
     ]:

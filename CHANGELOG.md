@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Configure one to three independent executor workers on a shared queue, with per-worker readiness and a separate global running-job cap. Shared-queue mode routes every profile to that queue; split lanes remain available.
+
 ### Fixed
 
 - Count every completed executor job, disclose measurement coverage and recovered history, and read dashboard analytics from one database snapshot.

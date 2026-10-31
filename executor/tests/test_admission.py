@@ -13,14 +13,15 @@ from conftest import commit
 from orcan_executor import cli, engine, readiness, settings, store, tasks
 
 
-def test_running_limit_is_atomic_across_workers(repo, monkeypatch):
-    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "2")
+@pytest.mark.parametrize("limit", [1, 2, 3])
+def test_running_limit_is_atomic_across_workers(repo, monkeypatch, limit):
+    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", str(limit))
     jobs = [engine.submit(repo, "HEAD", "capacity", "quality", [], 30) for _ in range(8)]
     with ThreadPoolExecutor(max_workers=8) as pool:
         admitted = list(pool.map(lambda job: store.start(job["id"], Path("fixture")), jobs))
-    assert sum(admitted) == 2
-    assert store.board()["counts"]["running"] == 2
-    assert store.board()["counts"]["queued"] == 6
+    assert sum(admitted) == limit
+    assert store.board()["counts"]["running"] == limit
+    assert store.board()["counts"]["queued"] == 8 - limit
     waiting = next(job for job, started in zip(jobs, admitted, strict=True) if not started)
     assert engine.run_job(waiting["id"]) is None
     assert store.get(waiting["id"])["attempts"] == 0
@@ -70,6 +71,7 @@ def test_settings_are_bounded_and_show_effective_limits(monkeypatch):
 
 
 def test_profile_timeout_and_explicit_override(repo, monkeypatch):
+    monkeypatch.setenv("ORCAN_EXECUTOR_SPLIT_LANES", "1")
     config = repo / ".orcan/checks.json"
     value = json.loads(config.read_text())
     value["profiles"]["quality"]["timeout_seconds"] = 60

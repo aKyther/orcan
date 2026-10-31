@@ -52,8 +52,9 @@ Use `orcan settings` to edit the executor section without changing workspaces:
 ```json
 {
   "executor": {
-    "split_lanes": true,
-    "max_running": 2,
+    "split_lanes": false,
+    "workers": 3,
+    "max_running": 3,
     "max_pending": 100,
     "timeout_seconds": 1800,
     "retention_seconds": 3600,
@@ -66,8 +67,20 @@ Use `orcan settings` to edit the executor section without changing workspaces:
 `orcan sync` validates these values and materializes an explicitly configured
 executor section into the runtime environment. Then recreate the container with
 its intended access flags, including `--with-redis`. Sync alone does not restart
-workers. Without an executor section, existing environment settings remain valid.
+workers. Drain queued and running work before changing queue topology; already
+pinned jobs retain their recorded lane and are not automatically migrated. Without
+an executor section, existing environment settings remain valid.
 `orcan-executor settings` shows the effective process settings and their source.
+
+`workers` (1..3, default 1) starts independent Celery workers on one shared queue
+when `split_lanes` is false. Each worker executes one job at a time and has its own
+process lock, heartbeat and log. All profiles use the shared queue in this mode,
+including profiles labelled `light` or `heavy`. Set both `workers` and
+`max_running` to 3 to allow three procedures to run concurrently. Queued work
+from multiple sessions waits for a free worker; repository turns still apply.
+`doctor` reports `configured_workers`, `ready_workers` and individual slots per
+lane. One worker stopping does not clear the other workers' readiness.
+The environment equivalent is `ORCAN_EXECUTOR_WORKERS=3`.
 
 `max_running` (1..3, default 2) is an atomic instance-wide admission cap shared by
 all lanes. Workers defer capacity-blocked jobs for a later attempt without running
@@ -473,14 +486,17 @@ at a time. Avoid raising parallelism blindly on memory-constrained JVM workloads
 ### Separate lightweight and heavyweight queues
 
 A procedure can declare `"lane": "light"` or `"lane": "heavy"`; omitted means
-`"default"`. Routing reads the committed procedure, not dirty configuration.
-Set `ORCAN_EXECUTOR_SPLIT_LANES=1` when starting Orcan to supervise one additional
+`"default"`. With split lanes enabled, routing reads the committed procedure, not dirty configuration.
+In shared-queue mode, lane labels do not create separate queues.
+Keep `workers` at 1 when using split lanes; combining a shared pool with split lanes
+is rejected. Set `ORCAN_EXECUTOR_SPLIT_LANES=1` when starting Orcan to supervise one additional
 worker for each lane. This starts three workers, one per lane; the global max_running cap (default 2) limits simultaneous checks,
 and keeps lightweight checks out of a queue occupied by JVM work. It does not impose
-CPU or memory quotas. Keep it disabled on small machines unless needed.
+CPU or memory quotas. The shared pool is the simpler choice when all jobs should use the same queue.
 
-For isolated development, foreground `orcan-executor worker --lane light` or
-`--lane heavy` serves the corresponding queue. A lane without a matching worker
+For isolated development, foreground `orcan-executor worker --slot 2` serves a second shared-queue slot.
+Use `orcan-executor worker --lane light` or
+`--lane heavy` serves the corresponding queue. With split lanes enabled, a lane without a matching worker
 is retained locally with queued_locally until explicitly recovered; the default worker does not steal its jobs. General `doctor`
 readiness means at least one worker is available, not that every optional lane is
 served. Use doctor --lane LANE and the Supervisor process list to verify enabled lane workers.
