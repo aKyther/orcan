@@ -586,14 +586,6 @@
         },
         {
           "argv": [
-            "./tests/host/run.sh",
-            "tests/host",
-            "--junitxml",
-            ".orcan/charts-host-results.xml"
-          ]
-        },
-        {
-          "argv": [
             "uv",
             "run",
             "--project",
@@ -604,6 +596,14 @@
             "executor/tests",
             "--junitxml",
             ".orcan/charts-executor-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/charts-host-results.xml"
           ]
         },
         {
