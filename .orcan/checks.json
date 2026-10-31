@@ -574,6 +574,91 @@
       "junit": [
         ".orcan/cockpit-*-results.xml"
       ]
+    },
+    "charts-final": {
+      "timeout_seconds": 1800,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/charts-host-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/charts-executor-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "format",
+            "--check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "node",
+            "--test",
+            "tests/smoke/test-executor-charts.cjs"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "python",
+            "executor/smoke/dashboard.py"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/charts-*-results.xml"
+      ]
     }
   }
 }

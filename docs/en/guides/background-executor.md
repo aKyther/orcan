@@ -316,7 +316,22 @@ and dirty retained worktrees are never removed by these history limits.
 
 The dashboard defaults to the **last 3 hours**. Choose 24 hours, 7 days or 30 days.
 Counts and measurements use the selected completion-time window; active jobs are
-always visible. The list shows at most 100 recent submissions. An expired entry
+always visible. The list shows at most 100 recent submissions.
+All terminal jobs, including cancellations and jobs without metrics, count as
+completed. Measured JSON lines are counted separately. The coverage note gives
+sample counts for logs, results, returned bytes and durations. Recovered records
+can lack notification and detail-read measurements; they are marked as partial,
+not treated as measured zeros. Byte reduction compares only jobs with both log
+and result measurements. Returned-byte comparisons exclude recovered records
+whose detail-read history is unknown.
+
+Counts, profile usage, durations and chart values share one SQLite read snapshot.
+Charts include idle intervals: grouped bars distinguish successful, failed and
+cancelled jobs; duration lines break at missing or incomplete samples. Queue p95
+uses the nearest-rank percentile of individual measured jobs, not bucket averages.
+The accessible data table shows missing-data coverage for incomplete buckets.
+
+An expired entry
 has no report or log link. Total execution time is measured job duration, not a
 claim about saved developer/model time.
 

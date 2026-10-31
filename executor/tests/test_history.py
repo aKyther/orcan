@@ -43,6 +43,7 @@ def test_expiry_preserves_history_measurements_and_delivery(repo, monkeypatch, c
     assert retention.prune() == 1
     after = store.board(3)
     assert after["stats"] == before["stats"]
+    assert after["coverage"] == before["coverage"]
     assert after["notification_stats"] == before["notification_stats"]
     assert after["delivery_counts"] == before["delivery_counts"]
     assert after["counts"]["passed"] == 1

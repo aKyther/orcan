@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Count every completed executor job, disclose measurement coverage and recovered history, and read dashboard analytics from one database snapshot.
+- Separate errors and cancellations in chart bars, show idle intervals and queue p95, and leave gaps for incomplete duration and byte measurements.
+
 - Keep cockpit workspace discovery, Git details, activity previews and brief loading off the UI loop; coalesce slow probes and reject obsolete view results.
 - Prevent periodic chrome probes from accumulating background threads when their UI awaiters are cancelled.
 

@@ -66,6 +66,7 @@ def database(directory: Path | None = None):
             connection.execute("ALTER TABLE jobs ADD COLUMN progress TEXT")
         for name, definition in {
             "details_expired": "INTEGER NOT NULL DEFAULT 0",
+            "history_source": "TEXT NOT NULL DEFAULT 'recorded'",
             "lane": "TEXT",
             "publication_state": "TEXT NOT NULL DEFAULT 'unknown'",
             "recovery_count": "INTEGER NOT NULL DEFAULT 0",
@@ -83,6 +84,11 @@ def database(directory: Path | None = None):
         }.items():
             if name not in columns:
                 connection.execute("ALTER TABLE jobs ADD COLUMN " + name + " " + definition)
+        # Recognize records restored by the earlier one-off recovery tool.
+        connection.execute(
+            "UPDATE jobs SET history_source='recovered' WHERE history_source='recorded' "
+            "AND repo='unknown (restored from Redis AOF)'"
+        )
         delivery_columns = {row[1] for row in connection.execute("PRAGMA table_info(deliveries)")}
         for name, definition in {
             "message_bytes": "INTEGER NOT NULL DEFAULT 0",
@@ -326,8 +332,10 @@ def mark_published(event_id: int) -> None:
 def board(hours: int | None = None) -> dict:
     if hours is not None and not 1 <= hours <= 720:
         raise ValueError("History window must be between 1 and 720 hours")
+    snapshot_time = datetime.now(UTC)
     with database() as db:
-        cutoff = (datetime.now(UTC) - timedelta(hours=hours or 720)).isoformat()
+        db.execute("BEGIN")
+        cutoff = (snapshot_time - timedelta(hours=hours or 720)).isoformat()
         db.execute("CREATE TEMP TABLE history_window(cutoff TEXT)")
         db.execute("INSERT INTO history_window VALUES(?)", (cutoff,))
         db.execute(
@@ -367,7 +375,8 @@ def board(hours: int | None = None) -> dict:
         ]
         aggregate = dict(
             db.execute("""
-            SELECT COUNT(json_extract(summary, '$.metrics.result_bytes')) AS completed_jobs,
+            SELECT COUNT(*) AS completed_jobs,
+            COUNT(json_extract(summary, '$.metrics.result_bytes')) AS measured_result_jobs,
             COALESCE(SUM(superseded_by IS NOT NULL),0) AS superseded_jobs,
             COALESCE(SUM(fairness_bypasses),0) AS fairness_bypasses,
             COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes,
@@ -380,13 +389,13 @@ def board(hours: int | None = None) -> dict:
             COALESCE(SUM(json_extract(summary, '$.seconds')),0) AS total_run_seconds,
             COALESCE(SUM(json_extract(summary, '$.metrics.child_cpu_seconds')),0) AS child_cpu_seconds,
             COALESCE(SUM(json_extract(summary, '$.metrics.executor_cpu_seconds')),0) AS executor_cpu_seconds
-            FROM scoped_jobs WHERE summary IS NOT NULL
+            FROM scoped_jobs WHERE finished IS NOT NULL
         """).fetchone()
         )
         by_status = [
             dict(row)
             for row in db.execute(
-                "SELECT status, COUNT(*) AS jobs, COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes, COALESCE(SUM(json_extract(summary, '$.metrics.result_bytes')),0) AS result_bytes FROM scoped_jobs WHERE summary IS NOT NULL GROUP BY status"
+                "SELECT status, COUNT(*) AS jobs, COALESCE(SUM(json_extract(summary, '$.metrics.log_bytes')),0) AS log_bytes, COALESCE(SUM(json_extract(summary, '$.metrics.result_bytes')),0) AS result_bytes FROM scoped_jobs WHERE finished IS NOT NULL GROUP BY status"
             )
         ]
         usage = dict(
@@ -406,6 +415,35 @@ def board(hours: int | None = None) -> dict:
                 "SELECT d.job_id,d.thread_id,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM scoped_deliveries d JOIN (SELECT id FROM scoped_jobs ORDER BY status IN ('queued','running') DESC,created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
             )
         ]
+        coverage = dict(
+            db.execute("""
+            SELECT COUNT(*) AS completed_jobs,
+            COALESCE(SUM(history_source='recovered'),0) AS recovered_jobs,
+            COUNT(json_extract(summary,'$.metrics.log_bytes')) AS log_jobs,
+            COUNT(json_extract(summary,'$.metrics.result_bytes')) AS result_jobs,
+            COUNT(json_extract(summary,'$.metrics.queue_seconds')) AS queue_jobs,
+            COUNT(json_extract(summary,'$.seconds')) AS run_jobs,
+            COALESCE(SUM(json_type(summary,'$.metrics.log_bytes') IN ('integer','real') AND
+                json_type(summary,'$.metrics.result_bytes') IN ('integer','real')),0) AS compared_jobs,
+            COALESCE(SUM(CASE WHEN json_type(summary,'$.metrics.log_bytes') IN ('integer','real') AND
+                json_type(summary,'$.metrics.result_bytes') IN ('integer','real')
+                THEN json_extract(summary,'$.metrics.log_bytes') END),0) AS compared_log_bytes,
+            COALESCE(SUM(CASE WHEN json_type(summary,'$.metrics.log_bytes') IN ('integer','real') AND
+                json_type(summary,'$.metrics.result_bytes') IN ('integer','real')
+                THEN json_extract(summary,'$.metrics.result_bytes') END),0) AS compared_result_bytes,
+            COALESCE(SUM(CASE WHEN history_source<>'recovered' AND
+                json_type(summary,'$.metrics.log_bytes') IN ('integer','real') AND
+                json_type(summary,'$.metrics.result_bytes') IN ('integer','real')
+                THEN json_extract(summary,'$.metrics.log_bytes')-
+                json_extract(summary,'$.metrics.result_bytes')-detail_wire_bytes END),0) AS known_reduction_bytes,
+            COALESCE(SUM(history_source<>'recovered' AND
+                json_type(summary,'$.metrics.result_bytes') IN ('integer','real')),0) AS return_jobs,
+            COALESCE(SUM(CASE WHEN history_source<>'recovered' AND
+                json_type(summary,'$.metrics.result_bytes') IN ('integer','real')
+                THEN json_extract(summary,'$.metrics.result_bytes')+detail_wire_bytes END),0) AS known_return_bytes
+            FROM scoped_jobs WHERE finished IS NOT NULL
+        """).fetchone()
+        )
         notification_stats = dict(
             db.execute("""
             SELECT COALESCE(SUM(message_bytes>0),0) AS attempted_messages,
@@ -416,43 +454,44 @@ def board(hours: int | None = None) -> dict:
             COALESCE(SUM(adapter_seconds),0) AS adapter_seconds FROM scoped_deliveries
         """).fetchone()
         )
-    aggregate["by_status"] = by_status
-    aggregate.update(usage)
-    for job in jobs:
-        job["deliveries"] = [d for d in delivery_jobs if d["job_id"] == job["id"]]
-        job["selectors"] = json.loads(job["selectors"])
-        job["summary"] = json.loads(job["summary"]) if job["summary"] else None
-    for job in jobs:
-        job["progress"] = json.loads(job["progress"]) if job.get("progress") else None
-    aggregate["reduction_bytes"] = aggregate["log_bytes"] - aggregate["result_bytes"]
-    aggregate["reduction_percent"] = (
-        round(100 * aggregate["reduction_bytes"] / aggregate["log_bytes"], 2)
-        if aggregate["log_bytes"]
-        else None
-    )
-    aggregate["estimated_tokens_avoided"] = max(0, aggregate["reduction_bytes"] // 4)
-    interval = (
-        300
-        if hours and hours <= 3
-        else 3600
-        if hours and hours <= 24
-        else 21600
-        if hours and hours <= 168
-        else 86400
-    )
-    with database() as db:
-        cutoff = (datetime.now(UTC) - timedelta(hours=hours or 720)).isoformat()
+        aggregate["by_status"] = by_status
+        aggregate.update(usage)
+        for job in jobs:
+            job["deliveries"] = [d for d in delivery_jobs if d["job_id"] == job["id"]]
+            job["selectors"] = json.loads(job["selectors"])
+            job["summary"] = json.loads(job["summary"]) if job["summary"] else None
+        for job in jobs:
+            job["progress"] = json.loads(job["progress"]) if job.get("progress") else None
+        aggregate["reduction_bytes"] = (
+            coverage["compared_log_bytes"] - coverage["compared_result_bytes"]
+        )
+        aggregate["reduction_percent"] = (
+            round(100 * aggregate["reduction_bytes"] / coverage["compared_log_bytes"], 2)
+            if coverage["compared_log_bytes"]
+            else None
+        )
+        aggregate["estimated_tokens_avoided"] = max(0, aggregate["reduction_bytes"] // 4)
+        interval = (
+            300
+            if hours and hours <= 3
+            else 3600
+            if hours and hours <= 24
+            else 21600
+            if hours and hours <= 168
+            else 86400
+        )
+        cutoff = (snapshot_time - timedelta(hours=hours or 720)).isoformat()
         timeline = [
             dict(row)
             for row in db.execute(
                 "SELECT CAST(strftime('%s',finished) AS INTEGER)/?*? AS bucket, "
-                "COUNT(*) AS jobs, SUM(status='passed') AS passed, SUM(status<>'passed') AS problems, "
+                "COUNT(*) AS jobs, SUM(status='passed') AS passed, SUM(status IN ('failed','error','timed_out')) AS problems, SUM(status='cancelled') AS cancelled, "
                 "COALESCE(SUM(json_extract(summary,'$.metrics.log_bytes')),0) AS log_bytes, "
                 "COALESCE(SUM(json_extract(summary,'$.metrics.result_bytes')),0) AS result_bytes, "
                 "COALESCE(SUM(detail_wire_bytes),0) AS detail_wire_bytes, "
-                "COALESCE(AVG(json_extract(summary,'$.metrics.queue_seconds')),0) AS queue_seconds, "
-                "COALESCE(AVG(json_extract(summary,'$.seconds')),0) AS run_seconds "
-                "FROM jobs WHERE finished>=? GROUP BY bucket ORDER BY bucket",
+                "AVG(json_extract(summary,'$.metrics.queue_seconds')) AS queue_seconds, "
+                "AVG(json_extract(summary,'$.seconds')) AS run_seconds "
+                "FROM scoped_jobs WHERE finished>=? GROUP BY bucket ORDER BY bucket",
                 (interval, interval, cutoff),
             )
         ]
@@ -460,29 +499,92 @@ def board(hours: int | None = None) -> dict:
             dict(row)
             for row in db.execute(
                 "SELECT repo,profile,lane,COUNT(*) AS jobs,COALESCE(SUM(json_extract(summary,'$.seconds')),0) AS seconds "
-                "FROM jobs WHERE finished>=? GROUP BY repo,profile,lane ORDER BY jobs DESC LIMIT 20",
+                "FROM scoped_jobs WHERE finished>=? GROUP BY repo,profile,lane ORDER BY jobs DESC LIMIT 20",
                 (cutoff,),
             )
         ]
-    with database() as db:
         samples = sorted(
             row[0]
             for row in db.execute(
-                "SELECT json_extract(summary,'$.metrics.queue_seconds') FROM jobs WHERE finished>=? "
+                "SELECT json_extract(summary,'$.metrics.queue_seconds') FROM scoped_jobs WHERE finished>=? "
                 "AND json_type(summary,'$.metrics.queue_seconds') IN ('integer','real')",
                 (cutoff,),
             )
         )
+        measured_rows = [
+            dict(row)
+            for row in db.execute(
+                "SELECT CAST(strftime('%s',finished) AS INTEGER)/?*? AS bucket, "
+                "history_source,summary,detail_wire_bytes FROM scoped_jobs WHERE finished>=?",
+                (interval, interval, cutoff),
+            )
+        ]
+        by_bucket = {}
+        for row in measured_rows:
+            by_bucket.setdefault(row["bucket"], []).append(row)
+        for bucket in timeline:
+            rows = by_bucket[bucket["bucket"]]
+            summaries = [json.loads(row["summary"] or "{}") for row in rows]
+            metrics = [summary.get("metrics", {}) for summary in summaries]
+            bucket["log_jobs"] = sum(isinstance(m.get("log_bytes"), (int, float)) for m in metrics)
+            bucket["result_jobs"] = sum(
+                isinstance(m.get("result_bytes"), (int, float)) for m in metrics
+            )
+            queue = sorted(
+                m["queue_seconds"]
+                for m in metrics
+                if isinstance(m.get("queue_seconds"), (int, float))
+            )
+            bucket["queue_jobs"] = len(queue)
+            bucket["run_jobs"] = sum(isinstance(s.get("seconds"), (int, float)) for s in summaries)
+            bucket["queue_p95_seconds"] = queue[math.ceil(len(queue) * 0.95) - 1] if queue else None
+            returns = [
+                m["result_bytes"] + row["detail_wire_bytes"]
+                for row, m in zip(rows, metrics, strict=True)
+                if row["history_source"] != "recovered"
+                and isinstance(m.get("result_bytes"), (int, float))
+            ]
+            bucket["return_jobs"] = len(returns)
+            bucket["returned_bytes"] = sum(returns) if returns else None
+            if not bucket["log_jobs"]:
+                bucket["log_bytes"] = None
+            if not bucket["result_jobs"]:
+                bucket["result_bytes"] = None
+    # Include idle buckets, so a line never bridges an unobserved period.
+    buckets = {row["bucket"]: row for row in timeline}
+    first = int(datetime.fromisoformat(cutoff).timestamp()) // interval * interval
+    last = int(snapshot_time.timestamp()) // interval * interval
+    timeline = [
+        buckets.get(
+            stamp,
+            dict(
+                bucket=stamp,
+                jobs=0,
+                passed=0,
+                problems=0,
+                cancelled=0,
+                log_bytes=0,
+                result_bytes=0,
+                detail_wire_bytes=0,
+                returned_bytes=0,
+                queue_seconds=None,
+                run_seconds=None,
+                queue_p95_seconds=None,
+                log_jobs=0,
+                result_jobs=0,
+                return_jobs=0,
+                queue_jobs=0,
+                run_jobs=0,
+            ),
+        )
+        for stamp in range(first, last + 1, interval)
+    ]
     aggregate["queue_p50_seconds"] = samples[math.ceil(len(samples) * 0.5) - 1] if samples else None
     aggregate["queue_p95_seconds"] = (
         samples[math.ceil(len(samples) * 0.95) - 1] if samples else None
     )
-    aggregate["return_with_details_bytes"] = (
-        aggregate["result_bytes"] + aggregate["detail_wire_bytes"]
-    )
-    aggregate["reduction_with_details_bytes"] = (
-        aggregate["log_bytes"] - aggregate["return_with_details_bytes"]
-    )
+    aggregate["return_with_details_bytes"] = coverage["known_return_bytes"]
+    aggregate["reduction_with_details_bytes"] = coverage["known_reduction_bytes"]
     worker_running = False
     for lock_path in [
         state_dir() / "worker.lock",
@@ -499,6 +601,8 @@ def board(hours: int | None = None) -> dict:
                     worker_running = True
     return {
         "counts": counts,
+        "coverage": coverage,
+        "snapshot_at": snapshot_time.isoformat(),
         "jobs": jobs,
         "timeline": timeline,
         "communication": diagnostics_snapshot(),
