@@ -134,8 +134,8 @@ def edit_executor(cfg: dict[str, Any]) -> None:
     )
     try:
         for key, label in [
-            ("workers", "Workers on the shared queue (1..3; use 1 with split lanes)"),
-            ("max_running", "Maximum simultaneous jobs across workers (1..3)"),
+            ("workers", "Workers on the shared queue (1..5; use 1 with split lanes)"),
+            ("max_running", "Maximum simultaneous jobs across workers (1..5)"),
             ("max_pending", "Maximum queued plus running jobs (1..10000)"),
             ("timeout_seconds", "Default job timeout in seconds (1..21600)"),
             ("retention_seconds", "Detailed log retention in seconds (60..86400)"),

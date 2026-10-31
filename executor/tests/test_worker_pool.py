@@ -17,7 +17,7 @@ from conftest import commit
 from orcan_executor import cli, engine, readiness, settings, store, tasks
 
 
-@pytest.mark.parametrize("workers", [1, 2, 3])
+@pytest.mark.parametrize("workers", [1, 2, 3, 4, 5])
 def test_shared_queue_ignores_profile_lane(repo, monkeypatch, workers):
     monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", str(workers))
     path = repo / ".orcan/checks.json"
@@ -35,11 +35,11 @@ def test_shared_queue_ignores_profile_lane(repo, monkeypatch, workers):
 
 
 def test_each_worker_needs_its_own_lease_and_lock(monkeypatch):
-    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", "3")
+    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", "5")
     root = settings.state_dir()
     root.mkdir()
     leases = {
-        readiness.worker_lease(settings.queue_name(), slot): store.now() for slot in (1, 2, 3)
+        readiness.worker_lease(settings.queue_name(), slot): store.now() for slot in (1, 2, 3, 4, 5)
     }
     monkeypatch.setattr(readiness.events, "client", lambda: Mock(get=leases.get))
     with ExitStack() as stack:
@@ -51,12 +51,12 @@ def test_each_worker_needs_its_own_lease_and_lock(monkeypatch):
         )  # Slot 3 lease alone is insufficient.
         del leases[readiness.worker_lease(settings.queue_name(), 1)]
         lane = readiness.lanes()["default"]
-        assert lane["ready_workers"] == 1 and lane["configured_workers"] == 3
+        assert lane["ready_workers"] == 1 and lane["configured_workers"] == 5
         assert lane["ready"]  # Slot 2 survives slot 1 shutdown.
         assert store.board()["worker_running"]
 
 
-@pytest.mark.parametrize("value", ["0", "4", "true"])
+@pytest.mark.parametrize("value", ["0", "6", "true"])
 def test_runtime_rejects_invalid_worker_count(monkeypatch, value):
     monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", value)
     with pytest.raises(ValueError):
@@ -64,7 +64,7 @@ def test_runtime_rejects_invalid_worker_count(monkeypatch, value):
 
 
 def test_runtime_rejects_combined_pool_and_split_lanes(monkeypatch):
-    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", "3")
+    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", "5")
     monkeypatch.setenv("ORCAN_EXECUTOR_SPLIT_LANES", "1")
     with pytest.raises(ValueError, match="split lanes"):
         settings.effective()
@@ -79,7 +79,7 @@ def wait_until(predicate, timeout=25):
     raise AssertionError("Isolated worker pool did not reach the expected state")
 
 
-def test_three_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path, monkeypatch):
+def test_five_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path, monkeypatch):
     if not shutil.which("redis-server"):
         pytest.skip("redis-server unavailable")
     import redis
@@ -88,18 +88,18 @@ def test_three_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path,
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     monkeypatch.setenv("ORCAN_EXECUTOR_BROKER_URL", f"redis://127.0.0.1:{port}/0")
-    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", "3")
-    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "3")
+    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", "5")
+    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "5")
     gate = tmp_path / "gate"
     gate.mkdir()
-    # Every procedure waits until all three independent workers have started.
-    # A single worker (or a global cap below three) cannot pass this barrier.
+    # Every procedure waits until all five independent workers have started.
+    # A single worker (or a global cap below five) cannot pass this barrier.
     (repo / "check.py").write_text(
         "import time\nfrom pathlib import Path\n"
         f"gate=Path({str(gate)!r})\n"
         "(gate/Path.cwd().name).touch()\n"
         "deadline=time.monotonic()+15\n"
-        "while len(list(gate.iterdir())) < 3:\n"
+        "while len(list(gate.iterdir())) < 5:\n"
         "    assert time.monotonic()<deadline, 'workers did not overlap'\n"
         "    time.sleep(.05)\n"
     )
@@ -144,19 +144,19 @@ def test_three_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path,
                     [sys.executable, "-m", "orcan_executor.cli", "worker", "--slot", str(slot)],
                     f"worker-{slot}",
                 )
-                for slot in (1, 2, 3)
+                for slot in (1, 2, 3, 4, 5)
             ]
-            wait_until(lambda: readiness.lanes()["default"]["ready_workers"] == 3)
-            jobs = [engine.submit(repo, "HEAD", f"pool-{n}", "quality", [], 30) for n in range(3)]
+            wait_until(lambda: readiness.lanes()["default"]["ready_workers"] == 5)
+            jobs = [engine.submit(repo, "HEAD", f"pool-{n}", "quality", [], 30) for n in range(5)]
             for job in jobs:
                 cli.enqueue(job["id"])
             wait_until(lambda: all(store.get(job["id"])["status"] == "passed" for job in jobs))
-            assert len(list(gate.iterdir())) == 3
+            assert len(list(gate.iterdir())) == 5
             assert all(store.get(job["id"])["attempts"] == 1 for job in jobs)
             workers[0].terminate()
             workers[0].wait(timeout=10)
             lane = readiness.lanes()["default"]
-            assert lane["ready_workers"] == 2 and lane["ready"]
+            assert lane["ready_workers"] == 4 and lane["ready"]
             job = engine.submit(repo, "HEAD", "after-stop", "quality", [], 30)
             cli.enqueue(job["id"])
             wait_until(lambda: store.get(job["id"])["status"] == "passed")

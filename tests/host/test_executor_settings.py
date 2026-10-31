@@ -12,7 +12,7 @@ from ._scripts_loader import load_script
         {"redis_memory_mb": 16},
         {"visibility_timeout_seconds": 21600},
         {"workers": 0},
-        {"workers": 4},
+        {"workers": 6},
         {"workers": True},
         {"workers": 2, "split_lanes": True},
         {"max_running": 0},

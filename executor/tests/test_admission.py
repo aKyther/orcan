@@ -13,7 +13,7 @@ from conftest import commit
 from orcan_executor import cli, engine, readiness, settings, store, tasks
 
 
-@pytest.mark.parametrize("limit", [1, 2, 3])
+@pytest.mark.parametrize("limit", [1, 2, 3, 4, 5])
 def test_running_limit_is_atomic_across_workers(repo, monkeypatch, limit):
     monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", str(limit))
     jobs = [engine.submit(repo, "HEAD", "capacity", "quality", [], 30) for _ in range(8)]
@@ -65,7 +65,7 @@ def test_unavailable_lane_is_not_published_to_celery(repo, monkeypatch):
 def test_settings_are_bounded_and_show_effective_limits(monkeypatch):
     monkeypatch.setenv("ORCAN_EXECUTOR_TIMEOUT_SECONDS", "45")
     assert settings.effective()["timeout_seconds"] == 45
-    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "4")
+    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "6")
     with pytest.raises(ValueError, match="Running limit"):
         settings.effective()
 

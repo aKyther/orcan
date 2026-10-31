@@ -53,8 +53,8 @@ Use `orcan settings` to edit the executor section without changing workspaces:
 {
   "executor": {
     "split_lanes": false,
-    "workers": 3,
-    "max_running": 3,
+    "workers": 5,
+    "max_running": 5,
     "max_pending": 100,
     "timeout_seconds": 1800,
     "retention_seconds": 3600,
@@ -72,17 +72,17 @@ pinned jobs retain their recorded lane and are not automatically migrated. Witho
 an executor section, existing environment settings remain valid.
 `orcan-executor settings` shows the effective process settings and their source.
 
-`workers` (1..3, default 1) starts independent Celery workers on one shared queue
+`workers` (1..5, default 1) starts independent Celery workers on one shared queue
 when `split_lanes` is false. Each worker executes one job at a time and has its own
 process lock, heartbeat and log. All profiles use the shared queue in this mode,
 including profiles labelled `light` or `heavy`. Set both `workers` and
-`max_running` to 3 to allow three procedures to run concurrently. Queued work
+`max_running` to 5 to allow five procedures to run concurrently. Queued work
 from multiple sessions waits for a free worker; repository turns still apply.
 `doctor` reports `configured_workers`, `ready_workers` and individual slots per
 lane. One worker stopping does not clear the other workers' readiness.
-The environment equivalent is `ORCAN_EXECUTOR_WORKERS=3`.
+The environment equivalent is `ORCAN_EXECUTOR_WORKERS=5`.
 
-`max_running` (1..3, default 2) is an atomic instance-wide admission cap shared by
+`max_running` (1..5, default 2) is an atomic instance-wide admission cap shared by
 all lanes. Workers defer capacity-blocked jobs for a later attempt without running
 their procedures or consuming an execution attempt. Failed procedures are not
 retried by this mechanism. Queued jobs can still be cancelled. A stale running job

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Configure one to three independent executor workers on a shared queue, with per-worker readiness and a separate global running-job cap. Shared-queue mode routes every profile to that queue; split lanes remain available.
+- Configure one to five independent executor workers on a shared queue, with per-worker readiness and a separate global running-job cap. Shared-queue mode routes every profile to that queue; split lanes remain available.
 
 ### Fixed
 

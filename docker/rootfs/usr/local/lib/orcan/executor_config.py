@@ -11,9 +11,9 @@ DEFAULTS = {
     "visibility_timeout_seconds": 86400,
 }
 LIMITS = {
-    "workers": (1, 3),
+    "workers": (1, 5),
     "max_pending": (1, 10000),
-    "max_running": (1, 3),
+    "max_running": (1, 5),
     "timeout_seconds": (1, 21600),
     "retention_seconds": (60, 86400),
     "redis_memory_mb": (32, 4096),

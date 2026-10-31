@@ -181,7 +181,7 @@ def parser():
         "worker", help="Run an isolated local Celery worker lane in the foreground"
     )
     worker.add_argument("--lane", choices=["default", "light", "heavy"], default="default")
-    worker.add_argument("--slot", type=int, choices=[1, 2, 3], default=1)
+    worker.add_argument("--slot", type=int, choices=[1, 2, 3, 4, 5], default=1)
     recover = commands.add_parser(
         "recover", help="Republish pending events and requeue one interrupted/pending job"
     )
