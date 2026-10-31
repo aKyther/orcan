@@ -148,8 +148,30 @@ def test_five_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path, 
             ]
             wait_until(lambda: readiness.lanes()["default"]["ready_workers"] == 5)
             jobs = [engine.submit(repo, "HEAD", f"pool-{n}", "quality", [], 30) for n in range(5)]
+
+            # Celery imported by earlier unit tests has cached its original broker.
+            # Publish in a fresh process so the isolated Redis URL is applied before
+            # the Celery app is constructed, exactly as with a real CLI submitter.
+            def publish(job_id):
+                sender = subprocess.run(
+                    [
+                        sys.executable,
+                        "-c",
+                        "import sys; from orcan_executor.cli import enqueue; "
+                        "from orcan_executor.tasks import app; "
+                        "from orcan_executor.settings import broker_url; "
+                        "assert app.conf.broker_url == broker_url(); enqueue(sys.argv[1])",
+                        job_id,
+                    ],
+                    env=dict(os.environ),
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                assert sender.returncode == 0, sender.stderr[-1500:]
+
             for job in jobs:
-                cli.enqueue(job["id"])
+                publish(job["id"])
             wait_until(lambda: all(store.get(job["id"])["status"] == "passed" for job in jobs))
             assert len(list(gate.iterdir())) == 5
             assert all(store.get(job["id"])["attempts"] == 1 for job in jobs)
@@ -158,7 +180,7 @@ def test_five_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path, 
             lane = readiness.lanes()["default"]
             assert lane["ready_workers"] == 4 and lane["ready"]
             job = engine.submit(repo, "HEAD", "after-stop", "quality", [], 30)
-            cli.enqueue(job["id"])
+            publish(job["id"])
             wait_until(lambda: store.get(job["id"])["status"] == "passed")
             connection.close()
         finally:
