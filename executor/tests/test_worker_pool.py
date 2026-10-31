@@ -97,7 +97,7 @@ def test_five_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path, 
     (repo / "check.py").write_text(
         "import time\nfrom pathlib import Path\n"
         f"gate=Path({str(gate)!r})\n"
-        "(gate/Path.cwd().name).touch()\n"
+        "(gate/Path.cwd().parent.name).touch()\n"
         "deadline=time.monotonic()+15\n"
         "while len(list(gate.iterdir())) < 5:\n"
         "    assert time.monotonic()<deadline, 'workers did not overlap'\n"
