@@ -506,8 +506,23 @@ Use committed project profiles for these tasks, not only test profiles. A non-te
 profile needs no --test and must not claim that tests ran. Keep quick reads and small
 interactive edits direct. Do not enqueue unapproved deployment or destructive operations.
 If a procedure is missing, review and commit a suitable profile before submitting.
-Choose a lane supported by a ready worker; heavy JVM builds should use the heavy lane
-when available, with explicit tool parallelism (for example Gradle --max-workers=1).
+Keep agent context small: submit procedures to the executor; do not stream or paste
+successful command/test output into the session. For pytest, request JUnit XML with
+--junitxml {junit}; for Gradle/JVM tests, declare the produced JUnit XML paths in the
+profile's junit globs (including custom test tasks). Other test runners should emit
+JUnit XML or use a reviewed project wrapper that produces it. Preserve the command's
+real exit code; never hide failure with `|| true` or a pipeline that reports success.
+A test profile must actually produce its expected report; missing XML or zero tests
+is not evidence that the intended tests passed. Non-test procedures rely on the
+command exit code; retain full diagnostics as artifacts. Without structured failures,
+the compact fallback may contain mixed log lines; do not claim it is failure-only.
+Use the compact result first: status, exact SHA, counters and bounded failure messages.
+Do not fetch full logs or passed-case output after success. On failure, list artifacts
+and read only the relevant failed-case report or bounded diagnostic fragment; broaden
+only if needed to identify the cause. Report skips and checks that never ran honestly.
+With split_lanes=false, all new profiles use one shared queue with 1..5 workers.
+With split lanes enabled, choose a lane supported by a ready worker. Keep explicit
+tool parallelism (for example Gradle --max-workers=1), including on a shared queue.
 Profiles may set timeout_seconds; explicit --timeout wins over profile and runtime defaults.
 The global max_running cap limits simultaneous jobs, not each build's threads or RAM.
 CPU/RAM quotas are container-wide; do not assume Celery isolates subprocess resources.

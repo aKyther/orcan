@@ -45,6 +45,26 @@ Celery or Uvicorn commands. Host commands take the same subcommands and canonica
 repository paths as the container CLI. `orcan up --with-redis` is the only runtime
 opt-in. Agents learn these commands from their generated workspace context.
 
+## Caller contract: keep useful evidence, leave successful output on disk
+
+Generated workspace `AGENTS.md`/`CLAUDE.md` instruct callers to use committed
+procedures and consume compact results first. Configure pytest with
+`--junitxml {junit}`. For Gradle and other JVM runners, declare accurate `junit`
+globs for every test task in the procedure. A custom runner should emit JUnit XML
+or use a reviewed wrapper that preserves the real command exit code.
+
+Do not hide errors with `|| true` or a pipeline that turns a failing command into
+success. Check that the expected report exists and the intended test scope ran;
+missing XML or zero tests is not evidence that the tests passed. This is a caller
+responsibility: the executor does not currently enforce a required-report policy.
+
+Successful output stays in disk artifacts. Return status, exact SHA and counters;
+on failure, include bounded failure diagnostics. Read a failed-case report or a
+small relevant log fragment only when the compact result is insufficient. Do not
+load full logs or passed-case output after success. Non-test procedures use exit
+codes. Without structured failures, the fallback log tail can contain successful
+lines; it is bounded, but is not a failure-only parser.
+
 ## Configure queues and execution budgets
 
 Use `orcan settings` to edit the executor section without changing workspaces:

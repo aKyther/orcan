@@ -119,7 +119,16 @@ Implementation: `executor/` (locked Python 3.12), Supervisor program templates a
 Workspace AGENTS/CLAUDE guidance is generated in `orcan.reconcile.executor_guidance`.
 Keep default execution unchanged when disabled; readiness is checked at runtime.
 Never send successful build output to agents. Completion JSON is bounded; long
-logs and JUnit failures are consumed through bounded artifact reads. Default
+logs and JUnit failures are consumed through bounded artifact reads.
+Configure pytest with `--junitxml {junit}` and JVM profiles with accurate `junit`
+globs, including custom test tasks. Preserve real exit codes; do not mask failures.
+Missing reports or zero tests do not prove that the intended tests passed.
+Consume compact status/SHA/counters/errors first. Never fetch passed-case output
+or full successful logs into the agent session. For failures, inspect only relevant
+artifacts and bounded diagnostic fragments; widen reads only when needed.
+Non-test procedures use exit codes; without structured failures, a compact log-tail
+fallback may include successful lines. Do not describe that fallback as failure-only.
+Default
 detailed-result retention is one hour; compact history/measurements remain for 30 days
 (up to 10000 expired entries). Prefer committed executor profiles for approved heavy
 builds, analysis, code/report generation and docs, as well as tests. Quick reads and

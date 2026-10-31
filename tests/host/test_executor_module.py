@@ -29,6 +29,13 @@ def test_generated_guidance_enabled_and_disabled():
         "pytest",
         "sbt",
         "Gradle",
+        "--junitxml {junit}",
+        "profile's junit globs",
+        "real exit code",
+        "missing XML or zero tests",
+        "Do not fetch full logs or passed-case output after success",
+        "fallback may contain mixed log lines",
+        "1..5 workers",
     ]:
         assert text in enabled
 
