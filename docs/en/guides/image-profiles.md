@@ -103,3 +103,14 @@ are preserved unless the user explicitly selects the initializer's `--force`
 option, which makes backups. Context-status hints request only active clients'
 files. An agent already in a conversation should reread workspace instructions
 after switching images.
+
+### Claude installer HTTP 403 during an image build
+
+The public Claude bootstrap URL may return HTTP 403 to non-interactive Python
+clients. For the built-in Claude installer only, Orcan then requests the bootstrap
+from Anthropic's official `downloads.claude.ai` host. It keeps native installation
+and the selected version; it does not switch to npm or disable TLS checks. A custom
+URL, any checksum-pinned source, another agent or a different HTTP status does not
+activate this fallback. If the official downloads host also fails, the build stops.
+An error in `install_agent.py claude` precedes the Dockerfile's npm-cache cleanup;
+the cleanup command shown in the failed RUN block is not the failing download.

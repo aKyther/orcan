@@ -220,3 +220,72 @@ def test_native_archive_installs_expected_version_without_shell(tmp_path, monkey
     install_agent.install(entry, home)
     assert (home / ".local/bin/agent").is_symlink()
     assert (home / ".local/bin/agent").read_text() == "#!/bin/sh\necho fixture\n"
+
+
+def test_builtin_claude_403_uses_only_official_download_host(tmp_path, monkeypatch):
+    import urllib.error
+
+    calls = []
+
+    def fetch(url, target, checksum=""):
+        calls.append((url, checksum))
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(url, 403, "Forbidden", {}, None)
+        target.write_text("official installer")
+
+    monkeypatch.setattr(install_agent, "download", fetch)
+    execute = Mock()
+    monkeypatch.setattr(install_agent.subprocess, "run", execute)
+    entry = profile.resolve(
+        {"build": {"agents": [{"name": "claude", "version": "stable"}]}}
+    )["agents"][0]
+    install_agent.install(entry, tmp_path)
+    assert calls == [
+        (entry["source"]["url"], ""),
+        (install_agent.CLAUDE_DOWNLOAD_BOOTSTRAP, ""),
+    ]
+    assert execute.call_args.args[0][-1] == "stable"
+    assert execute.call_args.args[0][0] == "bash"
+
+
+@pytest.mark.parametrize(
+    "name,url,checksum,code",
+    [
+        ("claude", "https://example.invalid/custom.sh", "0" * 64, 403),
+        ("claude", "https://claude.ai/install.sh", "0" * 64, 403),
+        ("claude", "https://claude.ai/install.sh", "", 404),
+        ("cursor", "https://cursor.com/install", "", 403),
+    ],
+)
+def test_no_fallback_for_custom_checked_or_other_sources(
+    tmp_path, monkeypatch, name, url, checksum, code
+):
+    import urllib.error
+
+    fetch = Mock(side_effect=urllib.error.HTTPError(url, code, "blocked", {}, None))
+    monkeypatch.setattr(install_agent, "download", fetch)
+    with pytest.raises(urllib.error.HTTPError):
+        install_agent.download_source(
+            name, {"type": "installer", "sha256": checksum}, url, tmp_path / "source"
+        )
+    assert fetch.call_count == 1
+
+
+def test_claude_fallback_failure_is_bounded_and_does_not_execute(tmp_path, monkeypatch):
+    import urllib.error
+
+    fetch = Mock(
+        side_effect=urllib.error.HTTPError(
+            "https://claude.ai/install.sh", 403, "blocked", {}, None
+        )
+    )
+    monkeypatch.setattr(install_agent, "download", fetch)
+    execute = Mock()
+    monkeypatch.setattr(install_agent.subprocess, "run", execute)
+    entry = profile.resolve({"build": {"agents": ["claude"]}})["agents"][0]
+    with pytest.raises(
+        ValueError, match="official installer download failed: HTTP 403"
+    ):
+        install_agent.install(entry, tmp_path)
+    assert fetch.call_count == 2
+    execute.assert_not_called()

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Persist ownership exclusions across explicit and automatic sync, including project additions through init; accept ownership flags in init and reject invalid saved policies before touching runtime files.
 
+### Fixed
+
+- Fall back to the official Claude downloads bootstrap when the built-in public installer returns HTTP 403, preserving native version selection and custom-source checksum requirements.
+
 ### Added
 
 - Teach Claude callers to prepare requested executor MCP setup, preserve existing entries and explain explicit channel consent before verifying a small procedure.

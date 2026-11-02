@@ -11,11 +11,12 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from orcan.image_profile import agent_entry
+from orcan.image_profile import INSTALLERS, agent_entry
 
 BINARIES = {
     "claude": "claude",
@@ -43,6 +44,36 @@ def download(url: str, target: Path, checksum: str = "") -> None:
             output.write(block)
     if checksum and digest.hexdigest() != checksum:
         raise ValueError("Agent source checksum mismatch")
+
+
+CLAUDE_DOWNLOAD_BOOTSTRAP = (
+    "https://downloads.claude.ai/claude-code-releases/bootstrap.sh"
+)
+
+
+def download_source(name: str, source: dict, url: str, archive: Path) -> None:
+    try:
+        download(url, archive, source.get("sha256", ""))
+    except urllib.error.HTTPError as error:
+        if not (
+            name == "claude"
+            and source["type"] == "installer"
+            and url == INSTALLERS["claude"]
+            and not source.get("sha256")
+            and error.code == 403
+        ):
+            raise
+        error.close()
+        print(
+            "Claude installer endpoint returned HTTP 403; using the official downloads host",
+            flush=True,
+        )
+        try:
+            download(CLAUDE_DOWNLOAD_BOOTSTRAP, archive)
+        except urllib.error.HTTPError as fallback_error:
+            raise ValueError(
+                f"Claude official installer download failed: HTTP {fallback_error.code}; check build network access"
+            ) from None
 
 
 def install(entry: dict, home: Path) -> None:
@@ -78,8 +109,8 @@ def install(entry: dict, home: Path) -> None:
             }.get(platform.machine())
             if not arch:
                 raise ValueError("Unsupported agent architecture")
-            download(
-                source["url"].replace("{arch}", arch), archive, source.get("sha256", "")
+            download_source(
+                name, source, source["url"].replace("{arch}", arch), archive
             )
             if source["type"] == "installer":
                 subprocess.run(
