@@ -140,7 +140,7 @@ def test_cli_rejects_missing_claude_channel_before_pinning(repo, capsys):
                 SESSION,
             ]
         )
-        == 2
+        == 1
     )
     assert "not connected" in capsys.readouterr().out
     assert not store.listing()
@@ -322,7 +322,7 @@ def test_empty_claude_submit_destination_is_not_treated_as_no_opt_in(repo, capsy
         cli.main(
             ["submit", "--repo", str(repo), "--profile", "quality", "--notify-claude-session", ""]
         )
-        == 2
+        == 1
     )
     assert not store.listing()
     capsys.readouterr()
@@ -330,7 +330,7 @@ def test_empty_claude_submit_destination_is_not_treated_as_no_opt_in(repo, capsy
 
 def test_empty_claude_receipt_cannot_fall_back_to_generic_ack(repo, capsys):
     job = completed(repo)
-    assert cli.main(["ack", job["id"], "--claude-session", ""]) == 2
+    assert cli.main(["ack", job["id"], "--claude-session", ""]) == 1
     assert not store.get(job["id"])["acknowledged"]
     capsys.readouterr()
 
