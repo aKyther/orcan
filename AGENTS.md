@@ -164,6 +164,12 @@ Use isolated smoke fixtures, never restart the live Orcan for verification.
 obtain its binding from `executor_session`, submit with `--notify-claude-session UUID`
 and explicitly acknowledge via `executor_ack`. No inferred destinations, model spawn
 or tmux typing. Channel writes do not prove channel enablement or consumption.
+For user-requested Claude setup, check `doctor` and `claude-channel --help`, then
+prepare the local stdio MCP entry while preserving existing servers and settings.
+A conflicting entry must not be overwritten. Explain the explicit channel launch
+and consent from the guide; do not restart an active session without authorization.
+Missing channel tools require restart/opt-in, not a claim that config alone enabled
+push. Confirm integration with an approved small procedure and explicit receipt.
 No destination means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.
 Use fake transports in tests, never a real session/model. Payload bytes are measured;
 model token usage/cost remain unavailable without provider-reported usage.

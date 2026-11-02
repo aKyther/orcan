@@ -675,6 +675,16 @@ and [MCP protocol notes](https://code.claude.com/docs/en/mcp#push-messages-with-
 The legacy protocol setting keeps stdio on a revision supporting channel messages.
 Orcan never changes Claude settings or enables channels automatically.
 
+Generated `CLAUDE.md` also teaches Claude to prepare this integration when the
+user requests it. Claude checks `doctor` and `claude-channel --help`, adds only
+the local named MCP entry, preserves existing servers and explains the launch
+command and consent. A conflicting entry is reported rather than overwritten.
+It must not restart the active session without authorization or claim that a
+config edit enabled push. Installation with `--agent claude` supplies the client;
+Redis, an image containing this adapter and channel opt-in are separate checks.
+After restart, `executor_session` and an approved small procedure plus explicit
+receipt confirm the workflow. No transcript or unrelated MCP secrets are needed.
+
 In the requesting Claude session:
 
 1. Call MCP tool `executor_session` and use its returned `session_id`.

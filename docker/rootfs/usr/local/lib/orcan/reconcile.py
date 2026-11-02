@@ -569,6 +569,21 @@ session notification. Do not block the conversation waiting for a long task.
    Channel transport acceptance does not prove Claude loaded/enabled or consumed the event.
    Custom channels require explicit Claude development-channel opt-in; setup is documented
    in docs/en/guides/background-executor.md. Without it, report verification pending.
+   If running as Claude and the user requests executor integration, first run doctor
+   and `orcan-executor claude-channel --help` to check the installed capability.
+   If unavailable, explain that the installed image needs updating; --agent claude
+   alone installs the client and does not prove Redis or this adapter is ready.
+   For requested setup, add only the named stdio MCP entry, preserving existing servers:
+   `claude mcp add --transport stdio --scope local orcan-executor -- orcan-executor claude-channel`.
+   Do not replace an existing conflicting entry or dump unrelated MCP config/secrets.
+   Prepare this explicit launch command for the user to enable the custom channel:
+   `MCP_PROTOCOL_NEGOTIATION=legacy claude --dangerously-load-development-channels server:orcan-executor`.
+   The user must complete Claude's channel consent; do not bypass it or org policy.
+   Do not restart an active session or change broader settings without authorization.
+   A running session without executor_session cannot enable push just by editing MCP
+   config: report setup prepared, and explain that restart/explicit opt-in is needed.
+   Once the tool is available, get its UUID and verify with an approved small procedure
+   and explicit receipt. Never claim integration works from a config edit alone.
 3. A separate controller owns `orcan-executor listen --after STREAM_ID` (blocking JSONL).
    Never block the interactive agent on this listener or repeatedly poll status. Save cursor; deduplicate event_id.
    Without a connected controller, report verification pending. Acceptance requires a completed result for the exact SHA.

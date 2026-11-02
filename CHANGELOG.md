@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Teach Claude callers to prepare requested executor MCP setup, preserve existing entries and explain explicit channel consent before verifying a small procedure.
+
 - Add an opt-in Claude MCP stdio channel for compact executor results, with explicit per-connection subscriptions, durable adapter-specific delivery states and consumption receipts.
 
 - Enforce opt-in JUnit report presence, freshness and minimum test counts; enable the policy in new test templates. Archive per-step logs and failure-only diagnostic indexes, and replace automatic mixed-log tails with failed-step references.

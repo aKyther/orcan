@@ -925,6 +925,35 @@
         ".orcan/claude-channel-*.xml"
       ],
       "require_junit": true
+    },
+    "claude-guidance-final": {
+      "timeout_seconds": 1200,
+      "require_junit": true,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/claude-guidance-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/claude-guidance-host.xml"
+      ]
     }
   }
 }

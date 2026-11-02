@@ -40,6 +40,9 @@ def test_generated_guidance_enabled_and_disabled():
         "executor_session",
         "--notify-claude-session",
         "executor_ack(job_id)",
+        "--transport stdio --scope local",
+        "Do not restart an active session",
+        "Never claim integration works from a config edit alone",
     ]:
         assert text in enabled
 
