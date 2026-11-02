@@ -159,8 +159,12 @@ poll or block on listeners. Prefer session notifications and return control.
 Dashboard charts compare measured log/result/detail bytes and elapsed times;
 bytes/4 token estimates and summed task duration are not actual model costs or time saved.
 Use isolated smoke fixtures, never restart the live Orcan for verification.
-`executor/src/orcan_executor/notifications.py` owns explicit local Codex queue delivery. No destination
-means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.
+`executor/src/orcan_executor/notifications.py` owns explicit local Codex queue delivery;
+`claude_channel.py` implements the opt-in Claude MCP channel over stdio. Claude must
+obtain its binding from `executor_session`, submit with `--notify-claude-session UUID`
+and explicitly acknowledge via `executor_ack`. No inferred destinations, model spawn
+or tmux typing. Channel writes do not prove channel enablement or consumption.
+No destination means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.
 Use fake transports in tests, never a real session/model. Payload bytes are measured;
 model token usage/cost remain unavailable without provider-reported usage.
 

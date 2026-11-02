@@ -850,6 +850,81 @@
       "junit": [
         ".orcan/ownership-host.xml"
       ]
+    },
+    "claude-channel-final": {
+      "timeout_seconds": 1200,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/claude-channel-executor.xml"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/claude-channel-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "format",
+            "--check",
+            "executor"
+          ]
+        },
+        {
+          "argv": [
+            "node",
+            "--test",
+            "tests/smoke/test-executor-charts.cjs"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/claude-channel-*.xml"
+      ],
+      "require_junit": true
     }
   }
 }

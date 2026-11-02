@@ -37,6 +37,9 @@ def test_generated_guidance_enabled_and_disabled():
         "Set require_junit=true",
         "without\nattaching raw mixed output",
         "1..5 workers",
+        "executor_session",
+        "--notify-claude-session",
+        "executor_ack(job_id)",
     ]:
         assert text in enabled
 

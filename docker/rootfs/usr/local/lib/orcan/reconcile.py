@@ -561,6 +561,14 @@ session notification. Do not block the conversation waiting for a long task.
    Codex may opt in with --notify-codex-thread UUID (its own CODEX_THREAD_ID when available).
    Never guess the target session. The supervised notification controller queues a compact result;
    queued is not consumed. After reading it use ack JOB --codex-thread UUID. No tmux typing is used.
+   Claude can use an explicitly enabled orcan-executor MCP channel. Call executor_session
+   to obtain this connection's binding UUID, then use --notify-claude-session UUID or
+   executor_subscribe(job_id). Never infer a Claude destination from cwd or another session.
+   Call executor_ack(job_id) or ack JOB --claude-session UUID after reading the result.
+   The channel uses local stdio and bounded messages, never claude --resume or tmux typing.
+   Channel transport acceptance does not prove Claude loaded/enabled or consumed the event.
+   Custom channels require explicit Claude development-channel opt-in; setup is documented
+   in docs/en/guides/background-executor.md. Without it, report verification pending.
 3. A separate controller owns `orcan-executor listen --after STREAM_ID` (blocking JSONL).
    Never block the interactive agent on this listener or repeatedly poll status. Save cursor; deduplicate event_id.
    Without a connected controller, report verification pending. Acceptance requires a completed result for the exact SHA.

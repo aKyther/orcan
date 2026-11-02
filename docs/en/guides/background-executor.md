@@ -636,6 +636,83 @@ snapshots are reusable. Unreferenced owned source caches expire after the retent
 period; caches referenced by active or retained jobs remain available. Project
 `.git` metadata, agent worktrees and original files are untouched.
 
+## Deliver compact results to a Claude Code session
+
+Claude uses the same Redis queue, procedures, isolated worktrees and compact result
+format as Codex. The adapter is a local MCP channel over stdio, started by Claude
+Code, rather than a `claude --resume` invocation or tmux input. No extra model is
+called. Each connection has a random binding UUID; `--session UUID` may explicitly
+reuse a known binding after its old process has stopped. One binding can have only
+one active channel process. This binding is not Claude's transcript/session ID.
+
+Register a stdio server with this MCP configuration (merge the entry into your
+chosen MCP config, preserving other servers):
+
+```json
+{
+  "mcpServers": {
+    "orcan-executor": {
+      "command": "orcan-executor",
+      "args": ["claude-channel"]
+    }
+  }
+}
+```
+
+Use the installed executor with Redis enabled. Launch Claude with that config and
+explicitly enable the custom channel. During Anthropic's channels research preview,
+custom servers require the development-channel flag and its confirmation dialog:
+
+```sh
+MCP_PROTOCOL_NEGOTIATION=legacy claude --mcp-config /absolute/path/mcp.json \
+  --dangerously-load-development-channels server:orcan-executor
+```
+
+This opts in to the named development channel; it does not disable tool permissions.
+Organization policy may block channels. Listing a server in MCP config alone does
+not enable push. See Anthropic's [channels reference](https://code.claude.com/docs/en/channels-reference)
+and [MCP protocol notes](https://code.claude.com/docs/en/mcp#push-messages-with-channels).
+The legacy protocol setting keeps stdio on a revision supporting channel messages.
+Orcan never changes Claude settings or enables channels automatically.
+
+In the requesting Claude session:
+
+1. Call MCP tool `executor_session` and use its returned `session_id`.
+2. Submit the approved committed procedure with that exact binding:
+
+   ```sh
+   orcan-executor submit --repo . --sha HEAD --profile selected \
+     --test tests/test_api.py --notify-claude-session BINDING_UUID
+   ```
+
+   Alternatively call `executor_subscribe` with a known `job_id`, or run
+   `orcan-executor notify JOB --claude-session BINDING_UUID` while the channel is
+   connected. `--reuse` can attach another explicit session to an active check.
+   `--replace-pending` remains Codex-owned; Claude submissions must omit it.
+3. Return control. The dedicated channel process follows Redis events and recovers
+   its durable local outbox; the agent does not run a listener or poll status.
+4. Read the compact channel event, then call `executor_ack(job_id)`, or run
+   `orcan-executor ack JOB --claude-session BINDING_UUID`.
+
+The three MCP tools are bound to their own connection and cannot select another
+session. Only explicitly subscribed terminal results are sent. Messages stay within
+4096 UTF-8 bytes and include the untrusted-diagnostics label, exact SHA, counters,
+bounded errors and relevant artifact references. Successful stdout stays on disk.
+Codex and Claude subscriptions are separate even if their UUID strings match.
+
+`queued` means a write to the MCP transport, not that Claude enabled the channel
+or processed the message. Claude may silently drop notifications if channels are
+blocked or not enabled, so only the explicit receipt means `consumed`. Interrupted
+writes become `unknown` and are never resent automatically. An unavailable channel
+is rejected before a CLI submission pins a job. Pending outbox entries survive a
+clean disconnect and can be resumed only by explicitly reconnecting that binding.
+TTL cleanup expires pending subscriptions with their reports. Dashboard delivery
+measurements include both adapters; bytes are content bytes, not provider usage.
+
+Protocol tests use real MCP stdio handshakes, two fake client sessions and isolated
+Redis. They do not invoke Claude or a model. Actual Claude consent/policy handling
+must be checked in an installed client; the test suite cannot prove it is enabled.
+
 ## Deliver compact results to a Codex session
 
 The executor can opt in to **local** `codex queue` notifications. A dedicated

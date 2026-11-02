@@ -233,3 +233,8 @@ Git identity is synced by `orcan sync` from host `user.name` / `user.email` and 
 ## Maintainer Make
 
 From a git checkout: `make validate`, `make test-host`, `make docs*`, `make release*`, `make registry-*`. See [Development](../development/overview.md).
+
+Claude executor delivery uses `orcan executor claude-channel [--session UUID]` as
+an explicitly enabled MCP stdio server. Obtain its binding via `executor_session`;
+use `submit --notify-claude-session UUID`, `notify JOB --claude-session UUID` and
+`ack JOB --claude-session UUID`. See [Claude channel setup](../guides/background-executor.md#deliver-compact-results-to-a-claude-code-session).

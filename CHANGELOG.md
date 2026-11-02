@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add an opt-in Claude MCP stdio channel for compact executor results, with explicit per-connection subscriptions, durable adapter-specific delivery states and consumption receipts.
+
 - Enforce opt-in JUnit report presence, freshness and minimum test counts; enable the policy in new test templates. Archive per-step logs and failure-only diagnostic indexes, and replace automatic mixed-log tails with failed-step references.
 
 - Teach executor callers to produce structured test reports, preserve exit codes and keep successful output out of agent context; document the mixed-log fallback limitation.

@@ -60,7 +60,11 @@ def parser():
     submit = commands.add_parser("submit", help="Pin a committed revision and enqueue verification")
     submit.add_argument("--repo", type=Path, required=True)
     submit.add_argument("--sha", default="HEAD")
-    submit.add_argument(
+    destination = submit.add_mutually_exclusive_group()
+    destination.add_argument(
+        "--notify-claude-session", help="Explicit connected Claude MCP channel session UUID"
+    )
+    destination.add_argument(
         "--notify-codex-thread",
         help="Explicit local Codex session UUID to receive the compact result",
     )
@@ -111,10 +115,18 @@ def parser():
     history.add_argument("--hours", type=int, default=3)
     commands.add_parser("maintenance", help="Local TTL cleanup and outbox recovery service")
     notify = commands.add_parser(
-        "notify", help="Attach an explicit Codex session to an existing job"
+        "notify", help="Attach an explicit agent session to an existing job"
     )
     notify.add_argument("job_id")
-    notify.add_argument("--codex-thread", required=True)
+    target = notify.add_mutually_exclusive_group(required=True)
+    target.add_argument("--codex-thread")
+    target.add_argument("--claude-session")
+    channel = commands.add_parser(
+        "claude-channel", help="Run the explicitly enabled Claude MCP channel over stdio"
+    )
+    channel.add_argument(
+        "--session", help="Explicit channel binding UUID for reconnection; generated if omitted"
+    )
     deliveries = commands.add_parser(
         "deliveries", help="Bounded notification states; queued does not mean consumed"
     )
@@ -129,7 +141,11 @@ def parser():
     cancel.add_argument("job_id")
     ack = commands.add_parser("ack", help="Record that a completed result was consumed")
     ack.add_argument("job_id")
-    ack.add_argument("--codex-thread", help="Confirm consumption by a registered Codex session")
+    receipt = ack.add_mutually_exclusive_group()
+    receipt.add_argument("--codex-thread", help="Confirm consumption by a registered Codex session")
+    receipt.add_argument(
+        "--claude-session", help="Confirm consumption by a registered Claude channel session"
+    )
     logs = commands.add_parser("logs", help="Read a bounded log chunk; never dump build output")
     artifacts = commands.add_parser(
         "artifacts", help="List a bounded page of full report/XML artifact names"
@@ -206,10 +222,30 @@ def main(argv=None):
             from .notifications import controller
 
             controller()
+        elif args.command == "claude-channel":
+            import asyncio
+
+            from .claude_channel import serve
+
+            try:
+                asyncio.run(serve(args.session))
+            except Exception:
+                print(
+                    "Claude channel stopped; inspect local configuration and broker readiness",
+                    file=sys.stderr,
+                )
+                return 2
         elif args.command == "notify":
             from .notifications import register
 
-            emit(register(args.job_id, args.codex_thread))
+            adapter = "claude" if args.claude_session is not None else "codex"
+            emit(
+                register(
+                    args.job_id,
+                    args.claude_session if adapter == "claude" else args.codex_thread,
+                    adapter,
+                )
+            )
             events.publish_pending()
         elif args.command == "history":
             board = store.board(args.hours)
@@ -318,10 +354,14 @@ def main(argv=None):
             emit(engine.cancel(args.job_id))
             events.publish_pending()
         elif args.command == "ack":
-            if args.codex_thread:
+            if args.codex_thread is not None or args.claude_session is not None:
                 from .notifications import acknowledge
 
-                acknowledge(args.job_id, args.codex_thread)
+                acknowledge(
+                    args.job_id,
+                    args.claude_session if args.claude_session is not None else args.codex_thread,
+                    "claude" if args.claude_session is not None else "codex",
+                )
             else:
                 store.acknowledge(args.job_id)
             emit({"job_id": args.job_id, "acknowledged": True})
@@ -476,6 +516,22 @@ def main(argv=None):
                 if args.notify_codex_thread is not None
                 else None
             )
+            claude_target = (
+                thread_id(args.notify_claude_session)
+                if args.notify_claude_session is not None
+                else None
+            )
+            if claude_target:
+                from .claude_channel import session_available
+
+                if not session_available(claude_target):
+                    raise ValueError(
+                        "Claude channel session is not connected; call executor_session first"
+                    )
+                if args.replace_pending:
+                    raise ValueError(
+                        "Pending replacement currently requires a Codex owner; omit --replace-pending for Claude"
+                    )
             source = snapshot(args.repo, args.include) if args.directory else nullcontext(args.repo)
             with source as repository:
                 job = engine.submit(
@@ -491,6 +547,8 @@ def main(argv=None):
                 )
                 if target:
                     register(job["id"], target)
+                if claude_target:
+                    register(job["id"], claude_target, "claude")
             try:
                 enqueue(job["id"])
             except Exception as error:

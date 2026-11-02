@@ -91,6 +91,7 @@ def database(directory: Path | None = None):
         )
         delivery_columns = {row[1] for row in connection.execute("PRAGMA table_info(deliveries)")}
         for name, definition in {
+            "adapter": "TEXT NOT NULL DEFAULT 'codex'",
             "message_bytes": "INTEGER NOT NULL DEFAULT 0",
             "adapter_seconds": "REAL NOT NULL DEFAULT 0",
         }.items():
@@ -412,7 +413,7 @@ def board(hours: int | None = None) -> dict:
         delivery_jobs = [
             dict(row)
             for row in db.execute(
-                "SELECT d.job_id,d.thread_id,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM scoped_deliveries d JOIN (SELECT id FROM scoped_jobs ORDER BY status IN ('queued','running') DESC,created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
+                "SELECT d.job_id,d.thread_id,d.adapter,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM scoped_deliveries d JOIN (SELECT id FROM scoped_jobs ORDER BY status IN ('queued','running') DESC,created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
             )
         ]
         coverage = dict(

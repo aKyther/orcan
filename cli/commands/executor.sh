@@ -25,10 +25,16 @@ Inside Orcan:  orcan-executor COMMAND ...
                             Replace matching owned pending ancestor checks; never running jobs
   submit ... --notify-codex-thread UUID
                             Opt in to a compact message in that local Codex session
+  submit ... --notify-claude-session UUID
+                            Compact result to an explicitly connected Claude MCP channel
+  claude-channel [--session UUID]
+                            MCP stdio channel; Claude must explicitly enable it
   notify JOB --codex-thread UUID
                             Attach a session to an already submitted job
   deliveries [--job JOB]     Notification states: queued is not consumed
-  ack JOB [--codex-thread UUID]
+  notify JOB --claude-session UUID
+                            Attach the requesting Claude channel connection
+  ack JOB [--codex-thread UUID | --claude-session UUID]
                             Confirm consumption; does not accept code or test outcome
   stats [--hours N]         Payload bytes, reductions, timings; model tokens unavailable
   history [--hours N]       Compact history; default last 3 hours
