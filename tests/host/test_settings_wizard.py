@@ -73,13 +73,54 @@ class MainWorkspacesUntouchedTests(unittest.TestCase):
             with (
                 patch("sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]),
                 patch("sys.stdin.isatty", return_value=True),
-                patch("builtins.input", side_effect=["n", "n", "n", "y"]),
+                patch("builtins.input", side_effect=["n", "n", "y"]),
             ):
                 sw.main()
             data = json.loads(cfg_path.read_text(encoding="utf-8"))
             self.assertEqual(data["workspaces"], [{"name": "acme", "projects": []}])
             self.assertIn("tmux", data)
-            self.assertIn("ttyd", data)
+            self.assertNotIn("ttyd", data)
+            self.assertNotIn("plugins", data)  # The user declined plugin editing.
+
+
+class MainPluginSaveTests(unittest.TestCase):
+    def test_plugin_migration_requires_final_save_and_preserves_workspaces(self) -> None:
+        for save in (False, True):
+            with self.subTest(save=save), tempfile.TemporaryDirectory() as tmp:
+                cfg_path = Path(tmp) / "orcan.config.json"
+                original = {
+                    "workspaces": [{"name": "acme", "projects": []}],
+                    "executor": {"workers": 3},
+                    "ttyd": {"host_port": 17682},
+                }
+                cfg_path.write_text(json.dumps(original), encoding="utf-8")
+                before = cfg_path.read_bytes()
+
+                def answer(label, default=False):
+                    if label == "Choose startup plugins and their settings?":
+                        return True
+                    if label == "Save these settings?":
+                        return save
+                    if label.startswith("Enable "):
+                        return default
+                    return False
+
+                with (
+                    patch("sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]),
+                    patch("sys.stdin.isatty", return_value=True),
+                    patch.object(sw, "ask_yes_no", side_effect=answer),
+                ):
+                    sw.main()
+                if not save:
+                    self.assertEqual(cfg_path.read_bytes(), before)
+                    continue
+                data = json.loads(cfg_path.read_text())
+                self.assertEqual(data["workspaces"], original["workspaces"])
+                self.assertEqual(data["plugins"]["redis"]["workers"], 3)
+                self.assertEqual(data["plugins"]["ttyd"]["host_port"], 17682)
+                self.assertFalse(data["plugins"]["redis"]["enabled"])
+                self.assertNotIn("executor", data)
+                self.assertNotIn("ttyd", data)
 
 
 if __name__ == "__main__":
