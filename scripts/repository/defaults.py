@@ -32,3 +32,5 @@ RESOURCE_DEFAULTS: dict[str, object] = {
     "shm_size": "512m",
     "tmpfs_size": "512m",
 }
+
+PROCESS_DEFAULTS: dict[str, int] = {"nofile": 65536, "nproc": 65536}

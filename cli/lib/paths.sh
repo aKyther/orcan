@@ -20,7 +20,7 @@ orcan_paths_init() {
             ORCAN_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}/orcan"
         fi
     fi
-    if ! mkdir -p "${ORCAN_HOME}" 2>/dev/null; then
+    if [[ "${ORCAN_READ_ONLY:-0}" != 1 ]] && ! mkdir -p "${ORCAN_HOME}" 2>/dev/null; then
         orcan_warn "could not create ORCAN_HOME=${ORCAN_HOME} (check permissions)"
     fi
     if [[ -d "${ORCAN_HOME}" ]]; then

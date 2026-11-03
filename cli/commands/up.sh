@@ -5,6 +5,7 @@ source "${ORCAN_ROOT}/cli/lib/plugins.sh"
 
 orcan_cmd_up() {
     if [[ " $* " == *" --help "* || " $* " == *" -h "* ]]; then
+        printf 'usage: orcan up --plan [--json] [startup flags]\n'
         printf 'usage: orcan up --resume [--web-terminal-auth USER:PASS]\n'
         printf '       orcan up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--with-ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]\n'
         printf '  --with-redis: enable local background executor, Redis and dashboard (separate port, same ttyd host)\n'
@@ -26,6 +27,25 @@ orcan_cmd_up() {
         printf '  Plugin defaults: orcan settings; temporary overrides: --with NAME | --without NAME\n'
         return 0
     fi
+    local preview=0 json=0 argument
+    local -a startup_arguments=()
+    for argument in "$@"; do
+        case "${argument}" in
+            --plan) preview=1 ;;
+            --json) json=1 ;;
+            *) startup_arguments+=("${argument}") ;;
+        esac
+    done
+    if ((preview)); then
+        local -a output_args=()
+        if ((json)); then output_args+=(--json); fi
+        orcan_host_python "${ORCAN_SCRIPTS}/up-plan.py" \
+            --config "${CONFIG:-${ORCAN_CONFIG_FILE:-${ORCAN_HOME}/orcan.config.json}}" \
+            --home "${ORCAN_HOME}" --last-up "$(orcan_last_up_file)" \
+            "${output_args[@]}" -- "${startup_arguments[@]}"
+        return
+    fi
+    if ((json)); then orcan_usage_error '--json requires --plan'; return 2; fi
     local with_redis=0 with_docker=0 with_git=0 with_github=0 with_gitlab=0 with_network=0 with_ttyd=0
     local with_ttyd_opt=0 with_ttyd_auth=0 resume=0
     local github_hostname="" gitlab_hostname="" network_name="" ttyd_credential="" git_overlay=""

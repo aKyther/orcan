@@ -2,20 +2,18 @@
 # shellcheck shell=bash
 
 orcan_cmd_settings() {
-    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-        printf 'usage: orcan settings\n'
-        printf '  Interactive: choose startup plugins and edit their settings; configure tmux windows/prefix,\n'
-        printf '  ttyd port/font, executor queues/limits in orcan.config.json. Separate from `orcan init`\n'
-        printf '  (workspaces/projects) — never touches workspace data.\n'
-        printf '  After changing: orcan sync, then orcan up to start the enabled plugins\n'
-        return 0
-    fi
-
+    local script=settings_tui.py
+    case "${1:-}" in
+        --help|-h)
+            printf 'usage: orcan settings [--cli]\n'
+            printf '  TUI: workspaces, startup plugins, installed agent CLIs, container and tmux settings.\n'
+            printf '  Review and explicitly save one orcan.config.json. No build/start happens on save.\n'
+            printf '  --cli: use the sequential settings wizard instead.\n'
+            return 0 ;;
+        --cli) script=settings-wizard.py; shift ;;
+    esac
+    [[ $# -eq 0 ]] || { orcan_usage_error 'usage: orcan settings [--cli]'; return 2; }
     orcan_require_python
-    if [[ ! -f "${ORCAN_CONFIG_FILE}" ]]; then
-        orcan_die "no config found at ${ORCAN_CONFIG_FILE} — run 'orcan init' first"
-    fi
-
-    ORCAN_HOME="${ORCAN_HOME}" orcan_host_python \
-        "${ORCAN_SCRIPTS}/settings-wizard.py" --config "${ORCAN_CONFIG_FILE}"
+    [[ -f "${ORCAN_CONFIG_FILE}" ]] || { orcan_die "no config found at ${ORCAN_CONFIG_FILE} — run 'orcan init' first"; return 1; }
+    ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/${script}" --config "${ORCAN_CONFIG_FILE}"
 }

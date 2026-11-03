@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "docker/rootfs/usr/local/lib"))
 from config_io import die
-from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS
+from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS, PROCESS_DEFAULTS
 from orcan.executor_config import ENVIRONMENT, resolve as resolve_executor
 from orcan.plugin_registry import resolve as resolve_plugins
 from path_guards import checked_project_dir
@@ -161,7 +161,7 @@ def host_environment(cfg: dict, home: Path, runtime: dict | None = None) -> dict
     for key, variable in {"cpus": "CPUS", "memory": "MEMORY", "shm_size": "SHM_SIZE", "tmpfs_size": "TMPFS_SIZE"}.items():
         result[variable] = settings["resources"][key]
     resources = cfg.get("resources", {})
-    for key, default in {"nofile": 65536, "nproc": 65536}.items():
+    for key, default in PROCESS_DEFAULTS.items():
         value = resources.get(key, default)
         if type(value) is not int or value < 1024:
             die("resources." + key + " must be an integer >= 1024")

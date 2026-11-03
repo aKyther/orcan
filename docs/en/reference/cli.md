@@ -42,7 +42,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
 | `orcan sync [--prune-orphans] [--no-chown PATTERN] [--chown-exclude /absolute/path]` | Apply `orcan.config.json` → runtime JSON + `mounts/*`; live-reconciles a running container. `--prune-orphans` also kills orphaned tmux sessions from a removed/renamed workspace (default: report only). Use `--no-chown "external"` to skip ownership changes for every matching name at any depth under the data root, including its subtree. Quoted shell-style globs such as `--no-chown "external*"` are supported and case-sensitive; patterns contain no slashes. Repeat either flag for multiple exclusions. Repeat `--chown-exclude` to skip ownership changes for directories and their contents, such as SSHFS mounts. Exclusions are saved in `orcan.config.json` under `ownership.excluded_names` and `ownership.excluded_paths`, and apply to every later explicit or automatic sync, including after `init`. Remove entries there to re-enable ownership changes. They do not remove projects from the workspace. |
 | `orcan migrate [--yes] [--no-symlink]` | Move configured projects under the managed root (`ORCAN_PROJECTS_ROOT`); dry-run unless `--yes` — fewer future container recreates |
-| `orcan settings` | Edit tool settings (tmux windows/prefix, ttyd port/font, executor lanes/job caps/timeouts/retention) — separate from workspaces/projects |
+| `orcan settings [--cli]` | Terminal UI for startup plugins, agent/image selection, container and tmux settings, with review/save and a workspace-manager entry. `--cli` retains the sequential wizard. |
 | `orcan context show` | List workspaces + path-parity summary |
 | `orcan context add PATH` | Add a project (`--workspace`, `--force`) |
 | `orcan context tui` | TUI: scan a parent folder and build a compact **will add** selection. Every selected project can independently be mounted as-is or created as a managed worktree on one branch: **`t`** switches all selected git projects; in the **Tab** review, **`b`** switches only the highlighted project. **Enter** opens the highlighted folder while the selection is empty, then applies once projects are selected. The manage screen supports collapsible workspace groups with **←/→**. Default scan is direct children (`D` toggles grandchildren); `h` recalls recent picks. |
@@ -245,3 +245,10 @@ use `submit --notify-claude-session UUID`, `notify JOB --claude-session UUID` an
 `orcan up` starts the saved selection; existing flags and `--with NAME` /
 `--without NAME` override one start. See [Startup plugins](../guides/plugins.md)
 for package rules, credential sources and compatibility.
+
+## Read-only startup plan
+
+`orcan up --plan [--json]` previews configured image contents, enabled plugins,
+ports, managed/project/plugin mounts and required startup checks. Existing
+selection flags can be included. It does not create files, inspect Docker or
+resolve credentials. See [Settings TUI and startup plan](../guides/settings.md).

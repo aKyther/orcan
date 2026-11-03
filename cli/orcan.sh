@@ -28,6 +28,14 @@ if [[ "${1:-}" == "--instance" ]]; then
     shift 2
 fi
 
+# A startup preview must not create configuration directories during bootstrap.
+if [[ "${1:-}" == up ]]; then
+    for _orcan_argument in "${@:2}"; do
+        if [[ "${_orcan_argument}" == --plan ]]; then export ORCAN_READ_ONLY=1 PYTHONDONTWRITEBYTECODE=1; fi
+    done
+    unset _orcan_argument
+fi
+
 # shellcheck source=lib/common.sh
 source "${ORCAN_CLI_DIR}/lib/common.sh"
 
@@ -51,7 +59,7 @@ Commands:
   actions      Experimental offline action proposals and confirmed local scripts
   plugins      List built-in capabilities and verify enabled runtime plugins
   executor     Background procedures (requires up --with-redis)
-  settings     Edit tool settings (tmux, ttyd) — separate from workspaces
+  settings     TUI for plugins, agents/image, container and terminal settings
   up           Start container (orcan enter; --web-terminal | --web-terminal-auth for browser)
   down         Stop containers
   build        Build selected JSON/CLI agents and optional tools (--plan to preview)

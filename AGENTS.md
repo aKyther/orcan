@@ -215,6 +215,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Change | Place |
 | --- | --- |
 | Public CLI | `bin/orcan`, `cli/` |
+| Settings / startup preview | `settings_tui.py`, `settings_model.py`, `up-plan.py` under `scripts/repository/`; `--cli` keeps the sequential wizard |
 | Startup plugins | `plugins/<id>/` metadata/rules/hooks/overlays; shared `orcan/plugin_registry.py`, host `plugin-plan.py`, `cli/lib/plugins.sh` |
 | Studio connections / secrets | `studio/app/src/profile-model.ts`, `ssh-trust.ts`, `transport.ts`; native `profiles.rs`, `ssh.rs` under `studio/app/src-tauri/src/` |
 | Studio context / transfers | `studio/app/src/context-model.ts`, `context-drafts.ts`, `branch-picker.ts`, `container-creator.ts`, `provision-progress.ts`; native `context.rs`, `installation.rs`, `execution.rs`, `provisioning.rs`, `enclave.rs`; host `scripts/repository/studio-*.py` |

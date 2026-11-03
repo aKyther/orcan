@@ -26,9 +26,10 @@ Commands:
                            Exclusions persist in orcan.config.json ownership;
                            edit its excluded_names/excluded_paths to remove them
   migrate [--yes]          Move projects under managed root (dry-run by default)
-  settings                 Edit tool settings (tmux windows/prefix, ttyd
-                           port/font) — separate from workspaces/projects
+  settings [--cli]         TUI for plugins, agents/image, container and tmux;
+                           review/save JSON; --cli keeps the sequential wizard
   context show             List workspaces
+  up --plan [--json]        Read-only preview; no Docker, credentials or file changes
   plugins list|doctor      Built-in plugin catalog and runtime checks
   executor                 Background checks; see executor --help (requires --with-redis)
   actions                  Experimental offline actions; see actions --help

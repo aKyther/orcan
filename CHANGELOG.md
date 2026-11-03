@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Make `orcan settings` a full-screen terminal UI with grouped plugins, agent/image selection, resource and tmux settings, guarded review/save, and a workspace-manager entry. Keep the sequential wizard as `--cli`.
+- Add read-only `orcan up --plan [--json]` to preview image requests, plugin selection, ports, mounts and startup requirements without Docker calls, credential acquisition or file generation.
+
 ### Changed
 
 - Group startup integrations into bundled `plugins/<id>/` packages with shared selection, typed settings, operating rules, lifecycle hooks and diagnostics. Add the grouped plugin list to `orcan settings`; plain `orcan up` uses the saved selection, while existing flags and `--with`/`--without` override one start. Keep authentication transient and legacy executor/terminal configuration readable.

@@ -1,6 +1,7 @@
 # Image profiles and agent context
 
-Choose image contents in the existing JSON configuration. No second YAML file or
+Choose image contents in the Agents and image section of `orcan settings`, or edit
+`build.agents` and `build.tools` in the existing JSON configuration. No second YAML file or
 host YAML dependency is needed. A build profile is explicit configuration, just
 like the existing `--agent` flags:
 
@@ -114,3 +115,8 @@ URL, any checksum-pinned source, another agent or a different HTTP status does n
 activate this fallback. If the official downloads host also fails, the build stops.
 An error in `install_agent.py claude` precedes the Dockerfile's npm-cache cleanup;
 the cleanup command shown in the failed RUN block is not the failing download.
+
+The [settings TUI](settings.md) preserves pinned versions and custom sources while
+selecting other agents. Saving selection requires a later `orcan build`; it does
+not install or start a client. `orcan up --plan` previews requested image contents
+and startup integrations without inspecting or modifying the installed image.

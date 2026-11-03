@@ -16,7 +16,7 @@ from orcan.plugin_registry import aliases, catalog, resolve, validate_field, val
 VARIABLES = {'docker':'with_docker','ssh':'with_git','github':'with_github','gitlab':'with_gitlab','network':'with_network','ttyd':'with_ttyd','redis':'with_redis'}
 
 
-def plan(cfg: dict, arguments: list[str], saved: dict | None = None) -> dict:
+def plan(cfg: dict, arguments: list[str], saved: dict | None = None, *, preview: bool = False) -> dict:
     entries = catalog()
     by_name = {entry['id']:entry for entry in entries}
     names = aliases(entries)
@@ -92,7 +92,9 @@ def plan(cfg: dict, arguments: list[str], saved: dict | None = None) -> dict:
             values['gitlab']['hostname'] = saved.get('GITLAB_HOSTNAME') or 'gitlab.com'
             values['network']['name'] = saved.get('NETWORK_NAME','')
         if saved.get('WITH_TTYD_AUTH') == '1' and not auth_selected:
-            raise ValueError('last start used --web-terminal-auth; pass it again: orcan up --resume --web-terminal-auth USER:PASS')
+            if not preview:
+                raise ValueError('last start used --web-terminal-auth; pass it again: orcan up --resume --web-terminal-auth USER:PASS')
+            auth_selected = True
         if auth_selected: values['ttyd']['enabled'] = True
     for name in explicit_fields:
         if not values[name]['enabled']:

@@ -17,7 +17,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 | | |
 | --- | --- |
 | **What** | Context orchestrator — workspaces, path parity, context pack; **not** model routing |
-| **Config** | Edit `orcan.config.json`; `orcan settings` groups startup plugins; manifests are generated; dotenv files are ignored |
+| **Config** | Edit `orcan.config.json`; `orcan settings` edits plugins/agents/resources in a TUI; `up --plan` previews without side effects; manifests are generated; dotenv files are ignored |
 | **API** | `orcan` CLI; Make is maintainer / `make dev-*` preview only |
 | **Ritual** | `orcan init` → `orcan sync` → `orcan build` (if needed) → `orcan up` (does **not** sync) |
 | **UX preview** | `make dev-restart` / `dev-doctor` / `dev-smoke` / `dev-visual` under isolated `orcan:dev-ux` |

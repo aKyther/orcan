@@ -1,5 +1,5 @@
 {
-  "_comment": "Copy to orcan.config.json and edit absolute paths. Then: make env",
+  "_comment": "Copy to orcan.config.json and edit absolute paths. Then: orcan settings, orcan sync, orcan up --plan",
   "build": {
     "agents": [
       {

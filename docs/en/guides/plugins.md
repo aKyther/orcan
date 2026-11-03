@@ -12,6 +12,8 @@ orcan up
 `up` uses the saved selection. After changing a running configuration, finish
 active background work before recreating the container.
 
+See [Settings TUI](settings.md) for keys, agent/image selection and the startup preview.
+
 ## Plugin list in settings
 
 | Group | Packages | What you configure |
@@ -25,7 +27,8 @@ startup plugins are disabled by default. Cockpit is listed as an installed
 interface; it does not add a startup capability.
 
 Settings lets you enable or disable each plugin and optionally edit its fields.
-The final save is explicit. Workspace entries are preserved. Tokens and passwords
+The final save is explicit. Workspaces have a separate manager entry; save or discard
+your draft before opening it. Tokens and passwords
 are not settings fields.
 
 ## One configuration file
