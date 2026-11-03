@@ -1029,6 +1029,47 @@
       "junit": [
         ".orcan/json-runtime-host.xml"
       ]
+    },
+    "plugin-runtime-final": {
+      "timeout_seconds": 1200,
+      "require_junit": true,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/plugin-runtime-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "python3",
+            "executor/smoke/json_runtime.py"
+          ]
+        },
+        {
+          "argv": [
+            "python3",
+            "executor/smoke/plugin_runtime.py"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/plugin-runtime-host.xml"
+      ]
     }
   }
 }

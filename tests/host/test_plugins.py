@@ -11,7 +11,7 @@ from orcan import plugins
 
 def test_catalog_includes_ui_access_and_executor():
     values = plugins.catalog(ROOT / "plugins")
-    assert {v["id"] for v in values} == {"ssh", "docker", "ttyd", "executor", "cockpit"}
+    assert {v["id"] for v in values} == {"ssh", "git", "github", "gitlab", "docker", "network", "ttyd", "redis", "cockpit"}
     assert "--with-ssh" in next(v for v in values if v["id"] == "ssh")["flags"]
 
 

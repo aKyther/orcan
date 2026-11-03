@@ -19,9 +19,9 @@ require_file() {
 
 require_file "Dockerfile"
 require_file "docker-compose.yml"
-require_file "docker-compose.docker.yml"
-require_file "docker-compose.ttyd.yml"
-require_file "docker-compose.redis.yml"
+require_file "plugins/docker/compose.yml"
+require_file "plugins/ttyd/compose.yml"
+require_file "plugins/redis/compose.yml"
 require_file "executor/uv.lock"
 require_file "Makefile"
 require_file "install.sh"
@@ -34,6 +34,8 @@ require_file "cli/lib/deps.sh"
 require_file "cli/lib/compose.sh"
 require_file "cli/lib/git.sh"
 require_file "cli/lib/image.sh"
+require_file "cli/lib/plugins.sh"
+require_file "scripts/repository/plugin-plan.py"
 require_file "cli/commands/init.sh"
 require_file "cli/commands/sync.sh"
 require_file "cli/commands/migrate.sh"
@@ -387,6 +389,8 @@ if [[ -f cockpit/pyproject.toml ]]; then
     fi
 fi
 
+ORCAN_ROOT="${ROOT_DIR}" python3 docker/rootfs/usr/local/bin/orcan-plugins validate
+
 if ! ./scripts/repository/check-product-name.sh; then
     fail=1
 fi
@@ -405,11 +409,11 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     eval "${resolved_settings}"
     export COMPOSE_DISABLE_ENV_FILE=1
     compose_base=(docker compose --env-file /dev/null --project-name orcan)
-    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.redis.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f plugins/redis/compose.yml config --quiet
     "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" config --quiet
-    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.docker.yml config --quiet
-    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.ttyd.yml config --quiet
-    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.ttyd.yml -f docker-compose.docker.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f plugins/docker/compose.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f plugins/ttyd/compose.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f plugins/ttyd/compose.yml -f plugins/docker/compose.yml config --quiet
     # Optional --with-git overlay (generated on demand; stub for config check)
     cat >"${validate_home}/compose-git.generated.yml" <<'YAML'
 # validate stub — real overlay is written by: orcan up --with-git
@@ -418,7 +422,7 @@ services:
     environment:
       ORCAN_WITH_GIT_STUB: "1"
 YAML
-    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f "${validate_home}/compose-git.generated.yml" -f docker-compose.ttyd.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f "${validate_home}/compose-git.generated.yml" -f plugins/ttyd/compose.yml config --quiet
     # Optional --with-network overlay (generated on demand; stub for config check)
     cat >"${validate_home}/compose-network.generated.yml" <<'YAML'
 # validate stub — real overlay is written by: orcan up --with-network NAME
@@ -432,7 +436,7 @@ networks:
     name: orcan-validate-stub-net
     external: true
 YAML
-    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f "${validate_home}/compose-network.generated.yml" -f docker-compose.ttyd.yml config --quiet
+    "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f "${validate_home}/compose-network.generated.yml" -f plugins/ttyd/compose.yml config --quiet
     resolved="$("${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" config)"
     if ! printf '%s\n' "${resolved}" | grep -qE 'container_name:[[:space:]]*orcan-1'; then
         printf 'Error: expected container_name orcan-1 in compose config\n' >&2

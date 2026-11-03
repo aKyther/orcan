@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "id": "redis",
+  "kind": "services",
+  "title": "Redis / background executor",
+  "group": "services",
+  "flags": [
+    "--with-redis",
+    "--with-executor"
+  ],
+  "aliases": [
+    "executor"
+  ],
+  "legacy_section": "executor",
+  "fields": {
+    "split_lanes": {
+      "type": "boolean",
+      "default": false,
+      "label": "Split lanes",
+      "env": "ORCAN_EXECUTOR_SPLIT_LANES"
+    },
+    "workers": {
+      "type": "integer",
+      "default": 1,
+      "label": "Workers",
+      "env": "ORCAN_EXECUTOR_WORKERS",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "max_pending": {
+      "type": "integer",
+      "default": 100,
+      "label": "Max pending",
+      "env": "ORCAN_EXECUTOR_MAX_PENDING",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "max_running": {
+      "type": "integer",
+      "default": 2,
+      "label": "Max running",
+      "env": "ORCAN_EXECUTOR_MAX_RUNNING",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "default": 1800,
+      "label": "Timeout seconds",
+      "env": "ORCAN_EXECUTOR_TIMEOUT_SECONDS",
+      "minimum": 1,
+      "maximum": 21600
+    },
+    "retention_seconds": {
+      "type": "integer",
+      "default": 3600,
+      "label": "Retention seconds",
+      "env": "ORCAN_EXECUTOR_RETENTION_SECONDS",
+      "minimum": 60,
+      "maximum": 86400
+    },
+    "redis_memory_mb": {
+      "type": "integer",
+      "default": 128,
+      "label": "Redis memory mb",
+      "env": "ORCAN_EXECUTOR_REDIS_MEMORY_MB",
+      "minimum": 32,
+      "maximum": 4096
+    },
+    "visibility_timeout_seconds": {
+      "type": "integer",
+      "default": 86400,
+      "label": "Visibility timeout seconds",
+      "env": "ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS",
+      "minimum": 22200,
+      "maximum": 86400
+    },
+    "port": {
+      "type": "integer",
+      "default": 8765,
+      "minimum": 1,
+      "maximum": 65535,
+      "label": "Dashboard host port",
+      "env": "ORCAN_EXECUTOR_PORT",
+      "legacy_key": "executor_port"
+    }
+  },
+  "verifier": "executor",
+  "enabled": false,
+  "requires": [],
+  "conflicts": [],
+  "compose": "compose.yml"
+}

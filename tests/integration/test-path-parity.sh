@@ -58,8 +58,8 @@ COMPOSE_TTYD_DOCKER=(
     docker compose
     -f docker-compose.yml
     -f "${TEST_DIR}/compose-mount.yml"
-    -f docker-compose.ttyd.yml
-    -f docker-compose.docker.yml
+    -f plugins/ttyd/compose.yml
+    -f plugins/docker/compose.yml
 )
 
 "${COMPOSE_TTYD_DOCKER[@]}" run --rm --no-TTY orcan bash -lc "

@@ -5,8 +5,8 @@ SHELL := /bin/bash
 
 COMPOSE_FILE := docker-compose.yml
 COMPOSE_PROJECTS_FILE := mounts/compose-projects.generated.yml
-COMPOSE_DOCKER_FILE := docker-compose.docker.yml
-COMPOSE_TTYD_FILE := docker-compose.ttyd.yml
+COMPOSE_DOCKER_FILE := plugins/docker/compose.yml
+COMPOSE_TTYD_FILE := plugins/ttyd/compose.yml
 
 ORCAN := ./bin/orcan
 HOST_PYTHON := ./scripts/repository/python.sh
@@ -354,12 +354,12 @@ config: require-generated ## Print resolved Compose configs
 	printf '=== orcan up ===\n'; \
 	docker compose --project-name "$${COMPOSE_PROJECT_NAME:-orcan}" \
 		--env-file /dev/null --project-directory "$$PWD" \
-		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml config; \
+		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f plugins/ttyd/compose.yml config; \
 	printf '\n=== orcan up --with-docker ===\n'; \
 	docker compose --project-name "$${COMPOSE_PROJECT_NAME:-orcan}" \
 		--env-file /dev/null --project-directory "$$PWD" \
-		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml \
-		-f docker-compose.docker.yml config
+		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f plugins/ttyd/compose.yml \
+		-f plugins/docker/compose.yml config
 
 validate-project:
 	@./scripts/repository/validate-project-dir.sh

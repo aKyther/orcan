@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "network",
+  "kind": "access",
+  "title": "Docker network",
+  "group": "access",
+  "flags": [
+    "--with-network",
+    "--network"
+  ],
+  "conflicts": [
+    "docker"
+  ],
+  "fields": {
+    "name": {
+      "type": "string",
+      "default": "",
+      "format": "network",
+      "label": "Existing Docker network name"
+    }
+  },
+  "value_flag": true,
+  "verifier": "network",
+  "enabled": false,
+  "requires": []
+}

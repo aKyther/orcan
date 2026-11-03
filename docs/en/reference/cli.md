@@ -238,3 +238,10 @@ Claude executor delivery uses `orcan executor claude-channel [--session UUID]` a
 an explicitly enabled MCP stdio server. Obtain its binding via `executor_session`;
 use `submit --notify-claude-session UUID`, `notify JOB --claude-session UUID` and
 `ack JOB --claude-session UUID`. See [Claude channel setup](../guides/background-executor.md#deliver-compact-results-to-a-claude-code-session).
+
+## Plugin defaults
+
+`orcan settings` contains a grouped list of startup plugins and their fields.
+`orcan up` starts the saved selection; existing flags and `--with NAME` /
+`--without NAME` override one start. See [Startup plugins](../guides/plugins.md)
+for package rules, credential sources and compatibility.

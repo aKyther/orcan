@@ -233,7 +233,7 @@ compose_preview() {
         -f "${ROOT_DIR}/docker-compose.yml" \
         -f "${PREVIEW_HOME}/mounts/compose-projects.generated.yml" \
         -f "${PREVIEW_HOME}/compose-source.generated.yml" \
-        -f "${ROOT_DIR}/docker-compose.ttyd.yml" "$@"
+        -f "${ROOT_DIR}/plugins/ttyd/compose.yml" "$@"
 }
 
 assert_preview_container() {

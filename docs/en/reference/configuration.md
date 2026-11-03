@@ -15,10 +15,11 @@ Machine-readable draft: [`orcan.config.schema.json`](https://github.com/aKyther/
 | `data_root` | no | Absolute host directory for persistent agent data; default `~/.config/orcan` |
 | `timezone` | no | Container timezone; default `UTC` |
 | `registry` | no | Image registry `host`, `repository`, optional `tag` |
-| `executor` | no | Worker count, queues and execution limits |
-| `executor_port` | no | Dashboard host port; default `8765` |
+| `plugins` | no | Grouped startup activation and settings; see [Startup plugins](../guides/plugins.md) |
+| `executor` | legacy | Read as `plugins.redis` settings; does not enable the plugin |
+| `executor_port` | legacy | Read as `plugins.redis.port`; default `8765` |
 | `tmux` | no | Default window layout |
-| `ttyd` | no | Browser terminal settings |
+| `ttyd` | legacy | Read as `plugins.ttyd` settings; does not enable the plugin |
 | `resources` | no | Container limits (default **2** CPU / **4g** RAM — raise in config when needed) |
 
 Legacy accepted and normalized: single `workspace` object, or top-level `projects[]` (one workspace).
@@ -65,12 +66,12 @@ User guide: [Getting started — Configuration](../getting-started/configuration
 
 ## Executor settings
 
-The optional `executor` object configures queue lanes, admission limits, default
-shared-queue worker count (1..5), job timeout, detailed-result retention, Redis memory and visibility timeout. Use `orcan settings` to edit it.
-Activation still requires `orcan up --with-redis`; a configured section alone does
-not start services. Run `orcan sync` and recreate with the intended runtime flags
-to apply changed process settings. See [Background executor](../guides/background-executor.md#configure-queues-and-execution-budgets)
-for supported fields, precedence, bounds and measured dashboard statistics.
+Use `plugins.redis` for executor settings. `enabled: true` selects it for plain
+`orcan up`; `--with-redis` enables it for one start. Workers, lanes, admission
+limits, timeouts, retention and dashboard port belong to the same package.
+The old `executor` and `executor_port` fields remain compatibility fallbacks.
+See [Startup plugins](../guides/plugins.md) and
+[Background executor](../guides/background-executor.md#configure-queues-and-execution-budgets).
 
 ## Persistent ownership exclusions
 

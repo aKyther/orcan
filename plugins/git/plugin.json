@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "id": "git",
+  "kind": "access",
+  "title": "Git identity",
+  "group": "access",
+  "flags": [
+    "--with-git-identity"
+  ],
+  "enabled": true,
+  "fields": {},
+  "verifier": "git",
+  "requires": [],
+  "conflicts": []
+}

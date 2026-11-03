@@ -25,6 +25,7 @@ from config_io import (
 from defaults import TMUX_DEFAULTS as DEFAULT_TMUX
 from defaults import TTYD_DEFAULTS as DEFAULT_TTYD
 from orcan.executor_config import resolve as resolve_executor
+from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection
 from wizard_ui import (
     ask,
     ask_yes_no,
@@ -38,24 +39,16 @@ from wizard_ui import (
 
 def summarize(cfg: dict[str, Any]) -> None:
     tmux = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else DEFAULT_TMUX
-    ttyd = cfg.get("ttyd") if isinstance(cfg.get("ttyd"), dict) else DEFAULT_TTYD
     info()
     info("── Current settings ──")
-    info(
-        f"  tmux: {tmux.get('initial_windows', '?')} windows, "
-        f"prefix {tmux.get('window_prefix', '?')!r}"
-    )
-    info(
-        f"  ttyd: host {ttyd.get('bind', '0.0.0.0')}:{ttyd.get('host_port', '?')}, "
-        f"font {ttyd.get('font_size', '?')}"
-    )
-    executor = resolve_executor(cfg.get("executor", {}))
-    info(
-        f"  executor: workers={executor['workers']}, split lanes={executor['split_lanes']}, max running={executor['max_running']}, "
-        f"pending={executor['max_pending']}, timeout={executor['timeout_seconds']}s, "
-        f"log retention={executor['retention_seconds']}s, Redis={executor['redis_memory_mb']} MiB, "
-        f"visibility={executor['visibility_timeout_seconds']}s"
-    )
+    info(f"  tmux: {tmux.get('initial_windows', '?')} windows, prefix {tmux.get('window_prefix', '?')!r}")
+    current = resolve_plugins(cfg)
+    for group in ("access", "services", "interface"):
+        info("  " + group.capitalize() + ":")
+        for entry in catalog():
+            if entry["group"] == group and entry.get("configurable", True):
+                mark = "on" if current[entry["id"]]["enabled"] else "off"
+                info(f"    [{mark}] {entry['id']}: {entry['title']}")
 
 
 def edit_tmux(cfg: dict[str, Any]) -> None:
@@ -154,6 +147,45 @@ def edit_executor(cfg: dict[str, Any]) -> None:
     )
 
 
+def edit_plugins(cfg: dict[str, Any]) -> bool:
+    """One package-driven list controls activation and each package's own fields."""
+    proposed = resolve_plugins(cfg)
+    entries = catalog()
+    for group in ("access", "services", "interface"):
+        heading(group.capitalize() + " plugins")
+        for entry in entries:
+            if entry["group"] != group or not entry.get("configurable", True):
+                continue
+            name = entry["id"]
+            current = proposed[name]
+            current["enabled"] = ask_yes_no(f"Enable {entry['title']} ({name})?", default=current["enabled"])
+            if not current["enabled"] or not entry["fields"]:
+                continue
+            configure = name == "network" and not current.get("name")
+            if not configure and not ask_yes_no(f"Configure {entry['title']} settings?", default=False):
+                continue
+            for key, rule in entry["fields"].items():
+                try:
+                    if rule["type"] == "boolean":
+                        value = ask_yes_no(rule["label"], default=current[key])
+                    else:
+                        value = ask(rule["label"], str(current[key]))
+                        if rule["type"] == "integer": value = int(value)
+                    current[key] = validate_field(name, key, value, rule)
+                except ValueError as error:
+                    warn(f"{error} — keeping the previous field value")
+    try:
+        validate_selection(proposed, entries)
+    except ValueError as error:
+        warn(f"{error} — plugin changes were not applied")
+        return False
+    cfg["plugins"] = {entry["id"]:proposed[entry["id"]] for entry in entries if entry.get("configurable", True)}
+    # Move compatibility sections only in this explicit, user-reviewed save flow.
+    for key in ("executor", "executor_port", "ttyd"):
+        cfg.pop(key, None)
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -193,18 +225,10 @@ def main() -> None:
     if ask_yes_no("Change tmux (windows / prefix)?", default=False):
         heading("tmux")
         edit_tmux(cfg)
-    if ask_yes_no("Change ttyd (port / bind / font)?", default=False):
-        heading("ttyd")
-        edit_ttyd(cfg)
-
-    if ask_yes_no(
-        "Change executor (queues / parallel jobs / timeout / retention)?", default=False
-    ):
-        heading("executor")
-        edit_executor(cfg)
+    if ask_yes_no("Choose startup plugins and their settings?", default=False):
+        edit_plugins(cfg)
 
     cfg.setdefault("tmux", dict(DEFAULT_TMUX))
-    cfg.setdefault("ttyd", dict(DEFAULT_TTYD))
 
     summarize(cfg)
     info()
@@ -216,7 +240,7 @@ def main() -> None:
     success(f"saved {config_path}")
     info()
     info(
-        "Next: orcan sync, then recreate with your runtime flags (including --with-redis); settings are not applied to a running process automatically"
+        "Next: orcan sync, then orcan up. Enabled plugins are selected automatically; running processes are not changed until recreation."
     )
 
 

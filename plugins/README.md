@@ -1,16 +1,36 @@
-# Built-in Orcan plugins
+# Bundled Orcan plugins
 
-Descriptors identify built-in capabilities; they are data, not executable hooks.
-The host CLI owns lifecycle and configuration, tmux owns sessions, and the cockpit
-is an optional interface over them. A descriptor names supported flags, runtime
-requirements and a fixed verifier. `orcan plugins list` and `orcan plugins doctor`
-show bounded results. Authentication is a ttyd mode, not a second terminal server.
-External code installation and automatic agent invocation are not plugin discovery.
+Each `plugins/<id>/` directory groups one integration's metadata, configuration
+rules, lifecycle hooks, Compose overlay (when static), and operating documentation.
+The user edits only `orcan.config.json`; package files ship with Orcan.
 
-The `executor` plugin owns Celery tasks, compact reports and the dashboard. Redis
-is its internal broker. Enable it with `--with-redis`; inspect it with
-`orcan plugins doctor --plugin executor` and `orcan executor help`.
+## Package contract
 
-Explicit `--notify-codex-thread UUID` subscriptions allow the executor notification
-controller to queue compact results in a local Codex session. Queued delivery and
-explicit session consumption are separate states; this is not a generic agent launcher.
+- `plugin.json`: ID, title, functional group, aliases, flags, default activation,
+  typed fields with labels/defaults/ranges, dependencies and conflicts.
+- `runtime.sh`: optional `orcan_plugin_<id>_prepare`, `_verify`, `_report` hooks.
+  Sourcing defines functions only. Hooks are loaded exclusively from the bundled
+  catalog, never from configuration-provided paths or third-party downloads.
+- `compose.yml`: static container additions, when applicable.
+- `README.md`: purpose, operating rules, authentication sources and diagnostics.
+
+The common resolver applies defaults, compatibility sections, `plugins.<id>`, then
+explicit CLI overrides. Disabled plugins do not prepare credentials, ports or
+mounts. All selection/configuration errors and preparation failures occur before
+stopping the current container. Dependencies and conflicts are checked after CLI
+selection, so an explicit disable can resolve a configured conflict.
+
+`orcan settings` groups startup plugins as access, services and interfaces. A
+reviewed save writes `plugins` and migrates the old executor/ttyd settings into
+these sections. Workspaces are preserved. `orcan up` starts the saved selection;
+existing flags and `--with NAME` / `--without NAME` override one start only.
+
+Resolved launch records contain validated settings and activation, never tokens
+or passwords. `--resume` reuses that record and reacquires authentication. A
+password passed as a terminal auth argument must be supplied again.
+
+`orcan plugins list`, `validate` and `doctor` use the same package catalog.
+Availability, activation and readiness are separate facts. Redis is the local
+broker for the background executor; `executor` remains a compatibility alias.
+Session notification destinations must always be explicit. Plugins never start
+models, merge, push, deploy or restore failed tasks automatically.

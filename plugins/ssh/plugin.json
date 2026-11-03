@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "id": "ssh",
+  "kind": "access",
+  "title": "SSH",
+  "group": "access",
+  "flags": [
+    "--with-ssh",
+    "--ssh",
+    "--with-git"
+  ],
+  "fields": {},
+  "verifier": "ssh",
+  "enabled": false,
+  "requires": [],
+  "conflicts": []
+}

@@ -11,17 +11,9 @@ import stat
 import subprocess
 from pathlib import Path
 
-IDS = {"ssh", "docker", "ttyd", "executor", "cockpit"}
+from .plugin_registry import catalog, catalog_root, configuration_schema
 
-
-def catalog(root: Path) -> list[dict]:
-    result = []
-    for name in sorted(IDS):
-        value = json.loads((root / (name + ".json")).read_text())
-        if value.get("id") != name or value.get("verifier") != name:
-            raise ValueError("Invalid built-in plugin descriptor")
-        result.append(value)
-    return result
+IDS = {entry["id"] for entry in catalog()} | {"executor"}
 
 
 def listening(port: int) -> bool:
@@ -93,12 +85,24 @@ def check(name: str) -> dict:
         detail = (
             "auth enabled" if os.environ.get("TTYD_CREDENTIAL") else "auth disabled"
         )
+    elif name == "git":
+        enabled = os.environ.get("ORCAN_GIT_ENABLED", "1") == "1"
+        ready = enabled and shutil.which("git") is not None
+        detail = "Git identity defaults available; per-repository identity still wins"
+    elif name in {"github", "gitlab"}:
+        enabled = os.environ.get("ORCAN_" + name.upper() + "_ENABLED") == "1"
+        ready = enabled and bool(os.environ.get("GH_TOKEN") or os.environ.get("GH_ENTERPRISE_TOKEN")) if name == "github" else enabled and bool(os.environ.get("GITLAB_TOKEN"))
+        detail = "credentials available; remote authentication not attempted" if ready else "integration disabled or credentials unavailable"
+    elif name == "network":
+        enabled = os.environ.get("ORCAN_NETWORK_ENABLED") == "1"
+        ready = enabled
+        detail = "configured external network; host verifies attachment"
     elif name == "cockpit":
         enabled = Path("/opt/orcan-cockpit/venv/bin/orcan-cockpit").is_file()
         ready = enabled and shutil.which("tmux") is not None
         detail = "UI available; direct access: orcan enter --shell or --tmux"
     result = {
-        "plugin": name,
+        "plugin": "redis" if name == "executor" else name,
         "enabled": enabled,
         "ready": bool(ready),
         "detail": detail,
@@ -149,13 +153,13 @@ def main(argv=None):
     if args.command == "validate":
         root = Path(os.environ.get("ORCAN_ROOT", "."))
         entries = catalog(root / "plugins")
-        commands = (root / "cli/commands/up.sh").read_text() + (
-            root / "cli/commands/enter.sh"
-        ).read_text()
         for entry in entries:
-            for flag in entry["flags"]:
-                if flag.split()[-1] not in commands:
-                    raise ValueError("Plugin flag not handled by CLI: " + flag)
+            package = root / "plugins" / entry["id"]
+            if not (package / "README.md").is_file() or not (package / "runtime.sh").is_file():
+                raise ValueError("Incomplete bundled plugin package: " + entry["id"])
+        schema_path = root / "orcan.config.schema.json"
+        if schema_path.is_file() and json.loads(schema_path.read_text())["properties"]["plugins"] != configuration_schema():
+            raise ValueError("Plugin configuration schema differs from the package catalog")
         print(json.dumps({"valid": True, "plugins": len(entries)}))
         return 0
     if args.command == "list":
@@ -163,7 +167,7 @@ def main(argv=None):
             Path(os.environ.get("ORCAN_PLUGIN_CATALOG", "/opt/orcan/plugins"))
         )
     else:
-        values = [check(name) for name in (args.plugin or sorted(IDS))]
+        values = [check(name) for name in (args.plugin or [entry["id"] for entry in catalog()])]
     print(json.dumps(values))
     return int(
         args.command == "doctor"

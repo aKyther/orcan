@@ -19,11 +19,11 @@ RUNTIME_PATHS = (
     "scripts/repository",
     "docker",
     "cockpit",
+    "plugins",
+    "executor",
     "Dockerfile",
     "docker-compose.yml",
-    "docker-compose.docker.yml",
     "docker-compose.keepalive.yml",
-    "docker-compose.ttyd.yml",
     "VERSION",
 )
 

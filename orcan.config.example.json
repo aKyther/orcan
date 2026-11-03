@@ -1,7 +1,12 @@
 {
   "_comment": "Copy to orcan.config.json and edit absolute paths. Then: make env",
   "build": {
-    "agents": [{"name": "codex", "version": "latest"}],
+    "agents": [
+      {
+        "name": "codex",
+        "version": "latest"
+      }
+    ],
     "tools": []
   },
   "workspaces": [
@@ -37,20 +42,29 @@
     "history_limit": 20000,
     "window_prefix": "tab"
   },
-  "ttyd": {
-    "port": 7681,
-    "host_port": 7681,
-    "bind": "0.0.0.0",
-    "font_size": 14,
-    "font_family": "Menlo, Monaco, 'Courier New', monospace",
-    "renderer": "webgl",
-    "theme": "dark",
-    "ping_interval": 20
-  },
   "resources": {
     "cpus": 2,
     "memory": "4g",
     "shm_size": "512m",
     "tmpfs_size": "512m"
+  },
+  "plugins": {
+    "ttyd": {
+      "enabled": false,
+      "port": 7681,
+      "host_port": 7681,
+      "bind": "0.0.0.0",
+      "font_size": 14,
+      "font_family": "Menlo, Monaco, 'Courier New', monospace",
+      "renderer": "webgl",
+      "theme": "dark",
+      "ping_interval": 20
+    },
+    "git": {
+      "enabled": true
+    },
+    "ssh": {
+      "enabled": false
+    }
   }
 }

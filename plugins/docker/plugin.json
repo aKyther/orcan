@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "docker",
+  "kind": "access",
+  "title": "Docker socket",
+  "group": "access",
+  "flags": [
+    "--with-docker",
+    "--docker-socket"
+  ],
+  "conflicts": [
+    "network"
+  ],
+  "fields": {},
+  "verifier": "docker",
+  "enabled": false,
+  "requires": [],
+  "compose": "compose.yml"
+}

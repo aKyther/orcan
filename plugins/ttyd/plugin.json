@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "id": "ttyd",
+  "kind": "interface",
+  "title": "Browser terminal",
+  "group": "interface",
+  "flags": [
+    "--with-ttyd",
+    "--web-terminal"
+  ],
+  "secret_flags": [
+    "--with-ttyd-auth",
+    "--web-terminal-auth"
+  ],
+  "legacy_section": "ttyd",
+  "fields": {
+    "port": {
+      "type": "integer",
+      "default": 7681,
+      "label": "Port",
+      "minimum": 1,
+      "maximum": 65535,
+      "env": "TTYD_PORT"
+    },
+    "host_port": {
+      "type": "integer",
+      "default": 7681,
+      "label": "Host port",
+      "minimum": 1,
+      "maximum": 65535,
+      "env": "TTYD_HOST_PORT"
+    },
+    "bind": {
+      "type": "string",
+      "default": "0.0.0.0",
+      "label": "Bind",
+      "env": "TTYD_BIND"
+    },
+    "font_size": {
+      "type": "integer",
+      "default": 14,
+      "label": "Font size",
+      "minimum": 6,
+      "maximum": 72,
+      "env": "TTYD_FONT_SIZE"
+    },
+    "font_family": {
+      "type": "string",
+      "default": "Menlo, Monaco, 'Courier New', monospace",
+      "label": "Font family",
+      "env": "TTYD_FONT_FAMILY"
+    },
+    "renderer": {
+      "type": "string",
+      "default": "webgl",
+      "label": "Renderer",
+      "choices": [
+        "webgl",
+        "canvas"
+      ],
+      "env": "TTYD_RENDERER"
+    },
+    "theme": {
+      "type": "string",
+      "default": "dark",
+      "label": "Theme",
+      "env": "TTYD_THEME"
+    },
+    "ping_interval": {
+      "type": "integer",
+      "default": 20,
+      "label": "Ping interval",
+      "minimum": 1,
+      "maximum": 3600,
+      "env": "TTYD_PING_INTERVAL"
+    },
+    "authentication": {
+      "type": "string",
+      "default": "none",
+      "choices": [
+        "none",
+        "basic"
+      ],
+      "label": "Authentication (none/basic)",
+      "env": "TTYD_AUTHENTICATION"
+    }
+  },
+  "verifier": "ttyd",
+  "enabled": false,
+  "requires": [],
+  "conflicts": [],
+  "compose": "compose.yml"
+}

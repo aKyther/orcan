@@ -115,7 +115,7 @@ create CLAUDE.md only for Claude. See `docs/en/guides/image-profiles.md`.
 
 `orcan up --with-redis` enables Redis, Celery and a read-only dashboard inside Orcan.
 Implementation: `executor/` (locked Python 3.12), Supervisor program templates and
-`docker-compose.redis.yml`. See `docs/en/guides/background-executor.md`.
+`plugins/redis/compose.yml`. See `docs/en/guides/background-executor.md`.
 Workspace AGENTS/CLAUDE guidance is generated in `orcan.reconcile.executor_guidance`.
 Keep default execution unchanged when disabled; readiness is checked at runtime.
 Never send successful build output to agents. Completion JSON is bounded; long
@@ -215,6 +215,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Change | Place |
 | --- | --- |
 | Public CLI | `bin/orcan`, `cli/` |
+| Startup plugins | `plugins/<id>/` metadata/rules/hooks/overlays; shared `orcan/plugin_registry.py`, host `plugin-plan.py`, `cli/lib/plugins.sh` |
 | Studio connections / secrets | `studio/app/src/profile-model.ts`, `ssh-trust.ts`, `transport.ts`; native `profiles.rs`, `ssh.rs` under `studio/app/src-tauri/src/` |
 | Studio context / transfers | `studio/app/src/context-model.ts`, `context-drafts.ts`, `branch-picker.ts`, `container-creator.ts`, `provision-progress.ts`; native `context.rs`, `installation.rs`, `execution.rs`, `provisioning.rs`, `enclave.rs`; host `scripts/repository/studio-*.py` |
 | Studio map / browser tests | `studio/app/src/map-connections.ts`; `tests/browser/studio.spec.js`, `studio.config.js`; `make studio-test-browser` (fixture-only) |

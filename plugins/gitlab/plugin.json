@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "gitlab",
+  "kind": "access",
+  "title": "GitLab",
+  "group": "access",
+  "flags": [
+    "--gitlab",
+    "--with-gitlab"
+  ],
+  "fields": {
+    "hostname": {
+      "type": "string",
+      "default": "gitlab.com",
+      "format": "hostname",
+      "flag": "--gitlab-hostname",
+      "label": "GitLab hostname"
+    }
+  },
+  "verifier": "gitlab",
+  "enabled": false,
+  "requires": [],
+  "conflicts": []
+}

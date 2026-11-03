@@ -53,7 +53,6 @@ orcan_cmd_init() {
     done
 
     orcan_require_python
-    orcan_ensure_home_env_example
     mkdir -p "${ORCAN_HOME}"
 
     if [[ -z "${project_dir}" ]]; then

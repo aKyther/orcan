@@ -36,7 +36,7 @@ def main():
         config = {"workspaces": [], "image": image, "data_root": str(home / "data"),
                   "projects_root": str(home / "data/sandbox"), "timezone": "Europe/Warsaw",
                   "resources": {"cpus": 1, "memory": "1g"},
-                  "executor": {"workers": 5, "max_running": 5}}
+                  "plugins": {"redis": {"enabled": True, "workers": 5, "max_running": 5}}}
         (home / "orcan.config.json").write_text(json.dumps(config))
         # This stale value must never reach Compose or execute as shell source.
         marker = home / "dotenv-executed"
@@ -46,7 +46,8 @@ def main():
         check = "import json,os; assert os.environ['TZ']=='Europe/Warsaw'; assert os.environ['ORCAN_EXECUTOR_WORKERS']=='5'; c=json.load(open('/etc/orcan/config.json')); assert c['executor']['max_running']==5; print('JSON_COMPOSE_OK')"
         script = '''source cli/lib/common.sh
 orcan_load_config
-export ORCAN_REDIS_ENABLED=1
+eval "$(orcan_host_python "$ORCAN_SCRIPTS/plugin-plan.py" --config "$ORCAN_CONFIG_FILE" --)"
+export ORCAN_REDIS_ENABLED="$with_redis"
 orcan_compose_up_run 0 0 0 0 0 0 run --rm --no-deps --no-TTY --name "$1" --entrypoint python3 orcan -c "$2"
 '''
         output = run(["bash", "-euc", script, "_", name, check], env)

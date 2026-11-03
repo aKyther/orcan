@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "github",
+  "kind": "access",
+  "title": "GitHub",
+  "group": "access",
+  "flags": [
+    "--github",
+    "--with-github"
+  ],
+  "fields": {
+    "hostname": {
+      "type": "string",
+      "default": "github.com",
+      "format": "hostname",
+      "flag": "--github-hostname",
+      "label": "GitHub hostname"
+    }
+  },
+  "verifier": "github",
+  "enabled": false,
+  "requires": [],
+  "conflicts": []
+}

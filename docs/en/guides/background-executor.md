@@ -80,29 +80,33 @@ results may still contain their old log-tail diagnostics.
 
 ## Configure queues and execution budgets
 
-Use `orcan settings` to edit the executor section without changing workspaces:
+Use `orcan settings` to choose the Redis/executor plugin and edit its settings without changing workspaces:
 
 ```json
 {
-  "executor": {
-    "split_lanes": false,
-    "workers": 5,
-    "max_running": 5,
-    "max_pending": 100,
-    "timeout_seconds": 1800,
-    "retention_seconds": 3600,
-    "redis_memory_mb": 128,
-    "visibility_timeout_seconds": 86400
+  "plugins": {
+    "redis": {
+      "enabled": true,
+      "split_lanes": false,
+      "workers": 5,
+      "max_running": 5,
+      "max_pending": 100,
+      "timeout_seconds": 1800,
+      "retention_seconds": 3600,
+      "redis_memory_mb": 128,
+      "visibility_timeout_seconds": 86400,
+      "port": 8765
+    }
   }
 }
 ```
 
 `orcan sync` validates these values and writes the executor section into runtime JSON; host commands translate
 its settings into the process environment at launch. Then recreate the container with
-its intended access flags, including `--with-redis`. Sync alone does not restart
+`orcan up`, which selects enabled plugins. `--with-redis` remains a one-start override. Sync alone does not restart
 workers. Drain queued and running work before changing queue topology; already
 pinned jobs retain their recorded lane and are not automatically migrated. Without
-an executor section, built-in defaults apply.
+a plugin section, built-in defaults apply. Legacy top-level `executor` settings remain readable.
 `orcan-executor settings` shows the effective process settings and their source.
 
 `workers` (1..5, default 1) starts independent Celery workers on one shared queue

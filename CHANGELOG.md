@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Group startup integrations into bundled `plugins/<id>/` packages with shared selection, typed settings, operating rules, lifecycle hooks and diagnostics. Add the grouped plugin list to `orcan settings`; plain `orcan up` uses the saved selection, while existing flags and `--with`/`--without` override one start. Keep authentication transient and legacy executor/terminal configuration readable.
+
+### Changed
+
 - Resolve host settings from `orcan.config.json` and generated workspace manifests. Stop creating or sourcing `.env`, disable Compose dotenv loading, and store launch/preview state as JSON. Existing dotenv files are left untouched and ignored; migrate non-secret overrides into JSON before recreating a container.
 
 ### Fixed

@@ -42,8 +42,8 @@ Version label: `ORCAN_VERSION` / `/etc/orcan/version`.
 | --- | --- |
 | `docker-compose.yml` | Base service, `$ORCAN_DATA` binds, no Docker socket |
 | `docker-compose.keepalive.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=keepalive` — default `orcan up` (local-only; use `orcan enter`) |
-| `docker-compose.docker.yml` | Host Docker socket + `DOCKER_GID` |
-| `docker-compose.ttyd.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=ttyd` when `orcan up --web-terminal`; published port (`TTYD_BIND`, default `0.0.0.0`), optional `TTYD_CREDENTIAL`, healthcheck |
+| `plugins/docker/compose.yml` | Host Docker socket + `DOCKER_GID` |
+| `plugins/ttyd/compose.yml` | `orcan-supervisord` with `ORCAN_SUPERVISOR_MODE=ttyd` when `orcan up --web-terminal`; published port (`TTYD_BIND`, default `0.0.0.0`), optional `TTYD_CREDENTIAL`, healthcheck |
 | `mounts/compose-projects.generated.yml` | Path-parity project mounts (generated) |
 
 Overlays for `orcan up --web-terminal` / `--docker-socket` / `--ssh` /

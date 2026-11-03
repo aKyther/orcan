@@ -58,12 +58,14 @@ orcan down && orcan up
     "initial_windows": 3,
     "window_prefix": "tab"
   },
-  "ttyd": {
-    "port": 7681,
-    "host_port": 7681,
-    "font_size": 14,
-    "renderer": "webgl",
-    "theme": "dark"
+  "plugins": {
+    "ttyd": {
+      "enabled": false,
+      "host_port": 7681,
+      "font_size": 14,
+      "renderer": "webgl"
+    },
+    "redis": { "enabled": false, "workers": 1 }
   },
   "resources": {
     "cpus": 2,
@@ -83,8 +85,9 @@ Defaults stay light on purpose (typical laptop). Raise them when the machine can
 | `workspaces[].name` | tmux session name and folder under `/home/developer/workspaces/` |
 | `projects[].name` | Symlink name inside the workspace |
 | `projects[].path` | Absolute host path (same path inside the container — path parity) |
+| `plugins.<id>.enabled` | Default selection for `orcan up`; edit the grouped list in `orcan settings` |
 | `tmux.*` | Windows created when a session starts |
-| `ttyd.*` | Browser terminal port, look (`theme`: `dark`/`navy`, `mocha`, or raw JSON), renderer (`webgl` by default; `canvas` fallback), and `ping_interval` (WebSocket keepalive) |
+| `plugins.ttyd.*` | Browser terminal port, look (`theme`: `dark`/`navy`, `mocha`, or raw JSON), renderer (`webgl` by default; `canvas` fallback), and `ping_interval` (WebSocket keepalive) |
 | `resources.*` | Container CPU / memory / shm / tmpfs limits |
 
 ### Raising resources
@@ -142,16 +145,16 @@ before recreating a container. Keep credentials out of JSON and manifests.
 | Previous dotenv setting | JSON field |
 | --- | --- |
 | `CPUS`, `MEMORY`, `SHM_SIZE`, `TMPFS_SIZE` | `resources.cpus`, `resources.memory`, `resources.shm_size`, `resources.tmpfs_size` |
-| `TTYD_HOST_PORT`, `TTYD_BIND`, `TTYD_FONT_SIZE` | `ttyd.host_port`, `ttyd.bind`, `ttyd.font_size` |
-| Other `TTYD_*` display settings | Corresponding lowercase key under `ttyd` |
-| `ORCAN_EXECUTOR_WORKERS`, `ORCAN_EXECUTOR_MAX_RUNNING` | `executor.workers`, `executor.max_running` |
-| Other executor queue and timeout settings | Corresponding key under `executor` |
+| `TTYD_HOST_PORT`, `TTYD_BIND`, `TTYD_FONT_SIZE` | `plugins.ttyd.host_port`, `plugins.ttyd.bind`, `plugins.ttyd.font_size` |
+| Other `TTYD_*` display settings | Corresponding lowercase key under `plugins.ttyd` |
+| `ORCAN_EXECUTOR_WORKERS`, `ORCAN_EXECUTOR_MAX_RUNNING` | `plugins.redis.workers`, `plugins.redis.max_running` |
+| Other executor queue and timeout settings | Corresponding key under `plugins.redis` |
 | `ORCAN_DATA`, `ORCAN_PROJECTS_ROOT` | `data_root`, `projects_root` |
 | `IMAGE_LOCAL` | `image` |
 | `IMAGE_REGISTRY`, `IMAGE_REPOSITORY`, `IMAGE_TAG` | `registry.host`, `registry.repository`, `registry.tag` |
 | `TZ` | `timezone` |
 | `ULIMIT_NOFILE`, `ULIMIT_NPROC` | `resources.nofile`, `resources.nproc` |
-| `ORCAN_EXECUTOR_PORT` | `executor_port` |
+| `ORCAN_EXECUTOR_PORT` | `plugins.redis.port` |
 
 Host UID, GID, socket group and Git identity are detected at command time.
 `ORCAN_HOME`, `ORCAN_CONFIG_FILE` and named-instance CLI flags still locate the
@@ -177,3 +180,7 @@ orcan seed --all --dry-run
 ```
 
 Full field rules and rejected keys: [Configuration reference](../reference/configuration.md).
+
+Choose default integrations in the [plugin list](../guides/plugins.md). Old
+top-level `ttyd`/`executor` sections remain readable; a reviewed plugin save in
+`orcan settings` groups them under `plugins`.

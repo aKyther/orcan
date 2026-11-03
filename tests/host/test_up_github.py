@@ -54,6 +54,8 @@ def shell(tmp_path: Path):
     env.update(
         PATH=f"{tools}:{env['PATH']}",
         ORCAN_RUNTIME_DIR=str(tmp_path / "mounts"),
+        ORCAN_HOME=str(tmp_path),
+        ORCAN_CONFIG_FILE=str(tmp_path / "orcan.config.json"),
         GH_CALLS=str(tmp_path / "gh-calls"),
         GH_SAVED_FIXTURE="",
         GH_FIXTURE_SCRIPT=str(gh),
@@ -329,7 +331,41 @@ def test_redis_compose_overlay_is_opt_in(shell):
     script = 'unset -f orcan_compose_up_run\nsource cli/lib/compose.sh\norcan_compose_project_args() { local -n out="$1"; out=(); }\ndocker() { printf "%s\\n" "$*"; }\norcan_compose_up_run 0 0 0 0 0 0 config\n'
     enabled = shell(script, ORCAN_REDIS_ENABLED="1")
     assert enabled.returncode == 0, enabled.stderr
-    assert "docker-compose.redis.yml" in enabled.stdout
+    assert "plugins/redis/compose.yml" in enabled.stdout
     disabled = shell(script, ORCAN_REDIS_ENABLED="0")
     assert disabled.returncode == 0, disabled.stderr
-    assert "docker-compose.redis.yml" not in disabled.stdout
+    assert "plugins/redis/compose.yml" not in disabled.stdout
+
+
+def test_plain_up_uses_plugin_settings_without_rewriting_configuration(shell, tmp_path):
+    config = tmp_path / "orcan.config.json"
+    data = {"workspaces": [], "plugins": {
+        "github": {"enabled": True, "hostname": "github.company.test"},
+        "redis": {"enabled": True, "workers": 5, "max_running": 5},
+    }}
+    config.write_text(json.dumps(data))
+    original = config.read_bytes()
+    result = shell("orcan_cmd_up", GH_SAVED_FIXTURE="fixture-plugin-token")
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "gh-calls").read_text().strip() == "auth token --hostname github.company.test"
+    record = json.loads((tmp_path / "mounts/last-up.json").read_text())
+    assert record["plugins"]["redis"]["workers"] == 5
+    assert record["plugins"]["github"]["enabled"] is True
+    assert "fixture-plugin-token" not in (tmp_path / "mounts/last-up.json").read_text()
+    assert config.read_bytes() == original
+
+
+def test_one_start_disable_does_not_acquire_configured_host_token(shell, tmp_path):
+    (tmp_path / "orcan.config.json").write_text(json.dumps({"plugins": {"github": {"enabled": True}}}))
+    result = shell("orcan_cmd_up --without github", GH_SAVED_FIXTURE="fixture-unused")
+    assert result.returncode == 0, result.stderr
+    assert not (tmp_path / "gh-calls").exists()
+    assert not (tmp_path / "mounts/compose-github.generated.yml").exists()
+
+
+def test_configured_basic_terminal_auth_fails_before_stop_without_credential(shell, tmp_path):
+    (tmp_path / "orcan.config.json").write_text(json.dumps({"plugins": {"ttyd": {"enabled": True, "authentication": "basic"}}}))
+    result = shell("orcan_cmd_up", TTYD_CREDENTIAL="")
+    assert result.returncode != 0
+    assert "STOP" not in result.stdout
+    assert "requires process TTYD_CREDENTIAL" in result.stderr

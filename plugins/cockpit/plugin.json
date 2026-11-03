@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "cockpit",
+  "kind": "interface",
+  "title": "Cockpit",
+  "group": "interface",
+  "flags": [
+    "orcan enter --launcher"
+  ],
+  "configurable": false,
+  "enabled": true,
+  "fields": {},
+  "verifier": "cockpit",
+  "requires": [],
+  "conflicts": []
+}

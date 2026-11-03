@@ -7,6 +7,300 @@
   "additionalProperties": true,
   "required": ["workspaces"],
   "properties": {
+    "plugins": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "docker": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "github": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "hostname": {
+              "type": "string",
+              "default": "github.com",
+              "description": "GitHub hostname"
+            }
+          }
+        },
+        "gitlab": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "hostname": {
+              "type": "string",
+              "default": "gitlab.com",
+              "description": "GitLab hostname"
+            }
+          }
+        },
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "name": {
+              "type": "string",
+              "default": "",
+              "description": "Existing Docker network name"
+            }
+          }
+        },
+        "redis": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "split_lanes": {
+              "type": "boolean",
+              "default": false,
+              "description": "Split lanes"
+            },
+            "workers": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Workers"
+            },
+            "max_pending": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 10000,
+              "description": "Max pending"
+            },
+            "max_running": {
+              "type": "integer",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Max running"
+            },
+            "timeout_seconds": {
+              "type": "integer",
+              "default": 1800,
+              "minimum": 1,
+              "maximum": 21600,
+              "description": "Timeout seconds"
+            },
+            "retention_seconds": {
+              "type": "integer",
+              "default": 3600,
+              "minimum": 60,
+              "maximum": 86400,
+              "description": "Retention seconds"
+            },
+            "redis_memory_mb": {
+              "type": "integer",
+              "default": 128,
+              "minimum": 32,
+              "maximum": 4096,
+              "description": "Redis memory mb"
+            },
+            "visibility_timeout_seconds": {
+              "type": "integer",
+              "default": 86400,
+              "minimum": 22200,
+              "maximum": 86400,
+              "description": "Visibility timeout seconds"
+            },
+            "port": {
+              "type": "integer",
+              "default": 8765,
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "Dashboard host port"
+            }
+          }
+        },
+        "executor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "split_lanes": {
+              "type": "boolean",
+              "default": false,
+              "description": "Split lanes"
+            },
+            "workers": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Workers"
+            },
+            "max_pending": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 10000,
+              "description": "Max pending"
+            },
+            "max_running": {
+              "type": "integer",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Max running"
+            },
+            "timeout_seconds": {
+              "type": "integer",
+              "default": 1800,
+              "minimum": 1,
+              "maximum": 21600,
+              "description": "Timeout seconds"
+            },
+            "retention_seconds": {
+              "type": "integer",
+              "default": 3600,
+              "minimum": 60,
+              "maximum": 86400,
+              "description": "Retention seconds"
+            },
+            "redis_memory_mb": {
+              "type": "integer",
+              "default": 128,
+              "minimum": 32,
+              "maximum": 4096,
+              "description": "Redis memory mb"
+            },
+            "visibility_timeout_seconds": {
+              "type": "integer",
+              "default": 86400,
+              "minimum": 22200,
+              "maximum": 86400,
+              "description": "Visibility timeout seconds"
+            },
+            "port": {
+              "type": "integer",
+              "default": 8765,
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "Dashboard host port"
+            }
+          }
+        },
+        "ssh": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "ttyd": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "port": {
+              "type": "integer",
+              "default": 7681,
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "Port"
+            },
+            "host_port": {
+              "type": "integer",
+              "default": 7681,
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "Host port"
+            },
+            "bind": {
+              "type": "string",
+              "default": "0.0.0.0",
+              "description": "Bind"
+            },
+            "font_size": {
+              "type": "integer",
+              "default": 14,
+              "minimum": 6,
+              "maximum": 72,
+              "description": "Font size"
+            },
+            "font_family": {
+              "type": "string",
+              "default": "Menlo, Monaco, 'Courier New', monospace",
+              "description": "Font family"
+            },
+            "renderer": {
+              "type": "string",
+              "default": "webgl",
+              "enum": [
+                "webgl",
+                "canvas"
+              ],
+              "description": "Renderer"
+            },
+            "theme": {
+              "type": "string",
+              "default": "dark",
+              "description": "Theme"
+            },
+            "ping_interval": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 3600,
+              "description": "Ping interval"
+            },
+            "authentication": {
+              "type": "string",
+              "default": "none",
+              "enum": [
+                "none",
+                "basic"
+              ],
+              "description": "Authentication (none/basic)"
+            }
+          }
+        }
+      }
+    },
     "data_root": {
       "type": "string",
       "description": "Absolute host directory for persistent agent data and caches."

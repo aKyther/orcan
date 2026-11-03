@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "docker/rootfs/usr/
 from config_io import die
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS
 from orcan.executor_config import ENVIRONMENT, resolve as resolve_executor
+from orcan.plugin_registry import resolve as resolve_plugins
 from path_guards import checked_project_dir
 
 def resolve_settings(cfg: dict) -> dict:
@@ -19,7 +20,11 @@ def resolve_settings(cfg: dict) -> dict:
     Shared by build_from_config() and synthesize_from_env() so the default
     literals live only in defaults.py. Pass an empty cfg for pure defaults.
     """
-    ttyd = cfg.get("ttyd") or {}
+    try:
+        plugins = resolve_plugins(cfg)
+    except ValueError as error:
+        die(str(error))
+    ttyd = {key:value for key,value in plugins["ttyd"].items() if key not in {"enabled", "authentication"}}
     resources = cfg.get("resources") or {}
     if not isinstance(ttyd, dict) or not isinstance(resources, dict):
         die("ttyd and resources must be objects")
@@ -59,10 +64,11 @@ def resolve_settings(cfg: dict) -> dict:
             type(cockpit[key]) is not int or not minimum <= cockpit[key] <= maximum
         ):
             die("Invalid cockpit budget: " + key)
-    executor = resolve_executor(cfg.get("executor", {}))
+    executor = resolve_executor({key:plugins["redis"][key] for key in ENVIRONMENT})
     return {
         **({"cockpit": cockpit} if cockpit else {}),
         "executor": executor,
+        "plugins": plugins,
         "tmux": {
             "initial_windows": initial_windows,
             "history_limit": history_limit,
@@ -107,7 +113,7 @@ def host_environment(cfg: dict, home: Path, runtime: dict | None = None) -> dict
     cpus = settings["resources"]["cpus"]
     if isinstance(cpus, bool) or not isinstance(cpus, (int, float)) or not math.isfinite(cpus) or cpus <= 0:
         die("resources.cpus must be a positive number")
-    port = cfg.get("executor_port", 8765)
+    port = settings["plugins"]["redis"]["port"]
     if type(port) is not int or not 1 <= port <= 65535:
         die("executor_port must be an integer from 1 to 65535")
     if not isinstance(cfg.get("timezone", "UTC"), str):
@@ -148,7 +154,7 @@ def host_environment(cfg: dict, home: Path, runtime: dict | None = None) -> dict
         "USER_UID": os.getuid(), "USER_GID": os.getgid(),
         "DOCKER_GID": Path("/var/run/docker.sock").stat().st_gid if Path("/var/run/docker.sock").exists() else 999,
         "TZ": cfg.get("timezone", "UTC"),
-        "ORCAN_EXECUTOR_PORT": cfg.get("executor_port", 8765),
+        "ORCAN_EXECUTOR_PORT": settings["plugins"]["redis"]["port"],
     }
     for key, value in settings["ttyd"].items():
         result["TTYD_" + key.upper()] = value
