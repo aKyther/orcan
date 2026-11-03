@@ -121,7 +121,7 @@ orcan uninstall --purge-data --purge-images
 `--purge-data` deletes config, logins, history, and caches, but preserves
 `ORCAN_PROJECTS_ROOT` (default `~/.config/orcan/sandbox`) and every configured
 project path. Without that flag, all data is kept. See the environment
-reference for [projects-root edge cases](reference/environment.md#orcan_projects_root-safety-and-edge-cases).
+reference for [projects-root edge cases](reference/environment.md#host-locations-and-authentication).
 
 Details: [Workflows — uninstall](guides/workflows.md#uninstall).
 

@@ -23,7 +23,12 @@ def main():
     name = "orcan-json-smoke-" + uuid.uuid4().hex[:12]
     image = os.environ.get("ORCAN_JSON_SMOKE_IMAGE", "orcan:4.0.17")
     run(["docker", "image", "inspect", image], os.environ)
-    home = Path(tempfile.mkdtemp(prefix=".json-runtime-smoke-", dir=ROOT))
+    # Executor worktrees can live in a container-only history path. Bind sources
+    # must use the canonical managed root, shared with the host Docker daemon.
+    fixture_root = Path(os.environ["ORCAN_PROJECTS_ROOT"])
+    if not fixture_root.is_absolute() or not fixture_root.is_dir():
+        raise RuntimeError("JSON smoke requires the canonical managed project root")
+    home = Path(tempfile.mkdtemp(prefix=".json-runtime-smoke-", dir=fixture_root))
     env = {**os.environ, "ORCAN_HOME": str(home), "ORCAN_CONFIG_FILE": str(home / "orcan.config.json"),
            "ORCAN_RUNTIME_DIR": str(home / "mounts"), "ORCAN_INSTANCE": name,
            "COMPOSE_PROJECT_NAME": name, "ORCAN_ROOT": str(ROOT)}
