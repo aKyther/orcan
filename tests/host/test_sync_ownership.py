@@ -320,7 +320,7 @@ def test_update_env_rejects_invalid_saved_policy_before_runtime_materialization(
     config = tmp_path / "orcan.config.json"
     config.write_text(json.dumps({"ownership": {"excluded_paths": ["relative"]}}))
     result = subprocess.run(
-        ["bash", str(ROOT / "scripts/repository/update-env.sh")],
+        ["bash", str(ROOT / "scripts/repository/sync-runtime.sh")],
         env={
             **os.environ,
             "ORCAN_ROOT": str(ROOT),

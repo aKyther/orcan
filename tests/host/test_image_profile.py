@@ -174,8 +174,8 @@ export ORCAN_ROOT="$PWD"
 source cli/lib/common.sh
 source cli/commands/build.sh
 orcan_require_docker() { :; }
-orcan_require_env_for_build() { :; }
-orcan_load_env() { :; }
+orcan_require_config_for_build() { :; }
+orcan_load_config() { :; }
 orcan_runtime_warn_if_config_stale() { :; }
 orcan_image_build_local() { printf '%s:%s:%s:%s' "$1" "$INSTALL_GO" "$INSTALL_RUST" "$RUST_IMAGE"; }
 orcan_cmd_build --agent codex --config "$PROFILE"

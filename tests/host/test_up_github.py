@@ -62,6 +62,7 @@ def shell(tmp_path: Path):
         GLAB_FIXTURE_SCRIPT=str(glab),
         ORCAN_ENV_FILE=str(tmp_path / "fixture.env"),
         ORCAN_ROOT=str(ROOT),
+        ORCAN_SCRIPTS=str(ROOT / "scripts/repository"),
     )
     prefix = """
 set -Eeuo pipefail
@@ -84,7 +85,8 @@ orcan_warn() { printf '%s\\n' "$*" >&2; }
 orcan_ok() { :; }
 orcan_require_docker() { :; }
 orcan_require_generated() { :; }
-orcan_load_env() { :; }
+orcan_load_config() { :; }
+orcan_host_python() { python3 "$@"; }
 orcan_maybe_hint_upgrade() { :; }
 orcan_compose_ttyd_down_all_variants() { printf 'STOP\\n'; }
 orcan_compose_up_run() { printf 'RUN %s %s %s %s %s %s\\n' "$1" "$2" "$3" "$4" "$5" "$7"; }
@@ -162,8 +164,8 @@ def test_saved_login_and_resume_resolve_the_exact_host_again(shell, tmp_path):
         "auth token --hostname github.company.test",
     ]
     assert (
-        "GITHUB_HOSTNAME=github.company.test"
-        in (tmp_path / "mounts/last-up.env").read_text()
+        '"GITHUB_HOSTNAME": "github.company.test"'
+        in (tmp_path / "mounts/last-up.json").read_text()
     )
     assert "fixture-saved-token" not in result.stdout + result.stderr
 
@@ -171,7 +173,7 @@ def test_saved_login_and_resume_resolve_the_exact_host_again(shell, tmp_path):
 def test_no_github_and_old_resume_do_not_request_authentication(shell, tmp_path):
     runtime = tmp_path / "mounts"
     runtime.mkdir()
-    (runtime / "last-up.env").write_text("WITH_GIT=0\nWITH_TTYD=0\n")
+    (runtime / "last-up.json").write_text(json.dumps({"WITH_GIT": "0", "WITH_TTYD": "0"}))
     result = shell(
         "orcan_cmd_up --resume\norcan_cmd_up\n", GH_TOKEN="fixture-inherited-token"
     )
@@ -185,7 +187,7 @@ def test_plain_start_disables_previously_requested_github(shell, tmp_path):
     result = shell("orcan_cmd_up --github\norcan_cmd_up\n", GH_TOKEN="fixture-token")
     assert result.returncode == 0, result.stderr
     assert "RUN 0 0 0 0 0 up" in result.stdout
-    assert "WITH_GITHUB=0" in (tmp_path / "mounts/last-up.env").read_text()
+    assert json.loads((tmp_path / "mounts/last-up.json").read_text())["WITH_GITHUB"] == "0"
 
 
 @pytest.mark.parametrize(
@@ -316,11 +318,11 @@ def test_network_overlay_still_joins_both_networks(shell, tmp_path):
 def test_redis_flag_resume_and_plain_reset(shell, tmp_path):
     result = shell("orcan_cmd_up --with-redis\norcan_cmd_up --resume\n")
     assert result.returncode == 0, result.stderr
-    assert "WITH_REDIS=1" in (tmp_path / "mounts/last-up.env").read_text()
-    assert "WITH_REDIS=1" in (tmp_path / "mounts/up-state.env").read_text()
+    assert json.loads((tmp_path / "mounts/last-up.json").read_text())["WITH_REDIS"] == "1"
+    assert json.loads((tmp_path / "mounts/up-state.json").read_text())["WITH_REDIS"] == "1"
     result = shell("orcan_cmd_up\n")
     assert result.returncode == 0, result.stderr
-    assert "WITH_REDIS=0" in (tmp_path / "mounts/last-up.env").read_text()
+    assert json.loads((tmp_path / "mounts/last-up.json").read_text())["WITH_REDIS"] == "0"
 
 
 def test_redis_compose_overlay_is_opt_in(shell):

@@ -118,5 +118,5 @@ def effective() -> dict:
         "history_days": HISTORY_DAYS,
         "history_limit": HISTORY_LIMIT,
         "scheduling": "repo_round_robin_per_lane",
-        "source": "process environment with built-in defaults; JSON is materialized by orcan sync",
+        "source": "process environment with built-in defaults; host launch resolves JSON settings",
     }

@@ -64,7 +64,7 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 
 | Message | Fix |
 | --- | --- |
-| `.env` missing | `orcan sync` or `orcan init` |
+| Runtime JSON missing | `orcan sync` or `orcan init` |
 | Generated files stale | Config is newer than `mounts/*` — run `orcan sync` |
 | Invalid `PROJECT_DIR` | Absolute path; avoid `/`, `/home`, `/etc` |
 
@@ -78,15 +78,14 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 
 Use `orcan up --docker-socket`. Plain `orcan up` does not mount the socket.
 
-If `docker` needs `sudo` inside the container, the host socket GID must match `DOCKER_GID` in `.env`:
+If `docker` needs `sudo` inside the container, the host socket GID must match the detected `DOCKER_GID`:
 
 ```bash
 stat -c '%g' /var/run/docker.sock
-grep DOCKER_GID "${ORCAN_HOME:-$HOME/.config/orcan}/.env"
 orcan sync && orcan down && orcan up --docker-socket
 ```
 
-`orcan sync` re-detects the socket GID from the host (do not leave a stale `999` from `.env.example`).
+The CLI detects the socket GID from the host at launch; no dotenv value is used.
 
 ## Path parity / nested Compose fails
 
@@ -139,8 +138,8 @@ That mounts host `~/.ssh` read-only (and the SSH agent when `SSH_AUTH_SOCK` is s
 
 ## Leftover `space/` is `root:root` after upgrading to 2.0
 
-v2.0 renamed the managed projects root `space/` → `sandbox/`. If `.env` still
-has `ORCAN_PROJECTS_ROOT=…/space` after the rename, the next `orcan up`
+v2.0 renamed the managed projects root `space/` → `sandbox/`. If `projects_root` in JSON still
+points at `…/space` after the rename, the next `orcan up`
 bind-mounts a **missing** host path and the Docker daemon creates it as
 `root:root`. `orcan doctor` flags this (legacy `space/` check).
 

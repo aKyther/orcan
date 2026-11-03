@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ensure .env and generated runtime files exist — do not regenerate them.
+# Ensure generated JSON and runtime files exist — do not regenerate them.
 # Host-only: do not copy this into the Docker image.
 #
 # Usage: require-generated.sh
@@ -28,22 +28,8 @@ fail() {
 # shellcheck source=validate-project-dir.sh
 source "${ORCAN_ROOT}/scripts/repository/validate-project-dir.sh"
 
-if [[ ! -f "${ORCAN_HOME}/.env" ]]; then
-    if [[ -f "${ORCAN_HOME}/orcan.config.json" ]]; then
-        fix="orcan sync"
-    else
-        fix="orcan init /absolute/path/to/repo"
-    fi
-    fail ".env not found: ${ORCAN_HOME}/.env" \
-        "orcan up needs .env plus generated mounts/* (from orcan sync)." \
-        "Fix:  ${fix}" \
-        "Note: orcan build only needs .env — sync is the normal way to create it."
-fi
-
-set -a
-# shellcheck disable=SC1091
-source "${ORCAN_HOME}/.env"
-set +a
+exports="$("${ORCAN_ROOT}/scripts/repository/python.sh" "${ORCAN_ROOT}/scripts/repository/runtime-settings.py" --home "${ORCAN_HOME}")"
+eval "${exports}"
 
 compose_file="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}"
 runtime_file="${ORCAN_CONFIG_HOST:-${ORCAN_HOME}/mounts/runtime-config.json}"

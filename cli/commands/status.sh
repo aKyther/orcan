@@ -2,8 +2,9 @@
 # shellcheck shell=bash
 
 orcan_cmd_status() {
-    local image="${IMAGE_LOCAL:-orcan:latest}" cname ver
-    orcan_load_env 2>/dev/null || true
+    local image cname ver
+    orcan_load_config
+    image="${IMAGE_LOCAL:-orcan:latest}"
     cname="$(orcan_container_name)"
     ver="$(orcan_image_version)"
     printf 'orcan status\n\n'

@@ -17,7 +17,7 @@ services:
     # High file-descriptor / process ceilings. supervisord aborts on start
     # when its soft RLIMIT_NOFILE is under minfds (1024) and it cannot
     # raise it; ttyd + tmux + node/uv tooling under it also burn FDs fast.
-    # Override via ULIMIT_NOFILE / ULIMIT_NPROC in .env if needed.
+    # Configure resources.nofile / resources.nproc in JSON if needed.
     ulimits:
       nofile:
         soft: ${ULIMIT_NOFILE:-1048576}
@@ -96,7 +96,7 @@ services:
       # empty string — an unset/empty source here is an invalid Docker
       # mount, which would break `docker compose` for anyone invoking it
       # directly (e.g. tests/integration/test-path-parity.sh) before
-      # `orcan sync` has ever written .env.
+      # `orcan sync` has generated runtime JSON.
       - ${ORCAN_PROJECTS_ROOT:-${HOME}/.config/orcan/sandbox}:${ORCAN_PROJECTS_ROOT:-${HOME}/.config/orcan/sandbox}
       - ${ORCAN_DATA}/cursor:/home/developer/.cursor
       - ${ORCAN_DATA}/cursor-app:/home/developer/.config/cursor

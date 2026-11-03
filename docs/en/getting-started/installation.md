@@ -68,7 +68,7 @@ Describe workspaces in `~/.config/orcan/orcan.config.json`, then **materialise**
 orcan init /absolute/path/to/your/repo
 ```
 
-`orcan init` scaffolds the config if missing and runs **`orcan sync`** (writes `.env` + `mounts/*` under `ORCAN_HOME`). Re-run `orcan sync` after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
+`orcan init` scaffolds the config if missing and runs **`orcan sync`** (writes runtime JSON + `mounts/*` under `ORCAN_HOME`). Re-run `orcan sync` after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
 
 Or use the wizard:
 
@@ -94,7 +94,7 @@ login/session data under `ORCAN_DATA/gemini` and `ORCAN_DATA/copilot`.
 
 ## Expected result
 
-- Config and `.env` exist under `~/.config/orcan/`
+- Config and generated JSON exist under `~/.config/orcan/`
 - Local image `orcan:latest` exists
 - `orcan context show` prints workspace paths
 

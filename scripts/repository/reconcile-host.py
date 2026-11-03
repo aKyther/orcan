@@ -110,8 +110,8 @@ def main() -> int:
         die(f"workspace templates missing under ORCAN_ROOT: {templates}")
 
     # Read only our non-secret capability record, never source shell state here.
-    state = home / "mounts" / "up-state.env"
-    enabled = state.is_file() and "WITH_REDIS=1" in state.read_text().splitlines()
+    state = home / "mounts" / "up-state.json"
+    enabled = state.is_file() and json.loads(state.read_text()).get("WITH_REDIS") == "1"
     os.environ["ORCAN_REDIS_ENABLED"] = "1" if enabled else "0"
     from orcan.agent_context import parse_agents
 

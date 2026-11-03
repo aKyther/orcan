@@ -90,8 +90,8 @@ EOF
 
 
     orcan_require_docker
-    orcan_require_env_for_build
-    orcan_load_env
+    orcan_require_config_for_build
+    orcan_load_config
     orcan_runtime_warn_if_config_stale build
 
     local INSTALL_GO="${selection[1]}" INSTALL_RUST="${selection[2]}"

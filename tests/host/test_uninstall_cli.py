@@ -60,7 +60,7 @@ class UninstallCliTests(unittest.TestCase):
             launcher.write_text("launcher")
             script = r"""
 source "$TEST_UNINSTALL"
-orcan_load_env() { :; }
+orcan_load_config() { :; }
 orcan_warn() { :; }
 orcan_info() { :; }
 orcan_ok() { :; }

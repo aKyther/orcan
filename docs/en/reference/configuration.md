@@ -10,8 +10,13 @@ Machine-readable draft: [`orcan.config.schema.json`](https://github.com/aKyther/
 | Key | Required | Description |
 | --- | --- | --- |
 | `workspaces` | yes | List of workspace objects; may be empty while preparing a container |
-| `image` | no | Installed Docker image selected at creation; ordinary sync preserves existing host overrides |
-| `projects_root` | no | Absolute shared source catalog selected at creation; default is the data root sandbox |
+| `image` | no | Docker image used for builds and startup |
+| `projects_root` | no | Absolute shared source catalog; default is the data root sandbox |
+| `data_root` | no | Absolute host directory for persistent agent data; default `~/.config/orcan` |
+| `timezone` | no | Container timezone; default `UTC` |
+| `registry` | no | Image registry `host`, `repository`, optional `tag` |
+| `executor` | no | Worker count, queues and execution limits |
+| `executor_port` | no | Dashboard host port; default `8765` |
 | `tmux` | no | Default window layout |
 | `ttyd` | no | Browser terminal settings |
 | `resources` | no | Container limits (default **2** CPU / **4g** RAM — raise in config when needed) |
@@ -90,3 +95,7 @@ Invalid ownership configuration stops sync before runtime files are generated or
 data ownership is changed. Flags require an existing configuration; first-time
 setup can use `orcan init /absolute/project --no-chown 'external*'`. Saved policies
 apply to all workspaces using that configuration. They affect ownership only.
+
+Host settings are resolved from JSON at command time. `resources.nofile` and
+`resources.nproc` set process limits (integers >= 1024, default 65536).
+Legacy `.env` files are ignored; see [migration](../getting-started/configuration.md#upgrade-from-dotenv-configuration).

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply orcan.config.json into .env, runtime config, workspace artifacts, and Compose mounts."""
+"""Apply orcan.config.json into runtime JSON, workspace artifacts, and Compose mounts."""
 
 from __future__ import annotations
 
@@ -19,9 +19,8 @@ sys.path.insert(
 )
 from config_io import die, discover_config
 from config_io import load_config as load_user_config
-from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS
-from orcan.executor_config import ENVIRONMENT as EXECUTOR_ENVIRONMENT
-from orcan.executor_config import resolve as resolve_executor
+from host_config import resolve_settings as _resolved_runtime_settings
+from host_config import host_environment
 from orcan.identity import validate_identity
 from path_guards import (
     DEFAULT_DEVELOPER_WORKSPACES,
@@ -65,65 +64,6 @@ def ensure_dir(path: Path, label: str) -> Path:
         die(f"{label} {exc}")
     resolved.mkdir(parents=True, exist_ok=True)
     return resolved
-
-
-def format_env_value(value: str) -> str:
-    """Quote .env values that would break shell sourcing (spaces, commas, quotes)."""
-    if value == "":
-        return '""'
-    if re.search(r'[\s#"\'\\$`]|,', value) or value.startswith(("'", '"')):
-        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-        return f'"{escaped}"'
-    return value
-
-
-def ensure_env_key(env_path: Path, key: str, value: str) -> None:
-    text = env_path.read_text(encoding="utf-8") if env_path.exists() else ""
-    lines = text.splitlines()
-    pattern = re.compile(rf"^{re.escape(key)}=")
-    replaced = False
-    out: list[str] = []
-    rendered = f"{key}={format_env_value(value)}"
-    for line in lines:
-        if pattern.match(line):
-            out.append(rendered)
-            replaced = True
-        else:
-            out.append(line)
-    if not replaced:
-        if out and out[-1] != "":
-            out.append("")
-        out.append(rendered)
-    env_path.write_text("\n".join(out) + "\n", encoding="utf-8")
-
-
-def env_has_key(env_path: Path, key: str) -> bool:
-    if not env_path.exists():
-        return False
-    pattern = re.compile(rf"^{re.escape(key)}=")
-    return any(
-        pattern.match(line)
-        for line in env_path.read_text(encoding="utf-8").splitlines()
-    )
-
-
-def ensure_env_key_unless_set(env_path: Path, key: str, value: str) -> None:
-    """Set key only when missing — preserves host-specific .env overrides (e.g. CPUS)."""
-    if env_has_key(env_path, key):
-        return
-    ensure_env_key(env_path, key, value)
-
-
-def remove_env_key(env_path: Path, key: str) -> None:
-    if not env_path.exists():
-        return
-    pattern = re.compile(rf"^{re.escape(key)}=")
-    lines = [
-        line
-        for line in env_path.read_text(encoding="utf-8").splitlines()
-        if not pattern.match(line)
-    ]
-    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def load_config(path: Path) -> dict:
@@ -425,7 +365,7 @@ def worktree_git_dir_paths(project_paths: set[str]) -> set[str]:
 def managed_projects_root(env: dict | None = None) -> Path | None:
     """The stable, always-mounted project root (see docker-compose.yml).
 
-    Set by update-env.sh before apply-config.py runs (`ORCAN_PROJECTS_ROOT`,
+    Set by sync-runtime.sh before apply-config.py runs (`ORCAN_PROJECTS_ROOT`,
     default ``${ORCAN_DATA}/sandbox``). Any project path already living
     under this root needs no bind entry of its own in the generated Compose
     overlay — it's already visible via the one stable base-compose mount —
@@ -547,86 +487,6 @@ def write_code_workspace(
     return out_path
 
 
-def _resolved_runtime_settings(cfg: dict) -> dict:
-    """The tmux / ttyd / resources sections with defaults filled and types coerced.
-
-    Shared by build_from_config() and synthesize_from_env() so the default
-    literals live only in defaults.py. Pass an empty cfg for pure defaults.
-    """
-    ttyd = cfg.get("ttyd") or {}
-    resources = cfg.get("resources") or {}
-    if not isinstance(ttyd, dict) or not isinstance(resources, dict):
-        die("ttyd and resources must be objects")
-
-    tmux_cfg = cfg.get("tmux") if isinstance(cfg.get("tmux"), dict) else {}
-    history_limit = tmux_cfg.get("history_limit", TMUX_DEFAULTS["history_limit"])
-    if type(history_limit) is not int or not 1000 <= history_limit <= 200000:
-        die("tmux.history_limit must be an integer from 1000 to 200000")
-    initial_windows = int(
-        tmux_cfg.get("initial_windows", TMUX_DEFAULTS["initial_windows"])
-    )
-    initial_windows = max(1, min(9, initial_windows))
-    window_prefix = str(
-        tmux_cfg.get("window_prefix") or TMUX_DEFAULTS["window_prefix"]
-    ).strip() or str(TMUX_DEFAULTS["window_prefix"])
-    renderer = str(ttyd.get("renderer") or TTYD_DEFAULTS["renderer"]).strip().lower()
-    if renderer not in {"webgl", "canvas"}:
-        die("ttyd.renderer must be 'webgl' or 'canvas'")
-
-    cockpit = cfg.get("cockpit", {})
-    if not isinstance(cockpit, dict) or set(cockpit) - {
-        "pty_read_bytes",
-        "pty_read_ms",
-        "pty_chunk_bytes",
-        "peek_chars",
-    }:
-        die(
-            "cockpit supports pty_read_bytes, pty_read_ms, pty_chunk_bytes and peek_chars"
-        )
-    for key, (minimum, maximum) in {
-        "pty_read_bytes": (4096, 1048576),
-        "pty_read_ms": (1, 50),
-        "pty_chunk_bytes": (4096, 65536),
-        "peek_chars": (256, 8192),
-    }.items():
-        if key in cockpit and (
-            type(cockpit[key]) is not int or not minimum <= cockpit[key] <= maximum
-        ):
-            die("Invalid cockpit budget: " + key)
-    executor = resolve_executor(cfg.get("executor", {}))
-    return {
-        **({"cockpit": cockpit} if cockpit else {}),
-        "executor": executor,
-        "tmux": {
-            "initial_windows": initial_windows,
-            "history_limit": history_limit,
-            "window_prefix": window_prefix,
-        },
-        "ttyd": {
-            "port": int(ttyd.get("port", TTYD_DEFAULTS["port"])),
-            "host_port": int(
-                ttyd.get("host_port", ttyd.get("port", TTYD_DEFAULTS["host_port"]))
-            ),
-            "bind": str(ttyd.get("bind") or TTYD_DEFAULTS["bind"]).strip()
-            or str(TTYD_DEFAULTS["bind"]),
-            "font_size": int(ttyd.get("font_size", TTYD_DEFAULTS["font_size"])),
-            "font_family": str(ttyd.get("font_family") or TTYD_DEFAULTS["font_family"]),
-            "renderer": renderer,
-            "theme": str(ttyd.get("theme") or TTYD_DEFAULTS["theme"]),
-            "ping_interval": max(
-                1, int(ttyd.get("ping_interval", TTYD_DEFAULTS["ping_interval"]))
-            ),
-        },
-        "resources": {
-            "cpus": resources.get("cpus", RESOURCE_DEFAULTS["cpus"]),
-            "memory": str(resources.get("memory", RESOURCE_DEFAULTS["memory"])),
-            "shm_size": str(resources.get("shm_size", RESOURCE_DEFAULTS["shm_size"])),
-            "tmpfs_size": str(
-                resources.get("tmpfs_size", RESOURCE_DEFAULTS["tmpfs_size"])
-            ),
-        },
-    }
-
 
 def build_from_config(cfg: dict, repo_root: Path) -> dict:
     if cfg.get("default_project"):
@@ -721,18 +581,11 @@ def main() -> None:
     args = parser.parse_args()
 
     root = Path(args.root or Path.cwd()).resolve()
-    env_path = root / ".env"
-    example = root / ".env.example"
     runtime_dir = root / "mounts"
     workspaces_dir = root / "workspaces"
     runtime_path = runtime_dir / "runtime-config.json"
     compose_path = runtime_dir / "compose-projects.generated.yml"
     manifest_path = workspaces_dir / "index.json"
-
-    if not env_path.exists():
-        if not example.exists():
-            die("missing .env and .env.example")
-        env_path.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
 
     config_path = Path(args.config) if args.config else None
     if config_path is not None and not config_path.is_absolute():
@@ -747,6 +600,8 @@ def main() -> None:
         project_dir = args.project_dir or os.environ.get("PROJECT_DIR") or str(root)
         built = synthesize_from_env(project_dir, root)
         print("No CONFIG file; synthesized single-repo workspace from PROJECT_DIR")
+
+    host = host_environment(load_config(config_path) if config_path else {}, root, built["runtime"])
 
     runtime_dir.mkdir(parents=True, exist_ok=True)
     identity_path = runtime_dir / "frozen-identity.json"
@@ -779,7 +634,7 @@ def main() -> None:
         json.dumps(built["runtime"], indent=2) + "\n", encoding="utf-8"
     )
     compose_path.write_text(
-        write_compose_projects(built["workspaces"], root, managed_projects_root()),
+        write_compose_projects(built["workspaces"], root, Path(host["ORCAN_PROJECTS_ROOT"])),
         encoding="utf-8",
     )
     manifest_path.write_text(
@@ -799,76 +654,6 @@ def main() -> None:
         )
 
     primary_ws = built["primary_workspace"]
-    ensure_env_key(env_path, "PROJECT_DIR", built["project_dir"])
-    ensure_env_key(env_path, "CONTAINER_PROJECT_DIR", built["container_project_dir"])
-    remove_env_key(env_path, "PROJECTS_DIR")
-    remove_env_key(env_path, "PROJECT_ROOTS")
-    remove_env_key(env_path, "DEFAULT_WORKSPACE")
-    ensure_env_key(env_path, "ORCAN_CONFIG_HOST", str(runtime_path))
-    ensure_env_key(env_path, "ORCAN_CONFIG", "/etc/orcan/config.json")
-    ensure_env_key(env_path, "ORCAN_COMPOSE_PROJECTS", str(compose_path))
-    ensure_env_key(env_path, "ORCAN_WORKSPACE_MANIFEST", str(manifest_path))
-    ensure_env_key(env_path, "WORKSPACE_ROOT", primary_ws["root"])
-    ensure_env_key(env_path, "WORKSPACE_NAME", primary_ws["name"])
-    ensure_env_key(env_path, "WORKSPACE_META_PATH", primary_ws["meta_path"])
-
-    ensure_env_key(
-        env_path, "TMUX_HISTORY_LIMIT", str(built["runtime"]["tmux"]["history_limit"])
-    )
-    ttyd = built["runtime"]["ttyd"]
-    resources = built["runtime"]["resources"]
-    if config_path and "executor" in load_config(config_path):
-        for key, variable in EXECUTOR_ENVIRONMENT.items():
-            value = built["runtime"]["executor"][key]
-            ensure_env_key(env_path, variable, str(int(value)) if isinstance(value, bool) else str(value))
-    # Studio creates a new configuration exclusively before this first sync.
-    # Its explicit limits/port must win over copied example values; ordinary
-    # sync continues preserving existing host-specific overrides.
-    creation_setting = (
-        ensure_env_key
-        if os.environ.get("ORCAN_STUDIO_CREATE_RUNTIME") == "1"
-        else ensure_env_key_unless_set
-    )
-    if config_path and config_path.is_file():
-        creation_config = load_config(config_path)
-        if creation_config.get("image"):
-            if not isinstance(creation_config["image"], str) or not re.fullmatch(
-                r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]*", creation_config["image"]
-            ):
-                die("invalid configured Docker image reference")
-            creation_setting(env_path, "IMAGE_LOCAL", creation_config["image"])
-        if creation_config.get("projects_root"):
-            value = creation_config["projects_root"]
-            if (
-                not isinstance(value, str)
-                or not Path(value).is_absolute()
-                or any(c in value for c in "\n\r$`")
-            ):
-                die("projects_root must be an absolute path without shell expansions")
-            try:
-                checked_project_dir(value, must_exist=False)
-            except PathGuardError as error:
-                die(str(error))
-            creation_setting(
-                env_path, "ORCAN_PROJECTS_ROOT", creation_config["projects_root"]
-            )
-    ensure_env_key_unless_set(env_path, "TTYD_PORT", str(ttyd["port"]))
-    creation_setting(env_path, "TTYD_HOST_PORT", str(ttyd["host_port"]))
-    ensure_env_key_unless_set(env_path, "TTYD_BIND", str(ttyd.get("bind", "0.0.0.0")))
-    ensure_env_key_unless_set(env_path, "TTYD_FONT_SIZE", str(ttyd["font_size"]))
-    ensure_env_key_unless_set(env_path, "TTYD_FONT_FAMILY", str(ttyd["font_family"]))
-    ensure_env_key_unless_set(env_path, "TTYD_RENDERER", str(ttyd["renderer"]))
-    ensure_env_key_unless_set(env_path, "TTYD_THEME", str(ttyd["theme"]))
-    ensure_env_key_unless_set(
-        env_path, "TTYD_PING_INTERVAL", str(ttyd.get("ping_interval", 20))
-    )
-    # Optional basic auth — set only in .env (never commit). Format: user:password
-    # ensure_env_key_unless_set is NOT used: leave unset unless the user adds it.
-    creation_setting(env_path, "CPUS", str(resources["cpus"]))
-    creation_setting(env_path, "MEMORY", str(resources["memory"]))
-    ensure_env_key_unless_set(env_path, "SHM_SIZE", str(resources["shm_size"]))
-    ensure_env_key_unless_set(env_path, "TMPFS_SIZE", str(resources["tmpfs_size"]))
-
     print(f"PROJECT_DIR={built['project_dir']} (orchestrator home)")
     print(
         f"WORKSPACE_ROOT={primary_ws['root']} (agent/tmux start directory in container)"

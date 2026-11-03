@@ -96,7 +96,7 @@ orcan sync
 orcan down && orcan up
 ```
 
-If `.env` already has `CPUS` / `MEMORY` set, `orcan sync` keeps those values. Change them in `.env` too, or remove the keys so config wins on the next `orcan sync`.
+JSON settings are authoritative. A legacy `.env` is ignored and left unchanged.
 
 ## Ways to edit
 
@@ -119,11 +119,10 @@ orcan context show
 
 ## What `orcan sync` writes
 
-`orcan.config.json` is the story you edit (default under `~/.config/orcan/`). **`orcan sync`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, mounts and env stay stale or missing.
+`orcan.config.json` is the story you edit (default under `~/.config/orcan/`). **`orcan sync`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, workspace manifests and mounts stay stale or missing. Host settings are resolved directly from JSON when commands run.
 
 | Output | Role |
 | --- | --- |
-| `.env` | Compose and Make variables |
 | `mounts/runtime-config.json` | Mounted into the container as `/etc/orcan/config.json` |
 | `mounts/compose-projects.generated.yml` | Extra bind mounts |
 | `mounts/compose-git.generated.yml` | Written by `orcan up --ssh` (SSH mounts) |
@@ -131,7 +130,40 @@ orcan context show
 | `workspaces/<name>/` | Host-backed workspace meta |
 | `$ORCAN_DATA` tree | Default `~/.config/orcan` (Cursor/Claude home, caches) |
 
-Do not commit `.env`, `mounts/`, or `workspaces/` (gitignored).
+Do not edit or commit generated `mounts/` or `workspaces/` files.
+
+## Upgrade from dotenv configuration
+
+Orcan no longer reads, writes or sources `.env`. Compose receives validated settings
+in its process environment and is explicitly prevented from loading `.env` itself.
+Existing `.env` files remain untouched; move non-secret custom settings into JSON
+before recreating a container. Keep credentials out of JSON and manifests.
+
+| Previous dotenv setting | JSON field |
+| --- | --- |
+| `CPUS`, `MEMORY`, `SHM_SIZE`, `TMPFS_SIZE` | `resources.cpus`, `resources.memory`, `resources.shm_size`, `resources.tmpfs_size` |
+| `TTYD_HOST_PORT`, `TTYD_BIND`, `TTYD_FONT_SIZE` | `ttyd.host_port`, `ttyd.bind`, `ttyd.font_size` |
+| Other `TTYD_*` display settings | Corresponding lowercase key under `ttyd` |
+| `ORCAN_EXECUTOR_WORKERS`, `ORCAN_EXECUTOR_MAX_RUNNING` | `executor.workers`, `executor.max_running` |
+| Other executor queue and timeout settings | Corresponding key under `executor` |
+| `ORCAN_DATA`, `ORCAN_PROJECTS_ROOT` | `data_root`, `projects_root` |
+| `IMAGE_LOCAL` | `image` |
+| `IMAGE_REGISTRY`, `IMAGE_REPOSITORY`, `IMAGE_TAG` | `registry.host`, `registry.repository`, `registry.tag` |
+| `TZ` | `timezone` |
+| `ULIMIT_NOFILE`, `ULIMIT_NPROC` | `resources.nofile`, `resources.nproc` |
+| `ORCAN_EXECUTOR_PORT` | `executor_port` |
+
+Host UID, GID, socket group and Git identity are detected at command time.
+`ORCAN_HOME`, `ORCAN_CONFIG_FILE` and named-instance CLI flags still locate the
+configuration. `ORCAN_DATA` and `ORCAN_PROJECTS_ROOT` remain fallback locations
+when the matching JSON field is absent. Other persistent settings come from JSON.
+Authentication can use host CLI logins or temporary process variables, including
+`TTYD_CREDENTIAL`; it is never copied into a generated configuration file.
+
+Run `orcan sync`, finish active executor jobs, then recreate with your access flags.
+The old shell-format launch record is not imported: use explicit flags for the first
+start after this upgrade. Later `up --resume` uses `mounts/last-up.json`.
+
 
 ## Seed into git checkouts (optional, rarely needed)
 

@@ -7,6 +7,35 @@
   "additionalProperties": true,
   "required": ["workspaces"],
   "properties": {
+    "data_root": {
+      "type": "string",
+      "description": "Absolute host directory for persistent agent data and caches."
+    },
+    "timezone": {
+      "type": "string",
+      "default": "UTC"
+    },
+    "executor_port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 8765
+    },
+    "registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    },
     "host_id": { "type": "string", "format": "uuid", "description": "Registered Orcan host installation UUID." },
     "container_id": { "type": "string", "format": "uuid", "description": "Registered logical container configuration UUID; explicit replacement creates a new ID." },
     "identity": {
@@ -293,6 +322,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "nofile": { "type": "integer", "minimum": 1024, "default": 65536 },
+        "nproc": { "type": "integer", "minimum": 1024, "default": 65536 },
         "cpus": { "type": ["integer", "number", "string"], "default": 2 },
         "memory": { "type": "string", "default": "4g" },
         "shm_size": { "type": "string", "default": "512m" },

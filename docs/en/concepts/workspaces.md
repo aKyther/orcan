@@ -53,7 +53,7 @@ Each project is a symlink for navigation **and** a path-parity bind mount for Do
 
 ## Primary workspace
 
-The first enabled workspace drives `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR` in `.env` (entrypoint start directory).
+The first enabled workspace drives `WORKSPACE_ROOT` / `CONTAINER_PROJECT_DIR` in the launch process environment (entrypoint start directory).
 
 ## Trade-offs
 

@@ -1,4 +1,4 @@
-# Local environment (keep .env.example)
+# Legacy local environment and application secrets
 .env
 .env.local
 .env.*.local

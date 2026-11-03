@@ -18,6 +18,6 @@ orcan_cmd_publish() {
     done
 
     orcan_require_docker
-    orcan_load_env
+    orcan_load_config
     orcan_image_publish
 }

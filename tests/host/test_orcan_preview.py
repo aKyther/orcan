@@ -101,8 +101,8 @@ exit 0
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / "state"
             state.mkdir()
-            (state / "settings.env").write_text(
-                "ORCAN_PREVIEW_BIND=0.0.0.0\n", encoding="utf-8"
+            (state / "settings.json").write_text(
+                json.dumps({"ORCAN_PREVIEW_BIND": "0.0.0.0"}), encoding="utf-8"
             )
             result = self.run_preview("check", ORCAN_PREVIEW_ROOT=str(state))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -165,8 +165,8 @@ exit 0
             state = Path(tmp) / "state"
             state.mkdir()
             marker = Path(tmp) / "executed"
-            (state / "settings.env").write_text(
-                f"ORCAN_PREVIEW_PORT=$(touch {marker})\nORCAN_PREVIEW_BIND=0.0.0.0\n",
+            (state / "settings.json").write_text(
+                json.dumps({"ORCAN_PREVIEW_PORT": f"$(touch {marker})", "ORCAN_PREVIEW_BIND": "0.0.0.0"}),
                 encoding="utf-8",
             )
             result = subprocess.run(
@@ -303,9 +303,8 @@ exit 0
                 env, _ = self.fake_docker_env(tmp, container_exists=False)
                 state = Path(env["ORCAN_PREVIEW_ROOT"])
                 state.mkdir()
-                (state / "settings.env").write_text(
-                    f"ORCAN_PREVIEW_PORT={port}\nORCAN_PREVIEW_BIND=127.0.0.1\n"
-                    "ORCAN_PREVIEW_SCENARIO=busy\n",
+                (state / "settings.json").write_text(
+                    json.dumps({"ORCAN_PREVIEW_PORT": str(port), "ORCAN_PREVIEW_BIND": "127.0.0.1", "ORCAN_PREVIEW_SCENARIO": "busy"}),
                     encoding="utf-8",
                 )
                 result = subprocess.run(

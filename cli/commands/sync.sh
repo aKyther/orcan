@@ -32,7 +32,6 @@ orcan_cmd_sync() {
     done
 
     orcan_require_python
-    orcan_ensure_home_env_example
     mkdir -p "${ORCAN_HOME}" "${ORCAN_RUNTIME_DIR}"
 
     local cfg=""
@@ -47,8 +46,10 @@ orcan_cmd_sync() {
         PROJECT_DIR="${PROJECT_DIR:-${ORCAN_HOME}}" \
         ORCAN_HOME="${ORCAN_HOME}" \
         ORCAN_ROOT="${ORCAN_ROOT}" \
-        "${ORCAN_SCRIPTS}/update-env.sh" "${ownership_args[@]}"
+        "${ORCAN_SCRIPTS}/sync-runtime.sh" "${ownership_args[@]}"
 
+    _ORCAN_CONFIG_LOADED=0
+    orcan_load_config
     orcan_sync_reconcile_host
     orcan_sync_reconcile_running_container "${prune_orphans}"
 
@@ -63,7 +64,7 @@ orcan_cmd_sync() {
 orcan_sync_reconcile_host() {
     orcan_info "reconciling workspace meta on host"
     local host_out manifest
-    orcan_load_env
+    orcan_load_config
     manifest="$(orcan_image_agents_manifest "${IMAGE_LOCAL:-orcan:latest}")"
     host_out="$(ORCAN_CONTEXT_AGENTS_JSON="${manifest}" ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" \
         orcan_host_python "${ORCAN_SCRIPTS}/reconcile-host.py" 2>&1)" || {
@@ -107,7 +108,7 @@ orcan_sync_reconcile_running_container() {
     if ! orcan_require_docker 2>/dev/null; then
         return 0
     fi
-    orcan_load_env
+    orcan_load_config
     cname="$(orcan_container_name)"
     if ! docker ps -q -f "name=^${cname}$" 2>/dev/null | grep -q .; then
         orcan_info "container not running — host workspace meta reconciled; run orcan up for tmux/runtime"

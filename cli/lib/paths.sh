@@ -29,7 +29,6 @@ orcan_paths_init() {
 
     export ORCAN_ROOT ORCAN_HOME
     export ORCAN_CONFIG_FILE="${ORCAN_CONFIG_FILE:-${ORCAN_HOME}/orcan.config.json}"
-    export ORCAN_ENV_FILE="${ORCAN_ENV_FILE:-${ORCAN_HOME}/.env}"
     export ORCAN_RUNTIME_DIR="${ORCAN_RUNTIME_DIR:-${ORCAN_HOME}/mounts}"
     export ORCAN_DATA="${ORCAN_DATA:-${XDG_CONFIG_HOME:-${HOME}/.config}/orcan}"
 
@@ -47,27 +46,19 @@ orcan_paths_init() {
     fi
 }
 
-orcan_ensure_home_env_example() {
-    if [[ ! -f "${ORCAN_HOME}/.env.example" ]]; then
-        if [[ -f "${ORCAN_ROOT}/.env.example" ]]; then
-            cp -- "${ORCAN_ROOT}/.env.example" "${ORCAN_HOME}/.env.example"
-        fi
+# The helper only emits known variable names and shell-quotes every JSON value.
+# eval never sees user-authored shell source. Compose must not auto-load .env.
+orcan_load_config() {
+    if [[ "${_ORCAN_CONFIG_LOADED:-0}" == 1 ]]; then return 0; fi
+    local exports
+    exports="$(orcan_host_python "${ORCAN_SCRIPTS}/runtime-settings.py" --home "${ORCAN_HOME}" --config "${CONFIG:-${ORCAN_CONFIG_FILE}}")" || return
+    eval "${exports}"
+    export COMPOSE_DISABLE_ENV_FILE=1
+    if [[ -n "${ORCAN_NAMED_INSTANCE:-}" ]]; then
+        export ORCAN_INSTANCE="${ORCAN_NAMED_INSTANCE}"
+        export COMPOSE_PROJECT_NAME="orcan-${ORCAN_NAMED_INSTANCE}"
     fi
-}
-
-orcan_load_env() {
-    local selected_instance="${ORCAN_NAMED_INSTANCE:-}"
-    if [[ ! -r "${ORCAN_ENV_FILE}" ]]; then
-        return 0
-    fi
-    set -a
-    # shellcheck disable=SC1090
-    source "${ORCAN_ENV_FILE}" || true
-    set +a
-    if [[ -n "${selected_instance}" ]]; then
-        export ORCAN_INSTANCE="${selected_instance}"
-        export COMPOSE_PROJECT_NAME="orcan-${selected_instance}"
-    fi
+    _ORCAN_CONFIG_LOADED=1
 }
 
 orcan_config_path() {

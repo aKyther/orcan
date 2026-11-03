@@ -43,7 +43,7 @@ EOF
     done
 
     orcan_require_python
-    orcan_load_env
+    orcan_load_config
 
     local -a args=(--root "${ORCAN_HOME}")
     if (( yes )); then

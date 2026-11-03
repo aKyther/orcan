@@ -66,4 +66,4 @@ orcan build --all-agents --force # ensure publishable local image exists
 orcan publish                # or: make registry-login && ./scripts/repository/registry.sh publish
 ```
 
-Configure `IMAGE_REGISTRY`, `IMAGE_REPOSITORY`, and `IMAGE_TAG` in `.env` (via `orcan sync`). See [Environment variables](environment.md).
+Configure `registry.host`, `registry.repository`, and `registry.tag` in `orcan.config.json`. See [Environment variables](environment.md).

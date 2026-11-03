@@ -24,7 +24,6 @@ if [[ "${1:-}" == "--instance" ]]; then
     export ORCAN_NAMED_INSTANCE="${instance}"
     export COMPOSE_PROJECT_NAME="orcan-${instance}"
     export ORCAN_CONFIG_FILE="${ORCAN_HOME}/orcan.config.json"
-    export ORCAN_ENV_FILE="${ORCAN_HOME}/.env"
     export ORCAN_RUNTIME_DIR="${ORCAN_HOME}/mounts"
     shift 2
 fi
@@ -44,7 +43,7 @@ Commands:
   init         No PATH: TUI to create/edit workspaces + sync + show
                (--cli: old sequential prompt wizard instead)
                PATH: non-interactive scaffold (scripts/CI) + sync + show
-  sync         Apply orcan.config.json → .env + mounts/* for Compose
+  sync         Apply orcan.config.json → runtime JSON + mounts/* for Compose
   migrate      Move projects under the managed root (fewer future recreates)
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
   memory       Bounded project knowledge search and archived handoff recaps

@@ -41,8 +41,8 @@ orcan_cmd_uninstall() {
     local share_default="${XDG_DATA_HOME:-${HOME}/.local/share}/orcan"
 
     # Resolve generated ORCAN_DATA / ORCAN_PROJECTS_ROOT before deleting the
-    # install clone or config that contains .env.
-    orcan_load_env 2>/dev/null || true
+    # install clone or JSON configuration.
+    orcan_load_config 2>/dev/null || true
     local data="${ORCAN_DATA:-${XDG_CONFIG_HOME:-${HOME}/.config}/orcan}"
     local projects_root="${ORCAN_PROJECTS_ROOT:-${data}/sandbox}"
 

@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **4.0.25**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **4.0.26**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -58,7 +58,7 @@ After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). 
 
 | Command | Role |
 | --- | --- |
-| `orcan sync` | Apply `orcan.config.json` → `.env` + `mounts/*` |
+| `orcan sync` | Apply `orcan.config.json` → runtime JSON + `mounts/*` |
 | `orcan init` | Interactive config wizard (no PATH: create or edit) |
 | `orcan up` / `orcan up --web-terminal` / `orcan up --docker-socket \| --network NAME` / `orcan up --ssh` / `orcan down` | Start container (local by default; optional browser / DinD **or** network / SSH) / stop |
 | `orcan build --agent NAME [...]` / `--all-agents` | Explicit client selection in standard `latest` + `<VERSION>` tags; inspect it with `orcan status` |

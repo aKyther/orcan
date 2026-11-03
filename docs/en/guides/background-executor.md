@@ -97,12 +97,12 @@ Use `orcan settings` to edit the executor section without changing workspaces:
 }
 ```
 
-`orcan sync` validates these values and materializes an explicitly configured
-executor section into the runtime environment. Then recreate the container with
+`orcan sync` validates these values and writes the executor section into runtime JSON; host commands translate
+its settings into the process environment at launch. Then recreate the container with
 its intended access flags, including `--with-redis`. Sync alone does not restart
 workers. Drain queued and running work before changing queue topology; already
 pinned jobs retain their recorded lane and are not automatically migrated. Without
-an executor section, existing environment settings remain valid.
+an executor section, built-in defaults apply.
 `orcan-executor settings` shows the effective process settings and their source.
 
 `workers` (1..5, default 1) starts independent Celery workers on one shared queue
@@ -113,7 +113,7 @@ including profiles labelled `light` or `heavy`. Set both `workers` and
 from multiple sessions waits for a free worker; repository turns still apply.
 `doctor` reports `configured_workers`, `ready_workers` and individual slots per
 lane. One worker stopping does not clear the other workers' readiness.
-The environment equivalent is `ORCAN_EXECUTOR_WORKERS=5`.
+Set worker counts in JSON; no `.env` file is involved.
 
 `max_running` (1..5, default 2) is an atomic instance-wide admission cap shared by
 all lanes. Workers defer capacity-blocked jobs for a later attempt without running

@@ -24,7 +24,6 @@ RUNTIME_PATHS = (
     "docker-compose.docker.yml",
     "docker-compose.keepalive.yml",
     "docker-compose.ttyd.yml",
-    ".env.example",
     "VERSION",
 )
 

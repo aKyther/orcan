@@ -18,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bas
 | --- | --- |
 | `~/.local/share/orcan` | Git clone (`ORCAN_ROOT`) |
 | `~/.local/bin/orcan` | Launcher |
-| `~/.config/orcan` | Config + `.env` + `mounts/*` (`ORCAN_HOME`) *and* tool data / logins (`ORCAN_DATA`) — same root by default |
+| `~/.config/orcan` | Config + runtime JSON + `mounts/*` (`ORCAN_HOME`) *and* tool data / logins (`ORCAN_DATA`) — same root by default |
 
 Override only if needed: `ORCAN_HOME=/path` or `ORCAN_USE_CWD=1` (use `./orcan.config.json` in the current directory).
 
@@ -40,7 +40,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | --- | --- |
 | `orcan init` | No PATH: TUI to create/edit workspaces (default) + sync + show. `--cli`: old sequential prompt wizard instead |
 | `orcan init PATH` | Non-interactive: scaffold a single project (scripts/CI) + sync + show |
-| `orcan sync [--prune-orphans] [--no-chown PATTERN] [--chown-exclude /absolute/path]` | Apply `orcan.config.json` → `.env` + `mounts/*`; live-reconciles a running container. `--prune-orphans` also kills orphaned tmux sessions from a removed/renamed workspace (default: report only). Use `--no-chown "external"` to skip ownership changes for every matching name at any depth under the data root, including its subtree. Quoted shell-style globs such as `--no-chown "external*"` are supported and case-sensitive; patterns contain no slashes. Repeat either flag for multiple exclusions. Repeat `--chown-exclude` to skip ownership changes for directories and their contents, such as SSHFS mounts. Exclusions are saved in `orcan.config.json` under `ownership.excluded_names` and `ownership.excluded_paths`, and apply to every later explicit or automatic sync, including after `init`. Remove entries there to re-enable ownership changes. They do not remove projects from the workspace. |
+| `orcan sync [--prune-orphans] [--no-chown PATTERN] [--chown-exclude /absolute/path]` | Apply `orcan.config.json` → runtime JSON + `mounts/*`; live-reconciles a running container. `--prune-orphans` also kills orphaned tmux sessions from a removed/renamed workspace (default: report only). Use `--no-chown "external"` to skip ownership changes for every matching name at any depth under the data root, including its subtree. Quoted shell-style globs such as `--no-chown "external*"` are supported and case-sensitive; patterns contain no slashes. Repeat either flag for multiple exclusions. Repeat `--chown-exclude` to skip ownership changes for directories and their contents, such as SSHFS mounts. Exclusions are saved in `orcan.config.json` under `ownership.excluded_names` and `ownership.excluded_paths`, and apply to every later explicit or automatic sync, including after `init`. Remove entries there to re-enable ownership changes. They do not remove projects from the workspace. |
 | `orcan migrate [--yes] [--no-symlink]` | Move configured projects under the managed root (`ORCAN_PROJECTS_ROOT`); dry-run unless `--yes` — fewer future container recreates |
 | `orcan settings` | Edit tool settings (tmux windows/prefix, ttyd port/font, executor lanes/job caps/timeouts/retention) — separate from workspaces/projects |
 | `orcan context show` | List workspaces + path-parity summary |
@@ -153,7 +153,7 @@ orcan down && orcan up
 | *(none)* | Local-only container — no published ttyd port; use `orcan enter` |
 | `--web-terminal` \| `--web-terminal-auth USER:PASS` | **Pick one.** `--web-terminal`: browser terminal, no password. `--web-terminal-auth USER:PASS`: same browser terminal **with** HTTP basic auth. Do not pass both. (`TTYD_BIND` defaults to `0.0.0.0`.) |
 | `--docker-socket` \| `--network NAME` | **Pick one.** `--docker-socket`: mount `/var/run/docker.sock` (Docker-from-Docker). `--network NAME`: join an existing Docker network (no socket) |
-| `--resume` | Restart with the flags of the last `orcan up` (kept across `orcan down`, stored in `mounts/last-up.env`, never the ttyd password). A previous `--web-terminal-auth` start must pass `--web-terminal-auth USER:PASS` again. Orcan Studio Start/Restart use this. |
+| `--resume` | Restart with the flags of the last `orcan up` (kept across `orcan down`, stored in `mounts/last-up.json`, never the ttyd password). A previous `--web-terminal-auth` start must pass `--web-terminal-auth USER:PASS` again. Orcan Studio Start/Restart use this. |
 | `--github` | Provide a token to GitHub CLI in the selected container. Default host: `github.com`. |
 | `--github-hostname HOST` | Select a GitHub hostname; requires `--github`. Use a hostname without a URL, path or port. |
 | `--gitlab` | Provide a token to GitLab CLI in the selected container. Default host: `gitlab.com`. |

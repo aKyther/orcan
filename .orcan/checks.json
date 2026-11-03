@@ -994,6 +994,41 @@
       "junit": [
         ".orcan/claude-installer-host.xml"
       ]
+    },
+    "json-runtime-final": {
+      "timeout_seconds": 1200,
+      "require_junit": true,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/json-runtime-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "python3",
+            "executor/smoke/json_runtime.py"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/json-runtime-host.xml"
+      ]
     }
   }
 }

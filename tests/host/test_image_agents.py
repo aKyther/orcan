@@ -49,8 +49,8 @@ class BuildAgentSelectionTests(unittest.TestCase):
             source cli/lib/common.sh
             source cli/commands/build.sh
             orcan_require_docker() { :; }
-            orcan_require_env_for_build() { :; }
-            orcan_load_env() { :; }
+            orcan_require_config_for_build() { :; }
+            orcan_load_config() { :; }
             orcan_runtime_warn_if_config_stale() { :; }
             orcan_image_build_local() { printf '%s|%s\\n' "$1" "$2"; }
             orcan_cmd_build --agent codex --agent gemini --agent codex --no-cache
@@ -67,8 +67,8 @@ class BuildAgentSelectionTests(unittest.TestCase):
             source cli/lib/common.sh
             source cli/commands/build.sh
             orcan_require_docker() { :; }
-            orcan_require_env_for_build() { :; }
-            orcan_load_env() { :; }
+            orcan_require_config_for_build() { :; }
+            orcan_load_config() { :; }
             orcan_runtime_warn_if_config_stale() { :; }
             orcan_image_build_local() { printf "%s|%s|%s\\n" "$1" "$2" "$3"; }
             orcan_cmd_build --agent codex --force --prune
@@ -85,8 +85,8 @@ class BuildAgentSelectionTests(unittest.TestCase):
             source cli/lib/common.sh
             source cli/commands/build.sh
             orcan_require_docker() { :; }
-            orcan_require_env_for_build() { :; }
-            orcan_load_env() { :; }
+            orcan_require_config_for_build() { :; }
+            orcan_load_config() { :; }
             orcan_runtime_warn_if_config_stale() { :; }
             orcan_image_build_local() { printf '%s\\n' "$1"; }
             orcan_cmd_build --all-agents

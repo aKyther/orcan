@@ -104,7 +104,7 @@ another private VPN) and use HTTP basic auth (`TTYD_CREDENTIAL` or
 !!! warning
     By default the ttyd port is published on **all host interfaces**
     (`TTYD_BIND=0.0.0.0`). ttyd has **no authentication** unless you set
-    `TTYD_CREDENTIAL=user:password` in `.env` or use `--web-terminal-auth`.
+    `TTYD_CREDENTIAL` in the calling process or use `--web-terminal-auth`.
     Do not expose the port to the public Internet without auth and TLS.
 
 Optional HTTP basic auth (`TTYD_CREDENTIAL`) is the extra layer when the
@@ -113,13 +113,13 @@ credentials as a secondary layer, not the primary remote-access story.
 
 Config: `ttyd.bind` in `orcan.config.json` (default `0.0.0.0`) → `TTYD_BIND`
 via `orcan sync`. Credentials stay env-only so secrets stay out of committed
-config. Existing `.env` is not rewritten if `TTYD_BIND` is already set.
+config. Legacy `.env` files are ignored.
 
 !!! warning
     `orcan up --web-terminal-auth USER:PASS` sets the same `TTYD_CREDENTIAL` as
     above, but as a **command-line argument** — it lands in your shell
     history and is visible to anything that can list processes on the host
-    (`ps`) for as long as `orcan up` runs. Prefer `TTYD_CREDENTIAL` in `.env`
+    (`ps`) for as long as `orcan up` runs. Prefer a temporary process `TTYD_CREDENTIAL`
     (`--web-terminal`, no argument) when you can; reach for `--web-terminal-auth`
     for a quick one-off rather than routine use.
 

@@ -17,7 +17,7 @@ orcan_cmd_pull() {
     done
 
     orcan_require_docker
-    orcan_load_env
+    orcan_load_config
     if ! orcan_image_try_pull; then
         orcan_die "pull failed — run: orcan build --all-agents   (workspace edits only need orcan sync)"
     fi

@@ -6,7 +6,7 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 # This checkout has path parity with the host Docker daemon. Keep generated
 # preview binds here (gitignored), never under the container's private /tmp.
 PREVIEW_ROOT="${ORCAN_PREVIEW_ROOT:-${ROOT_DIR}/.orcan-dev-ux}"
-PREVIEW_SETTINGS="${PREVIEW_ROOT}/settings.env"
+PREVIEW_SETTINGS="${PREVIEW_ROOT}/settings.json"
 REQUESTED_PORT="${ORCAN_PREVIEW_PORT:-}"
 PORT_EXPLICIT=0
 [[ -z "${REQUESTED_PORT}" ]] || PORT_EXPLICIT=1
@@ -15,17 +15,20 @@ REQUESTED_SCENARIO="${ORCAN_PREVIEW_SCENARIO:-}"
 SAVED_PORT=""
 SAVED_SCENARIO=""
 if [[ -f "${PREVIEW_SETTINGS}" ]]; then
-    while IFS='=' read -r key value || [[ -n "${key}${value}" ]]; do
-        [[ -n "${key}" ]] || continue
-        case "${key}" in
-            ORCAN_PREVIEW_PORT) SAVED_PORT="${value}" ;;
-            # Do not inherit a network bind from persisted preview state. A LAN
-            # bind must be chosen explicitly for each run.
-            ORCAN_PREVIEW_BIND) : ;;
-            ORCAN_PREVIEW_SCENARIO) SAVED_SCENARIO="${value}" ;;
-            *) printf 'Error: unsupported key in %s: %s\n' "${PREVIEW_SETTINGS}" "${key}" >&2; exit 1 ;;
-        esac
-    done <"${PREVIEW_SETTINGS}"
+    saved="$(python3 - "${PREVIEW_SETTINGS}" <<'PYJSON'
+import json, shlex, sys
+values = json.load(open(sys.argv[1]))
+allowed = {"ORCAN_PREVIEW_PORT", "ORCAN_PREVIEW_BIND", "ORCAN_PREVIEW_SCENARIO"}
+if not isinstance(values, dict) or set(values) - allowed:
+    raise SystemExit("unsupported key in preview settings")
+for key, target in (("ORCAN_PREVIEW_PORT", "SAVED_PORT"), ("ORCAN_PREVIEW_SCENARIO", "SAVED_SCENARIO")):
+    value = values.get(key, "")
+    if not isinstance(value, (str, int)):
+        raise SystemExit("invalid preview setting")
+    print(target + "=" + shlex.quote(str(value)))
+PYJSON
+)"
+    eval "${saved}"
 fi
 PREVIEW_HOME="${PREVIEW_ROOT}/home"
 PREVIEW_DATA="${PREVIEW_ROOT}/data"
@@ -169,12 +172,12 @@ write_fixture() {
     assert_isolation
     mkdir -p "${PREVIEW_HOME}" "${PREVIEW_DATA}"
     python3 - "${PREVIEW_HOME}/orcan.config.json" "${ROOT_DIR}" "${PREVIEW_PORT}" \
-        "${PREVIEW_BIND}" "${PREVIEW_SCENARIO}" <<'PY'
+        "${PREVIEW_BIND}" "${PREVIEW_SCENARIO}" "${PREVIEW_IMAGE}" "${PREVIEW_DATA}" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-target, checkout, port, bind, scenario = sys.argv[1:]
+target, checkout, port, bind, scenario, image, data = sys.argv[1:]
 
 ttyd = {
     "port": 7681, "host_port": int(port), "bind": bind,
@@ -205,32 +208,28 @@ else:
     workspaces = [{"name": "dev-ux", "projects": [{"name": "orcan", "path": checkout}]}]
     tmux = {"initial_windows": 3, "window_prefix": "preview"}
 
-config = {"workspaces": workspaces, "tmux": tmux, "ttyd": ttyd, "resources": resources}
+config = {"workspaces": workspaces, "tmux": tmux, "ttyd": ttyd, "resources": resources, "image": image, "data_root": data, "projects_root": data + "/sandbox"}
 Path(target).write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 PY
-    cat >"${PREVIEW_HOME}/.env" <<EOF
-ORCAN_DATA=${PREVIEW_DATA}
-ORCAN_PROJECTS_ROOT=${PREVIEW_DATA}/sandbox
-COMPOSE_PROJECT_NAME=${PREVIEW_PROJECT}
-ORCAN_INSTANCE=${PREVIEW_INSTANCE}
-IMAGE_LOCAL=${PREVIEW_IMAGE}
-TTYD_PORT=7681
-TTYD_HOST_PORT=${PREVIEW_PORT}
-TTYD_BIND=${PREVIEW_BIND}
-EOF
+
 }
 
 preview_orcan() {
     ORCAN_HOME="${PREVIEW_HOME}" ORCAN_DATA="${PREVIEW_DATA}" \
+    ORCAN_INSTANCE="${PREVIEW_INSTANCE}" COMPOSE_PROJECT_NAME="${PREVIEW_PROJECT}" \
     ORCAN_CONFIG_FILE="${PREVIEW_HOME}/orcan.config.json" "${ROOT_DIR}/bin/orcan" "$@"
 }
 
 compose_preview() {
-    # Shell variables inherited from the active self-development container
-    # override Compose --env-file values. Start Compose with a clean process
-    # environment so e.g. its CONTAINER_PROJECT_DIR cannot leak into preview.
-    env -i PATH="${PATH}" HOME="${HOME}" "${DOCKER_BIN}" compose --project-name "${PREVIEW_PROJECT}" \
-        --env-file "${PREVIEW_HOME}/.env" --project-directory "${ROOT_DIR}" \
+    # Resolve JSON in a clean process so the live development runtime cannot leak in.
+    env -i PATH="${PATH}" HOME="${HOME}" ORCAN_ROOT="${ROOT_DIR}" \
+        ORCAN_HOME="${PREVIEW_HOME}" ORCAN_INSTANCE="${PREVIEW_INSTANCE}" \
+        COMPOSE_PROJECT_NAME="${PREVIEW_PROJECT}" bash -c '
+            source "$ORCAN_ROOT/cli/lib/common.sh"
+            orcan_load_config
+            exec "$@"
+        ' _ "${DOCKER_BIN}" compose --project-name "${PREVIEW_PROJECT}" \
+        --env-file /dev/null --project-directory "${ROOT_DIR}" \
         -f "${ROOT_DIR}/docker-compose.yml" \
         -f "${PREVIEW_HOME}/mounts/compose-projects.generated.yml" \
         -f "${PREVIEW_HOME}/compose-source.generated.yml" \
@@ -256,7 +255,7 @@ sync_fixture() {
     if ! CONFIG="${PREVIEW_HOME}/orcan.config.json" PROJECT_DIR="${PREVIEW_HOME}" \
         ORCAN_HOME="${PREVIEW_HOME}" ORCAN_ROOT="${ROOT_DIR}" ORCAN_DATA="${PREVIEW_DATA}" \
         ORCAN_PROJECTS_ROOT="${PREVIEW_DATA}/sandbox" \
-            "${ROOT_DIR}/scripts/repository/update-env.sh" >>"${setup_log}" 2>&1; then
+            "${ROOT_DIR}/scripts/repository/sync-runtime.sh" >>"${setup_log}" 2>&1; then
         tail -n 30 "${setup_log}" >&2
         die "could not prepare the developer UX fixture (full log: ${setup_log})"
     fi
@@ -293,8 +292,12 @@ preview_url() { printf 'http://127.0.0.1:%s\n' "${PREVIEW_PORT}"; }
 
 write_settings() {
     mkdir -p "${PREVIEW_ROOT}"
-    printf 'ORCAN_PREVIEW_PORT=%s\nORCAN_PREVIEW_BIND=%s\nORCAN_PREVIEW_SCENARIO=%s\n' \
-        "${PREVIEW_PORT}" "${PREVIEW_BIND}" "${PREVIEW_SCENARIO}" >"${PREVIEW_SETTINGS}"
+    python3 - "${PREVIEW_SETTINGS}" "${PREVIEW_PORT}" "${PREVIEW_BIND}" "${PREVIEW_SCENARIO}" <<'PYJSON'
+import json, pathlib, sys
+pathlib.Path(sys.argv[1]).write_text(json.dumps(dict(zip(
+    ("ORCAN_PREVIEW_PORT", "ORCAN_PREVIEW_BIND", "ORCAN_PREVIEW_SCENARIO"), sys.argv[2:]
+)), indent=2) + "\n")
+PYJSON
 }
 
 acquire_operation_lock() {
@@ -484,7 +487,7 @@ cmd_smoke() {
 cmd_stop() {
     require_command "${DOCKER_BIN}"
     if assert_preview_container; then
-        if [[ -f "${PREVIEW_HOME}/.env" \
+        if [[ -f "${PREVIEW_HOME}/orcan.config.json" \
             && -f "${PREVIEW_HOME}/mounts/compose-projects.generated.yml" \
             && -f "${PREVIEW_HOME}/compose-source.generated.yml" ]]; then
             compose_preview down --remove-orphans
@@ -543,22 +546,15 @@ cmd_reset() {
 
 cmd_check() {
     write_fixture
-    python3 - "${PREVIEW_HOME}/orcan.config.json" "${PREVIEW_HOME}/.env" "${ROOT_DIR}" \
-        "${PREVIEW_PROJECT}" "${PREVIEW_INSTANCE}" "${PREVIEW_IMAGE}" "${PREVIEW_PORT}" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-config_path, env_path, checkout = map(Path, sys.argv[1:4])
-project, instance, image, port = sys.argv[4:]
-config = json.loads(config_path.read_text(encoding="utf-8"))
-assert config["workspaces"][0]["projects"][0]["path"] == str(checkout)
+    python3 - "${PREVIEW_HOME}/orcan.config.json" "${ROOT_DIR}" "${PREVIEW_IMAGE}" "${PREVIEW_PORT}" <<'PYJSON'
+import json, pathlib, sys
+config = json.loads(pathlib.Path(sys.argv[1]).read_text())
+assert config["workspaces"][0]["projects"][0]["path"] == sys.argv[2]
 assert config["ttyd"]["bind"] in ("0.0.0.0", "127.0.0.1")
-env = env_path.read_text(encoding="utf-8")
-for expected in (f"COMPOSE_PROJECT_NAME={project}", f"ORCAN_INSTANCE={instance}", f"IMAGE_LOCAL={image}", f"TTYD_HOST_PORT={port}"):
-    assert expected in env, expected
+assert config["image"] == sys.argv[3]
+assert config["ttyd"]["host_port"] == int(sys.argv[4])
 print("Orcan developer UX isolation check OK")
-PY
+PYJSON
 }
 
 command="${1:-help}"

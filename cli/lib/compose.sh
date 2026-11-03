@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Docker Compose wrappers — files from ORCAN_ROOT, env/overlays from ORCAN_HOME.
+# Docker Compose wrappers — files from ORCAN_ROOT, settings/overlays from ORCAN_HOME.
 # shellcheck shell=bash
 
 # $1 env-var override, $2 basename under ORCAN_RUNTIME_DIR when it is unset.
@@ -197,12 +197,13 @@ orcan_compose_project_args() {
 }
 
 orcan_compose_base() {
+    orcan_load_config
     local overlays=() project=()
     orcan_compose_overlay_args overlays 0
     orcan_compose_project_args project
     docker compose \
         "${project[@]}" \
-        --env-file "${ORCAN_ENV_FILE}" \
+        --env-file /dev/null \
         --project-directory "${ORCAN_ROOT}" \
         -f "${ORCAN_ROOT}/docker-compose.yml" \
         "${overlays[@]}" \
@@ -210,18 +211,19 @@ orcan_compose_base() {
 }
 
 orcan_compose_build() {
+    orcan_load_config
     local project=()
     orcan_compose_project_args project
     docker compose \
         "${project[@]}" \
-        --env-file "${ORCAN_ENV_FILE}" \
+        --env-file /dev/null \
         --project-directory "${ORCAN_ROOT}" \
         -f "${ORCAN_ROOT}/docker-compose.yml" \
         "$@"
 }
 
 orcan_up_state_file() {
-    printf '%s\n' "${ORCAN_RUNTIME_DIR}/up-state.env"
+    printf '%s\n' "${ORCAN_RUNTIME_DIR}/up-state.json"
 }
 
 # Persist the last `orcan up` overlay combo so down/logs can reuse it.
@@ -234,51 +236,40 @@ orcan_write_up_state() {
     local statef
     statef="$(orcan_up_state_file)"
     mkdir -p "$(dirname "${statef}")"
-    {
-        printf 'WITH_DOCKER=%s\n' "${with_docker}"
-        printf 'WITH_GIT=%s\n' "${with_git}"
-        printf 'WITH_NETWORK=%s\n' "${with_network}"
-        printf 'WITH_TTYD=%s\n' "${with_ttyd}"
-        printf 'NETWORK_NAME=%q\n' "${network_name}"
-        printf 'WITH_GITHUB=%s\n' "${6:-0}"
-        printf 'GITHUB_HOSTNAME=%q\n' "${7:-}"
-        printf 'WITH_GITLAB=%s\n' "${8:-0}"
-        printf 'GITLAB_HOSTNAME=%q\n' "${9:-}"
-        printf 'WITH_REDIS=%s\n' "${10:-0}"
-    } >"${statef}"
+    orcan_host_python "${ORCAN_SCRIPTS}/runtime-settings.py" --state-write "${statef}" \
+        "WITH_DOCKER=${with_docker}" "WITH_GIT=${with_git}" \
+        "WITH_NETWORK=${with_network}" "WITH_TTYD=${with_ttyd}" \
+        "NETWORK_NAME=${network_name}" "WITH_GITHUB=${6:-0}" \
+        "GITHUB_HOSTNAME=${7:-}" "WITH_GITLAB=${8:-0}" \
+        "GITLAB_HOSTNAME=${9:-}" "WITH_REDIS=${10:-0}"
+
 }
 
-# Last requested `orcan up` flags; unlike up-state.env, `orcan down` keeps it
+# Last requested `orcan up` flags; unlike up-state.json, `orcan down` keeps it
 # so `orcan up --resume` can restore the same stack. Never stores credentials.
 orcan_last_up_file() {
-    printf '%s\n' "${ORCAN_RUNTIME_DIR}/last-up.env"
+    printf '%s\n' "${ORCAN_RUNTIME_DIR}/last-up.json"
 }
 
 orcan_write_last_up() {
     local statef
     statef="$(orcan_last_up_file)"
     mkdir -p "$(dirname "${statef}")"
-    {
-        printf 'WITH_DOCKER=%s\n' "${1:-0}"
-        printf 'WITH_GIT=%s\n' "${2:-0}"
-        printf 'WITH_NETWORK=%s\n' "${3:-0}"
-        printf 'WITH_TTYD=%s\n' "${4:-0}"
-        printf 'WITH_TTYD_AUTH=%s\n' "${5:-0}"
-        printf 'NETWORK_NAME=%q\n' "${6:-}"
-        printf 'WITH_GITHUB=%s\n' "${7:-0}"
-        printf 'GITHUB_HOSTNAME=%q\n' "${8:-}"
-        printf 'WITH_GITLAB=%s\n' "${9:-0}"
-        printf 'GITLAB_HOSTNAME=%q\n' "${10:-}"
-        printf 'WITH_REDIS=%s\n' "${11:-0}"
-    } >"${statef}"
+    orcan_host_python "${ORCAN_SCRIPTS}/runtime-settings.py" --state-write "${statef}" \
+        "WITH_DOCKER=${1:-0}" "WITH_GIT=${2:-0}" "WITH_NETWORK=${3:-0}" \
+        "WITH_TTYD=${4:-0}" "WITH_TTYD_AUTH=${5:-0}" "NETWORK_NAME=${6:-}" \
+        "WITH_GITHUB=${7:-0}" "GITHUB_HOSTNAME=${8:-}" "WITH_GITLAB=${9:-0}" \
+        "GITLAB_HOSTNAME=${10:-}" "WITH_REDIS=${11:-0}"
+
 }
 
 orcan_load_up_state() {
     local statef
     statef="$(orcan_up_state_file)"
     [[ -f "${statef}" ]] || return 1
-    # shellcheck disable=SC1090
-    source "${statef}"
+    local exports
+    exports="$(orcan_host_python "${ORCAN_SCRIPTS}/runtime-settings.py" --state-read "${statef}")" || return
+    eval "${exports}"
     return 0
 }
 
@@ -293,7 +284,7 @@ orcan_container_name() {
 # Print the running container name or exit with a helpful message.
 orcan_require_running_container() {
     orcan_require_docker
-    orcan_load_env
+    orcan_load_config
     local name
     name="$(orcan_container_name)"
     if ! docker ps -q -f "name=^${name}$" 2>/dev/null | grep -q .; then
@@ -305,6 +296,7 @@ orcan_require_running_container() {
 # Compose stack for `orcan up`: optional docker socket, git/SSH, network join, ttyd.
 # Usage: orcan_compose_up_run <docker> <git> <network> <ttyd> <github> <gitlab> -- compose args...
 orcan_compose_up_run() {
+    orcan_load_config
     local with_docker="${1:-0}"
     local with_git="${2:-0}"
     local with_network="${3:-0}"
@@ -318,7 +310,7 @@ orcan_compose_up_run() {
     local -a cmd=(
         docker compose
         "${project[@]}"
-        --env-file "${ORCAN_ENV_FILE}"
+        --env-file /dev/null
         --project-directory "${ORCAN_ROOT}"
         -f "${ORCAN_ROOT}/docker-compose.yml"
         "${overlays[@]}"

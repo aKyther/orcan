@@ -262,8 +262,8 @@ reported and kept.
 
 !!! warning
 
-    The protection boundary comes from `$ORCAN_HOME/.env` and the current
-    `orcan.config.json`. Do not keep unregistered repositories elsewhere under
+    The protection boundary comes from the current `orcan.config.json` and its resolved
+    managed project paths. Do not keep unregistered repositories elsewhere under
     `ORCAN_DATA`. A malformed config or unsafe/symlink data root stops purge
     instead of guessing.
 

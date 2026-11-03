@@ -101,7 +101,7 @@ test: ## Run container smoke tests (builds image via orcan build)
 	trap 'rm -rf -- "$$test_home"' EXIT; \
 	ORCAN_HOME="$$test_home" ORCAN_DATA="$$test_home/data" \
 		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" PROJECT_DIR="$$PWD" \
-		./scripts/repository/update-env.sh >/dev/null; \
+		./scripts/repository/sync-runtime.sh >/dev/null; \
 	ORCAN_HOME="$$test_home" ORCAN_DATA="$$test_home/data" \
 		ORCAN_PROJECTS_ROOT="$$test_home/data/sandbox" $(ORCAN) build --agent "$${ORCAN_TEST_AGENT:-codex}"; \
 	env -u ORCAN_CONFIG_HOST -u ORCAN_COMPOSE_PROJECTS -u CONTAINER_PROJECT_DIR \
@@ -344,24 +344,20 @@ clean-volumes: clean-data ## Alias for clean-data
 require-generated: ## Fail if generated runtime files missing
 	@ORCAN_HOME="$${ORCAN_HOME:-$$PWD}" ORCAN_ROOT="$$PWD" ./scripts/repository/require-generated.sh
 
-require-env: ## Fail if .env missing
-	@home="$${ORCAN_HOME:-$$PWD}"; \
-	if [ ! -f "$$home/.env" ]; then \
-		printf 'Error: .env is missing.\n' >&2; \
-		printf 'Run:  orcan sync\n' >&2; \
-		exit 1; \
-	fi
+require-env: ## Compatibility alias: validate JSON host settings
+	@./scripts/repository/python.sh ./scripts/repository/runtime-settings.py --home "$${ORCAN_HOME:-$$PWD}" >/dev/null
 
 config: require-generated ## Print resolved Compose configs
 	@$(ORCAN) sync >/dev/null
-	@set -a; . "$${ORCAN_HOME:-$$PWD}/.env"; set +a; \
+	@eval "$$(./scripts/repository/python.sh ./scripts/repository/runtime-settings.py --home "$${ORCAN_HOME:-$$PWD}")"; \
+	export COMPOSE_DISABLE_ENV_FILE=1; \
 	printf '=== orcan up ===\n'; \
 	docker compose --project-name "$${COMPOSE_PROJECT_NAME:-orcan}" \
-		--env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
+		--env-file /dev/null --project-directory "$$PWD" \
 		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml config; \
 	printf '\n=== orcan up --with-docker ===\n'; \
 	docker compose --project-name "$${COMPOSE_PROJECT_NAME:-orcan}" \
-		--env-file "$${ORCAN_HOME:-$$PWD}/.env" --project-directory "$$PWD" \
+		--env-file /dev/null --project-directory "$$PWD" \
 		-f docker-compose.yml -f "$${ORCAN_COMPOSE_PROJECTS}" -f docker-compose.ttyd.yml \
 		-f docker-compose.docker.yml config
 

@@ -28,7 +28,6 @@ orcan_cmd_doctor() {
     check "ORCAN_HOME" "$([[ -d ${ORCAN_HOME} ]] && echo 1 || echo 0)" "${ORCAN_HOME}"
     check "ORCAN_DATA" "$([[ -d ${ORCAN_DATA} ]] && echo 1 || echo 0)" "${ORCAN_DATA}"
     check "config file" "$([[ -f ${ORCAN_CONFIG_FILE} ]] && echo 1 || echo 0)" "${ORCAN_CONFIG_FILE}"
-    check ".env" "$([[ -f ${ORCAN_ENV_FILE} ]] && echo 1 || echo 0)" "${ORCAN_ENV_FILE}"
 
     printf '\nDependencies\n'
     check "bash" "$(orcan_have bash && echo 1 || echo 0)" "${BASH_VERSION:-}"
@@ -42,8 +41,8 @@ orcan_cmd_doctor() {
     fi
 
     printf '\nEnvironment\n'
-    if [[ -f "${ORCAN_ENV_FILE}" ]]; then
-        orcan_load_env
+    if [[ -f "${ORCAN_CONFIG_FILE}" ]]; then
+        orcan_load_config
         local projects="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_RUNTIME_DIR}/compose-projects.generated.yml}"
         local runtime="${ORCAN_CONFIG_HOST:-${ORCAN_RUNTIME_DIR}/runtime-config.json}"
         check "compose mounts" "$([[ -f ${projects} ]] && echo 1 || echo 0)" "${projects}"
@@ -74,12 +73,12 @@ orcan_cmd_doctor() {
             fi
         fi
     else
-        check "generated runtime" "0" "run: orcan sync (creates .env + mounts/* for orcan up)"
+        check "generated runtime" "0" "run: orcan sync (creates JSON + mounts/* for orcan up)"
     fi
 
-    # v2.0 renamed space/ → sandbox/. If .env still points at space/, the next
+    # v2.0 renamed space/ → sandbox/. If JSON still points at space/, the next
     # `orcan up` bind-mounts a missing host path and Docker creates it root:root.
-    orcan_load_env 2>/dev/null || true
+    orcan_load_config 2>/dev/null || true
     local space_dir="${ORCAN_DATA%/}/space"
     local space_stat="" space_uid="" space_owner=""
     local projects_root="${ORCAN_PROJECTS_ROOT:-}"
@@ -100,14 +99,14 @@ orcan_cmd_doctor() {
         fi
     elif [[ -n "${projects_root}" && "${projects_root}" == "${space_dir}" ]]; then
         check "legacy space/ path" "0" \
-            "ORCAN_PROJECTS_ROOT still ${projects_root} — next orcan up recreates it as root:root. Point .env at ${ORCAN_DATA%/}/sandbox; bash ${ORCAN_ROOT}/scripts/migrations/rename-space-to-sandbox.sh"
+            "ORCAN_PROJECTS_ROOT still ${projects_root} — next orcan up recreates it as root:root. Set projects_root in orcan.config.json to ${ORCAN_DATA%/}/sandbox; bash ${ORCAN_ROOT}/scripts/migrations/rename-space-to-sandbox.sh"
     else
         check "legacy space/ dir" "1" "absent (v2 default is sandbox/)"
     fi
 
     printf '\nRuntime\n'
     if orcan_have docker; then
-        orcan_load_env 2>/dev/null || true
+        orcan_load_config 2>/dev/null || true
         local cname image_local
         cname="$(orcan_container_name)"
         if orcan_container_is_running "${cname}"; then
@@ -168,7 +167,7 @@ orcan_cmd_doctor() {
     if [[ -f "${runtime_cfg}" ]]; then
         local audit_container="" audit_level audit_label audit_detail
         if orcan_have docker; then
-            orcan_load_env 2>/dev/null || true
+            orcan_load_config 2>/dev/null || true
             local audit_cname
             audit_cname="$(orcan_container_name 2>/dev/null || true)"
             if [[ -n "${audit_cname}" ]] && orcan_container_is_running "${audit_cname}"; then

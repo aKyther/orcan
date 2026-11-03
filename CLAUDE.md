@@ -50,7 +50,7 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 
 ```bash
 orcan init                  # or: context add / context tui / edit orcan.config.json
-orcan sync                  # ALWAYS after config — apply → .env, mounts/*, workspaces/*
+orcan sync                  # ALWAYS after config — apply → runtime JSON, mounts/*, workspaces/*
 orcan build --agent codex   # after Dockerfile | docker/rootfs | cockpit image inputs
 orcan up                    # daily; --with-ttyd for browser
 orcan migrate [--yes]       # optional managed-root move (dry-run without --yes)

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Resolve host settings from `orcan.config.json` and generated workspace manifests. Stop creating or sourcing `.env`, disable Compose dotenv loading, and store launch/preview state as JSON. Existing dotenv files are left untouched and ignored; migrate non-secret overrides into JSON before recreating a container.
+
 ### Fixed
 
 - Persist ownership exclusions across explicit and automatic sync, including project additions through init; accept ownership flags in init and reject invalid saved policies before touching runtime files.

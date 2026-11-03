@@ -20,7 +20,7 @@ def test_gitlab_token_works_for_public_and_company_hosts(shell, tmp_path, hostna
     overlay = (tmp_path / "mounts/compose-gitlab.generated.yml").read_text()
     assert f'GITLAB_HOST: "{hostname}"' in overlay
     assert 'GITLAB_TOKEN: "${ORCAN_GITLAB_TOKEN:-}"' in overlay
-    assert "WITH_GITLAB=1" in (tmp_path / "mounts/last-up.env").read_text()
+    assert json.loads((tmp_path / "mounts/last-up.json").read_text())["WITH_GITLAB"] == "1"
     for file in (tmp_path / "mounts").iterdir():
         assert "fixture-gitlab" not in file.read_text()
     assert "fixture-gitlab" not in result.stdout + result.stderr
@@ -74,12 +74,12 @@ def test_missing_gitlab_auth_does_not_stop_when_github_is_also_enabled(shell):
 def test_plain_start_and_legacy_resume_leave_gitlab_disabled(shell, tmp_path):
     runtime = tmp_path / "mounts"
     runtime.mkdir()
-    (runtime / "last-up.env").write_text("WITH_GIT=0\nWITH_GITHUB=0\n")
+    (runtime / "last-up.json").write_text(json.dumps({"WITH_GIT": "0", "WITH_GITHUB": "0"}))
     result = shell(
         "orcan_cmd_up --resume\norcan_cmd_up", GITLAB_TOKEN="fixture-inherited"
     )
     assert result.returncode == 0, result.stderr
-    assert "WITH_GITLAB=0" in (runtime / "last-up.env").read_text()
+    assert json.loads((runtime / "last-up.json").read_text())["WITH_GITLAB"] == "0"
     assert not (runtime / "compose-gitlab.generated.yml").exists()
     assert not (tmp_path / "glab-calls").exists()
 
@@ -87,7 +87,7 @@ def test_plain_start_and_legacy_resume_leave_gitlab_disabled(shell, tmp_path):
 def test_plain_start_disables_previously_enabled_gitlab(shell, tmp_path):
     result = shell("orcan_cmd_up --gitlab\norcan_cmd_up", GITLAB_TOKEN="fixture-gitlab")
     assert result.returncode == 0, result.stderr
-    assert "WITH_GITLAB=0" in (tmp_path / "mounts/last-up.env").read_text()
+    assert json.loads((tmp_path / "mounts/last-up.json").read_text())["WITH_GITLAB"] == "0"
 
 
 def test_tracing_does_not_print_gitlab_token(shell):

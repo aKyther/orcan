@@ -55,7 +55,7 @@ EOF
             return 0
             ;;
         url)
-            orcan_load_env
+            orcan_load_config
             printf '%s\n' "$(orcan_executor_url)"
             return 0
             ;;

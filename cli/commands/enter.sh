@@ -19,7 +19,7 @@ orcan_enter_exec() {
 # projects and `orcan enter` doesn't pick one, unlike e.g. a future
 # per-project "resume last work item" flow.
 orcan_record_workspace_use() {
-    orcan_load_env
+    orcan_load_config
     [[ -n "${WORKSPACE_NAME:-}" ]] || return 0
     orcan_require_python 2>/dev/null || return 0
     ORCAN_DATA="${ORCAN_DATA:-${HOME}/.config/orcan}" \

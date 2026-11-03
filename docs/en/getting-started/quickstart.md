@@ -27,7 +27,7 @@ orcan doctor
 
 ## Steps
 
-Config is JSON under `~/.config/orcan/`. Docker only sees what **`orcan sync`** writes (`.env` + `mounts/*`).
+Config is JSON under `~/.config/orcan/`. Docker only sees what **`orcan sync`** writes (runtime JSON + `mounts/*`).
 
 ```bash
 orcan init /absolute/path/to/your/repo   # scaffold + sync

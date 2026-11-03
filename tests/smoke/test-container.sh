@@ -8,14 +8,11 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 ORCAN_HOME="${ORCAN_HOME:-${ROOT_DIR}}"
 
-# shellcheck source=../../scripts/repository/validate-project-dir.sh
-source "${ROOT_DIR}/scripts/repository/validate-project-dir.sh"
-
-validate_project_dir
+eval "$(python3 scripts/repository/runtime-settings.py --home "${ORCAN_HOME}")"
+export COMPOSE_DISABLE_ENV_FILE=1
 SMOKE_PROJECT="${PROJECT_DIR}"
-
-COMPOSE_PROJECTS_FILE="${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}"
-COMPOSE=(docker compose --env-file "${ORCAN_HOME}/.env" -f docker-compose.yml -f "${COMPOSE_PROJECTS_FILE}")
+COMPOSE_PROJECTS_FILE="${ORCAN_COMPOSE_PROJECTS}"
+COMPOSE=(docker compose --env-file /dev/null -f docker-compose.yml -f "${COMPOSE_PROJECTS_FILE}")
 
 printf 'Running container smoke checks (PROJECT_DIR=%s)...\n' "${SMOKE_PROJECT}"
 

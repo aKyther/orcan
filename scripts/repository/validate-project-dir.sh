@@ -3,7 +3,7 @@
 # Host-only: do not copy this into the Docker image.
 #
 # Usage:
-#   validate-project-dir.sh              # reads PROJECT_DIR from .env or environment
+#   validate-project-dir.sh              # reads PROJECT_DIR from the process environment
 #   validate-project-dir.sh /abs/path    # validate explicit path
 #   PROJECT_DIR=/abs/path validate-project-dir.sh
 
@@ -26,16 +26,7 @@ load_project_dir() {
         return 0
     fi
 
-    if [[ -f "${ROOT_DIR}/.env" ]]; then
-        local line
-        line="$(grep -E '^PROJECT_DIR=' "${ROOT_DIR}/.env" | tail -n 1 || true)"
-        if [[ -n "${line}" ]]; then
-            printf '%s\n' "${line#PROJECT_DIR=}"
-            return 0
-        fi
-    fi
-
-    printf 'Error: PROJECT_DIR is not set. Run orcan sync (or set PROJECT_DIR in .env)\n' >&2
+    printf 'Error: PROJECT_DIR is not set. Run orcan sync (or pass an absolute path)\n' >&2
     return 1
 }
 

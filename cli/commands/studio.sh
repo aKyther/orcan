@@ -33,7 +33,7 @@ orcan_cmd_studio() {
                 return 2
             fi
             orcan_require_python
-            orcan_load_env
+            orcan_load_config
             local data="${ORCAN_DATA:-${XDG_CONFIG_HOME:-${HOME}/.config}/orcan}"
             local projects_root="${ORCAN_PROJECTS_ROOT:-${data}/sandbox}"
             local workspace_index="${ORCAN_WORKSPACE_INDEX:-${ORCAN_HOME}/workspaces/index.json}"

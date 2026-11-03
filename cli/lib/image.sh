@@ -11,7 +11,7 @@ orcan_image_version() {
 }
 
 orcan_image_load_registry_env() {
-    orcan_load_env
+    orcan_load_config
     IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
     IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-akyther/orcan}"
     if [[ -z "${IMAGE_TAG:-}" ]]; then
@@ -171,7 +171,7 @@ orcan_image_publish() {
     local local_image remote tag ver versioned
 
     if ! orcan_image_registry_configured; then
-        orcan_die "set IMAGE_REPOSITORY (and optional IMAGE_REGISTRY) in ${ORCAN_ENV_FILE:-.env}"
+        orcan_die "set IMAGE_REPOSITORY (and optional IMAGE_REGISTRY) in orcan.config.json registry settings"
     fi
 
     orcan_image_load_registry_env

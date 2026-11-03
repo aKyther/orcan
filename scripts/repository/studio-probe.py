@@ -387,11 +387,7 @@ def launch_flags(path: Path) -> dict[str, object]:
     """Flags of the last `orcan up` (credentials are never recorded)."""
     if not path.is_file():
         return {"recorded": False}
-    values: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        key, _, value = line.partition("=")
-        parsed = shlex.split(value)
-        values[key] = parsed[0] if parsed else ""
+    values = read_json(path)
     flag = lambda key: values.get(key) == "1"
     return {
         "recorded": True,

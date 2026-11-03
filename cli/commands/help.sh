@@ -15,7 +15,7 @@ Commands:
                            Either way: scaffold/wizard + sync + show
                            Accepts --no-chown PATTERN / --chown-exclude /path;
                            saved ownership exclusions also apply to automatic sync
-  sync [--prune-orphans]   Materialise .env + mounts/* for Compose; live
+  sync [--prune-orphans]   Materialise runtime JSON + mounts/* for Compose; live
                            reconcile into a running container. --prune-orphans
                            also kills orphaned tmux sessions (default: report
                            only, never kill one that might have an active agent)

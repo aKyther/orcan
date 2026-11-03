@@ -291,7 +291,7 @@ Defaults (overridable):
 | Bind | `127.0.0.1` (loopback only); set `ORCAN_PREVIEW_BIND=0.0.0.0` explicitly for a LAN test |
 | Scenario | `busy` |
 
-Set `ORCAN_PREVIEW_SCENARIO` (or edit the saved `settings.env`) to choose the
+Set `ORCAN_PREVIEW_SCENARIO` (or edit the saved `settings.json`) to choose the
 `orcan.config.json` fixture that `write_fixture` generates:
 
 | Scenario | Fixture written to `orcan.config.json` |

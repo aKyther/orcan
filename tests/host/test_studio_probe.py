@@ -123,13 +123,13 @@ def test_probe_emits_only_the_versioned_json_contract(
 
 
 def test_probe_reports_last_up_flags_without_credentials(tmp_path: Path) -> None:
-    last_up = tmp_path / "last-up.env"
-    last_up.write_text(
-        "WITH_DOCKER=0\nWITH_GIT=1\nWITH_NETWORK=1\nWITH_TTYD=1\n"
-        "WITH_TTYD_AUTH=1\nNETWORK_NAME=my\\ net\n"
-        "WITH_GITHUB=1\nGITHUB_HOSTNAME=github.company.test\nWITH_GITLAB=1\nGITLAB_HOSTNAME=gitlab.company.test\n",
-        encoding="utf-8",
-    )
+    last_up = tmp_path / "last-up.json"
+    last_up.write_text(json.dumps({
+        "WITH_DOCKER": "0", "WITH_GIT": "1", "WITH_NETWORK": "1", "WITH_TTYD": "1",
+        "WITH_TTYD_AUTH": "1", "NETWORK_NAME": "my net", "WITH_GITHUB": "1",
+        "GITHUB_HOSTNAME": "github.company.test", "WITH_GITLAB": "1",
+        "GITLAB_HOSTNAME": "gitlab.company.test",
+    }), encoding="utf-8")
     result = subprocess.run(
         [
             "python3",

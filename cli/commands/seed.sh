@@ -28,7 +28,7 @@ orcan_cmd_seed() {
 
     orcan_require_docker
     orcan_require_generated
-    orcan_load_env
+    orcan_load_config
 
     if (( all )); then
         if (( dry )); then
@@ -39,7 +39,7 @@ orcan_cmd_seed() {
     else
         local target="${PROJECT_DIR:-}"
         if [[ -z "${target}" ]]; then
-            orcan_die "PROJECT_DIR unset in .env — run: orcan sync   (or: orcan seed --all)"
+            orcan_die "PROJECT_DIR unset in runtime configuration — run: orcan sync   (or: orcan seed --all)"
         fi
         if (( dry )); then
             orcan_compose_base run --rm --name orcan-init-project-dry orcan \

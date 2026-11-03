@@ -95,7 +95,7 @@ def edit_ttyd(cfg: dict[str, Any]) -> None:
             warn("unusual bind address — keeping it; prefer 127.0.0.1 or 0.0.0.0")
     if bind in ("0.0.0.0", "::"):
         warn(
-            "binding all interfaces — set TTYD_CREDENTIAL=user:pass in .env for basic auth"
+            "binding all interfaces — use --web-terminal-auth or process TTYD_CREDENTIAL for basic auth"
         )
     font = ask("ttyd font size", str(current.get("font_size", 14)))
     renderer = (

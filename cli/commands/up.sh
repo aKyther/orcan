@@ -116,13 +116,15 @@ orcan_cmd_up() {
         if ((with_redis || with_docker || with_git || with_github || with_gitlab || with_network || with_ttyd_opt || ${#github_hostname} || ${#gitlab_hostname})); then
             orcan_usage_error "--resume restores saved flags; only --web-terminal-auth may be passed with it"
         fi
-        orcan_load_env
+        orcan_load_config
         local last_up
         last_up="$(orcan_last_up_file)"
         [[ -f "${last_up}" ]] || orcan_die "no previous orcan up recorded (${last_up}) — start with explicit flags"
         # shellcheck disable=SC1090
         local WITH_REDIS=0 WITH_GITHUB=0 GITHUB_HOSTNAME="" WITH_GITLAB=0 GITLAB_HOSTNAME=""
-        source "${last_up}"
+        local saved_flags
+        saved_flags="$(orcan_host_python "${ORCAN_SCRIPTS}/runtime-settings.py" --state-read "${last_up}")" || return
+        eval "${saved_flags}"
         with_redis="${WITH_REDIS:-0}"
         with_docker="${WITH_DOCKER:-0}"
         with_git="${WITH_GIT:-0}"
@@ -178,7 +180,7 @@ orcan_cmd_up() {
 
     orcan_require_docker
     orcan_require_generated
-    orcan_load_env
+    orcan_load_config
     orcan_maybe_hint_upgrade
 
     local git_overlay=""

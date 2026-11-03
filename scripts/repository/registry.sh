@@ -8,7 +8,7 @@
 #   ./scripts/repository/registry.sh publish
 #   ./scripts/repository/registry.sh pull
 #
-# Env (from ORCAN_HOME/.env, repo .env, or shell):
+# Settings come from orcan.config.json; credentials come from the calling process.
 #   IMAGE_LOCAL       local image name (default: orcan:latest)
 #   IMAGE_REGISTRY    registry host (default: ghcr.io)
 #   IMAGE_REPOSITORY  path under registry (default: akyther/orcan)
@@ -22,16 +22,8 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
 ORCAN_HOME="${ORCAN_HOME:-${ROOT_DIR}}"
-ENV_CANDIDATES=("${ORCAN_HOME}/.env" "${ROOT_DIR}/.env")
-for envf in "${ENV_CANDIDATES[@]}"; do
-    if [[ -f "${envf}" ]]; then
-        set -a
-        # shellcheck disable=SC1090
-        source "${envf}"
-        set +a
-        break
-    fi
-done
+exports="$("${ROOT_DIR}/scripts/repository/python.sh" "${ROOT_DIR}/scripts/repository/runtime-settings.py" --home "${ORCAN_HOME}")"
+eval "${exports}"
 
 IMAGE_LOCAL="${IMAGE_LOCAL:-orcan:latest}"
 IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
@@ -53,10 +45,7 @@ require_repository() {
     if [[ -z "${IMAGE_REPOSITORY}" ]]; then
         die "IMAGE_REPOSITORY is not set.
 
-Example in .env:
-  IMAGE_REGISTRY=ghcr.io
-  IMAGE_REPOSITORY=akyther/orcan
-  IMAGE_TAG=0.1.1
+Configure registry.host, registry.repository and registry.tag in orcan.config.json.
 
 Then:
   orcan publish
@@ -74,7 +63,7 @@ cmd_show() {
     if [[ -n "${IMAGE_REPOSITORY}" ]]; then
         printf 'Remote image:  %s/%s:%s\n' "${IMAGE_REGISTRY}" "${IMAGE_REPOSITORY}" "${IMAGE_TAG}"
     else
-        printf 'Remote image:  (set IMAGE_REPOSITORY in .env)\n'
+        printf 'Remote image:  (set registry.repository in orcan.config.json)\n'
     fi
     printf 'Registry:      %s\n' "${IMAGE_REGISTRY}"
     printf 'User:          %s\n' "${REGISTRY_USER:-"(not set — make registry-login will ask)"}"

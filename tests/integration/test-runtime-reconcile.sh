@@ -70,22 +70,18 @@ unset WORKSPACE_ROOT WORKSPACE_NAME WORKSPACE_META_PATH CONTAINER_PROJECT_DIR CO
 export WORKSPACE="${WS_NAME}"
 ./bin/orcan init "${PROJECT_DIR}" >/dev/null
 
-# Patch .env after init (compose reads ORCAN_INSTANCE / TTYD_HOST_PORT from here).
-sed -i "s/^ORCAN_INSTANCE=.*/ORCAN_INSTANCE=${ORCAN_INSTANCE}/" "${ORCAN_HOME}/.env"
-sed -i "s/^TTYD_HOST_PORT=.*/TTYD_HOST_PORT=${TTYD_HOST_PORT}/" "${ORCAN_HOME}/.env"
-
-_TEST_ORCAN_HOME="${ORCAN_HOME}"
-_TEST_ORCAN_DATA="${ORCAN_DATA}"
-_TEST_ORCAN_PROJECTS_ROOT="${ORCAN_PROJECTS_ROOT}"
-
-# shellcheck disable=SC1091
-set -a
-source "${ORCAN_HOME}/.env"
-set +a
-ORCAN_HOME="${_TEST_ORCAN_HOME}"
-ORCAN_DATA="${_TEST_ORCAN_DATA}"
-ORCAN_PROJECTS_ROOT="${_TEST_ORCAN_PROJECTS_ROOT}"
-export ORCAN_HOME ORCAN_DATA ORCAN_PROJECTS_ROOT
+# Keep persistent settings in the isolated JSON configuration.
+python3 - "${ORCAN_HOME}/orcan.config.json" "${TTYD_HOST_PORT}" "${IMAGE_TAG}" <<'JSON'
+import json, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+config = json.loads(path.read_text())
+config.setdefault("ttyd", {})["host_port"] = int(sys.argv[2])
+config["image"] = sys.argv[3]
+path.write_text(json.dumps(config))
+JSON
+./bin/orcan sync >/dev/null
+eval "$(./scripts/repository/python.sh ./scripts/repository/runtime-settings.py --home "${ORCAN_HOME}")"
+export COMPOSE_DISABLE_ENV_FILE=1
 if [[ ! -f "${ORCAN_CONFIG_HOST:-${ORCAN_HOME}/mounts/runtime-config.json}" ]]; then
     printf 'FAIL: runtime config missing before orcan up\n' >&2
     exit 1

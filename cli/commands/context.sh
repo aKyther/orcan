@@ -5,12 +5,13 @@ orcan_cmd_context() {
     local sub="${1:-show}"
     shift || true
     orcan_require_python
+    orcan_load_config
 
     case "${sub}" in
         show)
             ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-show.py" "$@"
-            orcan_load_env
-            if [[ -f "${ORCAN_ENV_FILE}" ]]; then
+            orcan_load_config
+            if [[ -f "${ORCAN_CONFIG_FILE}" ]]; then
                 printf '\n'
                 printf 'Orchestrator home:      %s\n' "${ORCAN_HOME}"
                 printf 'Install root:           %s\n' "${ORCAN_ROOT}"

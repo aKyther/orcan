@@ -254,7 +254,7 @@ bash_scripts=(
     docker/rootfs/etc/tmux/scripts/copy-path.sh
     docker/rootfs/etc/tmux/scripts/session-switch.sh
     docker/rootfs/etc/tmux/scripts/pick-url.sh
-    scripts/repository/update-env.sh
+    scripts/repository/sync-runtime.sh
     scripts/repository/python.sh
     scripts/repository/validate-project-dir.sh
     scripts/repository/require-generated.sh
@@ -397,9 +397,14 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     validate_data="${validate_home}/data"
     ORCAN_HOME="${validate_home}" ORCAN_DATA="${validate_data}" \
         ORCAN_PROJECTS_ROOT="${validate_data}/sandbox" PROJECT_DIR="${ROOT_DIR}" \
-        ./scripts/repository/update-env.sh >/dev/null
+        ./scripts/repository/sync-runtime.sh >/dev/null
     generated_projects="${validate_home}/mounts/compose-projects.generated.yml"
-    compose_base=(docker compose --env-file "${validate_home}/.env" --project-name orcan)
+    resolved_settings="$(ORCAN_HOME="${validate_home}" ORCAN_DATA="${validate_data}" \
+        ORCAN_PROJECTS_ROOT="${validate_data}/sandbox" \
+        ./scripts/repository/python.sh ./scripts/repository/runtime-settings.py --home "${validate_home}")"
+    eval "${resolved_settings}"
+    export COMPOSE_DISABLE_ENV_FILE=1
+    compose_base=(docker compose --env-file /dev/null --project-name orcan)
     "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.redis.yml config --quiet
     "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" config --quiet
     "${compose_base[@]}" -f docker-compose.yml -f "${generated_projects}" -f docker-compose.docker.yml config --quiet

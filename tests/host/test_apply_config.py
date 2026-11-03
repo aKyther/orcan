@@ -21,14 +21,6 @@ pytestmark = pytest.mark.integration
 apply_config = load_script("apply-config.py")
 
 
-class FormatEnvTests(unittest.TestCase):
-    def test_plain(self) -> None:
-        self.assertEqual(apply_config.format_env_value("8"), "8")
-
-    def test_spaces_quoted(self) -> None:
-        self.assertTrue(apply_config.format_env_value("a b").startswith('"'))
-
-
 class NormalizeWorkspacesTests(unittest.TestCase):
     def test_workspaces_array(self) -> None:
         raw = apply_config.normalize_workspaces_raw(
@@ -53,19 +45,6 @@ class NormalizeWorkspacesTests(unittest.TestCase):
     ) -> None:
         self.assertEqual(apply_config.normalize_workspaces_raw({"workspaces": []}), [])
         self.assertEqual(apply_config.primary_workspace([])["root"], "/home/developer")
-
-
-class EnsureEnvKeyTests(unittest.TestCase):
-    def test_set_and_preserve(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            env = Path(tmp) / ".env"
-            env.write_text("CPUS=4\n", encoding="utf-8")
-            apply_config.ensure_env_key(env, "MEMORY", "16g")
-            apply_config.ensure_env_key_unless_set(env, "CPUS", "99")
-            text = env.read_text(encoding="utf-8")
-            self.assertIn("MEMORY=16g", text)
-            self.assertIn("CPUS=4", text)
-            self.assertNotIn("CPUS=99", text)
 
 
 def _init_repo(path: Path) -> None:
@@ -324,7 +303,7 @@ class ApplyConfigE2ETests(unittest.TestCase):
             self.assertTrue(runtime.is_file())
             self.assertTrue(compose.is_file())
             self.assertTrue(manifest.is_file())
-            self.assertTrue(env.is_file())
+            self.assertFalse(env.exists())
 
             runtime_data = json.loads(runtime.read_text(encoding="utf-8"))
             self.assertEqual(runtime_data["workspaces"][0]["name"], "demo")
@@ -333,10 +312,9 @@ class ApplyConfigE2ETests(unittest.TestCase):
             compose_text = compose.read_text(encoding="utf-8")
             self.assertIn(str(proj.resolve()), compose_text)
 
-            env_text = env.read_text(encoding="utf-8")
-            self.assertIn("WORKSPACE_NAME=demo", env_text)
-            self.assertIn("ORCAN_COMPOSE_PROJECTS=", env_text)
-            self.assertIn("TTYD_RENDERER=canvas", env_text)
+            values = apply_config.host_environment(cfg, root, runtime_data)
+            self.assertEqual(values["WORKSPACE_NAME"], "demo")
+            self.assertEqual(values["TTYD_RENDERER"], "canvas")
 
     def test_rejects_unknown_ttyd_renderer(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
