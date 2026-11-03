@@ -145,9 +145,6 @@ def test_empty_container_first_sync_honors_selected_limits_and_port(
         str(tmp_path / "shared sources"),
         "--yes",
     )
-    (tmp_path / ".env.example").write_text(
-        "CPUS=99\nMEMORY=99g\nTTYD_HOST_PORT=9999\n", encoding="utf-8"
-    )
     result = subprocess.run(
         [
             sys.executable,
@@ -171,12 +168,39 @@ def test_empty_container_first_sync_honors_selected_limits_and_port(
     assert runtime["workspaces"] == []
     assert runtime["resources"]["cpus"] == 1.5
     assert runtime["resources"]["memory"] == "8g"
-    generated = (tmp_path / ".env").read_text()
-    assert "CPUS=1.5\n" in generated
-    assert "MEMORY=8g\n" in generated
-    assert "TTYD_HOST_PORT=17682\n" in generated
-    assert "IMAGE_LOCAL=orcan:tester\n" in generated
-    assert f'ORCAN_PROJECTS_ROOT="{tmp_path / "shared sources"}"\n' in generated
+    assert not (tmp_path / ".env").exists()
+    # Verify the launch boundary now resolves the Studio-selected JSON values.
+    launch = subprocess.run(
+        [
+            "bash", "-euc",
+            """source cli/lib/common.sh
+orcan_load_config
+python3 -c 'import json, os; print(json.dumps({key: os.environ[key] for key in ("CPUS", "MEMORY", "TTYD_HOST_PORT", "IMAGE_LOCAL", "ORCAN_PROJECTS_ROOT")}))'
+""",
+        ],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "CONFIG": "",
+            "ORCAN_HOME": str(tmp_path),
+            "ORCAN_CONFIG_FILE": str(config),
+            "ORCAN_RUNTIME_DIR": str(tmp_path / "mounts"),
+            "ORCAN_PROJECTS_ROOT": str(tmp_path / "sandbox"),
+            "CPUS": "99",
+            "MEMORY": "99g",
+            "TTYD_HOST_PORT": "9999",
+        },
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    assert json.loads(launch.stdout) == {
+        "CPUS": "1.5",
+        "MEMORY": "8g",
+        "TTYD_HOST_PORT": "17682",
+        "IMAGE_LOCAL": "orcan:tester",
+        "ORCAN_PROJECTS_ROOT": str(tmp_path / "shared sources"),
+    }
 
 
 def test_selected_image_and_root_are_in_plan_and_rollback_identity(
