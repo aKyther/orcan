@@ -165,8 +165,8 @@ Preparation and Compose validation failures happen before the container switch.
 Startup preparation creates runtime files and reconciles host metadata; it skips
 the recursive data ownership repair and live reconcile. Run `orcan sync` for
 those explicit maintenance operations. Local Compose builds preserve the Docker
-runtime layers; the final flattened Dockerfile target remains available for
-distribution builds.
+runtime layers for local and distribution builds. The final image inherits its
+base layers; it does not copy the whole filesystem into a flattened layer.
 
 ### `orcan up` flags
 

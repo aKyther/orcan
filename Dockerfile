@@ -21,12 +21,7 @@ FROM ghcr.io/astral-sh/uv:latest AS uv-tools
 # Final image
 # ------------------------------------------------------------------------------
 
-FROM debian:bookworm-slim AS runtime
-
-ARG USERNAME=developer
-ARG USER_UID=1000
-ARG USER_GID=1000
-ARG DOCKER_GID=999
+FROM debian:bookworm-slim AS core
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
@@ -144,95 +139,12 @@ RUN set -eux; \
 # Go / Rust / uv
 # ------------------------------------------------------------------------------
 
-# Bind-mounted tool stages do not add their bytes to disabled runtime layers.
-ARG INSTALL_GO=1
-ARG INSTALL_RUST=1
-RUN --mount=from=go-tools,source=/,target=/tmp/orcan-go,ro \
-    if [ "${INSTALL_GO}" = "1" ]; then mkdir -p /usr/local/go; cp -a /tmp/orcan-go/usr/local/go/. /usr/local/go/; fi
-RUN --mount=from=rust-tools,source=/,target=/tmp/orcan-rust,ro \
-    if [ "${INSTALL_RUST}" = "1" ]; then \
-        mkdir -p /usr/local/cargo /usr/local/rustup; \
-        cp -a /tmp/orcan-rust/usr/local/cargo/. /usr/local/cargo/; cp -a /tmp/orcan-rust/usr/local/rustup/. /usr/local/rustup/; \
-    fi
-RUN mkdir -p /etc/orcan && printf '{"tools":{"go":%s,"rust":%s}}\n' "${INSTALL_GO}" "${INSTALL_RUST}" > /etc/orcan/tools.json
 COPY --from=uv-tools /uv /usr/local/bin/uv
 COPY --from=uv-tools /uvx /usr/local/bin/uvx
 
 RUN set -eux; \
     uv --version; \
     uvx --version
-
-# ------------------------------------------------------------------------------
-# Additional Python runtime
-# ------------------------------------------------------------------------------
-
-# Project runtimes are separate from the system Python and service venvs.
-ARG ORCAN_PYTHON_VERSIONS="3.13"
-RUN set -eux; \
-    first=1; \
-    for version in ${ORCAN_PYTHON_VERSIONS}; do \
-        case "$version" in 3.11|3.12|3.13) ;; *) exit 1 ;; esac; \
-        UV_NO_CACHE=1 uv python install --install-dir /opt/project-python "$version"; \
-        executable="$(find /opt/project-python -type f -path "*/bin/python${version}" -print -quit)"; \
-        test -x "$executable"; \
-        ln -sf "$executable" "/usr/local/bin/python${version}"; \
-        if [ "$first" = 1 ]; then ln -sf "$executable" /usr/local/bin/python3; ln -sf "$executable" /usr/local/bin/python; first=0; fi; \
-    done
-
-# ------------------------------------------------------------------------------
-# JVM: Java (Temurin) + Gradle + Maven + Kotlin + Scala + sbt
-# ------------------------------------------------------------------------------
-# Kotlin/Scala/Gradle/Maven/sbt are pure-JVM archives (no per-arch build) —
-# only the JDK itself needs the amd64/arm64 split below. Adoptium's
-# "latest GA build for this major version" endpoint is used for Java instead
-# of a full build string (e.g. 21.0.12+7) so this ARG only has to track a
-# major version, not a moving exact-build filename.
-
-ARG JAVA_VERSION=21
-ARG GRADLE_VERSION=8.11
-ARG MAVEN_VERSION=3.9.9
-ARG KOTLIN_VERSION=2.1.0
-ARG SCALA_VERSION=3.5.2
-ARG SBT_VERSION=1.10.5
-
-ARG INSTALL_JAVA=1
-ARG INSTALL_GRADLE=1
-ARG INSTALL_MAVEN=1
-ARG INSTALL_KOTLIN=1
-ARG INSTALL_SCALA=1
-ARG INSTALL_SBT=1
-RUN set -eux; \
-    if [ "${INSTALL_JAVA}" != 1 ]; then \
-        test "${INSTALL_GRADLE}${INSTALL_MAVEN}${INSTALL_KOTLIN}${INSTALL_SCALA}${INSTALL_SBT}" = 00000; \
-    fi; \
-    arch="$(dpkg --print-architecture)"; \
-    case "$arch" in amd64) jdk_arch=x64; sbt_other_arch=aarch64 ;; arm64) jdk_arch=aarch64; sbt_other_arch=x86_64 ;; *) exit 1 ;; esac; \
-    if [ "${INSTALL_JAVA}" = 1 ]; then \
-        mkdir -p /opt/java; \
-        curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JAVA_VERSION}/ga/linux/${jdk_arch}/jdk/hotspot/normal/eclipse" | tar -xz -C /opt/java --strip-components=1; \
-        /opt/java/bin/java -version; \
-    fi; \
-    if [ "${INSTALL_MAVEN}" = 1 ]; then \
-        mkdir -p /opt/maven; \
-        curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" | tar -xz -C /opt/maven --strip-components=1; \
-    fi; \
-    if [ "${INSTALL_SCALA}" = 1 ]; then \
-        mkdir -p /opt/scala3; \
-        curl -fsSL "https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz" | tar -xz -C /opt/scala3 --strip-components=1; \
-    fi; \
-    if [ "${INSTALL_SBT}" = 1 ]; then \
-        mkdir -p /opt/sbt; \
-        curl -fsSL "https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz" | tar -xz -C /opt/sbt --strip-components=1 --exclude="sbt/bin/sbtn-${sbt_other_arch}-pc-linux" --exclude='sbt/bin/sbtn-*-apple-darwin' --exclude='sbt/bin/sbtn-*-pc-win32.exe'; \
-    fi; \
-    tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT; \
-    if [ "${INSTALL_GRADLE}" = 1 ]; then \
-        curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o "$tmp/gradle.zip"; \
-        unzip -q "$tmp/gradle.zip" -d "$tmp"; mv "$tmp/gradle-${GRADLE_VERSION}" /opt/gradle; \
-    fi; \
-    if [ "${INSTALL_KOTLIN}" = 1 ]; then \
-        curl -fsSL "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip" -o "$tmp/kotlin.zip"; \
-        unzip -q "$tmp/kotlin.zip" -d "$tmp"; mv "$tmp/kotlinc" /opt/kotlinc; \
-    fi
 
 # ------------------------------------------------------------------------------
 # Docker CLI + Compose + Buildx
@@ -327,7 +239,6 @@ RUN set -eux; \
 # ------------------------------------------------------------------------------
 
 ARG GH_VERSION=2.96.0
-ARG GLAB_VERSION=1.122.0
 ARG AST_GREP_VERSION=0.45.0
 
 RUN set -eux; \
@@ -348,11 +259,7 @@ RUN set -eux; \
             "gh_${GH_VERSION}_linux_${gh_arch}/bin/gh"; \
     chmod 0755 /usr/local/bin/gh; \
     gh --version; \
-    curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${gh_arch}.tar.gz" \
-        | tar -xz -C /usr/local bin/glab; \
-    chmod 0755 /usr/local/bin/glab; \
-    tmp="$(mktemp -d)"; \
-    GLAB_CONFIG_DIR="${tmp}/glab-config" GLAB_CHECK_UPDATE=false glab version; \
+    tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT; \
     curl -fsSL "https://github.com/ast-grep/ast-grep/releases/download/${AST_GREP_VERSION}/app-${sg_arch}.zip" \
         -o "${tmp}/ast-grep.zip"; \
     unzip -q "${tmp}/ast-grep.zip" -d "${tmp}"; \
@@ -493,6 +400,109 @@ RUN set -eux; \
     rm -rf "${tmp}"; \
     procs --version
 
+# Independent SDK builders: only this component's version affects its stage.
+FROM core AS jvm-installer
+COPY --chmod=0755 docker/build/install-jvm.sh /usr/local/libexec/orcan-install-jvm
+
+FROM jvm-installer AS jdk-tools
+ARG JAVA_VERSION=21
+ARG INSTALL_JAVA=1
+RUN /usr/local/libexec/orcan-install-jvm jdk "${INSTALL_JAVA}" "${JAVA_VERSION}" /opt/java
+
+FROM jvm-installer AS gradle-tools
+ARG GRADLE_VERSION=8.11
+ARG INSTALL_GRADLE=1
+RUN /usr/local/libexec/orcan-install-jvm gradle "${INSTALL_GRADLE}" "${GRADLE_VERSION}" /opt/gradle
+
+FROM jvm-installer AS maven-tools
+ARG MAVEN_VERSION=3.9.9
+ARG INSTALL_MAVEN=1
+RUN /usr/local/libexec/orcan-install-jvm maven "${INSTALL_MAVEN}" "${MAVEN_VERSION}" /opt/maven
+
+FROM jvm-installer AS kotlin-tools
+ARG KOTLIN_VERSION=2.1.0
+ARG INSTALL_KOTLIN=1
+RUN /usr/local/libexec/orcan-install-jvm kotlin "${INSTALL_KOTLIN}" "${KOTLIN_VERSION}" /opt/kotlinc
+
+FROM jvm-installer AS scala-tools
+ARG SCALA_VERSION=3.5.2
+ARG INSTALL_SCALA=1
+RUN /usr/local/libexec/orcan-install-jvm scala "${INSTALL_SCALA}" "${SCALA_VERSION}" /opt/scala3
+
+FROM jvm-installer AS sbt-tools
+ARG SBT_VERSION=1.10.5
+ARG INSTALL_SBT=1
+RUN /usr/local/libexec/orcan-install-jvm sbt "${INSTALL_SBT}" "${SBT_VERSION}" /opt/sbt
+
+# Dependency wheels are isolated from project source and optional SDK choices.
+FROM core AS cockpit-deps
+COPY cockpit/pyproject.toml cockpit/uv.lock /opt/orcan-cockpit-src/
+RUN --mount=type=cache,id=orcan-cockpit-wheels,target=/root/.cache/uv,sharing=locked \
+    cd /opt/orcan-cockpit-src \
+    && UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen --no-install-project --python /usr/bin/python3 \
+    && chmod -R a+rX /opt/orcan-cockpit/venv
+
+FROM core AS executor-deps
+COPY executor/pyproject.toml executor/uv.lock /opt/orcan-executor-src/
+RUN --mount=type=cache,id=orcan-executor-wheels,target=/root/.cache/uv,sharing=locked \
+    cd /opt/orcan-executor-src \
+    && UV_PYTHON_INSTALL_DIR=/opt/python UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --frozen --no-dev --no-install-project --python 3.12 \
+    && chmod -R a+rX /opt/orcan-executor/venv /opt/python
+
+# Public image: core layers are inherited, never copied into a giant new layer.
+FROM jdk-tools AS runtime
+ARG USERNAME=developer
+ARG USER_UID=1000
+ARG USER_GID=1000
+ARG DOCKER_GID=999
+# Bind-mounted tool stages do not add their bytes to disabled runtime layers.
+ARG INSTALL_GO=1
+ARG INSTALL_RUST=1
+RUN --mount=from=go-tools,source=/,target=/tmp/orcan-go,ro \
+    if [ "${INSTALL_GO}" = "1" ]; then mkdir -p /usr/local/go; cp -a /tmp/orcan-go/usr/local/go/. /usr/local/go/; fi
+RUN --mount=from=rust-tools,source=/,target=/tmp/orcan-rust,ro \
+    if [ "${INSTALL_RUST}" = "1" ]; then \
+        mkdir -p /usr/local/cargo /usr/local/rustup; \
+        cp -a /tmp/orcan-rust/usr/local/cargo/. /usr/local/cargo/; cp -a /tmp/orcan-rust/usr/local/rustup/. /usr/local/rustup/; \
+    fi
+RUN mkdir -p /etc/orcan && printf '{"tools":{"go":%s,"rust":%s}}\n' "${INSTALL_GO}" "${INSTALL_RUST}" > /etc/orcan/tools.json
+# ------------------------------------------------------------------------------
+# Additional Python runtime
+# ------------------------------------------------------------------------------
+
+# Project runtimes are separate from the system Python and service venvs.
+ARG ORCAN_PYTHON_VERSIONS="3.13"
+RUN set -eux; \
+    first=1; \
+    for version in ${ORCAN_PYTHON_VERSIONS}; do \
+        case "$version" in 3.11|3.12|3.13) ;; *) exit 1 ;; esac; \
+        UV_NO_CACHE=1 uv python install --install-dir /opt/project-python "$version"; \
+        executable="$(find /opt/project-python -type f -path "*/bin/python${version}" -print -quit)"; \
+        test -x "$executable"; \
+        ln -sf "$executable" "/usr/local/bin/python${version}"; \
+        if [ "$first" = 1 ]; then ln -sf "$executable" /usr/local/bin/python3; ln -sf "$executable" /usr/local/bin/python; first=0; fi; \
+    done
+
+# ------------------------------------------------------------------------------
+# JVM: Java (Temurin) + Gradle + Maven + Kotlin + Scala + sbt
+# ------------------------------------------------------------------------------
+# Kotlin/Scala/Gradle/Maven/sbt are pure-JVM archives (no per-arch build) —
+# only the JDK itself needs the amd64/arm64 split below. Adoptium's
+# "latest GA build for this major version" endpoint is used for Java instead
+# of a full build string (e.g. 21.0.12+7) so this ARG only has to track a
+# major version, not a moving exact-build filename.
+
+ARG INSTALL_GRADLE=1
+COPY --link --from=gradle-tools /opt/gradle/ /opt/gradle/
+ARG INSTALL_MAVEN=1
+COPY --link --from=maven-tools /opt/maven/ /opt/maven/
+ARG INSTALL_KOTLIN=1
+COPY --link --from=kotlin-tools /opt/kotlinc/ /opt/kotlinc/
+ARG INSTALL_SCALA=1
+COPY --link --from=scala-tools /opt/scala3/ /opt/scala3/
+ARG INSTALL_SBT=1
+COPY --link --from=sbt-tools /opt/sbt/ /opt/sbt/
+
 # ------------------------------------------------------------------------------
 # Container filesystem (scripts, defaults, shell configs)
 # ------------------------------------------------------------------------------
@@ -566,31 +576,19 @@ RUN chmod 0755 \
     && chmod 0644 /opt/orcan/gitconfig /opt/orcan/starship.toml \
     && chmod 0644 /etc/orcan/shell/aliases.sh
 
-# ------------------------------------------------------------------------------
-# Orcan cockpit (agent-launcher) — a real uv-managed Python project
-# (cockpit/pyproject.toml + cockpit/uv.lock at the repo root, NOT under
-# docker/rootfs/ since it isn't a plain vendored file — it's built by uv,
-# not copied verbatim). Installed
-# into its own isolated venv so orcan-context-* tooling and orcan.workspaces
-# stay stdlib-only, per AGENTS.md. `uv sync --frozen` uses the committed
-# lockfile as-is rather than re-resolving at build time.
-# ------------------------------------------------------------------------------
 
+COPY --link --from=cockpit-deps /opt/orcan-cockpit/venv /opt/orcan-cockpit/venv
+COPY --link --from=executor-deps /opt/orcan-executor/venv /opt/orcan-executor/venv
+COPY --link --from=executor-deps /opt/python /opt/python
 COPY cockpit/ /opt/orcan-cockpit-src/
-
-RUN set -eux; \
-    cd /opt/orcan-cockpit-src; \
-    UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen --python /usr/bin/python3; \
-    chmod -R a+rX /opt/orcan-cockpit /opt/orcan-cockpit-src; \
-    /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles'; \
-    test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
-
-# Optional runtime module: dependencies are installed once, services stay off
-# unless the user starts Orcan with --with-redis.
 COPY executor/ /opt/orcan-executor-src/
-RUN cd /opt/orcan-executor-src \
-    && UV_PYTHON_INSTALL_DIR=/opt/python UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --locked --no-dev --python 3.12 \
-    && chmod -R a+rX /opt/orcan-executor /opt/orcan-executor-src /opt/python
+RUN cd /opt/orcan-cockpit-src \
+    && UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen --python /usr/bin/python3 \
+    && cd /opt/orcan-executor-src \
+    && UV_PYTHON_INSTALL_DIR=/opt/python UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --frozen --no-dev --python 3.12 \
+    && chmod -R a+rX /opt/orcan-cockpit-src /opt/orcan-executor-src \
+    && /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles' \
+    && test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
 
 # Offline action classification has its own Python environment. Other context
 # helpers remain stdlib-only. Ollama is optional and is not installed here.
@@ -728,12 +726,14 @@ ENV USE_BUILTIN_RIPGREP=0
 ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/java/bin:/opt/gradle/bin:/opt/maven/bin:/opt/kotlinc/bin:/opt/scala3/bin:/opt/sbt/bin:${PATH}"
 
 RUN set -eux; \
-    java -version; \
-    gradle --version; \
-    mvn --version; \
-    kotlinc -version; \
-    scala -version; \
-    sbt --script-version
+    temporary="$(mktemp -d)"; trap 'rm -rf "$temporary"' EXIT; \
+    export GRADLE_USER_HOME="$temporary/gradle" XDG_CACHE_HOME="$temporary/cache"; \
+    if [ "${INSTALL_JAVA}" = 1 ]; then java -version; fi; \
+    if [ "${INSTALL_GRADLE}" = 1 ]; then gradle --version; fi; \
+    if [ "${INSTALL_MAVEN}" = 1 ]; then mvn --version; fi; \
+    if [ "${INSTALL_KOTLIN}" = 1 ]; then kotlinc -version; fi; \
+    if [ "${INSTALL_SCALA}" = 1 ]; then scala -version; fi; \
+    if [ "${INSTALL_SBT}" = 1 ]; then sbt --script-version; fi
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
@@ -804,68 +804,5 @@ ENV ORCAN_VERSION="${ORCAN_VERSION}"
 
 USER ${USERNAME}
 
-ENTRYPOINT ["docker-entrypoint"]
-CMD ["zsh"]
-
-# ------------------------------------------------------------------------------
-# Distribution image
-# ------------------------------------------------------------------------------
-# Keep the runtime stage layered for fast rebuilds, but publish one filesystem
-# layer for end users. The final stage repeats image configuration because
-# COPY transfers files, not Docker image metadata.
-FROM scratch
-
-ARG USERNAME=developer
-ARG ORCAN_VERSION=dev
-ARG INSTALL_CURSOR=1
-ARG INSTALL_CLAUDE=1
-ARG INSTALL_CODEX=1
-ARG INSTALL_GEMINI=1
-ARG INSTALL_COPILOT=1
-
-COPY --from=runtime / /
-
-ENV DEBIAN_FRONTEND=noninteractive \
-    LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    HOME=/home/${USERNAME} \
-    XDG_CACHE_HOME=/home/${USERNAME}/.cache \
-    npm_config_cache=/home/${USERNAME}/.cache/npm \
-    PNPM_HOME=/home/${USERNAME}/.cache/pnpm \
-    CARGO_HOME=/home/${USERNAME}/.cache/cargo \
-    RUSTUP_HOME=/usr/local/rustup \
-    GOPATH=/home/${USERNAME}/.cache/go \
-    GOCACHE=/home/${USERNAME}/.cache/go-build \
-    GOMODCACHE=/home/${USERNAME}/.cache/go/pkg/mod \
-    JAVA_HOME=/opt/java \
-    GRADLE_USER_HOME=/home/${USERNAME}/.cache/gradle \
-    UV_CACHE_DIR=/home/${USERNAME}/.cache/uv \
-    RUFF_CACHE_DIR=/home/${USERNAME}/.cache/ruff \
-    MYPY_CACHE_DIR=/home/${USERNAME}/.cache/mypy \
-    PIP_CACHE_DIR=/home/${USERNAME}/.cache/pip \
-    PRE_COMMIT_HOME=/home/${USERNAME}/.cache/pre-commit \
-    HISTFILE=/home/${USERNAME}/.local/share/orcan/history/.zsh_history \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTEST_ADDOPTS="-p no:cacheprovider" \
-    CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude \
-    USE_BUILTIN_RIPGREP=0 \
-    ORCAN_VERSION=${ORCAN_VERSION} \
-    PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.cache/cargo/bin:/home/${USERNAME}/.cache/pnpm:/home/${USERNAME}/.cache/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/java/bin:/opt/gradle/bin:/opt/maven/bin:/opt/kotlinc/bin:/opt/scala3/bin:/opt/sbt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
-LABEL io.orcan.identity.version="1" \
-      io.orcan.agent.cursor="${INSTALL_CURSOR}" \
-      io.orcan.agent.claude="${INSTALL_CLAUDE}" \
-      io.orcan.agent.codex="${INSTALL_CODEX}" \
-      io.orcan.agent.gemini="${INSTALL_GEMINI}" \
-      io.orcan.agent.copilot="${INSTALL_COPILOT}" \
-      org.opencontainers.image.title="Orcan" \
-      org.opencontainers.image.description="Context orchestrator for Cursor CLI and Claude Code" \
-      org.opencontainers.image.source="https://github.com/aKyther/orcan" \
-      org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.version="${ORCAN_VERSION}"
-
-USER ${USERNAME}
-WORKDIR /home/${USERNAME}
 ENTRYPOINT ["docker-entrypoint"]
 CMD ["zsh"]

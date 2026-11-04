@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 
 # Explicit image inputs only: never walk a checkout/config root or client data.
-INPUTS = ('Dockerfile', 'docker/rootfs', 'plugins', 'cockpit/src',
+INPUTS = ('Dockerfile', '.dockerignore', 'docker/build', 'docker/rootfs', 'plugins', 'cockpit/src',
           'cockpit/pyproject.toml', 'cockpit/uv.lock', 'executor/src',
           'executor/pyproject.toml', 'executor/uv.lock', 'requirements-actions.txt', 'VERSION')
 

@@ -9,9 +9,11 @@ probe = load_script("studio-probe.py")
 worktree = load_script("studio-worktree.py")
 
 
-def test_distribution_stage_repeats_agent_arguments_and_labels():
+def test_final_runtime_retains_agent_identity_without_flattening():
     dockerfile = (Path(__file__).resolve().parents[2] / "Dockerfile").read_text()
-    distribution = dockerfile.split("FROM scratch", 1)[1]
+    assert "FROM scratch" not in dockerfile
+    assert "COPY --from=runtime / /" not in dockerfile
+    distribution = dockerfile.split("AS runtime", 1)[1]
     for name in ("cursor", "claude", "codex", "gemini", "copilot"):
         assert f"ARG INSTALL_{name.upper()}=1" in distribution
         assert f'io.orcan.agent.{name}="${{INSTALL_{name.upper()}}}"' in distribution

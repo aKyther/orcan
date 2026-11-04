@@ -1250,6 +1250,69 @@
         ".orcan/guidance-components-host.xml",
         ".orcan/guidance-executor.xml"
       ]
+    },
+    "layered-image-final": {
+      "timeout_seconds": 1800,
+      "require_junit": true,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "python3",
+            "executor/smoke/image_layers.py"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/layered-image-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "python3",
+            "executor/smoke/json_runtime.py"
+          ]
+        },
+        {
+          "argv": [
+            "python3",
+            "executor/smoke/plugin_runtime.py"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests/test_worker_pool.py",
+            "executor/tests/test_controls.py",
+            "--junitxml",
+            ".orcan/layered-image-executor.xml"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/layered-image-host.xml",
+        ".orcan/layered-image-executor.xml"
+      ]
     }
   }
 }

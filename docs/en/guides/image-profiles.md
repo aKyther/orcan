@@ -102,12 +102,30 @@ version/image-source options.
 
 ## Layers, caches and cleanup
 
-Local builds target the layered runtime. Disabled Go/Rust selections use the
+Local and distribution builds use the layered `runtime` target. There is no
+whole-filesystem `FROM scratch` copy. The stable `core` stage is shared by
+independent SDK and service-dependency builders. Each JVM tool has its own
+version/selection inputs; changing Kotlin does not invalidate Gradle/JDK downloads.
+Core services install locked dependencies before application source is copied, so
+ordinary source edits do not invalidate the dependency builders. Host user IDs
+are applied only in the runtime stage.
+
+The Docker context uses an allowlist: Docker inputs, plugin packages, project
+metadata/locks and application source. Tests, Studio assets, histories and local
+workspace artifacts are excluded. The isolated BuildKit context check measures
+exported source bytes without building a full runtime image.
+
+Disabled Go/Rust selections use the
 already-required Debian source stage so their large source images are not pulled
 just to run a disabled copy step. Installer archives are removed in the same
 installation step, including on failures. uv dependency installation uses no
 persistent download cache in image layers; installed runtimes and environments
-remain. Host BuildKit cache is a separate resource and stays available for reuse.
+remain. Service dependency wheels use named BuildKit cache mounts, outside image
+layers, to reuse downloads across lock/metadata changes. SDK archives and version
+probe caches are removed within their own installation/probe step.
+SDK/dependency copies use linked layers; dependency permissions are prepared before
+copying so a recursive runtime chmod does not copy up the whole environment.
+Host BuildKit cache is a separate resource and stays available for reuse.
 
 Inspect host usage with `docker system df`. `orcan build --prune` only removes
 dangling images with Orcan's source label, never running container images,
@@ -195,3 +213,9 @@ The [settings TUI](settings.md) preserves pinned versions and custom sources whi
 selecting other agents. Saving selection takes effect on the next `orcan up`, which builds when needed.
 Use `orcan build` to build explicitly before starting. Saving does not install or start a client. `orcan up --plan` previews requested image contents
 and startup integrations without inspecting or modifying the installed image.
+
+The recipe check and context export do not prove that a complete new runtime has
+built or passed service readiness. Full runtime builds need enough free space for
+the selected payloads and builder intermediates. Existing images used by active
+containers cannot be reclaimed by changing the Dockerfile; they remain until an
+explicit maintenance operation is possible.

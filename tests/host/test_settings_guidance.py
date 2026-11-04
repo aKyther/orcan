@@ -88,9 +88,7 @@ def test_jvm_install_step_downloads_only_selected_tools_and_cleans_temp(executab
     tmp_path=executable_directory
     profile=resolve({'build':{'agents':['codex'],'tools':['gradle']}})
     env=build_environment(profile)
-    script=docker_run_section('ARG INSTALL_JAVA=','# Docker CLI')
-    # Drop the following section divider comments; redirect /opt into this fixture.
-    script=script.replace('/opt/',str(tmp_path/'opt')+'/')
+    script=(ROOT/'docker/build/install-jvm.sh').read_text()
     calls=tmp_path/'downloads'
     fake=r'''
 curl() { echo "$*" >> "$CALLS"; }
@@ -103,8 +101,11 @@ tar() {
 }
 unzip() { mkdir -p "$4/gradle-8.11"; }
 '''
-    result=subprocess.run(['bash','-euc',fake+script],env={**os.environ,**env,'CALLS':str(calls),'TMPDIR':str(tmp_path)},capture_output=True,text=True)
-    assert result.returncode==0,result.stderr[-1200:]
+    outputs=[]
+    for name,version,destination in [('jdk','21','java'),('gradle','8.11','gradle')]:
+        result=subprocess.run(['bash','-euc',fake+script,'_',name,'1',version,str(tmp_path/'opt'/destination)],env={**os.environ,**env,'CALLS':str(calls),'TMPDIR':str(tmp_path)},capture_output=True,text=True)
+        outputs.append(result)
+    assert all(output.returncode==0 for output in outputs), [output.stderr[-1000:] for output in outputs]
     downloaded=calls.read_text()
     assert 'adoptium' in downloaded and 'gradle' in downloaded
     assert all(tool not in downloaded for tool in ['kotlin','scala','sbt','maven'])
