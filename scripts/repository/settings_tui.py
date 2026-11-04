@@ -67,6 +67,7 @@ def rows(model, page, width=100):
             'If your projects do not use Go or Rust, leave them unselected to avoid installing their toolchains.',
             'Python: Space selects one or several project runtimes; Enter makes an enabled version the default. Internal service runtimes remain separate.',
             'Saving changes JSON only. up prepares the new image when needed; build --plan shows requirements before building.',
+            'Inspect build storage with orcan build --check-space. Low verified Docker free space warns; nothing is deleted.',
             'Inspect host image/cache usage with docker system df. --prune removes only dangling Orcan images; it does not clear BuildKit cache.',
             *[name+': '+TOOL_HELP[name] for name in sorted(TOOLS)]
         ],width)

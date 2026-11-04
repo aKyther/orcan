@@ -1313,6 +1313,44 @@
         ".orcan/layered-image-host.xml",
         ".orcan/layered-image-executor.xml"
       ]
+    },
+    "storage-check-final": {
+      "timeout_seconds": 1200,
+      "require_junit": true,
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/storage-host.xml"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "python3",
+            "scripts/repository/build-storage.py",
+            "--root",
+            ".",
+            "--json"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/storage-host.xml"
+      ]
     }
   }
 }

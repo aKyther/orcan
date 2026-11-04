@@ -127,7 +127,10 @@ SDK/dependency copies use linked layers; dependency permissions are prepared bef
 copying so a recursive runtime chmod does not copy up the whole environment.
 Host BuildKit cache is a separate resource and stays available for reuse.
 
-Inspect host usage with `docker system df`. `orcan build --prune` only removes
+Use `orcan build --check-space` to inspect source/Docker storage and builder
+cache without building. Actual builds run this check automatically; low known
+free space warns and continues. Remote/container daemon free space can remain
+unknown. Inspect host usage further with `docker system df`. `orcan build --prune` only removes
 dangling images with Orcan's source label, never running container images,
 volumes or global BuildKit cache. `--force` rebuilds with Docker cache;
 `--no-cache` deliberately bypasses it. No automatic global prune is performed.

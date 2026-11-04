@@ -4,7 +4,7 @@
 orcan_cmd_build() {
     local agents=""
     local profile_config=""
-    local plan=0
+    local plan=0 check_space=0
     local no_cache=0 force=0
     local prune=0
     local remove_previous=0
@@ -26,6 +26,10 @@ orcan_cmd_build() {
                 [[ $# -ge 2 && -f "$2" ]] || orcan_usage_error '--config requires an existing JSON file'
                 profile_config="$2"
                 shift 2
+                ;;
+            --check-space)
+                check_space=1
+                shift
                 ;;
             --plan)
                 plan=1
@@ -56,8 +60,11 @@ orcan_cmd_build() {
                 ;;
             -h | --help)
                 cat <<'EOF'
-usage: orcan build [--plan] [--agent NAME ... | --all-agents] [--no-cache|--force] [--prune] [--remove-previous]
+usage: orcan build [--check-space | --plan] [--agent NAME ... | --all-agents] [--no-cache|--force] [--prune] [--remove-previous]
 
+  --check-space: report source/Docker storage and builder cache without building.
+  Actual builds check storage first; confirmed Docker free space below 2 GiB warns and continues.
+  Unknown remote/container free space is reported without using the source disk as a substitute.
   Select contents in orcan settings, then run orcan build (or just orcan up).
   Unchanged inputs reuse a completed image; --force rebuilds with Docker cache.
   --plan: print JSON selection and dependencies without building or requiring Docker.
@@ -81,6 +88,12 @@ EOF
         esac
     done
 
+    if ((check_space)); then
+        if ((plan)); then orcan_usage_error '--check-space cannot combine with --plan'; return 2; fi
+        orcan_require_docker || return
+        orcan_build_storage_check
+        return
+    fi
     local cfg="" profile values
     cfg="${profile_config}"
     if [[ -z "${cfg}" ]]; then cfg="$(orcan_config_path)" || cfg=""; fi
@@ -95,13 +108,15 @@ EOF
 
 
 
-    orcan_require_docker
-    orcan_require_config_for_build
-    orcan_load_config
+    orcan_require_docker || return
+    orcan_require_config_for_build || return
+    orcan_load_config || return
     if ((!force && !no_cache && !prune && !remove_previous)) && orcan_image_build_is_current "${profile}"; then
         orcan_ok 'configured image is already built; next: orcan up'
         return 0
     fi
+
+    orcan_build_storage_check || return
 
     local INSTALL_GO INSTALL_RUST GO_IMAGE RUST_IMAGE
     local INSTALL_JAVA INSTALL_GRADLE INSTALL_MAVEN INSTALL_KOTLIN INSTALL_SCALA INSTALL_SBT

@@ -222,3 +222,8 @@ orcan_image_record_build() {
     orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" record \
         --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}"
 }
+
+# Diagnostics run only before an actual build (or on explicit request).
+orcan_build_storage_check() {
+    orcan_host_python "${ORCAN_SCRIPTS}/build-storage.py" --root "${ORCAN_ROOT}"
+}

@@ -142,6 +142,7 @@ def test_cli_build_passes_the_resolved_selection_to_compose(tmp_path):
 source cli/lib/common.sh
 source cli/commands/build.sh
 orcan_require_docker() { :; }; orcan_require_config_for_build() { :; }; orcan_load_config() { :; }
+orcan_build_storage_check() { :; }
 orcan_image_build_is_current() { return 1; }; orcan_image_record_build() { :; }
 orcan_image_build_local() { printf '%s:%s:%s:%s:%s:%s' "$INSTALL_JAVA" "$INSTALL_GRADLE" "$INSTALL_SBT" "$INSTALL_GO" "$INSTALL_RUST" "$ORCAN_PYTHON_VERSIONS"; }
 orcan_cmd_build

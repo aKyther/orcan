@@ -63,7 +63,7 @@ Check with `orcan doctor`. Details: [Installation](../getting-started/installati
 | *(in-container)* `orcan-inbox` | Agent task handoff queue under `.orcan/tasks/` (`propose`, `approve`, `claim`, `complete`, `list`, `watch`). See [Agent inbox](../ideas/agent-inbox.md) |
 | `orcan up [--web-terminal \| --web-terminal-auth USER:PASS] [--docker-socket \| --network NAME] [--ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]` | Start container (`orcan enter` locally; pick **one** browser mode: `--web-terminal` or `--web-terminal-auth`); optional socket **or** network join (pick one) + SSH; hints if a newer release exists |
 | `orcan down` | Stop containers |
-| `orcan build --agent NAME [...] \| --all-agents [--force] [--no-cache] [--prune] [--remove-previous]` | Build `orcan:latest` + `orcan:<VERSION>` with explicit clients. `--prune` removes dangling Orcan images. `--remove-previous` asks `[y/n]` before removing previous local `orcan` tags/images after success; images used by containers are kept. Neither option deletes containers, sandbox data, workspaces, or BuildKit cache. Never publishes. |
+| `orcan build [--agent NAME [...] \| --all-agents] [--force] [--no-cache] [--prune] [--remove-previous]` | Build `orcan:latest` + `orcan:<VERSION>` with explicit clients. `--prune` removes dangling Orcan images. `--remove-previous` asks `[y/n]` before removing previous local `orcan` tags/images after success; images used by containers are kept. Neither option deletes containers, sandbox data, workspaces, or BuildKit cache. Never publishes. |
 | `orcan status` | Product version, installation (`ORCAN_ROOT`), configuration home (`ORCAN_HOME`), data (`ORCAN_DATA`), config file, runtime summary, and the image agent manifest |
 | `orcan pull` | Pull portable all-agents `orcan:<VERSION>` → `orcan:latest` |
 | `orcan publish` | Push an all-agents `orcan:latest` (**manual**; partial images are refused) |
@@ -167,6 +167,35 @@ the recursive data ownership repair and live reconcile. Run `orcan sync` for
 those explicit maintenance operations. Local Compose builds preserve the Docker
 runtime layers for local and distribution builds. The final image inherits its
 base layers; it does not copy the whole filesystem into a flattened layer.
+
+### Build storage check
+
+`orcan build --check-space` reports source filesystem capacity, Docker image and
+container usage, reclaimable estimates, and the selected builder's cache totals.
+It needs no agent selection or generated configuration. It does not build, pull,
+start containers, prune cache or remove anything.
+
+An actual `orcan build` runs the same check after confirming that an image rebuild
+is needed. `orcan up` inherits the check when it builds an image. Reusing an
+already completed image skips it. `build --plan` remains a configuration-only
+preview and makes no Docker calls.
+
+Less than 2 GiB available on a recognized local Docker filesystem produces a
+warning and **continues** the build. This threshold is not a build-size estimate;
+large selections can require much more. Low source-disk space is reported
+separately. `--force` controls image reuse, not storage measurement. An unreachable
+Docker daemon stops the attempt because a build cannot run without it.
+
+Orcan measures Docker Root Dir only for a native Linux Docker daemon recognized
+on the same host, using a local Unix socket and the default Docker builder for
+that context. In containers, Docker Desktop, remote contexts, custom builders,
+or inaccessible daemon directories, it reports free space as **unknown**. It
+never substitutes source-disk capacity for daemon capacity. Other containerd
+filesystems and free inodes are not checked. Image/cache usage can overlap, and
+Docker's reclaimable figures do not promise an equivalent amount of freed space.
+Inspect storage before deciding whether to clean anything; this command performs
+no cleanup and does not inspect or print credentials. Docker CLI uses its normal
+connection configuration.
 
 ### `orcan up` flags
 

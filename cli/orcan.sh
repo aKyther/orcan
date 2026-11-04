@@ -29,9 +29,9 @@ if [[ "${1:-}" == "--instance" ]]; then
 fi
 
 # A startup preview must not create configuration directories during bootstrap.
-if [[ "${1:-}" == up ]]; then
+if [[ "${1:-}" == up || "${1:-}" == build ]]; then
     for _orcan_argument in "${@:2}"; do
-        if [[ "${_orcan_argument}" == --plan ]]; then export ORCAN_READ_ONLY=1 PYTHONDONTWRITEBYTECODE=1; fi
+        if [[ "${_orcan_argument}" == --plan || ( "${1:-}" == build && "${_orcan_argument}" == --check-space ) ]]; then export ORCAN_READ_ONLY=1 PYTHONDONTWRITEBYTECODE=1; fi
     done
     unset _orcan_argument
 fi
@@ -62,7 +62,7 @@ Commands:
   settings     TUI for plugins, agents/image, container and terminal settings
   up           Start container (orcan enter; --web-terminal | --web-terminal-auth for browser)
   down         Stop containers
-  build        Build selected JSON/CLI agents and optional tools (--plan to preview)
+  build        Build selected components (--plan; --check-space for storage report)
   pull         Pull portable all-agents orcan:<VERSION> → orcan:latest
   publish      Manual push of all-agents orcan:latest (not part of build)
   url          Print browser terminal URL

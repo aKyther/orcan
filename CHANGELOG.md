@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Report storage before actual image builds and through `orcan build --check-space`: source capacity, native daemon capacity when verifiable, image/container usage and builder cache. Warn below 2 GiB without blocking; report remote/container free space as unknown. Never clean or pull anything during diagnostics.
+
 - Require plugin-owned setup help and JSON examples shared by settings, CLI help and startup plan; explain authentication, settings, dependencies and build/cache behavior in the TUI.
 - Select optional JVM tools and project Python 3.11/3.12/3.13 with a default runtime, resolve JDK dependencies, and omit unselected project toolchains from builds. Keep core service runtimes separate.
 - Default the shared executor pool and admission cap to 3, with configurable ranges of 1–10; support worker slots through 10 and retain explicit saved settings.

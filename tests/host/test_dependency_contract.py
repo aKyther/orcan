@@ -85,6 +85,7 @@ def test_build_reuses_current_selection_unless_explicitly_forced(tmp_path, flag,
 source cli/lib/common.sh
 source cli/commands/build.sh
 orcan_require_docker() { :; }; orcan_require_config_for_build() { :; }; orcan_load_config() { :; }
+orcan_build_storage_check() { :; }
 orcan_image_build_is_current() { return 0; }
 orcan_ok() { echo reused; }
 orcan_image_build_local() { echo built; }
