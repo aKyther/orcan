@@ -33,6 +33,10 @@ continuing.
 
 Version/source entries already in JSON are preserved when selecting other agents.
 Changing a version validates it with the same rules as `orcan build --plan`.
+Space toggles a toolchain; Enter edits the source image of an enabled Go/Rust
+toolchain. Required agent runtimes are shown separately and supplied by the base
+image. Plugin rows show dependency/conflict rules; enabling a plugin also selects
+its required plugins.
 Agents here are CLI tools installed in the image. Their models and provider
 settings remain in the tools themselves.
 

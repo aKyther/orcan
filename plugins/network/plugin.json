@@ -22,5 +22,9 @@
   "value_flag": true,
   "verifier": "network",
   "enabled": false,
-  "requires": []
+  "requires": [],
+  "image_requires": [],
+  "host_requires": [
+    "Existing Docker network"
+  ]
 }

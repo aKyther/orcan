@@ -12,5 +12,10 @@
   "fields": {},
   "verifier": "cockpit",
   "requires": [],
-  "conflicts": []
+  "conflicts": [],
+  "image_requires": [
+    "python",
+    "uv"
+  ],
+  "host_requires": []
 }

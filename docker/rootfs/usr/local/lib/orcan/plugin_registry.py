@@ -6,6 +6,8 @@ import os
 import re
 from pathlib import Path
 
+from orcan.image_profile import BASE_COMPONENTS
+
 
 def catalog_root() -> Path:
     # Resolve from the installed code, never from a user configuration path.
@@ -37,6 +39,11 @@ def catalog(root: Path | None = None) -> list[dict]:
             if flag in flags:
                 raise ValueError('Duplicate plugin flag: ' + flag)
             flags.add(flag)
+        for field in ('requires', 'conflicts', 'image_requires', 'host_requires'):
+            if not isinstance(value.get(field, []), list) or any(not isinstance(item, str) for item in value.get(field, [])):
+                raise ValueError('Invalid plugin requirements: ' + name)
+        if set(value.get('image_requires', [])) - BASE_COMPONENTS:
+            raise ValueError('Plugin requires an unavailable image component: ' + name)
         entries.append(value)
     if not entries:
         raise ValueError('Bundled plugin catalog is missing')
@@ -45,7 +52,23 @@ def catalog(root: Path | None = None) -> list[dict]:
         for target in entry.get('requires', []) + entry.get('conflicts', []):
             if target not in names or target == entry['id']:
                 raise ValueError('Invalid plugin dependency/conflict: ' + entry['id'])
-    return entries
+    return dependency_order(entries)
+
+
+def dependency_order(entries: list[dict]) -> list[dict]:
+    """Required plugins precede dependents; cycles are invalid package metadata."""
+    by_name = {entry['id']: entry for entry in entries}
+    active, done, result = set(), set(), []
+    def visit(name):
+        if name in active: raise ValueError('Cyclic plugin dependency: ' + name)
+        if name in done: return
+        active.add(name)
+        for other in by_name[name].get('requires', []): visit(other)
+        active.remove(name)
+        done.add(name)
+        result.append(by_name[name])
+    for name in by_name: visit(name)
+    return result
 
 
 def aliases(entries: list[dict]) -> dict[str, str]:
@@ -136,6 +159,29 @@ def validate_selection(values: dict, entries: list[dict] | None = None):
                 raise ValueError(f'Plugins {name} and {other} are mutually exclusive')
         if name == 'network' and not values[name]['name']:
             raise ValueError('Enabled network plugin requires a network name')
+
+
+def change_selection(values: dict, name: str, enabled: bool, entries: list[dict] | None = None) -> dict:
+    """Apply dependency closure; never silently disable a conflicting plugin."""
+    import copy
+    entries = dependency_order(entries or catalog())
+    by_name = {entry['id']: entry for entry in entries}
+    result = {entry["id"]:{"enabled":entry.get("enabled",False)} for entry in entries} | copy.deepcopy(values)
+    def enable(target):
+        for required in by_name[target].get('requires', []): enable(required)
+        result[target]['enabled'] = True
+    if enabled: enable(name)
+    else:
+        result[name]['enabled'] = False
+    for entry in entries:
+        if not result[entry['id']]['enabled']: continue
+        for required in entry.get('requires', []):
+            if not result[required]['enabled']:
+                raise ValueError(f"Disable {entry['id']} before disabling required plugin {required}")
+        for conflict in entry.get('conflicts', []):
+            if result[conflict]['enabled']:
+                raise ValueError(f"Disable {conflict} before enabling {entry['id']}")
+    return {key:value for key,value in result.items() if by_name[key].get("configurable",True)}
 
 
 def configuration_schema() -> dict:

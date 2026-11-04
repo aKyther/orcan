@@ -13,5 +13,11 @@
   "verifier": "ssh",
   "enabled": false,
   "requires": [],
-  "conflicts": []
+  "conflicts": [],
+  "image_requires": [
+    "openssh"
+  ],
+  "host_requires": [
+    "SSH directory or agent socket"
+  ]
 }

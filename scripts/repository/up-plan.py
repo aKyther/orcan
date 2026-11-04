@@ -13,7 +13,7 @@ from pathlib import Path
 
 from config_io import load_config
 from host_config import host_environment, resolve_settings
-from orcan.image_profile import resolve as image_profile
+from orcan.image_profile import resolve as image_profile, requirements
 from orcan.plugin_registry import catalog
 from path_guards import checked_project_dir
 
@@ -74,8 +74,10 @@ def preview(config: Path, home: Path, arguments: list[str], saved_path: Path | N
     return {
         'version':1, 'read_only':True,
         'configuration':{'path':str(config),'exists':config.is_file(),'needs_sync':needs_sync},
+        'blockers':[] if requested_profile else ['Choose image agents in orcan settings before startup can prepare an image.'],
         'image':{'name':host['IMAGE_LOCAL'],'requested_profile':requested_profile,'installed_profile_inspected':False},
         'plugins':plugins, 'enabled_plugins':selected,
+        'requirements':requirements(requested_profile, [entry for entry in catalog() if entry['id'] in selected]),
         'resources':resolve_settings(cfg)['resources'],
         'mounts':mounts, 'ports':ports,
         'network':plugins['network']['name'] if plugins['network']['enabled'] else None,
@@ -92,11 +94,19 @@ def render(report: dict) -> str:
            'Image: '+report['image']['name'], 'Enabled plugins: '+(', '.join(report['enabled_plugins']) or 'none')]
     profile=report['image']['requested_profile']
     lines.append('Agents requested for image: '+(', '.join(entry['name']+'@'+entry['version'] for entry in profile['agents']) if profile else 'not configured; installed image not inspected'))
+    for blocker in report['blockers']: lines.append('Required: '+blocker)
     if report['configuration']['needs_sync']: lines.append('Startup will synchronize generated configuration')
     lines.append('Stages: ' + ' -> '.join(report['stages']))
     lines.append('Runtime: '+report['lifecycle'])
     for port in report['ports']: lines.append(f"Port ({port['plugin']}): {port['bind']}:{port['host']} -> {port['container']}")
     for mount in report['mounts']: lines.append(f"Mount: {mount['source']} -> {mount['target']} ({'read-only' if mount['read_only'] else 'read/write'})" + (' [conditional]' if 'conditional' in mount else ''))
+    for name, required in report['requirements']['agents'].items():
+        lines.append('Agent requirements ('+name+'): '+', '.join(required)+' [included in base]')
+    for name, required in report['requirements']['plugins'].items():
+        if required['image']: lines.append('Plugin image requirements ('+name+'): '+', '.join(required['image'])+' [included in base]')
+        if required['host']: lines.append('Plugin host requirements ('+name+'): '+', '.join(required['host']))
+        if required['plugins']: lines.append('Required plugins ('+name+'): '+', '.join(required['plugins']))
+        if required['conflicts']: lines.append('Conflicts ('+name+'): '+', '.join(required['conflicts']))
     if report['network']: lines.append('External network: '+report['network'])
     for entry in report['credentials']: lines.append('Authentication ('+entry['plugin']+'): '+entry['action'])
     lines.append('No credentials acquired; no files, containers or services changed.')

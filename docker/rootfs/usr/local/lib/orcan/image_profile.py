@@ -22,6 +22,31 @@ IMAGES = {"go": "golang:1.27-bookworm", "rust": "rust:1-bookworm"}
 AGENTS = set(PACKAGES) | set(INSTALLERS)
 
 
+# Components already supplied by the standard Dockerfile. Optional Go/Rust
+# toolchains are independent of the runtimes needed by installed agent clients.
+BASE_COMPONENTS = {'node', 'npm', 'python', 'uv', 'git', 'openssh', 'docker',
+                   'compose', 'gh', 'glab', 'redis', 'supervisor', 'curl', 'tar', 'ttyd'}
+AGENT_REQUIRES = {name: ['node', 'npm'] for name in PACKAGES} | {
+    'claude': ['curl'], 'cursor': ['curl', 'tar']}
+
+
+def requirements(profile: dict | None, plugins: list[dict] = ()) -> dict:
+    """Explain requirements, without selecting additional user toolchains."""
+    return {
+        'provided_by_base': sorted(BASE_COMPONENTS),
+        'agents': {entry['name']: AGENT_REQUIRES[entry['name']]
+                   for entry in (profile or {}).get('agents', [])},
+        'plugins': {entry['id']: {
+            'plugins': entry.get('requires', []),
+            'image': entry.get('image_requires', []),
+            'host': entry.get('host_requires', []),
+            'conflicts': entry.get('conflicts', []),
+        } for entry in plugins},
+        'optional_toolchains': (profile or {}).get('tools', []),
+        'python_locks': ['cockpit/uv.lock', 'executor/uv.lock'],
+    }
+
+
 def https_url(value: str) -> str:
     if (
         not isinstance(value, str)
@@ -192,10 +217,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="")
     parser.add_argument("--agents", default="")
+    parser.add_argument("--explain", action="store_true")
     args = parser.parse_args()
     try:
         config = json.loads(Path(args.config).read_text()) if args.config else {}
-        print(json.dumps(resolve(config, args.agents)))
+        profile = resolve(config, args.agents)
+        print(json.dumps(profile | {"requirements": requirements(profile)} if args.explain else profile))
     except (ValueError, OSError, TypeError) as error:
         print("Invalid image profile: " + str(error), file=sys.stderr)
         return 2

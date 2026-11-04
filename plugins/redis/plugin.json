@@ -89,5 +89,12 @@
   "enabled": false,
   "requires": [],
   "conflicts": [],
-  "compose": "compose.yml"
+  "compose": "compose.yml",
+  "image_requires": [
+    "redis",
+    "python",
+    "uv",
+    "supervisor"
+  ],
+  "host_requires": []
 }

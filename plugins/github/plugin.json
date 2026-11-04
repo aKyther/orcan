@@ -20,5 +20,11 @@
   "verifier": "github",
   "enabled": false,
   "requires": [],
-  "conflicts": []
+  "conflicts": [],
+  "image_requires": [
+    "gh"
+  ],
+  "host_requires": [
+    "GitHub token or gh login"
+  ]
 }

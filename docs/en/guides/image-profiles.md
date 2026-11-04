@@ -39,6 +39,27 @@ CLI `--agent NAME` / `--all-agents` override which agents are selected, retainin
 version/source settings for matching configured names. Unknown names, malformed
 sources, ambiguous versions and conflicting duplicates fail before Docker runs.
 
+## Build once, start when ready
+
+The daily flow is `orcan settings`, optional `orcan up --plan`, then `orcan up`.
+Use plain `orcan build` when you want to prepare the selected image in advance.
+Both commands use the same image fingerprint and completion receipt. An unchanged
+image is reused. `orcan build --force` runs the build again with Docker cache;
+`--no-cache` also refreshes installation steps. Compatibility agent flags remain
+available for one build and do not rewrite the selection saved in settings.
+
+`orcan build --plan` includes a computed `requirements` report. The startup plan
+shows the same agent requirements plus those of enabled plugins. This report is
+not a JSON configuration section to copy back into `build`.
+
+The standard image supplies required runtimes: for example, npm-based agent CLIs
+need Node and npm even when optional Go and Rust toolchains are disabled. Python
+packages for cockpit and executor use their committed uv lockfiles. Selecting a
+plugin enables its services/access; it does not install a second copy of its
+base-image components. Arbitrary apt/pip package lists are not supported settings.
+In the settings image page, Space toggles Go/Rust and Enter edits the enabled
+source image. Review shows the selected image reference before saving.
+
 ## Versions and sources
 
 - Codex, Gemini and Copilot use their npm packages. Set `version` to `latest` or

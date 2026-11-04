@@ -5,7 +5,7 @@ orcan_cmd_build() {
     local agents=""
     local profile_config=""
     local plan=0
-    local no_cache=0
+    local no_cache=0 force=0
     local prune=0
     local remove_previous=0
     while [[ $# -gt 0 ]]; do
@@ -43,7 +43,11 @@ orcan_cmd_build() {
                 remove_previous=1
                 shift
                 ;;
-            --force | --no-pull)
+            --force)
+                force=1
+                shift
+                ;;
+            --no-pull)
                 shift
                 ;;
             --no-publish)
@@ -54,7 +58,9 @@ orcan_cmd_build() {
                 cat <<'EOF'
 usage: orcan build [--plan] [--agent NAME ... | --all-agents] [--no-cache|--force] [--prune] [--remove-previous]
 
-  --plan: print the resolved JSON profile without building or requiring Docker.
+  Select contents in orcan settings, then run orcan build (or just orcan up).
+  Unchanged inputs reuse a completed image; --force rebuilds with Docker cache.
+  --plan: print JSON selection and dependencies without building or requiring Docker.
   No --agent flag: use build.agents from orcan.config.json. build.tools can
   list Go/Rust source images; [] omits both. CLI flags override agent selection.
   --config FILE: read the build section from a specific JSON file.
@@ -78,7 +84,9 @@ EOF
     local cfg="" profile values
     cfg="${profile_config}"
     if [[ -z "${cfg}" ]]; then cfg="$(orcan_config_path)" || cfg=""; fi
-    profile="$(orcan_host_python "${ORCAN_SCRIPTS}/image-profile.py" --config "${cfg}" --agents "${agents}")" || return
+    local -a explanation=()
+    if ((plan)); then explanation+=(--explain); fi
+    profile="$(orcan_host_python "${ORCAN_SCRIPTS}/image-profile.py" --config "${cfg}" --agents "${agents}" "${explanation[@]}")" || return
     if (( plan )); then
         printf '%s\n' "${profile}"
         return 0
@@ -92,7 +100,10 @@ EOF
     orcan_require_docker
     orcan_require_config_for_build
     orcan_load_config
-    orcan_runtime_warn_if_config_stale build
+    if ((!force && !no_cache && !prune && !remove_previous)) && orcan_image_build_is_current "${profile}"; then
+        orcan_ok 'configured image is already built; next: orcan up'
+        return 0
+    fi
 
     local INSTALL_GO="${selection[1]}" INSTALL_RUST="${selection[2]}"
     local GO_IMAGE="${selection[3]}" RUST_IMAGE="${selection[4]}" ORCAN_BUILD_PROFILE_JSON="${profile}"

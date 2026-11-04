@@ -119,3 +119,13 @@ Legacy top-level `executor`, `executor_port` and `ttyd` settings remain readable
 They configure values without enabling a plugin. Explicit `plugins` fields win.
 A reviewed plugin save in `orcan settings` moves those values into the package
 sections and removes the old sections. A normal `up` does not edit configuration.
+
+Package descriptors also declare `image_requires` (components supplied by the
+standard image) and `host_requires` (sockets, networks or authentication checked
+at startup). `up --plan` explains them without acquiring credentials. Package
+validation rejects unknown image requirements and cycles in plugin dependencies.
+Required plugins run before their dependents. Settings enables transitive plugin
+requirements together, refuses disabling a plugin still required by another,
+and asks you to disable a conflicting selection explicitly. It never silently
+removes access or services to resolve a conflict. CLI overrides validate the final
+selection and report missing dependencies rather than persisting extra settings.

@@ -9,8 +9,8 @@ from pathlib import Path
 from config_io import dump_config, load_config
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS
 from host_config import host_environment
-from orcan.image_profile import AGENTS, IMAGES, agent_entry, resolve as image_profile
-from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection
+from orcan.image_profile import AGENTS, IMAGES, agent_entry, tool_entry, requirements, resolve as image_profile
+from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection, change_selection
 
 
 def validate_host(data, home):
@@ -55,7 +55,7 @@ class SettingsModel:
         entry=next(entry for entry in catalog() if entry['id']==name)
         if not entry.get('configurable',True): raise ValueError('This interface is not a startup plugin')
         draft=self._plugin_draft()
-        draft[name]['enabled'] = not draft[name]['enabled']
+        self.data['plugins'] = change_selection(draft, name, not draft[name]['enabled'])
 
     def set_plugin(self, name, key, value):
         entry=next(entry for entry in catalog() if entry['id']==name)
@@ -101,6 +101,20 @@ class SettingsModel:
             build['tools']=[value for value in build.get('tools',[]) if (value if isinstance(value,str) else value['name'])!=name]
         else: build.setdefault('tools',[]).append(name)
 
+    def set_tool_image(self, name, image):
+        value = tool_entry({'name':name, 'image':image})
+        if name not in self.tools(): raise ValueError('Enable the toolchain first')
+        build = self._build_draft()
+        build['tools'] = [value if (entry if isinstance(entry,str) else entry['name']) == name else entry
+                          for entry in build['tools']]
+
+    def requirements(self):
+        # Drafts may temporarily contain no agent while the selection is edited.
+        profile = {'agents':list(self.agents().values()),
+                   'tools':[tool_entry(value) for value in self.data.get('build',{}).get('tools',list(IMAGES))]}
+        plugins = self.plugins()
+        return requirements(profile, [entry for entry in catalog() if plugins[entry['id']]['enabled']])
+
     def set_resource(self, key, value):
         proposed=copy.deepcopy(self.data)
         if key in ('image','timezone'): proposed[key]=value
@@ -139,7 +153,7 @@ class SettingsModel:
         if self.data.get('build')!=self.original.get('build'):
             agents=self.agents()
             lines.append('Image agents: '+(', '.join(name+'@'+entry['version'] for name,entry in agents.items()) or 'none selected'))
-            lines.append('Image toolchains: '+(', '.join(sorted(self.tools())) or 'none'))
+            lines.append('Image toolchains: '+(', '.join(entry['name']+'@'+entry['image'] for entry in self.requirements()['optional_toolchains']) or 'none'))
         for section,defaults in (('resources',RESOURCE_DEFAULTS),('tmux',TMUX_DEFAULTS)):
             old=defaults | self.original.get(section,{})
             new=defaults | self.data.get(section,{})

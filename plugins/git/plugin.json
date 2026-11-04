@@ -11,5 +11,9 @@
   "fields": {},
   "verifier": "git",
   "requires": [],
-  "conflicts": []
+  "conflicts": [],
+  "image_requires": [
+    "git"
+  ],
+  "host_requires": []
 }

@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Reuse completed images in plain `orcan build`, share fingerprints with startup, and show package requirements in build/startup previews. Settings supports Go/Rust source images and dependency-aware plugin selection; validate dependency cycles and run required plugins first.
+
 - Make `orcan up` prepare generated configuration, reuse completed image builds, validate Compose before startup, and verify readiness. Preserve unchanged containers through Compose convergence, expose the last startup stage in `status`, and retain image layers for local builds.
 
 - Group startup integrations into bundled `plugins/<id>/` packages with shared selection, typed settings, operating rules, lifecycle hooks and diagnostics. Add the grouped plugin list to `orcan settings`; plain `orcan up` uses the saved selection, while existing flags and `--with`/`--without` override one start. Keep authentication transient and legacy executor/terminal configuration readable.

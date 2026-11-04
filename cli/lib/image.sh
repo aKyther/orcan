@@ -200,12 +200,24 @@ orcan_image_publish() {
     orcan_ok "published ${remote}"
 }
 
+orcan_image_build_fingerprint() {
+    orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" fingerprint \
+        --root "${ORCAN_ROOT}" --profile "$1" \
+        --identity "${USER_UID:-$(id -u)}:${USER_GID:-$(id -g)}:${DOCKER_GID:-999}:${INSTALL_ACTIONS_ML:-0}"
+}
+
+orcan_image_build_is_current() {
+    local fingerprint image_id
+    fingerprint="$(orcan_image_build_fingerprint "$1")" || return
+    image_id="$(docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}" 2>/dev/null)" || return 1
+    orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" matches \
+        --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}"
+}
+
 # Explicit builds and automatic startup builds share the same completion receipt.
 orcan_image_record_build() {
     local profile="$1" fingerprint image_id
-    fingerprint="$(orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" fingerprint \
-        --root "${ORCAN_ROOT}" --profile "${profile}" \
-        --identity "${USER_UID:-$(id -u)}:${USER_GID:-$(id -g)}:${DOCKER_GID:-999}")" || return
+    fingerprint="$(orcan_image_build_fingerprint "${profile}")" || return
     image_id="$(docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}")" || return
     orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" record \
         --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}"

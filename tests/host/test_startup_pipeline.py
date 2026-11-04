@@ -107,6 +107,7 @@ def test_real_preparation_reuses_build_after_later_failure_and_rebuilds_changed_
     script = r'''
 set -Eeuo pipefail
 source "$LIBRARY"
+source "$IMAGE_LIBRARY"
 orcan_info() { :; }; orcan_load_config() { :; }; orcan_require_generated() { :; }
 orcan_runtime_config_json_file() { echo "$RUNTIME"; }
 orcan_runtime_compose_mounts_file() { echo "$MOUNTS"; }
@@ -118,7 +119,7 @@ orcan_host_python() {
 docker() { [[ -f "$IMAGE" ]] && cat "$IMAGE"; }
 orcan_startup_prepare
 '''
-    env = {**os.environ, 'LIBRARY': str(ROOT / 'cli/lib/startup.sh'), 'ORCAN_ROOT': str(root),
+    env = {**os.environ, 'LIBRARY': str(ROOT / 'cli/lib/startup.sh'), 'IMAGE_LIBRARY':str(ROOT / 'cli/lib/image.sh'), 'ORCAN_ROOT': str(root),
            'ORCAN_SCRIPTS': str(ROOT / 'scripts/repository'), 'ORCAN_RUNTIME_DIR': str(tmp_path / 'receipts'),
            'RUNTIME': str(runtime), 'MOUNTS': str(mounts), 'CALLS': str(tmp_path / 'calls'), 'IMAGE': str(tmp_path / 'image')}
     def run():

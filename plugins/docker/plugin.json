@@ -15,5 +15,12 @@
   "verifier": "docker",
   "enabled": false,
   "requires": [],
-  "compose": "compose.yml"
+  "compose": "compose.yml",
+  "image_requires": [
+    "docker",
+    "compose"
+  ],
+  "host_requires": [
+    "Docker socket"
+  ]
 }

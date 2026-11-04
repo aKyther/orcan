@@ -33,7 +33,7 @@ def rows(model, page):
         ]
     if page=='plugins':
         values=model.plugins()
-        return [(entry['id'],f"{entry['group'].capitalize()} / [{'x' if values[entry['id']]['enabled'] else ' '}] {entry['title']}",entry['id']) for entry in catalog() if entry.get('configurable',True)]
+        return [(entry['id'],f"{entry['group'].capitalize()} / [{'x' if values[entry['id']]['enabled'] else ' '}] {entry['title']}",entry['id']+(' requires: '+', '.join(entry['requires']) if entry.get('requires') else '')+(' conflicts: '+', '.join(entry['conflicts']) if entry.get('conflicts') else '')) for entry in catalog() if entry.get('configurable',True)]
     if page.startswith('plugin:'):
         name=page.split(':',1)[1]
         entry=next(entry for entry in catalog() if entry['id']==name)
@@ -41,7 +41,7 @@ def rows(model, page):
         return [(key,rule['label'],str(values[key])) for key,rule in entry['fields'].items()]
     if page=='agents':
         agents=model.agents(); tools=model.tools()
-        return [('agent:'+name,f"[{'x' if name in agents else ' '}] {name}",agents[name]['version'] if name in agents else 'not selected') for name in sorted(AGENTS)]+[('tool:'+name,f"[{'x' if name in tools else ' '}] {name}",'optional toolchain') for name in sorted(IMAGES)]
+        return [('agent:'+name,f"[{'x' if name in agents else ' '}] {name}",agents[name]['version'] if name in agents else 'not selected') for name in sorted(AGENTS)]+[('tool:'+name,f"[{'x' if name in tools else ' '}] {name}",next((entry['image'] for entry in model.requirements()['optional_toolchains'] if entry['name']==name),'not selected')) for name in sorted(IMAGES)]+[(None,'Required runtimes (included in base)',', '.join(sorted({dep for deps in model.requirements()['agents'].values() for dep in deps})))]+[(None,'Python dependencies','cockpit/executor lockfiles')]
     if page=='container':
         resources=RESOURCE_DEFAULTS | PROCESS_DEFAULTS | model.data.get('resources',{})
         return [('image','Docker image',model.data.get('image','orcan:latest')),('timezone','Timezone',model.data.get('timezone','UTC'))]+[(key,key.replace('_',' ').capitalize(),str(value)) for key,value in resources.items()]
@@ -70,7 +70,7 @@ def draw(screen,model,page,selected,message):
             except curses.error: pass
     text(0,'Orcan settings  /  '+page.replace('plugin:','Plugin: ')+('  * unsaved' if model.dirty else ''),curses.A_BOLD)
     text(1,str(model.path))
-    if page=='agents': text(2,'Image contents only. Saving does not install or start agents; run orcan build later.')
+    if page=='agents': text(2,'Image contents only. Saving does not install or start agents; orcan up builds when needed.')
     elif page=='review': text(2,'Required: '+' -> '.join(model.next_actions()))
     else:text(2,'Space: toggle  Enter: edit/open  Esc: back  q: exit  r: review  s: review/save')
     items=rows(model,page)
@@ -135,7 +135,12 @@ def run_screen(screen,model):
                     if value is not None:model.set_plugin(name,item,int(value) if rule['type']=='integer' else value)
             elif page=='agents':
                 kind,name=item.split(':',1)
-                if kind=='tool':model.toggle_tool(name)
+                if kind=='tool':
+                    if key==' ' or name not in model.tools(): model.toggle_tool(name)
+                    else:
+                        current=next(entry['image'] for entry in model.requirements()['optional_toolchains'] if entry['name']==name)
+                        value=_prompt_line(screen,'Source image for '+name,current)
+                        if value is not None:model.set_tool_image(name,value)
                 elif key==' ' or name not in model.agents():model.toggle_agent(name)
                 else:
                     value=_prompt_line(screen,'Version for '+name,model.agents()[name]['version'])

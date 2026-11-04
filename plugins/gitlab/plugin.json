@@ -20,5 +20,11 @@
   "verifier": "gitlab",
   "enabled": false,
   "requires": [],
-  "conflicts": []
+  "conflicts": [],
+  "image_requires": [
+    "glab"
+  ],
+  "host_requires": [
+    "GitLab token or glab login"
+  ]
 }

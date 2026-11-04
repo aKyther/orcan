@@ -89,5 +89,10 @@
   "enabled": false,
   "requires": [],
   "conflicts": [],
-  "compose": "compose.yml"
+  "compose": "compose.yml",
+  "image_requires": [
+    "ttyd",
+    "supervisor"
+  ],
+  "host_requires": []
 }

@@ -23,9 +23,7 @@ orcan_startup_prepare() {
     local cfg profile fingerprint image_id
     cfg="$(orcan_config_path)" || cfg=""
     profile="$(orcan_host_python "${ORCAN_SCRIPTS}/image-profile.py" --config "${cfg}")" || return
-    fingerprint="$(orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" fingerprint \
-        --root "${ORCAN_ROOT}" --profile "${profile}" \
-        --identity "${USER_UID:-$(id -u)}:${USER_GID:-$(id -g)}:${DOCKER_GID:-999}")" || return
+    fingerprint="$(orcan_image_build_fingerprint "${profile}")" || return
     image_id="$(docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}" 2>/dev/null)" || image_id=""
     if [[ -n "${image_id}" ]] && orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" matches \
         --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}"; then
