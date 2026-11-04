@@ -2,18 +2,18 @@
 
 DEFAULTS = {
     "split_lanes": False,
-    "workers": 1,
+    "workers": 3,
     "max_pending": 100,
-    "max_running": 2,
+    "max_running": 3,
     "timeout_seconds": 1800,
     "retention_seconds": 3600,
     "redis_memory_mb": 128,
     "visibility_timeout_seconds": 86400,
 }
 LIMITS = {
-    "workers": (1, 5),
+    "workers": (1, 10),
     "max_pending": (1, 10000),
-    "max_running": (1, 5),
+    "max_running": (1, 10),
     "timeout_seconds": (1, 21600),
     "retention_seconds": (60, 86400),
     "redis_memory_mb": (32, 4096),
@@ -35,6 +35,7 @@ def resolve(value: dict) -> dict:
     if not isinstance(value, dict) or set(value) - DEFAULTS.keys():
         raise ValueError("executor supports: " + ", ".join(DEFAULTS))
     result = DEFAULTS | value
+    if result["split_lanes"] and "workers" not in value: result["workers"]=1
     if type(result["split_lanes"]) is not bool:
         raise ValueError("executor.split_lanes must be a boolean")
     for key, (minimum, maximum) in LIMITS.items():

@@ -127,8 +127,8 @@ def edit_executor(cfg: dict[str, Any]) -> None:
     )
     try:
         for key, label in [
-            ("workers", "Workers on the shared queue (1..5; use 1 with split lanes)"),
-            ("max_running", "Maximum simultaneous jobs across workers (1..5)"),
+            ("workers", "Workers on the shared queue (1..10; use 1 with split lanes)"),
+            ("max_running", "Maximum simultaneous jobs across workers (1..10)"),
             ("max_pending", "Maximum queued plus running jobs (1..10000)"),
             ("timeout_seconds", "Default job timeout in seconds (1..21600)"),
             ("retention_seconds", "Detailed log retention in seconds (60..86400)"),
@@ -158,6 +158,8 @@ def edit_plugins(cfg: dict[str, Any]) -> bool:
                 continue
             name = entry["id"]
             current = proposed[name]
+            for hint in entry['help']: info(hint)
+            for example in entry['examples']: info('Example JSON: '+example)
             current["enabled"] = ask_yes_no(f"Enable {entry['title']} ({name})?", default=current["enabled"])
             if not current["enabled"] or not entry["fields"]:
                 continue
@@ -166,6 +168,7 @@ def edit_plugins(cfg: dict[str, Any]) -> bool:
                 continue
             for key, rule in entry["fields"].items():
                 try:
+                    if rule.get("help"): info(rule["help"])
                     if rule["type"] == "boolean":
                         value = ask_yes_no(rule["label"], default=current[key])
                     else:

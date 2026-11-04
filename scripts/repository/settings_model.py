@@ -9,7 +9,7 @@ from pathlib import Path
 from config_io import dump_config, load_config
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS
 from host_config import host_environment
-from orcan.image_profile import AGENTS, IMAGES, agent_entry, tool_entry, requirements, resolve as image_profile
+from orcan.image_profile import AGENTS, IMAGES, TOOLS, PYTHONS, agent_entry, tool_entry, requirements, resolve as image_profile
 from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection, change_selection
 
 
@@ -66,12 +66,12 @@ class SettingsModel:
         return {entry['name']:entry for entry in (agent_entry(value) for value in self.data.get('build',{}).get('agents',[]))}
 
     def tools(self):
-        if 'build' not in self.data: return set(IMAGES)
+        if 'build' not in self.data: return set(TOOLS)
         return {value if isinstance(value,str) else value['name'] for value in self.data['build'].get('tools',[])}
 
     def _build_draft(self):
         if 'build' not in self.data:
-            self.data['build']={'agents':[],'tools':list(IMAGES)}
+            self.data['build']={'agents':[],'tools':sorted(TOOLS),'python':['3.13']}
         return self.data['build']
 
     def toggle_agent(self, name):
@@ -94,7 +94,7 @@ class SettingsModel:
         raise ValueError('Enable the agent before editing its version')
 
     def toggle_tool(self, name):
-        if name not in IMAGES: raise ValueError('Unknown toolchain')
+        if name not in TOOLS: raise ValueError('Unknown toolchain')
         enabled=self.tools()
         build=self._build_draft()
         if name in enabled:
@@ -111,9 +111,29 @@ class SettingsModel:
     def requirements(self):
         # Drafts may temporarily contain no agent while the selection is edited.
         profile = {'agents':list(self.agents().values()),
-                   'tools':[tool_entry(value) for value in self.data.get('build',{}).get('tools',list(IMAGES))]}
+                   'python':self.python_versions(), 'tools':[tool_entry(value) for value in self.data.get('build',{}).get('tools',sorted(TOOLS))]}
         plugins = self.plugins()
         return requirements(profile, [entry for entry in catalog() if plugins[entry['id']]['enabled']])
+
+    def set_tool_version(self, name, version):
+        value=tool_entry({'name':name,'version':version})
+        if name not in self.tools(): raise ValueError('Enable the toolchain first')
+        build=self._build_draft()
+        build['tools']=[value if (entry if isinstance(entry,str) else entry['name'])==name else entry for entry in build['tools']]
+
+    def python_versions(self):
+        return self.data.get('build',{}).get('python',[] if 'build' in self.data else ['3.13'])
+
+    def toggle_python(self, version):
+        if version not in PYTHONS: raise ValueError('Unsupported Python version')
+        selected=list(self.python_versions())
+        if version in selected: selected.remove(version)
+        else: selected.append(version)
+        self._build_draft()['python']=selected
+
+    def default_python(self, version):
+        if version not in self.python_versions(): raise ValueError('Enable this Python version first')
+        self._build_draft()['python']=[version]+[entry for entry in self.python_versions() if entry!=version]
 
     def set_resource(self, key, value):
         proposed=copy.deepcopy(self.data)
@@ -153,7 +173,8 @@ class SettingsModel:
         if self.data.get('build')!=self.original.get('build'):
             agents=self.agents()
             lines.append('Image agents: '+(', '.join(name+'@'+entry['version'] for name,entry in agents.items()) or 'none selected'))
-            lines.append('Image toolchains: '+(', '.join(entry['name']+'@'+entry['image'] for entry in self.requirements()['optional_toolchains']) or 'none'))
+            lines.append('Project Python (first is default): '+(', '.join(self.python_versions()) or 'none; core runtimes remain'))
+            lines.append('Image toolchains: '+(', '.join(entry['name']+'@'+entry.get('image',entry.get('version','')) for entry in self.requirements()['optional_toolchains']) or 'none'))
         for section,defaults in (('resources',RESOURCE_DEFAULTS),('tmux',TMUX_DEFAULTS)):
             old=defaults | self.original.get(section,{})
             new=defaults | self.data.get(section,{})

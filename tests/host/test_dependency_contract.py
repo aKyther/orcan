@@ -100,6 +100,6 @@ def test_catalog_rejects_unavailable_image_dependencies(tmp_path):
     package=tmp_path/'fixture'
     package.mkdir()
     (package/'plugin.json').write_text(json.dumps({'id':'fixture','version':1,
-        'group':'services','enabled':False,'fields':{},'image_requires':['missing-component']}))
+        'group':'services','enabled':False,'fields':{},'help':['Fixture setup'],'examples':['{}'],'image_requires':['missing-component']}))
     with pytest.raises(ValueError, match='unavailable image component'):
         catalog(tmp_path)

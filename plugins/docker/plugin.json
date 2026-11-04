@@ -22,5 +22,14 @@
   ],
   "host_requires": [
     "Docker socket"
+  ],
+  "help": [
+    "Allows tools inside Orcan to control the host Docker engine through its socket.",
+    "The host must have Docker running and /var/run/docker.sock available.",
+    "Conflicts with the network plugin. Disable network explicitly before enabling Docker socket access.",
+    "Check after startup: orcan plugins doctor --plugin docker."
+  ],
+  "examples": [
+    "{\"plugins\":{\"docker\":{\"enabled\":true},\"network\":{\"enabled\":false}}}"
   ]
 }

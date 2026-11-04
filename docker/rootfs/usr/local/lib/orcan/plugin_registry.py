@@ -28,7 +28,17 @@ def catalog(root: Path | None = None) -> list[dict]:
             raise ValueError('Invalid bundled plugin descriptor: ' + str(path))
         if value.get('group') not in {'access', 'services', 'interface'} or type(value.get('enabled')) is not bool or not isinstance(value.get('fields'), dict):
             raise ValueError('Invalid grouped plugin settings: ' + name)
+        hints=value.get('help', [])
+        if not isinstance(hints,list) or not hints or len(hints)>30 or any(not isinstance(hint,str) or len(hint)>800 or not hint.isprintable() for hint in hints):
+            raise ValueError('Invalid plugin configuration help: '+name)
+        examples=value.get('examples', [])
+        if not isinstance(examples,list) or not examples or len(examples)>10 or any(not isinstance(example,str) or len(example)>2000 for example in examples):
+            raise ValueError('Plugin must provide configuration examples: '+name)
+        for example in examples:
+            if not isinstance(json.loads(example),dict): raise ValueError('Plugin examples must be JSON objects: '+name)
         for key, rule in value['fields'].items():
+            if 'help' in rule and (not isinstance(rule['help'],str) or len(rule['help'])>800 or not rule['help'].isprintable()):
+                raise ValueError('Invalid plugin field help: '+name+'.'+key)
             if not re.fullmatch('[a-z][a-z0-9_]*', key) or rule.get('type') not in {'boolean', 'integer', 'string'} or not isinstance(rule.get('label'), str):
                 raise ValueError('Invalid plugin field: ' + name + '.' + key)
             if 'env' in rule and not re.fullmatch('[A-Z][A-Z0-9_]*', rule['env']):
@@ -137,6 +147,7 @@ def resolve(cfg: dict, *, check_selection: bool = False) -> dict:
             # Legacy ttyd.port implied host_port when no host_port was supplied.
             if name == 'ttyd' and key == 'host_port' and 'host_port' not in legacy:
                 fallback = legacy.get('port', fallback)
+            if name=='redis' and key=='workers' and values.get('split_lanes',legacy.get('split_lanes',False)) and key not in values and key not in legacy: fallback=1
             resolved[key] = validate_field(name, key, values.get(key, fallback), rule)
         if name == 'redis' and resolved['split_lanes'] and resolved['workers'] != 1:
             raise ValueError('plugins.redis.workers must be 1 when split_lanes is enabled')

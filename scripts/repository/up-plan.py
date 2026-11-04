@@ -77,6 +77,7 @@ def preview(config: Path, home: Path, arguments: list[str], saved_path: Path | N
         'blockers':[] if requested_profile else ['Choose image agents in orcan settings before startup can prepare an image.'],
         'image':{'name':host['IMAGE_LOCAL'],'requested_profile':requested_profile,'installed_profile_inspected':False},
         'plugins':plugins, 'enabled_plugins':selected,
+        'plugin_help':{entry['id']:{'help':entry['help'],'examples':entry['examples']} for entry in catalog() if entry['id'] in selected},
         'requirements':requirements(requested_profile, [entry for entry in catalog() if entry['id'] in selected]),
         'resources':resolve_settings(cfg)['resources'],
         'mounts':mounts, 'ports':ports,
@@ -96,6 +97,13 @@ def render(report: dict) -> str:
     lines.append('Agents requested for image: '+(', '.join(entry['name']+'@'+entry['version'] for entry in profile['agents']) if profile else 'not configured; installed image not inspected'))
     for blocker in report['blockers']: lines.append('Required: '+blocker)
     if report['configuration']['needs_sync']: lines.append('Startup will synchronize generated configuration')
+    if profile:
+        lines.append('Project tools: '+(', '.join(entry['name']+'@'+entry.get('image',entry.get('version','')) for entry in profile['tools']) or 'none'))
+        lines.append('Project Python (first is default): '+(', '.join(profile.get('python',[])) or 'none'))
+        lines.append(report['requirements']['core_python'])
+        lines.append('Omitted project tools: '+(', '.join(report['requirements']['omitted_toolchains']) or 'none'))
+        for name,deps in report['requirements']['tool_dependencies'].items():
+            if deps: lines.append(name+' requires: '+', '.join(deps))
     lines.append('Stages: ' + ' -> '.join(report['stages']))
     lines.append('Runtime: '+report['lifecycle'])
     for port in report['ports']: lines.append(f"Port ({port['plugin']}): {port['bind']}:{port['host']} -> {port['container']}")
@@ -108,6 +116,8 @@ def render(report: dict) -> str:
         if required['plugins']: lines.append('Required plugins ('+name+'): '+', '.join(required['plugins']))
         if required['conflicts']: lines.append('Conflicts ('+name+'): '+', '.join(required['conflicts']))
     if report['network']: lines.append('External network: '+report['network'])
+    for name,help in report['plugin_help'].items():
+        lines.append('Setup ('+name+'): orcan plugins help --plugin '+name)
     for entry in report['credentials']: lines.append('Authentication ('+entry['plugin']+'): '+entry['action'])
     lines.append('No credentials acquired; no files, containers or services changed.')
     return '\n'.join(''.join(character if character.isprintable() else ' ' for character in line) for line in lines)

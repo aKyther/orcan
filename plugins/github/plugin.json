@@ -14,7 +14,8 @@
       "default": "github.com",
       "format": "hostname",
       "flag": "--github-hostname",
-      "label": "GitHub hostname"
+      "label": "GitHub hostname",
+      "help": "Hostname only, for example github.com or gitlab.example.com. No https:// prefix, path or port. Host login must match this hostname."
     }
   },
   "verifier": "github",
@@ -26,5 +27,15 @@
   ],
   "host_requires": [
     "GitHub token or gh login"
+  ],
+  "help": [
+    "Provides gh CLI/API access for pull requests, issues and GitHub repositories. SSH is independent.",
+    "On the host: gh auth login --hostname github.com (use your hostname for Enterprise).",
+    "Alternatively provide GH_TOKEN to the launching process; Enterprise uses GH_ENTERPRISE_TOKEN. Never save token values in JSON.",
+    "Check login yourself on the host: gh auth status --hostname github.com.",
+    "For an SSH Git remote, also enable the SSH plugin and add the public key to your GitHub account."
+  ],
+  "examples": [
+    "{\"plugins\":{\"github\":{\"enabled\":true,\"hostname\":\"github.com\"}}}"
   ]
 }

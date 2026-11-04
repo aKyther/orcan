@@ -129,3 +129,10 @@ requirements together, refuses disabling a plugin still required by another,
 and asks you to disable a conflicting selection explicitly. It never silently
 removes access or services to resolve a conflict. CLI overrides validate the final
 selection and report missing dependencies rather than persisting extra settings.
+
+Each descriptor must include non-empty `help` and `examples` lists. `help` is
+setup text; each `examples` entry is a JSON object encoded as text, normally a
+configuration fragment. Field-level `help` is optional and explains that field.
+Catalog validation rejects missing guidance or malformed examples. Settings,
+`orcan plugins help --plugin NAME`, and startup plan JSON read this metadata
+rather than maintaining separate setup instructions.

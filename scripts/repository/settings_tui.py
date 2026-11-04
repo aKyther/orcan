@@ -7,12 +7,13 @@ import curses
 import os
 import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 from settings_model import SettingsModel
 from context_tui import _init_curses_session, _prompt_line
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, PROCESS_DEFAULTS
-from orcan.image_profile import AGENTS, IMAGES
+from orcan.image_profile import AGENTS, IMAGES, TOOLS, PYTHONS, TOOL_HELP
 from orcan.plugin_registry import catalog
 
 
@@ -20,7 +21,15 @@ def safe_text(text):
     return ''.join(character if character.isprintable() else ' ' for character in str(text))
 
 
-def rows(model, page):
+def guidance_rows(lines, width):
+    result=[]
+    for line in lines:
+        for part in textwrap.wrap(safe_text(line), max(12, width-2), break_long_words=True, break_on_hyphens=False):
+            result.append((None,part,''))
+    return result
+
+
+def rows(model, page, width=100):
     if page=='home':
         return [
             ('workspaces','Workspaces and projects','Open the existing workspace manager'),
@@ -38,13 +47,32 @@ def rows(model, page):
         name=page.split(':',1)[1]
         entry=next(entry for entry in catalog() if entry['id']==name)
         values=model.plugins()[name]
-        return [(key,rule['label'],str(values[key])) for key,rule in entry['fields'].items()]
+        result=[('__enabled__','Enabled',str(values['enabled']))]
+        for key,rule in entry['fields'].items():
+            result.append((key,rule['label'],str(values[key])))
+            limits=[]
+            if 'choices' in rule: limits.append('Choices: '+', '.join(map(str,rule['choices'])))
+            if 'minimum' in rule: limits.append('Range: '+str(rule['minimum'])+' to '+str(rule['maximum']))
+            result.extend(guidance_rows(([rule['help']] if rule.get('help') else [])+limits,width))
+        result.extend(guidance_rows(['Settings: plugins.'+name+' in orcan.config.json','Copyable help/examples: orcan plugins help --plugin '+name]+entry.get('help',[])+['Example JSON: '+example for example in entry['examples']],width))
+        return result
     if page=='agents':
         agents=model.agents(); tools=model.tools()
-        return [('agent:'+name,f"[{'x' if name in agents else ' '}] {name}",agents[name]['version'] if name in agents else 'not selected') for name in sorted(AGENTS)]+[('tool:'+name,f"[{'x' if name in tools else ' '}] {name}",next((entry['image'] for entry in model.requirements()['optional_toolchains'] if entry['name']==name),'not selected')) for name in sorted(IMAGES)]+[(None,'Required runtimes (included in base)',', '.join(sorted({dep for deps in model.requirements()['agents'].values() for dep in deps})))]+[(None,'Python dependencies','cockpit/executor lockfiles')]
+        dependencies=model.requirements()
+        effective={entry['name']:entry for entry in dependencies['optional_toolchains']}
+        return [('agent:'+name,f"[{'x' if name in agents else ' '}] {name}",agents[name]['version'] if name in agents else 'not selected') for name in sorted(AGENTS)]+[('tool:'+name,f"[{'x' if name in tools else '+' if name in effective else ' '}] {name}",effective.get(name,{}).get('image',effective.get(name,{}).get('version','not selected'))) for name in sorted(TOOLS)]+[('python:'+version,f"[{'x' if version in model.python_versions() else ' '}] Python {version}",'default for projects' if model.python_versions()[:1]==[version] else 'optional project runtime') for version in PYTHONS]+[(None,'Required runtimes (included in base)',', '.join(sorted({dep for deps in dependencies['agents'].values() for dep in deps})))]+[(None,'Python dependencies','cockpit/executor lockfiles')]+guidance_rows([
+            'Project tools: [x] direct selection, [+] required by another selected tool. Orcan core stays installed.',
+            'Example Java/Gradle: choose gradle; JDK is included automatically. Kotlin, sbt, Go and Rust are not needed for this selection.',
+            'build.gradle.kts uses the Kotlin DSL bundled with Gradle; a standalone Kotlin compiler is not required for that alone.',
+            'If your projects do not use Go or Rust, leave them unselected to avoid installing their toolchains.',
+            'Python: Space selects one or several project runtimes; Enter makes an enabled version the default. Internal service runtimes remain separate.',
+            'Saving changes JSON only. up prepares the new image when needed; build --plan shows requirements before building.',
+            'Inspect host image/cache usage with docker system df. --prune removes only dangling Orcan images; it does not clear BuildKit cache.',
+            *[name+': '+TOOL_HELP[name] for name in sorted(TOOLS)]
+        ],width)
     if page=='container':
         resources=RESOURCE_DEFAULTS | PROCESS_DEFAULTS | model.data.get('resources',{})
-        return [('image','Docker image',model.data.get('image','orcan:latest')),('timezone','Timezone',model.data.get('timezone','UTC'))]+[(key,key.replace('_',' ').capitalize(),str(value)) for key,value in resources.items()]
+        return [('image','Docker image',model.data.get('image','orcan:latest')),('timezone','Timezone',model.data.get('timezone','UTC'))]+[(key,key.replace('_',' ').capitalize(),str(value)) for key,value in resources.items()]+guidance_rows(['Image: local Docker tag for Orcan. Image contents are selected in Agents and image.', 'CPU and memory are shared by all processes and executor workers in this container, not assigned per worker.', 'Memory accepts Docker sizes, for example 4g. shm_size and tmpfs_size are separate size limits.', 'Changing these settings can recreate the container on the next up and interrupt attached sessions. Saving settings alone does not restart anything.'],width)
     if page=='tmux':
         values=TMUX_DEFAULTS | model.data.get('tmux',{})
         return [(key,key.replace('_',' ').capitalize(),str(value)) for key,value in values.items()]
@@ -72,8 +100,8 @@ def draw(screen,model,page,selected,message):
     text(1,str(model.path))
     if page=='agents': text(2,'Image contents only. Saving does not install or start agents; orcan up builds when needed.')
     elif page=='review': text(2,'Required: '+' -> '.join(model.next_actions()))
-    else:text(2,'Space: toggle  Enter: edit/open  Esc: back  q: exit  r: review  s: review/save')
-    items=rows(model,page)
+    else:text(2,'Space: toggle  Enter: edit/help  Esc: back  q: exit  r: review  s: review/save')
+    items=rows(model,page,width)
     selected=max(0,min(selected,max(0,len(items)-1)))
     visible=max(1,height-6)
     start=max(0,selected-visible+1)
@@ -124,10 +152,14 @@ def run_screen(screen,model):
                 page=item;selected=0;message='';continue
             if page=='plugins':
                 entry=next(entry for entry in catalog() if entry['id']==item)
-                if key==' ' or not entry['fields']:model.toggle_plugin(item)
+                if key==' ':model.toggle_plugin(item)
                 else:page='plugin:'+item;selected=0
             elif page.startswith('plugin:'):
-                name=page.split(':',1)[1];rule=next(entry for entry in catalog() if entry['id']==name)['fields'][item]
+                name=page.split(':',1)[1]
+                if item=='__enabled__':
+                    model.toggle_plugin(name)
+                    continue
+                rule=next(entry for entry in catalog() if entry['id']==name)['fields'][item]
                 current=model.plugins()[name][item]
                 if rule['type']=='boolean':model.set_plugin(name,item,not current)
                 else:
@@ -138,9 +170,14 @@ def run_screen(screen,model):
                 if kind=='tool':
                     if key==' ' or name not in model.tools(): model.toggle_tool(name)
                     else:
-                        current=next(entry['image'] for entry in model.requirements()['optional_toolchains'] if entry['name']==name)
-                        value=_prompt_line(screen,'Source image for '+name,current)
-                        if value is not None:model.set_tool_image(name,value)
+                        current=next(entry.get('image',entry.get('version','')) for entry in model.requirements()['optional_toolchains'] if entry['name']==name)
+                        value=_prompt_line(screen,('Source image for ' if name in IMAGES else 'Version for ')+name,current)
+                        if value is not None:
+                            if name in IMAGES:model.set_tool_image(name,value)
+                            else:model.set_tool_version(name,value)
+                elif kind=='python':
+                    if key==' ' or name not in model.python_versions():model.toggle_python(name)
+                    else:model.default_python(name)
                 elif key==' ' or name not in model.agents():model.toggle_agent(name)
                 else:
                     value=_prompt_line(screen,'Version for '+name,model.agents()[name]['version'])

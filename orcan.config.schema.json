@@ -5,7 +5,9 @@
   "description": "Schema for orcan.config.json. Enforced in practice by scripts/repository/apply-config.py.",
   "type": "object",
   "additionalProperties": true,
-  "required": ["workspaces"],
+  "required": [
+    "workspaces"
+  ],
   "properties": {
     "plugins": {
       "type": "object",
@@ -91,9 +93,9 @@
             },
             "workers": {
               "type": "integer",
-              "default": 1,
+              "default": 3,
               "minimum": 1,
-              "maximum": 5,
+              "maximum": 10,
               "description": "Workers"
             },
             "max_pending": {
@@ -105,9 +107,9 @@
             },
             "max_running": {
               "type": "integer",
-              "default": 2,
+              "default": 3,
               "minimum": 1,
-              "maximum": 5,
+              "maximum": 10,
               "description": "Max running"
             },
             "timeout_seconds": {
@@ -162,9 +164,9 @@
             },
             "workers": {
               "type": "integer",
-              "default": 1,
+              "default": 3,
               "minimum": 1,
-              "maximum": 5,
+              "maximum": 10,
               "description": "Workers"
             },
             "max_pending": {
@@ -176,9 +178,9 @@
             },
             "max_running": {
               "type": "integer",
-              "default": 2,
+              "default": 3,
               "minimum": 1,
-              "maximum": 5,
+              "maximum": 10,
               "description": "Max running"
             },
             "timeout_seconds": {
@@ -330,8 +332,16 @@
         }
       }
     },
-    "host_id": { "type": "string", "format": "uuid", "description": "Registered Orcan host installation UUID." },
-    "container_id": { "type": "string", "format": "uuid", "description": "Registered logical container configuration UUID; explicit replacement creates a new ID." },
+    "host_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Registered Orcan host installation UUID."
+    },
+    "container_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Registered logical container configuration UUID; explicit replacement creates a new ID."
+    },
     "identity": {
       "description": "Frozen identity selected at container creation; all workspaces inherit its instructions.",
       "type": "object",
@@ -448,7 +458,13 @@
               {
                 "enum": [
                   "go",
-                  "rust"
+                  "rust",
+                  "jdk",
+                  "gradle",
+                  "maven",
+                  "kotlin",
+                  "scala",
+                  "sbt"
                 ]
               },
               {
@@ -461,45 +477,64 @@
                   "name": {
                     "enum": [
                       "go",
-                      "rust"
+                      "rust",
+                      "jdk",
+                      "gradle",
+                      "maven",
+                      "kotlin",
+                      "scala",
+                      "sbt"
                     ]
                   },
                   "version": {
                     "type": "string"
                   },
                   "cockpit": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "pty_read_bytes": {
-          "type": "integer",
-          "minimum": 4096,
-          "maximum": 1048576
-        },
-        "pty_read_ms": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 50
-        },
-        "pty_chunk_bytes": {
-          "type": "integer",
-          "minimum": 4096,
-          "maximum": 65536
-        },
-        "peek_chars": {
-          "type": "integer",
-          "minimum": 256,
-          "maximum": 8192
-        }
-      }
-    },
-    "image": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "pty_read_bytes": {
+                        "type": "integer",
+                        "minimum": 4096,
+                        "maximum": 1048576
+                      },
+                      "pty_read_ms": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      "pty_chunk_bytes": {
+                        "type": "integer",
+                        "minimum": 4096,
+                        "maximum": 65536
+                      },
+                      "peek_chars": {
+                        "type": "integer",
+                        "minimum": 256,
+                        "maximum": 8192
+                      }
+                    }
+                  },
+                  "image": {
                     "type": "string"
                   }
                 }
               }
             ]
           }
+        },
+        "python": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "3.11",
+              "3.12",
+              "3.13"
+            ]
+          },
+          "description": "Project Python runtimes; first entry is default. Internal Orcan Python runtimes remain installed."
         }
       }
     },
@@ -523,7 +558,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "projects"],
+        "required": [
+          "name",
+          "projects"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -540,7 +578,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name", "path"],
+              "required": [
+                "name",
+                "path"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -562,7 +603,12 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "history_limit": {"type":"integer","minimum":1000,"maximum":200000,"default":20000},
+        "history_limit": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 200000,
+          "default": 20000
+        },
         "initial_windows": {
           "type": "integer",
           "minimum": 1,
@@ -578,8 +624,17 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 7681 },
-        "host_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 7681
+        },
+        "host_port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
         "bind": {
           "type": "string",
           "default": "0.0.0.0",
@@ -591,10 +646,15 @@
           "default": 14,
           "description": "Desktop terminal font size. Phone and tablet widths use responsive 16 px and 14 px overrides."
         },
-        "font_family": { "type": "string" },
+        "font_family": {
+          "type": "string"
+        },
         "renderer": {
           "type": "string",
-          "enum": ["webgl", "canvas"],
+          "enum": [
+            "webgl",
+            "canvas"
+          ],
           "default": "webgl",
           "description": "xterm.js renderer. WebGL is fastest; canvas is a compatibility fallback for browser/GPU rendering issues."
         },
@@ -616,12 +676,36 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "nofile": { "type": "integer", "minimum": 1024, "default": 65536 },
-        "nproc": { "type": "integer", "minimum": 1024, "default": 65536 },
-        "cpus": { "type": ["integer", "number", "string"], "default": 2 },
-        "memory": { "type": "string", "default": "4g" },
-        "shm_size": { "type": "string", "default": "512m" },
-        "tmpfs_size": { "type": "string", "default": "512m" }
+        "nofile": {
+          "type": "integer",
+          "minimum": 1024,
+          "default": 65536
+        },
+        "nproc": {
+          "type": "integer",
+          "minimum": 1024,
+          "default": 65536
+        },
+        "cpus": {
+          "type": [
+            "integer",
+            "number",
+            "string"
+          ],
+          "default": 2
+        },
+        "memory": {
+          "type": "string",
+          "default": "4g"
+        },
+        "shm_size": {
+          "type": "string",
+          "default": "512m"
+        },
+        "tmpfs_size": {
+          "type": "string",
+          "default": "512m"
+        }
       }
     }
   }

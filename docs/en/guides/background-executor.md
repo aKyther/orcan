@@ -109,7 +109,7 @@ pinned jobs retain their recorded lane and are not automatically migrated. Witho
 a plugin section, built-in defaults apply. Legacy top-level `executor` settings remain readable.
 `orcan-executor settings` shows the effective process settings and their source.
 
-`workers` (1..5, default 1) starts independent Celery workers on one shared queue
+`workers` (1..10, default 3) starts independent Celery workers on one shared queue
 when `split_lanes` is false. Each worker executes one job at a time and has its own
 process lock, heartbeat and log. All profiles use the shared queue in this mode,
 including profiles labelled `light` or `heavy`. Set both `workers` and
@@ -119,7 +119,7 @@ from multiple sessions waits for a free worker; repository turns still apply.
 lane. One worker stopping does not clear the other workers' readiness.
 Set worker counts in JSON; no `.env` file is involved.
 
-`max_running` (1..5, default 2) is an atomic instance-wide admission cap shared by
+`max_running` (1..10, default 3) is an atomic instance-wide admission cap shared by
 all lanes. Workers defer capacity-blocked jobs for a later attempt without running
 their procedures or consuming an execution attempt. Failed procedures are not
 retried by this mechanism. Queued jobs can still be cancelled. A stale running job
@@ -527,7 +527,7 @@ A procedure can declare `"lane": "light"` or `"lane": "heavy"`; omitted means
 In shared-queue mode, lane labels do not create separate queues.
 Keep `workers` at 1 when using split lanes; combining a shared pool with split lanes
 is rejected. Set `ORCAN_EXECUTOR_SPLIT_LANES=1` when starting Orcan to supervise one additional
-worker for each lane. This starts three workers, one per lane; the global max_running cap (default 2) limits simultaneous checks,
+worker for each lane. This starts three workers, one per lane; the global max_running cap (default 3) limits simultaneous checks,
 and keeps lightweight checks out of a queue occupied by JVM work. It does not impose
 CPU or memory quotas. The shared pool is the simpler choice when all jobs should use the same queue.
 

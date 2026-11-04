@@ -146,10 +146,22 @@ def resources(cgroup: Path = Path("/sys/fs/cgroup"), disk: Path | None = None) -
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "command", choices=["list", "doctor", "validate"], default="list", nargs="?"
+        "command", choices=["list", "doctor", "validate", "help"], default="list", nargs="?"
     )
     parser.add_argument("--plugin", choices=sorted(IDS), action="append")
     args = parser.parse_args(argv)
+    if args.command == "help":
+        names=args.plugin or [entry['id'] for entry in catalog()]
+        if 'executor' in names: names=[('redis' if name=='executor' else name) for name in names]
+        for entry in catalog():
+            if entry['id'] not in names: continue
+            print(entry['title']+' — plugins.'+entry['id'])
+            for hint in entry['help']: print(hint)
+            for key,rule in entry['fields'].items():
+                print(key+': '+rule.get('help',rule['label']))
+            for example in entry['examples']: print('Example JSON: '+example)
+            print()
+        return 0
     if args.command == "validate":
         root = Path(os.environ.get("ORCAN_ROOT", "."))
         entries = catalog(root / "plugins")

@@ -19,5 +19,17 @@
   ],
   "host_requires": [
     "SSH directory or agent socket"
+  ],
+  "help": [
+    "SSH access for git clone, pull and push over SSH. GitHub/GitLab API plugins are separate.",
+    "Prepare on the host: ~/.ssh/config and your existing private key, or a running ssh-agent with SSH_AUTH_SOCK.",
+    "Keep keys on the host; do not put them in project folders, plugins/ or orcan.config.json. Orcan mounts ~/.ssh read-only.",
+    "Example ~/.ssh/config: Host github.com | User git | IdentityFile ~/.ssh/id_ed25519 (write each option on its own line).",
+    "Add the matching public key to your GitHub/GitLab account. Never share the private key.",
+    "Check yourself on the host: ssh -T git@github.com (or your GitLab hostname); confirm the server fingerprint before trusting it.",
+    "Check the container mount: orcan plugins doctor --plugin ssh. This does not test remote authentication."
+  ],
+  "examples": [
+    "{\"plugins\":{\"ssh\":{\"enabled\":true}}}"
   ]
 }

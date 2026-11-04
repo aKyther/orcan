@@ -33,8 +33,8 @@ continuing.
 
 Version/source entries already in JSON are preserved when selecting other agents.
 Changing a version validates it with the same rules as `orcan build --plan`.
-Space toggles a toolchain; Enter edits the source image of an enabled Go/Rust
-toolchain. Required agent runtimes are shown separately and supplied by the base
+Space toggles a toolchain; Enter edits its version (or source image for Go/Rust).
+Select one or several project Python versions and use Enter to choose the default. Required agent runtimes are shown separately and supplied by the base
 image. Plugin rows show dependency/conflict rules; enabling a plugin also selects
 its required plugins.
 Agents here are CLI tools installed in the image. Their models and provider
@@ -76,3 +76,14 @@ the listed managed/project/plugin mounts.
 `--resume --plan` previews the saved plugin selection. It can report a required
 terminal password without asking for it or revealing an argument supplied to
 the preview. The normal resume command still requires transient authentication.
+
+Plugin configuration help is maintained in each package's `plugin.json`.
+Every plugin must supply setup guidance and JSON examples. Enter opens the
+plugin detail page, including plugins without editable fields; Space toggles it.
+Long help text wraps to the terminal width and scrolls with the page. Field hints
+include choices/ranges, authentication preparation and the effect of each option.
+The same content is available without Docker through
+`orcan plugins help --plugin ssh` (or `github`, `gitlab`, `redis`, etc.). Startup
+plan JSON includes the enabled plugins' help/examples; the text plan links to
+these commands. Opening help never fetches tokens, reads keys or executes the
+suggested setup commands.

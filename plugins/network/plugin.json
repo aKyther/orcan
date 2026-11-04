@@ -16,7 +16,8 @@
       "type": "string",
       "default": "",
       "format": "network",
-      "label": "Existing Docker network name"
+      "label": "Existing Docker network name",
+      "help": "Exact name of an existing Docker network, for example my-network."
     }
   },
   "value_flag": true,
@@ -26,5 +27,13 @@
   "image_requires": [],
   "host_requires": [
     "Existing Docker network"
+  ],
+  "help": [
+    "Joins an existing host Docker network. Enter its name before saving.",
+    "Check available networks yourself on the host: docker network ls.",
+    "Conflicts with Docker socket access; disable the docker plugin first."
+  ],
+  "examples": [
+    "{\"plugins\":{\"network\":{\"enabled\":true,\"name\":\"my-network\"},\"docker\":{\"enabled\":false}}}"
   ]
 }

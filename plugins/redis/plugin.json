@@ -17,15 +17,17 @@
       "type": "boolean",
       "default": false,
       "label": "Split lanes",
-      "env": "ORCAN_EXECUTOR_SPLIT_LANES"
+      "env": "ORCAN_EXECUTOR_SPLIT_LANES",
+      "help": "Separate light/default/heavy queues. When enabled, workers must be 1; readiness is checked separately per lane."
     },
     "workers": {
       "type": "integer",
-      "default": 1,
+      "default": 3,
       "label": "Workers",
       "env": "ORCAN_EXECUTOR_WORKERS",
       "minimum": 1,
-      "maximum": 5
+      "maximum": 10,
+      "help": "Default 3 workers; range 1 to 10. max_running independently limits simultaneous jobs. Split lanes require workers=1."
     },
     "max_pending": {
       "type": "integer",
@@ -33,15 +35,17 @@
       "label": "Max pending",
       "env": "ORCAN_EXECUTOR_MAX_PENDING",
       "minimum": 1,
-      "maximum": 10000
+      "maximum": 10000,
+      "help": "Maximum queued jobs; admission beyond this limit is refused."
     },
     "max_running": {
       "type": "integer",
-      "default": 2,
+      "default": 3,
       "label": "Max running",
       "env": "ORCAN_EXECUTOR_MAX_RUNNING",
       "minimum": 1,
-      "maximum": 5
+      "maximum": 10,
+      "help": "Global simultaneous job cap across queues. Increasing workers alone does not increase this cap."
     },
     "timeout_seconds": {
       "type": "integer",
@@ -57,7 +61,8 @@
       "label": "Retention seconds",
       "env": "ORCAN_EXECUTOR_RETENTION_SECONDS",
       "minimum": 60,
-      "maximum": 86400
+      "maximum": 86400,
+      "help": "Seconds to keep detailed logs and artifacts after completion. Default 3600 = one hour."
     },
     "redis_memory_mb": {
       "type": "integer",
@@ -65,7 +70,8 @@
       "label": "Redis memory mb",
       "env": "ORCAN_EXECUTOR_REDIS_MEMORY_MB",
       "minimum": 32,
-      "maximum": 4096
+      "maximum": 4096,
+      "help": "Redis RAM limit in MiB; this is not a disk-space limit."
     },
     "visibility_timeout_seconds": {
       "type": "integer",
@@ -73,7 +79,8 @@
       "label": "Visibility timeout seconds",
       "env": "ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS",
       "minimum": 22200,
-      "maximum": 86400
+      "maximum": 86400,
+      "help": "Broker visibility timeout; keep it longer than the longest permitted task to avoid premature redelivery."
     },
     "port": {
       "type": "integer",
@@ -82,7 +89,8 @@
       "maximum": 65535,
       "label": "Dashboard host port",
       "env": "ORCAN_EXECUTOR_PORT",
-      "legacy_key": "executor_port"
+      "legacy_key": "executor_port",
+      "help": "Dashboard host port; choose a free port. It is separate from the browser terminal port."
     }
   },
   "verifier": "executor",
@@ -96,5 +104,14 @@
     "uv",
     "supervisor"
   ],
-  "host_requires": []
+  "host_requires": [],
+  "help": [
+    "Runs Redis, background workers and an executor dashboard inside Orcan.",
+    "Workers are available execution slots; max_running is a shared job limit. Jobs may still use multiple build threads.",
+    "Finish active jobs before changing settings that recreate the container. Shared CPU/RAM limits apply to all workers.",
+    "Check after startup: orcan executor doctor; inspect queue limits with orcan executor settings."
+  ],
+  "examples": [
+    "{\"plugins\":{\"redis\":{\"enabled\":true,\"workers\":3,\"max_running\":3}}}"
+  ]
 }

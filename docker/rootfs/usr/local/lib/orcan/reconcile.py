@@ -522,7 +522,7 @@ Use the compact result first: status, exact SHA, counters and bounded failure me
 Do not fetch full logs or passed-case output after success. On failure, list artifacts
 and read only the relevant failed-case report or bounded diagnostic fragment; broaden
 only if needed to identify the cause. Report skips and checks that never ran honestly.
-With split_lanes=false, all new profiles use one shared queue with 1..5 workers.
+With split_lanes=false, all new profiles use one shared queue with 1..10 workers.
 With split lanes enabled, choose a lane supported by a ready worker. Keep explicit
 tool parallelism (for example Gradle --max-workers=1), including on a shared queue.
 Profiles may set timeout_seconds; explicit --timeout wins over profile and runtime defaults.

@@ -81,3 +81,38 @@ def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,sectio
             proc.terminate()
             proc.wait(timeout=5)
         os.close(master)
+
+
+def test_opening_ssh_setup_in_real_terminal_does_not_toggle_or_write(tmp_path):
+    path=tmp_path/'orcan.config.json'
+    path.write_text('{"workspaces":[]}')
+    before=path.read_bytes()
+    master,slave=pty.openpty()
+    fcntl.ioctl(slave,termios.TIOCSWINSZ,struct.pack('HHHH',28,100,0,0))
+    env={**os.environ,'TERM':'xterm-256color','ORCAN_HOME':str(tmp_path),'ORCAN_CONFIG_FILE':str(path),'CONFIG':str(path)}
+    proc=subprocess.Popen([str(ROOT/'bin/orcan'),'settings'],cwd=ROOT,env=env,stdin=slave,stdout=slave,stderr=slave,close_fds=True)
+    os.close(slave)
+    output=bytearray()
+    def until(needle):
+        deadline=time.monotonic()+8
+        while time.monotonic()<deadline:
+            if select.select([master],[],[],0.1)[0]:
+                try: chunk=os.read(master,65536)
+                except OSError: break
+                output.extend(chunk)
+                if needle in output:return
+            if proc.poll() is not None:break
+        raise AssertionError('Missing terminal guidance: '+repr(needle)+': '+repr(bytes(output[-1200:])))
+    try:
+        until(b'Orcan settings')
+        os.write(master,b'j\n')
+        until(b'background executor')
+        os.write(master,b'jjjjjj\n')
+        until(b'SSH_AUTH_SOCK')
+        os.write(master,b'q')
+        assert proc.wait(timeout=8)==0
+        assert path.read_bytes()==before
+        assert not (tmp_path/'mounts').exists()
+    finally:
+        if proc.poll() is None:proc.terminate();proc.wait(timeout=5)
+        os.close(master)

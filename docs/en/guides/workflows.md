@@ -104,7 +104,7 @@ install --frozen-lockfile` or `corepack yarn install --immutable`) before
 `$ORCAN_DATA/cache`.
 
 For Python projects that need a specific runtime, use `python3.11` or
-`python3.13`.
+`python3.13` when selected in `build.python`; choose project runtimes in settings.
 
 ## Scenario: switch customer or product line
 

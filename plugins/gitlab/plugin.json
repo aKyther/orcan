@@ -14,7 +14,8 @@
       "default": "gitlab.com",
       "format": "hostname",
       "flag": "--gitlab-hostname",
-      "label": "GitLab hostname"
+      "label": "GitLab hostname",
+      "help": "Hostname only, for example github.com or gitlab.example.com. No https:// prefix, path or port. Host login must match this hostname."
     }
   },
   "verifier": "gitlab",
@@ -26,5 +27,15 @@
   ],
   "host_requires": [
     "GitLab token or glab login"
+  ],
+  "help": [
+    "Provides glab CLI/API access for merge requests, issues and GitLab repositories. SSH is independent.",
+    "On the host: glab auth login --hostname gitlab.com (use your hostname for self-hosted GitLab).",
+    "Alternatively provide GITLAB_TOKEN to the launching process. Never save token values in JSON.",
+    "Check login yourself on the host: glab auth status --hostname gitlab.com.",
+    "For an SSH Git remote, also enable SSH and register your public key with that GitLab host."
+  ],
+  "examples": [
+    "{\"plugins\":{\"gitlab\":{\"enabled\":true,\"hostname\":\"gitlab.example.com\"}}}"
   ]
 }

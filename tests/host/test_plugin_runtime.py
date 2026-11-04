@@ -42,7 +42,7 @@ def test_legacy_flags_select_the_same_package(new, old):
     {'plugins': {'ssh': {'enabled':'yes'}}},
     {'plugins': {'github': {'token':'must-not-be-persisted'}}},
     {'plugins': {'github': {'hostname':'https://example.test'}}},
-    {'plugins': {'redis': {'workers':6}}},
+    {'plugins': {'redis': {'workers':11}}},
     {'plugins': {'redis': {'split_lanes':True,'workers':2}}},
     {'plugins': {'executor': {},'redis': {}}},
 ])

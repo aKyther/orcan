@@ -1,7 +1,7 @@
 # Image profiles and agent context
 
 Choose image contents in the Agents and image section of `orcan settings`, or edit
-`build.agents` and `build.tools` in the existing JSON configuration. No second YAML file or
+`build.agents`, `build.tools` and `build.python` in the existing JSON configuration. No second YAML file or
 host YAML dependency is needed. A build profile is explicit configuration, just
 like the existing `--agent` flags:
 
@@ -12,6 +12,7 @@ like the existing `--agent` flags:
       {"name": "codex", "version": "latest"},
       {"name": "claude", "version": "stable"}
     ],
+    "python": ["3.13", "3.11"],
     "tools": [
       {"name": "go", "image": "golang:1.27-bookworm"},
       {"name": "rust", "image": "rust:1-bookworm"}
@@ -21,9 +22,8 @@ like the existing `--agent` flags:
 }
 ```
 
-Both selections are lists of named objects. `tools: []` omits both optional
-toolchains. A configured build profile installs only the listed optional tools;
-old CLI-only builds without a build profile keep Go/Rust for compatibility.
+Both selections are lists of named objects. `tools: []` omits all optional project toolchains. A configured build profile installs only the listed optional tools;
+old CLI-only builds without a build profile keep all traditional toolchains for compatibility.
 Short names such as `"codex"` remain accepted as shorthand for default sources.
 
 ```sh
@@ -56,9 +56,63 @@ The standard image supplies required runtimes: for example, npm-based agent CLIs
 need Node and npm even when optional Go and Rust toolchains are disabled. Python
 packages for cockpit and executor use their committed uv lockfiles. Selecting a
 plugin enables its services/access; it does not install a second copy of its
-base-image components. Arbitrary apt/pip package lists are not supported settings.
+base-image components. Arbitrary apt/pip package lists are not supported settings; project libraries remain managed by project manifests and lockfiles.
 In the settings image page, Space toggles Go/Rust and Enter edits the enabled
 source image. Review shows the selected image reference before saving.
+
+## Core, project tools and Python
+
+The core supplies Orcan's terminal, context tools, package installers and private
+service environments. Optional project tools are Go, Rust, JDK, Gradle, Maven,
+Kotlin, Scala and sbt. A configured `build.tools` list is authoritative; tools
+not selected and not required are omitted during installation, rather than
+removed from a finished image. In settings, `[x]` marks a direct selection and `[+]` marks an added dependency.
+Older configurations that listed only Go/Rust
+must explicitly add any JVM tools they still need.
+
+Gradle/Maven/Kotlin/Scala/sbt require JDK. The resolver adds JDK automatically,
+using its default major version unless you specify one. It does not add Kotlin
+for Gradle Kotlin DSL or Scala for sbt: these tools manage their own project
+compiler dependencies. `build --plan` and `up --plan` show requirements and
+omitted tools. Settings keeps direct selections separate from derived dependencies.
+
+Examples:
+
+```json
+{"build":{"agents":["codex"],"tools":["gradle"],"python":[]}}
+```
+
+This selects Gradle and its JDK dependency, without Maven, Kotlin, Scala, sbt,
+Go, Rust or extra project Python. A project with a Gradle wrapper can instead
+select just `jdk` and run `./gradlew`. A Maven wrapper can similarly use JDK.
+
+```json
+{"build":{"agents":["codex"],"tools":[],"python":["3.13","3.11"]}}
+```
+
+This selects two project Python versions. The first is the default `python` /
+`python3`, and `python3.13` / `python3.11` remain available explicitly. Select
+`["3.12"]` for a single project runtime; `[]` adds none. Orcan's system Python
+and private executor Python are retained for core services. In settings, Space
+toggles a version; Enter makes an enabled version the default. Minor Python selectors resolve a patch release at build time; completed image
+receipts and Docker cache retain that installation until explicitly rebuilt.
+JVM tool entries
+accept `version`; JDK uses a major release such as `21`. Go/Rust retain their
+version/image-source options.
+
+## Layers, caches and cleanup
+
+Local builds target the layered runtime. Disabled Go/Rust selections use the
+already-required Debian source stage so their large source images are not pulled
+just to run a disabled copy step. Installer archives are removed in the same
+installation step, including on failures. uv dependency installation uses no
+persistent download cache in image layers; installed runtimes and environments
+remain. Host BuildKit cache is a separate resource and stays available for reuse.
+
+Inspect host usage with `docker system df`. `orcan build --prune` only removes
+dangling images with Orcan's source label, never running container images,
+volumes or global BuildKit cache. `--force` rebuilds with Docker cache;
+`--no-cache` deliberately bypasses it. No automatic global prune is performed.
 
 ## Versions and sources
 

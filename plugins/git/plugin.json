@@ -15,5 +15,14 @@
   "image_requires": [
     "git"
   ],
-  "host_requires": []
+  "host_requires": [],
+  "help": [
+    "Copies host global Git author name/email into the container; it does not provide authentication.",
+    "Configure on the host: git config --global user.name \"Your Name\"",
+    "Configure on the host: git config --global user.email \"you@example.com\"",
+    "For SSH remotes enable SSH. For provider CLI/API access enable GitHub or GitLab separately."
+  ],
+  "examples": [
+    "{\"plugins\":{\"git\":{\"enabled\":true}}}"
+  ]
 }

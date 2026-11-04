@@ -36,7 +36,7 @@ def test_generated_guidance_enabled_and_disabled():
         "Do not fetch full logs or passed-case output after success",
         "Set require_junit=true",
         "without\nattaching raw mixed output",
-        "1..5 workers",
+        "1..10 workers",
         "executor_session",
         "--notify-claude-session",
         "executor_ack(job_id)",
@@ -49,7 +49,7 @@ def test_generated_guidance_enabled_and_disabled():
 
 @pytest.mark.integration
 @pytest.mark.parametrize("enabled", ["0", "1"])
-@pytest.mark.parametrize("split,workers", [("0", str(n)) for n in range(1, 6)] + [("1", "1")])
+@pytest.mark.parametrize("split,workers", [("0", str(n)) for n in range(1, 11)] + [("1", "1")])
 def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled, split, workers):
     result = subprocess.run(
         ["bash", str(ROOT / "docker/rootfs/usr/local/bin/orcan-supervisord")],
@@ -79,7 +79,7 @@ def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled, split, 
     assert ("executor-notifications" in programs) == (enabled == "1")
     assert ("executor-worker-heavy" in programs) == (enabled == "1" and split == "1")
     assert ("executor-worker-light" in programs) == (enabled == "1" and split == "1")
-    for slot in (2, 3, 4, 5):
+    for slot in range(2,11):
         assert (f"executor-worker-{slot}" in programs) == (enabled == "1" and int(workers) >= slot)
     assert "keepalive" in programs
 

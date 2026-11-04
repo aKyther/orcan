@@ -12,7 +12,7 @@ from ._scripts_loader import load_script
         {"redis_memory_mb": 16},
         {"visibility_timeout_seconds": 21600},
         {"workers": 0},
-        {"workers": 6},
+        {"workers": 11},
         {"workers": True},
         {"workers": 2, "split_lanes": True},
         {"max_running": 0},
@@ -57,3 +57,11 @@ def test_settings_wizard_edits_executor_without_touching_workspaces(monkeypatch)
         "redis_memory_mb": 128,
         "visibility_timeout_seconds": 86400,
     }
+
+
+def test_default_three_workers_bounds_and_split_lane_default():
+    assert resolve({})['workers']==3
+    assert resolve({})['max_running']==3
+    assert resolve({'split_lanes':True})['workers']==1
+    for count in (1,10):
+        assert resolve({'workers':count,'max_running':count})['workers']==count

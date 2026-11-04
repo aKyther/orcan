@@ -17,7 +17,7 @@ from conftest import commit
 from orcan_executor import cli, engine, readiness, settings, store, tasks
 
 
-@pytest.mark.parametrize("workers", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("workers", [1, 2, 3, 4, 5, 10])
 def test_shared_queue_ignores_profile_lane(repo, monkeypatch, workers):
     monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", str(workers))
     path = repo / ".orcan/checks.json"
@@ -34,12 +34,13 @@ def test_shared_queue_ignores_profile_lane(repo, monkeypatch, workers):
     assert send.call_args.kwargs["queue"] == settings.queue_name()
 
 
-def test_each_worker_needs_its_own_lease_and_lock(monkeypatch):
-    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", "5")
+@pytest.mark.parametrize("count", [5, 10])
+def test_each_worker_needs_its_own_lease_and_lock(monkeypatch, count):
+    monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", str(count))
     root = settings.state_dir()
     root.mkdir()
     leases = {
-        readiness.worker_lease(settings.queue_name(), slot): store.now() for slot in (1, 2, 3, 4, 5)
+        readiness.worker_lease(settings.queue_name(), slot): store.now() for slot in range(1, count+1)
     }
     monkeypatch.setattr(readiness.events, "client", lambda: Mock(get=leases.get))
     with ExitStack() as stack:
@@ -51,12 +52,12 @@ def test_each_worker_needs_its_own_lease_and_lock(monkeypatch):
         )  # Slot 3 lease alone is insufficient.
         del leases[readiness.worker_lease(settings.queue_name(), 1)]
         lane = readiness.lanes()["default"]
-        assert lane["ready_workers"] == 1 and lane["configured_workers"] == 5
+        assert lane["ready_workers"] == 1 and lane["configured_workers"] == count
         assert lane["ready"]  # Slot 2 survives slot 1 shutdown.
         assert store.board()["worker_running"]
 
 
-@pytest.mark.parametrize("value", ["0", "6", "true"])
+@pytest.mark.parametrize("value", ["0", "11", "true"])
 def test_runtime_rejects_invalid_worker_count(monkeypatch, value):
     monkeypatch.setenv("ORCAN_EXECUTOR_WORKERS", value)
     with pytest.raises(ValueError):
@@ -192,3 +193,9 @@ def test_five_real_workers_share_queue_and_survive_one_shutdown(repo, tmp_path, 
                     except subprocess.TimeoutExpired:
                         process.kill()
                         process.wait()
+
+
+def test_shared_pool_defaults_to_three_workers_and_three_slots(monkeypatch):
+    monkeypatch.delenv('ORCAN_EXECUTOR_MAX_RUNNING', raising=False)
+    assert settings.worker_count() == 3
+    assert settings.max_running() == 3

@@ -61,9 +61,9 @@ def max_pending() -> int:
 
 
 def max_running() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_MAX_RUNNING", "2"))
-    if not 1 <= value <= 5:
-        raise ValueError("Running limit must be between 1 and 5")
+    value = int(os.environ.get("ORCAN_EXECUTOR_MAX_RUNNING", "3"))
+    if not 1 <= value <= 10:
+        raise ValueError("Running limit must be between 1 and 10")
     return value
 
 
@@ -89,9 +89,9 @@ def visibility_timeout() -> int:
 
 
 def worker_count() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_WORKERS", "1"))
-    if not 1 <= value <= 5:
-        raise ValueError("Worker count must be between 1 and 5")
+    value = int(os.environ.get("ORCAN_EXECUTOR_WORKERS", "1" if split_lanes() else "3"))
+    if not 1 <= value <= 10:
+        raise ValueError("Worker count must be between 1 and 10")
     if split_lanes() and value != 1:
         raise ValueError("Worker count must be 1 when split lanes are enabled")
     return value

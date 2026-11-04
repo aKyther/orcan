@@ -101,7 +101,9 @@ make test-fast              # pure contracts while editing; full suite before ha
 
 ### Image profiles and generated context
 
-`orcan build --plan` resolves JSON `build.agents` and optional Go/Rust source images.
+`orcan build --plan` resolves JSON agents, optional project toolchains with JDK dependencies,
+and project Python versions. Core service runtimes remain separate. Plugin setup
+help/examples are mandatory package metadata shared by settings, CLI and plans.
 The installed `/etc/orcan/agents.json` controls agent-specific workspace/project
 and home seeds. Preserve custom files; prune only unchanged owned workspace defaults.
 The product repository keeps its maintained AGENTS/CLAUDE pair; generated workspaces

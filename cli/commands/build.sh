@@ -91,10 +91,8 @@ EOF
         printf '%s\n' "${profile}"
         return 0
     fi
-    values="$(python3 -c 'import json,sys; p=json.load(sys.stdin); t={v["name"]:v["image"] for v in p["tools"]}; print("+".join(v["name"] for v in p["agents"])); print(int("go" in t)); print(int("rust" in t)); print(t.get("go","golang:1.27-bookworm")); print(t.get("rust","rust:1-bookworm"))' <<<"${profile}")"
-    local -a selection
-    mapfile -t selection <<<"${values}"
-    agents="${selection[0]}"
+    agents="$(orcan_host_python -c 'import json,sys; print("+".join(v["name"] for v in json.load(sys.stdin)["agents"]))' <<<"${profile}")"
+
 
 
     orcan_require_docker
@@ -105,9 +103,13 @@ EOF
         return 0
     fi
 
-    local INSTALL_GO="${selection[1]}" INSTALL_RUST="${selection[2]}"
-    local GO_IMAGE="${selection[3]}" RUST_IMAGE="${selection[4]}" ORCAN_BUILD_PROFILE_JSON="${profile}"
-    export INSTALL_GO INSTALL_RUST GO_IMAGE RUST_IMAGE ORCAN_BUILD_PROFILE_JSON
+    local INSTALL_GO INSTALL_RUST GO_IMAGE RUST_IMAGE
+    local INSTALL_JAVA INSTALL_GRADLE INSTALL_MAVEN INSTALL_KOTLIN INSTALL_SCALA INSTALL_SBT
+    local JAVA_VERSION GRADLE_VERSION MAVEN_VERSION KOTLIN_VERSION SCALA_VERSION SBT_VERSION ORCAN_PYTHON_VERSIONS
+    local ORCAN_BUILD_PROFILE_JSON="${profile}"
+    values="$(orcan_host_python "${ORCAN_SCRIPTS}/image-profile.py" --environment <<<"${profile}")" || return
+    eval "${values}"
+    export ORCAN_BUILD_PROFILE_JSON
     orcan_image_build_local "${agents}" "${no_cache}" "${prune}" "${remove_previous}" || return
     orcan_image_record_build "${profile}"
 }

@@ -147,13 +147,12 @@ RUN set -eux; \
 # Bind-mounted tool stages do not add their bytes to disabled runtime layers.
 ARG INSTALL_GO=1
 ARG INSTALL_RUST=1
-RUN --mount=from=go-tools,source=/usr/local/go,target=/tmp/orcan-go,ro \
-    if [ "${INSTALL_GO}" = "1" ]; then mkdir -p /usr/local/go; cp -a /tmp/orcan-go/. /usr/local/go/; fi
-RUN --mount=from=rust-tools,source=/usr/local/cargo,target=/tmp/orcan-cargo,ro \
-    --mount=from=rust-tools,source=/usr/local/rustup,target=/tmp/orcan-rustup,ro \
+RUN --mount=from=go-tools,source=/,target=/tmp/orcan-go,ro \
+    if [ "${INSTALL_GO}" = "1" ]; then mkdir -p /usr/local/go; cp -a /tmp/orcan-go/usr/local/go/. /usr/local/go/; fi
+RUN --mount=from=rust-tools,source=/,target=/tmp/orcan-rust,ro \
     if [ "${INSTALL_RUST}" = "1" ]; then \
         mkdir -p /usr/local/cargo /usr/local/rustup; \
-        cp -a /tmp/orcan-cargo/. /usr/local/cargo/; cp -a /tmp/orcan-rustup/. /usr/local/rustup/; \
+        cp -a /tmp/orcan-rust/usr/local/cargo/. /usr/local/cargo/; cp -a /tmp/orcan-rust/usr/local/rustup/. /usr/local/rustup/; \
     fi
 RUN mkdir -p /etc/orcan && printf '{"tools":{"go":%s,"rust":%s}}\n' "${INSTALL_GO}" "${INSTALL_RUST}" > /etc/orcan/tools.json
 COPY --from=uv-tools /uv /usr/local/bin/uv
@@ -167,15 +166,18 @@ RUN set -eux; \
 # Additional Python runtime
 # ------------------------------------------------------------------------------
 
-ARG PYTHON_313_VERSION=3.13
-
+# Project runtimes are separate from the system Python and service venvs.
+ARG ORCAN_PYTHON_VERSIONS="3.13"
 RUN set -eux; \
-    python3.11 --version | grep -E '^Python 3\.11\.'; \
-    uv python install --install-dir /opt/python "${PYTHON_313_VERSION}"; \
-    python313="$(echo /opt/python/cpython-${PYTHON_313_VERSION}-linux-*/bin/python3.13)"; \
-    test -x "${python313}"; \
-    ln -sf "${python313}" /usr/local/bin/python3.13; \
-    python3.13 --version | grep -E '^Python 3\.13\.'
+    first=1; \
+    for version in ${ORCAN_PYTHON_VERSIONS}; do \
+        case "$version" in 3.11|3.12|3.13) ;; *) exit 1 ;; esac; \
+        UV_NO_CACHE=1 uv python install --install-dir /opt/project-python "$version"; \
+        executable="$(find /opt/project-python -type f -path "*/bin/python${version}" -print -quit)"; \
+        test -x "$executable"; \
+        ln -sf "$executable" "/usr/local/bin/python${version}"; \
+        if [ "$first" = 1 ]; then ln -sf "$executable" /usr/local/bin/python3; ln -sf "$executable" /usr/local/bin/python; first=0; fi; \
+    done
 
 # ------------------------------------------------------------------------------
 # JVM: Java (Temurin) + Gradle + Maven + Kotlin + Scala + sbt
@@ -193,39 +195,44 @@ ARG KOTLIN_VERSION=2.1.0
 ARG SCALA_VERSION=3.5.2
 ARG SBT_VERSION=1.10.5
 
+ARG INSTALL_JAVA=1
+ARG INSTALL_GRADLE=1
+ARG INSTALL_MAVEN=1
+ARG INSTALL_KOTLIN=1
+ARG INSTALL_SCALA=1
+ARG INSTALL_SBT=1
 RUN set -eux; \
+    if [ "${INSTALL_JAVA}" != 1 ]; then \
+        test "${INSTALL_GRADLE}${INSTALL_MAVEN}${INSTALL_KOTLIN}${INSTALL_SCALA}${INSTALL_SBT}" = 00000; \
+    fi; \
     arch="$(dpkg --print-architecture)"; \
-    case "${arch}" in \
-        amd64) jdk_arch="x64"; sbt_other_arch="aarch64" ;; \
-        arm64) jdk_arch="aarch64"; sbt_other_arch="x86_64" ;; \
-        *) echo "unsupported architecture for Temurin JDK: ${arch}" >&2; exit 1 ;; \
-    esac; \
-    mkdir -p /opt/java; \
-    curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JAVA_VERSION}/ga/linux/${jdk_arch}/jdk/hotspot/normal/eclipse" \
-        | tar -xz -C /opt/java --strip-components=1; \
-    /opt/java/bin/java -version; \
-    mkdir -p /opt/maven; \
-    curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
-        | tar -xz -C /opt/maven --strip-components=1; \
-    mkdir -p /opt/scala3; \
-    curl -fsSL "https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz" \
-        | tar -xz -C /opt/scala3 --strip-components=1; \
-    mkdir -p /opt/sbt; \
-    # Keep the native sbt client for this Linux architecture only. \
-    curl -fsSL "https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz" \
-        | tar -xz -C /opt/sbt --strip-components=1 \
-            --exclude="sbt/bin/sbtn-${sbt_other_arch}-pc-linux" \
-            --exclude='sbt/bin/sbtn-*-apple-darwin' \
-            --exclude='sbt/bin/sbtn-*-pc-win32.exe'; \
-    tmp="$(mktemp -d)"; \
-    curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o "${tmp}/gradle.zip"; \
-    unzip -q "${tmp}/gradle.zip" -d "${tmp}"; \
-    mv "${tmp}/gradle-${GRADLE_VERSION}" /opt/gradle; \
-    curl -fsSL "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip" \
-        -o "${tmp}/kotlin.zip"; \
-    unzip -q "${tmp}/kotlin.zip" -d "${tmp}"; \
-    mv "${tmp}/kotlinc" /opt/kotlinc; \
-    rm -rf "${tmp}"
+    case "$arch" in amd64) jdk_arch=x64; sbt_other_arch=aarch64 ;; arm64) jdk_arch=aarch64; sbt_other_arch=x86_64 ;; *) exit 1 ;; esac; \
+    if [ "${INSTALL_JAVA}" = 1 ]; then \
+        mkdir -p /opt/java; \
+        curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JAVA_VERSION}/ga/linux/${jdk_arch}/jdk/hotspot/normal/eclipse" | tar -xz -C /opt/java --strip-components=1; \
+        /opt/java/bin/java -version; \
+    fi; \
+    if [ "${INSTALL_MAVEN}" = 1 ]; then \
+        mkdir -p /opt/maven; \
+        curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" | tar -xz -C /opt/maven --strip-components=1; \
+    fi; \
+    if [ "${INSTALL_SCALA}" = 1 ]; then \
+        mkdir -p /opt/scala3; \
+        curl -fsSL "https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz" | tar -xz -C /opt/scala3 --strip-components=1; \
+    fi; \
+    if [ "${INSTALL_SBT}" = 1 ]; then \
+        mkdir -p /opt/sbt; \
+        curl -fsSL "https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz" | tar -xz -C /opt/sbt --strip-components=1 --exclude="sbt/bin/sbtn-${sbt_other_arch}-pc-linux" --exclude='sbt/bin/sbtn-*-apple-darwin' --exclude='sbt/bin/sbtn-*-pc-win32.exe'; \
+    fi; \
+    tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT; \
+    if [ "${INSTALL_GRADLE}" = 1 ]; then \
+        curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o "$tmp/gradle.zip"; \
+        unzip -q "$tmp/gradle.zip" -d "$tmp"; mv "$tmp/gradle-${GRADLE_VERSION}" /opt/gradle; \
+    fi; \
+    if [ "${INSTALL_KOTLIN}" = 1 ]; then \
+        curl -fsSL "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip" -o "$tmp/kotlin.zip"; \
+        unzip -q "$tmp/kotlin.zip" -d "$tmp"; mv "$tmp/kotlinc" /opt/kotlinc; \
+    fi
 
 # ------------------------------------------------------------------------------
 # Docker CLI + Compose + Buildx
@@ -573,7 +580,7 @@ COPY cockpit/ /opt/orcan-cockpit-src/
 
 RUN set -eux; \
     cd /opt/orcan-cockpit-src; \
-    UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen; \
+    UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen --python /usr/bin/python3; \
     chmod -R a+rX /opt/orcan-cockpit /opt/orcan-cockpit-src; \
     /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles'; \
     test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
@@ -582,7 +589,7 @@ RUN set -eux; \
 # unless the user starts Orcan with --with-redis.
 COPY executor/ /opt/orcan-executor-src/
 RUN cd /opt/orcan-executor-src \
-    && UV_PYTHON_INSTALL_DIR=/opt/python UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --locked --no-dev --python 3.12 \
+    && UV_PYTHON_INSTALL_DIR=/opt/python UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --locked --no-dev --python 3.12 \
     && chmod -R a+rX /opt/orcan-executor /opt/orcan-executor-src /opt/python
 
 # Offline action classification has its own Python environment. Other context
@@ -596,6 +603,8 @@ RUN if [ "${INSTALL_ACTIONS_ML}" = "1" ]; then \
         && /opt/orcan-actions/venv/bin/python -c 'import sklearn, scipy, numpy' \
         && chmod -R a+rX /opt/orcan-actions; \
     fi
+
+RUN uv cache clean
 
 # ------------------------------------------------------------------------------
 # User

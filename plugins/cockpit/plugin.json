@@ -17,5 +17,11 @@
     "python",
     "uv"
   ],
-  "host_requires": []
+  "host_requires": [],
+  "help": [
+    "Terminal interface over tmux, supplied by the image. Configure its terminal layout in the Terminal layout section."
+  ],
+  "examples": [
+    "{\"tmux\":{\"initial_windows\":2}}"
+  ]
 }

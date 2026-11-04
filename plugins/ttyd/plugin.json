@@ -20,7 +20,8 @@
       "label": "Port",
       "minimum": 1,
       "maximum": 65535,
-      "env": "TTYD_PORT"
+      "env": "TTYD_PORT",
+      "help": "Container terminal port."
     },
     "host_port": {
       "type": "integer",
@@ -28,13 +29,15 @@
       "label": "Host port",
       "minimum": 1,
       "maximum": 65535,
-      "env": "TTYD_HOST_PORT"
+      "env": "TTYD_HOST_PORT",
+      "help": "Browser terminal port on the host; choose a free port. Container port is configured separately."
     },
     "bind": {
       "type": "string",
       "default": "0.0.0.0",
       "label": "Bind",
-      "env": "TTYD_BIND"
+      "env": "TTYD_BIND",
+      "help": "Host listening interface: 127.0.0.1 for local access or 0.0.0.0 for all IPv4 interfaces."
     },
     "font_size": {
       "type": "integer",
@@ -82,7 +85,8 @@
         "basic"
       ],
       "label": "Authentication (none/basic)",
-      "env": "TTYD_AUTHENTICATION"
+      "env": "TTYD_AUTHENTICATION",
+      "help": "none or basic. Basic requires a transient TTYD_CREDENTIAL or --web-terminal-auth USER:PASS at startup."
     }
   },
   "verifier": "ttyd",
@@ -94,5 +98,14 @@
     "ttyd",
     "supervisor"
   ],
-  "host_requires": []
+  "host_requires": [],
+  "help": [
+    "Publishes a browser terminal. Local orcan enter works without this plugin.",
+    "Set bind to 127.0.0.1 for host-only access; 0.0.0.0 listens on all IPv4 interfaces.",
+    "For basic authentication provide TTYD_CREDENTIAL to the launching process. Never save a password in JSON.",
+    "After startup: orcan url. Changing published ports can recreate the container."
+  ],
+  "examples": [
+    "{\"plugins\":{\"ttyd\":{\"enabled\":true,\"bind\":\"127.0.0.1\",\"host_port\":7681}}}"
+  ]
 }

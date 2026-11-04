@@ -33,7 +33,7 @@ def test_uniform_lists_defaults_and_version_selection():
     assert value["tools"] == [{"name": "rust", "image": "rust:1-bookworm"}]
     assert profile.resolve({"build": {"agents": ["codex"], "tools": []}})["tools"] == []
     assert profile.resolve({"build": {"agents": ["codex"]}})["tools"] == []
-    assert len(profile.resolve({}, "codex")["tools"]) == 2
+    assert len(profile.resolve({}, "codex")["tools"]) == 8
     assert profile.resolve({"build": value}) == value
 
 
