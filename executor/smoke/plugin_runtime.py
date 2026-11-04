@@ -31,6 +31,7 @@ values=json.loads(subprocess.check_output(['orcan-plugins','list'],text=True))
 assert {v['id'] for v in values}=={'git','ssh','github','gitlab','docker','network','redis','ttyd','cockpit'}
 assert json.loads(subprocess.check_output(['orcan-plugins','validate'],text=True))['valid']
 assert json.loads(subprocess.check_output(['orcan-plugins','doctor','--plugin','redis'],text=True))[0]['enabled'] is False
+sys.path.insert(0,'/usr/local/lib')
 from orcan.image_profile import BASE_COMPONENTS
 commands={'python':'python3','openssh':'ssh','redis':'redis-server','supervisor':'supervisord','compose':'docker'}
 for component in BASE_COMPONENTS:
