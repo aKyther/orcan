@@ -40,7 +40,7 @@ export -f curl
 bash "$INSTALLER" "$COMPONENT" 0 21 "$DESTINATION"
 '''
     destination=tmp_path/'sdk'
-    result=subprocess.run(['bash','-c',script],env={**os.environ,'INSTALLER':str(ROOT/'docker/build/install-jvm.sh'),'COMPONENT':component,'DESTINATION':str(destination)},capture_output=True,text=True)
+    result=subprocess.run(['bash','-c',script],env={**os.environ,'INSTALLER':str(ROOT/'docker/installers/install-jvm.sh'),'COMPONENT':component,'DESTINATION':str(destination)},capture_output=True,text=True)
     assert result.returncode==0,result.stderr
     assert list(destination.iterdir())==[]
 
@@ -53,7 +53,7 @@ curl() { return 42; }
 export -f curl
 bash "$INSTALLER" gradle 1 8.11 "$DESTINATION"
 '''
-    result=subprocess.run(['bash','-c',script],env={**os.environ,'INSTALLER':str(ROOT/'docker/build/install-jvm.sh'),'DESTINATION':str(tmp_path/'sdk'),'TMPDIR':str(tmp_path)},capture_output=True,text=True)
+    result=subprocess.run(['bash','-c',script],env={**os.environ,'INSTALLER':str(ROOT/'docker/installers/install-jvm.sh'),'DESTINATION':str(tmp_path/'sdk'),'TMPDIR':str(tmp_path)},capture_output=True,text=True)
     assert result.returncode==42
     assert survivor.read_text()=='user data'
     assert not list(tmp_path.glob('tmp.*'))

@@ -30,7 +30,7 @@ def main():
                 raise RuntimeError('Non-runtime project files leaked into the build context: '+project)
         size=sum(path.stat().st_size for path in destination.rglob('*') if path.is_file())
         if size>64*1024*1024:raise RuntimeError('Unexpectedly large source context: '+str(size))
-        for name in ('docker/build/install-jvm.sh','executor/src','cockpit/src'):
+        for name in ('docker/installers/install-jvm.sh','executor/src','cockpit/src'):
             if not (destination/name).exists():raise RuntimeError('Required source missing from context: '+name)
     print(json.dumps({'status':'passed','context_bytes':size,'runtime_image_built':False,'live_runtime_changed':False}))
 

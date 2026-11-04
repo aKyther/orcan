@@ -402,7 +402,7 @@ RUN set -eux; \
 
 # Independent SDK builders: only this component's version affects its stage.
 FROM core AS jvm-installer
-COPY --chmod=0755 docker/build/install-jvm.sh /usr/local/libexec/orcan-install-jvm
+COPY --chmod=0755 docker/installers/install-jvm.sh /usr/local/libexec/orcan-install-jvm
 
 FROM jvm-installer AS jdk-tools
 ARG JAVA_VERSION=21

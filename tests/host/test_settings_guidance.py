@@ -88,7 +88,7 @@ def test_jvm_install_step_downloads_only_selected_tools_and_cleans_temp(executab
     tmp_path=executable_directory
     profile=resolve({'build':{'agents':['codex'],'tools':['gradle']}})
     env=build_environment(profile)
-    script=(ROOT/'docker/build/install-jvm.sh').read_text()
+    script=(ROOT/'docker/installers/install-jvm.sh').read_text()
     calls=tmp_path/'downloads'
     fake=r'''
 curl() { echo "$*" >> "$CALLS"; }

@@ -256,7 +256,7 @@ bash_scripts=(
     docker/rootfs/etc/tmux/scripts/copy-path.sh
     docker/rootfs/etc/tmux/scripts/session-switch.sh
     docker/rootfs/etc/tmux/scripts/pick-url.sh
-    docker/build/install-jvm.sh
+    docker/installers/install-jvm.sh
     scripts/repository/sync-runtime.sh
     scripts/repository/python.sh
     scripts/repository/validate-project-dir.sh
