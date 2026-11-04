@@ -137,7 +137,9 @@ ownership_cmd=("${ORCAN_ROOT}/scripts/repository/python.sh"
     "${ORCAN_ROOT}/scripts/repository/data-ownership.py"
     --config "${ownership_config}"
     --uid "${USER_UID}" --gid "${USER_GID}" --root "${ORCAN_DATA}")
-if "${ownership_cmd[@]}" 2>/dev/null; then
+if [[ "${ORCAN_STARTUP_PREPARE:-0}" == 1 ]]; then
+    printf 'Startup preparation: ownership repair is available through orcan sync\n'
+elif "${ownership_cmd[@]}" 2>/dev/null; then
     :
 else
     printf 'Warning: could not chown %s (UID=%s GID=%s); fix ownership if mounts fail\n' \

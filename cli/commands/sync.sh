@@ -46,12 +46,14 @@ orcan_cmd_sync() {
         PROJECT_DIR="${PROJECT_DIR:-${ORCAN_HOME}}" \
         ORCAN_HOME="${ORCAN_HOME}" \
         ORCAN_ROOT="${ORCAN_ROOT}" \
-        "${ORCAN_SCRIPTS}/sync-runtime.sh" "${ownership_args[@]}"
+        "${ORCAN_SCRIPTS}/sync-runtime.sh" "${ownership_args[@]}" || return
 
     _ORCAN_CONFIG_LOADED=0
-    orcan_load_config
+    orcan_load_config || return
     orcan_sync_reconcile_host
-    orcan_sync_reconcile_running_container "${prune_orphans}"
+    if [[ "${ORCAN_STARTUP_PREPARE:-0}" != 1 ]]; then
+        orcan_sync_reconcile_running_container "${prune_orphans}"
+    fi
 
     orcan_ok "sync complete"
     orcan_info "next: orcan up   (skip if live reconcile already applied changes)"

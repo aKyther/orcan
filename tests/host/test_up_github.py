@@ -87,6 +87,9 @@ orcan_warn() { printf '%s\\n' "$*" >&2; }
 orcan_ok() { :; }
 orcan_require_docker() { :; }
 orcan_require_generated() { :; }
+orcan_startup_prepare() { :; }
+orcan_startup_stage() { :; }
+orcan_startup_verify() { orcan_plugins_run verify; }
 orcan_load_config() { :; }
 orcan_host_python() { python3 "$@"; }
 orcan_maybe_hint_upgrade() { :; }
@@ -250,7 +253,8 @@ def test_resume_fails_before_stop_if_saved_login_is_no_longer_available(shell):
         GH_TOKEN="fixture-token",
     )
     assert result.returncode != 0
-    assert result.stdout.count("STOP") == 1
+    assert result.stdout.count("RUN 0 0 0 0 1 up") == 1
+    assert "STOP" not in result.stdout
 
 
 def test_compose_wrapper_includes_github_only_when_requested(shell):

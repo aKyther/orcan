@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **4.0.31**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **4.0.32**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -52,7 +52,7 @@ orcan up                                 # local — use `orcan enter` on the sa
 # remote browser: orcan up --web-terminal && orcan url
 ```
 
-After config edits: `orcan sync` then `orcan up` (or `orcan down && orcan up`). Rebuild the image only when the Dockerfile or agent install set changed — not for workspace/project changes.
+After config edits: `orcan up --plan` previews the change; `orcan up` prepares generated files, builds when image inputs change, validates Compose, and starts the instance. Use `orcan sync` for explicit live reconcile and ownership repair.
 
 ### Useful commands
 

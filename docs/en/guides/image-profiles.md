@@ -117,6 +117,6 @@ An error in `install_agent.py claude` precedes the Dockerfile's npm-cache cleanu
 the cleanup command shown in the failed RUN block is not the failing download.
 
 The [settings TUI](settings.md) preserves pinned versions and custom sources while
-selecting other agents. Saving selection requires a later `orcan build`; it does
-not install or start a client. `orcan up --plan` previews requested image contents
+selecting other agents. Saving selection takes effect on the next `orcan up`, which builds when needed.
+Use `orcan build` to build explicitly before starting. Saving does not install or start a client. `orcan up --plan` previews requested image contents
 and startup integrations without inspecting or modifying the installed image.

@@ -131,7 +131,8 @@ image. Updated generated instructions reach existing workspaces on reconcile
 
 ```bash
 orcan init
-orcan build --agent codex
+orcan settings        # select agents and plugins
+orcan up --plan       # optional read-only preview
 orcan up              # local — orcan enter on the same machine
 # remote browser: orcan up --web-terminal
 ```
@@ -140,11 +141,32 @@ After config edits:
 
 ```bash
 # edit ~/.config/orcan/orcan.config.json
-orcan sync
-orcan down && orcan up
+orcan up --plan
+orcan up
 ```
 
-`orcan up` does **not** run `sync`.
+`orcan up` prepares missing or stale runtime files, builds the configured image when
+needed, validates the selected Compose configuration, starts the instance, and
+checks the running container and enabled plugins. It uses Compose convergence:
+an unchanged instance stays running; changed image or container settings can
+recreate it and interrupt attached sessions.
+
+A completed image is recorded against its exact image ID, source contents, build
+profile and host IDs in `mounts/image-ready.json`. Retrying after a later failure
+reuses that image. A missing receipt, changed image tag, profile or image input
+requires a build. The first start after upgrading from an older version therefore
+builds once. Workspace-only changes do not invalidate the image receipt. These
+files are generated state, not another configuration source.
+
+`orcan status` shows the last startup stage (`prepare`, `image`, `preflight`,
+`start`, `verify`, `ready`). A stage other than `ready` identifies where the last
+attempt stopped; it does not describe the health of an older running instance.
+Preparation and Compose validation failures happen before the container switch.
+Startup preparation creates runtime files and reconciles host metadata; it skips
+the recursive data ownership repair and live reconcile. Run `orcan sync` for
+those explicit maintenance operations. Local Compose builds preserve the Docker
+runtime layers; the final flattened Dockerfile target remains available for
+distribution builds.
 
 ### `orcan up` flags
 

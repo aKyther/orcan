@@ -199,3 +199,14 @@ orcan_image_publish() {
     docker push "${latest_remote}" || orcan_warn "could not push :latest (version tag is published)"
     orcan_ok "published ${remote}"
 }
+
+# Explicit builds and automatic startup builds share the same completion receipt.
+orcan_image_record_build() {
+    local profile="$1" fingerprint image_id
+    fingerprint="$(orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" fingerprint \
+        --root "${ORCAN_ROOT}" --profile "${profile}" \
+        --identity "${USER_UID:-$(id -u)}:${USER_GID:-$(id -g)}:${DOCKER_GID:-999}")" || return
+    image_id="$(docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}")" || return
+    orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" record \
+        --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}"
+}

@@ -8,6 +8,9 @@ orcan_cmd_status() {
     cname="$(orcan_container_name)"
     ver="$(orcan_image_version)"
     printf 'orcan status\n\n'
+    if [[ -f "${ORCAN_RUNTIME_DIR}/startup.json" ]]; then
+        orcan_host_python -c 'import json,sys; print("last startup stage: " + json.load(open(sys.argv[1]))["stage"])' "${ORCAN_RUNTIME_DIR}/startup.json"
+    fi
     printf 'version: %s\n' "${ver}"
     printf 'installation (ORCAN_ROOT): %s\n' "${ORCAN_ROOT}"
     printf 'config home (ORCAN_HOME): %s\n' "${ORCAN_HOME}"

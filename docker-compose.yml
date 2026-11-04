@@ -26,6 +26,8 @@ services:
         soft: ${ULIMIT_NPROC:-65536}
         hard: ${ULIMIT_NPROC:-65536}
     build:
+      # Preserve cached toolchain layers for local updates.
+      target: runtime
       context: .
       args:
         USERNAME: developer

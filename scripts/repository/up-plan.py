@@ -80,9 +80,10 @@ def preview(config: Path, home: Path, arguments: list[str], saved_path: Path | N
         'mounts':mounts, 'ports':ports,
         'network':plugins['network']['name'] if plugins['network']['enabled'] else None,
         'credentials':credentials,
-        'lifecycle':'up recreates an existing instance; current runtime was not inspected',
+        'lifecycle':'up prepares configuration and image, validates Compose, then converges the instance; current runtime was not inspected',
+        'stages':['prepare','image','preflight','start','verify','ready'],
         'checks_at_start':['Docker availability','generated configuration freshness','credentials for enabled integrations','required sockets and networks'],
-        'notes':['Configured image contents may require orcan build; the image was not inspected.','Preview lists managed/config/project and plugin mounts; persistent client/cache mounts follow data_root.'],
+        'notes':['Startup reuses an image with a matching source/profile receipt, otherwise builds it; the image was not inspected.','Preview lists managed/config/project and plugin mounts; persistent client/cache mounts follow data_root.'],
     }
 
 
@@ -91,7 +92,8 @@ def render(report: dict) -> str:
            'Image: '+report['image']['name'], 'Enabled plugins: '+(', '.join(report['enabled_plugins']) or 'none')]
     profile=report['image']['requested_profile']
     lines.append('Agents requested for image: '+(', '.join(entry['name']+'@'+entry['version'] for entry in profile['agents']) if profile else 'not configured; installed image not inspected'))
-    if report['configuration']['needs_sync']: lines.append('Required before startup: orcan sync')
+    if report['configuration']['needs_sync']: lines.append('Startup will synchronize generated configuration')
+    lines.append('Stages: ' + ' -> '.join(report['stages']))
     lines.append('Runtime: '+report['lifecycle'])
     for port in report['ports']: lines.append(f"Port ({port['plugin']}): {port['bind']}:{port['host']} -> {port['container']}")
     for mount in report['mounts']: lines.append(f"Mount: {mount['source']} -> {mount['target']} ({'read-only' if mount['read_only'] else 'read/write'})" + (' [conditional]' if 'conditional' in mount else ''))

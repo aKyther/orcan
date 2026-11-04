@@ -40,8 +40,6 @@ Saving changes only the JSON file. It does not build an image, acquire tokens,
 start agents or recreate the container. The UI prints the next steps:
 
 ```bash
-orcan sync
-orcan build       # when image contents changed
 orcan up --plan
 orcan up
 ```

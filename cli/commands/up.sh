@@ -2,6 +2,7 @@
 # Start one resolved selection of bundled plugins.
 # shellcheck shell=bash
 source "${ORCAN_ROOT}/cli/lib/plugins.sh"
+source "${ORCAN_ROOT}/cli/lib/startup.sh"
 
 orcan_cmd_up() {
     if [[ " $* " == *" --help "* || " $* " == *" -h "* ]]; then
@@ -63,20 +64,24 @@ orcan_cmd_up() {
         return 2
     fi
     orcan_require_docker
-    orcan_require_generated
+    orcan_startup_prepare || return
     orcan_load_config
     eval "${resolved}"
     if ((traced)); then set -x; fi
     ORCAN_REDIS_ENABLED="${with_redis}"
     orcan_maybe_hint_upgrade
+    orcan_startup_stage preflight || return
     orcan_plugins_run prepare || return
+    orcan_run_selected config --quiet || return
     # Preparation failures leave the current container running.
-    orcan_compose_ttyd_down_all_variants
+    orcan_startup_stage start || return
     orcan_info "starting container (plugins: ${ORCAN_ACTIVE_PLUGINS})"
-    orcan_run_selected up -d || return
-    orcan_plugins_run verify || return
+    orcan_run_selected up -d --remove-orphans --no-build || return
+    orcan_startup_stage verify || return
+    orcan_startup_verify || return
     orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}" "${with_redis}"
     orcan_write_last_up "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${with_ttyd_auth}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}" "${with_redis}"
+    orcan_startup_stage ready || return
     orcan_plugins_run report || return
     if ((!with_ttyd)); then orcan_ok "container ready — local access: orcan enter"; fi
         printf 'Stop with: orcan down\n'

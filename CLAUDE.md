@@ -37,7 +37,7 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 | --- | --- |
 | **Public API** | `orcan` CLI (`bin/orcan`, `cli/`) — not Make |
 | **Config** | JSON only: `orcan.config.json` under **`ORCAN_HOME`** (default `~/.config/orcan/`). Tool data / history: **`ORCAN_DATA`** (same default root; see `orcan help`) |
-| **Ritual** | `orcan init` → `orcan sync` → `orcan build --agent codex` (when needed) → `orcan up` (**up does not sync**) |
+| **Ritual** | `orcan init` → `orcan settings` → optional `orcan up --plan` → `orcan up` (prepares config and builds when needed) |
 | **Runtime** | `orcan enter` → cockpit (`agent-launcher`) → tmux 3.6a → zsh; CMD = `orcan-supervisord` (`keepalive` or `ttyd`) |
 | **Cockpit** | Top: `🌀 orcan` (About) + workspace pill + metrics · Overlay: workspaces + glance · Center: tmux · Bottom: status. Keys: **F4** · **F1**/? · **F5** brief · **`i`** · **`lg`** |
 | **UX preview** | `make dev-*` / `scripts/dev/` → isolated `orcan:dev-ux` — **never** the user’s `orcan:latest` |
@@ -50,9 +50,9 @@ Story: `docs/en/why-orcan.md` → `ideas/core-ideas.md` → `ideas/mental-model.
 
 ```bash
 orcan init                  # or: context add / context tui / edit orcan.config.json
-orcan sync                  # ALWAYS after config — apply → runtime JSON, mounts/*, workspaces/*
+orcan sync                  # explicit reconcile + ownership repair; up prepares missing/stale files
 orcan build --agent codex   # after Dockerfile | docker/rootfs | cockpit image inputs
-orcan up                    # daily; --with-ttyd for browser
+orcan up                    # prepare → image → preflight → start → verify; --with-ttyd for browser
 orcan migrate [--yes]       # optional managed-root move (dry-run without --yes)
 ```
 

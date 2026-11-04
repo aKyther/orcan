@@ -97,5 +97,6 @@ EOF
     local INSTALL_GO="${selection[1]}" INSTALL_RUST="${selection[2]}"
     local GO_IMAGE="${selection[3]}" RUST_IMAGE="${selection[4]}" ORCAN_BUILD_PROFILE_JSON="${profile}"
     export INSTALL_GO INSTALL_RUST GO_IMAGE RUST_IMAGE ORCAN_BUILD_PROFILE_JSON
-    orcan_image_build_local "${agents}" "${no_cache}" "${prune}" "${remove_previous}"
+    orcan_image_build_local "${agents}" "${no_cache}" "${prune}" "${remove_previous}" || return
+    orcan_image_record_build "${profile}"
 }

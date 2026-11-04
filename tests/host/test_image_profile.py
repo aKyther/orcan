@@ -177,6 +177,7 @@ orcan_require_docker() { :; }
 orcan_require_config_for_build() { :; }
 orcan_load_config() { :; }
 orcan_runtime_warn_if_config_stale() { :; }
+orcan_image_record_build() { :; }
 orcan_image_build_local() { printf '%s:%s:%s:%s' "$1" "$INSTALL_GO" "$INSTALL_RUST" "$RUST_IMAGE"; }
 orcan_cmd_build --agent codex --config "$PROFILE"
 """
