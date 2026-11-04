@@ -44,6 +44,8 @@ Saving changes only the JSON file. It does not build an image, acquire tokens,
 start agents or recreate the container. The UI prints the next steps:
 
 ```bash
+orcan sync         # keep your --no-chown / --chown-exclude policy
+orcan build        # when image contents changed
 orcan up --plan
 orcan up
 ```
@@ -87,3 +89,8 @@ The same content is available without Docker through
 plan JSON includes the enabled plugins' help/examples; the text plan links to
 these commands. Opening help never fetches tokens, reads keys or executes the
 suggested setup commands.
+
+`up` is start-only: it fails on missing/stale generated configuration or an
+unavailable local image and names the explicit sync/build command to run.
+It never performs ownership repair, automatic sync/build or an image pull.
+Saved ownership exclusions continue to apply to explicit `sync` operations.

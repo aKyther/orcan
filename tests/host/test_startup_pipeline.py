@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 
 import pytest
 
@@ -50,7 +51,7 @@ orcan_load_config() { :; }
 orcan_maybe_hint_upgrade() { :; }
 orcan_info() { :; }; orcan_ok() { :; }
 orcan_usage_error() { return 2; }
-orcan_startup_prepare() { echo prepare; [[ "$FAIL" != prepare ]]; }
+orcan_startup_check_inputs() { echo prepare; [[ "$FAIL" != prepare ]]; }
 orcan_startup_stage() { echo "stage:$1"; }
 orcan_plugins_run() { echo "plugin:$1"; [[ "$FAIL" != "$1" ]]; }
 orcan_run_selected() { echo "compose:$1"; [[ "$FAIL" != "$1" ]]; }
@@ -94,41 +95,77 @@ def test_success_uses_compose_convergence_without_down(tmp_path):
 
 
 @pytest.mark.integration
-def test_real_preparation_reuses_build_after_later_failure_and_rebuilds_changed_source(tmp_path):
-    root = tmp_path / 'source'
-    (root / 'cli/commands').mkdir(parents=True)
-    source = root / 'Dockerfile'
-    source.write_text('FROM fixture')
-    (root / 'cli/commands/build.sh').write_text('orcan_cmd_build() { echo build >> "$CALLS"; echo sha256:built > "$IMAGE"; }\n')
-    runtime = tmp_path / 'runtime.json'
-    runtime.write_text('{}')
-    mounts = tmp_path / 'mounts.yml'
-    mounts.write_text('services: {}')
-    script = r'''
+@pytest.mark.parametrize('problem',['','generated','image'])
+def test_up_checks_inputs_without_sync_build_or_pull(tmp_path,problem):
+    calls=tmp_path/'calls'
+    script=r'''
 set -Eeuo pipefail
 source "$LIBRARY"
-source "$IMAGE_LIBRARY"
-orcan_info() { :; }; orcan_load_config() { :; }; orcan_require_generated() { :; }
-orcan_runtime_config_json_file() { echo "$RUNTIME"; }
-orcan_runtime_compose_mounts_file() { echo "$MOUNTS"; }
-orcan_runtime_config_is_stale() { return 1; }
-orcan_config_path() { return 1; }
-orcan_host_python() {
-    if [[ "$1" == */image-profile.py ]]; then echo '{"agents":[]}'; else python3 "$@"; fi
+orcan_load_config() { :; }
+orcan_require_generated() { echo check-generated >> "$CALLS"; [[ "$PROBLEM" != generated ]]; }
+orcan_warn() { echo "$*" >&2; }
+orcan_cmd_sync() { echo UNEXPECTED_SYNC; return 99; }
+orcan_cmd_build() { echo UNEXPECTED_BUILD; return 99; }
+docker() {
+    echo "$*" >> "$CALLS"
+    [[ "$1 $2" == 'image inspect' ]] || { echo UNEXPECTED_DOCKER; return 99; }
+    [[ "$PROBLEM" != image ]]
 }
-docker() { [[ -f "$IMAGE" ]] && cat "$IMAGE"; }
-orcan_startup_prepare
+orcan_startup_check_inputs
 '''
-    env = {**os.environ, 'LIBRARY': str(ROOT / 'cli/lib/startup.sh'), 'IMAGE_LIBRARY':str(ROOT / 'cli/lib/image.sh'), 'ORCAN_ROOT': str(root),
-           'ORCAN_SCRIPTS': str(ROOT / 'scripts/repository'), 'ORCAN_RUNTIME_DIR': str(tmp_path / 'receipts'),
-           'RUNTIME': str(runtime), 'MOUNTS': str(mounts), 'CALLS': str(tmp_path / 'calls'), 'IMAGE': str(tmp_path / 'image')}
-    def run():
-        result = subprocess.run(['bash', '-c', script], env=env, capture_output=True, text=True)
-        assert result.returncode == 0, result.stderr
-    run()
-    # A failure in a later stage must not invalidate the completed image receipt.
-    run()
-    assert (tmp_path / 'calls').read_text().splitlines() == ['build']
-    source.write_text('FROM changed-fixture')
-    run()
-    assert (tmp_path / 'calls').read_text().splitlines() == ['build', 'build']
+    result=subprocess.run(['bash','-c',script],env={**os.environ,'LIBRARY':str(ROOT/'cli/lib/startup.sh'),
+        'CALLS':str(calls),'PROBLEM':problem},capture_output=True,text=True)
+    assert (result.returncode==0)==(not problem),result.stderr
+    assert 'UNEXPECTED' not in result.stdout
+    invoked=calls.read_text()
+    assert invoked.startswith('check-generated')
+    if problem=='generated':assert 'image inspect' not in invoked
+    elif problem=='image':assert 'orcan build' in result.stderr
+
+
+@pytest.mark.integration
+def test_every_selected_compose_up_forbids_implicit_builds_and_pulls():
+    script='''set -Eeuo pipefail
+source cli/lib/plugins.sh
+with_docker=0 with_git=0 with_network=0 with_ttyd=0 with_github=0 with_gitlab=0
+orcan_compose_up_run() { printf '%s\\n' "$*"; }
+orcan_run_selected up -d --force-recreate
+orcan_run_selected exec -T orcan test -d /tmp
+'''
+    result=subprocess.run(['bash','-c',script],cwd=ROOT,capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+    up,execute=result.stdout.splitlines()
+    assert up.endswith('up -d --force-recreate --no-build --pull never')
+    assert '--no-build' not in execute and '--pull' not in execute
+
+
+@pytest.mark.integration
+def test_actual_up_rejects_stale_files_without_sync_build_or_pull(tmp_path):
+    home=tmp_path/'home';mounts=home/'mounts';mounts.mkdir(parents=True)
+    config=home/'orcan.config.json'
+    config.write_text(json.dumps({'workspaces':[], 'data_root':str(tmp_path/'data'),
+        'projects_root':str(tmp_path/'projects'), 'plugins':{'git':{'enabled':False}}}))
+    runtime=mounts/'runtime-config.json';runtime.write_text('{}')
+    compose=mounts/'compose-projects.generated.yml';compose.write_text('services: {}')
+    stamp=max(runtime.stat().st_mtime_ns,compose.stat().st_mtime_ns)+1000000
+    os.utime(config,ns=(stamp,stamp))
+    before=config.read_bytes(),runtime.read_bytes(),compose.read_bytes()
+    calls=tmp_path/'docker-calls'
+    with tempfile.TemporaryDirectory(prefix='.orcan-test.',dir=ROOT) as directory:
+        binary=Path(directory)/'docker'
+        binary.write_text('''#!/usr/bin/env python3
+import os,sys
+from pathlib import Path
+with Path(os.environ['CALLS']).open('a') as stream:stream.write(' '.join(sys.argv[1:])+'\\n')
+if sys.argv[1:3]==['compose','version']:print('v2')
+else:raise SystemExit(98)
+''')
+        binary.chmod(0o755)
+        result=subprocess.run(['bash',str(ROOT/'bin/orcan'),'up'],cwd=ROOT,
+            env={**os.environ,'PATH':directory+os.pathsep+os.environ['PATH'],
+                 'ORCAN_HOME':str(home),'ORCAN_RUNTIME_DIR':str(mounts),'ORCAN_CONFIG_FILE':str(config),
+                 'CONFIG':str(config),'CALLS':str(calls)},capture_output=True,text=True)
+    assert result.returncode!=0
+    assert 'sync' in result.stderr
+    assert (config.read_bytes(),runtime.read_bytes(),compose.read_bytes())==before
+    assert calls.read_text().splitlines()==['compose version']

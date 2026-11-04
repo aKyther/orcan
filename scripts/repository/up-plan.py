@@ -74,7 +74,7 @@ def preview(config: Path, home: Path, arguments: list[str], saved_path: Path | N
     return {
         'version':1, 'read_only':True,
         'configuration':{'path':str(config),'exists':config.is_file(),'needs_sync':needs_sync},
-        'blockers':[] if requested_profile else ['Choose image agents in orcan settings before startup can prepare an image.'],
+        'blockers':['Run orcan sync before startup.'] if needs_sync else [],
         'image':{'name':host['IMAGE_LOCAL'],'requested_profile':requested_profile,'installed_profile_inspected':False},
         'plugins':plugins, 'enabled_plugins':selected,
         'plugin_help':{entry['id']:{'help':entry['help'],'examples':entry['examples']} for entry in catalog() if entry['id'] in selected},
@@ -83,10 +83,10 @@ def preview(config: Path, home: Path, arguments: list[str], saved_path: Path | N
         'mounts':mounts, 'ports':ports,
         'network':plugins['network']['name'] if plugins['network']['enabled'] else None,
         'credentials':credentials,
-        'lifecycle':'up prepares configuration and image, validates Compose, then converges the instance; current runtime was not inspected',
-        'stages':['prepare','image','preflight','start','verify','ready'],
-        'checks_at_start':['Docker availability','generated configuration freshness','credentials for enabled integrations','required sockets and networks'],
-        'notes':['Startup reuses an image with a matching source/profile receipt, otherwise builds it; the image was not inspected.','Preview lists managed/config/project and plugin mounts; persistent client/cache mounts follow data_root.'],
+        'lifecycle':'up validates prepared configuration and a local image, then starts the instance; it never syncs, builds or pulls; current runtime was not inspected',
+        'stages':['preflight','start','verify','ready'],
+        'checks_at_start':['Docker availability','local image availability','generated configuration freshness','credentials for enabled integrations','required sockets and networks'],
+        'notes':['Prepare configuration with orcan sync and the image with orcan build; up only starts existing inputs. The image was not inspected.','Preview lists managed/config/project and plugin mounts; persistent client/cache mounts follow data_root.'],
     }
 
 
@@ -96,7 +96,7 @@ def render(report: dict) -> str:
     profile=report['image']['requested_profile']
     lines.append('Agents requested for image: '+(', '.join(entry['name']+'@'+entry['version'] for entry in profile['agents']) if profile else 'not configured; installed image not inspected'))
     for blocker in report['blockers']: lines.append('Required: '+blocker)
-    if report['configuration']['needs_sync']: lines.append('Startup will synchronize generated configuration')
+    if report['configuration']['needs_sync']: lines.append('Required before startup: orcan sync (use your ownership exclusions)')
     if profile:
         lines.append('Project tools: '+(', '.join(entry['name']+'@'+entry.get('image',entry.get('version','')) for entry in profile['tools']) or 'none'))
         lines.append('Project Python (first is default): '+(', '.join(profile.get('python',[])) or 'none'))

@@ -11,6 +11,8 @@ orcan_cmd_up() {
         printf '       orcan up [--web-terminal | --web-terminal-auth USER:PASS] [--docker-socket | --network NAME] [--with-ssh] [--github [--github-hostname HOST]] [--gitlab [--gitlab-hostname HOST]]\n'
         printf '  --with-redis: enable local background executor, Redis and dashboard (separate port, same ttyd host)\n'
         printf '  default: start the plugins enabled in orcan settings\n'
+        printf '  Requires prepared configuration (orcan sync) and a local image (orcan build).\n'
+        printf '  Never runs sync, builds or pulls an image automatically.\n'
         printf '  --web-terminal | --web-terminal-auth USER:PASS: pick one (| = mutually exclusive)\n'
         printf '  --web-terminal: publish browser terminal, no password prompt\n'
         printf '  --web-terminal-auth USER:PASS: publish browser terminal with HTTP basic auth\n'
@@ -63,20 +65,20 @@ orcan_cmd_up() {
         if ((traced)); then set -x; fi
         return 2
     fi
-    orcan_require_docker
-    orcan_startup_prepare || return
-    orcan_load_config
+    orcan_require_docker || return
+    orcan_startup_stage preflight || return
+    orcan_startup_check_inputs || return
+    orcan_load_config || return
     eval "${resolved}"
     if ((traced)); then set -x; fi
     ORCAN_REDIS_ENABLED="${with_redis}"
     orcan_maybe_hint_upgrade
-    orcan_startup_stage preflight || return
     orcan_plugins_run prepare || return
     orcan_run_selected config --quiet || return
     # Preparation failures leave the current container running.
     orcan_startup_stage start || return
     orcan_info "starting container (plugins: ${ORCAN_ACTIVE_PLUGINS})"
-    orcan_run_selected up -d --remove-orphans --no-build || return
+    orcan_run_selected up -d --remove-orphans || return
     orcan_startup_stage verify || return
     orcan_startup_verify || return
     orcan_write_up_state "${with_docker}" "${with_git}" "${with_network}" "${with_ttyd}" "${network_name}" "${with_github}" "${github_hostname}" "${with_gitlab}" "${gitlab_hostname}" "${with_redis}"

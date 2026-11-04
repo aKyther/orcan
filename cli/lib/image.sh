@@ -214,7 +214,7 @@ orcan_image_build_is_current() {
         --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}"
 }
 
-# Explicit builds and automatic startup builds share the same completion receipt.
+# Explicit builds record their completed image for later build reuse.
 orcan_image_record_build() {
     local profile="$1" fingerprint image_id
     fingerprint="$(orcan_image_build_fingerprint "${profile}")" || return

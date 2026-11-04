@@ -157,7 +157,9 @@ class SettingsModel:
 
     def next_actions(self):
         if not self.dirty: return []
-        actions=['orcan up --plan']
+        actions=['orcan sync']
+        if self.data.get('build')!=self.original.get('build'):actions.append('orcan build')
+        actions.append('orcan up --plan')
         actions.append('orcan up (after active background jobs finish)')
         return actions
 

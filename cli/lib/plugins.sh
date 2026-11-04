@@ -15,6 +15,10 @@ orcan_plugins_run() {
 }
 
 orcan_run_selected() {
+    # Applies also to plugin verification/recreate retries.
+    if [[ "${1:-}" == up ]]; then
+        set -- "$@" --no-build --pull never
+    fi
     orcan_compose_up_run "${with_docker}" "${with_git}" "${with_network}" \
         "${with_ttyd}" "${with_github}" "${with_gitlab}" "$@"
 }

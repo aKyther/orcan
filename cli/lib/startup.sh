@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One startup pipeline. Receipts describe completed images, never auth values.
+# Start prepared inputs only. Sync and build are explicit commands.
 # shellcheck shell=bash
 
 orcan_startup_stage() {
@@ -8,32 +8,12 @@ orcan_startup_stage() {
         --file "${ORCAN_RUNTIME_DIR}/startup.json" --stage "$1"
 }
 
-orcan_startup_prepare() {
-    orcan_startup_stage prepare || return
+orcan_startup_check_inputs() {
     orcan_load_config || return
-    local runtime mounts
-    runtime="$(orcan_runtime_config_json_file)"
-    mounts="$(orcan_runtime_compose_mounts_file)"
-    if [[ ! -f "${runtime}" || ! -f "${mounts}" ]] || orcan_runtime_config_is_stale; then
-        source "${ORCAN_ROOT}/cli/commands/sync.sh"
-        ORCAN_STARTUP_PREPARE=1 orcan_cmd_sync || return
-    fi
     orcan_require_generated || return
-    orcan_startup_stage image || return
-    local cfg profile fingerprint image_id
-    cfg="$(orcan_config_path)" || cfg=""
-    profile="$(orcan_host_python "${ORCAN_SCRIPTS}/image-profile.py" --config "${cfg}")" || return
-    fingerprint="$(orcan_image_build_fingerprint "${profile}")" || return
-    image_id="$(docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}" 2>/dev/null)" || image_id=""
-    if [[ -n "${image_id}" ]] && orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" matches \
-        --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}"; then
-        orcan_info 'using completed image build'
-    else
-        source "${ORCAN_ROOT}/cli/commands/build.sh"
-        orcan_cmd_build || return
-        image_id="$(docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}")" || return
-        orcan_host_python "${ORCAN_SCRIPTS}/startup-state.py" record \
-            --file "${ORCAN_RUNTIME_DIR}/image-ready.json" --fingerprint "${fingerprint}" --image-id "${image_id}" || return
+    if ! docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}" >/dev/null 2>&1; then
+        orcan_warn "local image unavailable: ${IMAGE_LOCAL:-orcan:latest}; check Docker, then run orcan build (or explicitly orcan pull) if needed"
+        return 1
     fi
 }
 

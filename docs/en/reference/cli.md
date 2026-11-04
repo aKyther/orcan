@@ -132,6 +132,8 @@ image. Updated generated instructions reach existing workspaces on reconcile
 ```bash
 orcan init
 orcan settings        # select agents and plugins
+orcan sync            # use your ownership exclusions
+orcan build           # when preparing/changing image contents
 orcan up --plan       # optional read-only preview
 orcan up              # local — orcan enter on the same machine
 # remote browser: orcan up --web-terminal
@@ -141,32 +143,38 @@ After config edits:
 
 ```bash
 # edit ~/.config/orcan/orcan.config.json
+orcan sync            # saved ownership exclusions apply
+orcan build           # only if image inputs changed
 orcan up --plan
 orcan up
 ```
 
-`orcan up` prepares missing or stale runtime files, builds the configured image when
-needed, validates the selected Compose configuration, starts the instance, and
-checks the running container and enabled plugins. It uses Compose convergence:
-an unchanged instance stays running; changed image or container settings can
-recreate it and interrupt attached sessions.
+`orcan sync` prepares runtime JSON and mounts, reconciles workspace metadata,
+and performs ownership repair subject to saved exclusions. Keep using
+`--no-chown PATTERN` / `--chown-exclude PATH` when setting those exclusions;
+they are saved in JSON for later explicit synchronizations.
 
-A completed image is recorded against its exact image ID, source contents, build
-profile and host IDs in `mounts/image-ready.json`. Retrying after a later failure
-reuses that image. A missing receipt, changed image tag, profile or image input
-requires a build. The first start after upgrading from an older version therefore
-builds once. Workspace-only changes do not invalidate the image receipt. These
-files are generated state, not another configuration source.
+`orcan build` prepares the image. It reuses a completed build when its source,
+profile and image ID still match. Use `--force` or `--no-cache` deliberately.
+It does not synchronize workspaces.
 
-`orcan status` shows the last startup stage (`prepare`, `image`, `preflight`,
-`start`, `verify`, `ready`). A stage other than `ready` identifies where the last
-attempt stopped; it does not describe the health of an older running instance.
-Preparation and Compose validation failures happen before the container switch.
-Startup preparation creates runtime files and reconciles host metadata; it skips
-the recursive data ownership repair and live reconcile. Run `orcan sync` for
-those explicit maintenance operations. Local Compose builds preserve the Docker
-runtime layers for local and distribution builds. The final image inherits its
-base layers; it does not copy the whole filesystem into a flattened layer.
+`orcan up` checks the prepared files, validates Compose, starts the existing local
+image and verifies readiness. Missing/stale generated files fail with an explicit
+`orcan sync` instruction. An unavailable image fails with an explicit
+`orcan build` / `orcan pull` instruction. It does not generate project manifests,
+reconcile host workspaces, repair ownership, build or pull images. Startup plugin
+hooks still prepare launch overlays and authentication needed for the selected
+integrations. Plugin recreate retries also disable building and pulling.
+The container entrypoint checks only top-level writable runtime directories;
+it no longer scans their contents or recursively changes owners. Repair bind
+mount permissions through explicit host sync with exclusions; custom Docker
+named volumes require separate explicit maintenance.
+
+Compose convergence keeps an unchanged instance running; changed container
+settings or image IDs can recreate it and interrupt attached sessions. Finish
+active jobs before applying those changes. `orcan status` records the latest
+startup stage: `preflight`, `start`, `verify`, `ready`. A non-ready stage identifies
+where that attempt stopped, not the health of an older running instance.
 
 ### Build storage check
 
@@ -176,8 +184,8 @@ It needs no agent selection or generated configuration. It does not build, pull,
 start containers, prune cache or remove anything.
 
 An actual `orcan build` runs the same check after confirming that an image rebuild
-is needed. `orcan up` inherits the check when it builds an image. Reusing an
-already completed image skips it. `build --plan` remains a configuration-only
+is needed. `orcan up` never builds an image and does not run the build storage
+check. Reusing an already completed build skips it. `build --plan` remains a configuration-only
 preview and makes no Docker calls.
 
 Less than 2 GiB available on a recognized local Docker filesystem produces a

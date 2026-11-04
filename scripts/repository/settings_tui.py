@@ -66,7 +66,7 @@ def rows(model, page, width=100):
             'build.gradle.kts uses the Kotlin DSL bundled with Gradle; a standalone Kotlin compiler is not required for that alone.',
             'If your projects do not use Go or Rust, leave them unselected to avoid installing their toolchains.',
             'Python: Space selects one or several project runtimes; Enter makes an enabled version the default. Internal service runtimes remain separate.',
-            'Saving changes JSON only. up prepares the new image when needed; build --plan shows requirements before building.',
+            'Saving changes JSON only. run sync for configuration, build for image changes, then up to start. build --plan shows requirements.',
             'Inspect build storage with orcan build --check-space. Low verified Docker free space warns; nothing is deleted.',
             'Inspect host image/cache usage with docker system df. --prune removes only dangling Orcan images; it does not clear BuildKit cache.',
             *[name+': '+TOOL_HELP[name] for name in sorted(TOOLS)]
@@ -99,7 +99,7 @@ def draw(screen,model,page,selected,message):
             except curses.error: pass
     text(0,'Orcan settings  /  '+page.replace('plugin:','Plugin: ')+('  * unsaved' if model.dirty else ''),curses.A_BOLD)
     text(1,str(model.path))
-    if page=='agents': text(2,'Image contents only. Saving does not install or start agents; orcan up builds when needed.')
+    if page=='agents': text(2,'Image contents only. Saving does not install or start agents; use orcan sync, orcan build, then orcan up.')
     elif page=='review': text(2,'Required: '+' -> '.join(model.next_actions()))
     else:text(2,'Space: toggle  Enter: edit/help  Esc: back  q: exit  r: review  s: review/save')
     items=rows(model,page,width)

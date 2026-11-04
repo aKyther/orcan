@@ -8,7 +8,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **4.0.38**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **4.0.39**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 
@@ -52,7 +52,7 @@ orcan up                                 # local — use `orcan enter` on the sa
 # remote browser: orcan up --web-terminal && orcan url
 ```
 
-After config edits: `orcan up --plan` previews the change; `orcan up` prepares generated files, builds when image inputs change, validates Compose, and starts the instance. Use `orcan sync` for explicit live reconcile and ownership repair.
+After config edits: run `orcan sync` with your ownership exclusions, then `orcan build` if image contents changed. `orcan up --plan` previews startup; `orcan up` only starts prepared configuration and an existing local image. It never syncs, builds or pulls automatically.
 
 ### Useful commands
 

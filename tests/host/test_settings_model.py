@@ -26,7 +26,7 @@ def test_draft_cancel_does_not_write_and_keeps_workspace_metadata(tmp_path):
     assert model.dirty
     assert model.path.read_bytes()==original
     assert model.data['workspaces']==model.original['workspaces']
-    assert model.next_actions() == ['orcan up --plan', 'orcan up (after active background jobs finish)']
+    assert model.next_actions() == ['orcan sync', 'orcan build', 'orcan up --plan', 'orcan up (after active background jobs finish)']
     assert any('plugins.redis.enabled' in line for line in model.review())
 
 
@@ -42,7 +42,7 @@ def test_explicit_save_migrates_plugin_settings_and_reports_build_steps(tmp_path
     assert cfg['build']['agents']==['codex']
     assert cfg['workspaces']==[{'name':'keep','projects':[]}]
     assert 'executor' not in cfg and 'ttyd' not in cfg
-    assert actions == ['orcan up --plan', 'orcan up (after active background jobs finish)']
+    assert actions == ['orcan sync', 'orcan build', 'orcan up --plan', 'orcan up (after active background jobs finish)']
     assert not model.dirty
 
 
@@ -85,7 +85,7 @@ def test_tui_lists_plugin_groups_agents_and_image_build_requirement(tmp_path):
     assert any('Interface /' in row[1] for row in tui.rows(model,'plugins'))
     assert ('agent:codex','[x] codex','latest') in tui.rows(model,'agents')
     model.toggle_agent('claude')
-    assert model.next_actions() == ['orcan up --plan', 'orcan up (after active background jobs finish)']
+    assert model.next_actions() == ['orcan sync', 'orcan build', 'orcan up --plan', 'orcan up (after active background jobs finish)']
 
 
 def test_review_and_display_do_not_emit_terminal_control_characters(tmp_path):

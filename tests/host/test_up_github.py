@@ -87,7 +87,7 @@ orcan_warn() { printf '%s\\n' "$*" >&2; }
 orcan_ok() { :; }
 orcan_require_docker() { :; }
 orcan_require_generated() { :; }
-orcan_startup_prepare() { :; }
+orcan_startup_check_inputs() { :; }
 orcan_startup_stage() { :; }
 orcan_startup_verify() { orcan_plugins_run verify; }
 orcan_load_config() { :; }

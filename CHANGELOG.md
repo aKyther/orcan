@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Make `orcan up` start-only: require prepared configuration and a local image, with explicit sync/build instructions on failure. Remove automatic sync/build and the hidden startup ownership mode; disable Compose builds/pulls for startup and plugin retries. Restore explicit sync/build next steps in settings and plans. Replace entrypoint recursive ownership repair with top-level write checks.
+
 - Remove whole-filesystem image flattening; share the core across independent JVM and service-dependency stages. Restrict Docker context inputs, keep wheel caches outside image layers, remove duplicate GLab installation, and only probe selected JVM tools.
 
 - Reuse completed images in plain `orcan build`, share fingerprints with startup, and show package requirements in build/startup previews. Settings supports Go/Rust source images and dependency-aware plugin selection; validate dependency cycles and run required plugins first.

@@ -60,7 +60,7 @@ Commands:
   plugins      List built-in capabilities and verify enabled runtime plugins
   executor     Background procedures (requires up --with-redis)
   settings     TUI for plugins, agents/image, container and terminal settings
-  up           Start container (orcan enter; --web-terminal | --web-terminal-auth for browser)
+  up           Start prepared container; sync/build remain explicit (orcan enter; --web-terminal | --web-terminal-auth for browser)
   down         Stop containers
   build        Build selected components (--plan; --check-space for storage report)
   pull         Pull portable all-agents orcan:<VERSION> → orcan:latest

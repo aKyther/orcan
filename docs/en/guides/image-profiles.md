@@ -41,9 +41,10 @@ sources, ambiguous versions and conflicting duplicates fail before Docker runs.
 
 ## Build once, start when ready
 
-The daily flow is `orcan settings`, optional `orcan up --plan`, then `orcan up`.
-Use plain `orcan build` when you want to prepare the selected image in advance.
-Both commands use the same image fingerprint and completion receipt. An unchanged
+After changing settings, run `orcan sync` with your ownership policy, prepare the
+image with `orcan build` when needed, preview with `orcan up --plan`, then start
+with `orcan up`. Startup never runs sync, build or pull.
+Explicit builds use the image fingerprint and completion receipt. An unchanged
 image is reused. `orcan build --force` runs the build again with Docker cache;
 `--no-cache` also refreshes installation steps. Compatibility agent flags remain
 available for one build and do not rewrite the selection saved in settings.
@@ -213,8 +214,8 @@ An error in `install_agent.py claude` precedes the Dockerfile's npm-cache cleanu
 the cleanup command shown in the failed RUN block is not the failing download.
 
 The [settings TUI](settings.md) preserves pinned versions and custom sources while
-selecting other agents. Saving selection takes effect on the next `orcan up`, which builds when needed.
-Use `orcan build` to build explicitly before starting. Saving does not install or start a client. `orcan up --plan` previews requested image contents
+selecting other agents. Saving selection requires an explicit `orcan sync` and `orcan build` before
+starting the changed image with `orcan up`. Saving does not install or start a client. `orcan up --plan` previews requested image contents
 and startup integrations without inspecting or modifying the installed image.
 
 The recipe check and context export do not prove that a complete new runtime has

@@ -13,12 +13,10 @@ if [[ -z "${ORCAN_VERSION:-}" && -r /etc/orcan/version ]]; then
 fi
 export ORCAN_VERSION="${ORCAN_VERSION:-dev}"
 
-fix_named_volume_permissions() {
-    local dir uid gid
-
-    uid="$(id -u)"
-    gid="$(id -g)"
-
+# Startup checks only top-level writable locations. Recursive ownership repair
+# belongs to explicit host sync, which respects the saved exclusion policy.
+check_runtime_directory_permissions() {
+    local dir
     for dir in \
         "${HOME}/.config/cursor" \
         "${HOME}/.cursor" \
@@ -37,10 +35,10 @@ fix_named_volume_permissions() {
             */.copilot) orcan-agent-enabled copilot || continue ;;
         esac
         [[ -e "${dir}" ]] || continue
-        if [[ "$(stat -c '%u' "${dir}")" != "${uid}" ]] \
-            || [[ ! -w "${dir}" ]] \
-            || find "${dir}" ! -user "${uid}" -print -quit 2>/dev/null | grep -q .; then
-            sudo chown -R "${uid}:${gid}" "${dir}"
+        if [[ ! -w "${dir}" ]]; then
+            printf 'orcan: runtime directory is not writable: %s\n' "${dir}" >&2
+            printf 'orcan: repair permissions explicitly on the host with orcan sync and your ownership exclusions; custom named volumes require explicit maintenance.\n' >&2
+            return 1
         fi
     done
 }
@@ -319,7 +317,7 @@ ensure_shell_home() {
 }
 
 main() {
-    fix_named_volume_permissions
+    check_runtime_directory_permissions || return
     persist_claude_config
     run_init
     run_init_claude_home
