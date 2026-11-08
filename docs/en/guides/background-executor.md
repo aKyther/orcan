@@ -264,6 +264,195 @@ run is claimed: ordinary executions still require fresh reports under the
 profile's existing policy. Missing identity/proof information always causes a
 fresh execution, never an assumed success.
 
+### Set up reuse in a Java project with an AI agent
+
+Large Java checks often repeat compilation and tests after small changes. A
+reviewed reuse contract lets the executor return an existing proof when an
+operation's complete inputs are unchanged. Keep normal test coverage: reuse
+changes how an unchanged operation is verified, not which changed behavior is
+checked.
+
+Configure this in **the Java repository's `.orcan/checks.json`**, not in Orcan's
+own repository or the global `orcan.config.json`. Commit the profile: submissions
+read the definition from the requested Git commit. Existing commands, custom
+profiles and unrelated edits must be preserved.
+
+#### Inspect the real build first
+
+Before editing, the agent should identify:
+
+- Repository instructions, existing executor profiles and the actual Gradle
+  working directory. A repository may build from its root or from `java/`.
+- The real unit-test tasks, selectors and generated JUnit paths. Custom test
+  tasks and subprojects can use different output directories.
+- The actual JDK and Gradle version used by the worker. Preserve the project's
+  wrapper if it uses one. Do not replace `./gradlew` with installed `gradle` just
+  to make a version probe convenient.
+- Shared source modules, resources, schemas, fixtures, generated-code inputs,
+  root and included build scripts, `buildSrc`, convention plugins, version
+  catalogs, dependency locks and wrapper files used by the operation.
+- Any live database, network, SSHFS, mutable service, current-time or other
+  external-state dependency. Keep those operations fresh unless their entire
+  state has a reviewed immutable identity.
+
+Version probes must describe the tools actually used. Installed `gradle
+--version` is not a probe of a different version pinned by `gradlew`. For a
+wrapper build, its tracked wrapper files belong in the input boundary; probe
+the real JDK and any other system tools used. Review mutable Gradle init scripts
+and global settings too. Pin external tooling/settings or update
+`ORCAN_EXECUTOR_CACHE_EPOCH` when they change.
+
+The producer and worker must agree on the declared environment. Setting
+`JAVA_HOME` or an epoch only in the submitting shell does not forward that
+variable to an already-running worker. An environment mismatch prevents sealing
+a reusable proof; it must not be treated as successful cache validation.
+
+#### Start with a conservative profile
+
+The example below assumes an existing **installed-Gradle** build from the
+repository root. Adapt its task, working directory, probes and report paths to
+the inspected project. Add `reuse` to a suitable existing profile where possible.
+Keep integration profiles separate and omit `reuse` from them.
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "java-unit": {
+      "requires_tests": true,
+      "require_junit": true,
+      "minimum_tests": 1,
+      "timeout_seconds": 1800,
+      "steps": [
+        {
+          "argv": [
+            "gradle", "--no-daemon", "--console=plain",
+            "--max-workers=1", "test", "{gradle_tests}"
+          ],
+          "cwd": "."
+        }
+      ],
+      "junit": ["build/test-results/test/*.xml"],
+      "reuse": {
+        "ttl_seconds": 3600,
+        "tools": [
+          ["java", "-version"],
+          ["gradle", "--version", "--no-daemon"]
+        ]
+      }
+    }
+  }
+}
+```
+
+There is no `inputs` field yet: every tracked file participates. If the build
+runs with `cwd: "java"`, a report glob would normally start with
+`java/build/test-results/`; globs are relative to the repository root, not the
+step's working directory. Inspect actual outputs before choosing them.
+
+After reviewing dependencies, the agent may split independent operations into
+separate profiles and narrow their inputs. A module profile must include every
+shared module and build input it uses. A test filename alone is not a complete
+boundary. Do not guess imports or exclude build/config files just to get hits.
+An unmatched pattern disables reuse, so optional paths should not be listed as
+if they existed. Keep the full-tree boundary when the dependency closure is
+unclear.
+
+#### Validate behavior and coverage
+
+First confirm that the installed executor supports this version's `--force`
+and profile reuse metadata. If the image is older, prepare the configuration and
+report that an explicit image update is required. Do not rebuild or restart a
+running container solely to demonstrate reuse.
+
+After committing the reviewed profile, these commands illustrate a selected
+unit-test check. Replace the path and class with real project values:
+
+```bash
+orcan-executor profiles --repo /absolute/path/to/java-repo
+orcan-executor submit --repo /absolute/path/to/java-repo \
+  --profile java-unit --test com.example.rules.PricingTest --force
+# While the baseline is queued/running, this joins the same execution:
+orcan-executor submit --repo /absolute/path/to/java-repo \
+  --profile java-unit --test com.example.rules.PricingTest
+# After consuming the successful baseline, this can return a reused receipt:
+orcan-executor submit --repo /absolute/path/to/java-repo \
+  --profile java-unit --test com.example.rules.PricingTest
+```
+
+Use the agent's existing explicit notification binding for asynchronous work.
+Return control after a queued submission; consume its compact result through
+the configured channel. Without a connected channel, report verification as
+pending. Do not poll, run an interactive listener, or guess another agent's
+session UUID. Do not retry a failed procedure just to obtain a cache hit.
+
+Use the same baseline to check active joining and later reuse; a separate full
+execution is not needed for each acceptance item.
+
+Check the following evidence:
+
+1. A forced baseline produces a real terminal result and valid JUnit with at
+   least the required number of cases. Missing XML or zero unexpected cases is
+   a failure, even if a command prints success.
+2. An identical later request returns `submission: reused` and
+   `verification.kind: reused`. Its receipt names the original job/SHA/date and
+   input/environment hashes. It has zero newly executed tests; original counts
+   remain in `verification.counts`.
+3. Identical active requests join one execution and can notify each caller.
+4. A changed relevant Java file, shared dependency, resource, build/lock file,
+   test selection or declared environment requires fresh work. `--force` also
+   bypasses joining and completed-verification reuse.
+5. With full-tree inputs, a documentation change also requires fresh work.
+   Reuse across a docs-only commit is expected only after a reviewed boundary
+   excludes that file. Changing the profile itself invalidates the old proof:
+   establish a new baseline before checking the narrower contract.
+
+Use existing legitimate changes or a disposable fixture for mutation checks;
+do not create unrelated project commits merely to demonstrate invalidation.
+If a check cannot be performed, record it as pending rather than claiming it
+passed. Keep required full/integration checks in the project's normal acceptance
+flow. This contract does not infer that a selected suite covers a full suite.
+
+`--force` guarantees a new **executor operation**. Gradle can still use its own
+dependency, compilation or task-output caches. If acceptance requires fresh JVM
+test execution, use the project's reviewed Gradle policy and verify what ran.
+Do not claim fresh test processes from the executor's `--force` flag alone, or
+disable all Gradle caches globally to demonstrate executor reuse.
+
+#### Prompt to give an AI agent
+
+Copy this request and supply the real repository path:
+
+```text
+Set up Orcan executor verification reuse in /absolute/path/to/java-repo.
+Follow the Java-agent setup section of Orcan's background-executor guide.
+
+Read repository instructions and inspect .orcan/checks.json, the actual JDK,
+Gradle/wrapper, test tasks, selectors, JUnit outputs and shared build/source
+dependencies. Preserve existing procedures, coverage and unrelated edits.
+
+Enable reuse only for reviewed deterministic unit/static-check operations.
+Start with all tracked files as inputs. Narrow or split profiles only after
+identifying every shared dependency, resource, fixture and build/config/lock
+input. Keep live integration, database, network and SSHFS checks fresh. Probe
+the actual toolchain, and verify producer/worker environment agreement.
+
+Commit the profile before submitting it. Validate a forced baseline, an
+identical reused receipt, active-request joining, and invalidation for relevant
+input/scope/environment changes. Use legitimate changes or disposable fixtures;
+do not manufacture unrelated commits or run an extra full suite for each reuse
+demonstration. Respect normal full/integration gates.
+Use explicit existing notifications and return control after submission.
+
+Report profile names, exact commits and scopes, newly executed versus reused
+test counts, source proof IDs/SHAs, relevant cache limits and pending checks.
+Never copy old JUnit into a fresh run, reduce assertions, assume a selected
+suite covers a full suite, or claim that --force disables Gradle's own caches.
+Do not deploy, rebuild/restart the live container, or change global worker
+settings without separate authorization. If the executor image is too old,
+prepare the changes and report the required update instead of claiming reuse.
+```
+
 This cap limits jobs, not CPU or memory. Docker's `resources.cpus` and
 `resources.memory` limits apply to the whole container. Gradle/JVM/compiler
 parallelism must be set in project commands. For a small JVM environment, start

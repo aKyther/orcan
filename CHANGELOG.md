@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Document Java/Gradle verification reuse setup for AI agents, with a reviewed profile example, wrapper/toolchain and JUnit checks, invalidation acceptance steps and a copyable handoff prompt.
+
+### Added
+
 - Reuse opt-in executor verifications by committed input content, profile, scope and environment. Join identical active requests without duplicate publication; preserve source evidence and SHA provenance, provide `--force`, and distinguish reused verdicts from newly executed tests in results and dashboard counters.
 
 ### Fixed
