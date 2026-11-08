@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import sqlite3
 from contextlib import contextmanager
@@ -9,6 +10,7 @@ from .metrics import measure_result, wire
 from .settings import (
     HISTORY_DAYS,
     HISTORY_LIMIT,
+    QUEUE_WAIT_TIMEOUT_SECONDS,
     effective,
     max_pending,
     max_running,
@@ -74,6 +76,7 @@ def database(directory: Path | None = None):
             "replace_owner": "TEXT",
             "superseded_by": "TEXT",
             "admission_reason": "TEXT",
+            "queued_since": "TEXT",
             "fair_wait_for": "TEXT",
             "fair_wait_started": "TEXT",
             "fairness_bypasses": "INTEGER NOT NULL DEFAULT 0",
@@ -221,6 +224,11 @@ def listing(failures: bool = False) -> list[dict]:
 def start(job_id: str, worktree: Path) -> bool:
     with database() as db:
         db.execute("BEGIN IMMEDIATE")
+        candidate = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+        if candidate is None or candidate["status"] not in {"queued", "running"}:
+            return False
+        if _expire_queued(db, candidate) is not None:
+            return False
         running = db.execute(
             "SELECT COUNT(*) FROM jobs WHERE status='running' AND id<>?", (job_id,)
         ).fetchone()[0]
@@ -230,9 +238,6 @@ def start(job_id: str, worktree: Path) -> bool:
                 "AND COALESCE(admission_reason,'')<>'capacity'",
                 (job_id,),
             )
-            return False
-        candidate = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
-        if candidate is None or candidate["status"] not in {"queued", "running"}:
             return False
         lane = candidate["lane"] or "default"
         winner = db.execute(
@@ -282,6 +287,52 @@ def start(job_id: str, worktree: Path) -> bool:
             (candidate["git_dir"] or candidate["repo"], lane, turn["event_id"], now()),
         )
     return True
+
+
+def _expire_queued(db, job) -> dict | None:
+    if job["status"] != "queued":
+        return None
+    queued_since = datetime.fromisoformat(job["queued_since"] or job["created"])
+    if queued_since.tzinfo is None:
+        queued_since = queued_since.replace(tzinfo=UTC)
+    waited = (datetime.now(UTC) - queued_since).total_seconds()
+    if waited < QUEUE_WAIT_TIMEOUT_SECONDS:
+        return None
+    message = (
+        "Queue wait exceeded 30 minutes; no procedure executed during this queue wait. "
+        "Inspect executor health before submitting a new check."
+    )
+    directory = state_dir() / "jobs" / job["id"]
+    directory.mkdir(parents=True, exist_ok=True)
+    report = directory / "report.json"
+    result = _finish(
+        db,
+        job["id"],
+        "timed_out",
+        {
+            "tests": 0,
+            "passed": 0,
+            "failed": 0,
+            "errors": 1,
+            "skipped": 0,
+            "phase": "queue",
+            "queue_seconds": round(waited, 3),
+            "error": message,
+            "problems": [{"test": "executor queue", "message": message}],
+        },
+        report,
+    )
+    report.write_text(json.dumps(result, indent=2) + "\n")
+    logging.getLogger(__name__).error("Job %s: %s", job["id"], message)
+    return result
+
+
+def expire_queued(job_id: str) -> dict | None:
+    """Caller must hold run.lock, just as for admission and recovery."""
+    with database() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+        return _expire_queued(db, row) if row is not None else None
 
 
 def finish(job_id: str, status: str, summary: dict, report: Path) -> dict:

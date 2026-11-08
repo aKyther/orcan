@@ -1,4 +1,5 @@
 import logging
+import random
 
 from celery import Celery
 from redis.exceptions import RedisError
@@ -38,13 +39,25 @@ def flush_events():
         )
 
 
-@app.task(name="orcan_executor.verify", bind=True)
+@app.task(name="orcan_executor.verify", bind=True, max_retries=None)
 def verify(self, job_id: str):
     result = run_job(job_id, on_started=flush_events)
-    if result is None and store.get(job_id)["status"] == "queued":
+    job = store.get(job_id)
+    if result is None and job["status"] == "queued":
         # Global capacity admission is atomic in SQLite. Do not occupy an execution
         # slot while waiting, or classify capacity pressure as a failed procedure.
-        raise self.retry(countdown=3, max_retries=None)
+        # None on retry() means "use the task default", not unlimited retries.
+        # Set the unlimited admission budget on the task itself.
+        ceiling = min(60, 3 * 2 ** min(self.request.retries, 5))
+        delay = random.uniform(ceiling / 2, ceiling)
+        logging.getLogger(__name__).warning(
+            "Job %s awaiting admission (%s); retry %s in %.1fs; procedure not started",
+            job_id,
+            job.get("admission_reason") or "execution_lock",
+            self.request.retries + 1,
+            delay,
+        )
+        raise self.retry(countdown=delay)
     flush_events()
 
 

@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 
 (async () => {
   const root = mkdtempSync(join(tmpdir(), 'orcan-dashboard-smoke-'));
-  const env = {...process.env, ORCAN_EXECUTOR_STATE_DIR: root, TTYD_CREDENTIAL: ''};
+  const env = {...process.env, ORCAN_EXECUTOR_STATE_DIR: root, TTYD_CREDENTIAL: '', ORCAN_EXECUTOR_BROKER_URL: 'redis://127.0.0.1:1/0'};
   let server, browser;
   try {
     const fixture = `
@@ -49,6 +49,7 @@ store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(url);
+    assert.equal(await page.locator('#hours').inputValue(), '24');
     await page.waitForFunction(() => document.getElementById('passed').textContent === '2');
     assert.equal(await page.locator('canvas').count(), 3);
     assert.ok((await page.locator('#redis-health').innerText()).includes('degraded'));

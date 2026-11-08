@@ -16,7 +16,7 @@ ORCAN_VERSION_FILE := $(shell ./scripts/repository/release.sh print 2>/dev/null 
 TEST_ARGS ?=
 
 .PHONY: help deprecate-user \
-	test-fast test-integration test-coverage-subprocess studio-test-browser \
+	test-fast test-integration test-executor-queue test-coverage-subprocess studio-test-browser \
 	validate test test-host test-coverage test-path-parity format format-check studio-test studio-preview-start studio-preview-stop studio-preview-status studio-preview-logs studio-preview-url studio-preview-snapshot studio-preview-snapshot-clear dev-test \
 	dev-start dev-restart dev-status dev-doctor dev-smoke dev-visual dev-visual-update dev-a11y dev-enter dev-shell dev-logs dev-stop dev-reset dev-checklist \
 	docs docs-venv docs-llms docs-serve docs-check docs-publish docs-deploy docs-mike-latest docs-mike-release docs-mike-delete \
@@ -47,6 +47,12 @@ validate: ## Validate repository layout and script syntax
 
 test-host: ## Host unit tests via uv (automatic test dependencies; no Docker image)
 	@./tests/host/run.sh $(TEST_ARGS)
+
+test-executor-queue: ## Queue safety regressions without Redis or Celery services
+	@ORCAN_EXECUTOR_BROKER_URL=redis://127.0.0.1:1/0 uv run --project executor --python 3.12 --locked --group dev \
+		python -m pytest -q executor/tests/test_admission.py executor/tests/test_queue_deadline.py \
+		executor/tests/test_fair_scheduling.py executor/tests/test_recovery_guard.py \
+		executor/tests/test_web.py --junitxml .orcan/executor-queue-results.xml
 
 test-fast: ## Fast in-process host tests for development
 	@ORCAN_TEST_MODE=fast ./tests/host/run.sh $(TEST_ARGS)

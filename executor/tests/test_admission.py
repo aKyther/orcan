@@ -28,13 +28,86 @@ def test_running_limit_is_atomic_across_workers(repo, monkeypatch, limit):
 
 
 def test_capacity_wait_is_retried_without_claiming_failure(monkeypatch):
+    monkeypatch.setattr(tasks.random, "uniform", lambda low, high: high)
     monkeypatch.setattr(tasks, "run_job", lambda *args, **kwargs: None)
     monkeypatch.setattr(tasks.store, "get", lambda _: {"status": "queued"})
     retry = Mock(side_effect=Retry())
     monkeypatch.setattr(tasks.verify, "retry", retry)
     with pytest.raises(Retry):
         tasks.verify.run("fixture")
-    retry.assert_called_once_with(countdown=3, max_retries=None)
+    retry.assert_called_once_with(countdown=3)
+
+
+@pytest.mark.parametrize("retries", [0, 3, 10, 100])
+def test_real_celery_retry_survives_extended_admission_wait(repo, monkeypatch, caplog, retries):
+    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "1")
+    first = engine.submit(repo, "HEAD", "occupying", "quality", [], 30)
+    waiting = engine.submit(repo, "HEAD", "waiting", "quality", [], 30)
+    assert store.start(first["id"], Path("fixture"))
+    # Exercise Celery's real retry implementation; intercept only publication.
+    send = Mock()
+    monkeypatch.setattr(tasks.verify, "apply_async", send)
+    tasks.verify.push_request(
+        id=waiting["id"],
+        args=(waiting["id"],),
+        kwargs={},
+        retries=retries,
+        called_directly=False,
+        is_eager=False,
+    )
+    try:
+        with pytest.raises(Retry):
+            tasks.verify.run(waiting["id"])
+    finally:
+        tasks.verify.pop_request()
+    send.assert_called_once()
+    assert send.call_args.kwargs["retries"] == retries + 1
+    ceiling = min(60, 3 * 2 ** min(retries, 5))
+    assert ceiling / 2 <= send.call_args.kwargs["countdown"] <= ceiling
+    assert "awaiting admission (capacity)" in caplog.text
+    assert store.get(waiting["id"])["status"] == "queued"
+    assert store.get(waiting["id"])["attempts"] == 0
+    store.finish(first["id"], "cancelled", {}, None)
+    monkeypatch.setattr(tasks, "flush_events", lambda: None)
+    tasks.verify.run(waiting["id"])
+    assert store.get(waiting["id"])["status"] == "passed"
+    assert store.get(waiting["id"])["attempts"] == 1
+    assert send.call_count == 1
+
+
+def test_fair_turn_wait_survives_retry_budget_until_missing_delivery_is_bypassed(repo, monkeypatch):
+    preferred = engine.submit(repo, "HEAD", "preferred", "quality", [], 30)
+    store.publication(preferred["id"], "published")
+    waiting = engine.submit(repo, "HEAD", "waiting", "quality", [], 30)
+    send = Mock()
+    monkeypatch.setattr(tasks.verify, "apply_async", send)
+    tasks.verify.push_request(
+        id=waiting["id"],
+        args=(waiting["id"],),
+        kwargs={},
+        retries=10,
+        called_directly=False,
+        is_eager=False,
+    )
+    try:
+        with pytest.raises(Retry):
+            tasks.verify.run(waiting["id"])
+    finally:
+        tasks.verify.pop_request()
+    assert store.get(waiting["id"])["admission_reason"] == "fair_turn"
+    assert store.get(waiting["id"])["attempts"] == 0
+    with store.database() as db:
+        db.execute(
+            "UPDATE jobs SET fair_wait_started='2000-01-01T00:00:00+00:00' WHERE id=?",
+            (waiting["id"],),
+        )
+    monkeypatch.setattr(tasks, "flush_events", lambda: None)
+    tasks.verify.run(waiting["id"])
+    assert store.get(waiting["id"])["status"] == "passed"
+    assert store.get(waiting["id"])["fairness_bypasses"] == 1
+    assert store.get(preferred["id"])["status"] == "queued"
+    assert store.get(preferred["id"])["attempts"] == 0
+    assert send.call_count == 1
 
 
 def test_lane_needs_both_lease_and_matching_process_lock(monkeypatch):
@@ -65,9 +138,20 @@ def test_unavailable_lane_is_not_published_to_celery(repo, monkeypatch):
 def test_settings_are_bounded_and_show_effective_limits(monkeypatch):
     monkeypatch.setenv("ORCAN_EXECUTOR_TIMEOUT_SECONDS", "45")
     assert settings.effective()["timeout_seconds"] == 45
-    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "6")
+    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "11")
     with pytest.raises(ValueError, match="Running limit"):
         settings.effective()
+
+
+@pytest.mark.parametrize("status", ["passed", "failed", "error", "timed_out", "cancelled"])
+def test_terminal_delivery_never_retries_procedure(monkeypatch, status):
+    monkeypatch.setattr(tasks, "run_job", lambda *args, **kwargs: None)
+    monkeypatch.setattr(tasks.store, "get", lambda _: {"status": status})
+    monkeypatch.setattr(tasks, "flush_events", lambda: None)
+    retry = Mock()
+    monkeypatch.setattr(tasks.verify, "retry", retry)
+    tasks.verify.run("fixture")
+    retry.assert_not_called()
 
 
 def test_profile_timeout_and_explicit_override(repo, monkeypatch):

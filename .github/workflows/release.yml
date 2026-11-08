@@ -69,6 +69,9 @@ jobs:
       - name: Host tests
         run: make test-host
 
+      - name: Executor queue safety regressions (no broker)
+        run: make test-executor-queue
+
       - name: Check documentation
         run: make docs-check
 

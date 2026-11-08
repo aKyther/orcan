@@ -50,7 +50,7 @@ def charts():
 
 
 @app.get("/api/board")
-def board(hours: int = Query(default=3, ge=1, le=720)):
+def board(hours: int = Query(default=24, ge=1, le=720)):
     return store.board(hours)
 
 
@@ -79,7 +79,7 @@ def log(job_id: str):
     )
 
 
-async def frames(request: Request, hours: int = 3):
+async def frames(request: Request, hours: int = 24):
     connection = redis.Redis.from_url(broker_url(), decode_responses=True, socket_connect_timeout=3)
     try:
         try:
@@ -129,7 +129,7 @@ async def frames(request: Request, hours: int = 3):
 
 
 @app.get("/api/events")
-async def event_stream(request: Request, hours: int = Query(default=3, ge=1, le=720)):
+async def event_stream(request: Request, hours: int = Query(default=24, ge=1, le=720)):
     return StreamingResponse(
         frames(request, hours),
         media_type="text/event-stream",

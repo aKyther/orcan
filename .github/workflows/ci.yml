@@ -167,6 +167,9 @@ jobs:
       - name: Full host tests with Python coverage (one run)
         run: ORCAN_TEST_MODE=all make test-coverage
 
+      - name: Executor queue safety regressions (no broker)
+        run: make test-executor-queue
+
       - name: Check documentation
         if: needs.changes.outputs.docs == 'true'
         run: make docs-check

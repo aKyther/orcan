@@ -109,8 +109,10 @@ def prune() -> int:
 def maintain():
     from . import events
     from .diagnostics import sample
+    from .engine import expire_queued_jobs
 
     while True:
+        expire_queued_jobs()
         prune()
         from .snapshots import prune_snapshots
 

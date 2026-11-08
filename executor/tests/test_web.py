@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
@@ -12,6 +13,7 @@ def test_empty_dashboard_and_read_only_api():
     assert client.get("/").status_code == 200
     assert "EventSource" in client.get("/").text
     board = client.get("/api/board").json()
+    assert board["window_hours"] == 24
     assert board["counts"]["queued"] == 0
     assert board["jobs"] == []
     assert client.post("/api/board").status_code == 405
@@ -32,6 +34,17 @@ def test_dashboard_counts_and_report_access(repo):
     assert response.status_code == 200
     assert response.json()["sha"] == finished["sha"]
     assert client.get("/api/jobs/" + finished["id"] + "/log").status_code == 200
+
+
+def test_dashboard_default_includes_last_day_and_respects_explicit_shorter_window(repo):
+    job = engine.submit(repo, "HEAD", "four hours ago", "quality", [], 30)
+    store.finish(job["id"], "passed", {}, None)
+    finished = (datetime.now(UTC) - timedelta(hours=4)).isoformat()
+    with store.database() as db:
+        db.execute("UPDATE jobs SET finished=? WHERE id=?", (finished, job["id"]))
+    client = TestClient(web.app)
+    assert client.get("/api/board").json()["counts"]["passed"] == 1
+    assert client.get("/api/board?hours=3").json()["counts"]["passed"] == 0
 
 
 def test_sse_snapshot_and_blocking_stream_refresh(monkeypatch):
@@ -55,6 +68,7 @@ def test_sse_snapshot_and_blocking_stream_refresh(monkeypatch):
         connection.xread.assert_awaited_once_with({web.stream_name(): "1-0"}, count=50, block=15000)
         payload = json.loads(first.split("data: ", 1)[1])
         assert payload["redis_online"]
+        assert payload["window_hours"] == 24
         await stream.aclose()
         connection.aclose.assert_awaited_once()
 

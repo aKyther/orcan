@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep executor admission retries unlimited with capped exponential backoff and jitter. Log each deferral without rerunning failed procedures; prevent Celery's default three-retry limit from stranding queued jobs.
+- End queue waits after 30 minutes with a durable caller-visible timeout, protect active execution locks and reset the queue budget only on explicit recovery. Warn about stalled queues and default the dashboard history and live snapshots to 24 hours.
+- Run broker-free executor queue regressions in CI and release validation through `make test-executor-queue`.
+
 ### Added
 
 - Report storage before actual image builds and through `orcan build --check-space`: source capacity, native daemon capacity when verifiable, image/container usage and builder cache. Warn below 2 GiB without blocking; report remote/container free space as unknown. Never clean or pull anything during diagnostics.

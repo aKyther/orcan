@@ -37,7 +37,10 @@ def age_seconds(value: str | None) -> float | None:
 
 def jobs() -> dict:
     with store.database() as db:
-        oldest = db.execute("SELECT MIN(created) FROM jobs WHERE status='queued'").fetchone()[0]
+        oldest = db.execute(
+            "SELECT MIN(COALESCE(queued_since,created)) FROM jobs WHERE status='queued'"
+        ).fetchone()[0]
+        last_activity = db.execute("SELECT MAX(COALESCE(finished,started)) FROM jobs").fetchone()[0]
         rows = list(
             db.execute(
                 "SELECT id,sha,status,lane,publication_state,created FROM jobs "
@@ -59,8 +62,19 @@ def jobs() -> dict:
             else "queued"
         )
         result.append(item)
+    oldest_age = age_seconds(oldest)
+    activity_age = age_seconds(last_activity)
+    stalled = (
+        oldest_age is not None
+        and oldest_age >= 120
+        and (activity_age is None or activity_age >= 120)
+        and bool(result)
+        and all(item["status"] == "queued" and item["execution_lock"] == "free" for item in result)
+    )
     return {
-        "oldest_queued_seconds": age_seconds(oldest),
+        "oldest_queued_seconds": oldest_age,
+        "last_execution_activity_seconds": activity_age,
+        "stalled": stalled,
         "inspected_limit": 100,
         "interrupted": sum(item["condition"] == "interrupted" for item in result),
         "jobs": result,
@@ -78,6 +92,8 @@ def sample() -> dict:
     }
     if snapshot["jobs"]["interrupted"]:
         snapshot["warnings"].append("interrupted_jobs")
+    if snapshot["jobs"]["stalled"]:
+        snapshot["warnings"].append("queue_stalled")
     if os.environ.get("ORCAN_REDIS_ENABLED") != "1":
         return snapshot
     connection = None

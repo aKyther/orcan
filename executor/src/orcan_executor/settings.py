@@ -6,6 +6,7 @@ from pathlib import Path
 
 HISTORY_DAYS = 30
 HISTORY_LIMIT = 10000
+QUEUE_WAIT_TIMEOUT_SECONDS = 30 * 60
 
 
 def namespace() -> str:
@@ -112,6 +113,7 @@ def effective() -> dict:
         "max_pending": max_pending(),
         "max_running": max_running(),
         "timeout_seconds": default_timeout(),
+        "queue_wait_timeout_seconds": QUEUE_WAIT_TIMEOUT_SECONDS,
         "retention_seconds": retention_seconds(),
         "redis_memory_mb": redis_memory_mb(),
         "visibility_timeout_seconds": visibility_timeout(),

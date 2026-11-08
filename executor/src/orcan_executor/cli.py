@@ -13,6 +13,12 @@ def emit(value):
     print(wire(model_result(value) if isinstance(value, dict) else value), flush=True)
 
 
+def queue_timeout_exit_code(value: dict) -> int:
+    return int(
+        value.get("status") == "timed_out" and (value.get("summary") or {}).get("phase") == "queue"
+    )
+
+
 def enqueue(job_id: str):
     from .tasks import verify
 
@@ -611,6 +617,7 @@ def main(argv=None):
                         )
                     }
                 )
+            return queue_timeout_exit_code(job)
         elif args.command == "listen":
             if args.timeout is not None and args.timeout <= 0:
                 raise ValueError("timeout must be positive")
@@ -621,10 +628,12 @@ def main(argv=None):
         elif args.command == "wait":
             if args.timeout <= 0:
                 raise ValueError("timeout must be positive")
-            # Subscribe from a captured cursor, then check SQLite: completion in between is not lost.
-            latest = events.client().xrevrange(events.stream_name(), count=1)
-            after = latest[0][0] if latest else "0-0"
             job = store.get(args.job_id)
+            if job["status"] not in store.TERMINAL:
+                # Capture a cursor then recheck SQLite so an intervening completion is not lost.
+                latest = events.client().xrevrange(events.stream_name(), count=1)
+                after = latest[0][0] if latest else "0-0"
+                job = store.get(args.job_id)
             if job["status"] in store.TERMINAL:
                 emit(
                     {
@@ -635,12 +644,14 @@ def main(argv=None):
                         "report": job["report"],
                     }
                 )
+                return queue_timeout_exit_code(job)
             else:
                 payload = next(events.listen(after, args.job_id, args.timeout), None)
                 if payload is None:
                     emit({"job_id": args.job_id, "status": "wait_timeout"})
                     return 2
                 emit(payload)
+                return queue_timeout_exit_code(payload)
         elif args.command == "recover":
             if args.job:
                 with engine.recovery_guard(args.job) as job:

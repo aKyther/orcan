@@ -125,6 +125,35 @@ their procedures or consuming an execution attempt. Failed procedures are not
 retried by this mechanism. Queued jobs can still be cancelled. A stale running job
 after worker loss occupies capacity until explicitly recovered.
 
+Admission retries have no retry-count limit. Their delay grows exponentially
+from 1.5–3 seconds to 30–60 seconds, with jitter to spread worker requests.
+Each deferral logs the job ID, admission reason, retry count and delay.
+This does not retry failed procedures. A healthy Redis and worker heartbeat do
+not prove that queued messages are still deliverable. If an older worker lost a
+message after exhausting retries, inspect diagnostics and use explicit per-job
+recovery after deploying the fix; restarting Redis alone cannot restore it.
+
+Queue waiting has a separate 30-minute limit. Overdue queued jobs finish with
+`timed_out`, `phase: queue`, zero tests executed and an explicit error for the
+registered caller. Local maintenance checks every 30 seconds, including when
+Redis is unavailable; the durable result is published when transport recovers.
+Workers also check this deadline before admission. Running procedures and jobs
+with held execution locks are protected. Explicit recovery of a still-pending
+job starts a fresh queue budget, preserving its ID, SHA and original creation
+time. Completed timeouts require a new submission; they are not silently retried.
+`result` and `wait` return exit code 1 for a queue timeout. A locally stored
+terminal result remains readable without a working Redis connection.
+
+Diagnostics warn after two minutes of queued work without execution activity,
+even when worker heartbeats are healthy. The dashboard defaults to the last
+24 hours for its history, metrics and live snapshots; shorter windows remain
+available in the period selector.
+
+`make test-executor-queue` runs queue safety regressions without Redis or Celery
+services and writes a JUnit report. CI and release validation run this check to
+guard admission retries, queue deadlines, execution locks, caller errors and the
+dashboard's default history window.
+
 This cap limits jobs, not CPU or memory. Docker's `resources.cpus` and
 `resources.memory` limits apply to the whole container. Gradle/JVM/compiler
 parallelism must be set in project commands. For a small JVM environment, start

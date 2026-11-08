@@ -1,6 +1,7 @@
 import fcntl
 import hashlib
 import json
+import logging
 import os
 import re
 import resource
@@ -9,13 +10,19 @@ import signal
 import subprocess
 import time
 from contextlib import ExitStack, contextmanager
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
 from . import profiles, reports, store
 from .metrics import log_size
-from .settings import default_timeout, execution_lane, state_dir, worktree_root
+from .settings import (
+    QUEUE_WAIT_TIMEOUT_SECONDS,
+    default_timeout,
+    execution_lane,
+    state_dir,
+    worktree_root,
+)
 
 
 def git(repo: Path, *args: str) -> str:
@@ -123,6 +130,34 @@ def execute(command: list[str], cwd: Path, log, timeout: float, lock_fd: int) ->
             except ProcessLookupError:
                 pass
             raise
+
+
+def expire_queued_jobs() -> int:
+    """Expire lost queue deliveries locally, without depending on a live broker."""
+    cutoff = (datetime.now(UTC) - timedelta(seconds=QUEUE_WAIT_TIMEOUT_SECONDS)).isoformat()
+    with store.database() as db:
+        pending = list(
+            db.execute(
+                "SELECT id FROM jobs WHERE status='queued' AND COALESCE(queued_since,created)<=?",
+                (cutoff,),
+            )
+        )
+    expired = 0
+    for row in pending:
+        directory = state_dir() / "jobs" / row["id"]
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            with (directory / "run.lock").open("a") as lock:
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    continue  # A worker/child owns the execution; never expire it here.
+                expired += int(store.expire_queued(row["id"]) is not None)
+        except OSError:
+            logging.getLogger(__name__).exception(
+                "Cannot inspect queue timeout lock for job %s; state preserved", row["id"]
+            )
+    return expired
 
 
 def run_job(job_id: str, on_started=None) -> dict | None:
@@ -460,8 +495,9 @@ def recovery_guard(job_id: str):
             if row is None or row["status"] in store.TERMINAL:
                 raise ValueError("Job completed while recovery was requested")
             db.execute(
-                "UPDATE jobs SET status='queued',publication_state='recovery_pending',recovery_count=recovery_count+1 WHERE id=?",
-                (job_id,),
+                "UPDATE jobs SET status='queued',publication_state='recovery_pending',"
+                "recovery_count=recovery_count+1,queued_since=? WHERE id=?",
+                (store.now(), job_id),
             )
             store.event(db, {"kind": "recovery_requested", "job_id": job_id, "sha": job["sha"]})
         yield store.get(job_id)

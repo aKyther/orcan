@@ -124,6 +124,8 @@ def message(job: dict) -> str:
         if summary.get("diagnostic_note"):
             result["diagnostics"]["note"] = clip(summary["diagnostic_note"], 200)
         artifact = " --artifact diagnostics.json" if summary.get("diagnostic_artifact") else ""
+        if summary.get("phase") == "queue":
+            artifact = " --artifact report.json"
         result["details"] = (
             "orcan-executor logs " + job["id"] + artifact + " --offset 0 --limit 4000"
         )
