@@ -89,7 +89,12 @@ def parser():
     selection.add_argument(
         "--reuse",
         action="store_true",
-        help="Reuse identical queued/running verification instead of adding work",
+        help="Join identical work; reuse a success only when the committed profile permits it",
+    )
+    selection.add_argument(
+        "--force",
+        action="store_true",
+        help="Run fresh, bypassing both joining and completed verification reuse",
     )
     selection.add_argument(
         "--replace-pending",
@@ -455,6 +460,13 @@ def main(argv=None):
                                 "timeout_seconds", effective()["timeout_seconds"]
                             ),
                             "requires_tests": profile.get("requires_tests", False),
+                            "reuse": {
+                                "enabled": bool(profile.get("reuse")),
+                                "ttl_seconds": profile.get("reuse", {}).get("ttl_seconds"),
+                                "inputs": "declared"
+                                if "inputs" in profile.get("reuse", {})
+                                else "full_tree",
+                            },
                         }
                         for name, profile in definitions.items()
                     ],
@@ -550,13 +562,15 @@ def main(argv=None):
                     reuse=args.reuse,
                     replace_pending=args.replace_pending,
                     replace_owner=target or "",
+                    force=args.force,
                 )
                 if target:
                     register(job["id"], target)
                 if claude_target:
                     register(job["id"], claude_target, "claude")
             try:
-                enqueue(job["id"])
+                if job.get("submission_mode", "created") == "created":
+                    enqueue(job["id"])
             except Exception as error:
                 emit(
                     {
@@ -577,7 +591,20 @@ def main(argv=None):
             except Exception:
                 pass  # The durable outbox can be recovered after an event transport outage.
             emit(
-                {"job_id": job["id"], "sha": job["sha"], "task_id": job["task"], "status": "queued"}
+                {
+                    "job_id": job["id"],
+                    "sha": job["sha"],
+                    "task_id": job["task"],
+                    "status": job["status"],
+                    "submission": job.get("submission_mode", "created"),
+                    "publication_state": store.get(job["id"])["publication_state"],
+                }
+                | (
+                    {"verification": job["summary"]["verification"]}
+                    if job.get("reuse_source")
+                    else {}
+                )
+                | ({"reuse_note": job["reuse_note"]} if job.get("reuse_note") else {})
                 | (
                     {
                         "replace_group": args.replace_pending,
@@ -614,6 +641,8 @@ def main(argv=None):
                             "worktree",
                             "superseded_by",
                             "replace_group",
+                            "reuse_source",
+                            "reuse_note",
                         )
                     }
                 )

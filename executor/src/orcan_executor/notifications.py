@@ -101,6 +101,8 @@ def message(job: dict) -> str:
     }
     if job.get("superseded_by"):
         result["superseded_by"] = job["superseded_by"]
+    if summary.get("verification"):
+        result["verification"] = summary["verification"]
     result["counts"] = {
         key: summary.get(key, 0) for key in ("tests", "passed", "failed", "errors", "skipped")
     }

@@ -26,6 +26,10 @@ def load(text: str) -> dict:
             raise ValueError("Profile timeout_seconds must be an integer from 1 to 21600")
         if type(profile.get("require_junit", False)) is not bool:
             raise ValueError("require_junit must be a boolean")
+        if "reuse" in profile:
+            from .reuse import validate
+
+            validate(profile["reuse"])
         if "minimum_tests" in profile and (
             not profile.get("require_junit")
             or type(profile["minimum_tests"]) is not int

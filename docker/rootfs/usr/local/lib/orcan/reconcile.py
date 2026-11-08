@@ -516,6 +516,13 @@ Set require_junit=true for test profiles (minimum_tests defaults to 1). Required
 reports must be generated or updated during this run. Missing, unchanged, malformed
 or insufficient reports prevent success; missing XML or zero tests is not evidence
 that the intended tests passed. Non-test procedures rely on the real exit code.
+Committed profiles may opt in to verification reuse with a reviewed reuse contract.
+Declare every source, shared dependency, fixture, build/config and environment input;
+omit inputs to use the full tracked tree. Mutable integration operations stay fresh.
+Opted-in profiles join identical active work and may return a verified receipt for
+unchanged input hashes. Report reused proof ID/SHA/date and zero newly executed tests;
+never describe reused evidence as a fresh JUnit run. --force bypasses reuse/joining.
+Missing/expired/changed evidence requires fresh execution; never copy old XML to pass.
 New failures provide diagnostics.json and a failed step log reference, without
 attaching raw mixed output. Read the failed step artifact only when needed.
 Use the compact result first: status, exact SHA, counters and bounded failure messages.

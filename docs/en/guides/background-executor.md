@@ -154,6 +154,116 @@ services and writes a JUnit report. CI and release validation run this check to
 guard admission retries, queue deadlines, execution locks, caller errors and the
 dashboard's default history window.
 
+### Reuse verified operations
+
+An operation can reuse a previous successful verification when its committed
+inputs, procedure, selected tests and declared environment are unchanged. This
+works for Python, Gradle, linters, documentation and other reviewed procedures;
+the executor does not guess imports or maintain language-specific dependency
+graphs. Each profile is one operation and defines its complete input boundary.
+
+Reuse is opt-in in the committed profile. Profiles without this contract keep
+running fresh. Use this especially for integration tests with a live database,
+network, SSHFS, current time or mutable external fixtures. Never enable reuse
+for deployment, migrations or commands whose side effects must happen again.
+
+For example, this profile verifies a Python project with `src/` and `tests/`:
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "unit": {
+      "requires_tests": true,
+      "require_junit": true,
+      "steps": [{"argv": ["uv", "run", "--locked", "pytest", "-q", "{tests}", "--junitxml", "{junit}"]}],
+      "reuse": {
+        "ttl_seconds": 3600,
+        "tools": [["python", "--version"], ["uv", "--version"]],
+        "environment": ["PYTHONWARNINGS"]
+      }
+    }
+  }
+}
+```
+
+With no `inputs` field, **all tracked files** are inputs. Different commits with
+the same tree can share the proof. To avoid retesting after an unrelated docs
+change, a reviewed profile can declare a narrower boundary:
+
+```json
+"inputs": ["src/**", "tests/**", "pyproject.toml", "uv.lock"]
+```
+
+Include shared libraries, fixtures, schemas, generated-code sources, root
+`conftest.py`, test configuration and helper/build scripts when the operation
+uses them. A missing input pattern disables reuse and queues fresh work. `**`
+matches zero or more path segments; `*` matches within one segment. Paths, file
+modes and Git blob IDs form the input SHA-256; renames and deletions invalidate
+the proof. Symlinks and submodules within the boundary disable reuse.
+
+Gradle uses the same contract, for example version probes `[["java", "-version"],
+["gradle", "--version", "--no-daemon"]]`. Keep the whole tree initially, or
+include every relevant source, resource, wrapper, build script, lockfile and
+shared build plugin. This feature reuses a **verification**, not Gradle's build
+outputs. Dependency and compilation caches remain separate.
+
+Tool probes run outside the producer's dirty checkout. They must use system
+executables and version-only flags. The identity includes the selected tool
+binary/version hashes, executor validation code, platform, Python runtime and
+declared non-secret environment variables. Standard path, locale, timezone,
+Java/Python environment values and `ORCAN_EXECUTOR_CACHE_EPOCH` are included
+automatically. Bump that public epoch after changes to external tool settings
+that version probes cannot describe. Profiles must declare all other relevant
+environment inputs; this contract cannot prove purity automatically.
+Version probes must identify the runtimes actually used by the operation,
+including Python selected by uv. Pin those runtimes or name their resolved
+executable paths. Untracked automatic toolchain changes require fresh work or
+an updated epoch. Orcan image version/build-profile metadata and loaded runner
+code also participate, protecting rolling worker updates.
+As a conservative boundary, a new container mount namespace or host boot starts
+a fresh verification generation. History survives; old verdicts are not used to
+certify a newly created runtime whose libraries may have changed.
+
+For an opted-in profile:
+
+- Identical active work at the same SHA is joined atomically in SQLite. Every
+  caller can register its own notification; the CLI does not publish another
+  task message. A still-unpublished or uncertain task remains pending explicit
+  recovery; joining does not resend it.
+- A complete, unexpired success for the same inputs can produce a new receipt,
+  including across different SHAs. The receipt has its own ID and target SHA,
+  the original job/SHA/date, input/environment hashes and original test counts.
+  It records **zero tests executed now**. Statistics do not add the original
+  execution time, test counts or logs again.
+- The source report, JUnit and archived artifacts must still match their sealed
+  SHA-256 hashes. Evidence is copied into the receipt so later source retention
+  cannot remove its proof. Evidence is bounded to 2048 files and 64 MiB; larger
+  or unverifiable proofs fall back to fresh work.
+- A later failed execution invalidates earlier successes with that identity.
+  Failures, interrupted work, expired artifacts and reused receipts are never
+  sources for another cached verdict. Reuse cannot extend the original TTL.
+
+```bash
+orcan-executor submit --repo . --profile unit --test tests/test_api.py
+# Run again, even if identical work or a reusable proof exists:
+orcan-executor submit --repo . --profile unit --test tests/test_api.py --force
+```
+
+`--reuse` remains available to join identical active work for a profile without
+completed-verification reuse. `--force`, `--reuse` and `--replace-pending` are
+mutually exclusive. Pending replacement keeps its existing ownership rules;
+it does not implicitly join other tasks or use a cached verdict.
+
+The dashboard separates joined submissions, reused verifications and executed
+procedures. Submission counters use the retained window: up to 30 days and
+10000 requests. `profiles` shows whether reuse is enabled, its TTL and whether
+inputs cover the full tree or a declared boundary. Review that boundary in the
+committed profile. A reused row and notification name the original proof. No new JUnit
+run is claimed: ordinary executions still require fresh reports under the
+profile's existing policy. Missing identity/proof information always causes a
+fresh execution, never an assumed success.
+
 This cap limits jobs, not CPU or memory. Docker's `resources.cpus` and
 `resources.memory` limits apply to the whole container. Gradle/JVM/compiler
 parallelism must be set in project commands. For a small JVM environment, start
@@ -530,9 +640,11 @@ orcan-executor ack JOB_ID
 ```
 
 `--reuse` atomically reuses an identical queued or running check (same Git common
-directory, SHA, procedure, selectors and timeout). Completed checks are not silently
-reused. The returned job may retain its original task label. Without this option,
-independent repeated checks remain possible. `cancel` only cancels queued work;
+directory, SHA, procedure, selectors, environment and timeout). The returned job
+may retain its original task label. A reviewed profile's `reuse` contract also
+enables automatic joining and explicit completed-verification receipts, as
+described above. Use `--force` for an independent fresh check. Profiles without
+that contract do not reuse completed checks. `cancel` only cancels queued work;
 it never terminates an agent or a running build. Late deliveries of a cancelled
 job perform no checks. Cancellation also frees admission capacity.
 

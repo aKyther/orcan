@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Reuse opt-in executor verifications by committed input content, profile, scope and environment. Join identical active requests without duplicate publication; preserve source evidence and SHA provenance, provide `--force`, and distinguish reused verdicts from newly executed tests in results and dashboard counters.
+
 ### Fixed
 
 - Keep executor admission retries unlimited with capped exponential backoff and jitter. Log each deferral without rerunning failed procedures; prevent Celery's default three-retry limit from stranding queued jobs.

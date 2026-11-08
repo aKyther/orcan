@@ -5,6 +5,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
 from .metrics import measure_result, wire
 from .settings import (
@@ -53,6 +54,10 @@ def database(directory: Path | None = None):
             CREATE TABLE IF NOT EXISTS communication (
                 name TEXT PRIMARY KEY, amount INTEGER NOT NULL DEFAULT 0, updated TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS submissions (
+                id TEXT PRIMARY KEY, job_id TEXT NOT NULL, created TEXT NOT NULL,
+                mode TEXT NOT NULL, sha TEXT NOT NULL, task TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS health (
                 id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL
             );
@@ -77,6 +82,13 @@ def database(directory: Path | None = None):
             "superseded_by": "TEXT",
             "admission_reason": "TEXT",
             "queued_since": "TEXT",
+            "execution_key": "TEXT",
+            "verification_key": "TEXT",
+            "environment_key": "TEXT",
+            "input_key": "TEXT",
+            "evidence_manifest": "TEXT",
+            "reuse_source": "TEXT",
+            "reuse_note": "TEXT",
             "fair_wait_for": "TEXT",
             "fair_wait_started": "TEXT",
             "fairness_bypasses": "INTEGER NOT NULL DEFAULT 0",
@@ -106,6 +118,13 @@ def database(directory: Path | None = None):
         connection.execute(
             "CREATE INDEX IF NOT EXISTS jobs_lane_queue ON jobs(lane,status,publication_state,created)"
         )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS jobs_execution_key ON jobs(execution_key,status)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS jobs_verification_key ON jobs(verification_key,finished)"
+        )
+        connection.execute("CREATE INDEX IF NOT EXISTS submissions_created ON submissions(created)")
         connection.commit()
         yield connection
         connection.commit()
@@ -124,27 +143,61 @@ def event(db, payload: dict) -> dict:
     return payload
 
 
-def create(job: dict, reuse: bool = False, replacements: list[str] | None = None) -> str:
+def create(
+    job: dict, reuse: bool = False, replacements: list[str] | None = None, reuse_ttl: int = 0
+) -> str:
     with database() as db:
         db.execute("BEGIN IMMEDIATE")
         if reuse:
-            existing = db.execute(
-                "SELECT id FROM jobs WHERE git_dir=? AND sha=? AND profile=? AND selectors=? AND timeout=? AND status IN ('queued','running') ORDER BY created LIMIT 1",
-                (
-                    job["git_dir"],
-                    job["sha"],
-                    job["profile"],
-                    json.dumps(job["selectors"]),
-                    job["timeout"],
-                ),
-            ).fetchone()
+            existing = (
+                db.execute(
+                    "SELECT id FROM jobs WHERE execution_key=? AND status IN ('queued','running') ORDER BY created LIMIT 1",
+                    (job["execution_key"],),
+                ).fetchone()
+                if job.get("execution_key")
+                else db.execute(
+                    "SELECT id FROM jobs WHERE git_dir=? AND sha=? AND profile=? AND selectors=? AND timeout=? AND status IN ('queued','running') ORDER BY created LIMIT 1",
+                    (
+                        job["git_dir"],
+                        job["sha"],
+                        job["profile"],
+                        json.dumps(job["selectors"]),
+                        job["timeout"],
+                    ),
+                ).fetchone()
+            )
             if existing:
+                _submission(db, job, existing["id"], "joined")
+                job["submission_mode"] = "joined"
                 return existing["id"]
+        cached = None
+        source = None
+        if reuse_ttl and job.get("verification_key"):
+            # A later failed execution invalidates older successes for this key.
+            source = db.execute(
+                "SELECT * FROM jobs WHERE verification_key=? AND reuse_source IS NULL "
+                "AND attempts>0 AND finished IS NOT NULL ORDER BY finished DESC,id DESC LIMIT 1",
+                (job["verification_key"],),
+            ).fetchone()
+            cutoff = (datetime.now(UTC) - timedelta(seconds=reuse_ttl)).isoformat()
+            if (
+                source is not None
+                and source["status"] == "passed"
+                and not source["details_expired"]
+                and source["finished"] >= cutoff
+                and source["evidence_manifest"]
+                and source["report"]
+            ):
+                from .reuse import receipt
+
+                cached = receipt(dict(source), job)
         replace_ids = {row["id"] for row in _replacement_rows(db, job)} & set(replacements or [])
         count = db.execute(
             "SELECT COUNT(*) FROM jobs WHERE status IN ('queued','running')"
         ).fetchone()[0]
-        if count - len(replace_ids) >= max_pending():
+        if reuse_ttl and cached is None and not job.get("reuse_note"):
+            job["reuse_note"] = "No complete, valid matching proof; fresh verification required"
+        if cached is None and count - len(replace_ids) >= max_pending():
             raise ValueError(
                 "Executor capacity reached; cancel obsolete queued work or wait for a completion event"
             )
@@ -166,7 +219,8 @@ def create(job: dict, reuse: bool = False, replacements: list[str] | None = None
                 None,
             )
         db.execute(
-            "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created,lane,replace_group,replace_owner) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created,lane,replace_group,replace_owner,"
+            "execution_key,verification_key,environment_key,input_key,reuse_source,reuse_note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 job["id"],
                 job["repo"],
@@ -180,8 +234,22 @@ def create(job: dict, reuse: bool = False, replacements: list[str] | None = None
                 job.get("lane", "default"),
                 job.get("replace_group"),
                 job.get("replace_owner"),
+                job.get("execution_key"),
+                job.get("verification_key"),
+                job.get("environment_key"),
+                job.get("input_key"),
+                source["id"] if cached is not None else None,
+                job.get("reuse_note"),
             ),
         )
+        mode = "reused" if cached is not None else "created"
+        job["submission_mode"] = mode
+        _submission(db, job, job["id"], mode)
+        if cached is not None:
+            summary, report = cached
+            db.execute("UPDATE jobs SET publication_state='not_required' WHERE id=?", (job["id"],))
+            _finish(db, job["id"], "passed", summary, report)
+            return job["id"]
         event(
             db,
             {
@@ -194,6 +262,13 @@ def create(job: dict, reuse: bool = False, replacements: list[str] | None = None
         )
 
     return job["id"]
+
+
+def _submission(db, job: dict, execution_id: str, mode: str):
+    db.execute(
+        "INSERT INTO submissions(id,job_id,created,mode,sha,task) VALUES(?,?,?,?,?,?)",
+        (uuid4().hex, execution_id, now(), mode, job["sha"], job["task"]),
+    )
 
 
 def get(job_id: str) -> dict:
@@ -428,6 +503,8 @@ def board(hours: int | None = None) -> dict:
         aggregate = dict(
             db.execute("""
             SELECT COUNT(*) AS completed_jobs,
+            COALESCE(SUM(attempts>0),0) AS executed_jobs,
+            COALESCE(SUM(reuse_source IS NOT NULL),0) AS reused_verifications,
             COUNT(json_extract(summary, '$.metrics.result_bytes')) AS measured_result_jobs,
             COALESCE(SUM(superseded_by IS NOT NULL),0) AS superseded_jobs,
             COALESCE(SUM(fairness_bypasses),0) AS fairness_bypasses,
@@ -467,6 +544,15 @@ def board(hours: int | None = None) -> dict:
                 "SELECT d.job_id,d.thread_id,d.adapter,d.status,d.reason,d.message_bytes,d.adapter_seconds FROM scoped_deliveries d JOIN (SELECT id FROM scoped_jobs ORDER BY status IN ('queued','running') DESC,created DESC LIMIT 100) j ON d.job_id=j.id ORDER BY d.thread_id"
             )
         ]
+        aggregate.update(
+            dict(
+                db.execute(
+                    "SELECT COUNT(*) AS submission_requests,COALESCE(SUM(mode='joined'),0) AS joined_submissions "
+                    "FROM submissions WHERE created>=?",
+                    (cutoff,),
+                ).fetchone()
+            )
+        )
         coverage = dict(
             db.execute("""
             SELECT COUNT(*) AS completed_jobs,

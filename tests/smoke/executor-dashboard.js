@@ -27,6 +27,10 @@ store.create(job | dict(id='obsolete',sha='c'*40,task='Superseded fixture',repla
 with store.database() as db:
     db.execute("UPDATE jobs SET superseded_by='fixture' WHERE id='obsolete'")
     store._finish(db,'obsolete','cancelled',dict(tests=0,passed=0,failed=0,errors=0,skipped=0,superseded_by='fixture'),None)
+store.create(job | dict(id='reused',task='Reused verification fixture'))
+with store.database() as db:
+    db.execute("UPDATE jobs SET reuse_source='fixture' WHERE id='reused'")
+store.finish('reused','passed',dict(tests=0,passed=0,failed=0,errors=0,skipped=0,verification=dict(kind='reused',source_job_id='fixture',source_sha='a'*40,verified_at=store.now(),inputs_sha256='d'*64,counts=dict(tests=0))),None)
 store.create(job | dict(id='orphan',sha='b'*40,task='Interrupted fixture'))
 store.start('orphan',Path('/fixture/interrupted'))
 store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis=dict(used_memory_bytes=900,maxmemory_bytes=1000,aof_enabled=1,aof_write_status='err'),warnings=['aof_write_error','interrupted_jobs'],lanes={},jobs=dict(interrupted=1,oldest_queued_seconds=None,jobs=[dict(id='orphan',sha='b'*40,condition='interrupted')])))
@@ -50,12 +54,12 @@ store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(url);
     assert.equal(await page.locator('#hours').inputValue(), '24');
-    await page.waitForFunction(() => document.getElementById('passed').textContent === '2');
+    await page.waitForFunction(() => document.getElementById('passed').textContent === '3');
     assert.equal(await page.locator('canvas').count(), 3);
     assert.ok((await page.locator('#redis-health').innerText()).includes('degraded'));
     assert.ok((await page.locator('#recovery-candidates').innerText()).includes('orcan-executor recover --job orphan'));
     assert.ok(await page.locator('#timeline-rows tr').count() > 1);
-    assert.ok((await page.locator('#coverage-note').innerText()).includes('Zakończone zadania: 3'));
+    assert.ok((await page.locator('#coverage-note').innerText()).includes('Zakończone zadania: 4'));
     assert.ok((await page.locator('#coverage-note').innerText()).includes('Odzyskane wpisy: 1'));
     await page.getByText('Dane wykresów i zastosowania', {exact:true}).click();
     assert.ok((await page.locator('#timeline-rows').innerText()).includes('brak pełnych danych'));
@@ -65,6 +69,10 @@ store.save_health(dict(sampled_at=store.now(),status='degraded',ping_ms=.4,redis
     await page.locator('#jobs tr').filter({hasText:'Superseded fixture'}).click();
     assert.ok((await page.locator('#detail').innerText()).includes('Zastąpione przez zadanie'));
     assert.ok((await page.locator('#measurement-note').innerText()).includes('Zastąpione przed uruchomieniem: 1'));
+    await page.locator('#jobs tr').filter({hasText:'Reused verification fixture'}).click();
+    assert.ok((await page.locator('#detail').innerText()).includes('Wykorzystano wcześniejszy wynik'));
+    assert.ok((await page.locator('#detail').innerText()).includes('Źródłowe zadanie'));
+    assert.ok((await page.locator('#measurement-note').innerText()).includes('Wykorzystane weryfikacje: 1'));
     await page.selectOption('#hours', '720');
     await page.waitForFunction(() => document.getElementById('measurement-note').textContent.includes('720 godzin'));
     await page.screenshot({path: process.env.ORCAN_DASHBOARD_SCREENSHOT || '/tmp/orcan-executor-dashboard.png', fullPage:true});

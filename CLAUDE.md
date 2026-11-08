@@ -127,6 +127,11 @@ globs, including custom test tasks. Preserve real exit codes; do not mask failur
 Set `require_junit: true` on test profiles; `minimum_tests` defaults to 1.
 Required reports must be generated or updated by this run; missing, unchanged,
 malformed or insufficient reports cannot produce a passed result.
+Opt-in verification reuse returns a separate receipt with input/environment hashes
+and source job/SHA/date. Report zero newly executed tests for such receipts; never
+describe archived source JUnit as a new run. Review the complete profile input
+boundary before enabling reuse; mutable integration operations stay fresh. `--force`
+bypasses both joining and completed-verification reuse.
 Consume compact status/SHA/counters/errors first. Never fetch passed-case output
 or full successful logs into the agent session. For failures, inspect only relevant
 artifacts and bounded diagnostic fragments; widen reads only when needed.

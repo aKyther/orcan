@@ -259,7 +259,12 @@ def test_cli_registers_destination_before_enqueue_and_reuse_adds_subscriber(
     )
     second = json.loads(capsys.readouterr().out)
     assert first["job_id"] == second["job_id"]
-    assert len(observed[0]) == 1 and len(observed[1]) == 2
+    assert len(observed) == 1 and len(observed[0]) == 1
+    assert {item["thread_id"] for item in notifications.listing(first["job_id"])} == {
+        THREAD,
+        second_thread,
+    }
+    assert second["submission"] == "joined"
 
 
 def test_bounded_log_wire_accounting_matches_the_emitted_jsonl(repo, monkeypatch, capsys):

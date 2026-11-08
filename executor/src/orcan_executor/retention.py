@@ -73,9 +73,15 @@ def prune() -> int:
                     for key, value in summary.get("metrics", {}).items()
                     if isinstance(value, (int, float)) or value is None
                 }
+                if summary.get("verification"):
+                    compact["verification"] = {
+                        key: value
+                        for key, value in summary["verification"].items()
+                        if key != "evidence"
+                    }
                 db.execute(
                     "UPDATE jobs SET details_expired=1,summary=?,report=NULL,worktree=NULL,"
-                    "progress=NULL,selectors='[]',git_dir=NULL WHERE id=?",
+                    "progress=NULL,selectors='[]',git_dir=NULL,evidence_manifest=NULL WHERE id=?",
                     (json.dumps(compact), job["id"]),
                 )
                 db.execute(
@@ -87,6 +93,11 @@ def prune() -> int:
             removed += 1
     history_cutoff = (datetime.now(UTC) - timedelta(days=HISTORY_DAYS)).isoformat()
     with store.database() as db:
+        db.execute(
+            "DELETE FROM submissions WHERE created<? OR id IN "
+            "(SELECT id FROM submissions ORDER BY created DESC,id DESC LIMIT -1 OFFSET ?)",
+            (history_cutoff, HISTORY_LIMIT),
+        )
         # Active jobs and dirty retained worktrees are outside both history limits.
         db.execute(
             "DELETE FROM jobs WHERE details_expired=1 AND (finished < ? OR id IN "

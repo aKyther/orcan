@@ -41,7 +41,10 @@ def submit(
     reuse: bool = False,
     replace_pending: str | None = None,
     replace_owner: str = "",
+    force: bool = False,
 ) -> dict:
+    if force and (reuse or replace_pending):
+        raise ValueError("force cannot combine with reuse or pending replacement")
     if replace_pending is not None and (
         reuse or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}", replace_pending)
     ):
@@ -87,20 +90,32 @@ def submit(
         replace_group=replace_pending,
         replace_owner=replace_owner,
     )
+    definition = definitions[profile]
+    enabled = bool(definition.get("reuse"))
+    if (reuse or enabled) and not replace_pending:
+        from .reuse import identity
+
+        job.update(identity(repo, job, definition))
+    join = (reuse or enabled) and not force and not replace_pending and not job.get("reuse_note")
+    reuse_ttl = definition.get("reuse", {}).get("ttl_seconds", 0) if join else 0
     # Keep the object reachable even if the agent removes its task branch/worktree.
     git(repo, "update-ref", "refs/orcan/executor/jobs/" + job["id"], sha)
     try:
         with replacement_guard(job) as candidates:
-            existing = store.create(job, reuse=reuse, replacements=candidates)
+            existing = store.create(job, reuse=join, replacements=candidates, reuse_ttl=reuse_ttl)
         if existing != job["id"]:
             git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
-            return store.get(existing)
+            return store.get(existing) | {"submission_mode": "joined"}
     except BaseException:
         git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
         raise
     if replace_pending:
         job["superseded_count"] = store.superseded_count(job["id"])
-    return job
+    return (
+        store.get(job["id"])
+        | {"submission_mode": job["submission_mode"]}
+        | ({"superseded_count": job["superseded_count"]} if replace_pending else {})
+    )
 
 
 commands = profiles.commands
@@ -218,6 +233,7 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             repo, "rev-parse", "--path-format=absolute", "--git-common-dir"
         )
         added = False
+        definition = {}
         try:
             with log_path.open("wb") as log:
                 subprocess.run(
@@ -239,6 +255,10 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                 job["artifact_dir"] = str(attempt)
                 steps = commands(worktree, job)
                 definition = profiles.load((worktree / profiles.CONFIG).read_text())[job["profile"]]
+                if job.get("verification_key"):
+                    from .reuse import environment_valid
+
+                    job["reuse_environment_valid"] = environment_valid(job, definition)
                 report_inputs = {}
                 if definition.get("require_junit"):
                     for pattern in definition.get("junit", []):
@@ -439,6 +459,14 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             (attempt / "diagnostics.json").write_text(json.dumps(diagnostic, indent=2) + "\n")
         summary["seconds"] = report["seconds"]
         summary["metrics"] = report["metrics"].copy()
+        if job.get("verification_key"):
+            verification = {
+                "kind": "executed",
+                "inputs_sha256": job["input_key"],
+                "environment_sha256": job["environment_key"],
+                "junit_required": definition.get("require_junit", False),
+            }
+            report["verification"] = summary["verification"] = verification
         if report.get("artifact_error"):
             summary["artifact_warning"] = report["artifact_error"]
         if report.get("cleanup"):
@@ -446,6 +474,13 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         result = store.finish(job_id, report["status"], summary, report_path)
         report["metrics"] = result["summary"]["metrics"].copy()
         report_path.write_text(json.dumps(report, indent=2) + "\n")
+        if report["status"] == "passed" and not report.get("artifact_error"):
+            from .reuse import seal
+
+            manifest = seal(job, definition, report_path)
+            if manifest is not None:
+                with store.database() as db:
+                    db.execute("UPDATE jobs SET evidence_manifest=? WHERE id=?", (manifest, job_id))
         return result
 
 

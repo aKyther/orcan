@@ -52,7 +52,7 @@ test-executor-queue: ## Queue safety regressions without Redis or Celery service
 	@ORCAN_EXECUTOR_BROKER_URL=redis://127.0.0.1:1/0 uv run --project executor --python 3.12 --locked --group dev \
 		python -m pytest -q executor/tests/test_admission.py executor/tests/test_queue_deadline.py \
 		executor/tests/test_fair_scheduling.py executor/tests/test_recovery_guard.py \
-		executor/tests/test_web.py --junitxml .orcan/executor-queue-results.xml
+		executor/tests/test_web.py executor/tests/test_reuse.py --junitxml .orcan/executor-queue-results.xml
 
 test-fast: ## Fast in-process host tests for development
 	@ORCAN_TEST_MODE=fast ./tests/host/run.sh $(TEST_ARGS)
