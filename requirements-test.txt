@@ -2,3 +2,4 @@ coverage>=7.6,<8
 -r requirements-actions.txt
 pytest>=8.3,<9
 ruff>=0.8,<1
+pyte>=0.8.2,<0.9

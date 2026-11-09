@@ -1,4 +1,5 @@
 """Exercise the new workspace draft through an actual private terminal."""
+import codecs
 import fcntl
 import json
 import os
@@ -12,6 +13,7 @@ import time
 from pathlib import Path
 
 import pytest
+import pyte
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -35,7 +37,9 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
                              '--config', str(config), '--dir', str(parent)],
                             env=env, cwd=ROOT, stdin=slave, stdout=slave, stderr=slave)
     os.close(slave)
-    output = bytearray()
+    terminal = pyte.Screen(120, 36)
+    stream = pyte.Stream(terminal)
+    decoder = codecs.getincrementaldecoder('utf-8')(errors='replace')
     def until(text):
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
@@ -44,12 +48,12 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
                     chunk = os.read(master, 65536)
                 except OSError:
                     break
-                output.extend(chunk)
-                if text in output:
+                stream.feed(decoder.decode(chunk))
+                if text.decode() in '\n'.join(terminal.display):
                     return
             if proc.poll() is not None:
                 break
-        raise AssertionError(f'Missing {text!r}: {bytes(output[-1800:])!r}')
+        raise AssertionError(f'Missing {text!r} on terminal screen: ' + '\n'.join(terminal.display))
     try:
         until(b'Create workspace')
         os.write(master, b'\n')
