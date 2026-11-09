@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Simplify terminal setup: start workspace groups collapsed, show project paths on demand with `v`, and move service JSON examples and image guidance into separate help views. Disabled services show their enable switch first; mount as-is and per-project worktree choices remain available.
+
 ### Added
 
 - Document Java/Gradle verification reuse setup for AI agents, with a reviewed profile example, wrapper/toolchain and JUnit checks, invalidation acceptance steps and a copyable handoff prompt.

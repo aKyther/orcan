@@ -9,9 +9,9 @@ in their host login tools or process environment.
 | Section | What it changes |
 | --- | --- |
 | Workspaces and projects | Opens the existing context manager; its changes use that manager's save flow |
-| Startup plugins | Default activation and package-owned fields, grouped as access, services and interface |
-| Agents and image | Agent CLIs in `build.agents`, their versions, and optional Go/Rust toolchains |
-| Container | Docker image, timezone and container CPU/memory/process limits |
+| Optional services | Default activation and package-owned fields, grouped as access, services and interface |
+| Agents and tools | Agent CLIs in `build.agents`, their versions, and optional Go/Rust toolchains |
+| Resources | Docker image, timezone and container CPU/memory/process limits |
 | Terminal layout | tmux windows, history and window prefix |
 | Review and save | Changed settings and the commands needed to apply them |
 | Reload configuration | Discard the draft and read the current JSON |
@@ -20,6 +20,11 @@ To open the workspace manager, first save or discard any settings draft. On
 return, settings reloads the configuration so workspace edits are preserved.
 A concurrent edit from another terminal prevents saving over it; reload before
 continuing.
+
+Disabled services show their enable switch first. Enable a service to edit its fields.
+Open **Setup help and examples** for the full package guide and JSON examples.
+The agents page also keeps tool descriptions and build guidance in a separate help view.
+Escape returns from help to the settings you were editing; opening help never changes the draft.
 
 ## Keys
 
@@ -34,7 +39,7 @@ continuing.
 Version/source entries already in JSON are preserved when selecting other agents.
 Changing a version validates it with the same rules as `orcan build --plan`.
 Space toggles a toolchain; Enter edits its version (or source image for Go/Rust).
-Select one or several project Python versions and use Enter to choose the default. Required agent runtimes are shown separately and supplied by the base
+Select one or several project Python versions and use Enter to choose the default. Required agent runtimes are described in the build help and supplied by the base
 image. Plugin rows show dependency/conflict rules; enabling a plugin also selects
 its required plugins.
 Agents here are CLI tools installed in the image. Their models and provider
@@ -94,3 +99,11 @@ suggested setup commands.
 unavailable local image and names the explicit sync/build command to run.
 It never performs ownership repair, automatic sync/build or an image pull.
 Saved ownership exclusions continue to apply to explicit `sync` operations.
+
+## Workspace list
+
+Workspace groups start collapsed. Press Enter or Right to show their projects.
+Project names are shown first; press `v` to show or hide full paths in the workspace
+list or project picker. The parent folder stays visible while picking projects.
+Press Tab to review selected projects, then `b` to switch the highlighted Git project
+between **mount as-is** and **worktree**. Both modes and mixed selections remain available.

@@ -22,8 +22,8 @@ def test_all_plugins_have_setup_and_valid_configuration_examples():
 def test_plugin_help_wraps_in_narrow_terminal_without_editing_settings(tmp_path):
     path=tmp_path/'orcan.config.json';path.write_text('{"workspaces":[]}')
     model=ui.SettingsModel(path)
-    rows=ui.rows(model,'plugin:ssh',width=45)
-    assert rows[0][0]=='__enabled__'
+    rows=ui.rows(model,'help:plugin:ssh',width=45)
+    assert all(key is None for key, _, _ in rows)
     assert all(len(label)<=43 for key,label,value in rows if key is None)
     text=' '.join(label for key,label,value in rows)
     assert 'SSH_AUTH_SOCK' in text and 'private key' in text

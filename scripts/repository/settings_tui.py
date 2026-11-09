@@ -29,17 +29,7 @@ def guidance_rows(lines, width):
     return result
 
 
-def rows(model, page, width=100):
-    if page=='home':
-        return [
-            ('workspaces','Workspaces and projects','Open the existing workspace manager'),
-            ('plugins','Startup plugins','Toggle integrations and edit their settings'),
-            ('agents','Agents and image','Choose CLIs for the image and optional toolchains'),
-            ('container','Container','Image, timezone and CPU/memory limits'),
-            ('tmux','Terminal layout','Windows, history and names'),
-            ('review','Review and save','Inspect changes and required next steps'),
-            ('reload','Reload configuration','Discard this draft and read the current JSON'),
-        ]
+def detail_rows(model, page, width=100):
     if page=='plugins':
         values=model.plugins()
         return [(entry['id'],f"{entry['group'].capitalize()} / [{'x' if values[entry['id']]['enabled'] else ' '}] {entry['title']}",entry['id']+(' requires: '+', '.join(entry['requires']) if entry.get('requires') else '')+(' conflicts: '+', '.join(entry['conflicts']) if entry.get('conflicts') else '')) for entry in catalog() if entry.get('configurable',True)]
@@ -85,6 +75,41 @@ def rows(model, page, width=100):
     return []
 
 
+def rows(model, page, width=100):
+    """Keep setup choices short; full package guidance is a separate view."""
+    if page.startswith('help:'):
+        source = page.removeprefix('help:')
+        return [(None, label, value) for _, label, value in detail_rows(model, source, width)]
+    if page == 'home':
+        return [
+            ('workspaces', 'Workspaces and projects', 'Choose where you work'),
+            ('agents', 'Agents and tools', 'Choose what is installed'),
+            ('container', 'Resources', 'CPU, memory and container settings'),
+            ('plugins', 'Optional services', 'Enable and configure integrations'),
+            ('tmux', 'Terminal layout', 'Windows and history'),
+            ('review', 'Review and save', 'Changes and next steps'),
+            ('reload', 'Reload configuration', 'Discard this draft'),
+        ]
+    result = detail_rows(model, page, width)
+    if page.startswith('plugin:'):
+        name = page.split(':', 1)[1]
+        editable = [row for row in result if row[0] is not None]
+        # Disabled services retain their configured values without displaying a form.
+        if not model.plugins()[name]['enabled']:
+            editable = editable[:1]
+        return editable + [('help:' + page, 'Setup help and examples', 'Open details')]
+    if page == 'agents':
+        return [row for row in result if row[0] is not None] + [
+            ('help:agents', 'Tool descriptions and build help', 'Open details')]
+    return result
+
+
+def parent_page(page):
+    if page.startswith('help:'):
+        return page.removeprefix('help:')
+    return 'plugins' if page.startswith('plugin:') else 'home'
+
+
 def confirm(screen,label):
     answer=_prompt_line(screen,label+' [y/N]','')
     return answer is not None and answer.lower() in ('y','yes')
@@ -101,7 +126,9 @@ def draw(screen,model,page,selected,message):
     text(1,str(model.path))
     if page=='agents': text(2,'Image contents only. Saving does not install or start agents; use orcan sync, orcan build, then orcan up.')
     elif page=='review': text(2,'Required: '+' -> '.join(model.next_actions()))
-    else:text(2,'Space: toggle  Enter: edit/help  Esc: back  q: exit  r: review  s: review/save')
+    elif page.startswith('help:'):text(2,'Up/Down: scroll  Esc: back to settings')
+    elif page=='home':text(2,'Enter: open  q: exit  r: review  s: review/save')
+    else:text(2,'Space: toggle  Enter: edit/open  Esc: back  r: review  s: review/save')
     items=rows(model,page,width)
     selected=max(0,min(selected,max(0,len(items)-1)))
     visible=max(1,height-6)
@@ -131,7 +158,7 @@ def run_screen(screen,model):
             if not model.dirty or confirm(screen,'Discard unsaved changes?'):return 'cancel',[]
             continue
         if key in ('\x1b',curses.KEY_LEFT):
-            page='plugins' if page.startswith('plugin:') else 'home';selected=0;message='';continue
+            page=parent_page(page);selected=0;message='';continue
         if key=='r':page='review';selected=0;continue
         if key=='s':
             if page!='review':page='review';selected=0;continue
@@ -146,6 +173,8 @@ def run_screen(screen,model):
         item=items[selected][0]
         if item is None:continue
         try:
+            if item.startswith('help:'):
+                page=item;selected=0;message='';continue
             if page=='home':
                 if item=='reload':
                     if not model.dirty or confirm(screen,'Discard this draft and reload?'): return 'reload',[]

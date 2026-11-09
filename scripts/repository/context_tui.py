@@ -453,7 +453,7 @@ def _review_selection_screen(
         stdscr.addnstr(
             2,
             0,
-            " ↑↓ inspect · b change mode · Space remove · Enter apply · Esc back"[
+            " b mount as-is / worktree · Space remove · Enter apply · Esc back"[
                 : w - 1
             ],
             w - 1,
@@ -540,6 +540,7 @@ def _run_curses(args: argparse.Namespace) -> int:
     message = ""
     scroll = 0
     filter_text = ""
+    show_paths = False
     config_path = resolve_config(args.config)
     pick_history: list[Any] = list(state.get("pick_history") or [])
 
@@ -627,7 +628,7 @@ def _run_curses(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             3,
             0,
-            " ↑↓ choose · Space select · → open · Tab review · Enter apply · ? help"[
+            " Space select · → open folder · Tab review / choose mode · v paths · ? help"[
                 : w - 1
             ],
             w - 1,
@@ -703,7 +704,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                         f"worktree @{branch}" if repo in worktree_paths else "mount"
                     )
                 tag = f"  ({' · '.join(bits)})" if bits else ""
-                line = f" {mark} {repo.name}{tag}  {repo}"
+                line = f" {mark} {repo.name}{tag}" + (f"  {repo}" if show_paths else "")
                 attr = curses.A_NORMAL
                 if idx == cursor:
                     attr = curses.A_REVERSE
@@ -931,6 +932,8 @@ def _run_curses(args: argparse.Namespace) -> int:
                     parent = path
                     after_parent_change()
                     message = f"opened {path.name}"
+            elif key == ord("v"):
+                show_paths = not show_paths
             elif key == ord("?"):
                 _show_help(
                     stdscr,
@@ -946,6 +949,7 @@ def _run_curses(args: argparse.Namespace) -> int:
                         "/        filter the list by name",
                         "e        browse jump to another parent",
                         "D        toggle scan depth 1 ↔ 2",
+                        "v        show / hide full project paths",
                         "w / t / b  workspace / default for new picks / branch",
                         "Tab + b  switch one selected git project: mount ↔ worktree",
                         "q        quit without applying",
@@ -1127,7 +1131,8 @@ def _run_manage(args: argparse.Namespace) -> int:
         "cursor": 0,
         "scroll": 0,
         "message": "",
-        "collapsed": set(),
+        "collapsed": set(range(len(workspaces))),
+        "show_paths": False,
     }
 
     def rows() -> list[tuple[str, int, int | None]]:
@@ -1148,7 +1153,7 @@ def _run_manage(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             2,
             0,
-            (" ↑↓ choose · ←→ collapse/expand · Enter toggle · a add · n new · ? more")[
+            (" Enter projects · a add project · n new workspace · v paths · ? more")[
                 : w - 1
             ],
             w - 1,
@@ -1190,7 +1195,9 @@ def _run_manage(args: argparse.Namespace) -> int:
                         Path(path_str)
                     )
                     tag = " [worktree]" if is_managed else ""
-                    line = f"     {proj.get('name')}{tag}  →  {proj.get('path')}"
+                    line = f"     {proj.get('name')}{tag}"
+                    if state["show_paths"]:
+                        line += f"  →  {proj.get('path')}"
                     attr = (
                         curses.color_pair(_COLOR_INFO)
                         if is_managed
@@ -1258,6 +1265,9 @@ def _run_manage(args: argparse.Namespace) -> int:
                         else:
                             state["collapsed"].discard(wi)
                 continue
+            if key == ord("v"):
+                state["show_paths"] = not state["show_paths"]
+                continue
             if key == ord("n"):
                 return switch_to_scan(stdscr)
             if key == ord("s"):
@@ -1277,6 +1287,7 @@ def _run_manage(args: argparse.Namespace) -> int:
                     [
                         "↑↓ / j/k  move",
                         "← / →     collapse / expand workspace",
+                        "v         show / hide full project paths",
                         "Enter     toggle workspace; rename project",
                         "r         rename workspace or project",
                         "p         change a project's path",

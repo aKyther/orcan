@@ -103,3 +103,29 @@ def test_related_plugin_fields_can_be_edited_before_final_validation(tmp_path):
     model.set_plugin('redis','workers',1)
     model.save()
     assert model.plugins()['redis']['split_lanes'] is True
+
+
+def test_service_fields_appear_after_enable_and_help_preserves_draft(tmp_path):
+    model=make_model(tmp_path,plugins={'ttyd':{'enabled':False,'host_port':17681}})
+    original=model.path.read_bytes()
+    assert [key for key,_,_ in tui.rows(model,'plugin:ttyd')]==['__enabled__','help:plugin:ttyd']
+    model.toggle_plugin('ttyd')
+    assert any(key=='host_port' and value=='17681' for key,_,value in tui.rows(model,'plugin:ttyd'))
+    before=json.dumps(model.data,sort_keys=True)
+    help_rows=tui.rows(model,'help:plugin:ttyd',45)
+    assert all(key is None for key,_,_ in help_rows)
+    assert 'Example JSON:' in ' '.join(label for _,label,_ in help_rows)
+    assert json.dumps(model.data,sort_keys=True)==before
+    assert model.path.read_bytes()==original
+    assert tui.parent_page('help:plugin:ttyd')=='plugin:ttyd'
+    assert tui.parent_page('plugin:ttyd')=='plugins'
+
+
+def test_agent_choices_keep_build_guidance_in_help(tmp_path):
+    model=make_model(tmp_path,build={'agents':['codex'],'tools':['gradle']})
+    choices=tui.rows(model,'agents')
+    assert all(key is not None for key,_,_ in choices)
+    assert any(key=='tool:gradle' for key,_,_ in choices)
+    assert any(key=='help:agents' for key,_,_ in choices)
+    assert 'JDK is included' in ' '.join(label for _,label,_ in tui.rows(model,'help:agents'))
+    assert not model.dirty

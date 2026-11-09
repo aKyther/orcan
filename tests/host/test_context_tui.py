@@ -564,3 +564,33 @@ class ManagedProjectsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_workspace_list_starts_collapsed_and_paths_are_optional(tmp_path, monkeypatch):
+    import argparse
+    import curses
+
+    config=tmp_path/'config.json'
+    config.write_text(json.dumps({'workspaces':[{'name':'daily','projects':[{'name':'api','path':'/example/projects/api'}]}]}))
+
+    class Screen:
+        def __init__(self):
+            self.keys=iter([10,ord('v'),ord('q')])
+            self.frames=[]
+        def getmaxyx(self): return 24,120
+        def erase(self): self.lines=[]
+        def addnstr(self,row,col,value,*args): self.lines.append(value)
+        def refresh(self): self.frames.append('\n'.join(self.lines))
+        def getch(self): return next(self.keys)
+
+    screen=Screen()
+    monkeypatch.setattr(curses,'wrapper',lambda callback:callback(screen))
+    monkeypatch.setattr(curses,'curs_set',lambda *_:None)
+    monkeypatch.setattr(_mod,'_init_curses_session',lambda:None)
+    args=argparse.Namespace(config=str(config),dir='',branch='',workspace='')
+    before=config.read_bytes()
+    assert _mod._run_manage(args)==0
+    assert 'api' not in screen.frames[0]
+    assert 'api' in screen.frames[1] and '/example/projects/api' not in screen.frames[1]
+    assert '/example/projects/api' in screen.frames[2]
+    assert config.read_bytes()==before
