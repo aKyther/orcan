@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `orcan sandbox pull` for bulk fast-forward updates of clean parent repositories, with dry-run, directory exclusions, timeouts and compact JSON results. Skip linked worktrees and local changes.
+
 ### Changed
+
+- Restore Left/Right folder navigation in the project picker while preserving multi-folder selections. Add subtle dividers and spacing between workspace editor sections.
+
+- Replace the interactive workspace scanner with a vertical draft editor: name a workspace first, select multiple projects, edit mount/worktree mode and branch per project, and create worktrees only on final save. Expose actions through arrow navigation and Enter; preserve separate sync and explicit managed-worktree deletion.
 
 - Separate `orcan init` from runtime sync in TUI, sequential and PATH modes. Run `orcan sync` explicitly after saving; ownership exclusion flags now belong to sync only.
 

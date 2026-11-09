@@ -100,14 +100,35 @@ unavailable local image and names the explicit sync/build command to run.
 It never performs ownership repair, automatic sync/build or an image pull.
 Saved ownership exclusions continue to apply to explicit `sync` operations.
 
-## Workspace list
+## Workspace editor
 
-Workspace groups start collapsed. Press Enter or Right to show their projects.
-Use Up/Down and Enter to select **Add project to this workspace**, **Create a new
-workspace**, **Show / hide full project paths**, or **Save changes**. These visible
-actions work without knowing letter shortcuts.
-Project names are shown first; press `v` to show or hide full paths in the workspace
-list or project picker. The parent folder stays visible while picking projects.
-Press Tab to review selected projects, then `b` to switch the highlighted Git project
-between **mount as-is** and **worktree**. The review explains whether you will work
-in the existing directory or create a separate working directory. Both modes and mixed selections remain available.
+Open **Workspaces and projects** to edit workspace drafts. Choose **Create workspace**,
+enter a name, then choose **Add projects**. Select one or several directories with
+Enter or Space and choose **Add selected projects**. Press Right to open the
+highlighted directory and Left to return to its parent; selections survive folder
+changes. Use **Choose another folder**
+to browse elsewhere without losing your selection.
+
+Each project starts as **mount as-is**: work directly in its existing directory.
+Select a project to edit its name or choose **worktree**, then enter a branch for
+that project. Modes and branches are independent: one workspace can mix mounts
+and several worktrees on different branches. Existing checkouts stay in place;
+to create a different worktree, add its source repository as a new project.
+
+The editor shows workspace name, projects, summary and actions from top to bottom,
+with light section dividers and spacing. Dividers never receive keyboard focus.
+Use Up/Down and Enter throughout; letter shortcuts and the help screen are not
+needed. Escape returns to the workspace list and keeps the draft in memory.
+**Close / discard draft** asks before discarding unsaved changes.
+
+**Save changes** applies all workspace drafts together. It validates names, paths,
+branches and configuration revision before creating worktrees and saving JSON.
+An empty workspace can also be saved. Changes to other configuration sections are
+preserved. Save does not run sync; run `orcan sync` separately afterwards.
+
+Removing a workspace removes all its project entries. Existing mount directories
+remain on disk. Managed worktree directory removal is a separate explicit choice,
+performed only on save; local changes block removal. If worktree creation fails
+partway through save, created directories remain and are reused on retry. Review
+the error before discarding the draft: discarding cannot undo already executed
+filesystem operations from an attempted save.
