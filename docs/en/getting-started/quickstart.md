@@ -30,15 +30,15 @@ orcan doctor
 Config is JSON under `~/.config/orcan/`. Docker only sees what **`orcan sync`** writes (runtime JSON + `mounts/*`).
 
 ```bash
-orcan init /absolute/path/to/your/repo   # scaffold + sync
-orcan sync                               # refresh after later edits (safe to re-run)
+orcan init /absolute/path/to/your/repo   # save configuration only
+orcan sync                               # apply configuration (also after later edits)
 orcan build --agent codex
 orcan up              # local-only — use `orcan enter` on the same machine
 # or: orcan up --web-terminal   # browser terminal (remote / phone)
 ```
 
 !!! note
-    `orcan init` already runs `sync` once. Keep `orcan sync` in the habit: **every** config edit needs it before `orcan build` / `orcan up`. Those commands do **not** regenerate runtime files.
+    `orcan init` does not run sync. Run `orcan sync` after init and **every** config edit before `orcan build` / `orcan up`. Pass ownership exclusions to sync when needed, for example `orcan sync --no-chown 'external*'`. Those commands do **not** regenerate runtime files.
 
 On the same machine use **`orcan enter`** — plain `orcan up` does not publish ttyd.
 

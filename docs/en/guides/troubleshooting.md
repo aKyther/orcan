@@ -64,7 +64,7 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 
 | Message | Fix |
 | --- | --- |
-| Runtime JSON missing | `orcan sync` or `orcan init` |
+| Runtime JSON missing | `orcan sync` (after saving configuration with `orcan init` if needed) |
 | Generated files stale | Config is newer than `mounts/*` — run `orcan sync` |
 | Invalid `PROJECT_DIR` | Absolute path; avoid `/`, `/home`, `/etc` |
 

@@ -68,7 +68,7 @@ Describe workspaces in `~/.config/orcan/orcan.config.json`, then **materialise**
 orcan init /absolute/path/to/your/repo
 ```
 
-`orcan init` scaffolds the config if missing and runs **`orcan sync`** (writes runtime JSON + `mounts/*` under `ORCAN_HOME`). Re-run `orcan sync` after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
+`orcan init` scaffolds or edits the config without applying runtime changes. Run **`orcan sync`** separately (writes runtime JSON + `mounts/*` under `ORCAN_HOME`), both after init and after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
 
 Or use the wizard:
 

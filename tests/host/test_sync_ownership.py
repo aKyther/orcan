@@ -251,30 +251,19 @@ def test_invalid_persistent_policy_is_rejected_without_changes(tmp_path, policy)
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize(
-    "flags",
-    [
-        ["--no-chown", "external*", "--chown-exclude", "/remote mount"],
-        ["--cli", "--no-chown", "external"],
-        [],
-    ],
-)
-def test_init_forwards_ownership_flags_to_automatic_sync(tmp_path, flags):
-    # Real init parsing; its sourced sync implementation records received argv.
-    import json
+@pytest.mark.parametrize("mode", ["path", "tui", "cli"])
+def test_init_does_not_sync_or_materialize_runtime(tmp_path, mode):
     import shutil
 
     init = tmp_path / "init.sh"
     shutil.copyfile(ROOT / "cli/commands/init.sh", init)
-    (tmp_path / "sync.sh").write_text(
-        'orcan_cmd_sync() { python3 -c "import json,sys; print(json.dumps(sys.argv[1:]))" "$@"; }\n'
-    )
+    # Sourcing sync at all is forbidden, even if no Docker service is available.
+    (tmp_path / "sync.sh").write_text('echo "unexpected sync" >&2; exit 91\n')
     shell = """source "$1"
 shift
 orcan_require_python() { :; }
-orcan_ensure_home_env_example() { :; }
-orcan_host_python() { :; }
-orcan_info() { :; }
+orcan_host_python() { printf '%s\n' "$1"; }
+orcan_info() { printf '%s\n' "$*"; }
 orcan_ok() { :; }
 orcan_usage_error() { echo "$*" >&2; return 2; }
 ORCAN_HOME="$TEST_HOME"
@@ -282,21 +271,24 @@ ORCAN_CONFIG_FILE="$TEST_HOME/orcan.config.json"
 ORCAN_SCRIPTS="$TEST_HOME"
 orcan_cmd_init "$@"
 """
+    flags = {"path": [str(tmp_path)], "tui": [], "cli": ["--cli"]}[mode]
     result = subprocess.run(
-        ["bash", "-c", shell, "test", str(init), str(tmp_path), *flags],
+        ["bash", "-c", shell, "test", str(init), *flags],
         env={**os.environ, "TEST_HOME": str(tmp_path)},
-        capture_output=True,
-        text=True,
+        capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == [arg for arg in flags if arg != "--cli"]
+    script = {"path": "config-scaffold.py", "tui": "context_tui.py", "cli": "config-wizard.py"}[mode]
+    assert script in result.stdout
+    assert "next: orcan sync" in result.stdout
+    assert not (tmp_path / "mounts").exists()
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "arguments", ["--no-chown", "--no-chown relative/path", "--chown-exclude relative"]
+    "arguments", ["--no-chown", "--no-chown external", "--no-chown relative/path", "--chown-exclude /absolute/path", "--chown-exclude relative"]
 )
-def test_init_rejects_invalid_ownership_flags_before_wizard(arguments):
+def test_init_directs_ownership_flags_to_sync_before_wizard(arguments):
     result = subprocess.run(
         [
             "bash",
@@ -309,6 +301,7 @@ def test_init_rejects_invalid_ownership_flags_before_wizard(arguments):
         text=True,
     )
     assert result.returncode == 2
+    assert "belongs to orcan sync" in result.stderr
 
 
 @pytest.mark.integration
@@ -343,3 +336,37 @@ def test_absent_configuration_does_not_create_an_empty_workspace_policy(tmp_path
     with pytest.raises(ValueError, match="orcan init PATH"):
         ownership.ownership_policy(config, [], ["external*"], save=True)
     assert not config.exists()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize('existing_runtime', [False, True])
+def test_real_init_path_saves_config_without_touching_runtime(tmp_path, existing_runtime):
+    import json
+
+    home = tmp_path / 'home'
+    project = tmp_path / 'project'
+    project.mkdir()
+    runtime = home / 'mounts'
+    marker = runtime / 'runtime-config.json'
+    if existing_runtime:
+        runtime.mkdir(parents=True)
+        marker.write_text('{"untouched":true}')
+    config = home / 'orcan.config.json'
+    result = subprocess.run(
+        [str(ROOT / 'bin/orcan'), 'init', str(project)],
+        env={**os.environ, 'ORCAN_HOME': str(home), 'ORCAN_DATA': str(home),
+             'ORCAN_CONFIG_FILE': str(config), 'ORCAN_RUNTIME_DIR': str(runtime),
+             'CONFIG': ''},
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    data = json.loads(config.read_text())
+    assert any(p['path'] == str(project) for ws in data['workspaces'] for p in ws['projects'])
+    assert 'runtime not applied' in result.stdout
+    assert 'next: orcan sync' in result.stdout
+    if existing_runtime:
+        assert marker.read_text() == '{"untouched":true}'
+        assert list(runtime.iterdir()) == [marker]
+    else:
+        assert not runtime.exists()
+    assert not (home / 'workspaces').exists()

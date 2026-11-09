@@ -94,7 +94,7 @@ symlink targets are not followed. Edit the arrays to remove an exclusion.
 
 Invalid ownership configuration stops sync before runtime files are generated or
 data ownership is changed. Flags require an existing configuration; first-time
-setup can use `orcan init /absolute/project --no-chown 'external*'`. Saved policies
+setup runs `orcan init /absolute/project`, then `orcan sync --no-chown 'external*'`. Init never runs sync or changes data ownership. Saved policies
 apply to all workspaces using that configuration. They affect ownership only.
 
 Host settings are resolved from JSON at command time. `resources.nofile` and

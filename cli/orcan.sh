@@ -48,9 +48,9 @@ Usage:
   orcan --instance NAME <command> [arguments]
 
 Commands:
-  init         No PATH: TUI to create/edit workspaces + sync + show
+  init         No PATH: TUI to create/edit workspaces + show; sync separately
                (--cli: old sequential prompt wizard instead)
-               PATH: non-interactive scaffold (scripts/CI) + sync + show
+               PATH: non-interactive scaffold (scripts/CI) + show; sync separately
   sync         Apply orcan.config.json → runtime JSON + mounts/* for Compose
   migrate      Move projects under the managed root (fewer future recreates)
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)

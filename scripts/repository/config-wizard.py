@@ -833,7 +833,7 @@ def main() -> None:
                 f"workspace {ws_name!r}, project {proj_name!r} ({cwd_path})"
             )
             if not ask_yes_no("Change anything?", default=False):
-                info("Nothing to do here — orcan init still runs sync next.")
+                info("Nothing to do here — run orcan sync separately to apply configuration.")
                 return
             info()
         summarize(cfg, title="What you have now")

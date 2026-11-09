@@ -5,37 +5,24 @@ orcan_cmd_init() {
     local project_dir=""
     local workspace="${WORKSPACE:-}"
     local cli_mode=""
-    local -a ownership_args=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -h | --help)
-                printf 'usage: orcan init [PATH] [--cli] [--no-chown PATTERN] [--chown-exclude /path]\n'
+                printf 'usage: orcan init [PATH] [--cli]\n'
                 printf '  No PATH: TUI to create/edit workspaces (default) — pick a folder,\n'
                 printf '           multi-select repos, or manage what is already configured.\n'
                 printf '           --cli: old sequential prompt wizard instead of the TUI.\n'
                 printf '  PATH:    non-interactive — connect one project from PATH (or confirm it is\n'
-                printf '           already connected), then sync; useful for scripts/CI.\n'
-                printf '  Either way, finishes with orcan sync; saved ownership exclusions apply.\n'
-                printf '  Ownership flags are forwarded to sync and saved for later invocations.\n'
+                printf '           already connected); useful for scripts/CI.\n'
+                printf '  Saves configuration only. Run orcan sync separately to apply it.\n'
+                printf '  Ownership flags belong to sync: --no-chown PATTERN / --chown-exclude /path.\n'
                 printf '  Tool settings (tmux, ttyd): orcan settings (separate from this).\n'
                 return 0
                 ;;
-            --no-chown)
-                [[ $# -gt 1 && -n "$2" && "$2" != --* && "$2" != */* ]] || {
-                    orcan_usage_error "orcan init: --no-chown requires a directory name or glob without slashes"
-                    return 2
-                }
-                ownership_args+=(--no-chown "$2")
-                shift 2
-                ;;
-            --chown-exclude)
-                [[ $# -gt 1 && "$2" == /* ]] || {
-                    orcan_usage_error "orcan init: --chown-exclude requires an absolute directory path"
-                    return 2
-                }
-                ownership_args+=(--chown-exclude "$2")
-                shift 2
+            --no-chown | --chown-exclude)
+                orcan_usage_error "orcan init: $1 belongs to orcan sync; run init first, then orcan sync $1 VALUE"
+                return 2
                 ;;
             --cli)
                 cli_mode=1
@@ -61,7 +48,7 @@ orcan_cmd_init() {
         else
             # Cancelling the TUI (q/Esc) exits non-zero, unlike the old wizard
             # (which always exits 0, even on "cancelled"); treat it the same
-            # way here — nothing changed, skip sync, don't fail the command.
+            # way here — return without applying runtime changes.
             if ! ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" ORCAN_DATA="${ORCAN_DATA:-}" \
                 orcan_host_python "${ORCAN_SCRIPTS}/context_tui.py"; then
                 orcan_info "cancelled — nothing changed"
@@ -84,11 +71,8 @@ orcan_cmd_init() {
             "${ORCAN_SCRIPTS}/config-scaffold.py" "${args[@]}"
     fi
 
-    # shellcheck source=sync.sh
-    source "$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync.sh"
-    orcan_cmd_sync "${ownership_args[@]}"
     ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-show.py" || true
-    orcan_ok "init done"
-    orcan_info "next: orcan build && orcan up"
-    orcan_info "  after later orcan.config.json edits: orcan sync (then orcan up — rebuild only if the image changed)"
+    orcan_ok "init done — configuration saved; runtime not applied"
+    orcan_info "next: orcan sync (use --no-chown / --chown-exclude as needed; saved exclusions still apply)"
+    orcan_info "  then orcan up; run orcan build first only if the image needs building"
 }
