@@ -141,6 +141,8 @@ class EscCoalesceFlushTests(unittest.TestCase):
 
         self.assertEqual(read.call_count, 16)
         loop.call_soon.assert_not_called()
+        loop.remove_reader.assert_called_once_with(1)
+        loop.call_later.assert_called_once_with(1 / 120, term._resume_pty_read)
 
     def test_output_flood_also_yields_when_time_budget_expires(self) -> None:
         term = self._terminal()
@@ -158,6 +160,37 @@ class EscCoalesceFlushTests(unittest.TestCase):
             term._on_readable()
         self.assertEqual(read.call_count, 1)
         loop.call_soon.assert_not_called()
+        loop.remove_reader.assert_called_once_with(1)
+        loop.call_later.assert_called_once_with(1 / 120, term._resume_pty_read)
+
+    def test_drained_pty_keeps_immediate_reader(self) -> None:
+        term = self._terminal()
+        term._stream = object()
+        term._ready = True
+        term.refresh = MagicMock()
+        loop = MagicMock()
+        with (
+            patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
+            patch.object(pty_terminal.os, "read", side_effect=[b"ok", BlockingIOError()]),
+            patch.object(pty_terminal, "feed_with_osc8"),
+        ):
+            term._on_readable()
+        loop.remove_reader.assert_not_called()
+        loop.call_later.assert_not_called()
+
+    def test_close_cancels_read_resume_and_cannot_reinstall_closed_fd(self) -> None:
+        term = self._terminal()
+        handle = MagicMock()
+        term._read_resume = handle
+        loop = MagicMock()
+        with (
+            patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
+            patch.object(pty_terminal.os, "close"),
+        ):
+            term._close()
+            term._resume_pty_read()
+        handle.cancel.assert_called_once()
+        loop.add_reader.assert_not_called()
 
     def test_large_paste_is_staged_in_a_private_file(self) -> None:
         term = self._terminal()

@@ -167,8 +167,10 @@ class PtyTerminal(Widget):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        from orcan_cockpit.probe import SingleFlightProbe
         from orcan_cockpit.runtime_limits import limits
 
+        self._link_probe = SingleFlightProbe()
         self._io_limits = limits()
         self._command = list(command)
         self._session = session
@@ -177,6 +179,7 @@ class PtyTerminal(Widget):
         self._process: subprocess.Popen | None = None
         self._screen: pyte.Screen | None = None
         self._stream: pyte.Stream | None = None
+        self._read_resume: asyncio.TimerHandle | None = None
         self._ready = False
         self._mouse_tracking = False
         self._mouse_sgr = True
@@ -361,6 +364,7 @@ class PtyTerminal(Widget):
         if self._master_fd is None or self._stream is None:
             return
         got_data = False
+        drained = False
         bytes_read = 0
         budget = self._io_limits["pty_read_bytes"]
         deadline = time.monotonic() + self._io_limits["pty_read_ms"] / 1000
@@ -371,6 +375,7 @@ class PtyTerminal(Widget):
                     min(self._io_limits["pty_chunk_bytes"], budget - bytes_read),
                 )
             except BlockingIOError:
+                drained = True
                 break
             except OSError:
                 self._close()
@@ -409,9 +414,19 @@ class PtyTerminal(Widget):
             # (button 64/65 = '@'/'A') echo as garbage when 1006 is expected.
             self._mouse_sgr = True
         self._schedule_refresh()
-        # add_reader uses level-triggered readiness on Linux. Do not also
-        # call_soon ourselves: sustained output can otherwise accumulate an
-        # extra callback chain every event-loop turn. The fd wakes us again.
+        if not drained and self._read_resume is None:
+            # A level-triggered fd stays ready throughout an output flood.
+            # A per-callback budget alone gives the UI no quiet turn to paint.
+            # Leave bytes in the PTY (kernel backpressure, no output loss) and
+            # briefly release the loop before resuming event-driven reads.
+            loop = asyncio.get_running_loop()
+            loop.remove_reader(self._master_fd)
+            self._read_resume = loop.call_later(1 / 120, self._resume_pty_read)
+
+    def _resume_pty_read(self) -> None:
+        self._read_resume = None
+        if self._master_fd is not None:
+            asyncio.get_running_loop().add_reader(self._master_fd, self._on_readable)
 
     def _write_pty(self, data: bytes) -> None:
         if self._master_fd is None or not data:
@@ -670,8 +685,13 @@ class PtyTerminal(Widget):
             url = url_at_screen(self._screen, int(event.x), int(event.y))
         if not url:
             return
-        if open_url(url):
-            event.stop()
+        event.stop()
+        self.run_worker(self._open_link(url), group="pty-link", exclusive=True)
+
+    async def _open_link(self, url: str) -> None:
+        # Browser helpers can wait for seconds, or wait indefinitely for an
+        # external browser. Never run them in the terminal's message handler.
+        if await self._link_probe.read(url, lambda: open_url(url)):
             return
         # Headless / ttyd: keep Style(link=) in the render so Ctrl+click on
         # the outer terminal may still work; surface the URL for copy.
@@ -679,7 +699,6 @@ class PtyTerminal(Widget):
             self.app.notify(f"Open URL: {url}", title="Link", timeout=8)
         except Exception:
             pass
-        event.stop()
 
     def _render_line(self, screen, y: int, cols: int, link_at) -> Text:
         line = screen.buffer[y]
@@ -753,6 +772,9 @@ class PtyTerminal(Widget):
         return "\n".join(part.rstrip() for part in text.split("\n")), ending
 
     def _close(self) -> None:
+        if self._read_resume is not None:
+            self._read_resume.cancel()
+            self._read_resume = None
         self._cancel_esc_coalesce()
         if self._cursor_timer is not None:
             self._cursor_timer.stop()

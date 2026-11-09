@@ -357,7 +357,11 @@ A slow filesystem can leave metadata loading, while the interface remains usable
 This does not cancel a kernel-level blocked filesystem operation.
 
 The embedded terminal already limits work per read callback and reuses unchanged
-rendered lines. These budgets are cooperative: a parser chunk or OS scheduling
+rendered lines. When output exhausts a read budget, Cockpit pauses PTY reads
+for about 8 ms so input and paint work can run; unread output stays in the PTY.
+Ordinary reads resume immediately when the available output is drained. Opening
+a terminal link also runs outside the UI loop, with at most one browser helper
+in flight per terminal. These budgets are cooperative: a parser chunk or OS scheduling
 can exceed the target duration. CPU starvation, output floods and browser/network
 latency can still delay typing. Leave CPU capacity for interactive work and limit
 parallel build/test processes separately from executor job admission.
