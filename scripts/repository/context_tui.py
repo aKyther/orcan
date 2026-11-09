@@ -1596,17 +1596,9 @@ def main() -> None:
             "not a TTY — use: orcan context tui --yes --dir DIR --select a,b [--branch NAME]"
         )
 
-    if not args.dir and not args.select:
-        existing_path = resolve_config(args.config)
-        if existing_path.is_file():
-            existing_cfg = load_config(existing_path)
-            if (
-                isinstance(existing_cfg.get("workspaces"), list)
-                and existing_cfg["workspaces"]
-            ):
-                raise SystemExit(_run_manage(args))
-
-    raise SystemExit(_run_curses(args))
+    from workspace_editor import main as edit_workspaces
+    rc = edit_workspaces(args, resolve_config(args.config))
+    raise SystemExit(_run_sync() if rc == 0 and args.sync else rc)
 
 
 if __name__ == "__main__":

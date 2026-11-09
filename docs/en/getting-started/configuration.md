@@ -108,7 +108,7 @@ JSON settings are authoritative. A legacy `.env` is ignored and left unchanged.
 | `orcan init` | Interactive workspace/project create/edit |
 | `orcan settings` | TUI for plugin, agent/image, container and terminal settings; workspace-manager entry |
 | `orcan context add /abs/path` | Add one project non-interactively |
-| `orcan context tui` | TUI: parent folder → multi-select repos → workspace (+ optional shared-branch worktrees) |
+| `orcan context tui` | TUI: empty workspace draft → multi-select projects → per-project mount/worktree and branch → Save changes |
 | `orcan context add --from-worktree /abs/repo SELECTOR` | Add an existing git worktree |
 | `orcan context worktrees [/abs/repo]` | List worktrees for a repo |
 | `orcan context worktree create --repo … --branch …` | Create a worktree and pin it |
