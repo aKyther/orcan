@@ -192,6 +192,52 @@ orcan sync && orcan down && orcan up
 
 Managed paths live under `$ORCAN_PROJECTS_ROOT/.worktrees/`. Clean up: wizard → **clean**, or `orcan context worktree remove --workspace my-ws`.
 
+## Scenario: refresh parent repositories while working in worktrees
+
+Task worktrees let you keep local changes independent, while new worktrees often
+start from the parent checkout's HEAD. If several parent clones are stale, use
+one sandbox command instead of pulling each parent manually.
+
+`orcan sandbox pull` scans the sandbox and nested project groups. It stops at Git
+repository boundaries and updates only clean parent checkouts. Each pull follows
+the currently checked-out branch's configured upstream and permits fast-forward
+only. It never switches branches, rebases, resets, stashes, merges divergent
+history or changes an agent's linked worktree. Shared remote-tracking refs are
+updated by Git as usual; task branches and worktree files stay in place.
+
+```sh
+orcan sandbox pull --dry-run
+orcan sandbox pull
+orcan sandbox pull --root /absolute/projects --exclude 'external*'
+orcan sandbox pull --json
+```
+
+Root selection is `--root`, then exported `ORCAN_PROJECTS_ROOT`, then
+`projects_root` in the selected `orcan.config.json`, then `$ORCAN_DATA/sandbox`.
+The command does not source runtime environment files or require Docker. A named
+instance uses its selected configuration and the shared sandbox by default.
+
+Hidden directories (including `.worktrees`), `node_modules`, `__pycache__` and
+symlink directories are not scanned. `--exclude` accepts repeatable directory-name
+globs and prunes them before inspecting their type; it is independent of ownership
+exclusions. Nested submodules inside a discovered repository are not visited.
+Bare repositories and visible linked worktrees are reported as skipped.
+
+Uncommitted/untracked changes, detached HEAD, missing upstream, an active Git
+operation or a busy bulk-update lock also cause a skip. A failed pull or timeout
+is reported without raw remote diagnostics; other projects continue. Exit status
+is 1 for any error, 0 when all discovered repositories update or safely skip,
+and 2 for invalid arguments or root configuration. Successful Git output stays
+out of the report. `--json` includes per-repository outcomes and before/after SHAs.
+A dry-run makes no network request and cannot say whether an upstream has newer
+commits. `--timeout` limits each pull to 120 seconds by default (range 1..600);
+interactive credential prompts are disabled.
+
+This updates parents on disk; it does not restart services, deploy code, or update
+linked task worktrees. Existing local Git hooks and configuration still belong to
+the repository. Keep active agents in their own worktrees; Git's locks and the
+bulk command's per-repository lock do not coordinate arbitrary external editors.
+
 ## Scenario: install only one agent
 
 **Idea:** install only the clients needed for this workspace. The image retains

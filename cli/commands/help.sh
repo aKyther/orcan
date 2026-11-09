@@ -12,9 +12,8 @@ Commands:
   init [PATH]              No PATH: TUI to create/edit workspaces (default)
                            --cli: old sequential prompt wizard instead
                            PATH: non-interactive scaffold (scripts/CI)
-                           Either way: scaffold/wizard + sync + show
-                           Accepts --no-chown PATTERN / --chown-exclude /path;
-                           saved ownership exclusions also apply to automatic sync
+                           Saves configuration; run orcan sync separately
+                           Pass --no-chown / --chown-exclude to sync as needed
   sync [--prune-orphans]   Materialise runtime JSON + mounts/* for Compose; live
                            reconcile into a running container. --prune-orphans
                            also kills orphaned tmux sessions (default: report
@@ -25,6 +24,8 @@ Commands:
                            (ownership only); repeat for multiple patterns
                            Exclusions persist in orcan.config.json ownership;
                            edit its excluded_names/excluded_paths to remove them
+  sandbox pull            Fast-forward clean parent repositories under the sandbox
+                           --dry-run previews; linked worktrees stay untouched
   migrate [--yes]          Move projects under managed root (dry-run by default)
   settings [--cli]         TUI for plugins, agents/image, container and tmux;
                            review/save JSON; --cli keeps the sequential wizard

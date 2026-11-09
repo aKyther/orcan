@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `orcan sandbox pull` for bulk fast-forward updates of clean parent repositories, with dry-run, directory exclusions, timeouts and compact JSON results. Skip linked worktrees and local changes.
+
 ### Changed
 
 - Restore Left/Right folder navigation in the project picker while preserving multi-folder selections. Add subtle dividers and spacing between workspace editor sections.

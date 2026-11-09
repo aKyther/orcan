@@ -52,6 +52,7 @@ Commands:
                (--cli: old sequential prompt wizard instead)
                PATH: non-interactive scaffold (scripts/CI) + show; sync separately
   sync         Apply orcan.config.json → runtime JSON + mounts/* for Compose
+  sandbox      Bulk parent Git updates (pull [--dry-run])
   migrate      Move projects under the managed root (fewer future recreates)
   context      Manage context (show | add | tui | worktrees | worktree | assert | hook)
   memory       Bounded project knowledge search and archived handoff recaps
@@ -106,7 +107,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | migrate | context | compact | memory | actions | executor | plugins | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
+        init | sync | sandbox | migrate | context | compact | memory | actions | executor | plugins | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;
