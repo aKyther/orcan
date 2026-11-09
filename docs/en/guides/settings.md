@@ -104,7 +104,9 @@ Saved ownership exclusions continue to apply to explicit `sync` operations.
 
 Open **Workspaces and projects** to edit workspace drafts. Choose **Create workspace**,
 enter a name, then choose **Add projects**. Select one or several directories with
-Enter or Space and choose **Add selected projects**. Use **Choose another folder**
+Enter or Space and choose **Add selected projects**. Press Right to open the
+highlighted directory and Left to return to its parent; selections survive folder
+changes. Use **Choose another folder**
 to browse elsewhere without losing your selection.
 
 Each project starts as **mount as-is**: work directly in its existing directory.
@@ -113,7 +115,8 @@ that project. Modes and branches are independent: one workspace can mix mounts
 and several worktrees on different branches. Existing checkouts stay in place;
 to create a different worktree, add its source repository as a new project.
 
-The editor shows workspace name, projects, summary and actions from top to bottom.
+The editor shows workspace name, projects, summary and actions from top to bottom,
+with light section dividers and spacing. Dividers never receive keyboard focus.
 Use Up/Down and Enter throughout; letter shortcuts and the help screen are not
 needed. Escape returns to the workspace list and keeps the draft in memory.
 **Close / discard draft** asks before discarding unsaved changes.

@@ -172,3 +172,48 @@ def test_new_workspace_cancel_does_not_write(draft, monkeypatch):
     assert 'Name: daily' in screen.frames[1]
     assert '+ Add projects' in screen.frames[1]
     assert not draft.path.exists()
+
+
+@pytest.mark.integration
+def test_picker_arrow_navigation_keeps_selection_across_folders(tmp_path):
+    import curses
+    # First choose a folder, descend, choose its child, go back, then add both.
+    parent = tmp_path / 'projects'
+    folder = parent / 'group'
+    child = folder / 'api'
+    child.mkdir(parents=True)
+    class Screen:
+        def __init__(self):
+            self.keys = iter([ord(' '), curses.KEY_RIGHT, ord(' '), curses.KEY_LEFT, curses.KEY_DOWN, 10])
+            self.frames = []
+        def getmaxyx(self): return 32, 120
+        def erase(self): self.lines = []
+        def addnstr(self, row, col, text, *args): self.lines.append(text)
+        def refresh(self): self.frames.append('\n'.join(self.lines))
+        def getch(self): return next(self.keys)
+    screen = Screen()
+    assert ui.pick_projects(screen, parent, set()) == [folder, child]
+    assert 'Left: parent' in screen.frames[0]
+    assert 'Right: open folder' in screen.frames[0]
+    assert f'Folder: {folder}' in screen.frames[2]
+    assert '2 selected' in screen.frames[4]
+
+
+def test_sections_have_spacing_and_do_not_receive_focus(draft):
+    import curses
+    ws = draft.add_workspace('daily')
+    rows = ui.editor_rows(draft, ws)
+    # From workspace name, skip the PROJECTS heading and land on Add projects.
+    assert rows[ui.move(rows, 1, 1)][0] == 'add'
+    class Screen:
+        def __init__(self): self.lines = {}
+        def getmaxyx(self): return 36, 100
+        def erase(self): self.lines = {}
+        def addnstr(self, row, col, text, *args): self.lines[row] = text
+        def refresh(self): pass
+    screen = Screen()
+    ui.frame(screen, 'Workspace', 'Draft', rows, 1)
+    sections = [(row, text) for row, text in screen.lines.items() if '── ' in text]
+    assert len(sections) == 3
+    for row, _ in sections[1:]:
+        assert screen.lines[row - 1] == ''

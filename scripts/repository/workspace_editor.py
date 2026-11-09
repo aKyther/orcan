@@ -26,12 +26,24 @@ def frame(screen, title, subtitle, items, cursor, message='', *, hint='Up/Down: 
     put(0, title, curses.A_BOLD)
     put(1, subtitle)
     put(2, hint, curses.A_DIM)
+    # Section headings get a quiet divider and breathing room. They remain
+    # non-interactive and arrow navigation skips them.
+    display = []
+    selected_row = 0
+    for index, (key, label, description) in enumerate(items):
+        heading = key is None and label.isupper()
+        if heading:
+            if display:
+                display.append(('', 0))
+            label = '── ' + label + ' ' + '─' * max(0, min(width - len(label) - 5, 36))
+        if index == cursor:
+            selected_row = len(display)
+        display.append((('  ' if key is None else '> ' if index == cursor else '  ') + label,
+                        curses.A_REVERSE if index == cursor else curses.A_BOLD if heading else 0))
     visible = max(1, height - 8)
-    start = max(0, cursor - visible + 1)
-    for index in range(start, min(len(items), start + visible)):
-        key, label, _ = items[index]
-        put(4 + index - start, ('  ' if key is None else '> ' if index == cursor else '  ') + label,
-            curses.A_REVERSE if index == cursor else curses.A_BOLD if key is None else 0)
+    start = max(0, selected_row - visible + 1)
+    for row, (label, attr) in enumerate(display[start:start + visible]):
+        put(4 + row, label, attr)
     if items:
         put(height - 3, items[cursor][2])
     put(height - 2, message)
@@ -48,13 +60,19 @@ def move(items, cursor, delta):
     return cursor
 
 
-def choose(screen, title, items, subtitle=''):
+def choose(screen, title, items, subtitle='', *, folders=False):
     cursor = next((i for i, row in enumerate(items) if row[0] is not None), 0)
     while True:
         frame(screen, title, subtitle, items, cursor)
         key = screen.getch()
         if key in (27, ord('q')):
             return None
+        if folders and key == curses.KEY_LEFT:
+            return 'up'
+        if folders and key == curses.KEY_RIGHT:
+            if isinstance(items[cursor][0], Path):
+                return items[cursor][0]
+            continue
         if key in (curses.KEY_DOWN, ord('j')):
             cursor = move(items, cursor, 1)
         elif key in (curses.KEY_UP, ord('k')):
@@ -76,7 +94,7 @@ def browse_folder(screen, current):
                  ('up', '.. Parent folder', 'Open ' + str(current.parent))]
         items += [(p, p.name + '/', 'Open this folder') for p in children]
         items.append(('cancel', 'Back without changing folder', 'Keep your previous choice.'))
-        action = choose(screen, 'Orcan / Choose folder', items, str(current) + (' — ' + message if message else ''))
+        action = choose(screen, 'Orcan / Choose folder', items, str(current) + (' — ' + message if message else '') + ' | Left: parent / Right: open', folders=True)
         if action in (None, 'cancel'):
             return None
         if action == 'select':
@@ -85,12 +103,14 @@ def browse_folder(screen, current):
 
 
 def pick_projects(screen, parent, connected):
+    parent = parent.expanduser().resolve()
+    positions = {}
     selected = []
     cursor = 0
     message = ''
     while True:
         try:
-            entries = scan_dirs(parent, max_depth=1)
+            entries = [(path, git) for path, git in scan_dirs(parent, max_depth=1) if path != parent]
         except (OSError, ValueError) as error:
             entries = []
             message = str(error)
@@ -109,10 +129,26 @@ def pick_projects(screen, parent, connected):
         ]
         cursor = max(1, min(cursor or 1, len(items) - 1))
         frame(screen, 'Orcan / Add projects', f'Folder: {parent} | {len(selected)} selected', items, cursor, message,
-              hint='Up/Down: choose   Enter/Space: select   Esc: back')
+              hint='Up/Down: choose   Left: parent   Right: open folder   Enter/Space: select')
         key = screen.getch()
         if key in (27, ord('q')):
             return []
+        if key == curses.KEY_LEFT:
+            positions[parent] = cursor
+            parent = parent.parent
+            cursor = positions.get(parent, 1)
+            message = ''
+            continue
+        if key == curses.KEY_RIGHT:
+            target = items[cursor][0]
+            if isinstance(target, Path):
+                positions[parent] = cursor
+                parent = target
+                cursor = positions.get(parent, 1)
+                message = ''
+            else:
+                message = 'Choose a directory row to open it.'
+            continue
         if key in (curses.KEY_DOWN, ord('j')):
             cursor = move(items, cursor, 1)
         elif key in (curses.KEY_UP, ord('k')):
