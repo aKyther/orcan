@@ -13,7 +13,7 @@ def _text(value):
     return ''.join(c if c.isprintable() else ' ' for c in str(value))
 
 
-def frame(screen, title, subtitle, items, cursor, message='', *, hint='Up/Down: choose   Enter: select   Esc: back'):
+def frame(screen, title, subtitle, items, cursor, message='', *, hint='Up/Down: choose   Enter: select   Esc: back', footer=None):
     """One column, with the selected action explained below the list."""
     screen.erase()
     height, width = screen.getmaxyx()
@@ -47,7 +47,7 @@ def frame(screen, title, subtitle, items, cursor, message='', *, hint='Up/Down: 
     if items:
         put(height - 3, items[cursor][2])
     put(height - 2, message)
-    put(height - 1, 'Draft only. Save changes creates worktrees and writes configuration; sync is separate.')
+    put(height - 1, footer or 'Draft only. Save changes creates worktrees and writes configuration; sync is separate.')
     screen.refresh()
 
 
@@ -106,46 +106,55 @@ def pick_projects(screen, parent, connected):
     parent = parent.expanduser().resolve()
     positions = {}
     selected = []
-    cursor = 0
-    message = ''
+    cursor = 2
+    message = 'Open a folder with Enter; mark projects with Space, then choose Add selected projects.'
     while True:
         try:
             entries = [(path, git) for path, git in scan_dirs(parent, max_depth=1) if path != parent]
-        except (OSError, ValueError) as error:
+        except (OSError, ValueError, SystemExit) as error:
             entries = []
             message = str(error)
-        items = [(None, 'SELECT PROJECTS', 'Select one or several directories. Each project gets its own mode later.')]
+        items = [(None, 'FOLDERS', 'Browse first, then mark the directories you want to add.'),
+                 ('up', '.. Return to parent folder', 'Enter or Left: open ' + str(parent.parent))]
         for path, git in entries:
             already = str(path.resolve()) in connected
             mark = 'connected' if already else 'x' if path in selected else ' '
-            items.append((path, f'[{mark}] {path.name}' + (' (Git)' if git else ' (directory)'),
-                          str(path) + (' — already connected' if already else ' — Enter or Space toggles this selection')))
+            items.append((path, f'[{mark}] {path.name}/' + (' (Git repository)' if git else ''),
+                          ('Already in this workspace. ' if already else 'Space: unselect. ' if path in selected else 'Space: select as a project. ') + 'Enter / Right: open folder. ' + str(path)))
+        items.append((None, 'SELECTED PROJECTS', 'Selections are kept when you change folders.'))
+        items.extend((None, '  ' + str(path), 'Selected project') for path in selected)
+        if not selected:
+            items.append((None, 'Nothing selected yet — use Space on a folder above.', ''))
         items += [
+            (None, 'NEXT STEP', 'Return selected projects to the workspace draft; no directories are created here.'),
             ('add', f'Add selected projects ({len(selected)})', 'Add to the draft as mount as-is. Edit each project to choose its own worktree and branch.'),
-            ('browse', 'Choose another folder...', 'Browse folders; selections from previous folders are kept.'),
             ('current', 'Select this folder as a project', str(parent)),
+            ('browse', 'Jump to another folder...', 'Browse folders; selections from previous folders are kept.'),
             ('clear', 'Clear selection', 'Unselect all pending projects.'),
             ('cancel', 'Back without adding', 'Discard this selection; keep the workspace draft.'),
         ]
-        cursor = max(1, min(cursor or 1, len(items) - 1))
-        frame(screen, 'Orcan / Add projects', f'Folder: {parent} | {len(selected)} selected', items, cursor, message,
-              hint='Up/Down: choose   Left: parent   Right: open folder   Enter/Space: select')
+        cursor = max(1, min(cursor, len(items) - 1))
+        if items[cursor][0] is None:
+            cursor = move(items, cursor, 1)
+        frame(screen, 'Orcan / Add projects', f'{len(selected)} selected | Folder: {parent}', items, cursor, message,
+              hint='Enter / Right: open folder   Space: mark project   Left: parent   Up/Down: move',
+              footer='Selections survive folder changes. Add selected projects returns to the draft; nothing is saved yet.')
         key = screen.getch()
         if key in (27, ord('q')):
             return []
-        if key == curses.KEY_LEFT:
+        item = items[cursor][0]
+        if key == curses.KEY_LEFT or (key in (10, 13, curses.KEY_ENTER) and item == 'up'):
             positions[parent] = cursor
             parent = parent.parent
-            cursor = positions.get(parent, 1)
-            message = ''
+            cursor = positions.get(parent, 2)
+            message = 'Returned to parent folder. Your selections are kept.'
             continue
-        if key == curses.KEY_RIGHT:
-            target = items[cursor][0]
-            if isinstance(target, Path):
+        if key == curses.KEY_RIGHT or (key in (10, 13, curses.KEY_ENTER) and isinstance(item, Path)):
+            if isinstance(item, Path):
                 positions[parent] = cursor
-                parent = target
-                cursor = positions.get(parent, 1)
-                message = ''
+                parent = item
+                cursor = positions.get(parent, 2)
+                message = 'Opened ' + parent.name + '. Space marks a child; Select this folder adds the current directory.'
             else:
                 message = 'Choose a directory row to open it.'
             continue
@@ -154,28 +163,37 @@ def pick_projects(screen, parent, connected):
         elif key in (curses.KEY_UP, ord('k')):
             cursor = move(items, cursor, -1)
         elif key in (10, 13, curses.KEY_ENTER, ord(' ')):
-            item = items[cursor][0]
             if isinstance(item, Path):
-                if str(item.resolve()) not in connected:
-                    if item in selected:
-                        selected.remove(item)
-                    else:
-                        selected.append(item)
+                if str(item.resolve()) in connected:
+                    message = 'Already connected to this workspace: ' + item.name
+                elif item in selected:
+                    selected.remove(item)
+                    message = 'Unselected ' + item.name + '. Other selections are kept.'
+                else:
+                    selected.append(item)
+                    message = 'Selected ' + item.name + '. Keep browsing or choose Add selected projects below.'
             elif item == 'add':
                 if selected:
                     return selected
-                message = 'Select at least one project above.'
+                message = 'Nothing to add yet. Use Space to mark a project folder.'
             elif item == 'browse':
                 folder = browse_folder(screen, parent)
                 if folder:
+                    positions[parent] = cursor
                     parent = folder
-                    cursor = 1
-                    message = ''
+                    cursor = positions.get(parent, 2)
+                    message = 'Folder changed. Your selections are kept.'
             elif item == 'current':
-                if str(parent.resolve()) not in connected and parent not in selected:
+                if str(parent.resolve()) in connected:
+                    message = 'This folder is already connected to the workspace.'
+                elif parent in selected:
+                    message = 'This folder is already selected.'
+                else:
                     selected.append(parent)
+                    message = 'Selected current folder: ' + parent.name
             elif item == 'clear':
                 selected.clear()
+                message = 'Selection cleared. No workspace projects have been removed.'
             elif item == 'cancel':
                 return []
 

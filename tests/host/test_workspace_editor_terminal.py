@@ -59,6 +59,10 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
         assert not config.exists()
         os.write(master, b'j\n')
         until(b'Select this folder as a project')
+        os.write(master, b'\n')  # Enter opens api; it does not select it.
+        until(b'Opened api.')
+        os.write(master, b'\x1bOD')  # Left in xterm application cursor mode.
+        until(b'Returned to parent folder')
         os.write(master, b' j j\n')  # Select api and assets, then Add selected projects.
         until(b'Projects added as mount as-is')
         assert not config.exists()

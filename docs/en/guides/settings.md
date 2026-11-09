@@ -103,10 +103,11 @@ Saved ownership exclusions continue to apply to explicit `sync` operations.
 ## Workspace editor
 
 Open **Workspaces and projects** to edit workspace drafts. Choose **Create workspace**,
-enter a name, then choose **Add projects**. Select one or several directories with
-Enter or Space and choose **Add selected projects**. Press Right to open the
-highlighted directory and Left to return to its parent; selections survive folder
-changes. Use **Choose another folder**
+enter a name, then choose **Add projects**. Open directories with Enter or Right, and return with Left or the visible
+**.. Return to parent folder** row. Space marks or unmarks a directory as a
+project; it does not open it. The **Selected projects** section lists choices
+from every folder. Choose **Add selected projects** to return them to the draft.
+Folder changes preserve selections and show a short action message. Use **Choose another folder**
 to browse elsewhere without losing your selection.
 
 Each project starts as **mount as-is**: work directly in its existing directory.

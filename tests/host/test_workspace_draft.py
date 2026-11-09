@@ -175,7 +175,8 @@ def test_new_workspace_cancel_does_not_write(draft, monkeypatch):
 
 
 @pytest.mark.integration
-def test_picker_arrow_navigation_keeps_selection_across_folders(tmp_path):
+@pytest.mark.parametrize('open_with_enter', [False, True])
+def test_picker_arrow_navigation_keeps_selection_across_folders(tmp_path, open_with_enter):
     import curses
     # First choose a folder, descend, choose its child, go back, then add both.
     parent = tmp_path / 'projects'
@@ -184,7 +185,7 @@ def test_picker_arrow_navigation_keeps_selection_across_folders(tmp_path):
     child.mkdir(parents=True)
     class Screen:
         def __init__(self):
-            self.keys = iter([ord(' '), curses.KEY_RIGHT, ord(' '), curses.KEY_LEFT, curses.KEY_DOWN, 10])
+            self.keys = iter([ord(' '), 10 if open_with_enter else curses.KEY_RIGHT, ord(' '), curses.KEY_LEFT, curses.KEY_DOWN, 10])
             self.frames = []
         def getmaxyx(self): return 32, 120
         def erase(self): self.lines = []
@@ -197,6 +198,12 @@ def test_picker_arrow_navigation_keeps_selection_across_folders(tmp_path):
     assert 'Right: open folder' in screen.frames[0]
     assert f'Folder: {folder}' in screen.frames[2]
     assert '2 selected' in screen.frames[4]
+    assert '.. Return to parent folder' in screen.frames[0]
+    assert 'Selected group.' in screen.frames[1]
+    assert 'Opened group.' in screen.frames[2]
+    assert 'Returned to parent folder' in screen.frames[4]
+    assert 'SELECTED PROJECTS' in screen.frames[4]
+    assert str(child) in screen.frames[4]
 
 
 def test_sections_have_spacing_and_do_not_receive_focus(draft):

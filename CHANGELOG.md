@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Make project browsing explicit: Enter/Right opens folders, Space marks projects, and a visible parent-folder action supports returning. Show selected paths together and report the effect of navigation and selection actions.
+
 - Restore Left/Right folder navigation in the project picker while preserving multi-folder selections. Add subtle dividers and spacing between workspace editor sections.
 
 - Replace the interactive workspace scanner with a vertical draft editor: name a workspace first, select multiple projects, edit mount/worktree mode and branch per project, and create worktrees only on final save. Expose actions through arrow navigation and Enter; preserve separate sync and explicit managed-worktree deletion.
