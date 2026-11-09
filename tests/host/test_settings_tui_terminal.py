@@ -47,11 +47,11 @@ def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,sectio
     try:
         until(b'Orcan settings')
         if section=='plugins':
-            os.write(master,b'j\n')
+            os.write(master,b'jjj\n')
             until(b'background executor')
             os.write(master,b'jjjjj ')  # Redis row; toggle on.
         else:
-            os.write(master,b'jj\n')
+            os.write(master,b'j\n')
             until(b'Image contents only')
             os.write(master,b' ')  # Claude row; select it for the image.
         until(b'unsaved')
@@ -105,9 +105,11 @@ def test_opening_ssh_setup_in_real_terminal_does_not_toggle_or_write(tmp_path):
         raise AssertionError('Missing terminal guidance: '+repr(needle)+': '+repr(bytes(output[-1200:])))
     try:
         until(b'Orcan settings')
-        os.write(master,b'j\n')
+        os.write(master,b'jjj\n')
         until(b'background executor')
         os.write(master,b'jjjjjj\n')
+        until(b'Setup help and examples')
+        os.write(master,b'j\n')
         until(b'SSH_AUTH_SOCK')
         os.write(master,b'q')
         assert proc.wait(timeout=8)==0
