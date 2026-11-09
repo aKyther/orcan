@@ -459,7 +459,15 @@ def _review_selection_screen(
             w - 1,
             curses.A_DIM,
         )
-        list_top = 4
+        if selected:
+            path = selected[min(cursor, len(selected) - 1)]
+            explanation = (
+                "Worktree: create a separate working directory on branch " + branch
+                if path in worktree_paths
+                else "Mount as-is: work directly in the existing directory"
+            )
+            stdscr.addnstr(3, 0, _ellipsize(" " + explanation, w - 1), w - 1)
+        list_top = 5
         list_h = max(1, h - list_top - 1)
         cursor = min(cursor, max(0, len(selected) - 1))
         scroll = min(scroll, cursor)
@@ -849,7 +857,7 @@ def _run_curses(args: argparse.Namespace) -> int:
             cursor, \
             selected, \
             worktree_paths
-        nonlocal message, repos, filter_text, depth
+        nonlocal message, repos, filter_text, depth, show_paths
         curses.curs_set(0)
         _init_curses_session()
 
@@ -1136,7 +1144,14 @@ def _run_manage(args: argparse.Namespace) -> int:
     }
 
     def rows() -> list[tuple[str, int, int | None]]:
-        return manage_rows(workspaces, state["collapsed"])
+        result = []
+        for row in manage_rows(workspaces, state["collapsed"]):
+            result.append(row)
+            kind, wi, _ = row
+            if kind == "ws":
+                result.append(("add", wi, None))
+        result.extend([("new", -1, None), ("paths", -1, None), ("save", -1, None)])
+        return result
 
     def draw(stdscr: Any) -> None:
         stdscr.erase()
@@ -1153,7 +1168,7 @@ def _run_manage(args: argparse.Namespace) -> int:
         stdscr.addnstr(
             2,
             0,
-            (" Enter projects · a add project · n new workspace · v paths · ? more")[
+            (" ↑↓ choose a workspace or action · Enter open / select · Esc close")[
                 : w - 1
             ],
             w - 1,
@@ -1180,8 +1195,16 @@ def _run_manage(args: argparse.Namespace) -> int:
                 if idx >= len(current_rows):
                     break
                 kind, wi, pi = current_rows[idx]
-                ws = workspaces[wi]
-                if kind == "ws":
+                ws = workspaces[wi] if wi >= 0 else {}
+                if kind in ("add", "new", "paths", "save"):
+                    line = {
+                        "add": "     + Add project to this workspace",
+                        "new": "+ Create a new workspace",
+                        "paths": "Show / hide full project paths",
+                        "save": "Save changes",
+                    }[kind]
+                    attr = curses.A_NORMAL
+                elif kind == "ws":
                     n = len(
                         [p for p in (ws.get("projects") or []) if isinstance(p, dict)]
                     )
@@ -1233,6 +1256,11 @@ def _run_manage(args: argparse.Namespace) -> int:
             if key == curses.KEY_RESIZE:
                 continue
             state["message"] = ""
+            if current_rows and key in (curses.KEY_ENTER, 10, 13):
+                kind, wi, _ = current_rows[state["cursor"]]
+                action_keys = {"add": "a", "new": "n", "paths": "v", "save": "s"}
+                if kind in action_keys:
+                    key = ord(action_keys[kind])
 
             if key in (ord("q"), 27):
                 if state["dirty"]:
@@ -1306,6 +1334,8 @@ def _run_manage(args: argparse.Namespace) -> int:
                 continue
 
             kind, wi, pi = current_rows[state["cursor"]]
+            if wi < 0:
+                continue
             ws = workspaces[wi]
 
             if key in (curses.KEY_ENTER, 10, 13) and kind == "ws":

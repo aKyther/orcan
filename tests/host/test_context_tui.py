@@ -591,6 +591,9 @@ def test_workspace_list_starts_collapsed_and_paths_are_optional(tmp_path, monkey
     before=config.read_bytes()
     assert _mod._run_manage(args)==0
     assert 'api' not in screen.frames[0]
+    assert '+ Add project to this workspace' in screen.frames[0]
+    assert '+ Create a new workspace' in screen.frames[0]
+    assert 'Save changes' in screen.frames[0]
     assert 'api' in screen.frames[1] and '/example/projects/api' not in screen.frames[1]
     assert '/example/projects/api' in screen.frames[2]
     assert config.read_bytes()==before

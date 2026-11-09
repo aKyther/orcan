@@ -103,7 +103,11 @@ Saved ownership exclusions continue to apply to explicit `sync` operations.
 ## Workspace list
 
 Workspace groups start collapsed. Press Enter or Right to show their projects.
+Use Up/Down and Enter to select **Add project to this workspace**, **Create a new
+workspace**, **Show / hide full project paths**, or **Save changes**. These visible
+actions work without knowing letter shortcuts.
 Project names are shown first; press `v` to show or hide full paths in the workspace
 list or project picker. The parent folder stays visible while picking projects.
 Press Tab to review selected projects, then `b` to switch the highlighted Git project
-between **mount as-is** and **worktree**. Both modes and mixed selections remain available.
+between **mount as-is** and **worktree**. The review explains whether you will work
+in the existing directory or create a separate working directory. Both modes and mixed selections remain available.

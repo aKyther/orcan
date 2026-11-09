@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Simplify terminal setup: start workspace groups collapsed, show project paths on demand with `v`, and move service JSON examples and image guidance into separate help views. Disabled services show their enable switch first; mount as-is and per-project worktree choices remain available.
+- Simplify terminal setup: provide selectable workspace actions, explain mount/worktree outcomes, start workspace groups collapsed, show project paths on demand with `v`, and move service JSON examples and image guidance into separate help views. Disabled services show their enable switch first; mount as-is and per-project worktree choices remain available.
 
 ### Added
 
