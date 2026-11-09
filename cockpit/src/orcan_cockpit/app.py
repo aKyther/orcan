@@ -363,6 +363,30 @@ CommandPalette > .command-palette--highlight {
     border-left: solid #ad91d0;
 }
 
+#workspace-heading {
+    height: 1;
+    color: #b0a6ba;
+    text-style: bold;
+}
+
+#workspace-list-widget.focused #workspace-heading {
+    color: #67e8f9;
+}
+
+#workspace-list ListItem {
+    border-left: thick transparent;
+}
+
+#workspace-list:focus ListItem.-highlight {
+    background: #164e63;
+    border-left: thick #67e8f9;
+}
+
+#workspace-list:focus ListItem.-highlight Label {
+    color: #ffffff;
+    text-style: bold;
+}
+
 #workspaces ListView {
     height: 1fr;
     background: transparent;
@@ -851,7 +875,14 @@ class MainScreen(Screen):
         if visible:
             workspace_list = self.query_one("#workspace-list-widget", WorkspaceList)
             workspace_list.refresh_rows()
-            workspace_list.query_one(ListView).focus()
+            view = workspace_list.query_one(ListView)
+            if view.index is None and workspace_list.rows:
+                view.index = next(
+                    (i for i, row in enumerate(workspace_list.rows)
+                     if row["session"] == self._current_session),
+                    0,
+                )
+            view.focus()
         elif focus_terminal:
             terminal = self.query("#terminal")
             if terminal:
@@ -870,6 +901,10 @@ class MainScreen(Screen):
         target_selector = _FOCUS_BORDER_IDS.get(context)
         for selector in set(_FOCUS_BORDER_IDS.values()):
             self.query_one(selector).set_class(selector == target_selector, "focused")
+        self.query_one("#workspace-heading", Static).update(
+            "● Workspaces · ↑↓ choose · Enter open"
+            if context == "workspaces" else "Workspaces"
+        )
         self.query_one(StatusBar).set_focus(
             {
                 "terminal": "Terminal",

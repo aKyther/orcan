@@ -357,7 +357,11 @@ A slow filesystem can leave metadata loading, while the interface remains usable
 This does not cancel a kernel-level blocked filesystem operation.
 
 The embedded terminal already limits work per read callback and reuses unchanged
-rendered lines. These budgets are cooperative: a parser chunk or OS scheduling
+rendered lines. When output exhausts a read budget, Cockpit pauses PTY reads
+for about 8 ms so input and paint work can run; unread output stays in the PTY.
+Ordinary reads resume immediately when the available output is drained. Opening
+a terminal link also runs outside the UI loop, with at most one browser helper
+in flight per terminal. These budgets are cooperative: a parser chunk or OS scheduling
 can exceed the target duration. CPU starvation, output floods and browser/network
 latency can still delay typing. Leave CPU capacity for interactive work and limit
 parallel build/test processes separately from executor job admission.
@@ -365,3 +369,7 @@ parallel build/test processes separately from executor job admission.
 See [responsiveness checks](../development/testing.md#cockpit-responsiveness)
 for deterministic regressions and a private-tmux load benchmark. Headless results
 measure internal key-to-ACK and event-loop latency, not browser display latency.
+
+The F4 workspace picker shows a bright cursor row and a “● Workspaces” heading
+with arrow/Enter hints while it has keyboard focus. Use ↑/↓ to choose a row and
+Enter to open it. The attached workspace keeps a separate, muted background.

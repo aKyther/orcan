@@ -152,9 +152,47 @@ async def check_restore():
         release.set()
 
 
+async def check_workspace_focus():
+    from orcan_cockpit import app as cockpit_app
+
+    rows = [
+        {"name": name, "session": name, "root": "/fixture/" + name,
+         "live": False, "repo_count": 0, "projects": []}
+        for name in ("first", "second")
+    ]
+    with (
+        patch.object(picker, "list_workspace_rows", lambda: rows),
+        patch.object(picker, "read_recent_sessions", list),
+        patch.object(cockpit_app, "read_last_session", lambda: None),
+        patch.object(cockpit_app, "onboarding_already_seen", lambda: True),
+    ):
+        app = cockpit_app.CockpitApp()
+        async with app.run_test(size=(120, 40)) as pilot:
+            listing = app.screen.query_one(picker.WorkspaceList)
+            await until(lambda: len(listing.rows) == 2)
+            app.screen._set_workspaces_visible(False)
+            await pilot.press("f4")
+            view = listing.query_one(ListView)
+            assert view.has_focus
+            assert view.index is not None
+            assert "↑↓ choose" in str(listing.query_one("#workspace-heading", Static).render())
+            view.index = 0
+            await pilot.press("down")
+            assert view.index == 1
+            assert view.highlighted_child.styles.background.hex == "#164E63"
+            app.screen.query_one("#rail-shortcuts").focus()
+            await pilot.pause()
+            assert str(listing.query_one("#workspace-heading", Static).render()) == "Workspaces"
+            await pilot.press("f4")
+            await pilot.press("f4")
+            assert view.has_focus
+            assert view.index == 1
+
+
 if __name__ == "__main__":
     asyncio.run(check())
     asyncio.run(check_restore())
+    asyncio.run(check_workspace_focus())
     print(
         "Cockpit responsiveness passed: blocked probes, input, bounded work, stale-result rejection, brief dismissal"
     )
