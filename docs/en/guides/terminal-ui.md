@@ -369,3 +369,7 @@ parallel build/test processes separately from executor job admission.
 See [responsiveness checks](../development/testing.md#cockpit-responsiveness)
 for deterministic regressions and a private-tmux load benchmark. Headless results
 measure internal key-to-ACK and event-loop latency, not browser display latency.
+
+The F4 workspace picker shows a bright cursor row and a “● Workspaces” heading
+with arrow/Enter hints while it has keyboard focus. Use ↑/↓ to choose a row and
+Enter to open it. The attached workspace keeps a separate, muted background.

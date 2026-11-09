@@ -312,6 +312,7 @@ class WorkspaceList(Widget):
         self._details_text = None
 
     def compose(self) -> ComposeResult:
+        yield Static("Workspaces", id="workspace-heading")
         yield Static(id="workspace-filter")
         yield ListView(id="workspace-list")
         yield Static(id="workspace-details")

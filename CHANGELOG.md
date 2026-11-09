@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Make workspace keyboard focus clear after F4 with a focus heading, arrow/Enter hints and a bright cursor row distinct from the attached workspace.
+
 - Give Cockpit input and painting time between exhausted PTY read budgets, and open terminal links outside the UI loop so slow browser helpers do not freeze the interface.
 
 - Keep executor admission retries unlimited with capped exponential backoff and jitter. Log each deferral without rerunning failed procedures; prevent Celery's default three-retry limit from stranding queued jobs.
