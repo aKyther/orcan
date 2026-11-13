@@ -52,9 +52,11 @@ to the child. Applications waiting for these replies can continue drawing withou
 keyboard input. Protocol replies bypass pending user navigation.
 Emoji ZWJ sequences, variation selectors, flags and skin tones are stored as
 complete graphemes, including when their UTF-8 bytes arrive in separate reads.
-Partially overwritten wide characters are repaired as cell pairs; a wide character
-at the right margin wraps before it is drawn. Cursor, links and copying use the
-same normalized screen cells.
+The cell grid uses the same width table as Rich, including Indic graphemes that
+occupy one or more cells. Partially overwritten wide graphemes and their
+continuation cells are repaired together; a wide grapheme at the right margin
+wraps before it is drawn. Cursor, links, copying and diagnostic screen snapshots
+use the same normalized screen cells.
 
 ## Palette
 
@@ -182,7 +184,10 @@ navigation command; prior backpressured PTY writes drain before navigation start
 Paste and mouse modes are evaluated when queued events are sent. Pending input is
 limited to 1 MiB across the PTY write buffer and the navigation queue, with
 space reserved for paste delimiters and mouse reports, and at most 4096 queued
-events. Overflow rejects the whole new event with a warning. Leaving the
+events. Overflow rejects the whole new event with a warning. Terminal device/status
+replies have a separate 4 KiB reserve so a full user queue does not discard them.
+Both use one ordered byte stream: a reply cannot split a bracketed-paste frame.
+If the response reserve itself fills, cockpit shows a warning. Leaving the
 terminal cancels navigation and terminates its active tmux client.
 
 | Shortcut | Cockpit action |

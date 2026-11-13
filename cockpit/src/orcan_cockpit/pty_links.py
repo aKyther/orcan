@@ -176,35 +176,39 @@ class _OscFilter:
 
 
 def normalize_wide_cells(screen, rows=None) -> None:
-    """Repair pyte's orphan halves after overwrite, erase or cell shifts."""
-    from wcwidth import wcswidth
+    """Repair orphan continuation cells after overwrite, erase or cell shifts."""
+    from rich.cells import cell_len
 
     for y in tuple(screen.dirty) if rows is None else rows:
         if not 0 <= y < screen.lines:
             continue
         line = screen.buffer[y]
+        covered_until = 0
         for x in range(screen.columns):
             char = line[x]
             data = char.data
+            if not data and x < covered_until:
+                continue
             if len(data) == 1 and ord(data) < 128:
                 continue
-            width = wcswidth(data) if data else 0
-            if data and width == 2:
-                if x + 1 < screen.columns:
-                    following = line[x + 1]
-                    if not following.data:
-                        continue
-                    if all(unicodedata.combining(c) for c in following.data):
-                        line[x] = char._replace(
-                            data=unicodedata.normalize("NFC", data + following.data)
-                        )
-                        line[x + 1] = following._replace(data="")
-                        screen.dirty.add(y)
-                        continue
-            elif (data and width == 1) or (
-                not data and x and wcswidth(line[x - 1].data or " ") == 2
-            ):
+            width = cell_len(data) if data else 0
+            if width == 1:
                 continue
+            if width > 1 and x + width <= screen.columns:
+                # Older/plain pyte may put a combining mark in the stub.
+                if (
+                    width == 2
+                    and line[x + 1].data
+                    and all(unicodedata.combining(c) for c in line[x + 1].data)
+                ):
+                    line[x] = char._replace(
+                        data=unicodedata.normalize("NFC", data + line[x + 1].data)
+                    )
+                    line[x + 1] = line[x + 1]._replace(data="")
+                    screen.dirty.add(y)
+                if all(not line[i].data for i in range(x + 1, x + width)):
+                    covered_until = x + width
+                    continue
             fields = {"data": " "}
             if hasattr(char, "href"):
                 fields["href"] = None
@@ -255,7 +259,7 @@ def url_at_screen(screen, column: int, row: int) -> str | None:
         return None
     if hasattr(screen, "dirty"):
         normalize_wide_cells(screen, (row,))
-    if column < screen.columns and column and not screen.buffer[row][column].data:
+    while column < screen.columns and column and not screen.buffer[row][column].data:
         column -= 1
     href = getattr(screen, "link_at", lambda _c, _r: None)(column, row)
     if href:
@@ -310,7 +314,8 @@ def attach_hyperlink_screen(on_response=None):
     so host unit tests for pure helpers need no pyte."""
     import pyte
     from pyte import modes
-    from wcwidth import iter_graphemes, wcswidth
+    from rich.cells import cell_len
+    from wcwidth import iter_graphemes
 
     # pyte moves/replaces immutable Char tuples for every screen operation.
     # Carry links in those tuples instead of maintaining a parallel cell grid.
@@ -351,10 +356,11 @@ def attach_hyperlink_screen(on_response=None):
                         joined = next(clusters)
                         if len(joined) > len(cell.data):
                             data = data[len(joined) - len(cell.data) :]
-                            old_width = wcswidth(cell.data)
-                            width = wcswidth(joined)
+                            old_width = cell_len(cell.data)
+                            width = cell_len(joined)
                             if width > old_width and x + width > self.columns:
-                                self.buffer[y][x] = self.default_char
+                                for i in range(old_width):
+                                    self.buffer[y][x + i] = self.default_char
                                 self.dirty.add(y)
                                 self.cursor.x = (
                                     self.columns
@@ -366,8 +372,10 @@ def attach_hyperlink_screen(on_response=None):
                                 if width > old_width and modes.IRM in self.mode:
                                     self.insert_characters(width - old_width)
                                 self.buffer[y][x] = cell._replace(data=joined)
-                                if width == 2:
-                                    self.buffer[y][x + 1] = cell._replace(data="")
+                                for i in range(1, width):
+                                    self.buffer[y][x + i] = cell._replace(data="")
+                                for i in range(width, old_width):
+                                    self.buffer[y][x + i] = self.default_char
                                 self.cursor.x += width - old_width
                                 self.dirty.add(y)
                                 self._remember_cluster(y, x)
@@ -390,29 +398,40 @@ def attach_hyperlink_screen(on_response=None):
                 (self.cursor.y, self.cursor.x),
             )
 
+        @property
+        def display(self) -> list[str]:
+            """Expose full graphemes without pyte's scalar-width assertions."""
+            normalize_wide_cells(self, range(self.lines))
+            return [
+                "".join(self.buffer[y][x].data for x in range(self.columns))
+                for y in range(self.lines)
+            ]
+
         def _draw_cluster(self, cluster: str, attrs) -> None:
-            width = wcswidth(cluster)
-            if width not in (1, 2) or width > self.columns:
+            # The grid, Rich rows and Textual strips must use one width table.
+            # A grapheme can occupy more than two cells (e.g. Indic conjuncts).
+            width = cell_len(cluster)
+            if width <= 0 or width > self.columns:
                 self._grapheme_tail = None
                 return
-            if (
-                width == 2
-                and self.cursor.x == self.columns - 1
-                and modes.DECAWM in self.mode
-            ):
-                self.buffer[self.cursor.y][self.cursor.x] = self.default_char
-                self.dirty.add(self.cursor.y)
-                self.carriage_return()
-                self.linefeed()
-            if width == 2 and self.cursor.x == self.columns - 1:
+            if self.cursor.x < self.columns and self.cursor.x + width > self.columns:
+                if modes.DECAWM in self.mode:
+                    for x in range(self.cursor.x, self.columns):
+                        self.buffer[self.cursor.y][x] = self.default_char
+                    self.dirty.add(self.cursor.y)
+                    self.carriage_return()
+                    self.linefeed()
+                else:
+                    self.cursor.x = self.columns - width
+            if self.cursor.x == self.columns and modes.DECAWM not in self.mode:
                 self.cursor.x = self.columns - width
-            # Let pyte handle wrapping, insert mode and charset state using a
-            # glyph of the right width, then store the complete grapheme.
-            super().draw("界" if width == 2 else "a")
+            # Delegate insert mode and delayed wrap to pyte, then replace the
+            # placeholders with one leading cell and its continuation cells.
+            super().draw("界" if width == 2 else "a" * width)
             x, y = self.cursor.x - width, self.cursor.y
             self.buffer[y][x] = attrs._replace(data=cluster)
-            if width == 2 and x + 1 < self.columns:
-                self.buffer[y][x + 1] = attrs._replace(data="")
+            for i in range(1, width):
+                self.buffer[y][x + i] = attrs._replace(data="")
             self._remember_cluster(y, x)
 
         def scroll_up_region(self, count: int | None = None) -> None:

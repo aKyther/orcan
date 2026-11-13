@@ -174,6 +174,7 @@ _INPUT_QUEUE_BYTES_LIMIT = 1024 * 1024
 # exceeding the entire input budget need the private-file fallback.
 _STAGED_PASTE_BYTES = _INPUT_QUEUE_BYTES_LIMIT - 12 + 1
 _INPUT_QUEUE_ITEMS_LIMIT = 4096
+_PROTOCOL_QUEUE_BYTES_LIMIT = 4096
 _INPUT_DRAIN_TIMEOUT_S = 2.0
 
 
@@ -230,6 +231,10 @@ class PtyTerminal(Widget):
         # accept only a prefix, which used to truncate large bracketed pastes
         # before their closing marker reached tmux.
         self._write_buffer = bytearray()
+        # Track response bytes within the same ordered stream. A response
+        # reserve must never inject bytes inside an accepted paste frame.
+        self._write_spans: deque[tuple[int, bool]] = deque()
+        self._protocol_pending_bytes = 0
         self._write_watch_installed = False
         # Per-line render cache — only pyte's dirty rows are rebuilt each
         # paint (typing, spinners and status ticks touch a line or two; a
@@ -310,7 +315,7 @@ class PtyTerminal(Widget):
         # final one. Count text codepoints, not display cells: wide glyphs
         # have an empty continuation cell and combining marks share a cell.
         column = cursor.x
-        if column and not screen.buffer[cursor.y][column].data:
+        while column and not screen.buffer[cursor.y][column].data:
             column -= 1
         return (
             sum(
@@ -331,7 +336,7 @@ class PtyTerminal(Widget):
         )
         if offset is not None:
             column = screen.cursor.x
-            if column and not screen.buffer[screen.cursor.y][column].data:
+            while column and not screen.buffer[screen.cursor.y][column].data:
                 column -= 1
             cell = screen.buffer[screen.cursor.y][column]
             style = _CURSOR_UNREVERSE_STYLE if cell.reverse else _CURSOR_STYLE
@@ -394,7 +399,7 @@ class PtyTerminal(Widget):
         os.set_blocking(master_fd, False)
         self._master_fd = master_fd
         HyperlinkScreen, Stream = attach_hyperlink_screen(
-            lambda data: self._send_pty(data.encode("ascii"))
+            lambda data: self._send_pty(data.encode("ascii"), protocol=True)
         )
         self._screen = HyperlinkScreen(cols, rows)
         self._stream = Stream(self._screen)
@@ -518,14 +523,29 @@ class PtyTerminal(Widget):
         else:
             self._send_pty(data)
 
-    def _send_pty(self, data: bytes) -> None:
+    def _send_pty(self, data: bytes, *, protocol: bool = False) -> None:
         if self._master_fd is None or not data:
             return
-        if not self._input_fits(len(data)):
+        if protocol:
+            if self._protocol_pending_bytes + len(data) > _PROTOCOL_QUEUE_BYTES_LIMIT:
+                self.notify("Terminal response queue is full.", severity="warning")
+                return
+            self._protocol_pending_bytes += len(data)
+        elif not self._input_fits(len(data)):
             return
         self._write_drained.clear()
         self._write_buffer.extend(data)
+        if self._write_spans and self._write_spans[-1][1] == protocol:
+            size, _ = self._write_spans.pop()
+            self._write_spans.append((size + len(data), protocol))
+        else:
+            self._write_spans.append((len(data), protocol))
         self._flush_pty_write()
+
+    def _clear_write_buffer(self) -> None:
+        self._write_buffer.clear()
+        self._write_spans.clear()
+        self._protocol_pending_bytes = 0
 
     def _watch_pty_writable(self) -> None:
         if self._master_fd is None or self._write_watch_installed:
@@ -550,7 +570,7 @@ class PtyTerminal(Widget):
     def _flush_pty_write(self) -> None:
         """Write all currently accepted input, retrying when the PTY is full."""
         if self._master_fd is None:
-            self._write_buffer.clear()
+            self._clear_write_buffer()
             self._write_drained.set()
             self._unwatch_pty_writable()
             return
@@ -562,7 +582,7 @@ class PtyTerminal(Widget):
                 return
             except OSError:
                 self._write_error = True
-                self._write_buffer.clear()
+                self._clear_write_buffer()
                 self._write_drained.set()
                 self._unwatch_pty_writable()
                 return
@@ -570,6 +590,15 @@ class PtyTerminal(Widget):
                 self._watch_pty_writable()
                 return
             del self._write_buffer[:written]
+            remaining = written
+            while remaining:
+                size, protocol = self._write_spans.popleft()
+                consumed = min(size, remaining)
+                if protocol:
+                    self._protocol_pending_bytes -= consumed
+                remaining -= consumed
+                if consumed < size:
+                    self._write_spans.appendleft((size - consumed, protocol))
         self._write_drained.set()
         self._unwatch_pty_writable()
 
@@ -629,7 +658,10 @@ class PtyTerminal(Widget):
 
     def _input_fits(self, size: int) -> bool:
         if (
-            len(self._write_buffer) + self._input_queue_bytes + size
+            len(self._write_buffer)
+            - self._protocol_pending_bytes
+            + self._input_queue_bytes
+            + size
             <= _INPUT_QUEUE_BYTES_LIMIT
         ):
             return True
@@ -1001,11 +1033,11 @@ class PtyTerminal(Widget):
             and 0 <= cursor.x < screen.columns
         ):
             x = cursor.x
-            if not screen.buffer[y][x].data and x:
+            while not screen.buffer[y][x].data and x:
                 x -= 1
-            width = (
-                2 if x + 1 < screen.columns and not screen.buffer[y][x + 1].data else 1
-            )
+            width = 1
+            while x + width < screen.columns and not screen.buffer[y][x + width].data:
+                width += 1
             style = (
                 _CURSOR_UNREVERSE_STYLE
                 if screen.buffer[y][x].reverse
@@ -1048,7 +1080,7 @@ class PtyTerminal(Widget):
             start, end = span
             end = screen.columns if end == -1 else min(end, screen.columns)
             start = min(start, screen.columns)
-            if start < end and start and not screen.buffer[y][start].data:
+            while start < end and start and not screen.buffer[y][start].data:
                 start -= 1
             parts.append(
                 "".join(screen.buffer[y][x].data for x in range(start, end)).rstrip()
@@ -1069,7 +1101,7 @@ class PtyTerminal(Widget):
         if self._cursor_timer is not None:
             self._cursor_timer.stop()
             self._cursor_timer = None
-        self._write_buffer.clear()
+        self._clear_write_buffer()
         if self._master_fd is not None:
             try:
                 asyncio.get_running_loop().remove_reader(self._master_fd)

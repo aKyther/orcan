@@ -21,7 +21,7 @@ except ModuleNotFoundError:
 def terminal():
     term = p.PtyTerminal(["true"], session="fixture")
     Screen, Stream = p.attach_hyperlink_screen(
-        lambda text: term._send_pty(text.encode())
+        lambda text: term._send_pty(text.encode(), protocol=True)
     )
     term._screen = Screen(40, 3)
     term._stream = Stream(term._screen)
@@ -132,8 +132,83 @@ class OrderedInputTests(unittest.IsolatedAsyncioTestCase):
         term._send_pty = Mock()
         term._queue_nav("ctrl+right")
         feed_with_osc8(term._stream, term._screen, "\x1b[2;3H\x1b[6n")
-        term._send_pty.assert_called_once_with(b"\x1b[2;3R")
+        term._send_pty.assert_called_once_with(b"\x1b[2;3R", protocol=True)
         self.assertEqual(list(term._nav_queue), [("nav", "ctrl+right")])
+
+    async def test_protocol_reserve_survives_full_user_budget_and_partial_writes(self):
+        term = terminal()
+        term._watch_pty_writable = Mock()
+        term._unwatch_pty_writable = Mock()
+        with (
+            patch.object(p, "_INPUT_QUEUE_BYTES_LIMIT", 32),
+            patch.object(p.os, "write", side_effect=BlockingIOError),
+        ):
+            term._write_pty(b"x" * 32)
+            feed_with_osc8(term._stream, term._screen, "\x1b[2;3H\x1b[6n")
+            self.assertEqual(term._write_buffer, b"x" * 32 + b"\x1b[2;3R")
+            self.assertEqual(term._protocol_pending_bytes, 6)
+            term.notify.assert_not_called()
+            # Drain the user bytes plus half of the reply, then block again.
+            with patch.object(p.os, "write", side_effect=[35, BlockingIOError]):
+                term._flush_pty_write()
+            self.assertEqual(term._protocol_pending_bytes, 3)
+            self.assertEqual(term._write_buffer, b";3R")
+            # Protocol bytes do not consume the freed user budget.
+            term._write_pty(b"y" * 32)
+            self.assertEqual(term._write_buffer, b";3R" + b"y" * 32)
+        with patch.object(p.os, "write", side_effect=lambda fd, data: len(data)):
+            term._flush_pty_write()
+        self.assertEqual(term._protocol_pending_bytes, 0)
+        self.assertFalse(term._write_spans)
+        self.assertTrue(term._write_drained.is_set())
+
+    async def test_protocol_bytes_do_not_reject_preaccepted_navigation_input(self):
+        term = terminal()
+        term._watch_pty_writable = Mock()
+        term._queue_nav("ctrl+right")
+        with (
+            patch.object(p, "_INPUT_QUEUE_BYTES_LIMIT", 16),
+            patch.object(p.os, "write", side_effect=BlockingIOError),
+        ):
+            term._write_pty(b"a" * 16)
+            feed_with_osc8(term._stream, term._screen, "\x1b[6n")
+            # Finish the in-flight navigation; its accepted input must fit
+            # even with a response already pending in the raw PTY buffer.
+            term._nav_queue.popleft()
+            await term._drain_nav()
+            self.assertEqual(term._write_buffer, b"\x1b[1;1R" + b"a" * 16)
+            self.assertEqual(term._input_queue_bytes, 0)
+            term.notify.assert_not_called()
+
+    async def test_protocol_queue_is_bounded_and_write_errors_clear_accounting(self):
+        term = terminal()
+        term._watch_pty_writable = Mock()
+        term._unwatch_pty_writable = Mock()
+        with (
+            patch.object(p, "_PROTOCOL_QUEUE_BYTES_LIMIT", 12),
+            patch.object(p.os, "write", side_effect=BlockingIOError),
+        ):
+            for _ in range(3):
+                feed_with_osc8(term._stream, term._screen, "\x1b[6n")
+        self.assertEqual(term._protocol_pending_bytes, 12)
+        self.assertEqual(len(term._write_buffer), 12)
+        term.notify.assert_called_once()
+        with patch.object(p.os, "write", side_effect=OSError):
+            term._flush_pty_write()
+        self.assertEqual(term._protocol_pending_bytes, 0)
+        self.assertFalse(term._write_spans)
+        self.assertFalse(term._write_buffer)
+
+    async def test_response_never_splits_a_backpressured_bracketed_paste(self):
+        term = terminal()
+        term._watch_pty_writable = Mock()
+        term._unwatch_pty_writable = Mock()
+        feed_with_osc8(term._stream, term._screen, "\x1b[?2004h")
+        with patch.object(p.os, "write", side_effect=[8, BlockingIOError]):
+            term._write_paste(b"hello world")
+        with patch.object(p.os, "write", side_effect=BlockingIOError):
+            feed_with_osc8(term._stream, term._screen, "\x1b[6n")
+        self.assertEqual(term._write_buffer, b"llo world\x1b[201~\x1b[1;1R")
 
     async def test_queue_limits_and_escape_before_paste(self):
         term = terminal()
@@ -346,6 +421,57 @@ class WideCellTests(unittest.TestCase):
                     self.assertEqual(
                         cell_len(term._render_line(term._screen, 0, 40, None).plain), 40
                     )
+
+    def test_indic_graphemes_match_rich_across_every_utf8_split(self):
+        import codecs
+
+        for glyph in ("நி", "क्ष्म", "क्‍ष", "👩‍💻", "✈️"):
+            width = cell_len(glyph)
+            encoded = (glyph + "Z").encode()
+            for split in range(len(encoded) + 1):
+                with self.subTest(glyph=glyph, split=split):
+                    term = terminal()
+                    decoder = codecs.getincrementaldecoder("utf-8")()
+                    for chunk in (encoded[:split], encoded[split:]):
+                        feed_with_osc8(
+                            term._stream, term._screen, decoder.decode(chunk)
+                        )
+                    self.assertEqual(term._screen.buffer[0][0].data, glyph)
+                    self.assertEqual(term._screen.buffer[0][width].data, "Z")
+                    row = term._render_line(term._screen, 0, 40, None)
+                    self.assertEqual(cell_len(row.plain), 40)
+                    self.assertEqual(cell_len(row.plain[: row.plain.index("Z")]), width)
+                    self.assertEqual(term._screen.cursor.x, width + 1)
+                    self.assertEqual(term._screen.display[0], row.plain)
+
+    def test_three_cell_grapheme_continuations_support_links_copy_and_cursor(self):
+        term = terminal()
+        glyph = "क्ष्म"
+        feed_with_osc8(
+            term._stream,
+            term._screen,
+            "\x1b]8;;https://indic.example\x07" + glyph + "\x1b]8;;\x07Z",
+        )
+        self.assertEqual(url_at_screen(term._screen, 2, 0), "https://indic.example")
+        self.assertEqual(
+            term.get_selection(Selection(Offset(2, 0), Offset(3, 0)))[0], glyph
+        )
+        term._screen.cursor.x = 2
+        self.assertEqual(
+            term._cursor_offset(term._screen, 40, focused=True, visible=True), 0
+        )
+
+    def test_three_cell_grapheme_wrap_overwrite_and_insert(self):
+        term = terminal()
+        feed_with_osc8(term._stream, term._screen, "x" * 38 + "क्ष्मZ")
+        self.assertEqual(term._screen.buffer[1][0].data, "क्ष्म")
+        self.assertEqual(term._screen.buffer[1][3].data, "Z")
+        feed_with_osc8(term._stream, term._screen, "\x1b[2;2HX")
+        self.assertTrue(term._screen.display[1].startswith(" X Z"))
+        term = terminal()
+        for chunk in ("abc\r\x1b[4hक", "्ष", "्म", "Z"):
+            feed_with_osc8(term._stream, term._screen, chunk)
+        self.assertTrue(term._screen.display[0].startswith("क्ष्मZabc"))
 
     def test_grapheme_link_selection_and_cursor_use_terminal_cells(self):
         term = terminal()
