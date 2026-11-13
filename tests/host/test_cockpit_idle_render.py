@@ -148,6 +148,28 @@ class IdleRenderTests(unittest.IsolatedAsyncioTestCase):
                 term.get_selection(selection)[0],
                 "w1 abcdefghijkl\nrow2 abcdefghijkl\nrow3 ".rstrip(),
             )
+            for segment in term.render_line(2):
+                if segment.text.strip():
+                    self.assertNotEqual(segment.style.color, segment.style.bgcolor)
+                    self.assertFalse(segment.style.reverse)
+            # Child reverse-video and foreground colors must not mask the
+            # selection; clearing it restores the original terminal attributes.
+            feed_with_osc8(
+                term._stream,
+                term._screen,
+                "\x1b[3;1H\x1b[7;34mrow2 abcdefghijkl\x1b[0m",
+            )
+            term._schedule_refresh()
+            await pilot.pause()
+            selected = next(iter(term.render_line(2)))
+            self.assertFalse(selected.style.reverse)
+            self.assertFalse(selected.style.conceal)
+            self.assertNotEqual(selected.style.color, selected.style.bgcolor)
+            app.screen.selections = {}
+            await pilot.pause()
+            self.assertTrue(next(iter(term.render_line(2))).style.reverse)
+            app.screen.selections = {term: selection}
+            await pilot.pause()
             # Offsets must survive repainting an existing selection/cursor.
             widget, offset = app.screen.get_widget_and_offset_at(4, 3)
             self.assertIs(widget, term)

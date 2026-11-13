@@ -224,7 +224,10 @@ recombines them (`pty_keys.esc_follow_up_bytes` + coalesce window in
 
 **Copy:** drag normally to select individual lines in the cockpit; Shift is not
 required. Rendered rows expose text positions to Textual, so a drag selects text
-rather than the whole terminal container. Selection is Textual (not xterm). `Ctrl+C` with selection → clipboard;
+rather than the whole terminal container. Selection uses contrasting text when the
+theme leaves its foreground transparent, and overrides reverse-video or hidden
+text inside the highlight. Clearing it restores the original terminal styling.
+Selection is Textual (not xterm). `Ctrl+C` with selection → clipboard;
 without selection → SIGINT. Paste is queued to the non-blocking PTY, so a
 confirmed large paste is delivered in full rather than being cut at the PTY
 buffer boundary.

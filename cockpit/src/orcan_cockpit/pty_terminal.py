@@ -52,6 +52,7 @@ from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.actions import SkipAction
+from textual.color import Color as TextualColor
 from textual.geometry import Region
 from textual.message import Message
 from textual.strip import Strip
@@ -1048,8 +1049,7 @@ class PtyTerminal(Widget):
         span = selection.get_span(y) if selection is not None else None
         if span is not None:
             start, end = self._selection_cells(screen, y, span)
-            style = self.screen.get_component_rich_style("screen--selection")
-            strip = _overlay_style(strip, start, end, style)
+            strip = _overlay_style(strip, start, end, self._selection_style())
         # Screen needs content offsets to select part of this widget. Without
         # them a drag is interpreted as selecting the whole terminal container.
         # Apply after cursor/selection splits so metadata tracks actual segments.
@@ -1065,6 +1065,22 @@ class PtyTerminal(Widget):
             self._frame_cache = Text("\n").join(self._line_cache)
         return self._render_cursor(
             self._frame_cache.copy(), self._screen, self._screen.columns
+        )
+
+    def _selection_style(self) -> Style:
+        """Keep terminal text readable when the theme's selection ink is transparent."""
+        component = self.screen.get_component_styles("screen--selection")
+        style = self.screen.get_component_rich_style("screen--selection")
+        foreground = style.color
+        if component.color.a == 0:
+            # Textual's computed Rich style blends transparent ink into the
+            # selection background. Applying it as an overlay hides every glyph.
+            background = style.bgcolor or Color.parse("#152033")
+            foreground = (
+                TextualColor.from_rich_color(background).get_contrast_text(1).rich_color
+            )
+        return style + Style(
+            color=foreground, reverse=False, dim=False, conceal=False, blink=False
         )
 
     @staticmethod

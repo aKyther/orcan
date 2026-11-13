@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Keep cockpit selection text visible when the theme uses transparent selection foreground. Choose contrasting ink and suppress reverse, dim, conceal and blink attributes inside the highlight while restoring original terminal styling when selection clears.
+
 - Give cockpit rows Textual selection offsets so normal mouse dragging selects individual lines instead of highlighting the entire terminal. Map Unicode content offsets back to complete grapheme cells for painting and copying.
 
 - Use Rich cell widths throughout the cockpit grid, including Indic graphemes with multiple continuation cells, and expose complete emoji in diagnostic screen snapshots. Reserve a separate bounded budget for terminal responses without splitting accepted paste frames or displacing queued user input.
