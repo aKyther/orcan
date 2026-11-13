@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import os
 import sys
@@ -10,7 +11,8 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 PTY_TERMINAL_PATH = ROOT / "cockpit" / "src" / "orcan_cockpit" / "pty_terminal.py"
@@ -386,6 +388,262 @@ class TerminalRowRenderingTests(unittest.IsolatedAsyncioTestCase):
             term._schedule_refresh()
             await pilot.pause()
             self.assertEqual(term.render_line(0).cell_length, 10)
+            app.screen.selections = {}
+            term._stream.feed("\x1b[H\x1b[7mX\x1b[H")
+            term._cursor_visible = True
+            term._schedule_refresh()
+            await pilot.pause()
+            # The cursor must invert an already reversed cell back to normal.
+            self.assertFalse(next(iter(term.render_line(0))).style.reverse)
+            frame = term.render()
+            self.assertFalse(frame.get_style_at_offset(app.console, 0).reverse)
+            term._cursor_visible = False
+            self.assertTrue(next(iter(term.render_line(0))).style.reverse)
+            self.assertTrue(
+                all(segment.style is not None for segment in term.render_line(4))
+            )
+
+
+@unittest.skipIf(pty_terminal is None, "cockpit dependencies unavailable")
+class TerminalInputAndStyleTests(unittest.TestCase):
+    def terminal(self):
+        term = pty_terminal.PtyTerminal(["true"], session="fixture")
+        Screen, Stream = pty_terminal.attach_hyperlink_screen()
+        term._screen = Screen(80, 3)
+        term._stream = Stream(term._screen)
+        term._master_fd = 123
+        term._ready = True
+        term._schedule_refresh = MagicMock()
+        return term
+
+    def feed(self, term, text):
+        pty_terminal.feed_with_osc8(term._stream, term._screen, text)
+        term._sync_terminal_modes()
+
+    def test_grouped_modes_survive_bytewise_real_read_callbacks_and_reset(self):
+        term = self.terminal()
+        for byte in b"\x1b[?1000;1006;2004h":
+            with patch.object(
+                pty_terminal.os, "read", side_effect=[bytes([byte]), BlockingIOError()]
+            ):
+                term._on_readable()
+        self.assertTrue(term._mouse_tracking)
+        self.assertTrue(term._mouse_sgr)
+        for char in "\x1b[?1000;1006l":
+            self.feed(term, char)
+        self.assertFalse(term._mouse_tracking)
+        self.assertFalse(term._mouse_sgr)
+        self.feed(term, "\x1b[?1002h")
+        self.assertTrue(term._mouse_tracking)
+        self.feed(term, "\x1bc")
+        self.assertFalse(term._mouse_tracking)
+        self.assertNotIn(pty_terminal._BRACKETED_PASTE_MODE, term._screen.mode)
+
+    def test_first_output_does_not_override_explicit_mouse_disable(self):
+        term = self.terminal()
+        term._ready = False
+        term.post_message = MagicMock()
+        with patch.object(
+            pty_terminal.os,
+            "read",
+            side_effect=[b"\x1b[?1000;1006h\x1b[?1000;1006l", BlockingIOError()],
+        ):
+            term._on_readable()
+        self.assertTrue(term._ready)
+        self.assertFalse(term._mouse_tracking)
+        self.assertFalse(term._mouse_sgr)
+
+    def test_mode_bytes_in_osc_are_not_interpreted_as_terminal_modes(self):
+        term = self.terminal()
+        self.feed(term, "\x1b]0;title\x1b[?1006h\x07")
+        self.assertFalse(term._mouse_sgr)
+
+    def test_paste_follows_incremental_bracketed_paste_mode(self):
+        term = self.terminal()
+        term._write_pty = MagicMock()
+        event = SimpleNamespace(text="first\nsecond", stop=MagicMock())
+        term.on_paste(event)
+        term._write_pty.assert_called_with(b"first\nsecond")
+        for char in "\x1b[?2004h":
+            self.feed(term, char)
+        term.on_paste(event)
+        term._write_pty.assert_called_with(b"\x1b[200~first\nsecond\x1b[201~")
+        self.feed(term, "\x1b[?2004l")
+        term.on_paste(event)
+        term._write_pty.assert_called_with(b"first\nsecond")
+
+    def test_staged_paste_and_staging_failure_keep_bracketing(self):
+        term = self.terminal()
+        term._write_pty = MagicMock()
+        self.feed(term, "\x1b[?2004h")
+        payload = "x" * pty_terminal._STAGED_PASTE_BYTES
+        event = SimpleNamespace(text=payload, stop=MagicMock())
+        with patch.object(term, "_stage_large_paste", return_value=None):
+            term.on_paste(event)
+        term._write_pty.assert_called_with(
+            b"\x1b[200~" + payload.encode() + b"\x1b[201~"
+        )
+        with patch.object(
+            term, "_stage_large_paste", return_value="/tmp/orcan-test.md"
+        ):
+            term.on_paste(event)
+        sent = term._write_pty.call_args.args[0]
+        self.assertTrue(sent.startswith(b"\x1b[200~"))
+        self.assertTrue(sent.endswith(b"\x1b[201~"))
+        self.assertIn(b"/tmp/orcan-test.md", sent)
+
+    def test_mouse_keyboard_and_release_keep_order_after_partial_and_full_write(self):
+        term = self.terminal()
+        term._mouse_tracking = True
+        term._mouse_sgr = True
+        term._term_size = MagicMock(return_value=(24, 80))
+        event = SimpleNamespace(x=4, y=2, button=1, shift=False, meta=False, ctrl=False)
+        accepted = []
+        writable = False
+        first = True
+
+        def write(fd, data):
+            nonlocal first
+            if first:
+                first = False
+                accepted.append(bytes(data[:2]))
+                return 2
+            if not writable:
+                raise BlockingIOError
+            accepted.append(bytes(data))
+            return len(data)
+
+        loop = MagicMock()
+        with (
+            patch.object(pty_terminal.os, "write", side_effect=write),
+            patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
+        ):
+            term._write_mouse(event)
+            term._write_pty(b"k")
+            term._write_mouse(event, release=True)
+            self.assertTrue(term._write_buffer)
+            writable = True
+            term._flush_pty_write()
+        self.assertEqual(b"".join(accepted), b"\x1b[<0;5;3Mk\x1b[<0;5;3m")
+        self.assertFalse(term._write_buffer)
+        loop.add_writer.assert_called_once()
+        loop.remove_writer.assert_called_once()
+
+    def test_default_and_explicit_inverse_are_distinct_from_normal(self):
+        for fg, bg in (("default", "default"), ("red", "default"), ("red", "blue")):
+            normal = pty_terminal._char_style(
+                pty_terminal.pyte.screens.Char("x", fg=fg, bg=bg)
+            )
+            inverse = pty_terminal._char_style(
+                pty_terminal.pyte.screens.Char("x", fg=fg, bg=bg, reverse=True)
+            )
+            self.assertNotEqual(normal, inverse)
+            self.assertTrue(inverse.reverse)
+            self.assertEqual(normal.color, inverse.color)
+            self.assertEqual(normal.bgcolor, inverse.bgcolor)
+
+    def test_style_cache_is_bounded_and_reuses_recent_styles(self):
+        cache = pty_terminal._cached_style
+        cache.cache_clear()
+        try:
+            char = pty_terminal.pyte.screens.Char("x")
+            for number in range(pty_terminal._STYLE_CACHE_LIMIT + 20):
+                last = pty_terminal._char_style(char, f"https://example.com/{number}")
+            self.assertEqual(
+                cache.cache_info().currsize, pty_terminal._STYLE_CACHE_LIMIT
+            )
+            self.assertIs(
+                last, pty_terminal._char_style(char, f"https://example.com/{number}")
+            )
+            before = cache.cache_info().misses
+            pty_terminal._char_style(char, "https://example.com/0")
+            self.assertEqual(cache.cache_info().misses, before + 1)
+        finally:
+            cache.cache_clear()
+
+
+@unittest.skipIf(pty_terminal is None, "cockpit dependencies unavailable")
+class TerminalNavigationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_stalled_navigation_leaves_input_and_timers_responsive_and_preserves_order(
+        self,
+    ):
+        from textual.app import App, ComposeResult
+
+        started, release = asyncio.Event(), asyncio.Event()
+        calls = []
+
+        async def navigate(session, key):
+            calls.append(key)
+            if len(calls) == 1:
+                started.set()
+                await release.wait()
+            return True
+
+        class Terminal(pty_terminal.PtyTerminal):
+            def on_mount(self, event):
+                event.prevent_default()
+                self._master_fd = 123
+                self._write_pty = MagicMock()
+                self.focus()
+
+            def on_resize(self, event):
+                event.prevent_default()
+
+            def _close(self):
+                self._master_fd = None
+                super()._close()
+
+        class Harness(App):
+            ticks = 0
+
+            def compose(self) -> ComposeResult:
+                yield Terminal(["true"], session="fixture")
+
+            def on_mount(self):
+                self.set_interval(0.01, self.tick)
+
+            def tick(self):
+                self.ticks += 1
+
+        app = Harness()
+        with patch.object(pty_terminal, "run_nav", new=AsyncMock(side_effect=navigate)):
+            async with app.run_test(size=(40, 5)) as pilot:
+                term = app.query_one(Terminal)
+                await pilot.press("ctrl+left")
+                await asyncio.wait_for(started.wait(), 1)
+                before = app.ticks
+                await pilot.press("ctrl+right", "a")
+                await pilot.pause(0.03)
+                term._write_pty.assert_called_with(b"a")
+                self.assertGreater(app.ticks, before)
+                self.assertEqual(calls, ["ctrl+left"])
+                release.set()
+                await app.workers.wait_for_complete()
+                self.assertEqual(calls, ["ctrl+left", "ctrl+right"])
+                self.assertFalse(term._nav_running)
+
+    async def test_queue_capacity_failure_and_close(self):
+        term = pty_terminal.PtyTerminal(["true"], session="fixture")
+        term.run_worker = MagicMock()
+        term.notify = MagicMock()
+        for _ in range(pty_terminal._NAV_QUEUE_LIMIT + 2):
+            self.assertTrue(term._queue_nav("ctrl+left"))
+        self.assertEqual(len(term._nav_queue), pty_terminal._NAV_QUEUE_LIMIT)
+        term.run_worker.assert_called_once()
+        self.assertFalse(term._queue_nav("a"))
+        with patch.object(
+            pty_terminal, "run_nav", new=AsyncMock(side_effect=TimeoutError)
+        ) as navigate:
+            await term._drain_nav()
+        navigate.assert_awaited_once()
+        self.assertFalse(term._nav_queue)
+        self.assertFalse(term._nav_running)
+        self.assertTrue(term.notify.called)
+        term._queue_nav("ctrl+right")
+        worker = term._nav_worker
+        term._close()
+        worker.cancel.assert_called_once()
+        self.assertFalse(term._nav_queue)
 
 
 if __name__ == "__main__":

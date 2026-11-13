@@ -42,6 +42,11 @@ sequences use a bounded buffer; oversized sequences are discarded through their
 terminator. Hyperlink addresses move with their characters during editing,
 scrolling and resize. SGR mouse releases preserve the button code. Legacy mouse
 reports are omitted when a coordinate cannot fit in their one-byte encoding.
+Mouse and keyboard input share a write queue, so a full PTY does not drop mouse
+events. Mouse reporting and bracketed paste follow the incremental terminal
+parser, including mode changes split between reads. Paste markers are sent only
+when the child enables bracketed paste. Reverse-video also works with default
+colors; the style cache holds at most 4096 entries.
 
 ## Palette
 
@@ -160,6 +165,11 @@ separate Meta event. Cockpit cannot implement both “Ctrl = split” and
 
 **Cockpit behaviour** (`pty_tmux_nav.py` — calls `tmux select-pane` /
 `split-window` directly, no CSI to the child PTY):
+
+Navigation commands run asynchronously in order. Each command has a two-second
+timeout; at most 32 commands can wait in the queue. A failure clears pending
+navigation and shows a warning. Leaving the terminal cancels navigation and
+terminates its active tmux client.
 
 | Shortcut | Cockpit action |
 | --- | --- |

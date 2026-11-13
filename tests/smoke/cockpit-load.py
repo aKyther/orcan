@@ -110,10 +110,10 @@ async def scenario(root, name, duration, *, flood, slow_metadata=False, cpu=Fals
         return ["synthetic metadata"]
 
     class Terminal(PtyTerminal):
-        def _note_mouse_modes(self, data):
+        def _feed_output(self, data, **kwargs):
             nonlocal byte_count
             byte_count += len(data)
-            super()._note_mouse_modes(data)
+            return super()._feed_output(data, **kwargs)
 
         def _on_readable(self):
             began = time.perf_counter()

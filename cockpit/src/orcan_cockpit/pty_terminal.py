@@ -39,11 +39,14 @@ import subprocess
 import tempfile
 import termios
 import time
+from collections import deque
 from collections.abc import Sequence
+from functools import lru_cache
 from pathlib import Path
 
 import pyte
 from rich.color import Color
+from rich.segment import Segment
 from rich.style import Style
 from rich.text import Text
 from textual import events
@@ -63,8 +66,8 @@ from orcan_cockpit.pty_links import (
     open_url,
     url_at_screen,
 )
-from orcan_cockpit.pty_mouse import mouse_bytes, parse_mouse_modes
-from orcan_cockpit.pty_tmux_nav import esc_follow_up_nav_key, run_nav
+from orcan_cockpit.pty_mouse import mouse_bytes
+from orcan_cockpit.pty_tmux_nav import esc_follow_up_nav_key, nav_action, run_nav
 
 
 # pyte's fg/bg color values come in three shapes (see pyte.graphics /
@@ -88,37 +91,52 @@ def _pyte_color_to_rich(value: str) -> str | None:
 # handful of style combinations (default text + a few prompt/status
 # accents), so building a fresh Style() per cell every frame would be a lot
 # of avoidable churn on every keystroke's redraw.
-_style_cache: dict[tuple, Style] = {}
+_STYLE_CACHE_LIMIT = 4096
+
+
+@lru_cache(maxsize=_STYLE_CACHE_LIMIT)
+def _cached_style(
+    fg, bg, bold, italics, underscore, strikethrough, blink, reverse, link
+) -> Style:
+    # Let Rich resolve reverse against the outer terminal's default colors.
+    # Swapping two "default" color names loses reverse-video entirely.
+    return Style(
+        color=_pyte_color_to_rich(fg),
+        bgcolor=_pyte_color_to_rich(bg),
+        bold=bold,
+        italic=italics,
+        underline=underscore or bool(link),
+        strike=strikethrough,
+        blink=blink,
+        reverse=reverse,
+        link=link,
+    )
 
 
 def _char_style(char: pyte.screens.Char, link: str | None = None) -> Style:
-    fg, bg = char.fg, char.bg
-    if char.reverse:
-        fg, bg = bg, fg
-    key = (
-        fg,
-        bg,
+    return _cached_style(
+        char.fg,
+        char.bg,
         char.bold,
         char.italics,
         char.underscore,
         char.strikethrough,
         char.blink,
+        char.reverse,
         link,
     )
-    style = _style_cache.get(key)
-    if style is None:
-        style = Style(
-            color=_pyte_color_to_rich(fg),
-            bgcolor=_pyte_color_to_rich(bg),
-            bold=char.bold,
-            italic=char.italics,
-            underline=char.underscore or bool(link),
-            strike=char.strikethrough,
-            blink=char.blink,
-            link=link,
-        )
-        _style_cache[key] = style
-    return style
+
+
+def _overlay_style(strip: Strip, start: int, end: int, style: Style) -> Strip:
+    """Apply cursor/selection above existing cell styles, not underneath."""
+    middle = strip.crop(start, end)
+    return Strip.join(
+        [
+            strip.crop(0, start),
+            Strip(Segment.apply_style(middle, post_style=style), middle.cell_length),
+            strip.crop(end),
+        ]
+    )
 
 
 # When the user has a Textual text selection, these keys copy instead of going
@@ -132,7 +150,6 @@ _COCKPIT_FUNCTION_KEYS = frozenset({"f1", "f2", "f3", "f4", "f5"})
 # Ctrl+[ is Esc on real terminals — Textual names it ctrl+left_square_brace.
 _ESCAPE_KEYS = frozenset({"escape", "ctrl+left_square_brace"})
 
-# tmux toggles these on attach — see pty_mouse.parse_mouse_modes.
 # Match context_tui's curses escdelay (25ms): long enough to recombine
 # Textual's Escape+key pairs for Meta/Alt, short enough that bare Esc in
 # vim/shell feels immediate.
@@ -145,6 +162,12 @@ _STAGED_PASTE_MAX_AGE_S = 24 * 60 * 60
 _MAX_READ_BYTES_PER_TICK = 256 * 1024
 _CURSOR_BLINK_S = 0.5
 _CURSOR_STYLE = Style(reverse=True)
+_CURSOR_UNREVERSE_STYLE = Style(reverse=False)
+# pyte shifts DEC private mode numbers by five bits in Screen.mode.
+_MOUSE_TRACKING_MODES = (1000 << 5, 1002 << 5, 1003 << 5)
+_SGR_MOUSE_MODE = 1006 << 5
+_BRACKETED_PASTE_MODE = 2004 << 5
+_NAV_QUEUE_LIMIT = 32
 
 
 class PtyTerminal(Widget):
@@ -186,7 +209,10 @@ class PtyTerminal(Widget):
         self._read_resume: asyncio.TimerHandle | None = None
         self._ready = False
         self._mouse_tracking = False
-        self._mouse_sgr = True
+        self._mouse_sgr = False
+        self._nav_queue: deque[str] = deque()
+        self._nav_running = False
+        self._nav_worker = None
         self._esc_coalesce_until: float | None = None
         self._esc_coalesce_timer: Timer | None = None
         # The master PTY is non-blocking. A single os.write() is permitted to
@@ -296,7 +322,8 @@ class PtyTerminal(Widget):
             if column and not screen.buffer[screen.cursor.y][column].data:
                 column -= 1
             cell = screen.buffer[screen.cursor.y][column]
-            frame.stylize(_CURSOR_STYLE, offset, offset + max(1, len(cell.data)))
+            style = _CURSOR_UNREVERSE_STYLE if cell.reverse else _CURSOR_STYLE
+            frame.stylize(style, offset, offset + max(1, len(cell.data)))
         return frame
 
     def _term_size(self) -> tuple[int, int]:
@@ -370,12 +397,13 @@ class PtyTerminal(Widget):
         self._cache_size = (0, 0)
         self._frame_cache = None
 
-    def _note_mouse_modes(self, data: bytes) -> None:
-        tracking, sgr = parse_mouse_modes(data)
-        if tracking is not None:
-            self._mouse_tracking = tracking
-        if sgr is not None:
-            self._mouse_sgr = sgr
+    def _sync_terminal_modes(self) -> None:
+        # Read the incremental VT parser's state, including grouped DECSET
+        # commands and sequences split between any two PTY reads.
+        if self._screen is not None:
+            modes = self._screen.mode
+            self._mouse_tracking = any(mode in modes for mode in _MOUSE_TRACKING_MODES)
+            self._mouse_sgr = _SGR_MOUSE_MODE in modes
 
     def _schedule_refresh(self) -> None:
         # Paint on the next idle immediately. Do not go through call_later —
@@ -400,6 +428,14 @@ class PtyTerminal(Widget):
             if y is not None and 0 <= y < screen.lines:
                 self.refresh(Region(0, y, screen.columns, 1))
         self._painted_cursor_row = screen.cursor.y
+
+    def _feed_output(self, data: bytes, *, final: bool = False) -> bool:
+        text = self._decoder.decode(data, final=final)
+        if text:
+            feed_with_osc8(
+                self._stream, self._screen, text, on_clipboard=self._copy_from_child
+            )
+        return bool(text)
 
     def _on_readable(self) -> None:
         if self._master_fd is None or self._stream is None:
@@ -427,14 +463,8 @@ class PtyTerminal(Widget):
                 break
             got_data = True
             bytes_read += len(data)
-            self._note_mouse_modes(data)
             try:
-                feed_with_osc8(
-                    self._stream,
-                    self._screen,
-                    self._decoder.decode(data),
-                    on_clipboard=self._copy_from_child,
-                )
+                self._feed_output(data)
             except Exception:
                 # pyte 0.8.2's Stream/Screen dispatch can raise on some
                 # private-mode CSI sequences tmux sends on attach (e.g. a device
@@ -444,25 +474,14 @@ class PtyTerminal(Widget):
                 # embedded terminal over it.
                 pass
         if ended:
-            tail = self._decoder.decode(b"", final=True)
-            if tail:
-                feed_with_osc8(
-                    self._stream, self._screen, tail, on_clipboard=self._copy_from_child
-                )
-                got_data = True
+            got_data = self._feed_output(b"", final=True) or got_data
             self._close()
         if not got_data:
             return
+        self._sync_terminal_modes()
         if not self._ready:
             self._ready = True
             self.post_message(self.Ready(self))
-            # orcan tmux.conf always sets mouse on; if mode CSI was split
-            # across reads, don't leave tracking disabled forever.
-            if not self._mouse_tracking:
-                self._mouse_tracking = True
-            # xterm-256color + tmux mouse on → SGR (1006). Legacy X10 bytes
-            # (button 64/65 = '@'/'A') echo as garbage when 1006 is expected.
-            self._mouse_sgr = True
         self._schedule_refresh()
         if not ended and not drained and self._read_resume is None:
             # A level-triggered fd stays ready throughout an output flood.
@@ -563,6 +582,34 @@ class PtyTerminal(Widget):
         if time.monotonic() >= self._esc_coalesce_until:
             self._flush_esc_coalesce()
 
+    def _queue_nav(self, key: str) -> bool:
+        if self._session is None or nav_action(key) is None:
+            return False
+        if len(self._nav_queue) >= _NAV_QUEUE_LIMIT:
+            self.notify("Navigation queue is full; wait for tmux.", severity="warning")
+            return True
+        self._nav_queue.append(key)
+        if not self._nav_running:
+            self._nav_running = True
+            self._nav_worker = self.run_worker(
+                self._drain_nav, group="pty-navigation", exit_on_error=False
+            )
+        return True
+
+    async def _drain_nav(self) -> None:
+        try:
+            while self._nav_queue:
+                key = self._nav_queue.popleft()
+                try:
+                    await run_nav(self._session, key)
+                except (OSError, TimeoutError, subprocess.CalledProcessError):
+                    self._nav_queue.clear()
+                    self.notify(
+                        "tmux navigation failed or timed out.", severity="warning"
+                    )
+        finally:
+            self._nav_running = False
+
     def on_key(self, event: events.Key) -> None:
         self._cursor_visible = True
         if self._master_fd is None:
@@ -587,7 +634,7 @@ class PtyTerminal(Widget):
             ):
                 self._cancel_esc_coalesce()
                 event.stop()
-                run_nav(self._session, nav_key)
+                self._queue_nav(nav_key)
                 return
             combined = esc_follow_up_bytes(event.key)
             if combined is not None and time.monotonic() < self._esc_coalesce_until:
@@ -605,7 +652,7 @@ class PtyTerminal(Widget):
 
         # Ctrl/Alt+arrows: drive tmux directly when we know the session —
         # skip CSI/Meta PTY writes (and avoid double-firing bind -n).
-        if self._session and run_nav(self._session, event.key):
+        if self._queue_nav(event.key):
             event.stop()
             return
 
@@ -624,18 +671,23 @@ class PtyTerminal(Widget):
         event.stop()
         data = event.text.encode("utf-8", errors="replace")
         if len(data) < _STAGED_PASTE_BYTES:
-            self._write_pty(data)
+            self._write_paste(data)
             return
         path = self._stage_large_paste(data)
         if path is None:
             # A failed staging attempt must not silently lose the user's input.
-            self._write_pty(data)
+            self._write_paste(data)
             return
         prompt = (
             f"Large input ({len(data):,} bytes) saved to {path}. "
             "Read that file first, then continue with the request it contains."
         )
-        self._write_pty(prompt.encode("utf-8"))
+        self._write_paste(prompt.encode("utf-8"))
+
+    def _write_paste(self, data: bytes) -> None:
+        if self._screen is not None and _BRACKETED_PASTE_MODE in self._screen.mode:
+            data = b"\x1b[200~" + data + b"\x1b[201~"
+        self._write_pty(data)
 
     @staticmethod
     def _purge_staged_pastes() -> None:
@@ -694,10 +746,7 @@ class PtyTerminal(Widget):
         )
         if data is None:
             return
-        try:
-            os.write(self._master_fd, data)
-        except OSError:
-            pass
+        self._write_pty(data)
 
     def _on_mouse_scroll_up(self, event: events.MouseScrollUp) -> None:
         self._write_mouse(event, scroll=64)
@@ -821,7 +870,7 @@ class PtyTerminal(Widget):
             return super().render_line(y)
         self._sync_lines()
         if not 0 <= y < screen.lines:
-            return Strip.blank(self.size.width)
+            return Strip.blank(self.size.width, self.visual_style.rich_style)
         if y not in self._strip_cache:
             self._strip_cache[y] = (
                 Strip(self._line_cache[y].render(self.app.console))
@@ -845,13 +894,12 @@ class PtyTerminal(Widget):
             width = (
                 2 if x + 1 < screen.columns and not screen.buffer[y][x + 1].data else 1
             )
-            strip = Strip.join(
-                [
-                    strip.crop(0, x),
-                    strip.crop(x, x + width).apply_style(_CURSOR_STYLE),
-                    strip.crop(x + width),
-                ]
+            style = (
+                _CURSOR_UNREVERSE_STYLE
+                if screen.buffer[y][x].reverse
+                else _CURSOR_STYLE
             )
+            strip = _overlay_style(strip, x, x + width, style)
         selection = self.text_selection
         span = selection.get_span(y) if selection is not None else None
         if span is not None:
@@ -859,14 +907,8 @@ class PtyTerminal(Widget):
             start = min(start, screen.columns)
             end = screen.columns if end == -1 else min(end, screen.columns)
             style = self.screen.get_component_rich_style("screen--selection")
-            strip = Strip.join(
-                [
-                    strip.crop(0, start),
-                    strip.crop(start, end).apply_style(style),
-                    strip.crop(end),
-                ]
-            )
-        return strip
+            strip = _overlay_style(strip, start, end, style)
+        return strip.apply_style(self.visual_style.rich_style)
 
     def render(self) -> Text:
         # Keep a text representation for inspection and accessibility. Normal
@@ -901,6 +943,10 @@ class PtyTerminal(Widget):
         return "\n".join(parts), "\n"
 
     def _close(self) -> None:
+        self._nav_queue.clear()
+        if self._nav_worker is not None:
+            self._nav_worker.cancel()
+            self._nav_worker = None
         if self._read_resume is not None:
             self._read_resume.cancel()
             self._read_resume = None

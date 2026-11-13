@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 NAV_PATH = ROOT / "cockpit" / "src" / "orcan_cockpit" / "pty_tmux_nav.py"
@@ -111,17 +115,128 @@ class NavArgvTests(unittest.TestCase):
             ["tmux", "split-window", "-v", "-t", "=ws:"],
         )
 
-    def test_run_nav_invokes_tmux(self) -> None:
-        with mock.patch.object(nav.subprocess, "run") as run:
-            self.assertTrue(nav.run_nav("orcan-dev", "alt+right"))
-            run.assert_called_once()
-            argv = run.call_args[0][0]
-            self.assertEqual(argv, ["tmux", "select-pane", "-R", "-t", "=orcan-dev:"])
 
-    def test_run_nav_skips_non_nav(self) -> None:
-        with mock.patch.object(nav.subprocess, "run") as run:
-            self.assertFalse(nav.run_nav("orcan-dev", "ctrl+space"))
-            run.assert_not_called()
+class RunNavTests(unittest.IsolatedAsyncioTestCase):
+    async def test_run_nav_invokes_tmux(self):
+        process = SimpleNamespace(wait=mock.AsyncMock(return_value=0))
+        with mock.patch.object(
+            nav.asyncio,
+            "create_subprocess_exec",
+            new=mock.AsyncMock(return_value=process),
+        ) as spawn:
+            self.assertTrue(await nav.run_nav("orcan-dev", "alt+right"))
+        spawn.assert_awaited_once_with(
+            "tmux",
+            "select-pane",
+            "-R",
+            "-t",
+            "=orcan-dev:",
+            stdout=nav.subprocess.DEVNULL,
+            stderr=nav.subprocess.DEVNULL,
+        )
+        process.wait.assert_awaited_once()
+
+    async def test_run_nav_skips_non_nav(self):
+        with mock.patch.object(
+            nav.asyncio, "create_subprocess_exec", new=mock.AsyncMock()
+        ) as spawn:
+            self.assertFalse(await nav.run_nav("orcan-dev", "ctrl+space"))
+        spawn.assert_not_awaited()
+
+    async def test_failed_command_is_reported(self):
+        process = SimpleNamespace(wait=mock.AsyncMock(return_value=1))
+        with mock.patch.object(
+            nav.asyncio,
+            "create_subprocess_exec",
+            new=mock.AsyncMock(return_value=process),
+        ):
+            with self.assertRaises(nav.subprocess.CalledProcessError):
+                await nav.run_nav("ws", "alt+left")
+
+    def stalled_process(self):
+        started = asyncio.Event()
+        process = SimpleNamespace(returncode=None)
+
+        async def wait():
+            started.set()
+            if process.returncode is None:
+                await asyncio.Event().wait()
+            return process.returncode
+
+        process.wait = mock.AsyncMock(side_effect=wait)
+        process.kill = mock.Mock(side_effect=lambda: setattr(process, "returncode", -9))
+        return process, started
+
+    async def test_timeout_kills_and_reaps_child(self):
+        process, _ = self.stalled_process()
+        with (
+            mock.patch.object(
+                nav.asyncio,
+                "create_subprocess_exec",
+                new=mock.AsyncMock(return_value=process),
+            ),
+            mock.patch.object(nav, "_NAV_TIMEOUT_S", 0.01),
+        ):
+            with self.assertRaises(TimeoutError):
+                await nav.run_nav("ws", "alt+left")
+        process.kill.assert_called_once()
+        self.assertEqual(process.wait.await_count, 2)
+
+    async def test_cancellation_kills_and_reaps_child(self):
+        process, started = self.stalled_process()
+        with mock.patch.object(
+            nav.asyncio,
+            "create_subprocess_exec",
+            new=mock.AsyncMock(return_value=process),
+        ):
+            task = asyncio.create_task(nav.run_nav("ws", "alt+left"))
+            await asyncio.wait_for(started.wait(), 1)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        process.kill.assert_called_once()
+        self.assertEqual(process.wait.await_count, 2)
+
+
+@pytest.mark.integration
+class RealRunNavTests(unittest.IsolatedAsyncioTestCase):
+    async def test_timeout_and_cancel_reap_real_children(self):
+        # Exercise process ownership without touching any real tmux session.
+        real_spawn = asyncio.create_subprocess_exec
+        for cancel in (False, True):
+            with self.subTest(cancel=cancel):
+                processes = []
+                spawned = asyncio.Event()
+
+                async def spawn(*args, **kwargs):
+                    process = await real_spawn(*args, **kwargs)
+                    processes.append(process)
+                    spawned.set()
+                    return process
+
+                with (
+                    mock.patch.object(
+                        nav,
+                        "nav_argv",
+                        return_value=[
+                            sys.executable,
+                            "-c",
+                            "import time; time.sleep(60)",
+                        ],
+                    ),
+                    mock.patch.object(nav.asyncio, "create_subprocess_exec", new=spawn),
+                    mock.patch.object(nav, "_NAV_TIMEOUT_S", 2 if cancel else 0.02),
+                ):
+                    task = asyncio.create_task(nav.run_nav("fixture", "alt+left"))
+                    await asyncio.wait_for(spawned.wait(), 2)
+                    if cancel:
+                        task.cancel()
+                    with self.assertRaises(
+                        asyncio.CancelledError if cancel else TimeoutError
+                    ):
+                        await asyncio.wait_for(task, 3)
+                self.assertIsNotNone(processes[0].returncode)
+                self.assertNotEqual(processes[0].returncode, 0)
 
 
 if __name__ == "__main__":

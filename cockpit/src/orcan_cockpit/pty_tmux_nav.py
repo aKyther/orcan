@@ -20,7 +20,10 @@ Stdlib-only — host-testable without Textual.
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
+
+_NAV_TIMEOUT_S = 2.0
 
 # Focus flags / split flags keyed by arrow direction.
 _FOCUS: dict[str, tuple[str, ...]] = {
@@ -87,12 +90,24 @@ def nav_argv(session: str, key: str) -> list[str] | None:
     return ["tmux", *action, "-t", f"={session}:"]
 
 
-def run_nav(session: str, key: str) -> bool:
-    """Run the nav command for *key*. True if this key was a nav chord."""
+async def run_nav(session: str, key: str) -> bool:
+    """Run a navigation command without blocking UI; reap on timeout/cancel."""
     argv = nav_argv(session, key)
     if argv is None:
         return False
-    subprocess.run(
-        argv, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    process = await asyncio.create_subprocess_exec(
+        *argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
+    try:
+        result = await asyncio.wait_for(process.wait(), timeout=_NAV_TIMEOUT_S)
+    except (TimeoutError, asyncio.CancelledError):
+        if process.returncode is None:
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+        await process.wait()
+        raise
+    if result:
+        raise subprocess.CalledProcessError(result, argv)
     return True
