@@ -1047,12 +1047,13 @@ class PtyTerminal(Widget):
         selection = self.text_selection
         span = selection.get_span(y) if selection is not None else None
         if span is not None:
-            start, end = span
-            start = min(start, screen.columns)
-            end = screen.columns if end == -1 else min(end, screen.columns)
+            start, end = self._selection_cells(screen, y, span)
             style = self.screen.get_component_rich_style("screen--selection")
             strip = _overlay_style(strip, start, end, style)
-        return strip.apply_style(self.visual_style.rich_style)
+        # Screen needs content offsets to select part of this widget. Without
+        # them a drag is interpreted as selecting the whole terminal container.
+        # Apply after cursor/selection splits so metadata tracks actual segments.
+        return strip.apply_offsets(0, y).apply_style(self.visual_style.rich_style)
 
     def render(self) -> Text:
         # Keep a text representation for inspection and accessibility. Normal
@@ -1066,8 +1067,28 @@ class PtyTerminal(Widget):
             self._frame_cache.copy(), self._screen, self._screen.columns
         )
 
+    @staticmethod
+    def _selection_cells(screen, y: int, span: tuple[int, int]) -> tuple[int, int]:
+        """Map Textual codepoint offsets to whole terminal grapheme cells."""
+        from rich.cells import cell_len
+
+        start, end = span
+        if end != -1 and end <= start:
+            return (0, 0)
+        offset = 0
+        left = right = None
+        for x in range(screen.columns):
+            data = screen.buffer[y][x].data
+            following = offset + len(data)
+            if data and following > start and (end == -1 or offset < end):
+                if left is None:
+                    left = x
+                right = x + cell_len(data)
+            offset = following
+        return (left, right) if left is not None else (0, 0)
+
     def get_selection(self, selection):
-        """Extract using terminal cell coordinates, including wide glyphs."""
+        """Extract Textual content offsets without splitting terminal graphemes."""
         screen = self._screen
         if screen is None:
             return None
@@ -1077,11 +1098,7 @@ class PtyTerminal(Widget):
             span = selection.get_span(y)
             if span is None:
                 continue
-            start, end = span
-            end = screen.columns if end == -1 else min(end, screen.columns)
-            start = min(start, screen.columns)
-            while start < end and start and not screen.buffer[y][start].data:
-                start -= 1
+            start, end = self._selection_cells(screen, y, span)
             parts.append(
                 "".join(screen.buffer[y][x].data for x in range(start, end)).rstrip()
             )

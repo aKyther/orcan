@@ -107,6 +107,52 @@ class IdleRenderTests(unittest.IsolatedAsyncioTestCase):
                     timeout=3,
                 )
 
+    async def test_plain_mouse_drag_selects_lines_instead_of_terminal_container(self):
+        from orcan_cockpit.pty_links import attach_hyperlink_screen, feed_with_osc8
+
+        class Terminal(PtyTerminal):
+            @staticmethod
+            def _purge_staged_pastes():
+                pass
+
+            def on_mount(self, event):
+                event.prevent_default()
+                Screen, Stream = attach_hyperlink_screen()
+                self._screen = Screen(30, 10)
+                self._stream = Stream(self._screen)
+                for y in range(10):
+                    feed_with_osc8(
+                        self._stream,
+                        self._screen,
+                        f"\x1b[{y + 1};1Hrow{y} abcdefghijkl",
+                    )
+                self.refresh()
+
+        class Harness(App):
+            def compose(self):
+                yield Terminal(["true"])
+
+        app = Harness()
+        async with app.run_test(size=(30, 10)) as pilot:
+            term = app.query_one(Terminal)
+            await pilot.pause()
+            await pilot.mouse_down(Terminal, offset=(2, 1))
+            await pilot.hover(Terminal, offset=(4, 3))
+            await pilot.mouse_up(Terminal, offset=(4, 3))
+            await pilot.pause()
+            selection = term.text_selection
+            self.assertIsNotNone(selection)
+            self.assertIsNone(selection.get_span(0))
+            self.assertIsNone(selection.get_span(4))
+            self.assertEqual(
+                term.get_selection(selection)[0],
+                "w1 abcdefghijkl\nrow2 abcdefghijkl\nrow3 ".rstrip(),
+            )
+            # Offsets must survive repainting an existing selection/cursor.
+            widget, offset = app.screen.get_widget_and_offset_at(4, 3)
+            self.assertIs(widget, term)
+            self.assertEqual((offset.x, offset.y), (4, 3))
+
     async def exercise(self, command, gate):
         class Terminal(PtyTerminal):
             def __init__(self):

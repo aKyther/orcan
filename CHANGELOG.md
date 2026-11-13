@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Give cockpit rows Textual selection offsets so normal mouse dragging selects individual lines instead of highlighting the entire terminal. Map Unicode content offsets back to complete grapheme cells for painting and copying.
+
 - Use Rich cell widths throughout the cockpit grid, including Indic graphemes with multiple continuation cells, and expose complete emoji in diagnostic screen snapshots. Reserve a separate bounded budget for terminal responses without splitting accepted paste frames or displacing queued user input.
 
 - Preserve complete emoji graphemes across cockpit PTY reads. Bound the combined raw and navigation input buffers, reserving paste framing, and reject whole events on overflow. Send ordinary multiline pastes unchanged to agents; move the private-file fallback from 32 KiB to the 1 MiB input budget.

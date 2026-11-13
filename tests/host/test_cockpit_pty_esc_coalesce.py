@@ -331,17 +331,17 @@ class TerminalUnicodeTests(unittest.TestCase):
         self.assertIsNone(url_at_screen(term._screen, 1, 0))
         self.assertEqual(url_at_screen(term._screen, 2, 0), "https://example.com")
 
-    def test_selection_uses_cells_and_preserves_wide_glyph(self):
+    def test_selection_maps_content_offsets_and_preserves_wide_glyph(self):
         from textual.geometry import Offset
         from textual.selection import Selection
 
         term = self.terminal()
         term._stream.feed("界abc")
         self.assertEqual(
-            term.get_selection(Selection(Offset(2, 0), Offset(5, 0)))[0], "abc"
+            term.get_selection(Selection(Offset(1, 0), Offset(4, 0)))[0], "abc"
         )
         self.assertEqual(
-            term.get_selection(Selection(Offset(0, 0), Offset(2, 0)))[0], "界"
+            term.get_selection(Selection(Offset(0, 0), Offset(1, 0)))[0], "界"
         )
 
 
