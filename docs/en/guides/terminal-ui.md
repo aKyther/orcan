@@ -47,6 +47,12 @@ events. Mouse reporting and bracketed paste follow the incremental terminal
 parser, including mode changes split between reads. Paste markers are sent only
 when the child enables bracketed paste. Reverse-video also works with default
 colors; the style cache holds at most 4096 entries.
+The terminal returns standard device-attribute and status/cursor-position replies
+to the child. Applications waiting for these replies can continue drawing without
+keyboard input. Protocol replies bypass pending user navigation.
+Partially overwritten wide characters are repaired as cell pairs; a wide character
+at the right margin wraps before it is drawn. Cursor, links and copying use the
+same normalized screen cells.
 
 ## Palette
 
@@ -168,8 +174,12 @@ separate Meta event. Cockpit cannot implement both “Ctrl = split” and
 
 Navigation commands run asynchronously in order. Each command has a two-second
 timeout; at most 32 commands can wait in the queue. A failure clears pending
-navigation and shows a warning. Leaving the terminal cancels navigation and
-terminates its active tmux client.
+navigation and queued user input, and shows a warning instead of sending that
+input to the previous pane. Keys, paste and mouse events wait behind their pending
+navigation command; prior backpressured PTY writes drain before navigation starts.
+Paste and mouse modes are evaluated when queued events are sent. Pending input is
+limited to 1 MiB and 4096 events; overflow is rejected with a warning. Leaving the
+terminal cancels navigation and terminates its active tmux client.
 
 | Shortcut | Cockpit action |
 | --- | --- |

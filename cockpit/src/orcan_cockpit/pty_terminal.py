@@ -43,6 +43,7 @@ from collections import deque
 from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
+from types import SimpleNamespace
 
 import pyte
 from rich.color import Color
@@ -63,6 +64,7 @@ from orcan_cockpit.pty_links import (
     annotate_plain_urls,
     attach_hyperlink_screen,
     feed_with_osc8,
+    normalize_wide_cells,
     open_url,
     url_at_screen,
 )
@@ -168,6 +170,9 @@ _MOUSE_TRACKING_MODES = (1000 << 5, 1002 << 5, 1003 << 5)
 _SGR_MOUSE_MODE = 1006 << 5
 _BRACKETED_PASTE_MODE = 2004 << 5
 _NAV_QUEUE_LIMIT = 32
+_INPUT_QUEUE_BYTES_LIMIT = 1024 * 1024
+_INPUT_QUEUE_ITEMS_LIMIT = 4096
+_INPUT_DRAIN_TIMEOUT_S = 2.0
 
 
 class PtyTerminal(Widget):
@@ -210,7 +215,11 @@ class PtyTerminal(Widget):
         self._ready = False
         self._mouse_tracking = False
         self._mouse_sgr = False
-        self._nav_queue: deque[str] = deque()
+        self._nav_queue: deque[tuple[str, object]] = deque()
+        self._input_queue_bytes = 0
+        self._write_drained = asyncio.Event()
+        self._write_drained.set()
+        self._write_error = False
         self._nav_running = False
         self._nav_worker = None
         self._esc_coalesce_until: float | None = None
@@ -294,6 +303,7 @@ class PtyTerminal(Widget):
             return None
         if not (0 <= cursor.x < cols and 0 <= cursor.y < screen.lines):
             return None
+        normalize_wide_cells(screen, range(cursor.y + 1))
         # Rich text contains one newline after every screen row except the
         # final one. Count text codepoints, not display cells: wide glyphs
         # have an empty continuation cell and combining marks share a cell.
@@ -381,7 +391,9 @@ class PtyTerminal(Widget):
         os.close(slave_fd)  # child holds its own duplicate; parent doesn't need it
         os.set_blocking(master_fd, False)
         self._master_fd = master_fd
-        HyperlinkScreen, Stream = attach_hyperlink_screen()
+        HyperlinkScreen, Stream = attach_hyperlink_screen(
+            lambda data: self._send_pty(data.encode("ascii"))
+        )
         self._screen = HyperlinkScreen(cols, rows)
         self._stream = Stream(self._screen)
 
@@ -396,6 +408,7 @@ class PtyTerminal(Widget):
         self._strip_cache.clear()
         self._cache_size = (0, 0)
         self._frame_cache = None
+        self.refresh()
 
     def _sync_terminal_modes(self) -> None:
         # Read the incremental VT parser's state, including grouped DECSET
@@ -498,8 +511,15 @@ class PtyTerminal(Widget):
             asyncio.get_running_loop().add_reader(self._master_fd, self._on_readable)
 
     def _write_pty(self, data: bytes) -> None:
+        if self._nav_running:
+            self._queue_input("data", data)
+        else:
+            self._send_pty(data)
+
+    def _send_pty(self, data: bytes) -> None:
         if self._master_fd is None or not data:
             return
+        self._write_drained.clear()
         self._write_buffer.extend(data)
         self._flush_pty_write()
 
@@ -527,6 +547,7 @@ class PtyTerminal(Widget):
         """Write all currently accepted input, retrying when the PTY is full."""
         if self._master_fd is None:
             self._write_buffer.clear()
+            self._write_drained.set()
             self._unwatch_pty_writable()
             return
         while self._write_buffer:
@@ -536,13 +557,16 @@ class PtyTerminal(Widget):
                 self._watch_pty_writable()
                 return
             except OSError:
+                self._write_error = True
                 self._write_buffer.clear()
+                self._write_drained.set()
                 self._unwatch_pty_writable()
                 return
             if written <= 0:
                 self._watch_pty_writable()
                 return
             del self._write_buffer[:written]
+        self._write_drained.set()
         self._unwatch_pty_writable()
 
     def _cancel_esc_coalesce(self) -> None:
@@ -585,10 +609,13 @@ class PtyTerminal(Widget):
     def _queue_nav(self, key: str) -> bool:
         if self._session is None or nav_action(key) is None:
             return False
-        if len(self._nav_queue) >= _NAV_QUEUE_LIMIT:
+        if (
+            sum(kind == "nav" for kind, _ in self._nav_queue) >= _NAV_QUEUE_LIMIT
+            or len(self._nav_queue) >= _INPUT_QUEUE_ITEMS_LIMIT
+        ):
             self.notify("Navigation queue is full; wait for tmux.", severity="warning")
             return True
-        self._nav_queue.append(key)
+        self._nav_queue.append(("nav", key))
         if not self._nav_running:
             self._nav_running = True
             self._nav_worker = self.run_worker(
@@ -596,16 +623,53 @@ class PtyTerminal(Widget):
             )
         return True
 
+    def _queue_input(self, kind: str, payload) -> None:
+        size = len(payload) if kind in ("data", "paste") else 0
+        if (
+            self._input_queue_bytes + size > _INPUT_QUEUE_BYTES_LIMIT
+            or len(self._nav_queue) >= _INPUT_QUEUE_ITEMS_LIMIT
+        ):
+            self.notify(
+                "Input queue is full; this input was not sent.", severity="warning"
+            )
+            return
+        if kind == "data" and self._nav_queue and self._nav_queue[-1][0] == "data":
+            self._nav_queue[-1][1].extend(payload)
+        else:
+            self._nav_queue.append(
+                (kind, bytearray(payload) if kind == "data" else payload)
+            )
+        self._input_queue_bytes += size
+
     async def _drain_nav(self) -> None:
         try:
             while self._nav_queue:
-                key = self._nav_queue.popleft()
+                kind, payload = self._nav_queue.popleft()
                 try:
-                    await run_nav(self._session, key)
+                    if kind == "nav":
+                        await asyncio.wait_for(
+                            self._write_drained.wait(), _INPUT_DRAIN_TIMEOUT_S
+                        )
+                        if self._write_error or self._master_fd is None:
+                            raise OSError("PTY input is unavailable")
+                        await run_nav(self._session, payload)
+                    else:
+                        if kind in ("data", "paste"):
+                            self._input_queue_bytes -= len(payload)
+                        if kind == "paste":
+                            data = self._encode_paste(payload)
+                        elif kind == "mouse":
+                            data = self._encode_mouse(*payload)
+                        else:
+                            data = bytes(payload)
+                        if data:
+                            self._send_pty(data)
                 except (OSError, TimeoutError, subprocess.CalledProcessError):
                     self._nav_queue.clear()
+                    self._input_queue_bytes = 0
                     self.notify(
-                        "tmux navigation failed or timed out.", severity="warning"
+                        "Navigation failed; queued navigation and input were not sent.",
+                        severity="warning",
                     )
         finally:
             self._nav_running = False
@@ -664,11 +728,17 @@ class PtyTerminal(Widget):
         event.stop()  # this widget owns the keyboard while focused
         self._write_pty(data)
 
+    def _commit_pending_escape(self) -> None:
+        if self._esc_coalesce_until is not None:
+            self._write_pty(b"\x1b")
+            self._cancel_esc_coalesce()
+
     def on_paste(self, event: events.Paste) -> None:
         self._cursor_visible = True
         if self._master_fd is None:
             return
         event.stop()
+        self._commit_pending_escape()
         data = event.text.encode("utf-8", errors="replace")
         if len(data) < _STAGED_PASTE_BYTES:
             self._write_paste(data)
@@ -685,9 +755,15 @@ class PtyTerminal(Widget):
         self._write_paste(prompt.encode("utf-8"))
 
     def _write_paste(self, data: bytes) -> None:
+        if self._nav_running:
+            self._queue_input("paste", data)
+            return
+        self._write_pty(self._encode_paste(data))
+
+    def _encode_paste(self, data: bytes) -> bytes:
         if self._screen is not None and _BRACKETED_PASTE_MODE in self._screen.mode:
             data = b"\x1b[200~" + data + b"\x1b[201~"
-        self._write_pty(data)
+        return data
 
     @staticmethod
     def _purge_staged_pastes() -> None:
@@ -733,10 +809,25 @@ class PtyTerminal(Widget):
         scroll: int | None = None,
         release: bool = False,
     ) -> None:
-        if self._master_fd is None or not self._mouse_tracking:
+        self._commit_pending_escape()
+        if self._nav_running:
+            snapshot = SimpleNamespace(
+                **{
+                    name: getattr(event, name)
+                    for name in ("x", "y", "button", "shift", "meta", "ctrl")
+                }
+            )
+            self._queue_input("mouse", (snapshot, scroll, release))
             return
+        data = self._encode_mouse(event, scroll, release)
+        if data:
+            self._write_pty(data)
+
+    def _encode_mouse(self, event, scroll, release) -> bytes | None:
+        if self._master_fd is None or not self._mouse_tracking:
+            return None
         rows, cols = self._term_size()
-        data = mouse_bytes(
+        return mouse_bytes(
             event,
             scroll=scroll,
             release=release,
@@ -744,9 +835,6 @@ class PtyTerminal(Widget):
             cols=cols,
             sgr=self._mouse_sgr,
         )
-        if data is None:
-            return
-        self._write_pty(data)
 
     def _on_mouse_scroll_up(self, event: events.MouseScrollUp) -> None:
         self._write_mouse(event, scroll=64)
@@ -800,6 +888,7 @@ class PtyTerminal(Widget):
             pass
 
     def _render_line(self, screen, y: int, cols: int, link_at) -> Text:
+        normalize_wide_cells(screen, (y,))
         line = screen.buffer[y]
         line_text = "".join(line[x].data for x in range(cols))
         hrefs: list[str | None] = [None] * cols
@@ -927,6 +1016,7 @@ class PtyTerminal(Widget):
         screen = self._screen
         if screen is None:
             return None
+        normalize_wide_cells(screen)
         parts = []
         for y in range(screen.lines):
             span = selection.get_span(y)
@@ -944,6 +1034,8 @@ class PtyTerminal(Widget):
 
     def _close(self) -> None:
         self._nav_queue.clear()
+        self._input_queue_bytes = 0
+        self._write_drained.set()
         if self._nav_worker is not None:
             self._nav_worker.cancel()
             self._nav_worker = None

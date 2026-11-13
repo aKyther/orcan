@@ -1463,6 +1463,8 @@
             "tests/host/test_cockpit_pty_links.py",
             "tests/host/test_cockpit_pty_mouse.py",
             "tests/host/test_cockpit_pty_tmux_nav.py",
+            "tests/host/test_cockpit_order_wide.py",
+            "tests/host/test_cockpit_idle_render.py",
             "--junitxml",
             ".orcan/cockpit-io-junit.xml"
           ]
@@ -1505,6 +1507,106 @@
         ".orcan/cockpit-io-junit.xml"
       ],
       "require_junit": true
+    },
+    "cockpit-render-final": {
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/cockpit-host-junit.xml"
+          ]
+        },
+        {
+          "argv": [
+            "env",
+            "PYTHONPATH=docker/rootfs/usr/local/lib",
+            "uv",
+            "run",
+            "--project",
+            "cockpit",
+            "--locked",
+            "--with",
+            "pytest",
+            "python",
+            "-m",
+            "pytest",
+            "-q",
+            "tests/host/test_cockpit_pty_esc_coalesce.py",
+            "tests/host/test_cockpit_pty_links.py",
+            "tests/host/test_cockpit_pty_mouse.py",
+            "tests/host/test_cockpit_pty_tmux_nav.py",
+            "tests/host/test_cockpit_order_wide.py",
+            "tests/host/test_cockpit_idle_render.py",
+            "--junitxml",
+            ".orcan/cockpit-io-junit.xml"
+          ]
+        },
+        {
+          "argv": [
+            "env",
+            "PYTHONPATH=docker/rootfs/usr/local/lib",
+            "uv",
+            "run",
+            "--project",
+            "cockpit",
+            "--locked",
+            "python",
+            "tests/smoke/test-cockpit-io.py"
+          ]
+        },
+        {
+          "argv": [
+            "env",
+            "PYTHONPATH=docker/rootfs/usr/local/lib",
+            "uv",
+            "run",
+            "--project",
+            "cockpit",
+            "--locked",
+            "python",
+            "tests/smoke/test-cockpit-responsiveness.py"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "env",
+            "PYTHONPATH=docker/rootfs/usr/local/lib",
+            "uv",
+            "run",
+            "--project",
+            "cockpit",
+            "--locked",
+            "python",
+            "tests/smoke/cockpit-load.py",
+            "--seconds",
+            "2",
+            "--report",
+            ".orcan/cockpit-load.json"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/cockpit-host-junit.xml",
+        ".orcan/cockpit-io-junit.xml"
+      ],
+      "require_junit": true,
+      "artifacts": [
+        ".orcan/cockpit-load.json"
+      ]
     }
   }
 }

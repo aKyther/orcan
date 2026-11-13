@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserve cockpit input order across asynchronous tmux navigation, keyboard, paste and mouse events. Repair half-overwritten wide characters and right-margin wrapping. Return terminal device/status replies so waiting applications can redraw without keyboard input; explicitly repaint resized terminals. Add idle/full-frame checks through a real PTY and private tmux, plus Unicode load measurements.
+
 - Preserve reverse-video with default terminal colors and bound the cockpit style cache. Run tmux navigation asynchronously with a two-second timeout and ordered, bounded queue. Queue mouse writes alongside keyboard input. Follow incremental terminal modes for mouse reporting and bracketed paste, including split and grouped mode changes.
 
 - Preserve OSC hyperlinks and clipboard sequences across cockpit PTY reads with bounded buffering. Keep hyperlink metadata attached to screen characters during overwrite, wrap, scroll, edits and resize. Correct SGR mouse releases and legacy mouse encoding.
