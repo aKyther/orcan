@@ -140,7 +140,7 @@ the failed step log; raw mixed output is never attached automatically. Read that
 step artifact only if structured errors do not explain the failure.
 Default
 detailed-result retention is one hour; compact history/measurements remain for 30 days
-(up to 10000 expired entries). Prefer committed executor profiles for approved heavy
+(up to 10000 expired entries). Prefer reviewed Orcan-managed executor profiles for approved heavy
 builds, analysis, code/report generation and docs, as well as tests. Quick reads and
 interactive edits stay direct. Preserve active/dirty worktrees.
 Use `orcan-executor doctor --lane LANE` for the profile queue and inspect effective
@@ -175,6 +175,10 @@ and report delivery unavailable; do not configure a Claude MCP notification chan
 or restart an active session. The controller validates the pane/process before
 literal paste + Enter; queued does not prove that the agent consumed the result.
 No destination means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.
+Create missing procedures with `orcan-executor init --repo PATH --kind KIND` and
+review the returned Orcan-owned config path; never create .orcan in a source project.
+New jobs freeze the selected definition and report its procedure SHA-256. Existing
+committed profiles remain readable for compatibility. Commit source changes only.
 Use fake transports in tests, never a real session/model. Payload bytes are measured;
 model token usage/cost remain unavailable without provider-reported usage.
 

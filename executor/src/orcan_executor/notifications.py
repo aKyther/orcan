@@ -96,6 +96,10 @@ def message(job: dict) -> str:
         "task": clip(job["task"], 160),
         "profile": job["profile"],
     }
+    if job.get("profile_definition") is not None:
+        from .profiles import procedure_digest
+
+        result["procedure_sha256"] = procedure_digest(job["profile_definition"])
     if job.get("superseded_by"):
         result["superseded_by"] = job["superseded_by"]
     if summary.get("verification"):

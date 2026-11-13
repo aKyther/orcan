@@ -63,7 +63,7 @@ def submit(
         or any(item.startswith("-") or len(item) > 300 for item in selectors)
     ):
         raise ValueError("Invalid task label or test selector")
-    definitions = profiles.load(git(repo, "show", sha + ":" + profiles.CONFIG))
+    definitions = profiles.definitions(repo, sha)
     if profile not in definitions:
         raise ValueError("Unknown profile; use orcan-executor profiles --repo PATH")
     timeout = (
@@ -85,6 +85,7 @@ def submit(
         sha=sha,
         task=task,
         profile=profile,
+        profile_definition=definitions[profile],
         lane=execution_lane(definitions[profile].get("lane", "default")),
         selectors=selectors,
         timeout=timeout,
@@ -264,7 +265,8 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                 added = True
                 job["artifact_dir"] = str(attempt)
                 steps = commands(worktree, job)
-                definition = profiles.load((worktree / profiles.CONFIG).read_text())[job["profile"]]
+                definition = profiles.for_job(job, worktree)
+                report["procedure_sha256"] = profiles.procedure_digest(definition)
                 if job.get("verification_key"):
                     from .reuse import environment_valid
 
@@ -327,7 +329,7 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                         break
             junit_dir = attempt / "junit"
             junit_dir.mkdir()
-            definition = profiles.load((worktree / profiles.CONFIG).read_text())[job["profile"]]
+            definition = profiles.for_job(job, worktree)
             missing_reports = []
             copied = set()
             for pattern in definition.get("junit", []):
@@ -375,9 +377,7 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         finally:
             if added:
                 try:
-                    definition = profiles.load((worktree / profiles.CONFIG).read_text())[
-                        job["profile"]
-                    ]
+                    definition = profiles.for_job(job, worktree)
                     for pattern in definition.get("artifacts", []):
                         for source in sorted(worktree.glob(pattern)):
                             if source.is_file() and source.resolve().is_relative_to(

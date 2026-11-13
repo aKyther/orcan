@@ -1,17 +1,95 @@
-"""Project-owned procedures, read from the committed snapshot, never through a shell."""
+"""Orcan-managed procedures, frozen at submission, never interpreted through a shell."""
 
+import hashlib
 import json
+import os
 import re
+import subprocess
 from pathlib import Path
 
 CONFIG = ".orcan/checks.json"
+
+
+def external_path(repo: Path) -> Path:
+    """One Orcan-owned procedure registry per Git common directory/project."""
+    from .settings import state_dir
+
+    repo = repo.resolve()
+    if not repo.is_dir():
+        raise ValueError("Project directory does not exist")
+    try:
+        identity = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except subprocess.CalledProcessError:
+        identity = str(repo)
+    key = hashlib.sha256(os.fsencode(identity)).hexdigest()
+    path = state_dir() / "project-profiles" / key / "checks.json"
+    if path.is_relative_to(repo):
+        raise ValueError("Executor state must stay outside the source project")
+    return path
+
+
+def external_text(repo: Path) -> str | None:
+    path = external_path(repo)
+    if not path.exists():
+        return None
+    with path.open("rb") as stream:
+        content = stream.read(1024 * 1024 + 1)
+    if len(content) > 1024 * 1024:
+        raise ValueError("Orcan project profiles exceed 1 MiB")
+    text = content.decode("utf-8")
+    load(text)
+    return text
+
+
+def definitions(repo: Path, sha: str) -> dict:
+    text = external_text(repo)
+    if text is None:
+        try:
+            text = subprocess.check_output(
+                ["git", "-C", str(repo), "show", sha + ":" + CONFIG],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError:
+            raise ValueError(
+                "No project profiles; run orcan-executor init --repo PATH --kind KIND"
+            ) from None
+    return load(text)
+
+
+def for_job(job: dict, root: Path | None = None) -> dict:
+    """Use the submitted procedure, never a later edit of a mutable registry."""
+    definition = job.get("profile_definition")
+    if definition is not None:
+        return definition
+    # Compatibility for jobs pinned before procedure snapshots were persisted.
+    if root is not None:
+        text = (root / CONFIG).read_text()
+    else:
+        repo = Path(job["repo"]) if Path(job["repo"]).exists() else Path(job["git_dir"])
+        text = subprocess.check_output(
+            ["git", "-C", str(repo), "show", job["sha"] + ":" + CONFIG],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    return load(text)[job["profile"]]
+
+
+def procedure_digest(definition: dict) -> str:
+    return hashlib.sha256(
+        json.dumps(definition, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def load(text: str) -> dict:
     value = json.loads(text)
     profiles = value.get("profiles")
     if value.get("version") != 1 or not isinstance(profiles, dict) or not 1 <= len(profiles) <= 32:
-        raise ValueError("Expected version 1 and 1..32 profiles in .orcan/checks.json")
+        raise ValueError("Expected version 1 and 1..32 project profiles")
     for name, profile in profiles.items():
         if not re.fullmatch(r"[a-z][a-z0-9-]{0,39}", name) or not isinstance(profile, dict):
             raise ValueError("Invalid profile")
@@ -84,7 +162,7 @@ def inside(root: Path, value: str) -> Path:
 
 
 def commands(root: Path, job: dict) -> list:
-    profile = load((root / CONFIG).read_text())[job["profile"]]
+    profile = for_job(job, root)
     tests = job["selectors"]
     steps = []
     for step in profile["steps"]:

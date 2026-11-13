@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Store new per-project executor profiles in Orcan's data layer instead of adding `.orcan` to source projects. Share profiles across Git worktrees, freeze the selected definition when submitting, include its SHA-256 in results and support directory snapshots without source-tree configuration. Existing committed profiles remain readable.
+
 - Add opt-in `*-tmux` agent aliases when Redis/executor is enabled. Preserve resume commands, quoted arguments and client approval flags while replacing the pane shell through the registered wrapper; keep ordinary aliases unchanged. Teach generated agent instructions to select tmux delivery from their own wrapper instance and acknowledge consumed results.
 
 ### Fixed

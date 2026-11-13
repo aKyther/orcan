@@ -44,6 +44,9 @@ def test_generated_guidance_enabled_and_disabled():
         "before enqueueing, with no fallback",
         "Claude uses only --notify-tmux in Orcan",
         "do not configure an MCP channel",
+        "Do not add .orcan or executor",
+        "scaffolds them outside the project",
+        "Submission freezes the selected procedure",
     ]:
         assert text in enabled
 

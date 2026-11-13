@@ -86,6 +86,7 @@ def database(directory: Path | None = None):
             "verification_key": "TEXT",
             "environment_key": "TEXT",
             "input_key": "TEXT",
+            "profile_definition": "TEXT",
             "evidence_manifest": "TEXT",
             "reuse_source": "TEXT",
             "reuse_note": "TEXT",
@@ -161,13 +162,16 @@ def create(
                 ).fetchone()
                 if job.get("execution_key")
                 else db.execute(
-                    "SELECT id FROM jobs WHERE git_dir=? AND sha=? AND profile=? AND selectors=? AND timeout=? AND status IN ('queued','running') ORDER BY created LIMIT 1",
+                    "SELECT id FROM jobs WHERE git_dir=? AND sha=? AND profile=? AND selectors=? AND timeout=? AND profile_definition IS ? AND status IN ('queued','running') ORDER BY created LIMIT 1",
                     (
                         job["git_dir"],
                         job["sha"],
                         job["profile"],
                         json.dumps(job["selectors"]),
                         job["timeout"],
+                        json.dumps(job.get("profile_definition"), sort_keys=True)
+                        if job.get("profile_definition") is not None
+                        else None,
                     ),
                 ).fetchone()
             )
@@ -225,7 +229,7 @@ def create(
             )
         db.execute(
             "INSERT INTO jobs(id,repo,git_dir,sha,task,profile,selectors,timeout,created,lane,replace_group,replace_owner,"
-            "execution_key,verification_key,environment_key,input_key,reuse_source,reuse_note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "execution_key,verification_key,environment_key,input_key,reuse_source,reuse_note,profile_definition) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 job["id"],
                 job["repo"],
@@ -245,6 +249,9 @@ def create(
                 job.get("input_key"),
                 source["id"] if cached is not None else None,
                 job.get("reuse_note"),
+                json.dumps(job.get("profile_definition"), sort_keys=True)
+                if job.get("profile_definition") is not None
+                else None,
             ),
         )
         mode = "reused" if cached is not None else "created"
@@ -303,6 +310,8 @@ def get(job_id: str) -> dict:
         raise ValueError("Unknown job ID: " + job_id)
     result = dict(row)
     result["selectors"] = json.loads(result["selectors"])
+    if result.get("profile_definition") is not None:
+        result["profile_definition"] = json.loads(result["profile_definition"])
     if result["summary"] is not None:
         result["summary"] = json.loads(result["summary"])
     return result

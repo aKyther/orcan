@@ -162,7 +162,7 @@ works for Python, Gradle, linters, documentation and other reviewed procedures;
 the executor does not guess imports or maintain language-specific dependency
 graphs. Each profile is one operation and defines its complete input boundary.
 
-Reuse is opt-in in the committed profile. Profiles without this contract keep
+Reuse is opt-in in the reviewed project profile. Profiles without this contract keep
 running fresh. Use this especially for integration tests with a live database,
 network, SSHFS, current time or mutable external fixtures. Never enable reuse
 for deployment, migrations or commands whose side effects must happen again.
@@ -259,7 +259,7 @@ The dashboard separates joined submissions, reused verifications and executed
 procedures. Submission counters use the retained window: up to 30 days and
 10000 requests. `profiles` shows whether reuse is enabled, its TTL and whether
 inputs cover the full tree or a declared boundary. Review that boundary in the
-committed profile. A reused row and notification name the original proof. No new JUnit
+submitted profile. A reused row and notification name the original proof. No new JUnit
 run is claimed: ordinary executions still require fresh reports under the
 profile's existing policy. Missing identity/proof information always causes a
 fresh execution, never an assumed success.
@@ -272,10 +272,10 @@ operation's complete inputs are unchanged. Keep normal test coverage: reuse
 changes how an unchanged operation is verified, not which changed behavior is
 checked.
 
-Configure this in **the Java repository's `.orcan/checks.json`**, not in Orcan's
-own repository or the global `orcan.config.json`. Commit the profile: submissions
-read the definition from the requested Git commit. Existing commands, custom
-profiles and unrelated edits must be preserved.
+Configure this in the Java project's Orcan-managed profile file, whose path is
+reported by `orcan-executor profiles --repo PATH`. Do not add configuration to the
+Java source tree or the global `orcan.config.json`. Review the procedure before
+submitting; its definition is frozen with the job. Preserve existing custom profiles.
 
 #### Inspect the real build first
 
@@ -427,7 +427,7 @@ Copy this request and supply the real repository path:
 Set up Orcan executor verification reuse in /absolute/path/to/java-repo.
 Follow the Java-agent setup section of Orcan's background-executor guide.
 
-Read repository instructions and inspect .orcan/checks.json, the actual JDK,
+Read repository instructions and inspect the Orcan-managed profile, the actual JDK,
 Gradle/wrapper, test tasks, selectors, JUnit outputs and shared build/source
 dependencies. Preserve existing procedures, coverage and unrelated edits.
 
@@ -460,7 +460,7 @@ with one heavy build and a lightweight lane, then measure resource pressure.
 Do not assume that three worker processes mean three total OS processes.
 
 A profile may set `"timeout_seconds": 600`. Explicit `submit --timeout` wins,
-then the committed profile timeout, then the runtime default. `max_pending`
+then the submitted profile timeout, then the runtime default. `max_pending`
 remains 1..10000; detailed-result retention remains 60..86400 seconds.
 
 Use `doctor --lane heavy` to require a matching live worker lock and readiness
@@ -561,9 +561,23 @@ Inside Orcan, in a project:
 
 ```sh
 orcan-executor init --repo . --kind python
-# Review .orcan/checks.json, adjust commands and commit it with your changes.
+# Review/edit the returned Orcan-owned config path. No project files are added.
 orcan-executor profiles --repo .
 ```
+
+Profiles are stored under the executor state directory in
+`project-profiles/<project-key>/checks.json`, outside the source project. The key
+uses the canonical Git common directory, so worktrees share their project's
+profiles; a directory without Git uses its canonical path. `init` prints the exact
+path to edit, and `profiles --repo PATH` shows it again. Commit your source changes;
+do not add an executor directory or config to the project.
+
+Submission freezes the selected definition in the job database. Editing a profile
+after submission cannot change that job's commands, lane, reports or artifacts.
+Results include `procedure_sha256` alongside the source SHA; reuse identity includes
+the definition. Existing committed `.orcan/checks.json` files are a compatibility
+fallback when no Orcan-managed profile exists. An invalid external config rejects
+submission instead of silently falling back to a different procedure.
 
 Choose `python`, `java`, `scala` or `custom`. This scaffolds a JSON configuration;
 it does not install project tools or overwrite an existing file. Python examples
@@ -650,7 +664,7 @@ no detected error in that procedure; skipped integration tests did not run.
 ## First verification after startup
 
 Run `orcan-executor doctor` inside Orcan. All readiness fields should be true.
-List committed procedures with `orcan-executor profiles --repo .`, then submit
+List reviewed procedures with `orcan-executor profiles --repo .`, then submit
 one small check from a committed revision. Save the returned job ID and SHA.
 
 Open the dashboard to follow the job. After completion, read
@@ -666,7 +680,7 @@ checks submission, isolated worktree execution and result retrieval together.
 When the executor is ready, agents should prefer it for approved heavy or verbose
 work: compilation, builds, static analysis, code generation, reports and docs, as
 well as tests. Keep quick reads and small interactive edits direct. Use a reviewed,
-committed project profile; the executor is not permission to deploy or change
+reviewed project profile; the executor is not permission to deploy or change
 external systems. A missing profile must be prepared and committed first.
 
 For example, a Java `build` profile can contain:
@@ -675,7 +689,7 @@ For example, a Java `build` profile can contain:
 {"steps": [{"argv": ["./gradlew", "--console=plain", "--max-workers=1", "classes"]}]}
 ```
 
-Add it under `profiles` in `.orcan/checks.json` and commit. Then submit
+Add it under `profiles` in the Orcan-managed config returned by `init` and review it. Then submit
 `orcan-executor submit --repo . --sha HEAD --profile build --task compile`.
 No `--test` is needed. Zero test counters mean no tests were reported, not a failed
 build. Register the requesting Codex session with `--notify-codex-thread` when
@@ -815,7 +829,7 @@ Use `orcan plugins list`, `orcan plugins validate` and
 `orcan plugins doctor --plugin executor`. Descriptors live in `plugins/` and do
 not execute third-party hooks. No agent message is sent without explicit notification opt-in; no merge or deployment starts automatically.
 
-Each project owns named procedures in `.orcan/checks.json`. Python/pytest,
+Orcan stores named procedures per project outside the source tree. Python/pytest,
 Java/Gradle, Scala/sbt, lint, documentation and small custom checks use the same
 submit/result flow. Choose a scoped procedure rather than silently running a full
 suite. Success reports contain counters; failures contain bounded excerpts with
@@ -853,7 +867,7 @@ at a time. Avoid raising parallelism blindly on memory-constrained JVM workloads
 ### Separate lightweight and heavyweight queues
 
 A procedure can declare `"lane": "light"` or `"lane": "heavy"`; omitted means
-`"default"`. With split lanes enabled, routing reads the committed procedure, not dirty configuration.
+`"default"`. With split lanes enabled, routing reads the procedure frozen at submission, not later config edits.
 In shared-queue mode, lane labels do not create separate queues.
 Keep `workers` at 1 when using split lanes; combining a shared pool with split lanes
 is rejected. Set `ORCAN_EXECUTOR_SPLIT_LANES=1` when starting Orcan to supervise one additional
@@ -944,7 +958,7 @@ full logs and report files stay local. Dirty retained worktrees remain protected
 ## Projects without Git
 
 Use an explicit directory snapshot; Orcan does not initialize or modify Git in the
-source project. Scaffold `.orcan/checks.json`, then select the source files required
+source project. Scaffold the Orcan-managed profile with `init`, then select the source files required
 by the chosen procedure:
 
 ```sh
@@ -998,7 +1012,7 @@ Collection does not enable any notification destination.
 experimental alternative to `--notify-codex-thread` for Codex. These options
 are mutually exclusive. Without the new
 flag, existing execution and notification behavior is unchanged. Celery still runs
-the same committed profile; the existing notification controller handles the new
+the same submitted profile; the existing notification controller handles the new
 explicit destination after completion.
 
 Launch one agent as the owner of a dedicated tmux pane:

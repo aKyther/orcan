@@ -1,6 +1,8 @@
 import argparse
 import fcntl
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -23,13 +25,7 @@ def enqueue(job_id: str):
     from .tasks import verify
 
     job = store.get(job_id)
-    definition = profiles.load(
-        engine.git(
-            Path(job["repo"]) if Path(job["repo"]).exists() else Path(job["git_dir"]),
-            "show",
-            job["sha"] + ":" + profiles.CONFIG,
-        )
-    )[job["profile"]]
+    definition = profiles.for_job(job)
     lane = job.get("lane") or execution_lane(definition.get("lane", "default"))
     from .readiness import lanes
 
@@ -91,7 +87,7 @@ def parser():
     selection.add_argument(
         "--reuse",
         action="store_true",
-        help="Join identical work; reuse a success only when the committed profile permits it",
+        help="Join identical work; reuse a success only when the reviewed profile permits it",
     )
     selection.add_argument(
         "--force",
@@ -118,11 +114,13 @@ def parser():
     )
     origins.add_argument("job_id")
     init = commands.add_parser(
-        "init", help="Create project procedures; review and commit before use"
+        "init", help="Create Orcan-managed project procedures outside the source tree"
     )
     init.add_argument("--repo", type=Path, default=Path.cwd())
     init.add_argument("--kind", choices=["python", "java", "scala", "custom"], required=True)
-    listing = commands.add_parser("profiles", help="List procedures from a committed snapshot")
+    listing = commands.add_parser(
+        "profiles", help="List Orcan-managed procedures or legacy committed project profiles"
+    )
     listing.add_argument("--repo", type=Path, default=Path.cwd())
     listing.add_argument("--sha", default="HEAD")
     stats = commands.add_parser(
@@ -422,28 +420,43 @@ def main(argv=None):
                 pass  # Reading local diagnostics remains possible during broker outages.
             emit(payload)
         elif args.command == "init":
-            destination = args.repo.resolve() / profiles.CONFIG
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            with destination.open("x") as output:
+            destination = profiles.external_path(args.repo)
+            destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, "w") as output:
                 output.write(json.dumps(profiles.template(args.kind, args.repo), indent=2) + "\n")
             emit(
                 {
                     "config": str(destination),
-                    "next": "Review procedures and commit the configuration",
+                    "next": "Review these Orcan-managed procedures; submission pins the selected definition",
                 }
             )
         elif args.command == "profiles":
-            sha = engine.git(
-                args.repo, "rev-parse", "--verify", "--end-of-options", args.sha + "^{commit}"
+            external = profiles.external_text(args.repo)
+            try:
+                sha = engine.git(
+                    args.repo, "rev-parse", "--verify", "--end-of-options", args.sha + "^{commit}"
+                )
+            except subprocess.CalledProcessError:
+                if external is None or args.sha != "HEAD":
+                    raise
+                sha = None
+            definitions = (
+                profiles.load(external)
+                if external is not None
+                else profiles.definitions(args.repo, sha)
             )
-            definitions = profiles.load(engine.git(args.repo, "show", sha + ":" + profiles.CONFIG))
             emit(
                 {
                     "sha": sha,
+                    "config": str(profiles.external_path(args.repo))
+                    if profiles.external_path(args.repo).is_file()
+                    else profiles.CONFIG,
                     "profiles": list(definitions),
                     "procedures": [
                         {
                             "name": name,
+                            "procedure_sha256": profiles.procedure_digest(profile),
                             "lane": profile.get("lane", "default"),
                             "timeout_seconds": profile.get(
                                 "timeout_seconds", effective()["timeout_seconds"]
@@ -462,8 +475,6 @@ def main(argv=None):
                 }
             )
         elif args.command == "doctor":
-            import os
-
             enabled = os.environ.get("ORCAN_REDIS_ENABLED") == "1"
             broker = False
             if enabled:
@@ -498,8 +509,6 @@ def main(argv=None):
             )
             return 0 if ready else 2
         elif args.command == "submit":
-            import os
-
             if os.environ.get("ORCAN_REDIS_ENABLED") != "1":
                 raise ValueError(
                     "Executor disabled; start Orcan with --with-redis, or run checks directly"
@@ -581,6 +590,7 @@ def main(argv=None):
                     "job_id": job["id"],
                     "sha": job["sha"],
                     "task_id": job["task"],
+                    "procedure_sha256": profiles.procedure_digest(job["profile_definition"]),
                     "submission_id": job["submission_id"],
                     "origin": observed_origin,
                     "status": job["status"],

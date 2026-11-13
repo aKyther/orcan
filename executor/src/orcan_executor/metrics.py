@@ -23,6 +23,11 @@ def log_size(path: Path) -> tuple[int, int]:
 def model_result(payload: dict) -> dict:
     """Keep dashboard instrumentation out of model-facing completion messages."""
     result = payload.copy()
+    definition = result.pop("profile_definition", None)
+    if definition is not None:
+        from .profiles import procedure_digest
+
+        result["procedure_sha256"] = procedure_digest(definition)
     if isinstance(result.get("summary"), dict):
         result["summary"] = result["summary"].copy()
         result["summary"].pop("metrics", None)

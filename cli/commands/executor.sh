@@ -17,7 +17,7 @@ Inside Orcan:  orcan-executor COMMAND ...
   diagnostics               Sanitized Redis/AOF, publication and execution-lock health
   overview                  Bounded task overview used by the cockpit
   init --repo PATH --kind python|java|scala|custom
-                            Scaffold project procedures; review and commit them
+                            Scaffold Orcan-managed procedures outside the project; review before use
   profiles --repo PATH      List procedures from the committed snapshot
   submit --repo PATH --sha HEAD --profile selected --test SELECTOR --task TASK
                             Queue a committed snapshot; return job ID and SHA

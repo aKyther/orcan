@@ -27,14 +27,24 @@ def lock_path(name: str = "") -> Path:
 @contextmanager
 def snapshot(source: Path, includes: list[str]):
     source = source.resolve(strict=True)
-    names = sorted(set([profiles.CONFIG, *includes]))
-    if not includes or len(names) > MAX_FILES:
+    external = profiles.external_text(source)
+    names = sorted(set(([profiles.CONFIG] if external is None else []) + includes))
+    if external is not None:
+        names = [name for name in names if name != profiles.CONFIG]
+    if not includes or len(names) + int(external is not None) > MAX_FILES:
         raise ValueError("Directory snapshots require explicit --include files (at most 512)")
     files = []
     size = 0
     digest = hashlib.sha256()
     # Different source directories remain distinct even with identical file contents.
     digest.update(str(source).encode())
+    if external is not None:
+        content = external.encode()
+        digest.update(profiles.CONFIG.encode() + b"\0" + str(len(content)).encode() + b"\0")
+        digest.update(bytes([False]))
+        digest.update(content)
+        files.append((Path(profiles.CONFIG), content, False))
+        size += len(content)
     for name in names:
         relative = profiles.relative(name)
         if any(part.lower() == ".git" for part in relative.parts) or any(

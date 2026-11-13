@@ -502,10 +502,13 @@ Use `doctor --lane heavy|light|default` for the profile queue. A configured lane
 Host help: `orcan executor help`; inside Orcan: `orcan-executor help`.
 When ready, prefer the executor for approved heavy or verbose work: builds, compilation,
 tests, static analysis, code generation, documentation and report generation.
-Use committed project profiles for these tasks, not only test profiles. A non-test
+Use reviewed Orcan-managed project profiles for these tasks, not only test profiles. A non-test
 profile needs no --test and must not claim that tests ran. Keep quick reads and small
 interactive edits direct. Do not enqueue unapproved deployment or destructive operations.
-If a procedure is missing, review and commit a suitable profile before submitting.
+If a procedure is missing, use `orcan-executor init --repo PATH --kind KIND` and
+review/edit the returned Orcan-owned config path. Do not add .orcan or executor
+configuration to the source project. Existing committed profiles remain readable.
+Submission freezes the selected procedure; its SHA-256 accompanies the result.
 Keep agent context small: submit procedures to the executor; do not stream or paste
 successful command/test output into the session. For pytest, request JUnit XML with
 --junitxml {junit}; for Gradle/JVM tests, declare the produced JUnit XML paths in the
@@ -556,8 +559,9 @@ than polling or running an interactive listener.
 Return control after submission; receive the compact result through the registered
 session notification. Do not block the conversation waiting for a long task.
 
-1. Inspect committed project procedures with `orcan-executor profiles --repo .`.
-   Explicit `init --kind python|java|scala|custom` scaffolds them; review and commit.
+1. Inspect project procedures with `orcan-executor profiles --repo .`.
+   Explicit `init --kind python|java|scala|custom` scaffolds them outside the project.
+   Review/edit the returned config; commit intended source changes, not this config.
    Without Git, use submit --directory with explicit --include FILE entries; the SHA identifies an executor snapshot.
    Selected tests may use pytest node IDs, Gradle selectors or sbt suites; full scope is explicit.
 2. Commit intended changes, then `orcan-executor submit --repo . --sha HEAD --profile selected --test SELECTOR --task TASK`.
