@@ -1,4 +1,4 @@
-# Smoke-only context: retain the closed runtime allowlist and admit only the fake transport.
+# Smoke-only context: retain the closed runtime allowlist and admit the isolated transport/load fixtures.
 # Closed build context: only inputs consumed by Dockerfile enter the daemon.
 **
 !Dockerfile
@@ -32,3 +32,4 @@ executor/*
 !executor/smoke/
 executor/smoke/*
 !executor/smoke/fake_codex.py
+!executor/smoke/load.py

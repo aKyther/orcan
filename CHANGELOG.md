@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Use host-visible canonical fixture paths for executor Docker smoke bind mounts when checks run in detached executor worktrees. Include the isolated load helper, pin the fixture worker/lane settings and retain bounded Docker failure diagnostics.
+
 - Give the isolated executor Docker smoke test its own closed build context so its fake Codex transport is available without adding test files to the production image context.
 
 - Preserve reverse-video with default terminal colors and bound the cockpit style cache. Run tmux navigation asynchronously with a two-second timeout and ordered, bounded queue. Queue mouse writes alongside keyboard input. Follow incremental terminal modes for mouse reporting and bracketed paste, including split and grouped mode changes.

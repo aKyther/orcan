@@ -1567,7 +1567,9 @@
             "executor/src/orcan_executor/store.py",
             "executor/src/orcan_executor/engine.py",
             "executor/src/orcan_executor/notifications.py",
-            "executor/tests/test_tmux_origin.py"
+            "executor/tests/test_tmux_origin.py",
+            "executor/smoke/run.py",
+            "executor/tests/test_smoke_paths.py"
           ]
         },
         {

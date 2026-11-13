@@ -1,7 +1,8 @@
 """Finite isolated same-container smoke; only compact assertions reach stdout.
 
 Run with: uv run --project executor --locked python executor/smoke/run.py
-Full build/runtime logs stay in .orcan-test.executor-smoke/ (Git ignored).
+Build/container reports stay in .orcan-test.executor-smoke/ (Git ignored).
+Private bind-mounted data lives under the canonical Git common directory.
 """
 
 import json
@@ -17,7 +18,12 @@ IMAGE = "orcan:executor-smoke"
 
 
 def run(argv, **kwargs):
-    return subprocess.run(argv, check=True, text=True, **kwargs)
+    try:
+        return subprocess.run(argv, check=True, text=True, **kwargs)
+    except subprocess.CalledProcessError as error:
+        # Captured Docker failures used to hide the useful daemon diagnostic.
+        detail = (error.stderr or error.stdout or "")[-2000:]
+        raise RuntimeError(f"{argv[0]} failed with exit {error.returncode}: {detail}") from None
 
 
 def docker(*args):
@@ -26,6 +32,20 @@ def docker(*args):
 
 def execute(*args):
     return docker("exec", NAME, "orcan-executor", *args)
+
+
+def shared_fixture_root():
+    # Executor worktrees can live in container-only state directories. Bind
+    # mounts must use the canonical, host-visible project common directory.
+    common = Path(
+        run(
+            ["git", "-C", str(ROOT), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            capture_output=True,
+        ).stdout.strip()
+    ).resolve()
+    shared = common / "orcan-executor-smoke" / uuid4().hex
+    shared.mkdir(parents=True)
+    return shared
 
 
 def main():
@@ -40,7 +60,8 @@ def main():
             stdout=log,
             stderr=subprocess.STDOUT,
         )
-    fixture = STATE / ("repo-" + str(int(time.time())))
+    shared = shared_fixture_root()
+    fixture = shared / ("repo-" + str(int(time.time())))
     fixture.mkdir()
     run(["git", "init", "-q", str(fixture)])
     for key, value in [("user.name", "Smoke fixture"), ("user.email", "fixture@example.invalid")]:
@@ -106,10 +127,16 @@ def main():
     )
     run(["git", "-C", str(fixture), "add", "."])
     run(["git", "-C", str(fixture), "commit", "-qm", "Smoke fixture"])
-    runtime = STATE / ("runtime-" + uuid4().hex[:12])
+    runtime = shared / ("runtime-" + uuid4().hex[:12])
     env = [
         "-e",
         "ORCAN_REDIS_ENABLED=1",
+        "-e",
+        "ORCAN_EXECUTOR_SPLIT_LANES=1",
+        "-e",
+        "ORCAN_EXECUTOR_WORKERS=1",
+        "-e",
+        "ORCAN_EXECUTOR_MAX_RUNNING=1",
         "-e",
         "ORCAN_EXECUTOR_QUEUE=orcan-smoke",
         "-e",
@@ -127,7 +154,7 @@ def main():
             "--network",
             "none",
             "--mount",
-            f"type=bind,source={STATE},target={STATE}",
+            f"type=bind,source={shared},target={shared}",
             *env,
             IMAGE,
         )
@@ -136,7 +163,7 @@ def main():
         deadline = time.monotonic() + 45
         while True:
             probe = subprocess.run(
-                ["docker", "exec", NAME, "orcan-executor", "doctor"],
+                ["docker", "exec", NAME, "orcan-executor", "doctor", "--lane", "default"],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -169,21 +196,50 @@ def main():
             received = json.loads(execute("wait", submitted["job_id"], "--timeout", "30"))
             assert received["status"] == status and received["summary"]["tests"] == 1
             assert len(json.dumps(received)) < 3000
-        # Real broker paths for reuse, cancellation, dedicated lanes and explicit receipts.
-        queued = json.loads(
-            execute("submit", "--repo", str(fixture), "--profile", "heavy", "--reuse")
+        # Hold only this fixture's heavy worker. Use the engine directly to
+        # test queued reuse/cancel: public submit correctly refuses an unready lane.
+        supervisor = "/tmp/orcan-executor-smoke-supervisor/supervisord.conf"
+        docker("exec", NAME, "supervisorctl", "-c", supervisor, "stop", "executor-worker-heavy")
+        python = "/opt/orcan-executor/venv/bin/python"
+        held = json.loads(
+            docker(
+                "exec",
+                NAME,
+                python,
+                "-c",
+                (
+                    "import json,sys\nfrom pathlib import Path\n"
+                    "from orcan_executor import engine,store,settings\n"
+                    "from orcan_executor.tasks import verify\n"
+                    "a=engine.submit(Path(sys.argv[1]),'HEAD','held','heavy',[],30,reuse=True)\n"
+                    "b=engine.submit(Path(sys.argv[1]),'HEAD','held','heavy',[],30,reuse=True)\n"
+                    "verify.apply_async(args=[a['id']],task_id=a['id'],queue=settings.queue_name()+':heavy')\n"
+                    "store.publication(a['id'],'published')\n"
+                    "print(json.dumps({'job_id':a['id'],'joined_id':b['id']}))"
+                ),
+                str(fixture),
+            )
         )
-        reused = json.loads(
-            execute("submit", "--repo", str(fixture), "--profile", "heavy", "--reuse")
-        )
-        assert reused["job_id"] == queued["job_id"]
-        assert json.loads(execute("cancel", queued["job_id"]))["status"] == "cancelled"
+        assert held["job_id"] == held["joined_id"]
+        assert json.loads(execute("cancel", held["job_id"]))["status"] == "cancelled"
         assert (
-            json.loads(execute("wait", queued["job_id"], "--timeout", "10"))["status"]
-            == "cancelled"
+            json.loads(execute("wait", held["job_id"], "--timeout", "10"))["status"] == "cancelled"
         )
+        docker("exec", NAME, "supervisorctl", "-c", supervisor, "start", "executor-worker-heavy")
+        deadline = time.monotonic() + 15
+        while True:
+            probe = subprocess.run(
+                ["docker", "exec", NAME, "orcan-executor", "doctor", "--lane", "heavy"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if probe.returncode == 0:
+                break
+            if time.monotonic() > deadline:
+                raise RuntimeError("Fixture heavy worker readiness deadline exceeded")
+            time.sleep(0.2)
         heavy = json.loads(execute("submit", "--repo", str(fixture), "--profile", "heavy"))
-        docker("exec", "-d", NAME, "orcan-executor", "worker", "--lane", "heavy")
         assert json.loads(execute("wait", heavy["job_id"], "--timeout", "30"))["status"] == "passed"
         assert json.loads(execute("ack", job["job_id"]))["acknowledged"]
         execute("logs", bad["job_id"], "--limit", "100")
@@ -284,11 +340,11 @@ def main():
             "-e",
             "ORCAN_SUPERVISOR_DRY_RUN=1",
             "-e",
-            f"ORCAN_SUPERVISOR_STATE_D={STATE}/disabled-supervisor",
+            f"ORCAN_SUPERVISOR_STATE_D={shared}/disabled-supervisor",
             NAME,
             "orcan-supervisord",
         )
-        assert not list((STATE / "disabled-supervisor/programs").glob("executor-*.conf"))
+        assert not list((shared / "disabled-supervisor/programs").glob("executor-*.conf"))
         (STATE / "report.json").write_text(
             json.dumps(
                 {"success": event, "failure": failed, "stream_ttl": ttl, "same_container": True},
