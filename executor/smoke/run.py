@@ -184,7 +184,36 @@ def main():
         bad = json.loads(execute("submit", "--repo", str(fixture), "--profile", "failure"))
         failed = json.loads(execute("wait", bad["job_id"], "--timeout", "30"))
         assert failed["status"] == "failed"
-        assert "synthetic failure" in failed["summary"]["log_tail"]
+        assert "log_tail" not in failed["summary"]
+        assert failed["summary"]["diagnostic_artifact"] == "diagnostics.json"
+        failed_step = failed["summary"]["failed_step"]
+        assert failed_step["exit_code"] != 0
+        diagnostic = json.loads(
+            execute(
+                "logs",
+                bad["job_id"],
+                "--artifact",
+                "diagnostics.json",
+                "--offset",
+                "0",
+                "--limit",
+                "4000",
+            )
+        )
+        assert json.loads(diagnostic["text"])["failed_step"] == failed_step
+        step_log = json.loads(
+            execute(
+                "logs",
+                bad["job_id"],
+                "--artifact",
+                failed_step["log"],
+                "--offset",
+                "0",
+                "--limit",
+                "4000",
+            )
+        )
+        assert "synthetic failure" in step_log["text"]
         assert "pytest" in json.loads((fixture / ".orcan/checks.json").read_text())["profiles"]
         for selector, status in [
             ("test_example.py::test_passes", "passed"),

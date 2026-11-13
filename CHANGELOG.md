@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Update the executor integration smoke assertion to check structured failure references and bounded failed-step artifacts instead of the removed `summary.log_tail` field.
+
 - Use host-visible canonical fixture paths for executor Docker smoke bind mounts when checks run in detached executor worktrees. Include the isolated load helper, pin the fixture worker/lane settings and retain bounded Docker failure diagnostics.
 
 - Give the isolated executor Docker smoke test its own closed build context so its fake Codex transport is available without adding test files to the production image context.
