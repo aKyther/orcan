@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in `*-tmux` agent aliases when Redis/executor is enabled. Preserve resume commands, quoted arguments and client approval flags while replacing the pane shell through the registered wrapper; keep ordinary aliases unchanged. Teach generated agent instructions to select tmux delivery from their own wrapper instance and acknowledge consumed results.
+
 ### Fixed
 
 - Use Rich cell widths throughout the cockpit grid, including Indic graphemes with multiple continuation cells, and expose complete emoji in diagnostic screen snapshots. Reserve a separate bounded budget for terminal responses without splitting accepted paste frames or displacing queued user input.

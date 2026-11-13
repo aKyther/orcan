@@ -68,6 +68,27 @@ if command -v agent >/dev/null 2>&1; then
     alias agent-yolo='agent --yolo'
 fi
 
+# Opt-in tmux delivery shortcuts. --with-redis / --with-executor sets this
+# flag; defining aliases must not probe Redis or start background services.
+# exec replaces the pane shell, as required by the registered agent wrapper.
+if [ "${ORCAN_REDIS_ENABLED:-0}" = "1" ] && command -v orcan-executor >/dev/null 2>&1; then
+    alias codex-tmux='exec orcan-executor agent -- codex'
+    alias codex-tmux-yolo='exec orcan-executor agent -- codex --dangerously-bypass-approvals-and-sandbox'
+    alias codex-yolo-tmux='exec orcan-executor agent -- codex --dangerously-bypass-approvals-and-sandbox'
+    alias claude-tmux='exec orcan-executor agent -- claude'
+    alias cc-tmux='exec orcan-executor agent -- claude'
+    alias claude-tmux-yolo='exec orcan-executor agent -- claude --dangerously-skip-permissions'
+    alias claude-yolo-tmux='exec orcan-executor agent -- claude --dangerously-skip-permissions'
+    alias ccy-tmux='exec orcan-executor agent -- claude --dangerously-skip-permissions'
+    if command -v agent >/dev/null 2>&1; then
+        alias agent-tmux='exec orcan-executor agent -- agent'
+        alias ag-tmux='exec orcan-executor agent -- agent'
+        alias agent-tmux-yolo='exec orcan-executor agent -- agent --yolo'
+        alias agent-yolo-tmux='exec orcan-executor agent -- agent --yolo'
+        alias agy-tmux='exec orcan-executor agent -- agent --yolo'
+    fi
+fi
+
 # Context handoff (workspace root)
 alias brief='orcan-session-brief'
 alias ctx='orcan-context-status'

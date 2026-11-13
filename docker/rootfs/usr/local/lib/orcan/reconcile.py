@@ -565,6 +565,18 @@ session notification. Do not block the conversation waiting for a long task.
    New edits require a new committed snapshot. A queued_locally response needs explicit recovery.
    Use --reuse for identical active checks; cancel JOB stops queued obsolete work.
    A queued_locally response can mean broker outage OR a missing lane worker; fix readiness before recover.
+   Select the notification adapter for this process before submitting. If launched
+   through a *-tmux shortcut or `exec orcan-executor agent -- COMMAND`, the wrapper
+   exports ORCAN_AGENT_INSTANCE_ID. In that registered tmux instance use --notify-tmux;
+   do not combine it with --notify-codex-thread or --notify-claude-session, and do not
+   use --replace-pending with it. The wrapper preserves client flags and resume arguments.
+   After consuming its result use `orcan-executor ack JOB --tmux-instance "$ORCAN_AGENT_INSTANCE_ID"`.
+   Never invent, copy from another process or persist that instance UUID in shared instructions.
+   The adapter verifies the live registered pane/process; invalid context rejects submission
+   before enqueueing, with no fallback. It pastes a literal result and sends Enter, so
+   an active client prompt can consume that input; this is not structured client acceptance.
+   *-tmux aliases are available only with Redis/executor enabled; launch a new pane for
+   a new agent process. Without a wrapper instance, keep the standard adapters below.
    Codex may opt in with --notify-codex-thread UUID (its own CODEX_THREAD_ID when available).
    Never guess the target session. The supervised notification controller queues a compact result;
    queued is not consumed. After reading it use ack JOB --codex-thread UUID. No tmux typing is used.

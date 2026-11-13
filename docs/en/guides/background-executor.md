@@ -1009,6 +1009,35 @@ exec orcan-executor agent -- codex
 # exec orcan-executor agent -- claude
 ```
 
+With `orcan up --with-redis` (or `--with-executor`), new interactive shells
+also provide these shortcuts:
+
+| Client | Normal | Skip client approval prompts |
+| --- | --- | --- |
+| Codex | `codex-tmux` | `codex-tmux-yolo`, `codex-yolo-tmux` |
+| Claude | `claude-tmux`, `cc-tmux` | `claude-tmux-yolo`, `claude-yolo-tmux`, `ccy-tmux` |
+| Cursor Agent, when installed | `agent-tmux`, `ag-tmux` | `agent-tmux-yolo`, `agent-yolo-tmux`, `agy-tmux` |
+
+These aliases include `exec orcan-executor agent --`. Extra arguments are passed
+through unchanged, including resume commands, flags and quoted prompts:
+
+```sh
+codex-tmux resume --last
+codex-tmux-yolo resume --last
+claude-tmux --resume
+ccy-tmux --resume
+```
+
+List the currently loaded shortcuts with `alias | rg 'tmux'`, or inspect one
+with `alias claude-tmux-yolo`. The shell's `alias` command lists all aliases.
+
+The shortcuts are defined only when `ORCAN_REDIS_ENABLED=1` and the executor CLI
+is available. This checks configuration, not worker health; submission still
+checks readiness. Ordinary client commands and aliases keep their behavior.
+Image aliases load from `/etc/orcan/shell/aliases.sh`; personal
+`$ORCAN_DATA/dotfiles/aliases.sh` overrides load afterwards. Image changes need
+a rebuild/recreate and a new shell.
+
 The wrapper records a fresh instance UUID and passes `ORCAN_AGENT_INSTANCE_ID` to
 the agent and its child processes. It preserves arguments, working directory and
 existing client configuration. It requires `exec` ownership: when the agent exits,
