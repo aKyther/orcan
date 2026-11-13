@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Give each executor Docker smoke run a unique container name so independent verification worktrees cannot collide with an active fixture.
+
 - Preserve cockpit input order across asynchronous tmux navigation, keyboard, paste and mouse events. Repair half-overwritten wide characters and right-margin wrapping. Return terminal device/status replies so waiting applications can redraw without keyboard input; explicitly repaint resized terminals. Add idle/full-frame checks through a real PTY and private tmux, plus Unicode load measurements.
 
 - Update the executor integration smoke assertion to check structured failure references and bounded failed-step artifacts instead of the removed `summary.log_tail` field.

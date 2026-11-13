@@ -13,7 +13,8 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / ".orcan-test.executor-smoke"
-NAME = "orcan-executor-smoke"
+# Each executor worktree owns its container; parallel checks never share it.
+NAME = "orcan-executor-smoke-" + uuid4().hex[:12]
 IMAGE = "orcan:executor-smoke"
 
 
