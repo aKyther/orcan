@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import curses
-import os
 import subprocess
 import sys
 import textwrap
@@ -71,7 +70,10 @@ def detail_rows(model, page, width=100):
         workspaces=model.data.get('workspaces',[])
         return [('manage','Open workspace manager','Save or discard this draft first' if model.dirty else 'Workspace changes have their own review/save')]+[(None,ws.get('name','unnamed'),str(len(ws.get('projects',[])))+' projects') for ws in workspaces]
     if page=='review':
-        return [(None,line,'') for line in model.review()] or [(None,'No changes','')]
+        actions = [('save', 'Save reviewed settings', 'Enter or s'),
+                   ('back', 'Back to editing', 'Keep this draft'),
+                   ('discard', 'Discard changes and close', 'Confirmation required')]
+        return actions + [(None,line,'') for line in model.review()] + guidance_rows(model.application_notes(),width)
     return []
 
 
@@ -125,7 +127,7 @@ def draw(screen,model,page,selected,message):
     text(0,'Orcan settings  /  '+page.replace('plugin:','Plugin: ')+('  * unsaved' if model.dirty else ''),curses.A_BOLD)
     text(1,str(model.path))
     if page=='agents': text(2,'Image contents only. Saving does not install or start agents; use orcan sync, orcan build, then orcan up.')
-    elif page=='review': text(2,'Required: '+' -> '.join(model.next_actions()))
+    elif page=='review': text(2,'Enter: selected action  s: save  Esc: back  | Next: '+' -> '.join(model.next_actions()))
     elif page.startswith('help:'):text(2,'Up/Down: scroll  Esc: back to settings')
     elif page=='home':text(2,'Enter: open  q: exit  r: review  s: review/save')
     else:text(2,'Space: toggle  Enter: edit/open  Esc: back  r: review  s: review/save')
@@ -160,7 +162,11 @@ def run_screen(screen,model):
         if key in ('\x1b',curses.KEY_LEFT):
             page=parent_page(page);selected=0;message='';continue
         if key=='r':page='review';selected=0;continue
-        if key=='s':
+        save_selected = (
+            page == 'review' and key in ('\n','\r',curses.KEY_ENTER,' ')
+            and items and items[selected][0] == 'save'
+        )
+        if key=='s' or save_selected:
             if page!='review':page='review';selected=0;continue
             if not model.dirty:message='No changes to save.';continue
             try:
@@ -173,6 +179,11 @@ def run_screen(screen,model):
         item=items[selected][0]
         if item is None:continue
         try:
+            if page == 'review':
+                if item == 'back': page='home';selected=0;message='';continue
+                if item == 'discard':
+                    if not model.dirty or confirm(screen,'Discard unsaved changes?'): return 'cancel',[]
+                    continue
             if item.startswith('help:'):
                 page=item;selected=0;message='';continue
             if page=='home':
@@ -181,7 +192,6 @@ def run_screen(screen,model):
                     continue
                 page=item;selected=0;message='';continue
             if page=='plugins':
-                entry=next(entry for entry in catalog() if entry['id']==item)
                 if key==' ':model.toggle_plugin(item)
                 else:page='plugin:'+item;selected=0
             elif page.startswith('plugin:'):
@@ -240,6 +250,7 @@ def main():
             continue
         if action=='saved':
             print('Saved '+str(model.path))
+            print('Desired configuration saved; running state was not changed or checked.')
             for step in steps:print('Next: '+step)
         else:print('Settings closed without saving.')
         return

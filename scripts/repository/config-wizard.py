@@ -845,7 +845,7 @@ def main() -> None:
         info(f"Save to: {out_path}")
         if not ask_yes_no("Save these changes?", default=True):
             info("Cancelled — nothing written (unless you used clean).")
-            return
+            raise SystemExit(130)
         dump_config(out_path, cfg)
         info()
         success(f"saved {out_path}")
@@ -861,7 +861,7 @@ def main() -> None:
     info(f"Will create: {out_path}")
     if not ask_yes_no("Save?", default=True):
         info("Cancelled — nothing written.")
-        return
+        raise SystemExit(130)
 
     dump_config(out_path, cfg, expected=b"")
     info()

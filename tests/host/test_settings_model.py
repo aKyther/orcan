@@ -129,3 +129,26 @@ def test_agent_choices_keep_build_guidance_in_help(tmp_path):
     assert any(key=='help:agents' for key,_,_ in choices)
     assert 'JDK is included' in ' '.join(label for _,label,_ in tui.rows(model,'help:agents'))
     assert not model.dirty
+
+
+def test_tmux_only_draft_does_not_prescribe_container_recreation(tmp_path):
+    model = make_model(tmp_path)
+    model.set_tmux('history_limit', 30000)
+    assert model.next_actions() == ['orcan sync']
+    assert any('existing sessions' in note for note in model.application_notes())
+    assert any('restart is not prescribed' in note for note in model.application_notes())
+
+
+def test_resource_change_plans_startup_but_not_an_image_build(tmp_path):
+    model = make_model(tmp_path)
+    model.set_resource('memory', '8g')
+    assert 'orcan up --plan' in model.next_actions()
+    assert 'orcan build' not in model.next_actions()
+
+
+def test_review_has_visible_save_back_and_discard_actions(tmp_path):
+    model = make_model(tmp_path)
+    model.set_tmux('history_limit', 30000)
+    entries = tui.rows(model, 'review', width=70)
+    assert [entry[0] for entry in entries[:3]] == ['save', 'back', 'discard']
+    assert entries[0][2] == 'Enter or s'

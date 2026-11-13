@@ -9,7 +9,7 @@ from pathlib import Path
 from config_io import dump_config, load_config
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS
 from host_config import host_environment
-from orcan.image_profile import AGENTS, IMAGES, TOOLS, PYTHONS, agent_entry, tool_entry, requirements, resolve as image_profile
+from orcan.image_profile import AGENTS, TOOLS, PYTHONS, agent_entry, tool_entry, requirements, resolve as image_profile
 from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection, change_selection
 
 
@@ -158,10 +158,23 @@ class SettingsModel:
     def next_actions(self):
         if not self.dirty: return []
         actions=['orcan sync']
-        if self.data.get('build')!=self.original.get('build'):actions.append('orcan build')
-        actions.append('orcan up --plan')
-        actions.append('orcan up (after active background jobs finish)')
+        build_changed = self.data.get('build') != self.original.get('build')
+        if build_changed: actions.append('orcan build')
+        startup_changed = build_changed or any(
+            self.data.get(key) != self.original.get(key)
+            for key in ('image', 'timezone', 'resources', 'workspaces')
+        ) or self.plugins() != resolve_plugins(self.original)
+        if startup_changed:
+            actions += ['orcan up --plan', 'orcan up (after active background jobs finish)']
         return actions
+
+    def application_notes(self):
+        notes = ['Reviewing a draft; saving writes desired configuration only. Running state is not inspected.']
+        if self.data.get('tmux') != self.original.get('tmux'):
+            notes.append('Tmux defaults changed; existing sessions are not restarted or reconfigured by saving.')
+        if self.next_actions() == ['orcan sync']:
+            notes.append('No startup/image change in this draft; a container restart is not prescribed.')
+        return notes
 
     def review(self):
         lines=[]

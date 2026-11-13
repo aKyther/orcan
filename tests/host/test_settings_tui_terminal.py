@@ -18,9 +18,9 @@ pytestmark=pytest.mark.integration
 ROOT=Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.parametrize('save',[False,True])
+@pytest.mark.parametrize('save,save_key',[(False,b's'),(True,b's'),(True,b'\n')])
 @pytest.mark.parametrize('section',['plugins','agents'])
-def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,section):
+def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,save_key,section):
     path=tmp_path/'orcan.config.json'
     path.write_text('{"workspaces":[],"build":{"agents":["codex"],"tools":[]}}')
     before=path.read_bytes()
@@ -58,7 +58,7 @@ def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,sectio
         if save:
             os.write(master,b'r')
             until(b'plugins.redis.enabled' if section=='plugins' else b'Image agents:')
-            os.write(master,b's')
+            os.write(master,save_key)
             until(b'Save the reviewed settings?')
             os.write(master,b'y\n')
         else:

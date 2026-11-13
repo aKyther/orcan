@@ -162,7 +162,9 @@ class MainAlreadyConfiguredTests(unittest.TestCase):
             patch("sys.stdin.isatty", return_value=True),
             patch("builtins.input", side_effect=answers),
         ):
-            cw.main()
+            with self.assertRaises(SystemExit) as cancelled:
+                cw.main()
+            self.assertEqual(cancelled.exception.code, 130)
         # declined the final save too, so config is still untouched
         self.assertEqual(self.config_path.read_text(), before)
 

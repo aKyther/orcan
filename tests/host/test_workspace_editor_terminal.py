@@ -95,7 +95,7 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
             os.write(master, b'\x1b')
             until(b'Discard unsaved changes')
             os.write(master, b'y\n')
-            assert proc.wait(timeout=10) == 1
+            assert proc.wait(timeout=10) == 130
             assert not config.exists()
             assert not sandbox.exists()
     finally:

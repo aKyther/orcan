@@ -370,3 +370,14 @@ def test_real_init_path_saves_config_without_touching_runtime(tmp_path, existing
     else:
         assert not runtime.exists()
     assert not (home / 'workspaces').exists()
+
+
+def test_already_owned_tree_is_scanned_without_repeated_chown(tmp_path, monkeypatch):
+    (tmp_path / 'nested').mkdir()
+    (tmp_path / 'nested/file').touch()
+    calls = []
+    monkeypatch.setattr(ownership.os, 'chown', lambda *a, **kw: calls.append(a))
+    uid, gid = tmp_path.stat().st_uid, tmp_path.stat().st_gid
+    assert ownership.update_ownership(str(tmp_path), uid, gid, [])
+    assert ownership.update_ownership(str(tmp_path), uid, gid, [])
+    assert calls == []

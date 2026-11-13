@@ -67,7 +67,10 @@ def main() -> int:
         tmux_args = ["orcan-tmux-reconcile-sessions"]
         if args.prune_orphans:
             tmux_args.append("--prune-orphans")
-        subprocess.run(tmux_args, check=False)
+        result = subprocess.run(tmux_args, check=False)
+        if result.returncode:
+            print("Workspace files prepared, but tmux session reconcile failed", file=sys.stderr)
+            return result.returncode if result.returncode > 0 else 1
 
     return 0
 

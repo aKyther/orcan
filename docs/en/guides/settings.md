@@ -31,9 +31,10 @@ Escape returns from help to the settings you were editing; opening help never ch
 - Up/Down or `j`/`k`: select a row.
 - Space: toggle a plugin, agent or toolchain.
 - Enter: open a section or edit a field. On an enabled agent, edit its version.
+  In review, activate the selected Save, Back or Discard action.
 - Escape: go back.
 - `r`: review the draft.
-- `s`: open review; press `s` again there and confirm to save.
+- `s`: open review; press `s` again there or choose **Save reviewed settings** and press Enter, then confirm.
 - `q`: exit; a changed draft asks whether to discard it.
 
 Version/source entries already in JSON are preserved when selecting other agents.
@@ -45,8 +46,15 @@ its required plugins.
 Agents here are CLI tools installed in the image. Their models and provider
 settings remain in the tools themselves.
 
+The review screen keeps Save, Back and Discard visible above the change list.
+It distinguishes the desired configuration from the running container, whose
+state has not been inspected. A tmux-only draft does not prescribe container
+recreation; existing sessions are not restarted or reconfigured by saving.
+Startup changes (plugins, resources, image or workspace configuration) show a
+startup preview/apply step; image-content changes additionally show a build step.
+
 Saving changes only the JSON file. It does not build an image, acquire tokens,
-start agents or recreate the container. The UI prints the next steps:
+start agents or recreate the container. The UI prints only the next steps relevant to this draft; for image/startup changes:
 
 ```bash
 orcan sync         # keep your --no-chown / --chown-exclude policy

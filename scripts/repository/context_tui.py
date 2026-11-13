@@ -1598,6 +1598,9 @@ def main() -> None:
 
     from workspace_editor import main as edit_workspaces
     rc = edit_workspaces(args, resolve_config(args.config))
+    # Discard is a deliberate cancellation, distinct from startup/save errors.
+    if rc == 1:
+        rc = 130
     raise SystemExit(_run_sync() if rc == 0 and args.sync else rc)
 
 

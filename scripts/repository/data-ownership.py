@@ -38,6 +38,9 @@ def update_ownership(
 
     def change(path: str) -> None:
         try:
+            current = os.lstat(path)
+            if current.st_uid == uid and current.st_gid == gid:
+                return
             os.chown(path, uid, gid, follow_symlinks=False)
         except OSError as error:
             failed(error)

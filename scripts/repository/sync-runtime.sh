@@ -162,4 +162,4 @@ if [[ -f "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.genera
     printf 'project mounts: %s\n' "${ORCAN_COMPOSE_PROJECTS:-${ORCAN_HOME}/mounts/compose-projects.generated.yml}"
 fi
 printf 'SSH keys: orcan up --ssh (not mounted by sync)\n'
-printf 'Next: orcan down && orcan up\n'
+printf 'Runtime files prepared; workspace reconciliation follows in orcan sync.\n'

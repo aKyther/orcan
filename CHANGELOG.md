@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserve init and sync error status, show bounded reconcile diagnostics and distinguish prepared files from applied workspace state. Do not pull images during metadata inspection. Expose Save, Back and Discard in settings review, show change-specific apply steps, skip `chown` for already owned entries and remove unconditional restart advice. Propagate tmux reconcile failures and prevent orphan pruning against incomplete state.
+
 - Keep cockpit selection text visible when the theme uses transparent selection foreground. Choose contrasting ink and suppress reverse, dim, conceal and blink attributes inside the highlight while restoring original terminal styling when selection clears.
 
 - Give cockpit rows Textual selection offsets so normal mouse dragging selects individual lines instead of highlighting the entire terminal. Map Unicode content offsets back to complete grapheme cells for painting and copying.

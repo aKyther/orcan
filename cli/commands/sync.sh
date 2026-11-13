@@ -50,12 +50,13 @@ orcan_cmd_sync() {
 
     _ORCAN_CONFIG_LOADED=0
     orcan_load_config || return
-    orcan_sync_reconcile_host
-    orcan_sync_reconcile_running_container "${prune_orphans}"
+    orcan_sync_reconcile_host || return
+    orcan_sync_reconcile_running_container "${prune_orphans}" || return
 
-    orcan_ok "sync complete"
-    orcan_info "next: orcan up   (skip if live reconcile already applied changes)"
-    orcan_info "  orcan build only when the image, Dockerfile, or agent install set changed"
+    orcan_ok "sync complete — runtime files and workspace metadata prepared"
+    orcan_info "check startup changes with: orcan up --plan"
+    orcan_info "run orcan up only if the container needs starting or recreation; wait for active jobs first"
+    orcan_info "orcan build if the local image is missing or its contents changed; sync does not build, pull or restart"
 }
 
 # Host-side reconcile: $ORCAN_HOME/workspaces/<name>/ symlinks are written here
@@ -64,12 +65,17 @@ orcan_cmd_sync() {
 orcan_sync_reconcile_host() {
     orcan_info "reconciling workspace meta on host"
     local host_out manifest
-    orcan_load_config
+    orcan_load_config || return
     manifest="$(orcan_image_agents_manifest "${IMAGE_LOCAL:-orcan:latest}")"
+    if [[ -z "${manifest}" ]]; then
+        orcan_info "local image agent metadata unavailable — installed clients were not confirmed"
+    fi
     host_out="$(ORCAN_CONTEXT_AGENTS_JSON="${manifest}" ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" \
         orcan_host_python "${ORCAN_SCRIPTS}/reconcile-host.py" 2>&1)" || {
-        orcan_warn "host workspace reconcile failed"
-        return 0
+        local status=$?
+        printf '%s\n' "${host_out}" | tail -n 20 >&2
+        orcan_warn "runtime files prepared, but host workspace reconcile failed; fix the error and rerun orcan sync"
+        return "${status}"
     }
     printf '%s\n' "${host_out}"
     orcan_sync_reconcile_report_warnings "${host_out}" 0
@@ -105,12 +111,18 @@ orcan_sync_reconcile_report_warnings() {
 orcan_sync_reconcile_running_container() {
     local prune_orphans="${1:-0}"
     local cname
-    if ! orcan_require_docker 2>/dev/null; then
+    if ! (orcan_require_docker) 2>/dev/null; then
+        orcan_info "live reconcile not checked — Docker/Compose unavailable; host metadata is prepared"
         return 0
     fi
-    orcan_load_config
-    cname="$(orcan_container_name)"
-    if ! docker ps -q -f "name=^${cname}$" 2>/dev/null | grep -q .; then
+    orcan_load_config || return
+    cname="$(orcan_container_name)" || return
+    local running
+    if ! running="$(docker ps -q -f "name=^${cname}$" 2>/dev/null)"; then
+        orcan_warn "host metadata prepared, but Docker state could not be checked; rerun sync when Docker is available"
+        return 1
+    fi
+    if [[ -z "${running}" ]]; then
         orcan_info "container not running — host workspace meta reconciled; run orcan up for tmux/runtime"
         return 0
     fi
@@ -121,8 +133,10 @@ orcan_sync_reconcile_running_container() {
     fi
     local reconcile_out
     reconcile_out="$(docker exec -i "${cname}" "${reconcile_cmd[@]}" 2>&1)" || {
-        orcan_warn "live reconcile failed — falling back to: orcan down && orcan up"
-        return 0
+        local status=$?
+        printf '%s\n' "${reconcile_out}" | tail -n 20 >&2
+        orcan_warn "runtime files and host metadata prepared, but live reconcile failed; fix the error and rerun orcan sync"
+        return "${status}"
     }
     printf '%s\n' "${reconcile_out}"
     orcan_sync_reconcile_report_warnings "${reconcile_out}" 1

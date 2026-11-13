@@ -43,17 +43,18 @@ orcan_cmd_init() {
     mkdir -p "${ORCAN_HOME}"
 
     if [[ -z "${project_dir}" ]]; then
+        local editor=context_tui.py editor_status=0
         if [[ -n "${cli_mode}" ]]; then
-            ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-wizard.py"
-        else
-            # Cancelling the TUI (q/Esc) exits non-zero, unlike the old wizard
-            # (which always exits 0, even on "cancelled"); treat it the same
-            # way here — return without applying runtime changes.
-            if ! ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" ORCAN_DATA="${ORCAN_DATA:-}" \
-                orcan_host_python "${ORCAN_SCRIPTS}/context_tui.py"; then
-                orcan_info "cancelled — nothing changed"
-                return 0
-            fi
+            editor=config-wizard.py
+        fi
+        ORCAN_HOME="${ORCAN_HOME}" ORCAN_ROOT="${ORCAN_ROOT}" ORCAN_DATA="${ORCAN_DATA:-}" \
+            orcan_host_python "${ORCAN_SCRIPTS}/${editor}" || editor_status=$?
+        if [[ "${editor_status}" -eq 130 ]]; then
+            orcan_info "cancelled — runtime was not applied"
+            return 0
+        elif [[ "${editor_status}" -ne 0 ]]; then
+            orcan_warn "workspace editor failed; configuration was not confirmed saved"
+            return "${editor_status}"
         fi
     else
         if [[ "${project_dir}" != /* ]]; then
@@ -68,7 +69,7 @@ orcan_cmd_init() {
             args+=(--workspace "${workspace}")
         fi
         ORCAN_HOME="${ORCAN_HOME}" orcan_host_python \
-            "${ORCAN_SCRIPTS}/config-scaffold.py" "${args[@]}"
+            "${ORCAN_SCRIPTS}/config-scaffold.py" "${args[@]}" || return
     fi
 
     ORCAN_HOME="${ORCAN_HOME}" orcan_host_python "${ORCAN_SCRIPTS}/config-show.py" || true

@@ -153,7 +153,21 @@ orcan up
 `orcan sync` prepares runtime JSON and mounts, reconciles workspace metadata,
 and performs ownership repair subject to saved exclusions. Keep using
 `--no-chown PATTERN` / `--chown-exclude PATH` when setting those exclusions;
-they are saved in JSON for later explicit synchronizations.
+they are saved in JSON for later explicit synchronizations. Correctly owned files
+are scanned but do not receive another `chown`; exclusions are checked before
+metadata inspection and symlink targets are not followed.
+
+`sync` reports runtime-file preparation, host workspace reconciliation and live
+reconciliation separately. A failed host/live reconcile returns nonzero and shows
+bounded diagnostics; it does not report full success or restart the container.
+If Docker/Compose is unavailable, the live stage is explicitly marked unchecked.
+The installed-agent metadata probe uses local images only and never pulls one;
+unavailable metadata is reported without claiming that clients were confirmed.
+Use `orcan up --plan` to review startup changes rather than routinely running
+`down && up` after every sync.
+
+Cancelling the interactive `init` editor is a clean no-op; editor errors retain
+their nonzero status. Direct `context tui` cancellation uses exit code 130.
 
 `orcan build` prepares the image. It reuses a completed build when its source,
 profile and image ID still match. Use `--force` or `--no-cache` deliberately.

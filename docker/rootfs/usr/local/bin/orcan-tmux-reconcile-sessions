@@ -28,13 +28,25 @@ done
 command -v orcan-workspaces >/dev/null 2>&1 || exit 0
 
 declare -a ACTIVE_SESSIONS=()
+bootstrap="$(ORCAN_CONFIG="${ORCAN_CONFIG}" orcan-workspaces bootstrap)" || exit $?
+reconcile_status=0
 
 while IFS=$'\t' read -r name root session; do
     [[ -n "${name}" && -n "${root}" && -n "${session}" ]] || continue
-    [[ -d "${root}" ]] || continue
     ACTIVE_SESSIONS+=("${session}")
-    ORCAN_TMUX_ATTACH=0 cursor-tmux-workspace-attach "${session}" "${root}" "${name}" >/dev/null 2>&1 || true
-done < <(ORCAN_CONFIG="${ORCAN_CONFIG}" orcan-workspaces bootstrap)
+    if [[ ! -d "${root}" ]]; then
+        printf 'workspace root unavailable: %s\n' "${root}" >&2
+        reconcile_status=1
+        continue
+    fi
+    if ! ORCAN_TMUX_ATTACH=0 cursor-tmux-workspace-attach "${session}" "${root}" "${name}" >/dev/null; then
+        printf 'could not reconcile tmux session: %s\n' "${session}" >&2
+        reconcile_status=1
+    fi
+done <<<"${bootstrap}"
+
+# Never prune against a partial workspace/session list.
+(( reconcile_status == 0 )) || exit "${reconcile_status}"
 
 # Orcan-managed sessions left over after a workspace was renamed/removed.
 # Sessions without ORCAN_WORKSPACE_NAME are left alone (user or smoke

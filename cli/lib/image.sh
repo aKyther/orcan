@@ -34,7 +34,7 @@ orcan_image_registry_configured() {
 # Read the baked agent selection without starting the image's entrypoint.
 orcan_image_agents_manifest() {
     local image="$1"
-    docker run --rm --entrypoint cat "${image}" /etc/orcan/agents.json 2>/dev/null || true
+    docker run --pull=never --rm --entrypoint cat "${image}" /etc/orcan/agents.json 2>/dev/null || true
 }
 
 # A registry image is a portable baseline only when it contains every client.
