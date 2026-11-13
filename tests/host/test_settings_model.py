@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 from ._scripts_loader import load_script
@@ -152,3 +151,46 @@ def test_review_has_visible_save_back_and_discard_actions(tmp_path):
     entries = tui.rows(model, 'review', width=70)
     assert [entry[0] for entry in entries[:3]] == ['save', 'back', 'discard']
     assert entries[0][2] == 'Enter or s'
+
+
+@pytest.mark.parametrize('field,value', [('cpus',2),('memory','4g'),('shm_size','512m'),('tmpfs_size','512m'),('nofile',65536),('nproc',65536)])
+def test_explicit_resource_default_has_no_runtime_apply_actions(tmp_path, field, value):
+    model = make_model(tmp_path)
+    model.set_resource(field, value)
+    assert model.dirty
+    assert model.next_actions() == ['orcan sync']
+    review = '\n'.join(model.review())
+    assert f'resources.{field}' in review
+    assert 'effective value unchanged' in review
+    assert 'plugins section' not in review
+    assert model.save() == ['orcan sync']
+    assert json.loads(model.path.read_text())['resources'][field] == value
+
+
+def test_real_resource_change_still_requires_startup_plan(tmp_path):
+    model = make_model(tmp_path)
+    model.set_resource('cpus',4)
+    assert 'orcan up --plan' in model.next_actions()
+    assert any('resources.cpus: 2 -> 4' in line for line in model.review())
+
+
+def test_plugin_layout_migration_does_not_prescribe_runtime_work(tmp_path):
+    model = make_model(tmp_path,executor={'workers':3})
+    model.set_plugin('redis','workers',3)
+    assert model.dirty
+    assert model.next_actions() == ['orcan sync']
+    assert any('representation changed' in line for line in model.review())
+
+
+def test_explicit_tmux_default_does_not_claim_session_defaults_changed(tmp_path):
+    model = make_model(tmp_path)
+    model.set_tmux('history_limit',20000)
+    assert model.next_actions() == ['orcan sync']
+    assert not any('Tmux defaults changed' in note for note in model.application_notes())
+
+
+@pytest.mark.parametrize('field,value',[('image','orcan:latest'),('timezone','UTC')])
+def test_explicit_top_level_defaults_do_not_require_runtime_work(tmp_path,field,value):
+    model = make_model(tmp_path)
+    model.set_resource(field,value)
+    assert model.next_actions() == ['orcan sync']

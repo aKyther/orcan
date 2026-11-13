@@ -127,7 +127,7 @@ def draw(screen,model,page,selected,message):
     text(0,'Orcan settings  /  '+page.replace('plugin:','Plugin: ')+('  * unsaved' if model.dirty else ''),curses.A_BOLD)
     text(1,str(model.path))
     if page=='agents': text(2,'Image contents only. Saving does not install or start agents; use orcan sync, orcan build, then orcan up.')
-    elif page=='review': text(2,'Enter: selected action  s: save  Esc: back  | Next: '+' -> '.join(model.next_actions()))
+    elif page=='review': text(2,'Enter: selected action  s: save  Esc: back  | Next: '+(' -> '.join(model.next_actions()) or 'no runtime action'))
     elif page.startswith('help:'):text(2,'Up/Down: scroll  Esc: back to settings')
     elif page=='home':text(2,'Enter: open  q: exit  r: review  s: review/save')
     else:text(2,'Space: toggle  Enter: edit/open  Esc: back  r: review  s: review/save')

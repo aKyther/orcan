@@ -52,6 +52,23 @@ done <<<"${bootstrap}"
 # Sessions without ORCAN_WORKSPACE_NAME are left alone (user or smoke
 # sessions) — those are never ours to report or prune.
 if command -v tmux >/dev/null 2>&1; then
+    if live_sessions="$(LC_ALL=C tmux -f "${TMUX_CONF}" list-sessions -F '#{session_name}' 2>&1)"; then
+        :
+    else
+        status=$?
+        case "${live_sessions}" in
+            "no server running on "*|"error connecting to "*"(No such file or directory)"|"failed to connect to server: No such file or directory")
+                if (( ${#ACTIVE_SESSIONS[@]} == 0 )); then
+                    # No configured sessions and no server is a clean empty state.
+                    exit 0
+                fi
+                printf 'tmux server unavailable after reconciling configured sessions\n' >&2
+                exit "${status}" ;;
+        esac
+        printf '%s\n' "${live_sessions}" | tail -n 20 >&2
+        printf 'could not list tmux sessions; orphan inspection not completed\n' >&2
+        exit "${status}"
+    fi
     while IFS= read -r live; do
         [[ -n "${live}" ]] || continue
         keep=0
@@ -64,14 +81,29 @@ if command -v tmux >/dev/null 2>&1; then
         if (( keep == 1 )); then
             continue
         fi
-        if ! tmux -f "${TMUX_CONF}" show-environment -t "=${live}" ORCAN_WORKSPACE_NAME >/dev/null 2>&1; then
-            continue
+        if marker="$(LC_ALL=C tmux -f "${TMUX_CONF}" show-environment -t "=${live}" ORCAN_WORKSPACE_NAME 2>&1)"; then
+            :
+        else
+            status=$?
+            case "${marker}" in
+                "unknown variable: ORCAN_WORKSPACE_NAME"|"can't find session: "*)
+                    # An unmanaged or already exited session must not be pruned.
+                    continue ;;
+            esac
+            printf '%s\n' "${marker}" | tail -n 20 >&2
+            printf 'could not inspect tmux session ownership: %s\n' "${live}" >&2
+            exit "${status}"
         fi
         if (( PRUNE_ORPHANS )); then
-            printf 'removing orphaned orcan tmux session: %s\n' "${live}" >&2
-            tmux -f "${TMUX_CONF}" kill-session -t "=${live}" 2>/dev/null || true
+            if tmux -f "${TMUX_CONF}" kill-session -t "=${live}"; then
+                printf 'removed orphaned orcan tmux session: %s\n' "${live}" >&2
+            else
+                status=$?
+                printf 'could not remove orphaned orcan tmux session: %s\n' "${live}" >&2
+                exit "${status}"
+            fi
         else
             printf 'orphaned orcan tmux session (workspace no longer in config, not killed): %s\n' "${live}" >&2
         fi
-    done < <(tmux -f "${TMUX_CONF}" list-sessions -F '#{session_name}' 2>/dev/null || true)
+    done <<<"${live_sessions}"
 fi

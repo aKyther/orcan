@@ -163,6 +163,10 @@ bounded diagnostics; it does not report full success or restart the container.
 If Docker/Compose is unavailable, the live stage is explicitly marked unchecked.
 The installed-agent metadata probe uses local images only and never pulls one;
 unavailable metadata is reported without claiming that clients were confirmed.
+Tmux session listing, ownership inspection and requested orphan removal also
+preserve their error status.
+An absent tmux server is an empty state only when no configured sessions were
+expected; a server disappearing after session creation is an error.
 Use `orcan up --plan` to review startup changes rather than routinely running
 `down && up` after every sync.
 

@@ -47,6 +47,12 @@ Agents here are CLI tools installed in the image. Their models and provider
 settings remain in the tools themselves.
 
 The review screen keeps Save, Back and Discard visible above the change list.
+The apply plan compares effective values, including defaults. Making an implicit
+default explicit or migrating legacy plugin fields still prescribes `orcan sync`
+to refresh prepared files after saving, but no build or startup work when the
+effective configuration is unchanged. Review shows which defaults were made
+explicit; saving can persist that representation.
+
 It distinguishes the desired configuration from the running container, whose
 state has not been inspected. A tmux-only draft does not prescribe container
 recreation; existing sessions are not restarted or reconfigured by saving.

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Propagate failures while listing or removing orphaned tmux sessions, distinguish an absent server from a lost configured server, and compare effective settings defaults before prescribing build/startup work; representation-only saves still refresh prepared files through sync. Review now identifies explicit-default edits without claiming plugin changes.
+
 - Preserve init and sync error status, show bounded reconcile diagnostics and distinguish prepared files from applied workspace state. Do not pull images during metadata inspection. Expose Save, Back and Discard in settings review, show change-specific apply steps, skip `chown` for already owned entries and remove unconditional restart advice. Propagate tmux reconcile failures and prevent orphan pruning against incomplete state.
 
 - Keep cockpit selection text visible when the theme uses transparent selection foreground. Choose contrasting ink and suppress reverse, dim, conceal and blink attributes inside the highlight while restoring original terminal styling when selection clears.

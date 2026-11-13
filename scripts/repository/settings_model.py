@@ -7,7 +7,7 @@ import io
 from pathlib import Path
 
 from config_io import dump_config, load_config
-from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS
+from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, PROCESS_DEFAULTS
 from host_config import host_environment
 from orcan.image_profile import AGENTS, TOOLS, PYTHONS, agent_entry, tool_entry, requirements, resolve as image_profile
 from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection, change_selection
@@ -155,24 +155,47 @@ class SettingsModel:
         validate_selection(self.plugins())
         if 'build' in self.data: image_profile(self.data)
 
+    @staticmethod
+    def _effective_config(data, plugins):
+        effective = copy.deepcopy(data)
+        effective['resources'] = RESOURCE_DEFAULTS | PROCESS_DEFAULTS | data.get('resources', {})
+        effective['tmux'] = TMUX_DEFAULTS | data.get('tmux', {})
+        effective['image'] = data.get('image', 'orcan:latest')
+        effective['timezone'] = data.get('timezone', 'UTC')
+        effective['plugins'] = plugins
+        for legacy in ('executor', 'executor_port', 'ttyd'):
+            effective.pop(legacy, None)
+        return effective
+
+    @property
+    def effective_dirty(self):
+        return self._effective_config(self.data, self.plugins()) != self._effective_config(self.original, resolve_plugins(self.original))
+
     def next_actions(self):
         if not self.dirty: return []
+        old = self._effective_config(self.original, resolve_plugins(self.original))
+        new = self._effective_config(self.data, self.plugins())
+        # Even representation-only saves change file freshness. Sync prepares
+        # those files, but no build/startup action follows unchanged values.
+        if old == new: return ['orcan sync']
         actions=['orcan sync']
-        build_changed = self.data.get('build') != self.original.get('build')
+        build_changed = new.get('build') != old.get('build')
         if build_changed: actions.append('orcan build')
         startup_changed = build_changed or any(
-            self.data.get(key) != self.original.get(key)
-            for key in ('image', 'timezone', 'resources', 'workspaces')
-        ) or self.plugins() != resolve_plugins(self.original)
+            new.get(key) != old.get(key)
+            for key in ('image', 'timezone', 'resources', 'workspaces', 'plugins')
+        )
         if startup_changed:
             actions += ['orcan up --plan', 'orcan up (after active background jobs finish)']
         return actions
 
     def application_notes(self):
         notes = ['Reviewing a draft; saving writes desired configuration only. Running state is not inspected.']
-        if self.data.get('tmux') != self.original.get('tmux'):
+        if (TMUX_DEFAULTS | self.data.get('tmux', {})) != (TMUX_DEFAULTS | self.original.get('tmux', {})):
             notes.append('Tmux defaults changed; existing sessions are not restarted or reconfigured by saving.')
-        if self.next_actions() == ['orcan sync']:
+        if self.dirty and not self.effective_dirty:
+            notes.append('Only explicit defaults or configuration layout changed; sync refreshes prepared files without build or startup.')
+        elif self.next_actions() == ['orcan sync']:
             notes.append('No startup/image change in this draft; a container restart is not prescribed.')
         return notes
 
@@ -190,14 +213,19 @@ class SettingsModel:
             lines.append('Image agents: '+(', '.join(name+'@'+entry['version'] for name,entry in agents.items()) or 'none selected'))
             lines.append('Project Python (first is default): '+(', '.join(self.python_versions()) or 'none; core runtimes remain'))
             lines.append('Image toolchains: '+(', '.join(entry['name']+'@'+entry.get('image',entry.get('version','')) for entry in self.requirements()['optional_toolchains']) or 'none'))
-        for section,defaults in (('resources',RESOURCE_DEFAULTS),('tmux',TMUX_DEFAULTS)):
+        for section,defaults in (('resources',RESOURCE_DEFAULTS | PROCESS_DEFAULTS),('tmux',TMUX_DEFAULTS)):
             old=defaults | self.original.get(section,{})
             new=defaults | self.data.get(section,{})
             for key,value in new.items():
-                if old.get(key)!=value: lines.append(f'{section}.{key}: {old.get(key)!r} -> {value!r}')
+                if old.get(key)!=value:
+                    lines.append(f'{section}.{key}: {old.get(key)!r} -> {value!r}')
+                elif (key in self.original.get(section, {})) != (key in self.data.get(section, {})):
+                    before = 'explicit' if key in self.original.get(section, {}) else 'default'
+                    after = 'explicit' if key in self.data.get(section, {}) else 'default'
+                    lines.append(f'{section}.{key}: {before} {value!r} -> {after} {value!r} (effective value unchanged)')
         for key in ('image','timezone'):
             if self.original.get(key)!=self.data.get(key):lines.append(f'{key}: {self.original.get(key)!r} -> {self.data.get(key)!r}')
-        if self.dirty and not lines: lines.append('Group compatibility settings into the plugins section.')
+        if self.dirty and not lines: lines.append('Configuration representation changed; effective settings are unchanged.' if not self.effective_dirty else 'Configuration changed; review the apply steps.')
         return lines
 
     def save(self):
