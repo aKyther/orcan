@@ -166,17 +166,14 @@ poll or block on listeners. Prefer session notifications and return control.
 Dashboard charts compare measured log/result/detail bytes and elapsed times;
 bytes/4 token estimates and summed task duration are not actual model costs or time saved.
 Use isolated smoke fixtures, never restart the live Orcan for verification.
-`executor/src/orcan_executor/notifications.py` owns explicit local Codex queue delivery;
-`claude_channel.py` implements the opt-in Claude MCP channel over stdio. Claude must
-obtain its binding from `executor_session`, submit with `--notify-claude-session UUID`
-and explicitly acknowledge via `executor_ack`. No inferred destinations, model spawn
-or tmux typing. Channel writes do not prove channel enablement or consumption.
-For user-requested Claude setup, check `doctor` and `claude-channel --help`, then
-prepare the local stdio MCP entry while preserving existing servers and settings.
-A conflicting entry must not be overwritten. Explain the explicit channel launch
-and consent from the guide; do not restart an active session without authorization.
-Missing channel tools require restart/opt-in, not a claim that config alone enabled
-push. Confirm integration with an approved small procedure and explicit receipt.
+`executor/src/orcan_executor/notifications.py` owns explicit Codex queue delivery
+and registered tmux delivery. Claude uses only `--notify-tmux` in Orcan: launch
+`claude-tmux` / `claude-tmux-yolo` in a dedicated pane, then submit with
+`--notify-tmux` and acknowledge with `--tmux-instance "$ORCAN_AGENT_INSTANCE_ID"`.
+Without a registered wrapper instance, prepare the launch command for a new pane
+and report delivery unavailable; do not configure a Claude MCP notification channel
+or restart an active session. The controller validates the pane/process before
+literal paste + Enter; queued does not prove that the agent consumed the result.
 No destination means no invocation. Queued is not consumed; ambiguous attempts must not auto-retry.
 Use fake transports in tests, never a real session/model. Payload bytes are measured;
 model token usage/cost remain unavailable without provider-reported usage.

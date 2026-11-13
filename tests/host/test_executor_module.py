@@ -37,17 +37,13 @@ def test_generated_guidance_enabled_and_disabled():
         "Set require_junit=true",
         "without\nattaching raw mixed output",
         "1..10 workers",
-        "executor_session",
-        "--notify-claude-session",
         "ORCAN_AGENT_INSTANCE_ID",
         "use --notify-tmux",
         '--tmux-instance "$ORCAN_AGENT_INSTANCE_ID"',
         "Without a wrapper instance, keep the standard adapters below",
         "before enqueueing, with no fallback",
-        "executor_ack(job_id)",
-        "--transport stdio --scope local",
-        "Do not restart an active session",
-        "Never claim integration works from a config edit alone",
+        "Claude uses only --notify-tmux in Orcan",
+        "do not configure an MCP channel",
     ]:
         assert text in enabled
 

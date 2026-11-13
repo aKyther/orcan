@@ -68,9 +68,6 @@ def parser():
     submit.add_argument("--sha", default="HEAD")
     destination = submit.add_mutually_exclusive_group()
     destination.add_argument(
-        "--notify-claude-session", help="Explicit connected Claude MCP channel session UUID"
-    )
-    destination.add_argument(
         "--notify-codex-thread",
         help="Explicit local Codex session UUID to receive the compact result",
     )
@@ -144,13 +141,6 @@ def parser():
     notify.add_argument("job_id")
     target = notify.add_mutually_exclusive_group(required=True)
     target.add_argument("--codex-thread")
-    target.add_argument("--claude-session")
-    channel = commands.add_parser(
-        "claude-channel", help="Run the explicitly enabled Claude MCP channel over stdio"
-    )
-    channel.add_argument(
-        "--session", help="Explicit channel binding UUID for reconnection; generated if omitted"
-    )
     deliveries = commands.add_parser(
         "deliveries", help="Bounded notification states; queued does not mean consumed"
     )
@@ -170,9 +160,6 @@ def parser():
         "--tmux-instance", help="Confirm consumption by a registered tmux instance"
     )
     receipt.add_argument("--codex-thread", help="Confirm consumption by a registered Codex session")
-    receipt.add_argument(
-        "--claude-session", help="Confirm consumption by a registered Claude channel session"
-    )
     logs = commands.add_parser("logs", help="Read a bounded log chunk; never dump build output")
     artifacts = commands.add_parser(
         "artifacts", help="List a bounded page of full report/XML artifact names"
@@ -255,30 +242,10 @@ def main(argv=None):
             from .notifications import controller
 
             controller()
-        elif args.command == "claude-channel":
-            import asyncio
-
-            from .claude_channel import serve
-
-            try:
-                asyncio.run(serve(args.session))
-            except Exception:
-                print(
-                    "Claude channel stopped; inspect local configuration and broker readiness",
-                    file=sys.stderr,
-                )
-                return 2
         elif args.command == "notify":
             from .notifications import register
 
-            adapter = "claude" if args.claude_session is not None else "codex"
-            emit(
-                register(
-                    args.job_id,
-                    args.claude_session if adapter == "claude" else args.codex_thread,
-                    adapter,
-                )
-            )
+            emit(register(args.job_id, args.codex_thread))
             events.publish_pending()
         elif args.command == "history":
             board = store.board(args.hours)
@@ -387,21 +354,13 @@ def main(argv=None):
             emit(engine.cancel(args.job_id))
             events.publish_pending()
         elif args.command == "ack":
-            if (
-                args.codex_thread is not None
-                or args.claude_session is not None
-                or args.tmux_instance is not None
-            ):
+            if args.codex_thread is not None or args.tmux_instance is not None:
                 from .notifications import acknowledge
 
                 acknowledge(
                     args.job_id,
-                    args.tmux_instance or args.claude_session or args.codex_thread,
-                    "tmux"
-                    if args.tmux_instance is not None
-                    else "claude"
-                    if args.claude_session is not None
-                    else "codex",
+                    args.tmux_instance or args.codex_thread,
+                    "tmux" if args.tmux_instance is not None else "codex",
                 )
             else:
                 store.acknowledge(args.job_id)
@@ -574,22 +533,6 @@ def main(argv=None):
                 if args.notify_codex_thread is not None
                 else None
             )
-            claude_target = (
-                thread_id(args.notify_claude_session)
-                if args.notify_claude_session is not None
-                else None
-            )
-            if claude_target:
-                from .claude_channel import session_available
-
-                if not session_available(claude_target):
-                    raise ValueError(
-                        "Claude channel session is not connected; call executor_session first"
-                    )
-                if args.replace_pending:
-                    raise ValueError(
-                        "Pending replacement currently requires a Codex owner; omit --replace-pending for Claude"
-                    )
             source = snapshot(args.repo, args.include) if args.directory else nullcontext(args.repo)
             with source as repository:
                 job = engine.submit(
@@ -609,8 +552,6 @@ def main(argv=None):
                     register(job["id"], tmux_target, "tmux")
                 if target:
                     register(job["id"], target)
-                if claude_target:
-                    register(job["id"], claude_target, "claude")
             try:
                 if job.get("submission_mode", "created") == "created":
                     enqueue(job["id"])

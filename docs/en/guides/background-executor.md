@@ -994,8 +994,9 @@ Collection does not enable any notification destination.
 
 ### Compare terminal input with the existing adapters
 
-`--notify-tmux` is an experimental alternative to `--notify-codex-thread` and
-`--notify-claude-session`. These options are mutually exclusive. Without the new
+`--notify-tmux` is the only Claude notification adapter in Orcan and an
+experimental alternative to `--notify-codex-thread` for Codex. These options
+are mutually exclusive. Without the new
 flag, existing execution and notification behavior is unchanged. Celery still runs
 the same committed profile; the existing notification controller handles the new
 explicit destination after completion.
@@ -1076,94 +1077,22 @@ New source must be installed in both the CLI and notification controller before
 using this experiment; changing a checkout does not update the running image.
 Tests use a private tmux server and a dummy input receiver, never a live AI session.
 The isolated test proves terminal transport only, not client prompt readiness or
-agent consumption. Keep the existing adapters available while comparing behavior.
+agent consumption. Codex queue delivery remains available while comparing behavior.
 
 ## Deliver compact results to a Claude Code session
 
-Claude uses the same Redis queue, procedures, isolated worktrees and compact result
-format as Codex. The adapter is a local MCP channel over stdio, started by Claude
-Code, rather than a `claude --resume` invocation or tmux input. No extra model is
-called. Each connection has a random binding UUID; `--session UUID` may explicitly
-reuse a known binding after its old process has stopped. One binding can have only
-one active channel process. This binding is not Claude's transcript/session ID.
+Claude uses only the registered tmux adapter in Orcan. Launch `claude-tmux` or
+`claude-tmux-yolo` in a dedicated pane, then submit with `--notify-tmux`. The
+wrapper passes its own `ORCAN_AGENT_INSTANCE_ID`; acknowledge a consumed result
+with `orcan-executor ack JOB --tmux-instance "$ORCAN_AGENT_INSTANCE_ID"`.
+See [submission identity and tmux delivery](#submission-identity-and-experimental-tmux-delivery)
+for aliases, flag forwarding, preflight checks and delivery limitations.
 
-Register a stdio server with this MCP configuration (merge the entry into your
-chosen MCP config, preserving other servers):
-
-```json
-{
-  "mcpServers": {
-    "orcan-executor": {
-      "command": "orcan-executor",
-      "args": ["claude-channel"]
-    }
-  }
-}
-```
-
-Use the installed executor with Redis enabled. Launch Claude with that config and
-explicitly enable the custom channel. During Anthropic's channels research preview,
-custom servers require the development-channel flag and its confirmation dialog:
-
-```sh
-MCP_PROTOCOL_NEGOTIATION=legacy claude --mcp-config /absolute/path/mcp.json \
-  --dangerously-load-development-channels server:orcan-executor
-```
-
-This opts in to the named development channel; it does not disable tool permissions.
-Organization policy may block channels. Listing a server in MCP config alone does
-not enable push. See Anthropic's [channels reference](https://code.claude.com/docs/en/channels-reference)
-and [MCP protocol notes](https://code.claude.com/docs/en/mcp#push-messages-with-channels).
-The legacy protocol setting keeps stdio on a revision supporting channel messages.
-Orcan never changes Claude settings or enables channels automatically.
-
-Generated `CLAUDE.md` also teaches Claude to prepare this integration when the
-user requests it. Claude checks `doctor` and `claude-channel --help`, adds only
-the local named MCP entry, preserves existing servers and explains the launch
-command and consent. A conflicting entry is reported rather than overwritten.
-It must not restart the active session without authorization or claim that a
-config edit enabled push. Installation with `--agent claude` supplies the client;
-Redis, an image containing this adapter and channel opt-in are separate checks.
-After restart, `executor_session` and an approved small procedure plus explicit
-receipt confirm the workflow. No transcript or unrelated MCP secrets are needed.
-
-In the requesting Claude session:
-
-1. Call MCP tool `executor_session` and use its returned `session_id`.
-2. Submit the approved committed procedure with that exact binding:
-
-   ```sh
-   orcan-executor submit --repo . --sha HEAD --profile selected \
-     --test tests/test_api.py --notify-claude-session BINDING_UUID
-   ```
-
-   Alternatively call `executor_subscribe` with a known `job_id`, or run
-   `orcan-executor notify JOB --claude-session BINDING_UUID` while the channel is
-   connected. `--reuse` can attach another explicit session to an active check.
-   `--replace-pending` remains Codex-owned; Claude submissions must omit it.
-3. Return control. The dedicated channel process follows Redis events and recovers
-   its durable local outbox; the agent does not run a listener or poll status.
-4. Read the compact channel event, then call `executor_ack(job_id)`, or run
-   `orcan-executor ack JOB --claude-session BINDING_UUID`.
-
-The three MCP tools are bound to their own connection and cannot select another
-session. Only explicitly subscribed terminal results are sent. Messages stay within
-4096 UTF-8 bytes and include the untrusted-diagnostics label, exact SHA, counters,
-bounded errors and relevant artifact references. Successful stdout stays on disk.
-Codex and Claude subscriptions are separate even if their UUID strings match.
-
-`queued` means a write to the MCP transport, not that Claude enabled the channel
-or processed the message. Claude may silently drop notifications if channels are
-blocked or not enabled, so only the explicit receipt means `consumed`. Interrupted
-writes become `unknown` and are never resent automatically. An unavailable channel
-is rejected before a CLI submission pins a job. Pending outbox entries survive a
-clean disconnect and can be resumed only by explicitly reconnecting that binding.
-TTL cleanup expires pending subscriptions with their reports. Dashboard delivery
-measurements include both adapters; bytes are content bytes, not provider usage.
-
-Protocol tests use real MCP stdio handshakes, two fake client sessions and isolated
-Redis. They do not invoke Claude or a model. Actual Claude consent/policy handling
-must be checked in an installed client; the test suite cannot prove it is enabled.
+Orcan does not provide a Claude MCP notification channel. A prior configuration
+that launches `orcan-executor claude-channel` must be removed from that client's
+MCP settings before its next launch. Do not change unrelated MCP servers or
+restart an active client automatically. Existing channel delivery history is
+retained; old destinations are never converted to tmux or Codex targets.
 
 ## Deliver compact results to a Codex session
 

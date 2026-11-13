@@ -568,7 +568,7 @@ session notification. Do not block the conversation waiting for a long task.
    Select the notification adapter for this process before submitting. If launched
    through a *-tmux shortcut or `exec orcan-executor agent -- COMMAND`, the wrapper
    exports ORCAN_AGENT_INSTANCE_ID. In that registered tmux instance use --notify-tmux;
-   do not combine it with --notify-codex-thread or --notify-claude-session, and do not
+   do not combine it with --notify-codex-thread, and do not
    use --replace-pending with it. The wrapper preserves client flags and resume arguments.
    After consuming its result use `orcan-executor ack JOB --tmux-instance "$ORCAN_AGENT_INSTANCE_ID"`.
    Never invent, copy from another process or persist that instance UUID in shared instructions.
@@ -580,29 +580,11 @@ session notification. Do not block the conversation waiting for a long task.
    Codex may opt in with --notify-codex-thread UUID (its own CODEX_THREAD_ID when available).
    Never guess the target session. The supervised notification controller queues a compact result;
    queued is not consumed. After reading it use ack JOB --codex-thread UUID. No tmux typing is used.
-   Claude can use an explicitly enabled orcan-executor MCP channel. Call executor_session
-   to obtain this connection's binding UUID, then use --notify-claude-session UUID or
-   executor_subscribe(job_id). Never infer a Claude destination from cwd or another session.
-   Call executor_ack(job_id) or ack JOB --claude-session UUID after reading the result.
-   The channel uses local stdio and bounded messages, never claude --resume or tmux typing.
-   Channel transport acceptance does not prove Claude loaded/enabled or consumed the event.
-   Custom channels require explicit Claude development-channel opt-in; setup is documented
-   in docs/en/guides/background-executor.md. Without it, report verification pending.
-   If running as Claude and the user requests executor integration, first run doctor
-   and `orcan-executor claude-channel --help` to check the installed capability.
-   If unavailable, explain that the installed image needs updating; --agent claude
-   alone installs the client and does not prove Redis or this adapter is ready.
-   For requested setup, add only the named stdio MCP entry, preserving existing servers:
-   `claude mcp add --transport stdio --scope local orcan-executor -- orcan-executor claude-channel`.
-   Do not replace an existing conflicting entry or dump unrelated MCP config/secrets.
-   Prepare this explicit launch command for the user to enable the custom channel:
-   `MCP_PROTOCOL_NEGOTIATION=legacy claude --dangerously-load-development-channels server:orcan-executor`.
-   The user must complete Claude's channel consent; do not bypass it or org policy.
-   Do not restart an active session or change broader settings without authorization.
-   A running session without executor_session cannot enable push just by editing MCP
-   config: report setup prepared, and explain that restart/explicit opt-in is needed.
-   Once the tool is available, get its UUID and verify with an approved small procedure
-   and explicit receipt. Never claim integration works from a config edit alone.
+   Claude uses only --notify-tmux in Orcan. Start it in a dedicated pane with
+   claude-tmux (or claude-tmux-yolo), or `exec orcan-executor agent -- claude`.
+   If Claude has no registered wrapper instance, report terminal delivery unavailable
+   and prepare that launch command for a new pane; do not configure an MCP channel,
+   infer a destination, restart an active session or silently select another adapter.
 3. A separate controller owns `orcan-executor listen --after STREAM_ID` (blocking JSONL).
    Never block the interactive agent on this listener or repeatedly poll status. Save cursor; deduplicate event_id.
    Without a connected controller, report verification pending. Acceptance requires a completed result for the exact SHA.

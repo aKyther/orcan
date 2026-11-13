@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Remove the Claude MCP notification channel, its CLI flags and MCP-only dependencies. Claude executor results now use only registered tmux delivery. Update generated agent instructions, CLI help and setup documentation; retain old delivery history without redirecting it to another adapter.
+
 ### Added
 
 - Add opt-in `*-tmux` agent aliases when Redis/executor is enabled. Preserve resume commands, quoted arguments and client approval flags while replacing the pane shell through the registered wrapper; keep ordinary aliases unchanged. Teach generated agent instructions to select tmux delivery from their own wrapper instance and acknowledge consumed results.

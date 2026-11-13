@@ -301,3 +301,48 @@ def test_broker_reconnect_recovers_pending_jobs_without_resending_accepted_messa
     assert notifications.listing()[0]["status"] == "queued"
     broken.close.assert_called_once()
     live.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["claude-channel", "--help"],
+        ["submit", "--repo", ".", "--notify-claude-session", THREAD],
+        ["notify", "unused", "--claude-session", THREAD],
+        ["ack", "unused", "--claude-session", THREAD],
+    ],
+)
+def test_removed_claude_channel_cli_is_rejected_before_side_effects(arguments, monkeypatch):
+    from orcan_executor import cli
+
+    submit = Mock()
+    monkeypatch.setattr(engine, "submit", submit)
+    with pytest.raises(SystemExit) as error:
+        cli.main(arguments)
+    assert error.value.code == 2
+    submit.assert_not_called()
+
+
+def test_removed_adapter_cannot_register_or_format_a_codex_receipt(repo):
+    value = job(repo)
+    with pytest.raises(ValueError, match="Unknown notification adapter"):
+        notifications.register(value["id"], THREAD, "claude")
+    assert notifications.listing(value["id"]) == []
+    with pytest.raises(ValueError, match="no fallback"):
+        notifications.message(
+            {**value, "notification_thread": THREAD, "notification_adapter": "claude"}
+        )
+
+
+def test_legacy_channel_destinations_are_never_sent_through_another_adapter(repo, monkeypatch):
+    value = job(repo)
+    with store.database() as db:
+        db.execute(
+            "INSERT INTO deliveries(job_id,thread_id,adapter,status,created) VALUES(?,?,?,'pending',?)",
+            (value["id"], "claude:" + THREAD, "claude", store.now()),
+        )
+    lookup = Mock()
+    monkeypatch.setattr(notifications.shutil, "which", lookup)
+    assert notifications.deliver(value["id"]) == 0
+    lookup.assert_not_called()
+    assert notifications.listing(value["id"])[0]["adapter"] == "claude"
