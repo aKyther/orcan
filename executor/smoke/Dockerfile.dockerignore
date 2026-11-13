@@ -1,0 +1,34 @@
+# Smoke-only context: retain the closed runtime allowlist and admit only the fake transport.
+# Closed build context: only inputs consumed by Dockerfile enter the daemon.
+**
+!Dockerfile
+!.dockerignore
+!docker/
+!docker/**
+!plugins/
+!plugins/**
+!cockpit/
+cockpit/*
+!cockpit/pyproject.toml
+!cockpit/uv.lock
+!cockpit/src/
+!cockpit/src/**
+!executor/
+executor/*
+!executor/pyproject.toml
+!executor/uv.lock
+!executor/src/
+!executor/src/**
+!requirements-actions.txt
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ruff_cache/
+**/.env
+**/.env.*
+**/.git/
+**/node_modules/
+
+!executor/smoke/
+executor/smoke/*
+!executor/smoke/fake_codex.py
