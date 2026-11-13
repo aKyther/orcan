@@ -177,7 +177,7 @@ class _OscFilter:
 
 def normalize_wide_cells(screen, rows=None) -> None:
     """Repair pyte's orphan halves after overwrite, erase or cell shifts."""
-    from pyte.screens import wcwidth
+    from wcwidth import wcswidth
 
     for y in tuple(screen.dirty) if rows is None else rows:
         if not 0 <= y < screen.lines:
@@ -186,9 +186,9 @@ def normalize_wide_cells(screen, rows=None) -> None:
         for x in range(screen.columns):
             char = line[x]
             data = char.data
-            if data and ord(data[0]) < 128:
+            if len(data) == 1 and ord(data) < 128:
                 continue
-            width = wcwidth(data[0]) if data else 0
+            width = wcswidth(data) if data else 0
             if data and width == 2:
                 if x + 1 < screen.columns:
                     following = line[x + 1]
@@ -202,7 +202,7 @@ def normalize_wide_cells(screen, rows=None) -> None:
                         screen.dirty.add(y)
                         continue
             elif (data and width == 1) or (
-                not data and x and wcwidth(line[x - 1].data[:1] or " ") == 2
+                not data and x and wcswidth(line[x - 1].data or " ") == 2
             ):
                 continue
             fields = {"data": " "}
@@ -310,7 +310,7 @@ def attach_hyperlink_screen(on_response=None):
     so host unit tests for pure helpers need no pyte."""
     import pyte
     from pyte import modes
-    from pyte.screens import wcwidth
+    from wcwidth import iter_graphemes, wcswidth
 
     # pyte moves/replaces immutable Char tuples for every screen operation.
     # Carry links in those tuples instead of maintaining a parallel cell grid.
@@ -341,27 +341,79 @@ def attach_hyperlink_screen(on_response=None):
             if self.active_href:
                 self.cursor.attrs = LinkedChar(*attrs, self.active_href)
             try:
+                tail = getattr(self, "_grapheme_tail", None)
+                if tail is not None:
+                    y, x, cell, end = tail
+                    if (self.cursor.y, self.cursor.x) == end and self.buffer[y][
+                        x
+                    ] == cell:
+                        clusters = iter(iter_graphemes(cell.data + data))
+                        joined = next(clusters)
+                        if len(joined) > len(cell.data):
+                            data = data[len(joined) - len(cell.data) :]
+                            old_width = wcswidth(cell.data)
+                            width = wcswidth(joined)
+                            if width > old_width and x + width > self.columns:
+                                self.buffer[y][x] = self.default_char
+                                self.dirty.add(y)
+                                self.cursor.x = (
+                                    self.columns
+                                    if modes.DECAWM in self.mode
+                                    else max(0, self.columns - width)
+                                )
+                                self._draw_cluster(joined, cell)
+                            else:
+                                if width > old_width and modes.IRM in self.mode:
+                                    self.insert_characters(width - old_width)
+                                self.buffer[y][x] = cell._replace(data=joined)
+                                if width == 2:
+                                    self.buffer[y][x + 1] = cell._replace(data="")
+                                self.cursor.x += width - old_width
+                                self.dirty.add(y)
+                                self._remember_cluster(y, x)
                 if data.isascii():
                     super().draw(data)
+                    if data:
+                        self._remember_cluster(self.cursor.y, self.cursor.x - 1)
                 else:
-                    # pyte stops draw() at unsupported zero-width format
-                    # characters. Isolate them so later text is not discarded.
-                    for char in data:
-                        if (
-                            wcwidth(char) == 2
-                            and self.cursor.x == self.columns - 1
-                            and modes.DECAWM in self.mode
-                        ):
-                            self.buffer[self.cursor.y][self.cursor.x] = attrs._replace(
-                                data=" "
-                            )
-                            self.dirty.add(self.cursor.y)
-                            self.carriage_return()
-                            self.linefeed()
-                        super().draw(char)
+                    for cluster in iter_graphemes(data):
+                        self._draw_cluster(cluster, self.cursor.attrs)
             finally:
                 # Erasing and filling blank cells must never inherit a link.
                 self.cursor.attrs = attrs
+
+        def _remember_cluster(self, y: int, x: int) -> None:
+            self._grapheme_tail = (
+                y,
+                x,
+                self.buffer[y][x],
+                (self.cursor.y, self.cursor.x),
+            )
+
+        def _draw_cluster(self, cluster: str, attrs) -> None:
+            width = wcswidth(cluster)
+            if width not in (1, 2) or width > self.columns:
+                self._grapheme_tail = None
+                return
+            if (
+                width == 2
+                and self.cursor.x == self.columns - 1
+                and modes.DECAWM in self.mode
+            ):
+                self.buffer[self.cursor.y][self.cursor.x] = self.default_char
+                self.dirty.add(self.cursor.y)
+                self.carriage_return()
+                self.linefeed()
+            if width == 2 and self.cursor.x == self.columns - 1:
+                self.cursor.x = self.columns - width
+            # Let pyte handle wrapping, insert mode and charset state using a
+            # glyph of the right width, then store the complete grapheme.
+            super().draw("界" if width == 2 else "a")
+            x, y = self.cursor.x - width, self.cursor.y
+            self.buffer[y][x] = attrs._replace(data=cluster)
+            if width == 2 and x + 1 < self.columns:
+                self.buffer[y][x + 1] = attrs._replace(data="")
+            self._remember_cluster(y, x)
 
         def scroll_up_region(self, count: int | None = None) -> None:
             """CSI Ps S (SU) — shift the current scroll region up by
@@ -409,6 +461,18 @@ def attach_hyperlink_screen(on_response=None):
                     self.buffer[y] = self.buffer.pop(src)
                 else:
                     self.buffer.pop(y, None)
+
+    def invalidate_tail(method):
+        def dispatch(self, *args, **kwargs):
+            self._grapheme_tail = None
+            return method(self, *args, **kwargs)
+
+        return dispatch
+
+    for event in pyte.Stream.events - {"draw", "select_graphic_rendition"}:
+        method = getattr(HyperlinkScreen, event, None)
+        if method is not None:
+            setattr(HyperlinkScreen, event, invalidate_tail(method))
 
     class ScrollAwareStream(pyte.Stream):
         # Extends, doesn't replace, pyte's own dispatch table — see

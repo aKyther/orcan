@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserve complete emoji graphemes across cockpit PTY reads. Bound the combined raw and navigation input buffers, reserving paste framing, and reject whole events on overflow. Send ordinary multiline pastes unchanged to agents; move the private-file fallback from 32 KiB to the 1 MiB input budget.
+
 - Give each executor Docker smoke run a unique container name so independent verification worktrees cannot collide with an active fixture.
 
 - Preserve cockpit input order across asynchronous tmux navigation, keyboard, paste and mouse events. Repair half-overwritten wide characters and right-margin wrapping. Return terminal device/status replies so waiting applications can redraw without keyboard input; explicitly repaint resized terminals. Add idle/full-frame checks through a real PTY and private tmux, plus Unicode load measurements.

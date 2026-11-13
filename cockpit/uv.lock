@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 
 [[package]]
@@ -85,13 +85,14 @@ wheels = [
 
 [[package]]
 name = "orcan-cockpit"
-version = "4.1.17"
+version = "4.1.18"
 source = { editable = "." }
 dependencies = [
     { name = "libtmux" },
     { name = "pyte" },
     { name = "textual" },
     { name = "watchfiles" },
+    { name = "wcwidth" },
 ]
 
 [package.metadata]
@@ -100,6 +101,7 @@ requires-dist = [
     { name = "pyte", specifier = ">=0.8.2" },
     { name = "textual", specifier = ">=8.2.8" },
     { name = "watchfiles", specifier = ">=1.2.0" },
+    { name = "wcwidth", specifier = ">=0.3.0" },
 ]
 
 [[package]]

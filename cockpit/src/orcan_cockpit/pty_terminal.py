@@ -156,7 +156,6 @@ _ESCAPE_KEYS = frozenset({"escape", "ctrl+left_square_brace"})
 # Textual's Escape+key pairs for Meta/Alt, short enough that bare Esc in
 # vim/shell feels immediate.
 _ESC_COALESCE_S = 0.025
-_STAGED_PASTE_BYTES = 32 * 1024
 _STAGED_PASTE_MAX_AGE_S = 24 * 60 * 60
 # A busy agent can write continuously (build logs, test output, streaming
 # responses). Drain enough to keep the terminal current, then yield so input,
@@ -171,6 +170,9 @@ _SGR_MOUSE_MODE = 1006 << 5
 _BRACKETED_PASTE_MODE = 2004 << 5
 _NAV_QUEUE_LIMIT = 32
 _INPUT_QUEUE_BYTES_LIMIT = 1024 * 1024
+# Keep ordinary large pastes intact for the receiving agent. Only payloads
+# exceeding the entire input budget need the private-file fallback.
+_STAGED_PASTE_BYTES = _INPUT_QUEUE_BYTES_LIMIT - 12 + 1
 _INPUT_QUEUE_ITEMS_LIMIT = 4096
 _INPUT_DRAIN_TIMEOUT_S = 2.0
 
@@ -519,6 +521,8 @@ class PtyTerminal(Widget):
     def _send_pty(self, data: bytes) -> None:
         if self._master_fd is None or not data:
             return
+        if not self._input_fits(len(data)):
+            return
         self._write_drained.clear()
         self._write_buffer.extend(data)
         self._flush_pty_write()
@@ -623,12 +627,30 @@ class PtyTerminal(Widget):
             )
         return True
 
-    def _queue_input(self, kind: str, payload) -> None:
-        size = len(payload) if kind in ("data", "paste") else 0
+    def _input_fits(self, size: int) -> bool:
         if (
-            self._input_queue_bytes + size > _INPUT_QUEUE_BYTES_LIMIT
-            or len(self._nav_queue) >= _INPUT_QUEUE_ITEMS_LIMIT
+            len(self._write_buffer) + self._input_queue_bytes + size
+            <= _INPUT_QUEUE_BYTES_LIMIT
         ):
+            return True
+        self.notify("Input queue is full; this input was not sent.", severity="warning")
+        return False
+
+    @staticmethod
+    def _queued_input_size(kind: str, payload) -> int:
+        # Paste mode is resolved after navigation. Reserve both delimiters;
+        # mouse reports have bounded coordinates but variable decimal widths.
+        if kind == "paste":
+            return len(payload) + 12
+        if kind == "mouse":
+            return 128
+        return len(payload)
+
+    def _queue_input(self, kind: str, payload) -> None:
+        size = self._queued_input_size(kind, payload)
+        if not self._input_fits(size):
+            return
+        if len(self._nav_queue) >= _INPUT_QUEUE_ITEMS_LIMIT:
             self.notify(
                 "Input queue is full; this input was not sent.", severity="warning"
             )
@@ -654,8 +676,9 @@ class PtyTerminal(Widget):
                             raise OSError("PTY input is unavailable")
                         await run_nav(self._session, payload)
                     else:
-                        if kind in ("data", "paste"):
-                            self._input_queue_bytes -= len(payload)
+                        self._input_queue_bytes -= self._queued_input_size(
+                            kind, payload
+                        )
                         if kind == "paste":
                             data = self._encode_paste(payload)
                         elif kind == "mouse":

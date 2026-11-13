@@ -6,6 +6,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
 try:
     from orcan_cockpit import pty_terminal as p
     from orcan_cockpit.pty_links import feed_with_osc8, url_at_screen
@@ -145,8 +147,135 @@ class OrderedInputTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(term._esc_coalesce_until)
         with patch.object(p, "_INPUT_QUEUE_BYTES_LIMIT", 6):
             term._write_pty(b"overflow")
-        self.assertEqual(term._input_queue_bytes, 6)
+        self.assertEqual(term._input_queue_bytes, 18)
         term.notify.assert_called_once()
+
+    async def test_raw_and_navigation_input_share_one_budget(self):
+        term = terminal()
+        term._watch_pty_writable = Mock()
+        with (
+            patch.object(p, "_INPUT_QUEUE_BYTES_LIMIT", 32),
+            patch.object(p.os, "write", side_effect=BlockingIOError),
+        ):
+            term._write_pty(b"x" * 16)
+            term._queue_nav("ctrl+right")
+            term._write_paste(b"abcd")  # 4 bytes + 12 reserved delimiter bytes.
+            term._write_pty(b"rejected")
+            self.assertEqual(len(term._write_buffer) + term._input_queue_bytes, 32)
+            term.notify.assert_called_once()
+        with (
+            patch.object(p.os, "write", side_effect=lambda fd, data: len(data)),
+            patch.object(p, "run_nav", new=AsyncMock()),
+        ):
+            term._flush_pty_write()
+            await term._drain_nav()
+        self.assertEqual(term._input_queue_bytes, 0)
+        self.assertEqual(term._write_buffer, b"")
+
+    async def test_stalled_raw_pty_rejects_whole_paste_then_recovers(self):
+        term = terminal()
+        term._watch_pty_writable = Mock()
+        feed_with_osc8(term._stream, term._screen, "\x1b[?2004h")
+        with (
+            patch.object(p, "_INPUT_QUEUE_BYTES_LIMIT", 32),
+            patch.object(p.os, "write", side_effect=BlockingIOError),
+        ):
+            term._write_pty(b"x" * 24)
+            term._write_paste(b"paste")
+            self.assertEqual(term._write_buffer, b"x" * 24)
+            term.notify.assert_called_once()
+        delivered = []
+        with patch.object(
+            p.os,
+            "write",
+            side_effect=lambda fd, data: delivered.append(bytes(data)) or len(data),
+        ):
+            term._flush_pty_write()
+            term._write_paste(b"paste")
+        self.assertEqual(delivered, [b"x" * 24, b"\x1b[200~paste\x1b[201~"])
+
+    @pytest.mark.integration
+    async def test_large_paste_crosses_real_backpressured_pty_intact(self):
+        import hashlib
+        import os
+        import subprocess
+        import sys
+        import tempfile
+        from pathlib import Path
+
+        payload = ("Unicode 👩‍💻 input " * 30 + "\n") * 100
+        expected = b"\x1b[200~" + payload.encode() + b"\x1b[201~"
+        child = """
+import hashlib,os,sys,time,tty
+from pathlib import Path
+tty.setraw(0)
+Path(sys.argv[1]).touch()
+time.sleep(.1)
+data=bytearray()
+while len(data)<int(sys.argv[3]):
+    data.extend(os.read(0,min(4096,int(sys.argv[3])-len(data))))
+Path(sys.argv[2]).write_text(hashlib.sha256(data).hexdigest())
+time.sleep(30)
+"""
+        master, slave = os.openpty()
+        process = None
+        term = terminal()
+        term._master_fd = master
+        os.set_blocking(master, False)
+        try:
+            with tempfile.TemporaryDirectory(prefix="orcan-paste-test-") as root:
+                ready, result = Path(root) / "ready", Path(root) / "result"
+                process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-c",
+                        child,
+                        str(ready),
+                        str(result),
+                        str(len(expected)),
+                    ],
+                    stdin=slave,
+                    stdout=slave,
+                    stderr=slave,
+                    close_fds=True,
+                )
+                os.close(slave)
+                slave = None
+                async with asyncio.timeout(3):
+                    while not ready.exists():
+                        await asyncio.sleep(0.01)
+                    feed_with_osc8(term._stream, term._screen, "\x1b[?2004h")
+                    term.on_paste(SimpleNamespace(text=payload, stop=Mock()))
+                    self.assertGreater(len(term._write_buffer), 0)
+                    while not result.exists():
+                        await asyncio.sleep(0.01)
+                self.assertEqual(
+                    result.read_text(), hashlib.sha256(expected).hexdigest()
+                )
+                self.assertEqual(term._write_buffer, b"")
+                term.notify.assert_not_called()
+        finally:
+            term._unwatch_pty_writable()
+            term._master_fd = None
+            os.close(master)
+            if slave is not None:
+                os.close(slave)
+            if process is not None:
+                process.terminate()
+                await asyncio.to_thread(process.wait, 3)
+
+    async def test_hundred_line_paste_reaches_agent_unchanged(self):
+        term = terminal()
+        payload = ("a full line of agent input " * 20 + "\n") * 100
+        self.assertGreater(len(payload.encode()), 32768)
+        feed_with_osc8(term._stream, term._screen, "\x1b[?2004h")
+        term._write_pty = Mock()
+        term._stage_large_paste = Mock()
+        term.on_paste(SimpleNamespace(text=payload, stop=Mock()))
+        term._stage_large_paste.assert_not_called()
+        term._write_pty.assert_called_once_with(
+            b"\x1b[200~" + payload.encode() + b"\x1b[201~"
+        )
 
 
 @unittest.skipIf(p is None, "cockpit dependencies unavailable")
@@ -194,8 +323,70 @@ class WideCellTests(unittest.TestCase):
         term = terminal()
         feed_with_osc8(term._stream, term._screen, "a✈️suffix")
         row = term._render_line(term._screen, 0, 40, None)
-        self.assertTrue(row.plain.startswith("a✈suffix"))
+        self.assertTrue(row.plain.startswith("a✈️suffix"))
         self.assertEqual(cell_len(row.plain), 40)
+
+    def test_graphemes_across_every_utf8_split(self):
+        import codecs
+
+        for glyph in ("👩‍💻", "✈️", "1️⃣", "👍🏽", "🇵🇱", "界́"):
+            encoded = (glyph + "Z").encode()
+            for split in range(len(encoded) + 1):
+                with self.subTest(glyph=glyph, split=split):
+                    term = terminal()
+                    decoder = codecs.getincrementaldecoder("utf-8")()
+                    for chunk in (encoded[:split], encoded[split:]):
+                        feed_with_osc8(
+                            term._stream, term._screen, decoder.decode(chunk)
+                        )
+                    self.assertEqual(term._screen.buffer[0][0].data, glyph)
+                    self.assertEqual(term._screen.buffer[0][1].data, "")
+                    self.assertEqual(term._screen.buffer[0][2].data, "Z")
+                    self.assertEqual(term._screen.cursor.x, 3)
+                    self.assertEqual(
+                        cell_len(term._render_line(term._screen, 0, 40, None).plain), 40
+                    )
+
+    def test_grapheme_link_selection_and_cursor_use_terminal_cells(self):
+        term = terminal()
+        for chunk in ("\x1b]8;;https://emoji.example\x07👩", "‍", "💻", "\x1b]8;;\x07Z"):
+            feed_with_osc8(term._stream, term._screen, chunk)
+        self.assertEqual(url_at_screen(term._screen, 1, 0), "https://emoji.example")
+        self.assertIsNone(url_at_screen(term._screen, 2, 0))
+        self.assertEqual(
+            term.get_selection(Selection(Offset(0, 0), Offset(2, 0)))[0], "👩‍💻"
+        )
+        self.assertEqual(
+            term._cursor_offset(term._screen, 40, focused=True, visible=True),
+            len("👩‍💻Z"),
+        )
+
+    def test_selector_growth_in_insert_mode_preserves_following_text(self):
+        term = terminal()
+        for chunk in ("abc\r\x1b[4h✈", "️", "Z"):
+            feed_with_osc8(term._stream, term._screen, chunk)
+        self.assertTrue(
+            term._render_line(term._screen, 0, 40, None).plain.startswith("✈️Zabc")
+        )
+
+    def test_style_change_does_not_split_grapheme_but_cursor_move_does(self):
+        term = terminal()
+        for chunk in ("✈", "\x1b[31m", "️"):
+            feed_with_osc8(term._stream, term._screen, chunk)
+        self.assertEqual(term._screen.buffer[0][0].data, "✈️")
+        term = terminal()
+        for chunk in ("✈", "\r\x1b[C", "️Z"):
+            feed_with_osc8(term._stream, term._screen, chunk)
+        self.assertEqual(term._screen.buffer[0][0].data, "✈")
+        self.assertEqual(term._screen.buffer[0][1].data, "Z")
+
+    def test_split_variation_selector_wraps_at_right_edge(self):
+        term = terminal()
+        for chunk in ("x" * 39 + "✈", "️", "Z"):
+            feed_with_osc8(term._stream, term._screen, chunk)
+        self.assertEqual(term._screen.buffer[0][39].data, " ")
+        self.assertEqual(term._screen.buffer[1][0].data, "✈️")
+        self.assertEqual(term._screen.buffer[1][2].data, "Z")
 
     def test_wide_glyph_at_last_column_wraps_before_drawing(self):
         term = terminal()

@@ -50,6 +50,8 @@ colors; the style cache holds at most 4096 entries.
 The terminal returns standard device-attribute and status/cursor-position replies
 to the child. Applications waiting for these replies can continue drawing without
 keyboard input. Protocol replies bypass pending user navigation.
+Emoji ZWJ sequences, variation selectors, flags and skin tones are stored as
+complete graphemes, including when their UTF-8 bytes arrive in separate reads.
 Partially overwritten wide characters are repaired as cell pairs; a wide character
 at the right margin wraps before it is drawn. Cursor, links and copying use the
 same normalized screen cells.
@@ -178,7 +180,9 @@ navigation and queued user input, and shows a warning instead of sending that
 input to the previous pane. Keys, paste and mouse events wait behind their pending
 navigation command; prior backpressured PTY writes drain before navigation starts.
 Paste and mouse modes are evaluated when queued events are sent. Pending input is
-limited to 1 MiB and 4096 events; overflow is rejected with a warning. Leaving the
+limited to 1 MiB across the PTY write buffer and the navigation queue, with
+space reserved for paste delimiters and mouse reports, and at most 4096 queued
+events. Overflow rejects the whole new event with a warning. Leaving the
 terminal cancels navigation and terminates its active tmux client.
 
 | Shortcut | Cockpit action |
@@ -218,8 +222,10 @@ without selection → SIGINT. Paste is queued to the non-blocking PTY, so a
 confirmed large paste is delivered in full rather than being cut at the PTY
 buffer boundary.
 
-Pastes of **32 KiB or more** are staged instead of being injected into the
-active agent. Orcan writes a private `0600` file under `/tmp/orcan-paste-*.md`
+Pastes up to **1 MiB minus 12 bytes** reach the active application unchanged,
+with bracketed-paste delimiters when it requests them. This lets an agent show
+its own collapsed multiline-paste preview, just as with a direct tmux attach.
+Larger pastes are staged instead of being injected into the active agent. Orcan writes a private `0600` file under `/tmp/orcan-paste-*.md`
 and types a short instruction with its path. The agent can read the complete
 request without losing its terminal context. Staged files expire after 24 hours.
 
