@@ -34,6 +34,11 @@ has keyboard focus. It follows the cursor from zsh, Codex, Claude Code and
 other terminal applications, but respects applications that intentionally hide
 their cursor.
 
+PTY reads preserve UTF-8 characters across byte boundaries. The cockpit caches
+rendered rows and updates changed rows and cursor rows. Wide characters use
+terminal cell coordinates for cursor placement, links and text selection.
+
+
 ## Palette
 
 | Role | Hex | Used for |

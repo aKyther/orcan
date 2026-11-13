@@ -171,7 +171,9 @@ class EscCoalesceFlushTests(unittest.TestCase):
         loop = MagicMock()
         with (
             patch.object(pty_terminal.asyncio, "get_running_loop", return_value=loop),
-            patch.object(pty_terminal.os, "read", side_effect=[b"ok", BlockingIOError()]),
+            patch.object(
+                pty_terminal.os, "read", side_effect=[b"ok", BlockingIOError()]
+            ),
             patch.object(pty_terminal, "feed_with_osc8"),
         ):
             term._on_readable()
@@ -263,6 +265,127 @@ class EscCoalesceFlushTests(unittest.TestCase):
                 screen, 8, focused=True, visible=True
             )
         )
+
+
+@unittest.skipIf(pty_terminal is None, "cockpit dependencies unavailable")
+class TerminalUnicodeTests(unittest.TestCase):
+    def terminal(self, columns=40, lines=3):
+        term = pty_terminal.PtyTerminal(["true"])
+        term._screen = pty_terminal.pyte.Screen(columns, lines)
+        term._stream = pty_terminal.pyte.Stream(term._screen)
+        return term
+
+    def test_utf8_survives_every_byte_boundary_in_real_read_callback(self):
+        term = self.terminal()
+        term._master_fd = 123
+        term._ready = True
+        term._schedule_refresh = MagicMock()
+        payload = "zażółć 界 😀".encode()
+        for byte in payload:
+            with patch.object(
+                pty_terminal.os, "read", side_effect=[bytes([byte]), BlockingIOError()]
+            ):
+                term._on_readable()
+        self.assertEqual(term.render().plain.splitlines()[0].rstrip(), "zażółć 界 😀")
+
+    def test_eof_preserves_final_output_and_flushes_incomplete_utf8(self):
+        term = self.terminal()
+        term._master_fd = 123
+        term._ready = True
+        term._schedule_refresh = MagicMock()
+        with (
+            patch.object(pty_terminal.os, "read", side_effect=[b"last\xe2", b""]),
+            patch.object(term, "_close") as close,
+        ):
+            term._on_readable()
+        self.assertEqual(term.render().plain.splitlines()[0].rstrip(), "last�")
+        close.assert_called_once()
+        term._schedule_refresh.assert_called_once()
+        self.assertIsNone(term._read_resume)
+
+    def test_wide_glyph_and_combining_mark_do_not_add_cells(self):
+        term = self.terminal(columns=12)
+        term._stream.feed("界e\u0301X")
+        row = term._render_line(term._screen, 0, 12, None)
+        self.assertTrue(row.plain.startswith("界éX"))
+        from rich.cells import cell_len
+
+        self.assertEqual(cell_len(row.plain), 12)
+        self.assertEqual(
+            term._cursor_offset(term._screen, 12, focused=True, visible=True), 3
+        )
+
+    def test_plain_link_after_wide_glyph_uses_cell_coordinates(self):
+        term = self.terminal()
+        term._stream.feed("界 https://example.com")
+        from orcan_cockpit.pty_links import url_at_screen
+
+        self.assertIsNone(url_at_screen(term._screen, 2, 0))
+        self.assertEqual(url_at_screen(term._screen, 3, 0), "https://example.com")
+        row = term._render_line(term._screen, 0, 40, None)
+        link_spans = [span for span in row.spans if span.style.link]
+        self.assertEqual(link_spans[0].start, 2)
+        term._stream.feed("\r界https://example.com\x1b[K")
+        self.assertIsNone(url_at_screen(term._screen, 1, 0))
+        self.assertEqual(url_at_screen(term._screen, 2, 0), "https://example.com")
+
+    def test_selection_uses_cells_and_preserves_wide_glyph(self):
+        from textual.geometry import Offset
+        from textual.selection import Selection
+
+        term = self.terminal()
+        term._stream.feed("界abc")
+        self.assertEqual(
+            term.get_selection(Selection(Offset(2, 0), Offset(5, 0)))[0], "abc"
+        )
+        self.assertEqual(
+            term.get_selection(Selection(Offset(0, 0), Offset(2, 0)))[0], "界"
+        )
+
+
+@unittest.skipIf(pty_terminal is None, "cockpit dependencies unavailable")
+class TerminalRowRenderingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_dirty_rows_cursor_selection_and_resize(self):
+        from textual.app import App, ComposeResult
+        from textual.geometry import Offset
+        from textual.selection import Selection
+
+        class Terminal(pty_terminal.PtyTerminal):
+            def on_mount(self, event):
+                event.prevent_default()
+                self._screen = pty_terminal.pyte.Screen(20, 3)
+                self._stream = pty_terminal.pyte.Stream(self._screen)
+
+        class Harness(App):
+            def compose(self) -> ComposeResult:
+                yield Terminal(["true"])
+
+        app = Harness()
+        async with app.run_test(size=(20, 3)) as pilot:
+            term = app.query_one(Terminal)
+            term.focus()
+            term._stream.feed("界abc\r\nsecond")
+            term._schedule_refresh()
+            await pilot.pause()
+            self.assertEqual(term.render_line(0).cell_length, 20)
+            self.assertIsNone(term._frame_cache)
+            unchanged = term._strip_cache[0]
+            with patch.object(term, "_render_line", wraps=term._render_line) as build:
+                term._stream.feed("!")
+                term._schedule_refresh()
+                await pilot.pause()
+                self.assertEqual([call.args[1] for call in build.call_args_list], [1])
+                self.assertIs(term._strip_cache[0], unchanged)
+                build.reset_mock()
+                term._toggle_cursor()
+                await pilot.pause()
+                build.assert_not_called()
+            app.screen.selections = {term: Selection(Offset(2, 0), Offset(5, 0))}
+            self.assertEqual(term.render_line(0).cell_length, 20)
+            term._screen.resize(3, 10)
+            term._schedule_refresh()
+            await pilot.pause()
+            self.assertEqual(term.render_line(0).cell_length, 10)
 
 
 if __name__ == "__main__":

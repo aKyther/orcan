@@ -125,15 +125,20 @@ def line_from_screen(screen, row: int) -> str:
     if row < 0 or row >= screen.lines:
         return ""
     buf = screen.buffer[row]
-    return "".join(buf[x].data or " " for x in range(screen.columns))
+    return "".join(buf[x].data for x in range(screen.columns))
 
 
 def url_at_screen(screen, column: int, row: int) -> str | None:
     """OSC 8 cell href, else plain http(s) under the cursor."""
+    if row < 0 or row >= screen.lines or column < 0 or column > screen.columns:
+        return None
+    if column < screen.columns and column and not screen.buffer[row][column].data:
+        column -= 1
     href = getattr(screen, "link_at", lambda _c, _r: None)(column, row)
     if href:
         return href
-    return plain_url_at(line_from_screen(screen, row), column)
+    offset = sum(len(screen.buffer[row][x].data) for x in range(column))
+    return plain_url_at(line_from_screen(screen, row), offset)
 
 
 def open_url(url: str) -> bool:

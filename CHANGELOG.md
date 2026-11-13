@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve UTF-8 characters split across cockpit PTY reads. Render wide glyphs without extra spaces and use terminal cell coordinates for links, cursor and copying. Cache rendered rows so output and cursor blinking do not rebuild the whole terminal frame.
+
 ### Added
 
 - Add `orcan sandbox pull` for bulk fast-forward updates of clean parent repositories, with dry-run, directory exclusions, timeouts and compact JSON results. Skip linked worktrees and local changes.

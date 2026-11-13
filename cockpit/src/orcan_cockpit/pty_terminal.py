@@ -30,6 +30,7 @@ attach.
 from __future__ import annotations
 
 import asyncio
+import codecs
 import fcntl
 import os
 import pty
@@ -47,7 +48,9 @@ from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.actions import SkipAction
+from textual.geometry import Region
 from textual.message import Message
+from textual.strip import Strip
 from textual.timer import Timer
 from textual.widget import Widget
 
@@ -179,6 +182,7 @@ class PtyTerminal(Widget):
         self._process: subprocess.Popen | None = None
         self._screen: pyte.Screen | None = None
         self._stream: pyte.Stream | None = None
+        self._decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         self._read_resume: asyncio.TimerHandle | None = None
         self._ready = False
         self._mouse_tracking = False
@@ -200,6 +204,9 @@ class PtyTerminal(Widget):
         # display '_RenderCache' type".
         self._line_cache: list[Text] = []
         self._frame_cache: Text | None = None
+        self._strip_cache: dict[int, Strip] = {}
+        self._cache_size = (0, 0)
+        self._painted_cursor_row: int | None = None
         # pyte tracks the cursor position but does not render it. Keep the
         # terminal's familiar block cursor here, independent of whether its
         # child is zsh, Codex, Claude Code, vim, or another TUI.
@@ -249,7 +256,7 @@ class PtyTerminal(Widget):
         if not self.has_focus:
             return
         self._cursor_visible = not self._cursor_visible
-        self.refresh()
+        self._refresh_cursor_rows()
 
     @staticmethod
     def _cursor_offset(
@@ -262,8 +269,20 @@ class PtyTerminal(Widget):
         if not (0 <= cursor.x < cols and 0 <= cursor.y < screen.lines):
             return None
         # Rich text contains one newline after every screen row except the
-        # final one, so each preceding row contributes cols + 1 characters.
-        return cursor.y * (cols + 1) + cursor.x
+        # final one. Count text codepoints, not display cells: wide glyphs
+        # have an empty continuation cell and combining marks share a cell.
+        column = cursor.x
+        if column and not screen.buffer[cursor.y][column].data:
+            column -= 1
+        return (
+            sum(
+                len(screen.buffer[y][x].data)
+                for y in range(cursor.y)
+                for x in range(cols)
+            )
+            + cursor.y
+            + sum(len(screen.buffer[cursor.y][x].data) for x in range(column))
+        )
 
     def _render_cursor(self, frame: Text, screen: pyte.Screen, cols: int) -> Text:
         offset = self._cursor_offset(
@@ -273,7 +292,11 @@ class PtyTerminal(Widget):
             visible=self._cursor_visible,
         )
         if offset is not None:
-            frame.stylize(_CURSOR_STYLE, offset, offset + 1)
+            column = screen.cursor.x
+            if column and not screen.buffer[screen.cursor.y][column].data:
+                column -= 1
+            cell = screen.buffer[screen.cursor.y][column]
+            frame.stylize(_CURSOR_STYLE, offset, offset + max(1, len(cell.data)))
         return frame
 
     def _term_size(self) -> tuple[int, int]:
@@ -343,6 +366,8 @@ class PtyTerminal(Widget):
         self._set_winsize(self._master_fd, rows, cols)
         # Column count changed → every cached line is the wrong width.
         self._line_cache = []
+        self._strip_cache.clear()
+        self._cache_size = (0, 0)
         self._frame_cache = None
 
     def _note_mouse_modes(self, data: bytes) -> None:
@@ -358,13 +383,30 @@ class PtyTerminal(Widget):
         # visibly lags full-screen CSI clears (shell `clear`) whenever
         # metrics/status intervals are also posting. refresh() already
         # coalesces multiple calls and wakes the idle pump (check_idle).
-        self.refresh()
+        if self._screen is None:
+            return
+        if self._cache_size != (self._screen.lines, self._screen.columns):
+            self.refresh()
+        else:
+            for y in self._screen.dirty:
+                self.refresh(Region(0, y, self._screen.columns, 1))
+            self._refresh_cursor_rows()
+
+    def _refresh_cursor_rows(self) -> None:
+        screen = self._screen
+        if screen is None:
+            return
+        for y in {self._painted_cursor_row, screen.cursor.y}:
+            if y is not None and 0 <= y < screen.lines:
+                self.refresh(Region(0, y, screen.columns, 1))
+        self._painted_cursor_row = screen.cursor.y
 
     def _on_readable(self) -> None:
         if self._master_fd is None or self._stream is None:
             return
         got_data = False
         drained = False
+        ended = False
         bytes_read = 0
         budget = self._io_limits["pty_read_bytes"]
         deadline = time.monotonic() + self._io_limits["pty_read_ms"] / 1000
@@ -378,11 +420,11 @@ class PtyTerminal(Widget):
                 drained = True
                 break
             except OSError:
-                self._close()
-                return
+                ended = True
+                break
             if not data:  # EOF — child exited (e.g. tmux session killed)
-                self._close()
-                return
+                ended = True
+                break
             got_data = True
             bytes_read += len(data)
             self._note_mouse_modes(data)
@@ -390,7 +432,7 @@ class PtyTerminal(Widget):
                 feed_with_osc8(
                     self._stream,
                     self._screen,
-                    data.decode("utf-8", errors="replace"),
+                    self._decoder.decode(data),
                     on_clipboard=self._copy_from_child,
                 )
             except Exception:
@@ -401,6 +443,14 @@ class PtyTerminal(Widget):
                 # escape sequence's effect is far better than losing the whole
                 # embedded terminal over it.
                 pass
+        if ended:
+            tail = self._decoder.decode(b"", final=True)
+            if tail:
+                feed_with_osc8(
+                    self._stream, self._screen, tail, on_clipboard=self._copy_from_child
+                )
+                got_data = True
+            self._close()
         if not got_data:
             return
         if not self._ready:
@@ -414,7 +464,7 @@ class PtyTerminal(Widget):
             # (button 64/65 = '@'/'A') echo as garbage when 1006 is expected.
             self._mouse_sgr = True
         self._schedule_refresh()
-        if not drained and self._read_resume is None:
+        if not ended and not drained and self._read_resume is None:
             # A level-triggered fd stays ready throughout an output flood.
             # A per-callback budget alone gives the UI no quiet turn to paint.
             # Leave bytes in the PTY (kernel backpressure, no output loss) and
@@ -702,7 +752,7 @@ class PtyTerminal(Widget):
 
     def _render_line(self, screen, y: int, cols: int, link_at) -> Text:
         line = screen.buffer[y]
-        line_text = "".join(line[x].data or " " for x in range(cols))
+        line_text = "".join(line[x].data for x in range(cols))
         hrefs: list[str | None] = [None] * cols
         has_href = False
         if link_at is not None:
@@ -714,13 +764,22 @@ class PtyTerminal(Widget):
         # annotate_plain_urls scans the row with a regex — skip it entirely
         # for the overwhelmingly common line that holds no URL.
         if "http" in line_text:
-            annotate_plain_urls(hrefs, line_text)
+            text_hrefs: list[str | None] = [None] * len(line_text)
+            annotate_plain_urls(text_hrefs, line_text)
+            offset = 0
+            for x in range(cols):
+                data = line[x].data
+                if data and hrefs[x] is None:
+                    hrefs[x] = text_hrefs[offset]
+                offset += len(data)
             has_href = True
         out = Text()
         run_text: list[str] = []
         run_style: Style | None = None
         for x in range(cols):
             char = line[x]
+            if not char.data:  # continuation cell of a double-width glyph
+                continue
             style = _char_style(char, hrefs[x] if has_href else None)
             if run_style is not None and style == run_style:
                 run_text.append(char.data or " ")
@@ -733,43 +792,113 @@ class PtyTerminal(Widget):
             out.append("".join(run_text), style=run_style)
         return out
 
-    def render(self) -> Text:
+    def _sync_lines(self) -> None:
         screen = self._screen
         if screen is None:
-            return Text("(starting tmux…)")
-        lines, cols = screen.lines, screen.columns
-        link_at = getattr(screen, "link_at", None)
-
-        if len(self._line_cache) != lines:
-            self._line_cache = [Text() for _ in range(lines)]
-            dirty: object = range(lines)
+            return
+        size = (screen.lines, screen.columns)
+        if self._cache_size != size:
+            self._line_cache = [Text() for _ in range(screen.lines)]
+            self._strip_cache.clear()
+            self._cache_size = size
+            dirty = range(screen.lines)
         else:
-            dirty = screen.dirty
-            if not dirty and self._frame_cache is not None:
-                return self._render_cursor(self._frame_cache.copy(), screen, cols)
-
+            dirty = tuple(screen.dirty)
+        link_at = getattr(screen, "link_at", None)
         for y in dirty:
-            if 0 <= y < lines:
-                self._line_cache[y] = self._render_line(screen, y, cols, link_at)
+            if 0 <= y < screen.lines:
+                self._line_cache[y] = self._render_line(
+                    screen, y, screen.columns, link_at
+                )
+                self._strip_cache.pop(y, None)
+                self._frame_cache = None
         screen.dirty.clear()
 
-        out = Text()
-        for y in range(lines):
-            out.append_text(self._line_cache[y])
-            if y != lines - 1:
-                out.append("\n")
-        self._frame_cache = out
-        return self._render_cursor(out.copy(), screen, cols)
+    def render_line(self, y: int) -> Strip:
+        """Paint one row; cursor and selection never rebuild the full frame."""
+        screen = self._screen
+        if screen is None:
+            return super().render_line(y)
+        self._sync_lines()
+        if not 0 <= y < screen.lines:
+            return Strip.blank(self.size.width)
+        if y not in self._strip_cache:
+            self._strip_cache[y] = (
+                Strip(self._line_cache[y].render(self.app.console))
+                .extend_cell_length(screen.columns)
+                .crop(0, screen.columns)
+            )
+        strip = self._strip_cache[y]
+        cursor = screen.cursor
+        if cursor.y == y:
+            self._painted_cursor_row = y
+        if (
+            self.has_focus
+            and self._cursor_visible
+            and not cursor.hidden
+            and cursor.y == y
+            and 0 <= cursor.x < screen.columns
+        ):
+            x = cursor.x
+            if not screen.buffer[y][x].data and x:
+                x -= 1
+            width = (
+                2 if x + 1 < screen.columns and not screen.buffer[y][x + 1].data else 1
+            )
+            strip = Strip.join(
+                [
+                    strip.crop(0, x),
+                    strip.crop(x, x + width).apply_style(_CURSOR_STYLE),
+                    strip.crop(x + width),
+                ]
+            )
+        selection = self.text_selection
+        span = selection.get_span(y) if selection is not None else None
+        if span is not None:
+            start, end = span
+            start = min(start, screen.columns)
+            end = screen.columns if end == -1 else min(end, screen.columns)
+            style = self.screen.get_component_rich_style("screen--selection")
+            strip = Strip.join(
+                [
+                    strip.crop(0, start),
+                    strip.crop(start, end).apply_style(style),
+                    strip.crop(end),
+                ]
+            )
+        return strip
+
+    def render(self) -> Text:
+        # Keep a text representation for inspection and accessibility. Normal
+        # painting uses render_line and does not assemble this frame.
+        if self._screen is None:
+            return Text("(starting tmux…)")
+        self._sync_lines()
+        if self._frame_cache is None:
+            self._frame_cache = Text("\n").join(self._line_cache)
+        return self._render_cursor(
+            self._frame_cache.copy(), self._screen, self._screen.columns
+        )
 
     def get_selection(self, selection):
-        """Textual drag-select copy. Every rendered row is space-padded to
-        the full terminal width; strip that trailing filler so the clipboard
-        gets the real text instead of a rectangle of spaces."""
-        result = super().get_selection(selection)
-        if result is None:
+        """Extract using terminal cell coordinates, including wide glyphs."""
+        screen = self._screen
+        if screen is None:
             return None
-        text, ending = result
-        return "\n".join(part.rstrip() for part in text.split("\n")), ending
+        parts = []
+        for y in range(screen.lines):
+            span = selection.get_span(y)
+            if span is None:
+                continue
+            start, end = span
+            end = screen.columns if end == -1 else min(end, screen.columns)
+            start = min(start, screen.columns)
+            if start < end and start and not screen.buffer[y][start].data:
+                start -= 1
+            parts.append(
+                "".join(screen.buffer[y][x].data for x in range(start, end)).rstrip()
+            )
+        return "\n".join(parts), "\n"
 
     def _close(self) -> None:
         if self._read_resume is not None:
