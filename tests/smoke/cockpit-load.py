@@ -17,11 +17,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-def producer(flood):
+def producer(flood, wide=False):
     tty.setraw(0)
     os.write(1, b"\x1b[1;1HACK:00000000\x1b[2;20r\x1b[2;1Hready\r\n")
     number = 0
-    output = (b"\x1b[36m" + b"load " * 16 + b"\x1b[0m\r\n") * 32
+    text = ("界語😀 ".encode() * 8) if wide else b"load " * 16
+    output = (b"\x1b[36m" + text + b"\x1b[0m\r\n") * 32
     while True:
         readable, _, _ = select.select([0], [], [], 0 if flood else 0.05)
         if readable:
@@ -47,7 +48,9 @@ def percentile(values, q):
     )
 
 
-async def scenario(root, name, duration, *, flood, slow_metadata=False, cpu=False):
+async def scenario(
+    root, name, duration, *, flood, slow_metadata=False, cpu=False, wide=False
+):
     from orcan_cockpit import picker
     from orcan_cockpit.pty_terminal import PtyTerminal
     from textual.app import App, ComposeResult
@@ -59,6 +62,7 @@ async def scenario(root, name, duration, *, flood, slow_metadata=False, cpu=Fals
     command = shlex.join(
         [sys.executable, str(Path(__file__).resolve()), "--producer"]
         + (["--flood"] if flood else [])
+        + (["--wide"] if wide else [])
     )
     tmux = ["tmux", "-S", str(socket), "-f", str(config)]
     await asyncio.to_thread(
@@ -144,7 +148,18 @@ async def scenario(root, name, duration, *, flood, slow_metadata=False, cpu=Fals
         def compose(self) -> ComposeResult:
             with Horizontal():
                 yield picker.WorkspaceList(id="workspace-list-widget")
-                yield Terminal([*tmux, "attach-session", "-t", "load"], id="terminal")
+                yield Terminal(
+                    [*tmux, "attach-session", "-t", "load"],
+                    env={
+                        **{
+                            key: value
+                            for key, value in os.environ.items()
+                            if key not in {"TMUX", "TMUX_PANE"}
+                        },
+                        "TERM": "xterm-256color",
+                    },
+                    id="terminal",
+                )
 
     try:
         with (
@@ -244,6 +259,7 @@ async def benchmark(args):
             for name, options in [
                 ("idle", {"flood": False}),
                 ("output", {"flood": True}),
+                ("unicode-output", {"flood": True, "wide": True}),
                 ("slow-metadata", {"flood": True, "slow_metadata": True}),
                 ("cpu-contention", {"flood": True, "cpu": True}),
             ]:
@@ -258,11 +274,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--producer", action="store_true")
     parser.add_argument("--flood", action="store_true")
+    parser.add_argument("--wide", action="store_true")
     parser.add_argument("--seconds", type=float, default=4)
     parser.add_argument("--report")
     args = parser.parse_args()
     if args.producer:
-        producer(args.flood)
+        producer(args.flood, args.wide)
     elif 1 <= args.seconds <= 30:
         asyncio.run(benchmark(args))
     else:

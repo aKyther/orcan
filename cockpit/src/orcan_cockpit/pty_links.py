@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import re
+import unicodedata
 import webbrowser
 from collections import namedtuple
 
@@ -174,12 +175,51 @@ class _OscFilter:
                         stream.feed(sequence)
 
 
+def normalize_wide_cells(screen, rows=None) -> None:
+    """Repair pyte's orphan halves after overwrite, erase or cell shifts."""
+    from pyte.screens import wcwidth
+
+    for y in tuple(screen.dirty) if rows is None else rows:
+        if not 0 <= y < screen.lines:
+            continue
+        line = screen.buffer[y]
+        for x in range(screen.columns):
+            char = line[x]
+            data = char.data
+            if data and ord(data[0]) < 128:
+                continue
+            width = wcwidth(data[0]) if data else 0
+            if data and width == 2:
+                if x + 1 < screen.columns:
+                    following = line[x + 1]
+                    if not following.data:
+                        continue
+                    if all(unicodedata.combining(c) for c in following.data):
+                        line[x] = char._replace(
+                            data=unicodedata.normalize("NFC", data + following.data)
+                        )
+                        line[x + 1] = following._replace(data="")
+                        screen.dirty.add(y)
+                        continue
+            elif (data and width == 1) or (
+                not data and x and wcwidth(line[x - 1].data[:1] or " ") == 2
+            ):
+                continue
+            fields = {"data": " "}
+            if hasattr(char, "href"):
+                fields["href"] = None
+            line[x] = char._replace(**fields)
+            screen.dirty.add(y)
+
+
 def feed_with_osc8(stream, screen, text: str, on_clipboard=None) -> None:
     """Feed terminal text with bounded, incremental OSC 8/52 handling."""
     osc_filter = getattr(stream, "_orcan_osc_filter", None)
     if osc_filter is None:
         osc_filter = stream._orcan_osc_filter = _OscFilter()
     osc_filter.feed(stream, screen, text, on_clipboard)
+    if hasattr(screen, "buffer") and hasattr(screen, "dirty"):
+        normalize_wide_cells(screen)
 
 
 def plain_url_at(line: str, column: int) -> str | None:
@@ -202,6 +242,9 @@ def line_from_screen(screen, row: int) -> str:
     """Visible characters on one pyte screen row (no trailing spaces stripped)."""
     if row < 0 or row >= screen.lines:
         return ""
+    # Real screens can contain half-overwritten double-width characters.
+    if hasattr(screen, "dirty"):
+        normalize_wide_cells(screen, (row,))
     buf = screen.buffer[row]
     return "".join(buf[x].data for x in range(screen.columns))
 
@@ -210,6 +253,8 @@ def url_at_screen(screen, column: int, row: int) -> str | None:
     """OSC 8 cell href, else plain http(s) under the cursor."""
     if row < 0 or row >= screen.lines or column < 0 or column > screen.columns:
         return None
+    if hasattr(screen, "dirty"):
+        normalize_wide_cells(screen, (row,))
     if column < screen.columns and column and not screen.buffer[row][column].data:
         column -= 1
     href = getattr(screen, "link_at", lambda _c, _r: None)(column, row)
@@ -260,10 +305,12 @@ def annotate_plain_urls(hrefs: list[str | None], line: str) -> None:
                 hrefs[x] = url
 
 
-def attach_hyperlink_screen():
+def attach_hyperlink_screen(on_response=None):
     """Return ``(HyperlinkScreen, Stream)`` factory deps — imported lazily
     so host unit tests for pure helpers need no pyte."""
     import pyte
+    from pyte import modes
+    from pyte.screens import wcwidth
 
     # pyte moves/replaces immutable Char tuples for every screen operation.
     # Carry links in those tuples instead of maintaining a parallel cell grid.
@@ -281,6 +328,10 @@ def attach_hyperlink_screen():
                 return None
             return getattr(self.buffer[row][column], "href", None)
 
+        def write_process_input(self, data: str) -> None:
+            if on_response is not None:
+                on_response(data)
+
         def reset(self) -> None:
             super().reset()
             self.active_href = None
@@ -290,7 +341,24 @@ def attach_hyperlink_screen():
             if self.active_href:
                 self.cursor.attrs = LinkedChar(*attrs, self.active_href)
             try:
-                super().draw(data)
+                if data.isascii():
+                    super().draw(data)
+                else:
+                    # pyte stops draw() at unsupported zero-width format
+                    # characters. Isolate them so later text is not discarded.
+                    for char in data:
+                        if (
+                            wcwidth(char) == 2
+                            and self.cursor.x == self.columns - 1
+                            and modes.DECAWM in self.mode
+                        ):
+                            self.buffer[self.cursor.y][self.cursor.x] = attrs._replace(
+                                data=" "
+                            )
+                            self.dirty.add(self.cursor.y)
+                            self.carriage_return()
+                            self.linefeed()
+                        super().draw(char)
             finally:
                 # Erasing and filling blank cells must never inherit a link.
                 self.cursor.attrs = attrs

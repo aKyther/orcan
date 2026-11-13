@@ -583,7 +583,7 @@ class TerminalNavigationTests(unittest.IsolatedAsyncioTestCase):
             def on_mount(self, event):
                 event.prevent_default()
                 self._master_fd = 123
-                self._write_pty = MagicMock()
+                self._send_pty = MagicMock()
                 self.focus()
 
             def on_resize(self, event):
@@ -614,16 +614,18 @@ class TerminalNavigationTests(unittest.IsolatedAsyncioTestCase):
                 before = app.ticks
                 await pilot.press("ctrl+right", "a")
                 await pilot.pause(0.03)
-                term._write_pty.assert_called_with(b"a")
+                term._send_pty.assert_not_called()
                 self.assertGreater(app.ticks, before)
                 self.assertEqual(calls, ["ctrl+left"])
                 release.set()
                 await app.workers.wait_for_complete()
                 self.assertEqual(calls, ["ctrl+left", "ctrl+right"])
                 self.assertFalse(term._nav_running)
+                term._send_pty.assert_called_once_with(b"a")
 
     async def test_queue_capacity_failure_and_close(self):
         term = pty_terminal.PtyTerminal(["true"], session="fixture")
+        term._master_fd = 123
         term.run_worker = MagicMock()
         term.notify = MagicMock()
         for _ in range(pty_terminal._NAV_QUEUE_LIMIT + 2):
@@ -641,6 +643,7 @@ class TerminalNavigationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(term.notify.called)
         term._queue_nav("ctrl+right")
         worker = term._nav_worker
+        term._master_fd = None
         term._close()
         worker.cancel.assert_called_once()
         self.assertFalse(term._nav_queue)
