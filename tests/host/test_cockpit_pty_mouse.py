@@ -38,13 +38,13 @@ class SgrMouseTests(unittest.TestCase):
 
     def test_legacy_scroll_down(self) -> None:
         data = pty_mouse.legacy_mouse_bytes(_event(), scroll=65, rows=24, cols=80)
-        self.assertEqual(data, b"\x1bM" + bytes([65, 5 + 32, 3 + 32]))
+        self.assertEqual(data, b"\x1b[M" + bytes([97, 5 + 32, 3 + 32]))
 
     def test_mouse_bytes_respects_sgr_flag(self) -> None:
         sgr = pty_mouse.mouse_bytes(_event(), scroll=65, rows=24, cols=80, sgr=True)
         legacy = pty_mouse.mouse_bytes(_event(), scroll=65, rows=24, cols=80, sgr=False)
         self.assertEqual(sgr, b"\x1b[<65;5;3M")
-        self.assertEqual(legacy, b"\x1bM" + bytes([65, 37, 35]))
+        self.assertEqual(legacy, b"\x1b[M" + bytes([97, 37, 35]))
 
     def test_parse_mouse_modes_last_wins(self) -> None:
         reset_then_on = b"\x1b[?1006l\x1b[?1000l\x1b[?1006h\x1b[?1000h"
@@ -66,13 +66,51 @@ class SgrMouseTests(unittest.TestCase):
         press = pty_mouse.sgr_mouse_bytes(_event(), rows=24, cols=80)
         release = pty_mouse.sgr_mouse_bytes(_event(), release=True, rows=24, cols=80)
         self.assertEqual(press, b"\x1b[<0;5;3M")
-        self.assertEqual(release, b"\x1b[<32;5;3m")
+        self.assertEqual(release, b"\x1b[<0;5;3m")
 
     def test_coords_clamped_to_terminal_size(self) -> None:
         data = pty_mouse.sgr_mouse_bytes(
             _event(x=999, y=999), scroll=65, rows=10, cols=20
         )
         self.assertEqual(data, b"\x1b[<65;20;10M")
+
+
+class MouseProtocolTests(unittest.TestCase):
+    def test_sgr_release_keeps_button_and_modifiers(self):
+        self.assertEqual(
+            pty_mouse.sgr_mouse_bytes(
+                _event(button=3, ctrl=True), release=True, rows=24, cols=80
+            ),
+            b"\x1b[<18;5;3m",
+        )
+
+    def test_legacy_press_release_and_modified_wheel(self):
+        self.assertEqual(
+            pty_mouse.legacy_mouse_bytes(_event(), rows=24, cols=80),
+            b"\x1b[M" + bytes([32, 37, 35]),
+        )
+        self.assertEqual(
+            pty_mouse.legacy_mouse_bytes(_event(), release=True, rows=24, cols=80),
+            b"\x1b[M" + bytes([35, 37, 35]),
+        )
+        self.assertEqual(
+            pty_mouse.legacy_mouse_bytes(
+                _event(shift=True), scroll=65, rows=24, cols=80
+            ),
+            b"\x1b[M" + bytes([101, 37, 35]),
+        )
+
+    def test_legacy_unrepresentable_coordinates_are_not_misreported(self):
+        self.assertIsNone(
+            pty_mouse.legacy_mouse_bytes(_event(x=223), rows=24, cols=400)
+        )
+        self.assertIsNone(
+            pty_mouse.legacy_mouse_bytes(_event(y=223), rows=400, cols=80)
+        )
+        self.assertEqual(
+            pty_mouse.legacy_mouse_bytes(_event(x=222), rows=24, cols=400),
+            b"\x1b[M" + bytes([32, 255, 35]),
+        )
 
 
 if __name__ == "__main__":

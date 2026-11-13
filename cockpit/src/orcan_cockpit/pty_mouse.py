@@ -35,8 +35,6 @@ def _sgr_button(event: _MouseLike, *, scroll: int | None, release: bool) -> int:
     else:
         # Textual: 1=left, 2=middle, 3=right → SGR: 0, 1, 2
         button = max(0, event.button - 1)
-        if release:
-            button += 32
     if event.shift:
         button += 4
     if event.meta:
@@ -48,8 +46,8 @@ def _sgr_button(event: _MouseLike, *, scroll: int | None, release: bool) -> int:
 
 def _legacy_button(event: _MouseLike, *, scroll: int | None, release: bool) -> int:
     if scroll is not None:
-        return scroll
-    if release:
+        button = scroll
+    elif release:
         button = 3
     else:
         button = max(0, event.button - 1)
@@ -75,8 +73,12 @@ def legacy_mouse_bytes(
         return None
     x = _clamp(event.x, cols) + 33  # 1-based column + 32
     y = _clamp(event.y, rows) + 33
-    button = _legacy_button(event, scroll=scroll, release=release)
-    return bytes([0x1B, ord("M"), button, x, y])
+    # Classic encoding has only one byte per coordinate. Do not send an
+    # event at the wrong location or raise ValueError in a wide terminal.
+    if x > 255 or y > 255:
+        return None
+    button = _legacy_button(event, scroll=scroll, release=release) + 32
+    return b"\x1b[M" + bytes([button, x, y])
 
 
 def sgr_mouse_bytes(

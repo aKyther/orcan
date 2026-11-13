@@ -37,7 +37,11 @@ their cursor.
 PTY reads preserve UTF-8 characters across byte boundaries. The cockpit caches
 rendered rows and updates changed rows and cursor rows. Wide characters use
 terminal cell coordinates for cursor placement, links and text selection.
-
+OSC hyperlinks and clipboard sequences also survive split reads. Incomplete
+sequences use a bounded buffer; oversized sequences are discarded through their
+terminator. Hyperlink addresses move with their characters during editing,
+scrolling and resize. SGR mouse releases preserve the button code. Legacy mouse
+reports are omitted when a coordinate cannot fit in their one-byte encoding.
 
 ## Palette
 

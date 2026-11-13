@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserve OSC hyperlinks and clipboard sequences across cockpit PTY reads with bounded buffering. Keep hyperlink metadata attached to screen characters during overwrite, wrap, scroll, edits and resize. Correct SGR mouse releases and legacy mouse encoding.
+
 - Preserve UTF-8 characters split across cockpit PTY reads. Render wide glyphs without extra spaces and use terminal cell coordinates for links, cursor and copying. Cache rendered rows so output and cursor blinking do not rebuild the whole terminal frame.
 
 ### Added

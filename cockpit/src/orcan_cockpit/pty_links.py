@@ -4,7 +4,7 @@ pyte ignores OSC 8; Textual owns the mouse, so neither bare http(s) URLs nor
 Claude-style nested OSC 8 links open in a browser by themselves. This module:
 
 1. Strips OSC 8 from the byte stream (so pyte still draws the visible text)
-2. Tracks the active href onto a cell grid via ``HyperlinkScreen.draw``
+2. Stores the active href with each character via ``HyperlinkScreen.draw``
 3. Finds a plain http(s) URL under a column as a fallback
 4. Opens URLs with ``webbrowser`` (works for local ``orcan enter``; under
    ttyd may fail — callers should still render ``Style(link=…)`` so the
@@ -20,6 +20,7 @@ from __future__ import annotations
 import base64
 import re
 import webbrowser
+from collections import namedtuple
 
 # OSC 8: ESC ] 8 ; params ; uri BEL  or  ESC ] 8 ; params ; uri ESC \
 _OSC8_RE = re.compile(r"\x1b\]8;[^\x07\x1b]*;([^\x07\x1b]*)(?:\x07|\x1b\\)")
@@ -86,22 +87,99 @@ def extract_osc52(text: str) -> tuple[str, list[str]]:
     return _OSC52_RE.sub(_take, text), payloads
 
 
-def feed_with_osc8(stream, screen, text: str, on_clipboard=None) -> None:
-    """Feed *text* to a pyte Stream, applying OSC 8 to ``screen.active_href``.
+# Enough room for the maximum clipboard payload in base64 plus its header.
+# Oversized OSC is discarded through its terminator, never rendered as text.
+_OSC_MAX_CHARS = 4 * ((_OSC52_MAX_DECODED + 2) // 3) + 4096
+_OSC_START_RE = re.compile(r"\x1b\]|\x9d")
+_OSC_END_RE = re.compile(r"\x07|\x1b\\|\x9c|\x18|\x1a")
 
-    When *on_clipboard* is given, OSC 52 clipboard writes are pulled out of
-    *text* first and each decoded payload is handed to it — pyte would
-    otherwise silently swallow them.
-    """
-    if on_clipboard is not None:
-        text, clips = extract_osc52(text)
-        for clip in clips:
-            on_clipboard(clip)
-    for chunk, href_update in split_osc8(text):
-        if href_update is not None:
-            screen.active_href = href_update or None
-        if chunk:
-            stream.feed(chunk)
+
+class _OscFilter:
+    """Frame OSC across PTY reads, keeping other terminal input in order."""
+
+    def __init__(self) -> None:
+        self._parts: list[str] = []
+        self._length = 0
+        self._inside = False
+        self._discard = False
+        self._escape = ""
+
+    def _append(self, text: str) -> None:
+        if self._discard:
+            return
+        self._length += len(text)
+        if self._length > _OSC_MAX_CHARS:
+            self._parts.clear()
+            self._discard = True
+        else:
+            self._parts.append(text)
+
+    def feed(self, stream, screen, text: str, on_clipboard) -> None:
+        text = self._escape + text
+        self._escape = ""
+        pos = 0
+        while pos < len(text):
+            if not self._inside:
+                match = _OSC_START_RE.search(text, pos)
+                if match is None:
+                    end = len(text)
+                    if text.endswith("\x1b"):
+                        self._escape = "\x1b"
+                        end -= 1
+                    if pos < end:
+                        stream.feed(text[pos:end])
+                    return
+                if pos < match.start():
+                    stream.feed(text[pos : match.start()])
+                self._inside = True
+                self._discard = False
+                self._length = 0
+                self._parts = []
+                # Normalize C1 OSC to the 7-bit form used by our extractors.
+                self._append("\x1b]")
+                pos = match.end()
+            else:
+                match = _OSC_END_RE.search(text, pos)
+                if match is None:
+                    end = len(text)
+                    if text.endswith("\x1b"):
+                        self._escape = "\x1b"
+                        end -= 1
+                    self._append(text[pos:end])
+                    return
+                self._append(text[pos : match.start()])
+                cancelled = match.group() in ("\x18", "\x1a")
+                sequence = (
+                    None
+                    if self._discard or cancelled
+                    else "".join(self._parts) + "\x07"
+                )
+                # Reset framing before dispatch: a failed terminal/clipboard
+                # callback must not trap subsequent output inside this OSC.
+                self._parts.clear()
+                self._length = 0
+                self._inside = False
+                self._discard = False
+                pos = match.end()
+                if sequence is not None:
+                    if sequence.startswith("\x1b]8;"):
+                        osc8 = _OSC8_RE.fullmatch(sequence)
+                        if osc8 is not None:
+                            screen.active_href = osc8.group(1) or None
+                    elif sequence.startswith("\x1b]52;") and on_clipboard is not None:
+                        _, clips = extract_osc52(sequence)
+                        for clip in clips:
+                            on_clipboard(clip)
+                    else:
+                        stream.feed(sequence)
+
+
+def feed_with_osc8(stream, screen, text: str, on_clipboard=None) -> None:
+    """Feed terminal text with bounded, incremental OSC 8/52 handling."""
+    osc_filter = getattr(stream, "_orcan_osc_filter", None)
+    if osc_filter is None:
+        osc_filter = stream._orcan_osc_filter = _OscFilter()
+    osc_filter.feed(stream, screen, text, on_clipboard)
 
 
 def plain_url_at(line: str, column: int) -> str | None:
@@ -187,89 +265,35 @@ def attach_hyperlink_screen():
     so host unit tests for pure helpers need no pyte."""
     import pyte
 
+    # pyte moves/replaces immutable Char tuples for every screen operation.
+    # Carry links in those tuples instead of maintaining a parallel cell grid.
+    LinkedChar = namedtuple("LinkedChar", (*pyte.screens.Char._fields, "href"))
+
     class HyperlinkScreen(pyte.Screen):
-        """pyte Screen that stamps ``active_href`` onto a parallel cell grid."""
+        """Screen whose drawn cells carry their own OSC 8 address."""
 
         def __init__(self, columns: int, lines: int) -> None:
-            super().__init__(columns, lines)
             self.active_href: str | None = None
-            self._links: list[list[str | None]] = []
-            self._reset_links()
-
-        def _reset_links(self) -> None:
-            self._links = [[None] * self.columns for _ in range(self.lines)]
+            super().__init__(columns, lines)
 
         def link_at(self, column: int, row: int) -> str | None:
-            if row < 0 or row >= len(self._links):
+            if not (0 <= row < self.lines and 0 <= column < self.columns):
                 return None
-            line = self._links[row]
-            if column < 0 or column >= len(line):
-                return None
-            return line[column]
-
-        def resize(self, lines: int | None = None, columns: int | None = None) -> None:
-            super().resize(lines, columns)
-            self._reset_links()
+            return getattr(self.buffer[row][column], "href", None)
 
         def reset(self) -> None:
             super().reset()
             self.active_href = None
-            self._reset_links()
 
         def draw(self, data: str) -> None:
-            href = self.active_href
-            if not href:
+            attrs = self.cursor.attrs
+            if self.active_href:
+                self.cursor.attrs = LinkedChar(*attrs, self.active_href)
+            try:
                 super().draw(data)
-                return
-            for ch in data:
-                y, x = self.cursor.y, self.cursor.x
-                if 0 <= y < len(self._links) and 0 <= x < len(self._links[y]):
-                    self._links[y][x] = href
-                super().draw(ch)
-
-        def erase_in_display(self, how: int = 0, private: bool = False) -> None:
-            super().erase_in_display(how, private=private)
-            if how == 2 or how == 3:
-                self._reset_links()
-                return
-            # 0: cursor to end; 1: start to cursor — clear those cells' links.
-            cy, cx = self.cursor.y, self.cursor.x
-            if how == 0:
-                for x in range(cx, self.columns):
-                    self._links[cy][x] = None
-                for y in range(cy + 1, self.lines):
-                    self._links[y] = [None] * self.columns
-            elif how == 1:
-                for y in range(0, cy):
-                    self._links[y] = [None] * self.columns
-                for x in range(0, cx + 1):
-                    self._links[cy][x] = None
-
-        def erase_in_line(self, how: int = 0, private: bool = False) -> None:
-            super().erase_in_line(how, private=private)
-            cy, cx = self.cursor.y, self.cursor.x
-            if how == 2:
-                self._links[cy] = [None] * self.columns
-            elif how == 0:
-                for x in range(cx, self.columns):
-                    self._links[cy][x] = None
-            elif how == 1:
-                for x in range(0, cx + 1):
-                    self._links[cy][x] = None
-
-        def index(self) -> None:
-            at_bottom = self.cursor.y == self.lines - 1
-            super().index()
-            if at_bottom and self._links:
-                self._links.pop(0)
-                self._links.append([None] * self.columns)
-
-        def reverse_index(self) -> None:
-            at_top = self.cursor.y == 0
-            super().reverse_index()
-            if at_top and self._links:
-                self._links.pop()
-                self._links.insert(0, [None] * self.columns)
+            finally:
+                # Erasing and filling blank cells must never inherit a link.
+                self.cursor.attrs = attrs
 
         def scroll_up_region(self, count: int | None = None) -> None:
             """CSI Ps S (SU) — shift the current scroll region up by
@@ -304,9 +328,6 @@ def attach_hyperlink_screen():
                     self.buffer[y] = self.buffer.pop(src)
                 else:
                     self.buffer.pop(y, None)
-                self._links[y] = (
-                    self._links[src] if src <= bottom else [None] * self.columns
-                )
 
         def scroll_down_region(self, count: int | None = None) -> None:
             """CSI Ps T (SD) — the scroll_up_region counterpart, shifting
@@ -320,9 +341,6 @@ def attach_hyperlink_screen():
                     self.buffer[y] = self.buffer.pop(src)
                 else:
                     self.buffer.pop(y, None)
-                self._links[y] = (
-                    self._links[src] if src >= top else [None] * self.columns
-                )
 
     class ScrollAwareStream(pyte.Stream):
         # Extends, doesn't replace, pyte's own dispatch table — see

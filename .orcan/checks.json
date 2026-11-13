@@ -1460,6 +1460,8 @@
             "pytest",
             "-q",
             "tests/host/test_cockpit_pty_esc_coalesce.py",
+            "tests/host/test_cockpit_pty_links.py",
+            "tests/host/test_cockpit_pty_mouse.py",
             "--junitxml",
             ".orcan/cockpit-io-junit.xml"
           ]
