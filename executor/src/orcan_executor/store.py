@@ -124,6 +124,11 @@ def database(directory: Path | None = None):
         connection.execute(
             "CREATE INDEX IF NOT EXISTS jobs_verification_key ON jobs(verification_key,finished)"
         )
+        submission_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(submissions)")
+        }
+        if "origin" not in submission_columns:
+            connection.execute("ALTER TABLE submissions ADD COLUMN origin TEXT")
         connection.execute("CREATE INDEX IF NOT EXISTS submissions_created ON submissions(created)")
         connection.commit()
         yield connection
@@ -266,9 +271,29 @@ def create(
 
 def _submission(db, job: dict, execution_id: str, mode: str):
     db.execute(
-        "INSERT INTO submissions(id,job_id,created,mode,sha,task) VALUES(?,?,?,?,?,?)",
-        (uuid4().hex, execution_id, now(), mode, job["sha"], job["task"]),
+        "INSERT INTO submissions(id,job_id,created,mode,sha,task,origin) VALUES(?,?,?,?,?,?,?)",
+        (
+            job.setdefault("submission_id", uuid4().hex),
+            execution_id,
+            now(),
+            mode,
+            job["sha"],
+            job["task"],
+            json.dumps(job.get("origin")),
+        ),
     )
+
+
+def origins(job_id: str) -> list[dict]:
+    get(job_id)
+    with database() as db:
+        rows = db.execute(
+            "SELECT id,job_id,created,mode,sha,origin FROM submissions WHERE job_id=? ORDER BY created DESC,id DESC LIMIT 100",
+            (job_id,),
+        ).fetchall()
+    return [
+        dict(row) | {"origin": json.loads(row["origin"]) if row["origin"] else None} for row in rows
+    ]
 
 
 def get(job_id: str) -> dict:

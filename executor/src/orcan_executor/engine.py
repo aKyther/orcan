@@ -42,6 +42,7 @@ def submit(
     replace_pending: str | None = None,
     replace_owner: str = "",
     force: bool = False,
+    origin: dict | None = None,
 ) -> dict:
     if force and (reuse or replace_pending):
         raise ValueError("force cannot combine with reuse or pending replacement")
@@ -89,6 +90,7 @@ def submit(
         timeout=timeout,
         replace_group=replace_pending,
         replace_owner=replace_owner,
+        origin=origin,
     )
     definition = definitions[profile]
     enabled = bool(definition.get("reuse"))
@@ -105,7 +107,11 @@ def submit(
             existing = store.create(job, reuse=join, replacements=candidates, reuse_ttl=reuse_ttl)
         if existing != job["id"]:
             git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
-            return store.get(existing) | {"submission_mode": "joined"}
+            return store.get(existing) | {
+                "submission_mode": "joined",
+                "submission_id": job["submission_id"],
+                "origin": origin,
+            }
     except BaseException:
         git(repo, "update-ref", "-d", "refs/orcan/executor/jobs/" + job["id"])
         raise
@@ -113,7 +119,11 @@ def submit(
         job["superseded_count"] = store.superseded_count(job["id"])
     return (
         store.get(job["id"])
-        | {"submission_mode": job["submission_mode"]}
+        | {
+            "submission_mode": job["submission_mode"],
+            "submission_id": job["submission_id"],
+            "origin": origin,
+        }
         | ({"superseded_count": job["superseded_count"]} if replace_pending else {})
     )
 

@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Record per-submission executor origin metadata, including confirmed tmux identities when available. Add opt-in `--notify-tmux`, an `agent` exec wrapper and explicit tmux-instance receipts for isolated terminal-delivery comparison. Invalid tmux destinations are rejected before submission; existing adapters remain the default.
+
 - Add `orcan sandbox pull` for bulk fast-forward updates of clean parent repositories, with dry-run, directory exclusions, timeouts and compact JSON results. Skip linked worktrees and local changes.
 
 ### Changed

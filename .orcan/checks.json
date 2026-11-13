@@ -1505,6 +1505,115 @@
         ".orcan/cockpit-io-junit.xml"
       ],
       "require_junit": true
+    },
+    "tmux-origin-final": {
+      "steps": [
+        {
+          "argv": [
+            "make",
+            "validate"
+          ]
+        },
+        {
+          "argv": [
+            "./tests/host/run.sh",
+            "tests/host",
+            "--junitxml",
+            ".orcan/host-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "pytest",
+            "-q",
+            "executor/tests",
+            "--junitxml",
+            ".orcan/executor-results.xml"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "executor/src",
+            "executor/tests",
+            "tests/host/test_executor_module.py",
+            "tests/host/test_up_github.py"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "format",
+            "--check",
+            "executor/src/orcan_executor/origin.py",
+            "executor/src/orcan_executor/tmux_adapter.py",
+            "executor/src/orcan_executor/cli.py",
+            "executor/src/orcan_executor/store.py",
+            "executor/src/orcan_executor/engine.py",
+            "executor/src/orcan_executor/notifications.py",
+            "executor/tests/test_tmux_origin.py"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "ruff",
+            "check",
+            "--extend-ignore",
+            "EXE001,RUF100",
+            "docker/rootfs/usr/local/lib/orcan/reconcile.py",
+            "scripts/repository/reconcile-host.py",
+            "scripts/repository/generate-llms-txt.py"
+          ]
+        },
+        {
+          "argv": [
+            "make",
+            "docs-check"
+          ]
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "--project",
+            "executor",
+            "--locked",
+            "python",
+            "executor/smoke/run.py"
+          ]
+        }
+      ],
+      "junit": [
+        ".orcan/*-results.xml"
+      ],
+      "artifacts": [
+        ".orcan-test.executor-smoke/*report.json",
+        ".orcan-test.executor-smoke/container.log",
+        ".orcan-test.executor-smoke/build.log",
+        ".orcan-test.executor-smoke/supervisor-*/childlog/*.log"
+      ],
+      "require_junit": true
     }
   }
 }

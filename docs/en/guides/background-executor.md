@@ -970,6 +970,85 @@ snapshots are reusable. Unreferenced owned source caches expire after the retent
 period; caches referenced by active or retained jobs remain available. Project
 `.git` metadata, agent worktrees and original files are untouched.
 
+## Submission identity and experimental tmux delivery
+
+Every CLI `submit` records an origin observation: the submitter PID and start
+identity, PID namespace, working directory, reported workspace and available agent
+UUID. When `TMUX` and `TMUX_PANE` are present, Orcan queries that exact socket and
+pane for session/window/pane IDs, names, server identity and pane owner. Missing or
+stale environment data is marked unconfirmed. It never selects the active pane as
+a fallback. Reported workspace and Codex thread values are observations, not
+permission to send a notification. No environment dump, command arguments, terminal
+contents, credentials or transcript are collected.
+
+The submit response includes `submission_id` and `origin`. Inspect up to 100
+origin records for one job with:
+
+```sh
+orcan-executor origins JOB_ID
+```
+
+Each joined submission keeps its own origin. Reusing verification evidence does
+not reuse another submitter's identity. Historical records have no invented origin.
+Collection does not enable any notification destination.
+
+### Compare terminal input with the existing adapters
+
+`--notify-tmux` is an experimental alternative to `--notify-codex-thread` and
+`--notify-claude-session`. These options are mutually exclusive. Without the new
+flag, existing execution and notification behavior is unchanged. Celery still runs
+the same committed profile; the existing notification controller handles the new
+explicit destination after completion.
+
+Launch one agent as the owner of a dedicated tmux pane:
+
+```sh
+# Inside the intended tmux pane. This replaces its shell.
+exec orcan-executor agent -- codex
+# Other clients can be launched the same way, for example:
+# exec orcan-executor agent -- claude
+```
+
+The wrapper records a fresh instance UUID and passes `ORCAN_AGENT_INSTANCE_ID` to
+the agent and its child processes. It preserves arguments, working directory and
+existing client configuration. It requires `exec` ownership: when the agent exits,
+the pane exits or remains dead instead of returning to a shell that might receive
+a late result. Use a new pane for a new agent run.
+
+The agent can then request terminal delivery:
+
+```sh
+orcan-executor submit --repo . --sha HEAD --profile selected \
+  --test tests/test_api.py --task tmux-comparison --notify-tmux
+orcan-executor deliveries --job JOB_ID
+# Only after actually consuming the result:
+orcan-executor ack JOB_ID --tmux-instance "$ORCAN_AGENT_INSTANCE_ID"
+```
+
+With this flag, missing tmux context, an unregistered instance, a mismatched pane
+or PID namespace, replaced processes and copy-mode reject the request **before**
+creating a job, directory snapshot or queue publication. No automatic fallback to
+another adapter occurs. Terminal identities are rechecked before result delivery.
+
+The adapter serializes delivery for an instance, loads the bounded result as a
+single-line literal tmux buffer, pastes into its exact pane with bracketed-paste support and
+sends Enter. Payload text is never interpreted as a shell command or key names by
+the adapter. This does not establish which input screen the client is showing:
+Enter can steer an active turn or answer a client prompt. This transport does not
+provide the structured acceptance of a client API/channel.
+
+`queued` means the paste and Enter commands completed, **not** that the agent read
+or processed the result. A missing/dead target is unavailable. Partial or uncertain
+input is marked `unknown` and is not retried automatically. Pending destinations
+interrupted during controller delivery also become unknown after restart. Inspect
+the existing result and delivery receipts before any manual follow-up.
+
+New source must be installed in both the CLI and notification controller before
+using this experiment; changing a checkout does not update the running image.
+Tests use a private tmux server and a dummy input receiver, never a live AI session.
+The isolated test proves terminal transport only, not client prompt readiness or
+agent consumption. Keep the existing adapters available while comparing behavior.
+
 ## Deliver compact results to a Claude Code session
 
 Claude uses the same Redis queue, procedures, isolated worktrees and compact result

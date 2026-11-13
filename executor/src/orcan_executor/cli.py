@@ -74,6 +74,11 @@ def parser():
         "--notify-codex-thread",
         help="Explicit local Codex session UUID to receive the compact result",
     )
+    destination.add_argument(
+        "--notify-tmux",
+        action="store_true",
+        help="Experimental: return via this registered tmux agent instance; reject before submission if unavailable",
+    )
     submit.add_argument(
         "--directory",
         action="store_true",
@@ -107,6 +112,14 @@ def parser():
     submit.add_argument(
         "--timeout", type=int, default=None, help="Whole verification deadline in seconds"
     )
+    agent = commands.add_parser(
+        "agent", help="Register and exec one agent as the owner of its tmux pane"
+    )
+    agent.add_argument("arguments", nargs=argparse.REMAINDER)
+    origins = commands.add_parser(
+        "origins", help="Inspect bounded per-submission provenance, including joined jobs"
+    )
+    origins.add_argument("job_id")
     init = commands.add_parser(
         "init", help="Create project procedures; review and commit before use"
     )
@@ -153,6 +166,9 @@ def parser():
     ack = commands.add_parser("ack", help="Record that a completed result was consumed")
     ack.add_argument("job_id")
     receipt = ack.add_mutually_exclusive_group()
+    receipt.add_argument(
+        "--tmux-instance", help="Confirm consumption by a registered tmux instance"
+    )
     receipt.add_argument("--codex-thread", help="Confirm consumption by a registered Codex session")
     receipt.add_argument(
         "--claude-session", help="Confirm consumption by a registered Claude channel session"
@@ -229,7 +245,13 @@ def main(argv=None):
         return 0
     args = parser().parse_args(argv)
     try:
-        if args.command == "notification-controller":
+        if args.command == "agent":
+            from .tmux_adapter import launch
+
+            launch(args.arguments)
+        elif args.command == "origins":
+            emit(store.origins(args.job_id))
+        elif args.command == "notification-controller":
             from .notifications import controller
 
             controller()
@@ -365,13 +387,21 @@ def main(argv=None):
             emit(engine.cancel(args.job_id))
             events.publish_pending()
         elif args.command == "ack":
-            if args.codex_thread is not None or args.claude_session is not None:
+            if (
+                args.codex_thread is not None
+                or args.claude_session is not None
+                or args.tmux_instance is not None
+            ):
                 from .notifications import acknowledge
 
                 acknowledge(
                     args.job_id,
-                    args.claude_session if args.claude_session is not None else args.codex_thread,
-                    "claude" if args.claude_session is not None else "codex",
+                    args.tmux_instance or args.claude_session or args.codex_thread,
+                    "tmux"
+                    if args.tmux_instance is not None
+                    else "claude"
+                    if args.claude_session is not None
+                    else "codex",
                 )
             else:
                 store.acknowledge(args.job_id)
@@ -515,6 +545,16 @@ def main(argv=None):
                 raise ValueError(
                     "Executor disabled; start Orcan with --with-redis, or run checks directly"
                 )
+            from .origin import collect
+
+            observed_origin = collect()
+            tmux_target = None
+            if args.notify_tmux:
+                from .tmux_adapter import prepare_submission
+
+                tmux_target = prepare_submission(observed_origin)
+                if args.replace_pending:
+                    raise ValueError("--notify-tmux cannot use --replace-pending yet")
             from contextlib import nullcontext
 
             from .snapshots import snapshot
@@ -563,7 +603,10 @@ def main(argv=None):
                     replace_pending=args.replace_pending,
                     replace_owner=target or "",
                     force=args.force,
+                    origin=observed_origin,
                 )
+                if tmux_target:
+                    register(job["id"], tmux_target, "tmux")
                 if target:
                     register(job["id"], target)
                 if claude_target:
@@ -577,6 +620,8 @@ def main(argv=None):
                         "job_id": job["id"],
                         "sha": job["sha"],
                         "status": "queued_locally",
+                        "submission_id": job["submission_id"],
+                        "origin": observed_origin,
                         "publication_state": store.get(job["id"])["publication_state"],
                         "superseded_count": job.get("superseded_count", 0),
                         "error": (str(error) + "; run orcan-executor recover --job " + job["id"])
@@ -595,6 +640,8 @@ def main(argv=None):
                     "job_id": job["id"],
                     "sha": job["sha"],
                     "task_id": job["task"],
+                    "submission_id": job["submission_id"],
+                    "origin": observed_origin,
                     "status": job["status"],
                     "submission": job.get("submission_mode", "created"),
                     "publication_state": store.get(job["id"])["publication_state"],
