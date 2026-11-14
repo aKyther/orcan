@@ -287,6 +287,7 @@ def main(argv=None):
             emit(
                 {
                     "counts": board["counts"],
+                    "attention": store.attention_overview(),
                     "settings": effective(),
                     "lanes": lane_states,
                     "communication": {

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Keep attention counts independent of recent jobs, match linked worktrees, and clear stale workspace buttons after refresh failures.
+
 - Cockpit Tasks now highlights unreceived executor results and uncertain queue delivery, with links to matching workspaces.
 
 

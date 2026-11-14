@@ -490,6 +490,21 @@ def mark_published(event_id: int) -> None:
         db.execute("UPDATE events SET published=1 WHERE id=?", (event_id,))
 
 
+def attention_overview(limit: int = 20) -> dict:
+    """Bounded outstanding attention across retained history, independent of active jobs."""
+    predicate = """(status IN ('passed','failed','error','timed_out','cancelled')
+        AND acknowledged IS NULL) OR
+        (status='queued' AND publication_state IN ('uncertain','unknown','recovery_pending'))"""
+    with database() as db:
+        db.execute("BEGIN")
+        count = db.execute(f"SELECT COUNT(*) FROM jobs WHERE {predicate}").fetchone()[0]
+        jobs = [dict(row) for row in db.execute(
+            f"SELECT id,repo,sha,task,status,acknowledged,publication_state FROM jobs "
+            f"WHERE {predicate} ORDER BY created DESC,id LIMIT ?", (limit,)
+        )]
+    return {"count": count, "jobs": jobs}
+
+
 def board(hours: int | None = None) -> dict:
     if hours is not None and not 1 <= hours <= 720:
         raise ValueError("History window must be between 1 and 720 hours")

@@ -47,6 +47,12 @@ async def read_overview() -> dict:
             await process.wait()
 
 
+def attention_jobs(value: dict) -> list[dict]:
+    if "attention" in value:
+        return value["attention"]["jobs"]
+    return [job for job in value.get("jobs", []) if attention_reason(job)]
+
+
 def format_overview(value: dict) -> str:
     counts, settings = value.get("counts", {}), value.get("settings", {})
     lines = [
@@ -71,13 +77,16 @@ def format_overview(value: dict) -> str:
             else "disabled"
         )
         lines.append(f"Queue {lane}: {status}")
-    attention = [job for job in value.get("jobs", []) if attention_reason(job)]
-    lines.append(f"\nNEEDS ATTENTION · {len(attention)} in this recent window")
+    attention = attention_jobs(value)
+    count = value.get("attention", {}).get("count", len(attention))
+    lines.append(f"\nNEEDS ATTENTION · {count} outstanding · showing {len(attention)}")
     for job in attention:
         lines.append(f"{job['status']} · {job.get('task') or job['id'][:12]} · {job['id']}")
         lines.append(attention_reason(job))
+    if "attention" not in value:
+        lines.append("Attention is limited to recent jobs; update the executor for complete coverage.")
     if not attention:
-        lines.append("No items requiring attention in this recent window.")
+        lines.append("No items requiring attention in the available data.")
     lines.append("\nRECENT JOBS")
     for job in value.get("jobs", []):
         lines.extend(
@@ -145,16 +154,14 @@ class JobsModal(SheetModal):
         self.run_worker(self.refresh_overview(), group="jobs", exclusive=True)
 
     async def refresh_overview(self) -> None:
+        targets = self.query_one("#jobs-targets", Container)
+        await targets.remove_children()
+        self._targets.clear()
         try:
             value = await read_overview()
             text = format_overview(value)
-            targets = self.query_one("#jobs-targets", Container)
-            await targets.remove_children()
-            self._targets.clear()
             sessions = set()
-            for job in value.get("jobs", []):
-                if not attention_reason(job):
-                    continue
+            for job in attention_jobs(value):
                 for row in matching_workspaces(job, self.workspaces):
                     if row["session"] in sessions:
                         continue
@@ -163,6 +170,8 @@ class JobsModal(SheetModal):
                     self._targets[key] = row
                     await targets.mount(Button(f"Open workspace: {row['name']}", id=key))
         except (OSError, ValueError, TimeoutError, KeyError, TypeError):
+            await targets.remove_children()
+            self._targets.clear()
             text = "Executor unavailable, disabled or image outdated. Run orcan-executor doctor.\nEnable from the host with orcan up --with-redis."
         self.query_one("#jobs-body", Static).update(text)
 

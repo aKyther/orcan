@@ -140,3 +140,28 @@ def test_worker_consumes_exactly_the_selected_lane(monkeypatch, lane):
         assert queues == ["--queues=" + expected]
     finally:
         app.conf.task_default_queue = original_queue
+
+
+def test_attention_not_hidden_by_active_jobs_or_recent_window(repo):
+    completed = submit(repo)
+    engine.cancel(completed['id'])
+    with store.database() as db:
+        db.execute("UPDATE jobs SET created='2020-01-01',finished='2020-01-01' WHERE id=?",
+                   (completed['id'],))
+    for _ in range(21):
+        queued = submit(repo)
+        store.publication(queued["id"], "published")
+    overview = store.attention_overview()
+    assert overview['count'] == 1
+    assert overview['jobs'][0]['id'] == completed['id']
+    assert completed['id'] not in [job['id'] for job in store.board(3)['jobs'][:20]]
+    store.acknowledge(completed['id'])
+    assert store.attention_overview() == {'count': 0, 'jobs': []}
+
+
+def test_attention_total_independent_of_limit(repo):
+    for _ in range(3):
+        engine.cancel(submit(repo)['id'])
+    overview = store.attention_overview(limit=1)
+    assert overview['count'] == 3
+    assert len(overview['jobs']) == 1

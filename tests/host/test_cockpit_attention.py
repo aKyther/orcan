@@ -22,3 +22,15 @@ def test_workspace_matches_canonical_paths(tmp_path):
     assert matching_workspaces({'repo': str(repo)}, rows) == rows[:2]
     assert matching_workspaces({}, rows) == []
 
+
+def test_linked_worktree_matches_main_project(tmp_path):
+    repo = tmp_path / 'repo'
+    common = repo / '.git'
+    admin = common / 'worktrees' / 'feature'
+    admin.mkdir(parents=True)
+    (admin / 'commondir').write_text('../..\n')
+    worktree = tmp_path / 'feature'
+    worktree.mkdir()
+    (worktree / '.git').write_text(f'gitdir: {admin}\n')
+    rows = [{'session': 'main', 'projects': [{'path': str(repo)}]}]
+    assert matching_workspaces({'repo': str(worktree)}, rows) == rows

@@ -9,9 +9,12 @@ from textual.widgets import Static
 
 async def main():
     calls = []
+    unavailable = False
 
     async def overview():
         calls.append(True)
+        if unavailable:
+            raise OSError("offline")
         return {
             "counts": {"queued": 2},
             "settings": {"max_running": 2},
@@ -37,6 +40,16 @@ async def main():
         assert len(calls) == 2
         assert "Result awaiting receipt" in str(app.screen.query_one("#jobs-body", Static).render())
         assert app.screen._targets["jobs-workspace-0"]["session"] == "example"
+        unavailable = True
+        await pilot.pause(0.3)
+        await pilot.click("#jobs-refresh")
+        await pilot.pause()
+        assert not app.screen._targets
+        assert not app.screen.query("#jobs-targets Button")
+        unavailable = False
+        await pilot.pause(0.3)
+        await pilot.click("#jobs-refresh")
+        await pilot.pause()
         await pilot.click("#jobs-workspace-0")
         assert not isinstance(app.screen, jobs_modal.JobsModal)
 
