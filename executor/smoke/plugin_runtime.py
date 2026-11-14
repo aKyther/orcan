@@ -1,4 +1,5 @@
 """Verify plugin packages in an ephemeral image without models or live services."""
+
 from __future__ import annotations
 
 import io
@@ -13,11 +14,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def main():
     payload = io.BytesIO()
-    with tarfile.open(fileobj=payload, mode='w') as archive:
-        for name in ('plugins.py','plugin_registry.py','image_profile.py'):
-            archive.add(ROOT/'docker/rootfs/usr/local/lib/orcan'/name, arcname='usr/local/lib/orcan/'+name)
-        archive.add(ROOT/'plugins', arcname='opt/orcan/plugins')
-    runner = '''import io,json,os,pathlib,subprocess,tarfile,sys,shutil
+    with tarfile.open(fileobj=payload, mode="w") as archive:
+        for name in ("plugins.py", "plugin_registry.py", "image_profile.py"):
+            archive.add(
+                ROOT / "docker/rootfs/usr/local/lib/orcan" / name,
+                arcname="usr/local/lib/orcan/" + name,
+            )
+        archive.add(ROOT / "plugins", arcname="opt/orcan/plugins")
+    runner = """import io,json,os,pathlib,subprocess,tarfile,sys,shutil
 with tarfile.open(fileobj=io.BytesIO(sys.stdin.buffer.read())) as archive:
     for entry in archive:
         target=pathlib.Path('/')/entry.name
@@ -38,11 +42,31 @@ for component in BASE_COMPONENTS:
     assert shutil.which(commands.get(component,component)), 'Missing required image component: '+component
 subprocess.run(['docker','compose','version'],check=True,stdout=subprocess.DEVNULL)
 print('PLUGIN_PACKAGES_OK')
-'''
-    result = subprocess.run(['docker','run','--rm','-i','--user','root','--entrypoint','python3',os.environ.get('ORCAN_JSON_SMOKE_IMAGE','orcan:4.0.17'),'-c',runner],input=payload.getvalue(),capture_output=True,timeout=90)
-    if result.returncode or b'PLUGIN_PACKAGES_OK' not in result.stdout:
-        raise RuntimeError(result.stderr.decode()[-2000:] or 'Plugin package smoke did not complete')
-    print(json.dumps({'status':'passed','checks':4,'models_invoked':0}))
+"""
+    result = subprocess.run(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "-i",
+            "--user",
+            "root",
+            "--entrypoint",
+            "python3",
+            os.environ.get("ORCAN_JSON_SMOKE_IMAGE", "orcan:4.0.17"),
+            "-c",
+            runner,
+        ],
+        input=payload.getvalue(),
+        capture_output=True,
+        timeout=90,
+    )
+    if result.returncode or b"PLUGIN_PACKAGES_OK" not in result.stdout:
+        raise RuntimeError(
+            result.stderr.decode()[-2000:] or "Plugin package smoke did not complete"
+        )
+    print(json.dumps({"status": "passed", "checks": 4, "models_invoked": 0}))
 
 
-if __name__ == '__main__': main()
+if __name__ == "__main__":
+    main()
