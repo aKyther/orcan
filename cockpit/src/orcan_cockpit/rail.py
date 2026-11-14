@@ -22,7 +22,7 @@ class UtilityRail(Widget):
         yield Button(
             "?", id="rail-shortcuts", tooltip="Keyboard shortcuts (app + tmux)"
         )
-        yield Button("Jobs", id="rail-jobs", tooltip="Background jobs and queue readiness")
+        yield Button("Tasks", id="rail-jobs", tooltip="Needs attention, background jobs and workspaces")
         yield Button(
             "Exit",
             id="rail-exit",

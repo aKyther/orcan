@@ -312,6 +312,8 @@ def main(argv=None):
                                 "progress",
                                 "details_expired",
                                 "publication_state",
+                                "acknowledged",
+                                "lane",
                                 "recovery_count",
                                 "superseded_by",
                                 "admission_reason",

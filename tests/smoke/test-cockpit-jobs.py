@@ -16,13 +16,17 @@ async def main():
             "counts": {"queued": 2},
             "settings": {"max_running": 2},
             "lanes": {"heavy": {"ready": False, "configured": True}},
-            "jobs": [],
+            "jobs": [{"id": "abc123", "status": "failed", "task": "Check",
+                      "profile": "selected", "repo": "/tmp/project", "sha": "123abc",
+                      "acknowledged": None}],
         }
 
     jobs_modal.read_overview = overview
     app = App()
     async with app.run_test(size=(120, 40)) as pilot:
-        await app.push_screen(jobs_modal.JobsModal())
+        await app.push_screen(jobs_modal.JobsModal([
+            {"name": "Example", "session": "example", "projects": [{"path": "/tmp/project"}]}
+        ]))
         await pilot.pause()
         assert len(calls) == 1
         assert "Queue heavy: configured, unavailable" in str(
@@ -31,7 +35,9 @@ async def main():
         await pilot.click("#jobs-refresh")
         await pilot.pause()
         assert len(calls) == 2
-        await pilot.press("escape")
+        assert "Result awaiting receipt" in str(app.screen.query_one("#jobs-body", Static).render())
+        assert app.screen._targets["jobs-workspace-0"]["session"] == "example"
+        await pilot.click("#jobs-workspace-0")
         assert not isinstance(app.screen, jobs_modal.JobsModal)
 
 

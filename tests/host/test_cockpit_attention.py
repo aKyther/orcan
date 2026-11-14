@@ -1,0 +1,24 @@
+"""Attention derives from receipt/publication state, never shell activity."""
+from orcan_cockpit.attention import attention_reason, matching_workspaces
+
+
+def test_receipt_and_publication_states():
+    assert attention_reason({'status': 'passed', 'acknowledged': None})
+    assert not attention_reason({'status': 'failed', 'acknowledged': 'received'})
+    assert attention_reason({'status': 'passed'})
+    assert attention_reason({'status': 'queued', 'publication_state': 'uncertain'})
+    assert not attention_reason({'status': 'running'})
+    assert not attention_reason({'status': 'queued', 'publication_state': 'published'})
+
+
+def test_workspace_matches_canonical_paths(tmp_path):
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    link = tmp_path / 'link'
+    link.symlink_to(repo)
+    rows = [{'session': 'one', 'projects': [{'path': str(link)}]},
+            {'session': 'two', 'projects': [{'path': str(repo)}]},
+            {'session': 'other', 'projects': []}]
+    assert matching_workspaces({'repo': str(repo)}, rows) == rows[:2]
+    assert matching_workspaces({}, rows) == []
+

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Cockpit Tasks now highlights unreceived executor results and uncertain queue delivery, with links to matching workspaces.
+
+
 ### Removed
 
 - Remove the Claude MCP notification channel, its CLI flags and MCP-only dependencies. Claude executor results now use only registered tmux delivery. Update generated agent instructions, CLI help and setup documentation; retain old delivery history without redirecting it to another adapter.

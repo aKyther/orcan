@@ -10,6 +10,7 @@ from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import Button, Static
 
+from orcan_cockpit.attention import attention_reason, matching_workspaces
 from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
 
 
@@ -70,6 +71,14 @@ def format_overview(value: dict) -> str:
             else "disabled"
         )
         lines.append(f"Queue {lane}: {status}")
+    attention = [job for job in value.get("jobs", []) if attention_reason(job)]
+    lines.append(f"\nNEEDS ATTENTION · {len(attention)} in this recent window")
+    for job in attention:
+        lines.append(f"{job['status']} · {job.get('task') or job['id'][:12]} · {job['id']}")
+        lines.append(attention_reason(job))
+    if not attention:
+        lines.append("No items requiring attention in this recent window.")
+    lines.append("\nRECENT JOBS")
     for job in value.get("jobs", []):
         lines.extend(
             [
@@ -107,20 +116,26 @@ def format_overview(value: dict) -> str:
 
 
 class JobsModal(SheetModal):
-    CSS = SHEET_CSS + "#jobs-dialog {width: 90;} #jobs-body {padding: 1 0;}"
+    CSS = SHEET_CSS + "#jobs-dialog {width: 90;} #jobs-body {padding: 1 0;} #jobs-targets {height: auto;}"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "dismiss_close", "Close"),
         ("r", "refresh", "Refresh"),
     ]
 
+    def __init__(self, workspaces: list[dict] | None = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.workspaces = workspaces or []
+        self._targets: dict[str, dict] = {}
+
     def compose(self) -> ComposeResult:
         with Container(classes="sheet", id="jobs-dialog"):
             with Horizontal(classes="sheet-header"):
-                yield Static("BACKGROUND JOBS", classes="sheet-title")
+                yield Static("ATTENTION & JOBS", classes="sheet-title")
                 yield Button("Refresh", id="jobs-refresh", classes="sheet-close")
                 yield Button("Close", id="jobs-close", classes="sheet-close")
             with VerticalScroll():
                 yield Static("Loading…", id="jobs-body", markup=False)
+                yield Container(id="jobs-targets")
 
     def on_mount(self) -> None:
         super().on_mount()
@@ -131,7 +146,22 @@ class JobsModal(SheetModal):
 
     async def refresh_overview(self) -> None:
         try:
-            text = format_overview(await read_overview())
+            value = await read_overview()
+            text = format_overview(value)
+            targets = self.query_one("#jobs-targets", Container)
+            await targets.remove_children()
+            self._targets.clear()
+            sessions = set()
+            for job in value.get("jobs", []):
+                if not attention_reason(job):
+                    continue
+                for row in matching_workspaces(job, self.workspaces):
+                    if row["session"] in sessions:
+                        continue
+                    sessions.add(row["session"])
+                    key = f"jobs-workspace-{len(self._targets)}"
+                    self._targets[key] = row
+                    await targets.mount(Button(f"Open workspace: {row['name']}", id=key))
         except (OSError, ValueError, TimeoutError, KeyError, TypeError):
             text = "Executor unavailable, disabled or image outdated. Run orcan-executor doctor.\nEnable from the host with orcan up --with-redis."
         self.query_one("#jobs-body", Static).update(text)
@@ -140,7 +170,9 @@ class JobsModal(SheetModal):
         self.dismiss("close")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "jobs-close":
+        if event.button.id in self._targets:
+            self.dismiss(self._targets[event.button.id])
+        elif event.button.id == "jobs-close":
             self.action_dismiss_close()
         elif event.button.id == "jobs-refresh":
             self.action_refresh()

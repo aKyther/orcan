@@ -418,3 +418,13 @@ measure internal key-to-ACK and event-loop latency, not browser display latency.
 The F4 workspace picker shows a bright cursor row and a “● Workspaces” heading
 with arrow/Enter hints while it has keyboard focus. Use ↑/↓ to choose a row and
 Enter to open it. The attached workspace keeps a separate, muted background.
+
+### Tasks requiring attention
+
+Open **Tasks** in the cockpit rail or **Attention and jobs** in the command palette.
+The view highlights results awaiting receipt and queue deliveries needing inspection
+within the latest 20 jobs from the last three hours. Refresh is manual.
+Use **Open workspace** to switch to a workspace containing the job’s project.
+All matching workspaces are offered; jobs without a match remain visible.
+Viewing or switching does not acknowledge results, retry tasks, or recover delivery.
+This view uses executor state; it does not infer whether an agent needs input.

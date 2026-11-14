@@ -1008,7 +1008,11 @@ class MainScreen(Screen):
         self.app.push_screen(ShortcutsModal())
 
     def action_open_jobs(self) -> None:
-        self.app.push_screen(JobsModal())
+        rows = self.query_one("#workspace-list-widget", WorkspaceList).rows
+        def selected(row):
+            if isinstance(row, dict):
+                self.run_worker(self.select_workspace(row), group="workspace-switch", exclusive=True)
+        self.app.push_screen(JobsModal(rows), selected)
 
     def action_open_peek(self) -> None:
         if not self._current_root:
@@ -1077,7 +1081,7 @@ class CockpitApp(App):
             "Open workspace picker", "F4", screen.action_toggle_workspaces
         )
         yield SystemCommand("Open shortcuts", "F1 / ?", screen.action_open_shortcuts)
-        yield SystemCommand("Background jobs", "Queue readiness and recent tasks", screen.action_open_jobs)
+        yield SystemCommand("Attention and jobs", "Results awaiting receipt, queue issues and workspaces", screen.action_open_jobs)
         yield SystemCommand("Peek session brief", "F5", screen.action_open_peek)
         yield SystemCommand(
             "Switch to previous workspace", "F6", screen.action_switch_recent_workspace
