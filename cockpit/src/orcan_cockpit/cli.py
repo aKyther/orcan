@@ -17,8 +17,15 @@ this path must keep working under `docker compose run --no-TTY`
 
 from __future__ import annotations
 
-import os
 import sys
+
+
+def _configure_terminal_input() -> None:
+    # Keep this process-local: exporting Textual's environment setting would
+    # also change keyboard handling in applications launched inside tmux.
+    from textual import constants
+
+    constants.DISABLE_KITTY_KEY = True
 
 
 def main() -> int:
@@ -29,8 +36,8 @@ def main() -> int:
 
     # Textual's Kitty associated-text parser drops Alt from printable keys
     # (e.g. CSI 99;3;99u becomes plain "c"). Use legacy Meta input for the
-    # embedded terminal; set this before importing Textual's constants.
-    os.environ["TEXTUAL_DISABLE_KITTY_KEY"] = "1"
+    # embedded terminal; configure this before starting the terminal driver.
+    _configure_terminal_input()
 
     from orcan_cockpit.app import run_cockpit
 

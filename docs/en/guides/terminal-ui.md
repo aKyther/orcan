@@ -140,7 +140,9 @@ characters. **Inside the cockpit** the arrow chords differ — see
 
 The cockpit uses legacy Meta input instead of enabling the Kitty keyboard
 protocol. Textual's associated-text handling can drop Alt from printable keys
-in that protocol, turning Alt+C and Alt+digits into ordinary text.
+in that protocol, turning Alt+C and Alt+digits into ordinary text. This setting
+is local to the cockpit process; child applications keep their own keyboard
+configuration.
 
 When `agent-launcher` embeds tmux (`cockpit/…/pty_terminal.py`):
 
