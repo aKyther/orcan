@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from . import profiles, reports, store
+from . import profiles, reports, store, worktree_cleanup
 from .metrics import log_size
 from .settings import (
     QUEUE_WAIT_TIMEOUT_SECONDS,
@@ -215,12 +215,21 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         worktree = worktree_root() / job_id / str(job["attempts"] + 1)
         if not store.start(job_id, worktree):
             return None
-        worktree.parent.mkdir(parents=True, exist_ok=True)
-        if on_started is not None:
-            on_started()
         job = store.get(job_id)
         attempt = directory / str(job["attempts"])
-        attempt.mkdir()
+        try:
+            worktree.parent.mkdir(parents=True, exist_ok=True)
+            attempt.mkdir()
+        except OSError as error:
+            # State may still be writable when the separate worktree disk is not.
+            # Finish without requiring another artifact directory or report file.
+            return store.finish(job_id, "error", {
+                "phase": "setup", "tests": 0, "passed": 0, "failed": 0,
+                "errors": 1, "skipped": 0,
+                "error": f"Cannot prepare execution directories: {type(error).__name__}: {str(error)[:300]}",
+            }, None)
+        if on_started is not None:
+            on_started()
         log_path = attempt / "output.log"
         began = time.monotonic()
         cpu_start = resource.getrusage(resource.RUSAGE_SELF)
@@ -391,15 +400,8 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             # Never force-remove a dirty checkout. Keep it and report the path if cleanup is blocked.
             if added:
                 try:
-                    # Only disposable outputs of the allowed commands in our own checkout.
-                    for name in ("site", ".build"):
-                        output = worktree / name
-                        if (
-                            output.is_dir()
-                            and not output.is_symlink()
-                            and not git(worktree, "ls-files", "--", name)
-                        ):
-                            shutil.rmtree(output)
+                    if not worktree_cleanup.is_clean(worktree):
+                        raise OSError("Worktree contains changes, untracked or ignored files; preserved")
                     cleanup = subprocess.run(
                         ["git", "--git-dir", common, "worktree", "remove", str(worktree)],
                         check=False,

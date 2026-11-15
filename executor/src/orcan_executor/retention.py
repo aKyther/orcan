@@ -8,7 +8,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from . import store
+from . import store, worktree_cleanup
 from .settings import HISTORY_DAYS, HISTORY_LIMIT, retention_seconds, state_dir, worktree_root
 
 
@@ -47,11 +47,11 @@ def prune(*, dry_run: bool = False, candidates: list | None = None) -> int:
                 worktree = Path(job["worktree"]).resolve()
                 if not worktree.is_relative_to(worktree_root()):
                     continue
-                status = subprocess.run(
-                    ["git", "-C", str(worktree), "status", "--porcelain", "--untracked-files=all", "--ignored"],
-                    capture_output=True, timeout=30,
-                )
-                if status.returncode or status.stdout:
+                try:
+                    clean = worktree_cleanup.is_clean(worktree)
+                except (OSError, subprocess.SubprocessError):
+                    continue  # Keep this worktree; other jobs and maintenance must continue.
+                if not clean:
                     continue
                 if dry_run:
                     if candidates is not None and len(candidates) < 50:

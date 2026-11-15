@@ -453,7 +453,7 @@ def expire_queued(job_id: str) -> dict | None:
         return _expire_queued(db, row) if row is not None else None
 
 
-def finish(job_id: str, status: str, summary: dict, report: Path) -> dict:
+def finish(job_id: str, status: str, summary: dict, report: Path | None) -> dict:
     with database() as db:
         return _finish(db, job_id, status, summary, report)
 

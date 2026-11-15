@@ -1260,3 +1260,9 @@ safe to remove merely because Git ignores them. Review retained worktrees
 separately; do not use force removal to make a storage check pass. Cleanup never
 runs Docker prune or a shared package-cache cleaner, never restarts Orcan, and
 never changes the minimum result-retention age in response to disk pressure.
+
+Completion cleanup uses the same conservative worktree check as retention,
+including ignored outputs such as `site` and `.build`. A Git inspection timeout
+retains the worktree and does not stop cleanup of other jobs. A directory-setup
+failure ends the job with an explicit setup error, even if no report file can
+be created; use the compact result for this failure.

@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
+
 from orcan_executor import cli, engine, retention, storage, store
 
 
@@ -124,3 +126,70 @@ def test_unused_snapshot_preview_then_apply(repo, monkeypatch):
     assert saved.exists()
     assert snapshots.prune_snapshots() == 1
     assert not saved.exists()
+
+
+def test_completion_preserves_ignored_outputs(repo):
+    from conftest import commit
+
+    (repo / '.gitignore').write_text('site/\n.build/\nignored-data\n')
+    (repo / 'check.py').write_text(
+        'from pathlib import Path\n'
+        'for name in ("site", ".build"):\n'
+        ' Path(name).mkdir(); Path(name, "keep").write_text("preserve")\n'
+        'Path("ignored-data").write_text("preserve")\n'
+    )
+    commit(repo)
+    job = submit(repo)
+    result = engine.run_job(job['id'])
+    assert result['status'] == 'passed'
+    tree = Path(result['summary']['retained_worktree'])
+    for name in ('site/keep', '.build/keep', 'ignored-data'):
+        assert (tree / name).read_text() == 'preserve'
+
+
+def test_retention_timeout_does_not_block_other_jobs(repo, monkeypatch):
+    import subprocess
+
+    from conftest import commit
+
+    from orcan_executor import worktree_cleanup
+
+    (repo / 'check.py').write_text('from pathlib import Path\nPath("marker").write_text("dirty")\n')
+    commit(repo)
+    first = submit(repo)
+    engine.run_job(first['id'])
+    second = submit(repo)
+    engine.run_job(second['id'])
+    tree = Path(store.get(first['id'])['worktree'])
+    with store.database() as db:
+        db.execute("UPDATE jobs SET finished='2000-01-01'")
+    original = worktree_cleanup.is_clean
+    def inspect(path):
+        if path == tree:
+            raise subprocess.TimeoutExpired('git status', 30)
+        return original(path)
+    monkeypatch.setattr(worktree_cleanup, 'is_clean', inspect)
+    other_tree = Path(store.get(second['id'])['worktree'])
+    (other_tree / 'marker').write_text('snapshot')
+    assert retention.prune() == 1
+    assert tree.exists()
+    assert not other_tree.exists()
+
+
+@pytest.mark.parametrize("failed_directory", ["worktree", "artifacts"])
+def test_directory_setup_failure_finishes_without_report(repo, monkeypatch, failed_directory):
+    job = submit(repo)
+    original = Path.mkdir
+    def mkdir(path, *args, **kwargs):
+        target = (storage.worktree_root() / job["id"] if failed_directory == "worktree"
+                  else storage.state_dir() / "jobs" / job["id"] / "1")
+        if path == target:
+            raise PermissionError('synthetic denied')
+        return original(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'mkdir', mkdir)
+    result = engine.run_job(job['id'])
+    assert result['status'] == 'error'
+    assert result['report'] is None
+    assert result['summary']['phase'] == 'setup'
+    assert store.get(job['id'])['status'] == 'error'
+    assert result['summary']['tests'] == 0

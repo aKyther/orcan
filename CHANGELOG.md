@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Preserve ignored executor outputs during completion cleanup, isolate cleanup timeouts, and report directory-setup failures without leaving jobs running.
+
 - Add storage reports and preview-first expired executor cleanup, with low-disk admission checks and cockpit warnings.
 
 - Keep attention counts independent of recent jobs, match linked worktrees, and clear stale workspace buttons after refresh failures.
