@@ -10,6 +10,8 @@ import time
 import unittest
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 
 CHILD = r"""
@@ -40,6 +42,7 @@ main()
 """
 
 
+@pytest.mark.integration
 class MetaInputTests(unittest.TestCase):
     def test_cli_keeps_meta_in_legacy_input_without_kitty_negotiation(self):
         import importlib.util
