@@ -213,9 +213,9 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                 report,
             )
         worktree = worktree_root() / job_id / str(job["attempts"] + 1)
-        worktree.parent.mkdir(parents=True, exist_ok=True)
         if not store.start(job_id, worktree):
             return None
+        worktree.parent.mkdir(parents=True, exist_ok=True)
         if on_started is not None:
             on_started()
         job = store.get(job_id)

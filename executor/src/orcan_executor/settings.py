@@ -54,6 +54,13 @@ def retention_seconds() -> int:
     return value
 
 
+def minimum_free_mb() -> int:
+    value = int(os.environ.get("ORCAN_EXECUTOR_MIN_FREE_MB", "1024"))
+    if not 1 <= value <= 1048576:
+        raise ValueError("Minimum free space must be between 1 and 1048576 MiB")
+    return value
+
+
 def max_pending() -> int:
     value = int(os.environ.get("ORCAN_EXECUTOR_MAX_PENDING", "100"))
     if not 1 <= value <= 10000:
@@ -115,6 +122,7 @@ def effective() -> dict:
         "timeout_seconds": default_timeout(),
         "queue_wait_timeout_seconds": QUEUE_WAIT_TIMEOUT_SECONDS,
         "retention_seconds": retention_seconds(),
+        "minimum_free_mb": minimum_free_mb(),
         "redis_memory_mb": redis_memory_mb(),
         "visibility_timeout_seconds": visibility_timeout(),
         "history_days": HISTORY_DAYS,

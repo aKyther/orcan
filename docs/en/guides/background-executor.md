@@ -1220,3 +1220,43 @@ separately: a compact error is useful only if the agent can recover the necessar
 trace through bounded reads. Watch pending/unknown notifications, receipt counts,
 queue delays and repeated detail reads alongside byte reduction. Statistics cover
 retained jobs, not an unbounded lifetime history.
+
+### Storage and low-space admission
+
+Use `orcan storage` on the host, or `orcan-executor storage` inside Orcan,
+for JSON disk and category measurements. The host command requires a running
+container. Categories include job artifacts, executor worktrees, directory
+snapshots, and shared uv, pip and Gradle caches. These are allocated bytes,
+not an estimate of recoverable space. Overlapping paths and hardlinks can
+appear in several categories. Scans stop at 100,000 entries per category;
+`incomplete: true` means the measurement is partial. File contents are not read.
+
+`orcan storage docker` reports Docker images, containers, volumes and builder
+cache using the existing build storage diagnostic. It does not delete data and
+can run without a running Orcan container. Daemon free space can be unknown
+when Docker is remote; local free space is not a substitute.
+
+Before starting a procedure, the executor checks both the state filesystem and
+the worktree filesystem. Each must have at least 1 GiB free. The worker process
+can set `ORCAN_EXECUTOR_MIN_FREE_MB` (1–1048576 MiB); effective executor settings
+show the selected value. This is a start reserve, not a per-job disk quota or a
+guarantee that a running build cannot exhaust disk space. Parallel builds share
+the same disks. A blocked job stays queued with `admission_reason: disk_space`,
+does not consume an execution attempt, and is retried through normal admission.
+The existing 30-minute queue wait limit still applies. Cockpit Tasks highlights
+these jobs. An unreadable filesystem also blocks admission.
+
+Preview expired-data cleanup with `orcan storage clean`. Run
+`orcan storage clean --apply` to execute the same guarded retention procedure.
+The response counts eligible jobs and unused directory snapshots, and previews
+up to 50 candidate paths (`candidates_truncated` reports truncation). A preview
+reserves nothing; apply rechecks current locks and state. Normal maintenance
+continues to apply the existing retention age automatically.
+
+Active jobs, execution locks, user repositories and shared caches are protected.
+Worktrees containing tracked changes, untracked files or ignored files are
+retained, including their artifacts. A job's generated files are not assumed
+safe to remove merely because Git ignores them. Review retained worktrees
+separately; do not use force removal to make a storage check pass. Cleanup never
+runs Docker prune or a shared package-cache cleaner, never restarts Orcan, and
+never changes the minimum result-retention age in response to disk pressure.

@@ -14,6 +14,7 @@ Commands:
                            PATH: non-interactive scaffold (scripts/CI)
                            Saves configuration; run orcan sync separately
                            Pass --no-chown / --chown-exclude to sync as needed
+  storage [report|clean|docker]  Inspect disk usage; clean previews, --apply executes
   sync [--prune-orphans]   Materialise runtime JSON + mounts/* for Compose; live
                            reconcile into a running container. --prune-orphans
                            also kills orphaned tmux sessions (default: report

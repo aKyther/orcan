@@ -129,7 +129,7 @@ def snapshot(source: Path, includes: list[str]):
         yield destination
 
 
-def prune_snapshots() -> int:
+def prune_snapshots(*, dry_run: bool = False, candidates: list | None = None) -> int:
     """Remove old owned source caches only when no job still refers to them."""
     import time
 
@@ -157,6 +157,9 @@ def prune_snapshots() -> int:
                 ).fetchone()[0]
             if active:
                 continue
-            shutil.rmtree(path)
+            if dry_run and candidates is not None and len(candidates) < 50:
+                candidates.append({"snapshot": str(path)})
+            if not dry_run:
+                shutil.rmtree(path)
             removed += 1
     return removed

@@ -59,6 +59,7 @@ Commands:
   compact      Check brief size or archive and apply an agent-written summary
   actions      Experimental offline action proposals and confirmed local scripts
   plugins      List built-in capabilities and verify enabled runtime plugins
+  storage      Disk usage and guarded expired executor cleanup
   executor     Background procedures (requires up --with-redis)
   settings     TUI for plugins, agents/image, container and terminal settings
   up           Start prepared container; sync/build remain explicit (orcan enter; --web-terminal | --web-terminal-auth for browser)
@@ -107,7 +108,7 @@ main() {
             source "${ORCAN_CLI_DIR}/commands/version.sh"
             orcan_cmd_version "$@"
             ;;
-        init | sync | sandbox | migrate | context | compact | memory | actions | executor | plugins | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
+        init | sync | sandbox | migrate | context | compact | memory | actions | executor | storage | plugins | settings | studio | bundle | up | down | build | pull | publish | url | logs | seed | update | upgrade | downgrade | doctor | status | uninstall | enter | attach | go-in)
             local script=""
             case "${cmd}" in
                 go-in) script="${ORCAN_CLI_DIR}/commands/enter.sh" ;;

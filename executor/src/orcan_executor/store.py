@@ -338,6 +338,15 @@ def start(job_id: str, worktree: Path) -> bool:
             return False
         if _expire_queued(db, candidate) is not None:
             return False
+        from .storage import capacity
+
+        try:
+            disk_ready = capacity()["ready"]
+        except OSError:
+            disk_ready = False
+        if not disk_ready:
+            db.execute("UPDATE jobs SET status='queued',admission_reason='disk_space' WHERE id=?", (job_id,))
+            return False
         running = db.execute(
             "SELECT COUNT(*) FROM jobs WHERE status='running' AND id<>?", (job_id,)
         ).fetchone()[0]
@@ -494,12 +503,13 @@ def attention_overview(limit: int = 20) -> dict:
     """Bounded outstanding attention across retained history, independent of active jobs."""
     predicate = """(status IN ('passed','failed','error','timed_out','cancelled')
         AND acknowledged IS NULL) OR
-        (status='queued' AND publication_state IN ('uncertain','unknown','recovery_pending'))"""
+        (status='queued' AND (publication_state IN ('uncertain','unknown','recovery_pending')
+        OR admission_reason='disk_space'))"""
     with database() as db:
         db.execute("BEGIN")
         count = db.execute(f"SELECT COUNT(*) FROM jobs WHERE {predicate}").fetchone()[0]
         jobs = [dict(row) for row in db.execute(
-            f"SELECT id,repo,sha,task,status,acknowledged,publication_state FROM jobs "
+            f"SELECT id,repo,sha,task,status,acknowledged,publication_state,admission_reason FROM jobs "
             f"WHERE {predicate} ORDER BY created DESC,id LIMIT ?", (limit,)
         )]
     return {"count": count, "jobs": jobs}

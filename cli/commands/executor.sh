@@ -15,6 +15,7 @@ Inside Orcan:  orcan-executor COMMAND ...
   doctor [--lane LANE]       Check broker and the matching local worker lease/lock
   settings                  Effective queue/parallel limits, timeout and retention
   diagnostics               Sanitized Redis/AOF, publication and execution-lock health
+  storage [report|clean] [--apply]  Disk usage; expired cleanup previews by default
   overview                  Bounded task overview used by the cockpit
   init --repo PATH --kind python|java|scala|custom
                             Scaffold Orcan-managed procedures outside the project; review before use

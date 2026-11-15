@@ -12,7 +12,7 @@ from . import store
 from .settings import HISTORY_DAYS, HISTORY_LIMIT, retention_seconds, state_dir, worktree_root
 
 
-def prune() -> int:
+def prune(*, dry_run: bool = False, candidates: list | None = None) -> int:
     cutoff = (datetime.now(UTC) - timedelta(seconds=retention_seconds())).isoformat()
     removed = 0
     # Only our terminal jobs, under a job lock. A dirty retained worktree is preserved.
@@ -25,15 +25,38 @@ def prune() -> int:
         )
     for job in jobs:
         directory = state_dir() / "jobs" / job["id"]
+        if directory.is_symlink():
+            continue
         directory.mkdir(parents=True, exist_ok=True)
         with (directory / "run.lock").open("a") as lock:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 continue
+            try:
+                fresh = store.get(job["id"])
+            except ValueError:
+                continue
+            if fresh["details_expired"]:
+                continue
+            if fresh["status"] not in store.TERMINAL or not fresh["finished"] or fresh["finished"] >= cutoff:
+                continue
+            if job["worktree"] and Path(job["worktree"]).is_symlink():
+                continue
             if job["worktree"] and Path(job["worktree"]).exists():
                 worktree = Path(job["worktree"]).resolve()
                 if not worktree.is_relative_to(worktree_root()):
+                    continue
+                status = subprocess.run(
+                    ["git", "-C", str(worktree), "status", "--porcelain", "--untracked-files=all", "--ignored"],
+                    capture_output=True, timeout=30,
+                )
+                if status.returncode or status.stdout:
+                    continue
+                if dry_run:
+                    if candidates is not None and len(candidates) < 50:
+                        candidates.append({"job_id": job["id"], "artifacts": str(directory), "worktree": str(worktree)})
+                    removed += 1
                     continue
                 cleanup = subprocess.run(
                     ["git", "--git-dir", job["git_dir"], "worktree", "remove", str(worktree)],
@@ -42,6 +65,11 @@ def prune() -> int:
                 if cleanup.returncode:
                     # Keep user-modified/dirty checkout and metadata for manual inspection.
                     continue
+            if dry_run:
+                if candidates is not None and len(candidates) < 50:
+                    candidates.append({"job_id": job["id"], "artifacts": str(directory), "worktree": None})
+                removed += 1
+                continue
             unpin = subprocess.run(
                 [
                     "git",
@@ -91,6 +119,8 @@ def prune() -> int:
                 )
             shutil.rmtree(directory)
             removed += 1
+    if dry_run:
+        return removed
     history_cutoff = (datetime.now(UTC) - timedelta(days=HISTORY_DAYS)).isoformat()
     with store.database() as db:
         db.execute(
