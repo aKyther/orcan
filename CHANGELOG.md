@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Preserve Alt+C and Alt+digit tmux shortcuts in the cockpit on terminals supporting the Kitty keyboard protocol.
+
 - Keep Tasks low-disk warnings yellow in the cockpit theme and preserve focused workspace buttons as the attention list changes.
 
 - Refresh cockpit Tasks automatically, show a background attention counter and low-disk warning, and preserve controls and scrolling across updates.

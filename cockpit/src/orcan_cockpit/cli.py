@@ -17,6 +17,7 @@ this path must keep working under `docker compose run --no-TTY`
 
 from __future__ import annotations
 
+import os
 import sys
 
 
@@ -25,6 +26,11 @@ def main() -> int:
         from orcan_cockpit.picker import run_fallback_menu
 
         return run_fallback_menu()
+
+    # Textual's Kitty associated-text parser drops Alt from printable keys
+    # (e.g. CSI 99;3;99u becomes plain "c"). Use legacy Meta input for the
+    # embedded terminal; set this before importing Textual's constants.
+    os.environ["TEXTUAL_DISABLE_KITTY_KEY"] = "1"
 
     from orcan_cockpit.app import run_cockpit
 
