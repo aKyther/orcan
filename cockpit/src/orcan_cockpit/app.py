@@ -311,6 +311,10 @@ CommandPalette > .command-palette--highlight {
 }
 
 
+#rail #rail-jobs.disk-low {
+    color: #fbbf24;
+}
+
 #top-bar-spacer {
     width: 1fr;
     height: 1;

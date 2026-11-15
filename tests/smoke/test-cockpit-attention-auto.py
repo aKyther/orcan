@@ -3,6 +3,7 @@
 import asyncio
 
 from orcan_cockpit import jobs_modal, rail
+from orcan_cockpit.app import CockpitApp
 from textual.app import App, ComposeResult
 from textual.containers import VerticalScroll
 from textual.widgets import Button
@@ -11,20 +12,28 @@ from textual.widgets import Button
 async def main():
     calls = 0
     gate = asyncio.Event()
+    extra_job = False
     async def overview():
         nonlocal calls
         calls += 1
         await gate.wait()
-        return {'jobs': [{'id': 'one', 'repo': '/tmp/auto-project', 'sha': '123',
+        value = {'jobs': [{'id': 'one', 'repo': '/tmp/auto-project', 'sha': '123',
                           'status': 'failed', 'task': 'Check\n' * 100, 'profile': 'test',
                           'acknowledged': None}]}
+        if extra_job:
+            value['jobs'].insert(0, {'id': 'two', 'repo': '/tmp/other-project', 'sha': '456',
+                                    'status': 'failed', 'task': 'Other', 'profile': 'test',
+                                    'acknowledged': None})
+        return value
     jobs_modal.read_overview = overview
     class FastJobs(jobs_modal.JobsModal):
         REFRESH_SECONDS = 0.05
     app = App()
     async with app.run_test(size=(120, 40)) as pilot:
         modal = FastJobs([{'name': 'Auto', 'session': 'auto',
-                           'projects': [{'path': '/tmp/auto-project'}]}])
+                           'projects': [{'path': '/tmp/auto-project'}]},
+                          {'name': 'Other', 'session': 'other',
+                           'projects': [{'path': '/tmp/other-project'}]}])
         await app.push_screen(modal)
         await pilot.pause(0.2)
         assert calls == 1  # Slow I/O must not be cancelled or duplicated by timers.
@@ -36,6 +45,17 @@ async def main():
         assert calls >= 2
         assert modal.query_one('#jobs-workspace-0', Button) is button
         assert button.has_focus
+        extra_job = True
+        await pilot.pause(0.15)
+        assert modal.query_one('#jobs-workspace-0', Button) is button
+        assert button.has_focus
+        assert modal._targets['jobs-workspace-0']['session'] == 'auto'
+        assert modal._targets['jobs-workspace-1']['session'] == 'other'
+        extra_job = False
+        await pilot.pause(0.15)
+        assert modal.query_one('#jobs-workspace-0', Button) is button
+        assert button.has_focus
+        assert not modal.query('#jobs-workspace-1')
         scroll = modal.query_one(VerticalScroll)
         scroll.scroll_to(y=10, animate=False, force=True)
         await pilot.pause(0.1)
@@ -64,8 +84,9 @@ async def main():
     class FastRail(rail.UtilityRail):
         REFRESH_SECONDS = 0.05
     class RailApp(App):
+        CSS = CockpitApp.CSS
         def compose(self) -> ComposeResult:
-            yield FastRail()
+            yield FastRail(id="rail")
     app = RailApp()
     async with app.run_test(size=(100, 30)) as pilot:
         await pilot.pause(0.2)
@@ -76,9 +97,11 @@ async def main():
         button = widget.query_one('#rail-jobs', Button)
         assert str(button.label) == 'Tasks · 2 !'
         assert 'Low disk space' in button.tooltip
+        assert button.styles.color.hex == '#FBBF24'
         state = {'attention_count': 0, 'storage': {'ready': True}}
         await pilot.pause(0.15)
         assert str(button.label) == 'Tasks · 0'
+        assert button.styles.color.hex != '#FBBF24'
         offline = True
         await pilot.pause(0.15)
         assert str(button.label) == 'Tasks · ?'

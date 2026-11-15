@@ -145,6 +145,7 @@ class JobsModal(SheetModal):
         super().__init__(**kwargs)
         self.workspaces = workspaces or []
         self._targets: dict[str, dict] = {}
+        self._session_ids: dict[str, str] = {}
         self._refreshing = False
         self._last_text: str | None = None
 
@@ -181,8 +182,12 @@ class JobsModal(SheetModal):
                         if row["session"] in sessions:
                             continue
                         sessions.add(row["session"])
-                        targets[f"jobs-workspace-{len(targets)}"] = row
+                        key = self._session_ids.setdefault(
+                            row["session"], f"jobs-workspace-{len(self._session_ids)}"
+                        )
+                        targets[key] = row
             except (OSError, ValueError, TimeoutError, KeyError, TypeError):
+                targets = {}
                 text = "Executor unavailable, disabled or image outdated. Run orcan-executor doctor.\nEnable from the host with orcan up --with-redis."
             if text == self._last_text and targets == self._targets:
                 return
@@ -190,10 +195,18 @@ class JobsModal(SheetModal):
             offset = scroll.scroll_offset
             if targets != self._targets:
                 container = self.query_one("#jobs-targets", Container)
-                await container.remove_children()
-                self._targets = targets
+                buttons = {button.id: button for button in container.query(Button)}
+                for key, button in buttons.items():
+                    if key not in targets:
+                        await button.remove()
                 for key, row in targets.items():
-                    await container.mount(Button(f"Open workspace: {row['name']}", id=key))
+                    label = f"Open workspace: {row['name']}"
+                    if key in buttons:
+                        if str(buttons[key].label) != label:
+                            buttons[key].label = label
+                    else:
+                        await container.mount(Button(label, id=key))
+                self._targets = targets
             if text != self._last_text:
                 self.query_one("#jobs-body", Static).update(text)
                 self._last_text = text

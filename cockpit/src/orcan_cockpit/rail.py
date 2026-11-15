@@ -11,7 +11,6 @@ from orcan_cockpit.jobs_modal import read_pulse
 class UtilityRail(Widget):
     can_focus = True
     REFRESH_SECONDS = 15
-    DEFAULT_CSS = "#rail-jobs.disk-low { color: #fbbf24; }"
 
     class ToolSelected(Message):
         def __init__(self, tool: str) -> None:

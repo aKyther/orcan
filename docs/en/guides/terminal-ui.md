@@ -426,6 +426,8 @@ The view highlights results awaiting receipt and queue deliveries needing inspec
 across retained history, separately from the latest 20 recent jobs. The attention
 list shows up to 20 items and the total outstanding count. The panel refreshes every 5 seconds while open; Refresh and `r` also work.
 Unchanged data does not rebuild the controls, and updates preserve scrolling.
+Workspace buttons keep stable session identities: adding or removing another
+workspace does not replace a surviving button or move keyboard focus.
 Use **Open workspace** to switch to a workspace containing the job’s project, including linked Git worktrees.
 All matching workspaces are offered; jobs without a match remain visible.
 Viewing or switching does not acknowledge results, retry tasks, or recover delivery.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Keep Tasks low-disk warnings yellow in the cockpit theme and preserve focused workspace buttons as the attention list changes.
+
 - Refresh cockpit Tasks automatically, show a background attention counter and low-disk warning, and preserve controls and scrolling across updates.
 
 - Preserve ignored executor outputs during completion cleanup, isolate cleanup timeouts, and report directory-setup failures without leaving jobs running.
