@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Refresh cockpit Tasks automatically, show a background attention counter and low-disk warning, and preserve controls and scrolling across updates.
+
 - Preserve ignored executor outputs during completion cleanup, isolate cleanup timeouts, and report directory-setup failures without leaving jobs running.
 
 - Add storage reports and preview-first expired executor cleanup, with low-disk admission checks and cockpit warnings.

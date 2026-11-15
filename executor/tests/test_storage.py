@@ -193,3 +193,18 @@ def test_directory_setup_failure_finishes_without_report(repo, monkeypatch, fail
     assert result['summary']['phase'] == 'setup'
     assert store.get(job['id'])['status'] == 'error'
     assert result['summary']['tests'] == 0
+
+
+def test_pulse_uses_count_and_capacity_without_analytics_or_scanning(repo, monkeypatch, capsys):
+    job = submit(repo)
+    engine.cancel(job['id'])
+    monkeypatch.setattr(store, 'board', Mock(side_effect=AssertionError('analytics not allowed')))
+    monkeypatch.setattr(storage, 'size', Mock(side_effect=AssertionError('scan not allowed')))
+    monkeypatch.setattr(storage, 'capacity', lambda: {'ready': False, 'filesystems': []})
+    assert cli.main(['pulse']) == 0
+    value = json.loads(capsys.readouterr().out)
+    assert value['attention_count'] == store.attention_overview()['count'] == 1
+    assert value['storage']['ready'] is False
+    monkeypatch.setattr(storage, 'capacity', Mock(side_effect=OSError('unavailable')))
+    assert cli.main(['pulse']) == 0
+    assert json.loads(capsys.readouterr().out)['storage']['ready'] is None

@@ -183,6 +183,7 @@ def parser():
     commands.add_parser(
         "diagnostics", help="Read-only Redis, communication and interrupted-job diagnostics"
     )
+    commands.add_parser("pulse", help="Lightweight attention count and disk reserve; no scans")
     commands.add_parser("overview", help="Bounded task summary for the terminal cockpit; no logs")
     status = commands.add_parser("status")
     status.add_argument("--failures", action="store_true")
@@ -279,6 +280,14 @@ def main(argv=None):
             from .diagnostics import sample
 
             emit({"live": sample(), "communication": store.diagnostics_snapshot()})
+        elif args.command == "pulse":
+            from .storage import capacity
+
+            try:
+                disk = capacity()
+            except OSError:
+                disk = {"ready": None, "filesystems": []}
+            emit({"attention_count": store.attention_count(), "storage": disk})
         elif args.command == "overview":
             from .readiness import lanes
 

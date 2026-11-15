@@ -16,6 +16,7 @@ Inside Orcan:  orcan-executor COMMAND ...
   settings                  Effective queue/parallel limits, timeout and retention
   diagnostics               Sanitized Redis/AOF, publication and execution-lock health
   storage [report|clean] [--apply]  Disk usage; expired cleanup previews by default
+  pulse                     Lightweight attention count and disk reserve; no scans
   overview                  Bounded task overview used by the cockpit
   init --repo PATH --kind python|java|scala|custom
                             Scaffold Orcan-managed procedures outside the project; review before use

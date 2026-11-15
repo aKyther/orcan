@@ -1266,3 +1266,10 @@ including ignored outputs such as `site` and `.build`. A Git inspection timeout
 retains the worktree and does not stop cleanup of other jobs. A directory-setup
 failure ends the job with an explicit setup error, even if no report file can
 be created; use the compact result for this failure.
+
+Cockpit calls `orcan-executor pulse` for the Tasks badge every 15 seconds. This
+endpoint returns only the outstanding attention count and filesystem reserve
+status; it does not build board analytics or scan cache/worktree contents. An
+unreadable disk returns an unknown reserve status while preserving the count.
+The open Tasks panel refreshes its overview every 5 seconds without overlapping
+requests. These display updates never acknowledge results or start procedures.

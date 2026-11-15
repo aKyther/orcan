@@ -14,10 +14,10 @@ from orcan_cockpit.attention import attention_reason, matching_workspaces
 from orcan_cockpit.sheet_modal import SHEET_CSS, SheetModal
 
 
-async def read_overview() -> dict:
+async def read_executor(command: str) -> dict:
     process = await asyncio.create_subprocess_exec(
         "orcan-executor",
-        "overview",
+        command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
     )
@@ -45,6 +45,14 @@ async def read_overview() -> dict:
             except ProcessLookupError:
                 pass
             await process.wait()
+
+
+async def read_overview() -> dict:
+    return await read_executor("overview")
+
+
+async def read_pulse() -> dict:
+    return await read_executor("pulse")
 
 
 def attention_jobs(value: dict) -> list[dict]:
@@ -126,6 +134,7 @@ def format_overview(value: dict) -> str:
 
 
 class JobsModal(SheetModal):
+    REFRESH_SECONDS = 5
     CSS = SHEET_CSS + "#jobs-dialog {width: 90;} #jobs-body {padding: 1 0;} #jobs-targets {height: auto;}"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "dismiss_close", "Close"),
@@ -136,6 +145,8 @@ class JobsModal(SheetModal):
         super().__init__(**kwargs)
         self.workspaces = workspaces or []
         self._targets: dict[str, dict] = {}
+        self._refreshing = False
+        self._last_text: str | None = None
 
     def compose(self) -> ComposeResult:
         with Container(classes="sheet", id="jobs-dialog"):
@@ -150,31 +161,45 @@ class JobsModal(SheetModal):
     def on_mount(self) -> None:
         super().on_mount()
         self.action_refresh()
+        self.set_interval(self.REFRESH_SECONDS, self.action_refresh)
 
     def action_refresh(self) -> None:
-        self.run_worker(self.refresh_overview(), group="jobs", exclusive=True)
+        if self._refreshing or not self.is_current:
+            return
+        self._refreshing = True
+        self.run_worker(self.refresh_overview(), group="jobs", exclusive=True, exit_on_error=False)
 
     async def refresh_overview(self) -> None:
-        targets = self.query_one("#jobs-targets", Container)
-        await targets.remove_children()
-        self._targets.clear()
         try:
-            value = await read_overview()
-            text = format_overview(value)
-            sessions = set()
-            for job in attention_jobs(value):
-                for row in matching_workspaces(job, self.workspaces):
-                    if row["session"] in sessions:
-                        continue
-                    sessions.add(row["session"])
-                    key = f"jobs-workspace-{len(self._targets)}"
-                    self._targets[key] = row
-                    await targets.mount(Button(f"Open workspace: {row['name']}", id=key))
-        except (OSError, ValueError, TimeoutError, KeyError, TypeError):
-            await targets.remove_children()
-            self._targets.clear()
-            text = "Executor unavailable, disabled or image outdated. Run orcan-executor doctor.\nEnable from the host with orcan up --with-redis."
-        self.query_one("#jobs-body", Static).update(text)
+            targets = {}
+            try:
+                value = await read_overview()
+                text = format_overview(value)
+                sessions = set()
+                for job in attention_jobs(value):
+                    for row in matching_workspaces(job, self.workspaces):
+                        if row["session"] in sessions:
+                            continue
+                        sessions.add(row["session"])
+                        targets[f"jobs-workspace-{len(targets)}"] = row
+            except (OSError, ValueError, TimeoutError, KeyError, TypeError):
+                text = "Executor unavailable, disabled or image outdated. Run orcan-executor doctor.\nEnable from the host with orcan up --with-redis."
+            if text == self._last_text and targets == self._targets:
+                return
+            scroll = self.query_one(VerticalScroll)
+            offset = scroll.scroll_offset
+            if targets != self._targets:
+                container = self.query_one("#jobs-targets", Container)
+                await container.remove_children()
+                self._targets = targets
+                for key, row in targets.items():
+                    await container.mount(Button(f"Open workspace: {row['name']}", id=key))
+            if text != self._last_text:
+                self.query_one("#jobs-body", Static).update(text)
+                self._last_text = text
+            self.call_after_refresh(scroll.scroll_to, x=offset.x, y=offset.y, animate=False)
+        finally:
+            self._refreshing = False
 
     def action_dismiss_close(self) -> None:
         self.dismiss("close")

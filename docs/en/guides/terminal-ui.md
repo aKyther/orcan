@@ -424,8 +424,18 @@ Enter to open it. The attached workspace keeps a separate, muted background.
 Open **Tasks** in the cockpit rail or **Attention and jobs** in the command palette.
 The view highlights results awaiting receipt and queue deliveries needing inspection
 across retained history, separately from the latest 20 recent jobs. The attention
-list shows up to 20 items and the total outstanding count. Refresh is manual.
+list shows up to 20 items and the total outstanding count. The panel refreshes every 5 seconds while open; Refresh and `r` also work.
+Unchanged data does not rebuild the controls, and updates preserve scrolling.
 Use **Open workspace** to switch to a workspace containing the job’s project, including linked Git worktrees.
 All matching workspaces are offered; jobs without a match remain visible.
 Viewing or switching does not acknowledge results, retry tasks, or recover delivery.
 This view uses executor state; it does not infer whether an agent needs input.
+
+The Tasks button checks a lightweight summary every 15 seconds, even with the
+panel closed. `Tasks · N` counts jobs requiring attention; it is not the number
+of running jobs. A yellow `!` warns that a checked executor filesystem is below
+its configured free-space reserve. `?` means the summary or disk state could not
+be read. No popup interrupts terminal input. Background checks read a count and
+filesystem free space, without scanning directories or loading job analytics.
+Slow refreshes never overlap. Refreshes stop when the owning view is removed.
+Older executor images without `pulse` show an unavailable summary until updated.

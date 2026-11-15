@@ -499,12 +499,20 @@ def mark_published(event_id: int) -> None:
         db.execute("UPDATE events SET published=1 WHERE id=?", (event_id,))
 
 
-def attention_overview(limit: int = 20) -> dict:
-    """Bounded outstanding attention across retained history, independent of active jobs."""
-    predicate = """(status IN ('passed','failed','error','timed_out','cancelled')
+ATTENTION_PREDICATE = """(status IN ('passed','failed','error','timed_out','cancelled')
         AND acknowledged IS NULL) OR
         (status='queued' AND (publication_state IN ('uncertain','unknown','recovery_pending')
         OR admission_reason='disk_space'))"""
+
+def attention_count() -> int:
+    """Lightweight count only; no board analytics, job payloads or filesystem scans."""
+    with database() as db:
+        return db.execute(f"SELECT COUNT(*) FROM jobs WHERE {ATTENTION_PREDICATE}").fetchone()[0]
+
+
+def attention_overview(limit: int = 20) -> dict:
+    """Bounded outstanding attention across retained history, independent of active jobs."""
+    predicate = ATTENTION_PREDICATE
     with database() as db:
         db.execute("BEGIN")
         count = db.execute(f"SELECT COUNT(*) FROM jobs WHERE {predicate}").fetchone()[0]
