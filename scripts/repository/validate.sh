@@ -354,6 +354,7 @@ for script in \
     scripts/repository/config-wizard.py \
     scripts/repository/uninstall_data.py \
     scripts/repository/context_tui.py \
+    scripts/repository/terminal_dialog.py \
     scripts/repository/wizard_ui.py \
     scripts/repository/settings-wizard.py \
     scripts/repository/config_io.py \

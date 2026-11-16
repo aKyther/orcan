@@ -116,6 +116,15 @@ Saved ownership exclusions continue to apply to explicit `sync` operations.
 
 ## Workspace editor
 
+All text entry in `orcan init` and `orcan settings` opens a centered dialog:
+workspace and project names, branches, paths, filters and settings values.
+The title and border use a quiet cyan accent; destructive confirmations stay red.
+Edit with Left/Right, Home/End, Backspace and Delete. Long values scroll within
+the field. Enter or **Confirm** accepts the value; Escape or **Cancel** returns
+without applying it. Tab moves between the field and buttons, which also accept
+mouse clicks. Resizing keeps the text; very small terminals ask for more room.
+
+
 Open **Workspaces and projects** to edit workspace drafts. Choose **Create workspace**,
 enter a name, then choose **Add projects**. Open directories with Enter or Right, and return with Left or the visible
 **.. Return to parent folder** row. Space marks or unmarks a directory as a

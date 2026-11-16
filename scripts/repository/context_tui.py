@@ -148,62 +148,10 @@ def resolve_config(path: str) -> Path:
 
 
 def _prompt_line(stdscr: Any, label: str, initial: str, *, attr: int = 0) -> str | None:
-    """Editable text prompt, pre-filled with `initial` and cursor at the end —
-    Left/Right/Home/End/Backspace/Delete work like a normal line editor, so
-    changing one character of a long path doesn't mean retyping it all.
-    Ctrl-B/F/A/E are readline-style fallbacks for terminals without real
-    arrow/Home/End keys (mobile terminal apps). Enter submits (empty submit
-    keeps `initial`); Esc/Ctrl-C cancels (None). `attr` (e.g. a color pair)
-    renders the label/text, for danger prompts."""
-    import curses
+    """Shared centered modal for every setup text field and confirmation."""
+    from terminal_dialog import prompt_line
 
-    curses.curs_set(1)
-    buf = list(initial)
-    pos = len(buf)
-
-    try:
-        while True:
-            h, w = stdscr.getmaxyx()
-            row = h - 1
-            field_col = min(len(label) + 2, w - 2)
-            stdscr.addnstr(row, 0, " " * (w - 1), w - 1)
-            stdscr.addnstr(row, 0, f"{label}: {''.join(buf)}"[: w - 1], w - 1, attr)
-            stdscr.move(row, min(field_col + pos, w - 1))
-            stdscr.refresh()
-            try:
-                key = stdscr.get_wch()
-            except curses.error:
-                continue
-
-            if key == curses.KEY_RESIZE:
-                continue
-            if key in ("\n", "\r", curses.KEY_ENTER, 10, 13):
-                text = "".join(buf).strip()
-                return text if text else initial
-            if key in (chr(27), 27):
-                return None
-            if key in ("\x7f", "\b", curses.KEY_BACKSPACE, 8):
-                if pos > 0:
-                    del buf[pos - 1]
-                    pos -= 1
-            elif key == curses.KEY_DC:
-                if pos < len(buf):
-                    del buf[pos]
-            elif key in (curses.KEY_LEFT, chr(2), 2):  # Ctrl-B: back one char
-                pos = max(0, pos - 1)
-            elif key in (curses.KEY_RIGHT, chr(6), 6):  # Ctrl-F: forward one char
-                pos = min(len(buf), pos + 1)
-            elif key in (curses.KEY_HOME, chr(1), 1):  # Ctrl-A: start of line
-                pos = 0
-            elif key in (curses.KEY_END, chr(5), 5):  # Ctrl-E: end of line
-                pos = len(buf)
-            elif isinstance(key, str) and key.isprintable():
-                buf.insert(pos, key)
-                pos += 1
-    except KeyboardInterrupt:
-        return None
-    finally:
-        curses.curs_set(0)
+    return prompt_line(stdscr, label, initial, attr=attr)
 
 
 def _confirm_line(

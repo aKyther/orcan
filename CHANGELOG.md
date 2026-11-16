@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Show text entry in init and settings in centered dialogs with visible actions, mouse support and scrolling for long values.
+
 - Keep the cockpit keyboard workaround local to its process and verify Alt shortcuts through the embedded PTY and an isolated tmux server.
 
 - Preserve Alt+C and Alt+digit tmux shortcuts in the cockpit on terminals supporting the Kitty keyboard protocol.
