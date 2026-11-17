@@ -75,6 +75,36 @@ orcan context worktree create --repo /abs/repo --branch topic --workspace my-ws 
 orcan context worktree remove --workspace my-ws   # or --path /abs/managed/checkout
 ```
 
+### Worktree from a GitHub fork
+
+In the workspace editor, choose **Worktree** and enter `owner:branch` in the
+branch field, for example `alice:fix/login`. Keep **Mount as-is** when you want
+to use the original checkout directly.
+
+On **Save changes**, Orcan looks up the owner's fork on GitHub, including forks
+with a different repository name, and fetches the exact branch. This needs the
+GitHub CLI (`gh`) on the host, API access (use `gh auth login` when needed), and
+Git access to the fork. Automatic lookup currently supports `github.com` remotes.
+The source repository is identified from `origin`.
+
+Orcan creates the local branch `fork/alice/fix/login` and a remote named
+`orcan-fork-alice`. The branch tracks the fetched fork branch. It preserves the
+original checkout, its local changes and `origin`; it does not push anything.
+An existing remote pointing elsewhere is never overwritten. Missing, inaccessible
+or ambiguous forks and missing branches stop the save; Orcan never substitutes
+`HEAD` for an explicit fork source. An existing local fork branch must be mounted
+as-is or renamed before creating another checkout.
+
+The same source syntax works from the CLI:
+
+```bash
+orcan context worktree create --repo /abs/repo --branch alice:fix/login --workspace review --project backend
+```
+
+Plain branch names keep the existing behavior. Fork lookup and fetching happen
+only during creation, so editing or discarding a workspace draft makes no remote
+changes. A failed fetch may leave the new fork remote configured for retry.
+
 Example after a managed worktree create:
 
 ```json

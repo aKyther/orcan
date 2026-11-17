@@ -9,6 +9,7 @@ import struct
 import subprocess
 import sys
 import termios
+import tempfile
 import time
 from pathlib import Path
 
@@ -18,13 +19,38 @@ import pyte
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.fixture
+def executable_bin():
+    # /tmp may be mounted noexec; command fixtures need an executable location.
+    with tempfile.TemporaryDirectory(prefix='.orcan-test.fork-gh-', dir=ROOT) as directory:
+        yield Path(directory)
+
+
 @pytest.mark.integration
 @pytest.mark.parametrize('save', [False, True])
-def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_factory, save):
+@pytest.mark.parametrize('source', ['feature/api', 'alice:fix/login'])
+def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_factory, save, source, executable_bin):
     parent = tmp_path / 'projects'
     parent.mkdir()
     tracked_git_repo_factory(parent / 'api')
     (parent / 'assets').mkdir()
+    if ':' in source:
+        fork = tracked_git_repo_factory(tmp_path / 'renamed-fork')
+        subprocess.run(['git', '-C', str(fork), 'checkout', '-b', 'fix/login'], check=True, capture_output=True)
+        (fork / 'from-fork').write_text('fork-only content')
+        subprocess.run(['git', '-C', str(fork), 'add', 'from-fork'], check=True)
+        subprocess.run(['git', '-C', str(fork), 'commit', '-qm', 'fork change'], check=True)
+        # Exercise real gh process discovery without contacting GitHub.
+        fake_bin = executable_bin
+        gh = fake_bin / 'gh'
+        gh.write_text('#!/usr/bin/env python3\nimport json, sys\n'
+                      'base = {"full_name": "upstream/api", "owner": {"login": "upstream"}}\n'
+                      'fork = {"full_name": "alice/renamed", "owner": {"login": "alice"}}\n'
+                      'print(json.dumps([[fork]] if "--paginate" in sys.argv else base))\n')
+        gh.chmod(0o755)
+        subprocess.run(['git', '-C', str(parent / 'api'), 'remote', 'add', 'origin', 'https://github.com/upstream/api.git'], check=True)
+        subprocess.run(['git', '-C', str(parent / 'api'), 'config', f'url.{fork}.insteadOf', 'https://github.com/alice/renamed.git'], check=True)
+
     home = tmp_path / 'home'
     config = home / 'orcan.config.json'
     sandbox = tmp_path / 'sandbox'
@@ -33,6 +59,8 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
     env = {**os.environ, 'TERM': 'xterm-256color', 'ORCAN_HOME': str(home),
            'ORCAN_DATA': str(home), 'ORCAN_PROJECTS_ROOT': str(sandbox),
            'ORCAN_NAMED_INSTANCE': '', 'PYTHONPATH': str(ROOT / 'scripts/repository')}
+    if ':' in source:
+        env['PATH'] = str(fake_bin) + os.pathsep + env['PATH']
     proc = subprocess.Popen([sys.executable, str(ROOT / 'scripts/repository/context_tui.py'),
                              '--config', str(config), '--dir', str(parent)],
                             env=env, cwd=ROOT, stdin=slave, stdout=slave, stderr=slave)
@@ -74,7 +102,7 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
         until(b'Done')
         os.write(master, b'jj\n')
         until(b'Branch for this project')
-        os.write(master, b'\x7f' * len('feature/daily') + b'feature/api\n')
+        os.write(master, b'\x7f' * len('feature/daily') + source.encode() + b'\n')
         until(b'Branch:')
         os.write(master, b'jjjjjj\n')
         until(b'api')
@@ -84,11 +112,21 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
             os.write(master, b'jjjj\n')
             until(b'Save all workspace changes')
             os.write(master, b'y\n')
-            assert proc.wait(timeout=15) == 0
+            deadline = time.monotonic() + 15
+            while proc.poll() is None and time.monotonic() < deadline:
+                if select.select([master], [], [], 0.1)[0]:
+                    try:
+                        stream.feed(decoder.decode(os.read(master, 65536)))
+                    except OSError:
+                        break
+            assert proc.wait(timeout=2) == 0, '\n'.join(terminal.display)
             projects = json.loads(config.read_text())['workspaces'][0]['projects']
             assert projects[0]['path'] == str(sandbox / '.worktrees/daily/api')
             assert projects[1]['path'] == str(parent / 'assets')
             assert Path(projects[0]['path']).is_dir()
+            if ':' in source:
+                assert (Path(projects[0]['path']) / 'from-fork').read_text() == 'fork-only content'
+                assert not (parent / 'api' / 'from-fork').exists()
         else:
             os.write(master, b'\x1b')
             until(b'Close / discard draft')

@@ -212,7 +212,7 @@ def edit_project(screen, draft, ws, project):
                 ('worktree', ('[x]' if mode == 'worktree' else '[ ]') + ' Worktree', 'Create a separate Git working directory on the branch below. Only this project changes.'),
             ]
             if mode == 'worktree':
-                items.append(('branch', 'Branch: ' + (project['_branch'] or '(required)'), 'A separate branch for this project; other projects keep their own choices.'))
+                items.append(('branch', 'Branch: ' + (project['_branch'] or '(required)'), 'Branch name or GitHub owner:branch (for example alice:fix/login). Forks are resolved and fetched on save.'))
         else:
             items.append((None, 'Mode: ' + ('existing managed worktree' if managed else 'mount as-is'), 'Existing checkout stays in place. To choose a new worktree, add its source repository as a new project.'))
         items += [('path', 'Directory: ' + project['path'], 'Choose another source directory for this project.'),
@@ -232,11 +232,11 @@ def edit_project(screen, draft, ws, project):
                     raise ValueError('Only Git repositories support worktrees. Use mount as-is for this directory.')
                 project['_mode'] = action
                 if action == 'worktree' and not project['_branch']:
-                    value = _prompt_line(screen, 'Branch for this project', 'feature/' + ws['name'])
+                    value = _prompt_line(screen, 'Branch for this project (or owner:branch)', 'feature/' + ws['name'])
                     if value:
                         project['_branch'] = value.strip()
             elif action == 'branch':
-                value = _prompt_line(screen, 'Branch for this project', project['_branch'])
+                value = _prompt_line(screen, 'Branch for this project (or owner:branch)', project['_branch'])
                 if value:
                     project['_branch'] = value.strip()
             elif action == 'path':

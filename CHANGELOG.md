@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Accept GitHub `owner:branch` worktree sources in workspace setup and the CLI; discover renamed forks, fetch and track the exact branch, and stop instead of falling back to HEAD when a fork source is unavailable.
+
 - Show text entry in init and settings in centered dialogs with visible actions, mouse support and scrolling for long values.
 
 - Keep the cockpit keyboard workaround local to its process and verify Alt shortcuts through the embedded PTY and an isolated tmux server.

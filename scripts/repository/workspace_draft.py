@@ -9,11 +9,12 @@ from pathlib import Path
 from config_io import dump_config, load_config_or_create
 from context_selection import NAME_RE, worktree_is_dirty
 from git_worktrees import (
-    BRANCH_RE, ManifestEntry, create_worktree, find_worktree_by_branch, is_git_repo,
+    ManifestEntry, create_worktree, find_worktree_by_branch, is_git_repo,
     is_under_managed_root, load_manifest, managed_worktree_path,
     manifest_remove, manifest_upsert, remove_worktree,
 )
 from path_guards import checked_workspace_project
+from fork_worktrees import worktree_branch
 
 
 class WorkspaceDraft:
@@ -102,14 +103,12 @@ class WorkspaceDraft:
                 if not is_git_repo(repo):
                     raise ValueError(f'Worktree requires a Git repository: {repo}')
                 branch = project['_branch'].strip()
-                result = subprocess.run(['git', 'check-ref-format', '--branch', branch], capture_output=True)
-                if not branch or not BRANCH_RE.fullmatch(branch) or result.returncode:
-                    raise ValueError(f'Invalid branch for {project["name"]}: {branch}')
+                local_branch = worktree_branch(branch)
                 if subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', self.start_point + '^{commit}'], capture_output=True).returncode:
                     raise ValueError(f'Invalid worktree start point for {project["name"]}: {self.start_point}')
                 common = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--git-common-dir'], capture_output=True, text=True, check=True).stdout.strip()
                 common_path = (repo / common).resolve()
-                identity = (str(common_path), branch)
+                identity = (str(common_path), local_branch)
                 target = managed_worktree_path(ws['name'], project['name'])
                 receipt = self.created.get((str(repo), branch, str(target)))
                 if identity in branches or str(target) in targets:

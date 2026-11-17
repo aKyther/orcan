@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from config_io import die
+from fork_worktrees import ForkSourceError, fetch_fork, worktree_branch
 from path_guards import PathGuardError, checked_workspace_project
-
 
 SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
@@ -274,7 +274,7 @@ def parse_porcelain(text: str) -> list[Worktree]:
         elif line.startswith("branch "):
             ref = line[len("branch ") :]
             prefix = "refs/heads/"
-            cur["branch"] = ref[len(prefix) :] if ref.startswith(prefix) else ref
+            cur["branch"] = ref.removeprefix(prefix)
         elif line == "bare":
             cur["bare"] = True
         elif line == "detached":
@@ -429,6 +429,11 @@ def find_worktree_by_branch(repo: Path, branch: str) -> Worktree | None:
     branch = branch.strip()
     if not branch:
         return None
+    if ":" in branch:
+        try:
+            branch = worktree_branch(branch)
+        except ForkSourceError:
+            return None
     try:
         trees = list_worktrees(repo)
     except SystemExit:
@@ -476,15 +481,16 @@ def create_worktree(
 
     if not is_git_repo(repo):
         fail(f"not a git repository: {repo}", code="not_repo")
-    branch = branch.strip()
-    if not branch:
+    source = branch.strip()
+    if not source:
         fail("branch name is empty", code="empty_branch")
-    if not BRANCH_RE.match(branch):
-        fail(
-            f"invalid branch name: {branch}",
-            hint="Use letters, digits, . _ - / (must start alphanumeric).",
-            code="invalid_branch",
-        )
+    try:
+        branch = worktree_branch(source)
+    except ForkSourceError as exc:
+        fail(str(exc), code="invalid_branch")
+    fork_source = ":" in source
+    if fork_source and start_point != "HEAD":
+        fail("A fork source cannot be combined with a custom start point.", code="args")
 
     if path is not None:
         dest = path.resolve()
@@ -533,9 +539,23 @@ def create_worktree(
             code="branch_in_use",
         )
 
+    fork_start = ""
+    if fork_source:
+        if branch_exists(repo, branch):
+            fail(
+                f"Local fork branch {branch!r} already exists; refusing to use unrelated or stale code.",
+                code="branch_exists",
+            )
+        try:
+            branch, fork_start = fetch_fork(repo, source, remote=remote)
+        except ForkSourceError as exc:
+            fail(str(exc), code="fork_source")
+
     dest.parent.mkdir(parents=True, exist_ok=True)
 
-    if branch_exists(repo, branch):
+    if fork_start:
+        args = ["worktree", "add", "--track", "-b", branch, str(dest), fork_start]
+    elif branch_exists(repo, branch):
         # Branch exists but is free — attach a new worktree to it.
         print(
             f"branch {branch!r} already exists locally — attaching worktree to it",

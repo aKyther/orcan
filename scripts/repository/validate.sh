@@ -360,6 +360,7 @@ for script in \
     scripts/repository/config_io.py \
     scripts/repository/defaults.py \
     scripts/repository/git_worktrees.py \
+    scripts/repository/fork_worktrees.py \
     scripts/repository/managed_workspace.py \
     scripts/repository/migrate_projects.py \
     scripts/repository/history.py \
