@@ -46,8 +46,8 @@ def _git(repo: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def _api(repo: Path, endpoint: str, *, pages: bool = False):
-    args = ["gh", "api", "--hostname", "github.com", endpoint]
+def _api(repo: Path, endpoint: str, *, hostname: str, pages: bool = False):
+    args = ["gh", "api", "--hostname", hostname, endpoint]
     if pages:
         args += ["--paginate", "--slurp"]
     try:
@@ -62,7 +62,7 @@ def _api(repo: Path, endpoint: str, *, pages: bool = False):
         )
         if result.returncode:
             raise ForkSourceError(
-                "GitHub lookup failed. Check gh auth status and repository access, then retry."
+                f"GitHub lookup failed on {hostname}. Check gh auth status --hostname {hostname} and repository access, then retry."
             )
         data = json.loads(result.stdout)
         valid = (
@@ -86,26 +86,52 @@ def _api(repo: Path, endpoint: str, *, pages: bool = False):
         ) from exc
 
 
-def resolve_fork(repo: Path, owner: str, remote: str = "origin") -> tuple[str, str]:
-    """Return (full_name, clone_url), including forks with renamed repositories."""
-    url = _git(repo, "remote", "get-url", remote)
-    ssh = re.fullmatch(r"git@github\.com:([^/]+/[^/]+?)(?:\.git)?", url)
-    parsed = urlparse(url)
-    if ssh:
-        name = ssh[1]
-        transport = "ssh"
-    elif parsed.hostname == "github.com" and parsed.scheme in ("https", "ssh"):
-        name = parsed.path.strip("/").removesuffix(".git")
-        transport = parsed.scheme
+def _remote_source(url: str) -> tuple[str, str, str]:
+    """Return API host, repository name and clone prefix from HTTPS/SSH remotes."""
+    scp = re.fullmatch(
+        r"((?:[A-Za-z0-9_.-]+@)?([A-Za-z0-9][A-Za-z0-9.-]*)):([^/].*)", url
+    )
+    if scp:
+        hostname = scp[2].lower()
+        name = scp[3].removesuffix(".git")
+        prefix = scp[1] + ":"
     else:
-        raise ForkSourceError(
-            "Automatic owner:branch lookup currently supports github.com remotes only."
-        )
+        try:
+            parsed = urlparse(url)
+            host = parsed.hostname or ""
+            port = parsed.port
+        except ValueError as exc:
+            raise ForkSourceError("Invalid GitHub remote URL.") from exc
+        if (
+            parsed.scheme not in ("https", "ssh")
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]*", host)
+            or parsed.query
+            or parsed.fragment
+            or parsed.password is not None
+        ):
+            raise ForkSourceError(
+                "Automatic owner:branch lookup needs an HTTPS or SSH GitHub remote (including GitHub Enterprise)."
+            )
+        hostname = host.lower()
+        authority = hostname + (f":{port}" if port is not None else "")
+        if parsed.scheme == "https":
+            hostname = authority  # HTTPS port also applies to API requests.
+        elif parsed.username:
+            authority = parsed.username + "@" + authority
+        name = parsed.path.strip("/").removesuffix(".git")
+        prefix = f"{parsed.scheme}://{authority}/"
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", name):
         raise ForkSourceError(
             "Cannot identify the GitHub repository from its remote URL."
         )
-    base = _api(repo, f"repos/{name}")
+    return hostname, name, prefix
+
+
+def resolve_fork(repo: Path, owner: str, remote: str = "origin") -> tuple[str, str]:
+    """Return (full_name, clone_url), including renamed Enterprise forks."""
+    url = _git(repo, "remote", "get-url", remote)
+    hostname, name, prefix = _remote_source(url)
+    base = _api(repo, f"repos/{name}", hostname=hostname)
     root = base.get("source", base).get("full_name", "")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", root):
         raise ForkSourceError("GitHub returned an invalid source repository.")
@@ -117,7 +143,9 @@ def resolve_fork(repo: Path, owner: str, remote: str = "origin") -> tuple[str, s
     if not candidates:
         candidates = [
             item
-            for page in _api(repo, f"repos/{root}/forks?per_page=100", pages=True)
+            for page in _api(
+                repo, f"repos/{root}/forks?per_page=100", hostname=hostname, pages=True
+            )
             for item in page
             if item.get("owner", {}).get("login", "").lower() == owner.lower()
         ]
@@ -128,12 +156,7 @@ def resolve_fork(repo: Path, owner: str, remote: str = "origin") -> tuple[str, s
     full_name = candidates[0].get("full_name", "")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", full_name):
         raise ForkSourceError("GitHub returned an invalid fork repository.")
-    clone = (
-        f"git@github.com:{full_name}.git"
-        if transport == "ssh"
-        else f"https://github.com/{full_name}.git"
-    )
-    return full_name, clone
+    return full_name, f"{prefix}{full_name}.git"
 
 
 def fetch_fork(repo: Path, source: str, remote: str = "origin") -> tuple[str, str]:

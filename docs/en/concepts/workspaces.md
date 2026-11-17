@@ -83,9 +83,21 @@ to use the original checkout directly.
 
 On **Save changes**, Orcan looks up the owner's fork on GitHub, including forks
 with a different repository name, and fetches the exact branch. This needs the
-GitHub CLI (`gh`) on the host, API access (use `gh auth login` when needed), and
-Git access to the fork. Automatic lookup currently supports `github.com` remotes.
-The source repository is identified from `origin`.
+GitHub CLI (`gh`) on the host, API access, and Git access to the fork. Both
+`github.com` and company GitHub Enterprise hosts are supported. Orcan reads the
+repository and hostname from `origin`, then sends API requests to that hostname.
+SSH remotes keep their SSH user and port; HTTPS remotes keep their host and port.
+An SSH port is used for Git only, not for API requests.
+
+For a company remote such as `git@github.company.example:team/app.git`, log in
+on the host when needed:
+
+```bash
+gh auth login --hostname github.company.example
+```
+
+This selects a GitHub instance; it does not add GitLab or Bitbucket support.
+SSH aliases must also resolve as a reachable GitHub API hostname.
 
 Orcan creates the local branch `fork/alice/fix/login` and a remote named
 `orcan-fork-alice`. The branch tracks the fetched fork branch. It preserves the

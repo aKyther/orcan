@@ -28,8 +28,8 @@ def executable_bin():
 
 @pytest.mark.integration
 @pytest.mark.parametrize('save', [False, True])
-@pytest.mark.parametrize('source', ['feature/api', 'alice:fix/login'])
-def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_factory, save, source, executable_bin):
+@pytest.mark.parametrize('source,hostname', [('feature/api', 'github.com'), ('alice:fix/login', 'github.com'), ('alice:fix/login', 'github.company.example')])
+def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_factory, save, source, hostname, executable_bin):
     parent = tmp_path / 'projects'
     parent.mkdir()
     tracked_git_repo_factory(parent / 'api')
@@ -44,12 +44,13 @@ def test_multi_project_mixed_draft_save_or_discard(tmp_path, tracked_git_repo_fa
         fake_bin = executable_bin
         gh = fake_bin / 'gh'
         gh.write_text('#!/usr/bin/env python3\nimport json, sys\n'
+                      f'assert sys.argv[sys.argv.index("--hostname") + 1] == {hostname!r}\n'
                       'base = {"full_name": "upstream/api", "owner": {"login": "upstream"}}\n'
                       'fork = {"full_name": "alice/renamed", "owner": {"login": "alice"}}\n'
                       'print(json.dumps([[fork]] if "--paginate" in sys.argv else base))\n')
         gh.chmod(0o755)
-        subprocess.run(['git', '-C', str(parent / 'api'), 'remote', 'add', 'origin', 'https://github.com/upstream/api.git'], check=True)
-        subprocess.run(['git', '-C', str(parent / 'api'), 'config', f'url.{fork}.insteadOf', 'https://github.com/alice/renamed.git'], check=True)
+        subprocess.run(['git', '-C', str(parent / 'api'), 'remote', 'add', 'origin', f'https://{hostname}/upstream/api.git'], check=True)
+        subprocess.run(['git', '-C', str(parent / 'api'), 'config', f'url.{fork}.insteadOf', f'https://{hostname}/alice/renamed.git'], check=True)
 
     home = tmp_path / 'home'
     config = home / 'orcan.config.json'

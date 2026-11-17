@@ -50,14 +50,46 @@ def test_source_names_separate_owners_and_local_branches():
 
 
 @pytest.mark.parametrize(
-    "url,clone",
+    "url,clone,hostname",
     [
-        ("git@github.com:upstream/app.git", "git@github.com:alice/renamed.git"),
-        ("https://github.com/upstream/app.git", "https://github.com/alice/renamed.git"),
-        ("ssh://git@github.com/upstream/app.git", "git@github.com:alice/renamed.git"),
+        (
+            "git@github.com:upstream/app.git",
+            "git@github.com:alice/renamed.git",
+            "github.com",
+        ),
+        (
+            "https://github.com/upstream/app.git",
+            "https://github.com/alice/renamed.git",
+            "github.com",
+        ),
+        (
+            "ssh://git@github.com/upstream/app.git",
+            "ssh://git@github.com/alice/renamed.git",
+            "github.com",
+        ),
+        (
+            "git@github.company.example:upstream/app.git",
+            "git@github.company.example:alice/renamed.git",
+            "github.company.example",
+        ),
+        (
+            "https://github.company.example/upstream/app.git",
+            "https://github.company.example/alice/renamed.git",
+            "github.company.example",
+        ),
+        (
+            "ssh://git@github.company.example:2222/upstream/app.git",
+            "ssh://git@github.company.example:2222/alice/renamed.git",
+            "github.company.example",
+        ),
+        (
+            "https://github.company.example:8443/upstream/app.git",
+            "https://github.company.example:8443/alice/renamed.git",
+            "github.company.example:8443",
+        ),
     ],
 )
-def test_resolve_renamed_fork_across_pages(url, clone):
+def test_resolve_renamed_fork_across_pages(url, clone, hostname):
     base = {"full_name": "upstream/app", "owner": {"login": "upstream"}}
     fork = {"full_name": "alice/renamed", "owner": {"login": "Alice"}}
     with (
@@ -66,6 +98,7 @@ def test_resolve_renamed_fork_across_pages(url, clone):
     ):
         assert fw.resolve_fork(Path("/unused"), "alice") == ("alice/renamed", clone)
     assert api.call_args.args[1] == "repos/upstream/app/forks?per_page=100"
+    assert all(call.kwargs["hostname"] == hostname for call in api.call_args_list)
 
 
 def test_resolves_from_fork_origin_via_network_source():
@@ -94,10 +127,52 @@ def test_ambiguous_fork_is_rejected():
             fw.resolve_fork(Path("/unused"), "alice")
 
 
-def test_unsupported_host_does_not_guess():
-    with patch.object(fw, "_git", return_value="git@gitlab.com:upstream/app.git"):
-        with pytest.raises(fw.ForkSourceError, match="github.com"):
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/local/repo",
+        "file:///local/repo",
+        "https:///upstream/app",
+        "https://github.company.example/a/b/c",
+        "ssh://git@github.company.example:bad/a/b",
+        "https://github.company.example/a/b?other=repo",
+    ],
+)
+def test_unsupported_remote_does_not_guess(url):
+    with patch.object(fw, "_git", return_value=url), patch.object(fw, "_api") as api:
+        with pytest.raises(fw.ForkSourceError):
             fw.resolve_fork(Path("/unused"), "alice")
+        api.assert_not_called()
+
+
+@pytest.mark.parametrize("hostname", ["github.com", "github.company.example"])
+def test_api_targets_remote_host_even_with_other_environment_default(
+    hostname, monkeypatch
+):
+    monkeypatch.setenv("GH_HOST", "unrelated.example")
+    result = subprocess.CompletedProcess([], 0, stdout='{"full_name":"upstream/app"}')
+    with patch.object(fw.subprocess, "run", return_value=result) as run:
+        assert fw._api(Path("/unused"), "repos/upstream/app", hostname=hostname) == {
+            "full_name": "upstream/app"
+        }
+    assert run.call_args.args[0] == [
+        "gh",
+        "api",
+        "--hostname",
+        hostname,
+        "repos/upstream/app",
+    ]
+
+
+def test_enterprise_error_identifies_host():
+    result = subprocess.CompletedProcess([], 1, stdout="", stderr="not logged in")
+    with patch.object(fw.subprocess, "run", return_value=result):
+        with pytest.raises(
+            fw.ForkSourceError, match="gh auth status --hostname github.company.example"
+        ):
+            fw._api(
+                Path("/unused"), "repos/upstream/app", hostname="github.company.example"
+            )
 
 
 @pytest.mark.parametrize(
@@ -106,7 +181,7 @@ def test_unsupported_host_does_not_guess():
 def test_api_unavailable_is_recoverable(failure):
     with patch.object(fw.subprocess, "run", side_effect=failure):
         with pytest.raises(fw.ForkSourceError, match="GitHub CLI"):
-            fw._api(Path("/unused"), "repos/upstream/app")
+            fw._api(Path("/unused"), "repos/upstream/app", hostname="github.com")
 
 
 @pytest.fixture
