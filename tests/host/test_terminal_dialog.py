@@ -40,7 +40,9 @@ curses.wrapper(run)
 def dialog(tmp_path):
     processes = []
 
-    def start(label="New workspace name", initial="", term="xterm-256color"):
+    def start(
+        label="New workspace name", initial="", term="xterm-256color", read_size=65536
+    ):
         result = tmp_path / f"result-{len(processes)}.json"
         master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
@@ -67,7 +69,7 @@ def dialog(tmp_path):
             while time.monotonic() < deadline:
                 if select.select([master], [], [], 0.02)[0]:
                     try:
-                        chunk = os.read(master, 65536)
+                        chunk = os.read(master, read_size)
                     except OSError:
                         chunk = b""
                     output.extend(chunk)
@@ -86,7 +88,17 @@ def dialog(tmp_path):
             assert process.wait(timeout=3) == 0
             return json.loads(result.read_text())
 
-        until(lambda: any(label in line for line in screen.display))
+        # A PTY read can stop midway through doupdate(), after the label but
+        # before the action row. Wait for the controls that callers inspect.
+        until(
+            lambda: (
+                any(label in line for line in screen.display)
+                and any(
+                    "[ Confirm ]" in line and "[ Cancel ]" in line
+                    for line in screen.display
+                )
+            )
+        )
         return master, screen, until, finish
 
     yield start
@@ -115,6 +127,14 @@ def test_shared_fields_are_centered_with_actions(dialog, label):
     assert "[ Cancel ]" in screen.display[14]
     assert "Workspace editor background" in screen.display[1]
     assert finish("nowy-żółw\n".encode()) == "nowy-żółw"
+
+
+def test_initial_controls_are_ready_with_fragmented_pty_output(dialog):
+    _, screen, _, finish = dialog("Branch for this project", read_size=1)
+    assert "Branch for this project" in screen.display[8]
+    assert "[ Confirm ]" in screen.display[14]
+    assert "[ Cancel ]" in screen.display[14]
+    assert finish(b"alice:fix/login\n") == "alice:fix/login"
 
 
 @pytest.mark.parametrize(
