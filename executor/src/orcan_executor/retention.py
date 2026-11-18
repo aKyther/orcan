@@ -13,6 +13,7 @@ from . import store, worktree_cleanup
 from .settings import (
     HISTORY_DAYS,
     HISTORY_LIMIT,
+    artifact_job_directory,
     retention_seconds,
     state_dir,
     storage_limit_mb,
@@ -33,11 +34,25 @@ def prune(
                 "SELECT * FROM jobs WHERE status IN ('passed','failed','error','timed_out','cancelled') AND (details_expired=0 OR worktree IS NOT NULL OR git_dir IS NOT NULL) ORDER BY finished,id"
             )
         )
-    sizes = {job["id"]: size(state_dir() / "jobs" / job["id"])["allocated_bytes"] for job in jobs}
+    sizes = {}
+    for job in jobs:
+        try:
+            payload = (
+                state_dir() / "jobs" / job["id"]
+                if job["details_expired"]
+                else artifact_job_directory(dict(job))
+            )
+            sizes[job["id"]] = size(payload)["allocated_bytes"]
+        except (OSError, ValueError):
+            continue  # Unavailable external storage must never trigger local fallback/deletion.
     total = sum(sizes.values())
     budget = storage_limit_mb("detail_budget_mb") * 1024**2
     for job in jobs:
-        if not job["finished"] or (job["finished"] >= cutoff and total <= budget):
+        if (
+            job["id"] not in sizes
+            or not job["finished"]
+            or (job["finished"] >= cutoff and total <= budget)
+        ):
             continue
         directory = state_dir() / "jobs" / job["id"]
         if directory.is_symlink():
@@ -61,6 +76,12 @@ def prune(
                 continue
             if fresh["status"] not in store.TERMINAL:
                 continue
+            try:
+                payload = directory if fresh["details_expired"] else artifact_job_directory(fresh)
+            except (OSError, ValueError):
+                continue
+            if payload.is_symlink():
+                continue
             # Modified/locked/foreign trees are retained independently of log TTL.
             retained = fresh.get("worktree")
             git_dir = fresh.get("git_dir")
@@ -79,7 +100,7 @@ def prune(
                                 definition = profiles.for_job(fresh)
                             worktree_cleanup.archived_reports(
                                 tree,
-                                directory / str(fresh["attempts"]) / "junit",
+                                payload / str(fresh["attempts"]) / "junit",
                                 definition,
                                 dry_run=dry_run,
                             )
@@ -99,7 +120,7 @@ def prune(
                     candidates.append(
                         {
                             "job_id": job["id"],
-                            "artifacts": str(directory) if not fresh["details_expired"] else None,
+                            "artifacts": str(payload) if not fresh["details_expired"] else None,
                             "worktree": retained if clean else None,
                             "retained_worktree": retained if not clean else None,
                             "reason": "ttl" if job["finished"] < cutoff else "detail_budget",
@@ -150,13 +171,15 @@ def prune(
                     pass
             # Keep the lock stable while artifact removal and metadata expiry run.
             try:
-                for child in directory.iterdir():
-                    if child.name == "run.lock":
+                for child in payload.iterdir() if payload.exists() else []:
+                    if payload == directory and child.name == "run.lock":
                         continue
                     if child.is_dir() and not child.is_symlink():
                         shutil.rmtree(child)
                     else:
                         child.unlink()
+                if payload != directory and payload.exists():
+                    payload.rmdir()
             except OSError:
                 continue  # Retry incomplete artifact removal on the next maintenance pass.
             summary = fresh["summary"] or {}

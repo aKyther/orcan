@@ -13,6 +13,7 @@ in their host login tools or process environment.
 | Agents and tools | Agent CLIs in `build.agents`, their versions, and optional Go/Rust toolchains |
 | Resources | Docker image, timezone and container CPU/memory/process limits |
 | Terminal layout | tmux windows, history and window prefix |
+| Artifact storage | Existing host path (including SSHFS), optional expected mountpoint, and mount checks |
 | Review and save | Changed settings and the commands needed to apply them |
 | Reload configuration | Discard the draft and read the current JSON |
 
@@ -156,3 +157,25 @@ performed only on save; local changes block removal. If worktree creation fails
 partway through save, created directories remain and are reused on retry. Review
 the error before discarding the draft: discarding cannot undo already executed
 filesystem operations from an attempted save.
+
+
+## Artifact storage and temporary files
+
+Choose **Artifact storage** to provide an existing canonical host directory.
+For a directory inside SSHFS, also specify the host mountpoint; leave that field
+empty when the storage path is itself the mountpoint. Keep **Require a mounted
+filesystem** enabled for SSHFS. **Use local artifact storage** clears the path.
+
+Saving changes configuration only. Run `orcan sync`, inspect `orcan up --plan`,
+and recreate after active jobs finish. The selected path is mounted read/write
+at the same absolute path. Missing storage stops startup; no replacement host
+folder is created. Existing artifact files are not migrated automatically.
+
+Executor logs/reports use the path. SQLite and locks remain local. Larger dumps
+and screenshots can use `ORCAN_SCRATCH_DIR`; it is separate from the default
+512 MiB `/tmp` RAM filesystem. Adjust **Resources → Temporary /tmp size (RAM)**
+only when more local temporary space is needed. The artifact setting does not
+redirect global `TMPDIR` or move builds/tests to SSHFS.
+
+See [mounted artifact storage](background-executor.md#optional-host-mounted-artifact-storage)
+for layout, permissions and retention.

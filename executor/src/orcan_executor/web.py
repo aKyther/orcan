@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingRes
 from redis.exceptions import RedisError
 
 from . import store
-from .settings import broker_url, state_dir, stream_name
+from .settings import artifact_directory, broker_url, stream_name
 
 app = FastAPI(title="Orcan executor", docs_url=None, redoc_url=None)
 
@@ -61,8 +61,12 @@ def artifact(job_id: str, name: str) -> Path:
         raise HTTPException(404, "Unknown job") from None
     if not job["report"]:
         raise HTTPException(404, "Report not available yet")
-    path = (Path(job["report"]).parent / name).resolve()
-    if not path.is_relative_to(state_dir()) or not path.is_file():
+    try:
+        directory = artifact_directory(job)
+        path = (directory / name).resolve()
+    except (OSError, ValueError):
+        raise HTTPException(503, "Configured artifact storage is unavailable") from None
+    if not path.is_relative_to(directory.resolve()) or not path.is_file():
         raise HTTPException(404, "Artifact not available")
     return path
 

@@ -13,6 +13,7 @@ from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS, PROCESS_DE
 from orcan.executor_config import ENVIRONMENT, resolve as resolve_executor
 from orcan.plugin_registry import resolve as resolve_plugins
 from path_guards import checked_project_dir
+from orcan.storage_config import resolve as resolve_storage
 
 def resolve_settings(cfg: dict) -> dict:
     """The tmux / ttyd / resources sections with defaults filled and types coerced.
@@ -124,6 +125,10 @@ def host_environment(cfg: dict, home: Path, runtime: dict | None = None) -> dict
         if not isinstance(value, str) or not Path(value).is_absolute() or any(c in value for c in "\n\r$`"):
             die("data_root and projects_root must be absolute paths without shell expansions")
         checked_project_dir(value, must_exist=False)
+    try:
+        storage = resolve_storage(cfg.get("storage"))
+    except ValueError as error:
+        die(str(error))
     image = cfg.get("image", "orcan:latest")
     if not isinstance(image, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]*", image):
         die("invalid configured Docker image reference")
@@ -141,6 +146,11 @@ def host_environment(cfg: dict, home: Path, runtime: dict | None = None) -> dict
         "IMAGE_REPOSITORY": registry.get("repository", "akyther/orcan"),
         "IMAGE_TAG": registry.get("tag", ""),
         "ORCAN_DATA": data, "ORCAN_PROJECTS_ROOT": projects,
+        "ORCAN_STORAGE_ROOT": storage["path"],
+        "ORCAN_STORAGE_MOUNT": (storage["mount_path"] or storage["path"]) if storage["path"] else "",
+        "ORCAN_STORAGE_REQUIRE_MOUNT": int(storage["require_mount"]),
+        "ORCAN_SCRATCH_DIR": str(Path(storage["path"]) / "orcan" / (os.environ.get("ORCAN_NAMED_INSTANCE") or "default") / "scratch") if storage["path"] else "",
+
         "PROJECT_DIR": str(home),
         "CONTAINER_PROJECT_DIR": ws.get("root", "/home/developer"),
         "ORCAN_CONFIG_HOST": str(root / "runtime-config.json"),

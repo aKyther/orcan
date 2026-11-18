@@ -4,7 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
-from .settings import minimum_free_mb, state_dir, storage_limit_mb, worktree_root
+from .settings import artifact_root, minimum_free_mb, state_dir, storage_limit_mb, worktree_root
 
 
 def filesystem(path: Path) -> dict:
@@ -23,7 +23,7 @@ def filesystem(path: Path) -> dict:
 
 def capacity() -> dict:
     # State and checkouts can be on different filesystems. Both need a reserve.
-    disks = [filesystem(state_dir()), filesystem(worktree_root())]
+    disks = [filesystem(state_dir()), filesystem(worktree_root()), filesystem(artifact_root())]
     return {"ready": all(disk["ready"] for disk in disks), "filesystems": disks}
 
 
@@ -77,7 +77,8 @@ def report() -> dict:
     root = state_dir()
     cache = Path(os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache")))
     categories = {
-        "job_artifacts": root / "jobs",
+        "job_artifacts": artifact_root(),
+        "local_job_metadata": root / "jobs",
         "executor_worktrees": worktree_root(),
         "directory_snapshots": root / "snapshots",
         "shared_uv_cache": Path(os.environ.get("UV_CACHE_DIR", str(cache / "uv"))),

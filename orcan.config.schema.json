@@ -763,6 +763,27 @@
           "default": "512m"
         }
       }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "default": "",
+          "description": "Optional existing canonical host path for artifacts and scratch data; mounted at the same container path."
+        },
+        "require_mount": {
+          "type": "boolean",
+          "default": true,
+          "description": "Refuse startup and execution when configured external storage is not mounted."
+        },
+        "mount_path": {
+          "type": "string",
+          "default": "",
+          "description": "Expected host mountpoint when path is a nested directory; empty means path itself must be mounted."
+        }
+      }
     }
   }
 }

@@ -232,6 +232,13 @@ def main() -> None:
     if ask_yes_no("Change tmux (windows / prefix)?", default=False):
         heading("tmux")
         edit_tmux(cfg)
+    if ask_yes_no("Configure an artifact storage host path (for example SSHFS)?", default=False):
+        from orcan.storage_config import resolve as resolve_storage
+        current=resolve_storage(cfg.get('storage'))
+        path=ask('Existing absolute host storage path (empty disables external storage)', current['path'])
+        mount=ask('Expected host mountpoint (empty means storage path itself)',current['mount_path'])
+        require=ask_yes_no('Require this mountpoint before startup?',default=current['require_mount'])
+        cfg['storage']=resolve_storage({'path':path,'mount_path':mount,'require_mount':require})
     if ask_yes_no("Choose startup plugins and their settings?", default=False):
         edit_plugins(cfg)
 

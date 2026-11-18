@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import engine, events, profiles, store
 from .metrics import model_result, wire
-from .settings import effective, execution_lane, queue_name, state_dir
+from .settings import artifact_directory, effective, execution_lane, queue_name, state_dir
 
 
 def emit(value):
@@ -420,11 +420,7 @@ def main(argv=None):
             maintain()
         elif args.command == "artifacts":
             job = store.get(args.job_id)
-            directory = (
-                Path(job["report"]).parent
-                if job["report"]
-                else state_dir() / "jobs" / job["id"] / str(job["attempts"])
-            )
+            directory = artifact_directory(job)
             names = sorted(
                 str(path.relative_to(directory))
                 for path in directory.rglob("*")
@@ -444,14 +440,10 @@ def main(argv=None):
             if not 0 <= args.offset or not 1 <= args.limit <= 16000:
                 raise ValueError("Use a nonnegative byte offset and limit 1..16000")
             job = store.get(args.job_id)
-            directory = (
-                Path(job["report"]).parent
-                if job["report"]
-                else state_dir() / "jobs" / job["id"] / str(job["attempts"])
-            )
+            directory = artifact_directory(job)
             path = profiles.inside(directory, args.artifact)
-            if not path.resolve().is_relative_to(state_dir()):
-                raise ValueError("Artifact outside local state")
+            if not path.resolve().is_relative_to(directory.resolve()):
+                raise ValueError("Artifact outside this job's storage")
             with path.open("rb") as source:
                 source.seek(args.offset)
                 chunk = source.read(args.limit)

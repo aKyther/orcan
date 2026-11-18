@@ -185,3 +185,18 @@ Full field rules and rejected keys: [Configuration reference](../reference/confi
 Choose default integrations in the [plugin list](../guides/plugins.md). Old
 top-level `ttyd`/`executor` sections remain readable; a reviewed plugin save in
 `orcan settings` groups them under `plugins`.
+
+
+## Host artifact storage
+
+`storage.path` selects an existing canonical host directory to bind at the same
+absolute path inside Orcan. Configure it through **Artifact storage** in
+`orcan settings`. For SSHFS, keep `storage.require_mount: true`; set
+`storage.mount_path` to the expected host mountpoint when the path is a nested
+folder. Orcan does not mount SSHFS or create a missing host storage root.
+
+Executor payloads and `ORCAN_SCRATCH_DIR` use this storage; metadata/locks and
+`/tmp` remain local. Save and sync, then recreate after active jobs finish.
+See [mounted artifact storage](../guides/background-executor.md#optional-host-mounted-artifact-storage)
+for layout, permission checks, retention and the separate `resources.tmpfs_size`
+setting.

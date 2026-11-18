@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
 
-from .settings import state_dir
+from .settings import artifact_directory, state_dir
 
 VERSION = 1
 MAX_FILES = 2048
@@ -340,7 +340,7 @@ def receipt(source: dict, job: dict) -> tuple[dict, Path] | None:
                 return None
             original = Path(source["report"])
             root = original.parent
-            if not root.resolve().is_relative_to(source_dir.resolve()):
+            if root.resolve() != artifact_directory(source).resolve():
                 return None
             manifest = json.loads(source["evidence_manifest"])
             if not isinstance(manifest, list) or not 1 <= len(manifest) <= MAX_FILES:

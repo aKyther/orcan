@@ -92,6 +92,11 @@ services:
       ORCAN_CONFIG: ${ORCAN_CONFIG:-/etc/orcan/config.json}
       ORCAN_DATA: ${ORCAN_DATA}
       ORCAN_PROJECTS_ROOT: ${ORCAN_PROJECTS_ROOT}
+      ORCAN_STORAGE_ROOT: ${ORCAN_STORAGE_ROOT:-}
+      # In-container the selected bind itself is the mountpoint.
+      ORCAN_STORAGE_MOUNT: ${ORCAN_STORAGE_ROOT:-}
+      ORCAN_STORAGE_REQUIRE_MOUNT: ${ORCAN_STORAGE_REQUIRE_MOUNT:-1}
+      ORCAN_SCRATCH_DIR: ${ORCAN_SCRATCH_DIR:-}
       # Keep in-container worktree helpers in the selected instance namespace.
       ORCAN_NAMED_INSTANCE: ${ORCAN_NAMED_INSTANCE:-}
       TZ: ${TZ:-UTC}

@@ -9,6 +9,7 @@ from pathlib import Path
 from config_io import dump_config, load_config
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, PROCESS_DEFAULTS
 from host_config import host_environment
+from orcan.storage_config import resolve as resolve_storage
 from orcan.image_profile import AGENTS, TOOLS, PYTHONS, agent_entry, tool_entry, requirements, resolve as image_profile
 from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection, change_selection
 
@@ -142,6 +143,13 @@ class SettingsModel:
         validate_host(proposed,self.path.parent)
         self.data=proposed
 
+    def set_storage(self, key, value):
+        proposed = copy.deepcopy(self.data)
+        proposed['storage'] = resolve_storage(proposed.get('storage')) | {key: value}
+        proposed['storage'] = resolve_storage(proposed['storage'])
+        validate_host(proposed, self.path.parent)
+        self.data = proposed
+
     def set_tmux(self, key, value):
         if key == 'initial_windows' and (type(value) is not int or not 1 <= value <= 9):
             raise ValueError('Initial windows must be from 1 to 9')
@@ -163,6 +171,7 @@ class SettingsModel:
         effective['image'] = data.get('image', 'orcan:latest')
         effective['timezone'] = data.get('timezone', 'UTC')
         effective['plugins'] = plugins
+        effective['storage'] = resolve_storage(data.get('storage'))
         for legacy in ('executor', 'executor_port', 'ttyd'):
             effective.pop(legacy, None)
         return effective
@@ -183,7 +192,7 @@ class SettingsModel:
         if build_changed: actions.append('orcan build')
         startup_changed = build_changed or any(
             new.get(key) != old.get(key)
-            for key in ('image', 'timezone', 'resources', 'workspaces', 'plugins')
+            for key in ('image', 'timezone', 'resources', 'workspaces', 'plugins', 'storage')
         )
         if startup_changed:
             actions += ['orcan up --plan', 'orcan up (after active background jobs finish)']
@@ -193,6 +202,8 @@ class SettingsModel:
         notes = ['Reviewing a draft; saving writes desired configuration only. Running state is not inspected.']
         if (TMUX_DEFAULTS | self.data.get('tmux', {})) != (TMUX_DEFAULTS | self.original.get('tmux', {})):
             notes.append('Tmux defaults changed; existing sessions are not restarted or reconfigured by saving.')
+        if resolve_storage(self.data.get('storage')) != resolve_storage(self.original.get('storage')):
+            notes.append('Storage changes need sync and container recreation after active jobs finish. Existing artifacts are not moved.')
         if self.dirty and not self.effective_dirty:
             notes.append('Only explicit defaults or configuration layout changed; sync refreshes prepared files without build or startup.')
         elif self.next_actions() == ['orcan sync']:
@@ -223,6 +234,10 @@ class SettingsModel:
                     before = 'explicit' if key in self.original.get(section, {}) else 'default'
                     after = 'explicit' if key in self.data.get(section, {}) else 'default'
                     lines.append(f'{section}.{key}: {before} {value!r} -> {after} {value!r} (effective value unchanged)')
+        old_storage=resolve_storage(self.original.get('storage'))
+        for key,value in resolve_storage(self.data.get('storage')).items():
+            if old_storage[key]!=value:
+                lines.append(f'storage.{key}: {old_storage[key]!r} -> {value!r}')
         for key in ('image','timezone'):
             if self.original.get(key)!=self.data.get(key):lines.append(f'{key}: {self.original.get(key)!r} -> {self.data.get(key)!r}')
         if self.dirty and not lines: lines.append('Configuration representation changed; effective settings are unchanged.' if not self.effective_dirty else 'Configuration changed; review the apply steps.')

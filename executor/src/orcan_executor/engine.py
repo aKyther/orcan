@@ -19,6 +19,7 @@ from . import profiles, reports, store, worktree_cleanup
 from .metrics import log_size
 from .settings import (
     QUEUE_WAIT_TIMEOUT_SECONDS,
+    artifact_root,
     default_timeout,
     execution_lane,
     state_dir,
@@ -244,8 +245,9 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         if not store.start(job_id, worktree):
             return None
         job = store.get(job_id)
-        attempt = directory / str(job["attempts"])
         try:
+            attempt = artifact_root() / job_id / str(job["attempts"])
+            attempt.parent.mkdir(parents=True, exist_ok=True)
             worktree.parent.mkdir(parents=True, exist_ok=True)
             attempt.mkdir()
         except OSError as error:
@@ -482,7 +484,13 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                         "reason": str(error)[:500],
                     }
         report["seconds"] = round(time.monotonic() - began, 3)
-        log_bytes, log_lines = log_size(log_path)
+        try:
+            log_bytes, log_lines = log_size(log_path)
+        except OSError as error:
+            report.update(
+                status="error", error=f"Artifact storage became unavailable: {str(error)[:300]}"
+            )
+            log_bytes = log_lines = 0
         cpu_end = resource.getrusage(resource.RUSAGE_SELF)
         child_cpu_end = resource.getrusage(resource.RUSAGE_CHILDREN)
         report["metrics"] = {
@@ -510,7 +518,22 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             ),
         }
         report_path = attempt / "report.json"
-        report_path.write_text(json.dumps(report, indent=2) + "\n")
+        try:
+            report_path.write_text(json.dumps(report, indent=2) + "\n")
+        except OSError as error:
+            return store.finish(
+                job_id,
+                "error",
+                {
+                    "error": f"Artifact storage write failed: {str(error)[:300]}",
+                    "tests": report["tests"],
+                    "passed": report["passed"],
+                    "failed": report["failed"],
+                    "errors": max(1, report["errors"]),
+                    "skipped": report["skipped"],
+                },
+                None,
+            )
         summary = reports.compact(report, log_path)
         if report["status"] != "passed":
             diagnostic = {
@@ -531,7 +554,15 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             for key in ("error", "failed_step", "diagnostic_note"):
                 if key in summary:
                     diagnostic[key] = summary[key]
-            (attempt / "diagnostics.json").write_text(json.dumps(diagnostic, indent=2) + "\n")
+            try:
+                (attempt / "diagnostics.json").write_text(json.dumps(diagnostic, indent=2) + "\n")
+            except OSError as error:
+                return store.finish(
+                    job_id,
+                    "error",
+                    {"error": f"Artifact storage write failed: {str(error)[:300]}"},
+                    None,
+                )
         summary["seconds"] = report["seconds"]
         summary["metrics"] = report["metrics"].copy()
         if job.get("verification_key"):
@@ -548,7 +579,10 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             summary["retained_worktree"] = report["cleanup"]["retained_worktree"]
         result = store.finish(job_id, report["status"], summary, report_path)
         report["metrics"] = result["summary"]["metrics"].copy()
-        report_path.write_text(json.dumps(report, indent=2) + "\n")
+        try:
+            report_path.write_text(json.dumps(report, indent=2) + "\n")
+        except OSError:
+            return result  # Completed result is durable locally; never retry the procedure.
         if report["status"] == "passed" and not report.get("artifact_error"):
             from .reuse import seal
 

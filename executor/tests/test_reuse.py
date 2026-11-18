@@ -478,3 +478,21 @@ def test_checkout_failure_still_returns_terminal_error_for_a_cacheable_operation
     assert "fixture checkout unavailable" in result["summary"]["error"]
     assert store.get(job["id"])["status"] == "error"
     assert store.get(job["id"])["evidence_manifest"] is None
+
+
+def test_external_source_evidence_produces_local_durable_reuse_receipt(
+    cached_repo, tmp_path, monkeypatch
+):
+    from orcan_executor.settings import state_dir
+
+    external = tmp_path / "external"
+    external.mkdir()
+    monkeypatch.setenv("ORCAN_STORAGE_ROOT", str(external))
+    monkeypatch.setenv("ORCAN_STORAGE_REQUIRE_MOUNT", "0")
+    original = passed(cached_repo)
+    assert Path(original["report"]).is_relative_to(external)
+    result = submit(cached_repo)
+    assert result["status"] == "passed" and result["submission_mode"] == "reused"
+    assert result["summary"]["tests"] == 0
+    assert Path(result["report"]).is_relative_to(state_dir())
+    assert result["summary"]["verification"]["source_job_id"] == original["id"]

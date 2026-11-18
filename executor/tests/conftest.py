@@ -13,6 +13,9 @@ def commit(repo):
 @pytest.fixture(autouse=True)
 def isolated_state(tmp_path, monkeypatch):
     monkeypatch.delenv("TTYD_CREDENTIAL", raising=False)
+    monkeypatch.delenv("ORCAN_STORAGE_ROOT", raising=False)
+    monkeypatch.delenv("ORCAN_STORAGE_MOUNT", raising=False)
+    monkeypatch.delenv("ORCAN_STORAGE_REQUIRE_MOUNT", raising=False)
     monkeypatch.setenv("ORCAN_EXECUTOR_MIN_FREE_MB", "1")
     monkeypatch.delenv("ORCAN_EXECUTOR_WORKERS", raising=False)
     monkeypatch.delenv("ORCAN_EXECUTOR_SPLIT_LANES", raising=False)

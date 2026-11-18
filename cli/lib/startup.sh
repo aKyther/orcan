@@ -11,6 +11,9 @@ orcan_startup_stage() {
 orcan_startup_check_inputs() {
     orcan_load_config || return
     orcan_require_generated || return
+    if [[ -n "${ORCAN_STORAGE_ROOT:-}" ]]; then
+        orcan_host_python "${ORCAN_ROOT}/docker/rootfs/usr/local/lib/orcan/storage_config.py" || return
+    fi
     if ! docker image inspect --format '{{.Id}}' "${IMAGE_LOCAL:-orcan:latest}" >/dev/null 2>&1; then
         orcan_warn "local image unavailable: ${IMAGE_LOCAL:-orcan:latest}; check Docker, then run orcan build (or explicitly orcan pull) if needed"
         return 1

@@ -361,6 +361,7 @@ for script in \
     scripts/repository/defaults.py \
     scripts/repository/git_worktrees.py \
     scripts/repository/fork_worktrees.py \
+    docker/rootfs/usr/local/lib/orcan/storage_config.py \
     scripts/repository/managed_workspace.py \
     scripts/repository/migrate_projects.py \
     scripts/repository/history.py \

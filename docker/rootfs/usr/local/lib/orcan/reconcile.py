@@ -510,7 +510,10 @@ review/edit the returned Orcan-owned config path. Do not add .orcan or executor
 configuration to the source project. Existing committed profiles remain readable.
 Submission freezes the selected procedure; its SHA-256 accompanies the result.
 Keep agent context small: submit procedures to the executor; do not stream or paste
-successful command/test output into the session. For pytest, request JUnit XML with
+successful command/test output into the session.
+If ORCAN_SCRATCH_DIR is set, use it for large disposable dumps/screenshots.
+/tmp is a small RAM filesystem; do not redirect builds, tests or global TMPDIR
+into network storage. Executor metadata and execution locks remain local. For pytest, request JUnit XML with
 --junitxml {junit}; for Gradle/JVM tests, declare the produced JUnit XML paths in the
 profile's junit globs (including custom test tasks). Other test runners should emit
 JUnit XML or use a reviewed project wrapper that produces it. Preserve the command's

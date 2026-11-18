@@ -19,7 +19,7 @@ ROOT=Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize('save,save_key',[(False,b's'),(True,b's'),(True,b'\n')])
-@pytest.mark.parametrize('section',['plugins','agents'])
+@pytest.mark.parametrize('section',['plugins','agents','storage'])
 def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,save_key,section):
     path=tmp_path/'orcan.config.json'
     path.write_text('{"workspaces":[],"build":{"agents":["codex"],"tools":[]}}')
@@ -50,14 +50,20 @@ def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,save_k
             os.write(master,b'jjj\n')
             until(b'background executor')
             os.write(master,b'jjjjj ')  # Redis row; toggle on.
-        else:
+        elif section=='agents':
             os.write(master,b'j\n')
             until(b'Image contents only')
             os.write(master,b' ')  # Claude row; select it for the image.
+        else:
+            os.write(master,b'jjjjj\n')
+            until(b'Artifact storage host path')
+            os.write(master,b'\n')
+            until(b'Confirm')
+            os.write(master,b'/mnt/remote storage\n')
         until(b'unsaved')
         if save:
             os.write(master,b'r')
-            until(b'plugins.redis.enabled' if section=='plugins' else b'Image agents:')
+            until(b'plugins.redis.enabled' if section=='plugins' else b'storage.path' if section=='storage' else b'Image agents:')
             os.write(master,save_key)
             until(b'Save the reviewed settings?')
             os.write(master,b'y\n')
@@ -70,6 +76,9 @@ def test_settings_terminal_selection_review_save_and_cancel(tmp_path,save,save_k
             cfg=json.loads(path.read_text())
             if section=='plugins':
                 assert cfg['plugins']['redis']['enabled'] is True
+                assert cfg['build']['agents']==['codex']
+            elif section=='storage':
+                assert cfg['storage']=={'path':'/mnt/remote storage','mount_path':'','require_mount':True}
                 assert cfg['build']['agents']==['codex']
             else:
                 assert cfg['build']['agents']==['codex','claude']

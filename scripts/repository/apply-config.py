@@ -22,6 +22,7 @@ from config_io import load_config as load_user_config
 from host_config import resolve_settings as _resolved_runtime_settings
 from host_config import host_environment
 from orcan.identity import validate_identity
+from orcan.storage_config import resolve as resolve_storage
 from path_guards import (
     DEFAULT_DEVELOPER_WORKSPACES,
     PathGuardError,
@@ -406,7 +407,7 @@ def _is_under(child: Path, parent: Path) -> bool:
 
 
 def write_compose_projects(
-    workspaces: list[dict], repo_root: Path, managed_root: Path | None = None
+    workspaces: list[dict], repo_root: Path, managed_root: Path | None = None, storage_root: str = ""
 ) -> str:
     """One bind for all workspace metas + parity binds for every project path.
 
@@ -423,6 +424,10 @@ def write_compose_projects(
         f"      - {host_workspaces}:{DEFAULT_DEVELOPER_WORKSPACES}",
     ]
 
+    if storage_root:
+        quoted = json.dumps(storage_root)
+        lines.extend(["      - type: bind", f"        source: {quoted}", f"        target: {quoted}", "        bind:", "          create_host_path: false"])
+
     parity_paths: set[str] = set()
     for ws in workspaces:
         for project in ws["projects"]:
@@ -434,6 +439,8 @@ def write_compose_projects(
         parity_paths = {p for p in parity_paths if not _is_under(Path(p), managed_root)}
 
     for path in sorted(parity_paths):
+        if storage_root and Path(path).is_relative_to(Path(storage_root)):
+            continue
         lines.append(f"      - {path}:{path}")
     return "\n".join(lines) + "\n"
 
@@ -521,6 +528,8 @@ def build_from_config(cfg: dict, repo_root: Path) -> dict:
         **_resolved_runtime_settings(cfg),
     }
 
+    if cfg.get("storage") is not None:
+        runtime["storage"] = resolve_storage(cfg["storage"])
     project_paths = [p["path"] for ws in workspaces for p in ws["projects"]]
 
     return {
@@ -634,7 +643,7 @@ def main() -> None:
         json.dumps(built["runtime"], indent=2) + "\n", encoding="utf-8"
     )
     compose_path.write_text(
-        write_compose_projects(built["workspaces"], root, Path(host["ORCAN_PROJECTS_ROOT"])),
+        write_compose_projects(built["workspaces"], root, Path(host["ORCAN_PROJECTS_ROOT"]), host["ORCAN_STORAGE_ROOT"]),
         encoding="utf-8",
     )
     manifest_path.write_text(

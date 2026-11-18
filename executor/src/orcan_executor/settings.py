@@ -29,6 +29,52 @@ def worktree_root() -> Path:
     )
 
 
+def artifact_root() -> Path:
+    """External payload storage only; never relocate SQLite or run.lock files."""
+    raw = os.environ.get("ORCAN_STORAGE_ROOT", "")
+    if not raw:
+        return state_dir() / "jobs"
+    root = Path(raw)
+    if not root.is_absolute() or not root.is_dir() or root.resolve() != root:
+        raise OSError("Configured artifact storage is unavailable or not canonical")
+    anchor = Path(os.environ.get("ORCAN_STORAGE_MOUNT") or root)
+    if not root.is_relative_to(anchor):
+        raise OSError("Artifact path is outside its configured mountpoint")
+    if os.environ.get("ORCAN_STORAGE_REQUIRE_MOUNT", "1") == "1" and not anchor.is_mount():
+        raise OSError("Configured artifact storage is not mounted; local fallback is disabled")
+    current = root
+    for part in ("orcan", namespace(), "executor"):
+        current = current / part
+        if current.is_symlink():
+            raise OSError("Artifact namespace must not contain symlinks")
+    return current
+
+
+def artifact_directory(job: dict) -> Path:
+    """Locate local legacy/receipt payloads or payloads on the current external root."""
+    directory = (
+        Path(job["report"]).parent
+        if job.get("report")
+        else artifact_root() / job["id"] / str(job["attempts"])
+    )
+    # Local metadata/legacy evidence remains readable even when external storage is offline.
+    if directory.resolve().is_relative_to(state_dir() / "jobs" / job["id"]):
+        return directory
+    if directory.resolve().is_relative_to(artifact_root() / job["id"]):
+        return directory
+    raise ValueError("Artifact directory is outside this job's configured storage")
+
+
+def artifact_job_directory(job: dict) -> Path:
+    directory = artifact_directory(job)
+    root = state_dir() / "jobs" / job["id"]
+    if directory == root:
+        return root
+    if directory.parent == root or directory.parent == artifact_root() / job["id"]:
+        return directory.parent
+    raise ValueError("Invalid job artifact directory")
+
+
 def broker_url() -> str:
     return os.environ.get("ORCAN_EXECUTOR_BROKER_URL", "redis://127.0.0.1:6379/0")
 

@@ -10,6 +10,7 @@ import textwrap
 from pathlib import Path
 
 from settings_model import SettingsModel
+from orcan.storage_config import resolve as resolve_storage
 from context_tui import _init_curses_session, _prompt_line
 from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, PROCESS_DEFAULTS
 from orcan.image_profile import AGENTS, IMAGES, TOOLS, PYTHONS, TOOL_HELP
@@ -62,7 +63,20 @@ def detail_rows(model, page, width=100):
         ],width)
     if page=='container':
         resources=RESOURCE_DEFAULTS | PROCESS_DEFAULTS | model.data.get('resources',{})
-        return [('image','Docker image',model.data.get('image','orcan:latest')),('timezone','Timezone',model.data.get('timezone','UTC'))]+[(key,key.replace('_',' ').capitalize(),str(value)) for key,value in resources.items()]+guidance_rows(['Image: local Docker tag for Orcan. Image contents are selected in Agents and image.', 'CPU and memory are shared by all processes and executor workers in this container, not assigned per worker.', 'Memory accepts Docker sizes, for example 4g. shm_size and tmpfs_size are separate size limits.', 'Changing these settings can recreate the container on the next up and interrupt attached sessions. Saving settings alone does not restart anything.'],width)
+        return [('image','Docker image',model.data.get('image','orcan:latest')),('timezone','Timezone',model.data.get('timezone','UTC'))]+[(key,'Temporary /tmp size (RAM)' if key=='tmpfs_size' else key.replace('_',' ').capitalize(),str(value)) for key,value in resources.items()]+guidance_rows(['Image: local Docker tag for Orcan. Image contents are selected in Agents and image.', 'CPU and memory are shared by all processes and executor workers in this container, not assigned per worker.', 'Memory accepts Docker sizes, for example 4g. shm_size and tmpfs_size are separate size limits.', 'Changing these settings can recreate the container on the next up and interrupt attached sessions. Saving settings alone does not restart anything.'],width)
+    if page=='storage':
+        values=resolve_storage(model.data.get('storage'))
+        return [('path','Artifact storage host path',values['path']),
+                ('mount_path','Host mountpoint (empty = storage path)',values['mount_path']),
+                ('require_mount','Require a mounted filesystem',str(values['require_mount'])),
+                ('local','Use local artifact storage','Clear the external path; existing files are kept')]+guidance_rows([
+                    'Optional host directory, including an existing SSHFS mount. Leave the path empty to keep artifacts local.',
+                    'The same absolute path is bind-mounted read/write at startup. Orcan never mounts SSHFS or manages its keys.',
+                    'For a subdirectory of SSHFS, set Host mountpoint to its actual mountpoint. This prevents fallback to a parent local filesystem.',
+                    'Executor logs and artifacts use this storage. SQLite, locks, repositories and worktrees remain local.',
+                    'ORCAN_SCRATCH_DIR is for large dumps and screenshots. /tmp stays a small RAM filesystem; change tmpfs_size under Resources.',
+                    'Missing required mounts stop startup; no local fallback directory is created. Save, sync, then recreate after active jobs finish.'
+                ],width)
     if page=='tmux':
         values=TMUX_DEFAULTS | model.data.get('tmux',{})
         return [(key,key.replace('_',' ').capitalize(),str(value)) for key,value in values.items()]
@@ -89,6 +103,7 @@ def rows(model, page, width=100):
             ('container', 'Resources', 'CPU, memory and container settings'),
             ('plugins', 'Optional services', 'Enable and configure integrations'),
             ('tmux', 'Terminal layout', 'Windows and history'),
+            ('storage', 'Artifact storage', 'Host path, SSHFS and large temporary files'),
             ('review', 'Review and save', 'Changes and next steps'),
             ('reload', 'Reload configuration', 'Discard this draft'),
         ]
@@ -222,6 +237,13 @@ def run_screen(screen,model):
                 else:
                     value=_prompt_line(screen,'Version for '+name,model.agents()[name]['version'])
                     if value is not None:model.set_agent_version(name,value)
+            elif page=='storage':
+                values=resolve_storage(model.data.get('storage'))
+                if item=='local':model.set_storage('path','')
+                elif item=='require_mount':model.set_storage(item,not values[item])
+                else:
+                    value=_prompt_line(screen,items[selected][1],values[item])
+                    if value is not None:model.set_storage(item,value.strip())
             elif page in ('container','tmux'):
                 current=items[selected][2]
                 value=_prompt_line(screen,items[selected][1],current)

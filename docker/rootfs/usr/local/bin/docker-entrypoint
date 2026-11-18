@@ -317,6 +317,9 @@ ensure_shell_home() {
 }
 
 main() {
+    if [[ -n "${ORCAN_STORAGE_ROOT:-}" ]]; then
+        python3 /usr/local/lib/orcan/storage_config.py --prepare
+    fi
     check_runtime_directory_permissions || return
     persist_claude_config
     run_init

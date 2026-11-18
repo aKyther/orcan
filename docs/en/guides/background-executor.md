@@ -1323,3 +1323,70 @@ Desktop build storage belongs to the separate
 Use `make storage` there to preview its Cargo target, or
 `make storage STORAGE_ARGS=--apply` to clean through Cargo.
 The Orcan CLI manages runtime and executor storage.
+
+
+### Optional host-mounted artifact storage
+
+Open `orcan settings` → **Artifact storage**. Set **Artifact storage host path**
+to an existing canonical host directory. It can be an SSHFS mount that you already
+manage. Orcan does not establish SSH connections or manage keys.
+
+```json
+{
+  "storage": {
+    "path": "/mnt/archive/orcan-data",
+    "mount_path": "/mnt/archive",
+    "require_mount": true
+  }
+}
+```
+
+When the storage path itself is the mountpoint, leave `mount_path` empty. For a
+subdirectory, enter its actual host mountpoint. The exact expected mountpoint is
+checked, so an unrelated parent filesystem cannot satisfy the mount requirement
+after SSHFS is unmounted. For a normal local directory, disable **Require a
+mounted filesystem**. Choose **Use local artifact storage** to disable the path.
+
+Save, run `orcan sync`, inspect `orcan up --plan`, then recreate the container
+after active jobs finish. The generated bind uses the same absolute host and
+container path, with `create_host_path: false`. A missing/inaccessible path or
+missing required mount stops startup before container lifecycle actions. The
+container checks permissions and prepares only its own namespaced subdirectory;
+there is no recursive ownership change on the storage root. On Linux, configure
+SSHFS access so both Docker and the container UID can access the selected path.
+
+New executor attempt payloads go under
+`STORAGE/orcan/INSTANCE/executor/JOB/ATTEMPT`. Logs, copied artifacts, reports and
+JUnit use this location; the existing detail budget and retention still apply.
+SQLite, run locks, scheduler state, worktrees, shell history and Supervisor logs
+remain local. Reuse receipts keep their bounded evidence locally as before.
+Missing storage pauses admission without creating a local replacement directory.
+A write failure during execution produces a local error result; it never retries
+the procedure automatically. A storage-path change does not move previous files.
+Local legacy evidence remains readable. Before replacing one external path with
+another, retain or migrate the old data separately; Orcan does not crawl old
+mounts to find it.
+
+The container also exports `ORCAN_SCRATCH_DIR`, prepared as
+`STORAGE/orcan/INSTANCE/scratch`, for screenshots and larger disposable dumps.
+This folder is user-managed: executor retention never deletes arbitrary scratch
+files. No source files or existing data in the chosen storage root are moved.
+
+### What happens to /tmp?
+
+`/tmp` remains a separate **512 MiB tmpfs** by default. Its files use memory
+(and may use host swap), disappear with container recreation, and are separate
+from the artifact storage bind. Edit **Resources → Temporary /tmp size (RAM)**
+(`resources.tmpfs_size`, for example `1g`) if a larger local temporary area is
+needed. The limit is shared by all container processes and uses the container's
+memory budget; increasing it does not add RAM.
+
+Do not set global `TMPDIR` to SSHFS: build tools, test runners and local sockets
+also use temporary directories. For a specific dump/export command that supports
+`TMPDIR`, select it just for that command, for example:
+
+```bash
+TMPDIR="${ORCAN_SCRATCH_DIR:-/tmp}" your-dump-command
+```
+
+Code that writes to `/tmp` explicitly is unaffected by `TMPDIR`.

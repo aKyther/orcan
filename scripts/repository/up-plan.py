@@ -33,6 +33,11 @@ def preview(config: Path, home: Path, arguments: list[str], saved_path: Path | N
         {'source':host['ORCAN_CONFIG_HOST'], 'target':'/etc/orcan/config.json', 'read_only':True, 'purpose':'runtime configuration'},
         {'source':host['ORCAN_PROJECTS_ROOT'], 'target':host['ORCAN_PROJECTS_ROOT'], 'read_only':False, 'purpose':'managed projects'},
     ]
+    if host['ORCAN_STORAGE_ROOT']:
+        mounts.append({'source':host['ORCAN_STORAGE_ROOT'],'target':host['ORCAN_STORAGE_ROOT'],
+                       'read_only':False,'purpose':'artifact storage','require_mount':host['ORCAN_STORAGE_REQUIRE_MOUNT']=='1',
+                       'host_mountpoint':host['ORCAN_STORAGE_MOUNT'],
+                       'create_host_path':False})
     # Read the existing configuration shape without generating workspace directories.
     normalize = runpy.run_path(str(Path(__file__).with_name('apply-config.py')))['normalize_workspaces_raw']
     for index,workspace in enumerate(normalize(cfg if cfg else {"workspaces": []})):

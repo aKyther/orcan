@@ -342,7 +342,7 @@ def start(job_id: str, worktree: Path) -> bool:
 
         try:
             disk_ready = capacity()["ready"] and worktree_capacity()["ready"]
-        except OSError:
+        except (OSError, ValueError):
             disk_ready = False
         if not disk_ready:
             db.execute(
