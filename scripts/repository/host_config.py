@@ -9,18 +9,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "docker/rootfs/usr/local/lib"))
 from config_io import die
-from defaults import RESOURCE_DEFAULTS, TMUX_DEFAULTS, TTYD_DEFAULTS, PROCESS_DEFAULTS
-from orcan.executor_config import ENVIRONMENT, resolve as resolve_executor
+from defaults import PROCESS_DEFAULTS, RESOURCE_DEFAULTS, TMUX_DEFAULTS
+from orcan.executor_config import ENVIRONMENT
 from orcan.plugin_registry import resolve as resolve_plugins
-from path_guards import checked_project_dir
 from orcan.storage_config import resolve as resolve_storage
+from path_guards import checked_project_dir
+
 
 def resolve_settings(cfg: dict) -> dict:
-    """The tmux / ttyd / resources sections with defaults filled and types coerced.
-
-    Shared by build_from_config() and synthesize_from_env() so the default
-    literals live only in defaults.py. Pass an empty cfg for pure defaults.
-    """
+    """Resolve core settings and project validated plugin values for legacy consumers."""
     try:
         plugins = resolve_plugins(cfg)
     except ValueError as error:
@@ -41,10 +38,6 @@ def resolve_settings(cfg: dict) -> dict:
     window_prefix = str(
         tmux_cfg.get("window_prefix") or TMUX_DEFAULTS["window_prefix"]
     ).strip() or str(TMUX_DEFAULTS["window_prefix"])
-    renderer = str(ttyd.get("renderer") or TTYD_DEFAULTS["renderer"]).strip().lower()
-    if renderer not in {"webgl", "canvas"}:
-        die("ttyd.renderer must be 'webgl' or 'canvas'")
-
     cockpit = cfg.get("cockpit", {})
     if not isinstance(cockpit, dict) or set(cockpit) - {
         "pty_read_bytes",
@@ -65,7 +58,7 @@ def resolve_settings(cfg: dict) -> dict:
             type(cockpit[key]) is not int or not minimum <= cockpit[key] <= maximum
         ):
             die("Invalid cockpit budget: " + key)
-    executor = resolve_executor({key:plugins["redis"][key] for key in ENVIRONMENT})
+    executor = {key: plugins["redis"][key] for key in ENVIRONMENT}
     return {
         **({"cockpit": cockpit} if cockpit else {}),
         "executor": executor,
@@ -75,21 +68,7 @@ def resolve_settings(cfg: dict) -> dict:
             "history_limit": history_limit,
             "window_prefix": window_prefix,
         },
-        "ttyd": {
-            "port": int(ttyd.get("port", TTYD_DEFAULTS["port"])),
-            "host_port": int(
-                ttyd.get("host_port", ttyd.get("port", TTYD_DEFAULTS["host_port"]))
-            ),
-            "bind": str(ttyd.get("bind") or TTYD_DEFAULTS["bind"]).strip()
-            or str(TTYD_DEFAULTS["bind"]),
-            "font_size": int(ttyd.get("font_size", TTYD_DEFAULTS["font_size"])),
-            "font_family": str(ttyd.get("font_family") or TTYD_DEFAULTS["font_family"]),
-            "renderer": renderer,
-            "theme": str(ttyd.get("theme") or TTYD_DEFAULTS["theme"]),
-            "ping_interval": max(
-                1, int(ttyd.get("ping_interval", TTYD_DEFAULTS["ping_interval"]))
-            ),
-        },
+        "ttyd": ttyd,
         "resources": {
             "cpus": resources.get("cpus", RESOURCE_DEFAULTS["cpus"]),
             "memory": str(resources.get("memory", RESOURCE_DEFAULTS["memory"])),
@@ -107,16 +86,9 @@ def host_environment(cfg: dict, home: Path, runtime: dict | None = None) -> dict
     for section in ("ttyd", "resources", "executor"):
         if section in cfg and not isinstance(cfg[section], dict):
             die(section + " must be an object")
-    for field in ("port", "host_port"):
-        value = settings["ttyd"][field]
-        if not 1 <= value <= 65535:
-            die("ttyd." + field + " must be from 1 to 65535")
     cpus = settings["resources"]["cpus"]
     if isinstance(cpus, bool) or not isinstance(cpus, (int, float)) or not math.isfinite(cpus) or cpus <= 0:
         die("resources.cpus must be a positive number")
-    port = settings["plugins"]["redis"]["port"]
-    if type(port) is not int or not 1 <= port <= 65535:
-        die("executor_port must be an integer from 1 to 65535")
     if not isinstance(cfg.get("timezone", "UTC"), str):
         die("timezone must be a string")
     data = cfg.get("data_root") or os.environ.get("ORCAN_DATA") or str(Path.home() / ".config/orcan")

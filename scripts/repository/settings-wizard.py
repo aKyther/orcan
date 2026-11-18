@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Interactive wizard to edit tool-level settings (tmux / ttyd) in
-orcan.config.json — separate from `orcan init`'s workspace/project editing
-(config-wizard.py / context_tui.py). Only touches the top-level "tmux", "ttyd" and "executor" keys; never reads or writes "workspaces".
-"""
+"""Edit tool settings and bundled plugins without changing workspace definitions."""
 
 from __future__ import annotations
 
@@ -23,9 +20,8 @@ from config_io import (
     load_config,
 )
 from defaults import TMUX_DEFAULTS as DEFAULT_TMUX
-from defaults import TTYD_DEFAULTS as DEFAULT_TTYD
-from orcan.executor_config import resolve as resolve_executor
-from orcan.plugin_registry import catalog, resolve as resolve_plugins, validate_field, validate_selection
+from orcan.plugin_registry import catalog, validate_field, validate_selection
+from orcan.plugin_registry import resolve as resolve_plugins
 from wizard_ui import (
     ask,
     ask_yes_no,
@@ -66,89 +62,6 @@ def edit_tmux(cfg: dict[str, Any]) -> None:
         ask("Window name prefix", str(current.get("window_prefix", "tab"))) or "tab"
     )
     cfg["tmux"] = {"initial_windows": n, "window_prefix": prefix}
-
-
-def edit_ttyd(cfg: dict[str, Any]) -> None:
-    current = cfg.get("ttyd") if isinstance(cfg.get("ttyd"), dict) else DEFAULT_TTYD
-    port = ask("ttyd container port", str(current.get("port", 7681)))
-    host_port = ask("ttyd host port", str(current.get("host_port", port)))
-    bind = (
-        ask(
-            "ttyd host bind (0.0.0.0=all interfaces; 127.0.0.1=local only)",
-            str(current.get("bind", "0.0.0.0")),
-        ).strip()
-        or "0.0.0.0"
-    )
-    if bind not in ("127.0.0.1", "0.0.0.0", "localhost") and ":" not in bind:
-        # Allow IPv4 literals; reject empty garbage.
-        parts = bind.split(".")
-        if not (
-            len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)
-        ):
-            warn("unusual bind address — keeping it; prefer 127.0.0.1 or 0.0.0.0")
-    if bind in ("0.0.0.0", "::"):
-        warn(
-            "binding all interfaces — use --web-terminal-auth or process TTYD_CREDENTIAL for basic auth"
-        )
-    font = ask("ttyd font size", str(current.get("font_size", 14)))
-    renderer = (
-        ask(
-            "ttyd renderer (webgl=fast; canvas=fallback)",
-            str(current.get("renderer", DEFAULT_TTYD["renderer"])),
-        )
-        .strip()
-        .lower()
-    )
-    if renderer not in ("webgl", "canvas"):
-        warn("renderer must be webgl or canvas — settings unchanged")
-        return
-    try:
-        cfg["ttyd"] = {
-            "port": int(port),
-            "host_port": int(host_port),
-            "bind": bind,
-            "font_size": int(font),
-            "font_family": current.get("font_family", DEFAULT_TTYD["font_family"]),
-            "renderer": renderer,
-            "theme": current.get("theme", DEFAULT_TTYD["theme"]),
-            "ping_interval": current.get(
-                "ping_interval", DEFAULT_TTYD["ping_interval"]
-            ),
-        }
-    except ValueError:
-        warn("invalid ttyd numbers — settings unchanged")
-
-
-def edit_executor(cfg: dict[str, Any]) -> None:
-    current = resolve_executor(cfg.get("executor", {}))
-    proposed = dict(current)
-    proposed["split_lanes"] = ask_yes_no(
-        "Enable default/light/heavy workers?", default=current["split_lanes"]
-    )
-    try:
-        for key, label in [
-            ("workers", "Workers on the shared queue (1..10; use 1 with split lanes)"),
-            ("max_running", "Maximum simultaneous jobs across workers (1..10)"),
-            ("max_pending", "Maximum queued plus running jobs (1..10000)"),
-            ("timeout_seconds", "Default job timeout in seconds (1..21600)"),
-            ("retention_seconds", "Detailed log retention in seconds (60..86400)"),
-            ("log_limit_mb", "Combined job output limit in MiB"),
-            ("artifact_limit_mb", "Copied job artifacts limit in MiB"),
-            ("detail_budget_mb", "Completed detail budget in MiB"),
-            ("worktree_budget_mb", "Worktree admission budget in MiB"),
-            ("redis_memory_mb", "Redis memory budget in MiB (32..4096)"),
-            (
-                "visibility_timeout_seconds",
-                "Redis visibility timeout in seconds (22200..86400)",
-            ),
-        ]:
-            proposed[key] = int(ask(label, str(current[key])))
-        cfg["executor"] = current | resolve_executor(proposed)
-    except ValueError as error:
-        warn(f"{error} — executor settings unchanged")
-    info(
-        "Requires --with-redis. The parallel job cap is enforced; CPU/RAM remain container-wide limits."
-    )
 
 
 def edit_plugins(cfg: dict[str, Any]) -> bool:

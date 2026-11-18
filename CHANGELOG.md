@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Deduplicate plugin settings in the host application: use package-owned defaults and validation, remove unused ttyd/executor editors, and exercise the active plugin editor with shared integration fixtures.
+
 - Omit all external-storage guidance from generated workspace instructions when the storage path is unset or cleared, including with the executor enabled.
 
 - Describe configured host storage, scratch paths and cautious usage in generated workspace agent instructions and manifests, including when the executor is disabled; allow clearing storage fields with `-` in the sequential wizard.

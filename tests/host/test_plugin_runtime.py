@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 
 import pytest
-from orcan.plugin_registry import catalog, resolve, validate_selection
+from orcan.plugin_registry import catalog, resolve
+
 from ._scripts_loader import load_script
 
 planner = load_script('plugin-plan.py')
@@ -112,13 +113,34 @@ def test_every_package_groups_rules_lifecycle_and_metadata():
         if 'compose' in entry: assert (package/entry['compose']).is_file()
 
 
-def test_shared_schema_and_executor_limits_match_package_fields():
+def test_shared_schema_matches_package_fields():
     from orcan.plugin_registry import configuration_schema
-    from orcan.executor_config import DEFAULTS, LIMITS, ENVIRONMENT
     root = Path(__file__).resolve().parents[2]
     assert json.loads((root/'orcan.config.schema.json').read_text())['properties']['plugins'] == configuration_schema()
-    fields = next(entry for entry in catalog() if entry['id']=='redis')['fields']
-    for key,value in DEFAULTS.items():
-        assert fields[key]['default'] == value
-        assert fields[key]['env'] == ENVIRONMENT[key]
-        if key in LIMITS: assert (fields[key]['minimum'],fields[key]['maximum']) == LIMITS[key]
+
+
+@pytest.mark.parametrize('name,updates', [
+    ('ttyd', {'port':8080, 'host_port':8081, 'bind':'127.0.0.1', 'font_size':22, 'renderer':'canvas'}),
+    ('redis', {'workers':1, 'max_running':2, 'max_pending':40, 'timeout_seconds':900, 'retention_seconds':7200}),
+])
+def test_package_editor_saves_fields_and_migrates_legacy_settings(monkeypatch, name, updates):
+    wizard = load_script('settings-wizard.py')
+    workspaces = [{'name':'preserved','projects':[]}]
+    cfg = {'workspaces':workspaces, name if name == 'ttyd' else 'executor': {}}
+    fields = next(entry['fields'] for entry in catalog() if entry['id'] == name)
+    answers = {rule['label']:str(updates[key]) for key,rule in fields.items() if key in updates}
+    monkeypatch.setattr(wizard, 'ask', lambda label, default: answers.get(label, default))
+    monkeypatch.setattr(wizard, 'ask_yes_no', lambda label, default=False: f'({name})' in label if label.startswith('Enable ') else label.startswith('Configure '))
+    assert wizard.edit_plugins(cfg)
+    assert cfg['workspaces'] is workspaces
+    assert cfg['plugins'][name].items() >= updates.items()
+    assert 'executor' not in cfg and 'ttyd' not in cfg
+
+
+def test_package_editor_rejects_invalid_field_and_preserves_previous_value(monkeypatch):
+    wizard = load_script('settings-wizard.py')
+    cfg = {'plugins':{'ttyd':{'enabled':True, 'port':8080}}}
+    monkeypatch.setattr(wizard, 'ask', lambda label, default: 'invalid' if label == 'Port' else default)
+    monkeypatch.setattr(wizard, 'ask_yes_no', lambda label, default=False: '(ttyd)' in label if label.startswith('Enable ') else label.startswith('Configure '))
+    assert wizard.edit_plugins(cfg)
+    assert cfg['plugins']['ttyd']['port'] == 8080

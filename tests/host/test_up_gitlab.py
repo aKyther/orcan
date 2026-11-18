@@ -5,7 +5,7 @@ import shlex
 
 import pytest
 
-from tests.host.test_up_github import shell as shell  # noqa: PLC0414 — shared pytest fixture
+from ._plugin_shell import shell as shell  # noqa: PLC0414
 
 pytestmark = pytest.mark.integration
 

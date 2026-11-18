@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for settings-wizard.py: tmux/ttyd editing, split out of
-config-wizard.py so it never touches "workspaces"."""
+"""Tests for core settings and transactional saves that preserve workspaces."""
 
 from __future__ import annotations
 
@@ -38,28 +37,6 @@ class EditTmuxTests(unittest.TestCase):
         with patch("builtins.input", side_effect=["not-a-number", "tab"]):
             sw.edit_tmux(cfg)
         self.assertEqual(cfg["tmux"]["initial_windows"], 3)
-
-
-class EditTtydTests(unittest.TestCase):
-    def test_updates_port_and_font(self) -> None:
-        cfg: dict = {"workspaces": []}
-        with patch(
-            "builtins.input", side_effect=["8080", "8080", "127.0.0.1", "22", "canvas"]
-        ):
-            sw.edit_ttyd(cfg)
-        self.assertEqual(cfg["ttyd"]["port"], 8080)
-        self.assertEqual(cfg["ttyd"]["host_port"], 8080)
-        self.assertEqual(cfg["ttyd"]["bind"], "127.0.0.1")
-        self.assertEqual(cfg["ttyd"]["font_size"], 22)
-        self.assertEqual(cfg["ttyd"]["renderer"], "canvas")
-
-    def test_invalid_numbers_leave_settings_unchanged(self) -> None:
-        cfg: dict = {"workspaces": [], "ttyd": dict(sw.DEFAULT_TTYD)}
-        with patch(
-            "builtins.input", side_effect=["nope", "nope", "nope", "nope", "webgl"]
-        ):
-            sw.edit_ttyd(cfg)
-        self.assertEqual(cfg["ttyd"], sw.DEFAULT_TTYD)
 
 
 class MainWorkspacesUntouchedTests(unittest.TestCase):

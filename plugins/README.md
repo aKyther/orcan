@@ -34,3 +34,15 @@ Availability, activation and readiness are separate facts. Redis is the local
 broker for the background executor; `executor` remains a compatibility alias.
 Session notification destinations must always be explicit. Plugins never start
 models, merge, push, deploy or restore failed tasks automatically.
+
+## Ownership of settings and tests
+
+Package fields own plugin defaults, ranges and environment variable names.
+Host configuration and the legacy ttyd/executor APIs project these fields rather
+than maintaining separate rules. Legacy JSON sections remain readable; Settings
+writes the package-based configuration.
+
+Host tests exercise the active package editor and CLI lifecycle. Shared shell
+fixtures live in `tests/host/_plugin_shell.py`; integration tests do not import
+another collected test module. Compatibility tests cover old inputs through the
+same resolver, rather than keeping unused editors alive.
