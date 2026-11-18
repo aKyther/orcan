@@ -198,7 +198,9 @@ def loaded_runner_key() -> str:
         module = importlib.import_module("orcan_executor." + name)
         result[name] = {
             key: digest(code_data(value.__code__))
-            for key, value in vars(module).items()
+            # Lazy imports in another submission may add module globals while
+            # code_data/digest run. Iterate a snapshot, never the live namespace.
+            for key, value in vars(module).copy().items()
             if isinstance(value, types.FunctionType) and value.__module__ == module.__name__
         }
     return digest(result)

@@ -496,3 +496,20 @@ def test_external_source_evidence_produces_local_durable_reuse_receipt(
     assert result["summary"]["tests"] == 0
     assert Path(result["report"]).is_relative_to(state_dir())
     assert result["summary"]["verification"]["source_job_id"] == original["id"]
+
+
+def test_loaded_runner_fingerprint_tolerates_module_namespace_changes(monkeypatch):
+    original_digest = reuse.digest
+    changed = []
+
+    def digest_while_importing(value):
+        if not changed:
+            monkeypatch.setattr(engine, "_concurrent_import_state", object(), raising=False)
+            changed.append(True)
+        return original_digest(value)
+
+    monkeypatch.setattr(reuse, "digest", digest_while_importing)
+    first = reuse.loaded_runner_key.__wrapped__()
+    assert len(first) == 64
+    assert changed
+    assert reuse.loaded_runner_key.__wrapped__() == first
