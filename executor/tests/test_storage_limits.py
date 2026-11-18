@@ -64,6 +64,7 @@ def test_budget_expires_oldest_completed_before_ttl_and_preserves_dirty_tree(rep
     assert (tree / "marker").read_text() == "keep"
     assert store.get(first["id"])["details_expired"] == 1
     assert store.get(first["id"])["worktree"] == str(tree)
+    assert (settings.state_dir() / "jobs" / first["id"] / "run.lock").exists()
     assert store.get(queued["id"])["status"] == "queued"
     # Preserved trees remain eligible for conservative removal after restoration.
     (tree / "marker").write_text("snapshot")

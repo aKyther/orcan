@@ -148,7 +148,7 @@ def prune(
                         git_dir = None
                 except (OSError, subprocess.SubprocessError):
                     pass
-            # Keep the lock inode stable for concurrent readers/maintenance.
+            # Keep the lock stable while artifact removal and metadata expiry run.
             try:
                 for child in directory.iterdir():
                     if child.name == "run.lock":
@@ -191,6 +191,14 @@ def prune(
                     "UPDATE deliveries SET status='expired',reason='Result details expired before delivery' WHERE job_id=? AND status='pending'",
                     (job["id"],),
                 )
+            if not retained and not git_dir:
+                # This terminal job has no remaining filesystem work to retry.
+                # Retained checkouts keep their lock; retired jobs need no directory.
+                try:
+                    (directory / "run.lock").unlink()
+                    directory.rmdir()
+                except OSError:
+                    pass
             total -= sizes[job["id"]]
             removed += 1
     if dry_run:
