@@ -59,7 +59,7 @@ def host_cfg_from_runtime(runtime: dict) -> dict:
             projects.append(proj)
         mapped["projects"] = projects
         workspaces.append(mapped)
-    return {"workspaces": workspaces, "identity": runtime.get("identity")}
+    return {"workspaces": workspaces, "identity": runtime.get("identity"), "storage": runtime.get("storage")}
 
 
 def defaults_root(orcan_root: Path) -> Path:

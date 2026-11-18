@@ -1,5 +1,6 @@
 """Host storage settings prepare mounts explicitly and never create missing sources."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -155,3 +156,84 @@ def test_local_storage_preview_does_not_claim_mount_requirement(tmp_path):
 @pytest.mark.parametrize("path", ["/run/media/team/sshfs", "/tmp/sshfs"])
 def test_dedicated_mount_directories_are_supported(path):
     assert storage_config.resolve({"path": path})["path"] == path
+
+
+def test_workspace_context_describes_configured_storage_even_without_executor(
+    tmp_path, monkeypatch
+):
+    from orcan.reconcile import apply_workspaces
+
+    monkeypatch.setenv("ORCAN_REDIS_ENABLED", "0")
+    monkeypatch.setenv("ORCAN_NAMED_INSTANCE", "review")
+
+    def no_probe(*args, **kwargs):
+        raise AssertionError("Generating context must not probe the storage mount")
+
+    monkeypatch.setattr(storage_config, "check", no_probe)
+    parent = tmp_path / "workspaces"
+    workspace = parent / "review"
+    repo = tmp_path / "project"
+    repo.mkdir()
+    (repo / "AGENTS.md").write_text("Project rules are preserved")
+    config = {
+        "storage": {
+            "path": "/mnt/archive/data",
+            "mount_path": "/mnt/archive",
+            "require_mount": True,
+        },
+        "workspaces": [
+            {
+                "name": "review",
+                "root": str(workspace),
+                "projects": [{"name": "project", "path": str(repo)}],
+            }
+        ],
+    }
+    apply_workspaces(
+        config,
+        defaults_root=tmp_path / "templates",
+        workspaces_parent=parent,
+        agents={"codex", "claude"},
+    )
+    text = (workspace / "AGENTS.md").read_text()
+    assert text == (workspace / "CLAUDE.md").read_text()
+    for expected in (
+        "## Host artifact storage",
+        "/mnt/archive/data",
+        "/mnt/archive/data/orcan/review/scratch",
+        "/mnt/archive/data/orcan/review/executor",
+        "potentially SSHFS",
+        "not proof of runtime availability",
+        "Keep repositories, worktrees, builds, test working directories, databases and locks local",
+        "Do not change global TMPDIR",
+        "DISABLED: run checks directly",
+    ):
+        assert expected in text
+    manifest = json.loads((workspace / ".manifest.json").read_text())
+    assert (
+        manifest["storage"]["scratch_path"] == "/mnt/archive/data/orcan/review/scratch"
+    )
+    assert manifest["storage"]["kind"] == "host_bind"
+    assert (repo / "AGENTS.md").read_text() == "Project rules are preserved"
+    config["storage"]["path"] = ""
+    apply_workspaces(
+        config,
+        defaults_root=tmp_path / "templates",
+        workspaces_parent=parent,
+        agents={"codex", "claude"},
+    )
+    assert "## Host artifact storage" not in (workspace / "AGENTS.md").read_text()
+    assert "storage" not in json.loads((workspace / ".manifest.json").read_text())
+
+
+def test_host_reconcile_preserves_storage_configuration():
+    runtime = {
+        "workspaces": [],
+        "storage": {
+            "path": "/mnt/archive/data",
+            "mount_path": "/mnt/archive",
+            "require_mount": True,
+        },
+    }
+    mapper = load_script("reconcile-host.py")
+    assert mapper.host_cfg_from_runtime(runtime)["storage"] == runtime["storage"]

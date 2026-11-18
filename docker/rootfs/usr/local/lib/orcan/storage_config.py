@@ -48,6 +48,24 @@ def resolve(value=None):
     return result
 
 
+def locations(value=None, instance="default"):
+    """Describe configured paths without probing or creating host storage."""
+    config = resolve(value)
+    if not config["path"]:
+        return None
+    if not re.fullmatch(r"[a-z][a-z0-9-]{0,47}", instance):
+        raise ValueError("Invalid storage instance namespace")
+    base = Path(config["path"]) / "orcan" / instance
+    return {
+        "path": config["path"],
+        "mount_path": config["mount_path"] or config["path"],
+        "require_mount": config["require_mount"],
+        "scratch_path": str(base / "scratch"),
+        "executor_path": str(base / "executor"),
+        "kind": "host_bind",
+    }
+
+
 def check(path, require_mount=True, mount_path=""):
     root = Path(path)
     if not root.is_dir():

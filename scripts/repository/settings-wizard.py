@@ -235,8 +235,10 @@ def main() -> None:
     if ask_yes_no("Configure an artifact storage host path (for example SSHFS)?", default=False):
         from orcan.storage_config import resolve as resolve_storage
         current=resolve_storage(cfg.get('storage'))
-        path=ask('Existing absolute host storage path (empty disables external storage)', current['path'])
-        mount=ask('Expected host mountpoint (empty means storage path itself)',current['mount_path'])
+        path=ask("Existing absolute host storage path ('-' disables external storage)", current['path'])
+        path='' if path=='-' else path
+        mount=ask("Expected host mountpoint ('-' means storage path itself)",current['mount_path'])
+        mount='' if mount=='-' else mount
         require=ask_yes_no('Require this mountpoint before startup?',default=current['require_mount'])
         cfg['storage']=resolve_storage({'path':path,'mount_path':mount,'require_mount':require})
     if ask_yes_no("Choose startup plugins and their settings?", default=False):

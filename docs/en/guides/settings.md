@@ -179,3 +179,17 @@ redirect global `TMPDIR` or move builds/tests to SSHFS.
 
 See [mounted artifact storage](background-executor.md#optional-host-mounted-artifact-storage)
 for layout, permissions and retention.
+
+
+After sync/reconcile, the managed workspace `AGENTS.md` (and generated `CLAUDE.md`
+when Claude is installed) includes the configured storage and scratch paths,
+mount requirement and use rules, even when the executor is disabled. The workspace
+`.manifest.json` also describes these paths. Project-owned instructions are not
+rewritten. Context describes configured storage; agents must still confirm the
+running bind and scratch path are available before use.
+
+Use scratch for task-specific dumps, screenshots and explicit exports. Keep source,
+worktrees, build/test working directories, databases, locks and caches local. Read
+bounded diagnostic fragments instead of scanning shared storage or loading whole
+logs into context. Remove only your own disposable scratch files when finished.
+The sequential wizard accepts `-` to clear the external path or optional mountpoint.

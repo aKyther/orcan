@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Describe configured host storage, scratch paths and cautious usage in generated workspace agent instructions and manifests, including when the executor is disabled; allow clearing storage fields with `-` in the sequential wizard.
+
 - Snapshot module namespaces while fingerprinting loaded executor code so concurrent imports cannot interrupt reuse submissions.
 
 - Add optional host-mounted artifact storage in settings, with path-parity binds and exact mountpoint checks. Keep executor metadata/locks local while routing new payloads to storage; expose a separate scratch directory and clarify the RAM-backed `/tmp` setting.

@@ -176,6 +176,7 @@ def _write_agents_md(
     projects: list[dict[str, Any]],
     identity: dict | None = None,
     agents: set[str] | None = None,
+    storage: dict | None = None,
 ) -> None:
     agents = agents or set()
     name = ws.get("name") or "workspace"
@@ -290,6 +291,7 @@ def _write_agents_md(
         ]
     )
     enabled = os.environ.get("ORCAN_REDIS_ENABLED") == "1"
+    body += storage_guidance(storage)
     body += executor_guidance(enabled)
     if identity:
         body += (
@@ -330,6 +332,7 @@ def _apply_one_workspace(
     defaults_root: Path,
     identity: dict | None = None,
     agents: set[str] | None = None,
+    storage: dict | None = None,
 ) -> WorkspaceReport:
     root = Path(ws["root"])
     root.mkdir(parents=True, exist_ok=True)
@@ -343,6 +346,8 @@ def _apply_one_workspace(
         },
         "projects": projects,
     }
+    if storage:
+        manifest["storage"] = storage
     _write_if_changed(root / ".manifest.json", json.dumps(manifest, indent=2) + "\n")
 
     report = WorkspaceReport(
@@ -386,7 +391,7 @@ def _apply_one_workspace(
             print(f"removed orphan symlink: {child}", file=sys.stderr)
             report.symlinks_removed.append(str(child))
 
-    _write_agents_md(root, ws, projects, identity, agents)
+    _write_agents_md(root, ws, projects, identity, agents, storage)
     _seed_agent_ignores(root, defaults_root, agents or set())
 
     project_lines = [
@@ -439,12 +444,15 @@ def apply_workspaces(
         from orcan.identity import validate_identity
 
         identity = validate_identity(cfg["identity"])
+    from orcan.storage_config import locations
+
+    storage = locations(cfg.get("storage"), os.environ.get("ORCAN_NAMED_INSTANCE") or "default")
     workspaces = iter_enabled_workspaces(cfg)
     report = ReconcileReport()
 
     for ws in workspaces:
         report.workspaces.append(
-            _apply_one_workspace(ws, defaults_root, identity, agents)
+            _apply_one_workspace(ws, defaults_root, identity, agents, storage)
         )
 
     # Remove whole workspace dirs that are no longer in config (visible via
@@ -488,6 +496,33 @@ def apply_workspaces(
 
     return report
 
+
+
+def storage_guidance(storage: dict | None) -> str:
+    if not storage:
+        return ""
+    return f"""
+
+## Host artifact storage
+
+- Configured host path and in-container path: `{storage['path']}` (same absolute path).
+- Expected host mountpoint: `{storage['mount_path']}`; require mount: {storage['require_mount']}.
+- Large disposable dumps/screenshots: `{storage['scratch_path']}` (`ORCAN_SCRATCH_DIR`).
+- Executor-managed payloads: `{storage['executor_path']}`; use executor commands for its logs/reports.
+
+This is a host bind, potentially SSHFS or another network filesystem. Configuration
+is not proof of runtime availability: verify the bind at the configured storage path
+and the scratch directory before writing. The expected host mountpoint need not itself
+be a mount inside the container. Do not create a local replacement when storage is missing.
+Use scratch for large diagnostic dumps, screenshots and explicit exports. Keep only
+useful evidence, use task-specific subdirectories, and remove only your own disposable
+files when no longer needed; executor retention does not clean arbitrary scratch data.
+Keep repositories, worktrees, builds, test working directories, databases and locks local.
+Tests may archive completed reports through the executor; do not move their execution
+or caches onto this storage. Do not change global TMPDIR: /tmp is the small local RAM
+filesystem, separate from this mount. Read bounded diagnostic fragments rather than
+loading whole logs or scanning the entire shared storage into agent context.
+"""
 
 def executor_guidance(enabled: bool) -> str:
     if not enabled:

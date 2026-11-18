@@ -73,7 +73,7 @@ class MainWorkspacesUntouchedTests(unittest.TestCase):
             with (
                 patch("sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]),
                 patch("sys.stdin.isatty", return_value=True),
-                patch("builtins.input", side_effect=["n", "n", "y"]),
+                patch("builtins.input", side_effect=["n", "n", "n", "y"]),
             ):
                 sw.main()
             data = json.loads(cfg_path.read_text(encoding="utf-8"))
@@ -81,10 +81,82 @@ class MainWorkspacesUntouchedTests(unittest.TestCase):
             self.assertIn("tmux", data)
             self.assertNotIn("ttyd", data)
             self.assertNotIn("plugins", data)  # The user declined plugin editing.
+            self.assertNotIn("storage", data)  # The user also declined storage editing.
+
+
+class MainStorageSaveTests(unittest.TestCase):
+    def test_storage_requires_final_save_and_preserves_workspaces(self) -> None:
+        for save in (False, True):
+            with self.subTest(save=save), tempfile.TemporaryDirectory() as tmp:
+                cfg_path = Path(tmp) / "orcan.config.json"
+                original = {"workspaces": [{"name": "acme", "projects": []}]}
+                cfg_path.write_text(json.dumps(original), encoding="utf-8")
+                before = cfg_path.read_bytes()
+                # Skip tmux, configure storage, require its mount, skip plugins, save/discard.
+                answers = [
+                    "n",
+                    "y",
+                    "/mnt/archive/orcan-data",
+                    "/mnt/archive",
+                    "y",
+                    "n",
+                    "y" if save else "n",
+                ]
+                with (
+                    patch(
+                        "sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]
+                    ),
+                    patch("sys.stdin.isatty", return_value=True),
+                    patch("builtins.input", side_effect=answers),
+                ):
+                    sw.main()
+                self.assertFalse((Path(tmp) / "mounts").exists())
+                if not save:
+                    self.assertEqual(cfg_path.read_bytes(), before)
+                    continue
+                data = json.loads(cfg_path.read_text())
+                self.assertEqual(data["workspaces"], original["workspaces"])
+                self.assertEqual(
+                    data["storage"],
+                    {
+                        "path": "/mnt/archive/orcan-data",
+                        "mount_path": "/mnt/archive",
+                        "require_mount": True,
+                    },
+                )
+                self.assertNotIn("plugins", data)
+
+    def test_explicit_dash_disables_existing_storage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "orcan.config.json"
+            original = {
+                "workspaces": [{"name": "acme", "projects": []}],
+                "storage": {
+                    "path": "/mnt/archive/data",
+                    "mount_path": "/mnt/archive",
+                    "require_mount": True,
+                },
+            }
+            path.write_text(json.dumps(original))
+            with (
+                patch("sys.argv", ["settings-wizard.py", "--config", str(path)]),
+                patch("sys.stdin.isatty", return_value=True),
+                patch(
+                    "builtins.input", side_effect=["n", "y", "-", "-", "y", "n", "y"]
+                ),
+            ):
+                sw.main()
+            data = json.loads(path.read_text())
+            self.assertEqual(
+                data["storage"], {"path": "", "mount_path": "", "require_mount": True}
+            )
+            self.assertEqual(data["workspaces"], original["workspaces"])
 
 
 class MainPluginSaveTests(unittest.TestCase):
-    def test_plugin_migration_requires_final_save_and_preserves_workspaces(self) -> None:
+    def test_plugin_migration_requires_final_save_and_preserves_workspaces(
+        self,
+    ) -> None:
         for save in (False, True):
             with self.subTest(save=save), tempfile.TemporaryDirectory() as tmp:
                 cfg_path = Path(tmp) / "orcan.config.json"
@@ -96,7 +168,7 @@ class MainPluginSaveTests(unittest.TestCase):
                 cfg_path.write_text(json.dumps(original), encoding="utf-8")
                 before = cfg_path.read_bytes()
 
-                def answer(label, default=False):
+                def answer(label, default=False, save=save):
                     if label == "Choose startup plugins and their settings?":
                         return True
                     if label == "Save these settings?":
@@ -106,7 +178,9 @@ class MainPluginSaveTests(unittest.TestCase):
                     return False
 
                 with (
-                    patch("sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]),
+                    patch(
+                        "sys.argv", ["settings-wizard.py", "--config", str(cfg_path)]
+                    ),
                     patch("sys.stdin.isatty", return_value=True),
                     patch.object(sw, "ask_yes_no", side_effect=answer),
                 ):
