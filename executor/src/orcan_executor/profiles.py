@@ -102,6 +102,8 @@ def load(text: str) -> dict:
             or not 1 <= profile["timeout_seconds"] <= 21600
         ):
             raise ValueError("Profile timeout_seconds must be an integer from 1 to 21600")
+        if type(profile.get("cleanup_archived_reports", False)) is not bool:
+            raise ValueError("cleanup_archived_reports must be a boolean")
         if type(profile.get("require_junit", False)) is not bool:
             raise ValueError("require_junit must be a boolean")
         if "reuse" in profile:
@@ -191,6 +193,7 @@ def template(kind: str, root: Path) -> dict:
             "requires_tests": selected,
             "steps": [{"argv": argv, "cwd": cwd}],
             "junit": junit or [],
+            "cleanup_archived_reports": bool(junit),
         }
 
     if kind == "python":

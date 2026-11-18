@@ -330,3 +330,17 @@ for package rules, credential sources and compatibility.
 ports, managed/project/plugin mounts and required startup checks. Existing
 selection flags can be included. It does not create files, inspect Docker or
 resolve credentials. See [Settings TUI and startup plan](../guides/settings.md).
+
+
+### Storage maintenance
+
+- `orcan storage` reports executor storage and cache ownership.
+- `orcan storage clean [--apply] [--archived-reports]` previews or applies completed
+  artifact expiry. The optional report cleanup removes only declared untracked
+  JUnit files with identical archived evidence.
+- `orcan storage studio [--apply] [--budget-mb N]` previews or cleans the local
+  generated Studio Cargo target. `--auto` cleans only when over budget.
+- `orcan storage docker` reports Docker storage without removing anything.
+
+See [Executor storage budgets](../guides/background-executor.md#disk-budgets-and-bounded-output)
+for limits, preservation rules and pre-build Studio cleanup.

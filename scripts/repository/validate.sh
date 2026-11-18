@@ -361,6 +361,7 @@ for script in \
     scripts/repository/defaults.py \
     scripts/repository/git_worktrees.py \
     scripts/repository/fork_worktrees.py \
+    scripts/repository/studio-build-storage.py \
     scripts/repository/managed_workspace.py \
     scripts/repository/migrate_projects.py \
     scripts/repository/history.py \

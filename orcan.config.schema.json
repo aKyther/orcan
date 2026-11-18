@@ -146,6 +146,34 @@
               "minimum": 1,
               "maximum": 65535,
               "description": "Dashboard host port"
+            },
+            "log_limit_mb": {
+              "type": "integer",
+              "default": 16,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Job log limit MiB"
+            },
+            "artifact_limit_mb": {
+              "type": "integer",
+              "default": 64,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Job artifact limit MiB"
+            },
+            "detail_budget_mb": {
+              "type": "integer",
+              "default": 1024,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Completed detail budget MiB"
+            },
+            "worktree_budget_mb": {
+              "type": "integer",
+              "default": 4096,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Worktree admission budget MiB"
             }
           }
         },
@@ -217,6 +245,34 @@
               "minimum": 1,
               "maximum": 65535,
               "description": "Dashboard host port"
+            },
+            "log_limit_mb": {
+              "type": "integer",
+              "default": 16,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Job log limit MiB"
+            },
+            "artifact_limit_mb": {
+              "type": "integer",
+              "default": 64,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Job artifact limit MiB"
+            },
+            "detail_budget_mb": {
+              "type": "integer",
+              "default": 1024,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Completed detail budget MiB"
+            },
+            "worktree_budget_mb": {
+              "type": "integer",
+              "default": 4096,
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Worktree admission budget MiB"
             }
           }
         },

@@ -73,6 +73,7 @@ format-check: ## Verify host and cockpit Python is Ruff-formatted
 	@python3 -m ruff format --check scripts/repository cockpit/src tests/host
 
 studio-test: ## Test the transport-neutral Orcan Studio Rust core
+	@python3 scripts/repository/studio-build-storage.py --root . --auto
 	@cargo test --manifest-path studio/Cargo.toml -p orcan-studio-core
 
 studio-test-browser: ## Studio demo browser flows (requires local Playwright and Chromium)

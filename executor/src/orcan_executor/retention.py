@@ -2,6 +2,7 @@
 
 import fcntl
 import json
+import os
 import shutil
 import subprocess
 import time
@@ -9,26 +10,47 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from . import store, worktree_cleanup
-from .settings import HISTORY_DAYS, HISTORY_LIMIT, retention_seconds, state_dir, worktree_root
+from .settings import (
+    HISTORY_DAYS,
+    HISTORY_LIMIT,
+    retention_seconds,
+    state_dir,
+    storage_limit_mb,
+    worktree_root,
+)
 
 
-def prune(*, dry_run: bool = False, candidates: list | None = None) -> int:
+def prune(
+    *, dry_run: bool = False, candidates: list | None = None, clean_reports: bool = False
+) -> int:
+    from .storage import size
+
     cutoff = (datetime.now(UTC) - timedelta(seconds=retention_seconds())).isoformat()
     removed = 0
-    # Only our terminal jobs, under a job lock. A dirty retained worktree is preserved.
     with store.database() as db:
         jobs = list(
             db.execute(
-                "SELECT * FROM jobs WHERE details_expired=0 AND finished < ? AND status IN ('passed','failed','error','timed_out','cancelled')",
-                (cutoff,),
+                "SELECT * FROM jobs WHERE status IN ('passed','failed','error','timed_out','cancelled') AND (details_expired=0 OR worktree IS NOT NULL OR git_dir IS NOT NULL) ORDER BY finished,id"
             )
         )
+    sizes = {job["id"]: size(state_dir() / "jobs" / job["id"])["allocated_bytes"] for job in jobs}
+    total = sum(sizes.values())
+    budget = storage_limit_mb("detail_budget_mb") * 1024**2
     for job in jobs:
+        if not job["finished"] or (job["finished"] >= cutoff and total <= budget):
+            continue
         directory = state_dir() / "jobs" / job["id"]
         if directory.is_symlink():
             continue
-        directory.mkdir(parents=True, exist_ok=True)
-        with (directory / "run.lock").open("a") as lock:
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            lock = os.fdopen(
+                os.open(directory / "run.lock", os.O_CREAT | os.O_WRONLY | os.O_NOFOLLOW, 0o600),
+                "a",
+            )
+        except OSError:
+            continue
+        with lock:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
@@ -37,87 +59,139 @@ def prune(*, dry_run: bool = False, candidates: list | None = None) -> int:
                 fresh = store.get(job["id"])
             except ValueError:
                 continue
-            if fresh["details_expired"]:
+            if fresh["status"] not in store.TERMINAL:
                 continue
-            if fresh["status"] not in store.TERMINAL or not fresh["finished"] or fresh["finished"] >= cutoff:
+            # Modified/locked/foreign trees are retained independently of log TTL.
+            retained = fresh.get("worktree")
+            git_dir = fresh.get("git_dir")
+            clean = False
+            if retained and not Path(retained).is_symlink():
+                tree = Path(retained)
+                if not tree.exists():
+                    retained = None
+                elif tree.resolve().is_relative_to(worktree_root()):
+                    try:
+                        definition = fresh.get("profile_definition") or {}
+                        if clean_reports or definition.get("cleanup_archived_reports"):
+                            if not definition:
+                                from . import profiles
+
+                                definition = profiles.for_job(fresh)
+                            worktree_cleanup.archived_reports(
+                                tree,
+                                directory / str(fresh["attempts"]) / "junit",
+                                definition,
+                                dry_run=dry_run,
+                            )
+                        clean = worktree_cleanup.is_clean(tree)
+                    except (OSError, ValueError, subprocess.SubprocessError):
+                        pass
+            changed = (
+                not fresh["details_expired"]
+                or clean
+                or (fresh.get("worktree") and not retained)
+                or (not retained and git_dir)
+            )
+            if not changed:
                 continue
-            if job["worktree"] and Path(job["worktree"]).is_symlink():
-                continue
-            if job["worktree"] and Path(job["worktree"]).exists():
-                worktree = Path(job["worktree"]).resolve()
-                if not worktree.is_relative_to(worktree_root()):
-                    continue
-                try:
-                    clean = worktree_cleanup.is_clean(worktree)
-                except (OSError, subprocess.SubprocessError):
-                    continue  # Keep this worktree; other jobs and maintenance must continue.
-                if not clean:
-                    continue
-                if dry_run:
-                    if candidates is not None and len(candidates) < 50:
-                        candidates.append({"job_id": job["id"], "artifacts": str(directory), "worktree": str(worktree)})
-                    removed += 1
-                    continue
-                cleanup = subprocess.run(
-                    ["git", "--git-dir", job["git_dir"], "worktree", "remove", str(worktree)],
-                    capture_output=True,
-                )
-                if cleanup.returncode:
-                    # Keep user-modified/dirty checkout and metadata for manual inspection.
-                    continue
             if dry_run:
                 if candidates is not None and len(candidates) < 50:
-                    candidates.append({"job_id": job["id"], "artifacts": str(directory), "worktree": None})
+                    candidates.append(
+                        {
+                            "job_id": job["id"],
+                            "artifacts": str(directory) if not fresh["details_expired"] else None,
+                            "worktree": retained if clean else None,
+                            "retained_worktree": retained if not clean else None,
+                            "reason": "ttl" if job["finished"] < cutoff else "detail_budget",
+                        }
+                    )
+                total -= sizes[job["id"]]
                 removed += 1
                 continue
-            unpin = subprocess.run(
-                [
-                    "git",
-                    "--git-dir",
-                    job["git_dir"],
-                    "update-ref",
-                    "-d",
-                    "refs/orcan/executor/jobs/" + job["id"],
-                    job["sha"],
-                ],
-                capture_output=True,
-            )
-            if unpin.returncode:
-                continue
+            if clean:
+                try:
+                    result = subprocess.run(
+                        ["git", "--git-dir", git_dir, "worktree", "remove", retained],
+                        capture_output=True,
+                        timeout=30,
+                    )
+                    if result.returncode == 0:
+                        parent = Path(retained).parent
+                        retained = None
+                        if (
+                            parent.name == job["id"]
+                            and parent.parent == worktree_root()
+                            and not parent.is_symlink()
+                        ):
+                            try:
+                                parent.rmdir()
+                            except OSError:
+                                pass
+                except (OSError, subprocess.SubprocessError):
+                    pass
+            if not retained and git_dir:
+                try:
+                    result = subprocess.run(
+                        [
+                            "git",
+                            "--git-dir",
+                            git_dir,
+                            "update-ref",
+                            "-d",
+                            "refs/orcan/executor/jobs/" + job["id"],
+                            job["sha"],
+                        ],
+                        capture_output=True,
+                        timeout=10,
+                    )
+                    if result.returncode == 0:
+                        git_dir = None
+                except (OSError, subprocess.SubprocessError):
+                    pass
+            # Keep the lock inode stable for concurrent readers/maintenance.
+            try:
+                for child in directory.iterdir():
+                    if child.name == "run.lock":
+                        continue
+                    if child.is_dir() and not child.is_symlink():
+                        shutil.rmtree(child)
+                    else:
+                        child.unlink()
+            except OSError:
+                continue  # Retry incomplete artifact removal on the next maintenance pass.
+            summary = fresh["summary"] or {}
+            compact = {
+                key: value
+                for key, value in summary.items()
+                if key in {"tests", "passed", "failed", "errors", "skipped", "seconds"}
+                and isinstance(value, (int, float))
+            }
+            compact["metrics"] = {
+                key: value
+                for key, value in summary.get("metrics", {}).items()
+                if isinstance(value, (int, float)) or value is None
+            }
+            if summary.get("verification"):
+                compact["verification"] = {
+                    key: value
+                    for key, value in summary["verification"].items()
+                    if key != "evidence"
+                }
+            if retained:
+                compact["retained_worktree"] = retained
             with store.database() as db:
                 db.execute(
                     "DELETE FROM events WHERE json_extract(payload, '$.job_id') = ?", (job["id"],)
                 )
-                summary = json.loads(job["summary"] or "{}")
-                # Keep counters and measurements, never diagnostic text or artifact paths.
-                compact = {
-                    key: value
-                    for key, value in summary.items()
-                    if key in {"tests", "passed", "failed", "errors", "skipped", "seconds"}
-                    and isinstance(value, (int, float))
-                }
-                compact["metrics"] = {
-                    key: value
-                    for key, value in summary.get("metrics", {}).items()
-                    if isinstance(value, (int, float)) or value is None
-                }
-                if summary.get("verification"):
-                    compact["verification"] = {
-                        key: value
-                        for key, value in summary["verification"].items()
-                        if key != "evidence"
-                    }
                 db.execute(
-                    "UPDATE jobs SET details_expired=1,summary=?,report=NULL,worktree=NULL,"
-                    "progress=NULL,selectors='[]',git_dir=NULL,evidence_manifest=NULL WHERE id=?",
-                    (json.dumps(compact), job["id"]),
+                    "UPDATE jobs SET details_expired=1,summary=?,report=NULL,worktree=?,progress=NULL,selectors='[]',git_dir=?,evidence_manifest=NULL WHERE id=?",
+                    (json.dumps(compact), retained, git_dir, job["id"]),
                 )
                 db.execute(
-                    "UPDATE deliveries SET status='expired',reason='Result details expired before delivery' "
-                    "WHERE job_id=? AND status='pending'",
+                    "UPDATE deliveries SET status='expired',reason='Result details expired before delivery' WHERE job_id=? AND status='pending'",
                     (job["id"],),
                 )
-            shutil.rmtree(directory)
+            total -= sizes[job["id"]]
             removed += 1
     if dry_run:
         return removed
@@ -129,11 +203,11 @@ def prune(*, dry_run: bool = False, candidates: list | None = None) -> int:
             (history_cutoff, HISTORY_LIMIT),
         )
         # Active jobs and dirty retained worktrees are outside both history limits.
-        db.execute(
-            "DELETE FROM jobs WHERE details_expired=1 AND (finished < ? OR id IN "
-            "(SELECT id FROM jobs WHERE details_expired=1 ORDER BY finished DESC LIMIT -1 OFFSET ?))",
+        expired = db.execute(
+            "DELETE FROM jobs WHERE details_expired=1 AND worktree IS NULL AND git_dir IS NULL AND (finished < ? OR id IN "
+            "(SELECT id FROM jobs WHERE details_expired=1 AND worktree IS NULL AND git_dir IS NULL ORDER BY finished DESC LIMIT -1 OFFSET ?)) RETURNING id",
             (history_cutoff, HISTORY_LIMIT),
-        )
+        ).fetchall()
         db.execute(
             "DELETE FROM fairness WHERE served_at<? AND NOT EXISTS (SELECT 1 FROM jobs "
             "WHERE status IN ('queued','running') AND COALESCE(git_dir,repo)=fairness.repo_key)",
@@ -144,6 +218,19 @@ def prune(*, dry_run: bool = False, candidates: list | None = None) -> int:
             "DELETE FROM events WHERE json_extract(payload,'$.job_id') IS NOT NULL "
             "AND json_extract(payload,'$.job_id') NOT IN (SELECT id FROM jobs)"
         )
+    for row in expired:
+        directory = state_dir() / "jobs" / row["id"]
+        if directory.is_symlink():
+            continue
+        try:
+            # Only an empty expired job marker; never remove unexpected residual files.
+            if [path.name for path in directory.iterdir()] == ["run.lock"]:
+                with (directory / "run.lock").open("a") as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    (directory / "run.lock").unlink()
+                    directory.rmdir()
+        except OSError:
+            pass
     return removed
 
 

@@ -238,7 +238,7 @@ def test_incomplete_or_expired_evidence_forces_fresh_work(cached_repo, damage):
 def test_later_failure_invalidates_older_success(cached_repo, monkeypatch):
     passed(cached_repo)
     fresh = submit(cached_repo, force=True)
-    monkeypatch.setattr(engine, "execute", lambda *args: 1)
+    monkeypatch.setattr(engine, "execute", lambda *args, **kwargs: 1)
     assert engine.run_job(fresh["id"])["status"] == "failed"
     assert submit(cached_repo)["status"] == "queued"
 

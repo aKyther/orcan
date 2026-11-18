@@ -93,8 +93,10 @@ def test_cleanup_preserves_ignored_user_files(repo):
     (tree / "ignored-data").write_text("preserve")
     with store.database() as db:
         db.execute("UPDATE jobs SET finished='2000-01-01' WHERE id=?", (job["id"],))
-    assert retention.prune(dry_run=True) == 0
-    assert retention.prune() == 0
+    assert retention.prune(dry_run=True) == 1
+    assert retention.prune() == 1
+    assert store.get(job["id"])["details_expired"] == 1
+    assert store.get(job["id"])["worktree"] == str(tree)
     assert (tree / "ignored-data").read_text() == "preserve"
 
 
@@ -171,8 +173,9 @@ def test_retention_timeout_does_not_block_other_jobs(repo, monkeypatch):
     monkeypatch.setattr(worktree_cleanup, 'is_clean', inspect)
     other_tree = Path(store.get(second['id'])['worktree'])
     (other_tree / 'marker').write_text('snapshot')
-    assert retention.prune() == 1
+    assert retention.prune() == 2
     assert tree.exists()
+    assert store.get(first["id"])["details_expired"] == 1
     assert not other_tree.exists()
 
 

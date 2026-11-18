@@ -93,6 +93,10 @@ Use `orcan settings` to choose the Redis/executor plugin and edit its settings w
       "max_pending": 100,
       "timeout_seconds": 1800,
       "retention_seconds": 3600,
+      "log_limit_mb": 16,
+      "artifact_limit_mb": 64,
+      "detail_budget_mb": 1024,
+      "worktree_budget_mb": 4096,
       "redis_memory_mb": 128,
       "visibility_timeout_seconds": 86400,
       "port": 8765
@@ -754,7 +758,9 @@ Under high volume, a stream cursor can fall behind the retained history before
 an hour. Completed reports, logs and pinned refs are cleaned locally
 within roughly 30 seconds after their deadline. Unread results can expire too.
 Save evidence you need before that deadline. Active and queued jobs do not expire.
-Dirty retained worktrees keep their job evidence until safe cleanup is possible.
+Modified worktrees are preserved independently of artifact expiry. Their logs and
+reports still expire. A storage budget may expire completed evidence before its
+normal deadline; queued and active jobs remain protected.
 
 SQLite is the durable job/outbox store; files hold full logs and XML. They live
 under `~/.local/share/orcan/history/executor/INSTANCE` (default instance: `default`), in the existing persistent history
@@ -1255,11 +1261,12 @@ continues to apply the existing retention age automatically.
 
 Active jobs, execution locks, user repositories and shared caches are protected.
 Worktrees containing tracked changes, untracked files or ignored files are
-retained, including their artifacts. A job's generated files are not assumed
-safe to remove merely because Git ignores them. Review retained worktrees
+retained. Their completed artifacts expire independently, so a changed checkout
+cannot keep logs indefinitely. A job's generated files are not assumed safe to
+remove merely because Git ignores them. Review retained worktrees
 separately; do not use force removal to make a storage check pass. Cleanup never
 runs Docker prune or a shared package-cache cleaner, never restarts Orcan, and
-never changes the minimum result-retention age in response to disk pressure.
+may expire oldest completed artifacts early when the detail budget is exceeded.
 
 Completion cleanup uses the same conservative worktree check as retention,
 including ignored outputs such as `site` and `.build`. A Git inspection timeout
@@ -1273,3 +1280,52 @@ status; it does not build board analytics or scan cache/worktree contents. An
 unreadable disk returns an unknown reserve status while preserving the count.
 The open Tasks panel refreshes its overview every 5 seconds without overlapping
 requests. These display updates never acknowledge results or start procedures.
+
+
+### Disk budgets and bounded output
+
+All sizes below are MiB. Configure them under `plugins.redis` in Orcan settings:
+
+| Setting | Default | Behavior |
+| --- | ---: | --- |
+| `log_limit_mb` | 16 | Combined command output per job; overflow stops the command and returns an error. |
+| `artifact_limit_mb` | 64 | Total copied JUnit and declared artifact payload per job; oversized evidence cannot pass. |
+| `detail_budget_mb` | 1024 | Budget for completed log/report directories; maintenance expires oldest completed details first. |
+| `worktree_budget_mb` | 4096 | Admission budget for worktrees; new jobs wait when exceeded or accounting is incomplete. |
+
+Workers also accept the corresponding `ORCAN_EXECUTOR_LOG_LIMIT_MB`,
+`ORCAN_EXECUTOR_ARTIFACT_LIMIT_MB`, `ORCAN_EXECUTOR_DETAIL_BUDGET_MB`, and
+`ORCAN_EXECUTOR_WORKTREE_BUDGET_MB` variables. Each accepts 1..1048576 MiB.
+Service stdout/stderr already rotate at 2 MB per file with one backup per stream.
+The per-job log is kept both by step and as a combined log, so their disk payload
+can be about twice `log_limit_mb`. Budget cleanup runs about every 30 seconds;
+active jobs, temporary source reports, build outputs and protected modified
+worktrees can exceed these budgets. This is not a container filesystem quota.
+A worktree budget pauses new jobs instead of deleting preserved changes.
+
+A reviewed procedure can set `cleanup_archived_reports: true`. After archival,
+Orcan removes only untracked files matched by that procedure's `junit` globs
+whose bytes match an archived XML file. Tracked files, changed reports, unrelated
+ignored files and symlinks are preserved. This allows an otherwise unchanged
+executor checkout to be removed without retaining a second copy of its reports.
+New generated profiles with source JUnit globs opt in; review their output paths.
+For older completed jobs, explicitly preview and apply this same rule:
+
+```bash
+orcan storage clean --archived-reports
+orcan storage clean --archived-reports --apply
+```
+
+### Studio build storage
+
+`orcan storage studio` previews the checkout's generated `studio/target` size.
+`orcan storage studio --apply` cleans that target through Cargo, which owns build
+locking. Source files, external `CARGO_TARGET_DIR` locations and shared package
+caches are preserved. A symlink target or a target containing tracked files is
+rejected.
+
+`make studio-test`, `npm run tauri:dev` and `npm run tauri:build` check this target before starting.
+When it exceeds 2048 MiB (or accounting exceeds its traversal bound), they clean
+it before building again. This is a pre-build budget, not background deletion of
+a running build. The Python helper also accepts `--budget-mb` for an explicit
+budget. Direct Cargo commands and `npm run tauri` bypass the Orcan pre-build check.

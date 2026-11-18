@@ -7,6 +7,10 @@ DEFAULTS = {
     "max_running": 3,
     "timeout_seconds": 1800,
     "retention_seconds": 3600,
+    "log_limit_mb": 16,
+    "artifact_limit_mb": 64,
+    "detail_budget_mb": 1024,
+    "worktree_budget_mb": 4096,
     "redis_memory_mb": 128,
     "visibility_timeout_seconds": 86400,
 }
@@ -16,6 +20,15 @@ LIMITS = {
     "max_running": (1, 10),
     "timeout_seconds": (1, 21600),
     "retention_seconds": (60, 86400),
+    **{
+        key: (1, 1048576)
+        for key in (
+            "log_limit_mb",
+            "artifact_limit_mb",
+            "detail_budget_mb",
+            "worktree_budget_mb",
+        )
+    },
     "redis_memory_mb": (32, 4096),
     "visibility_timeout_seconds": (22200, 86400),
 }
@@ -26,6 +39,15 @@ ENVIRONMENT = {
     "max_running": "ORCAN_EXECUTOR_MAX_RUNNING",
     "timeout_seconds": "ORCAN_EXECUTOR_TIMEOUT_SECONDS",
     "retention_seconds": "ORCAN_EXECUTOR_RETENTION_SECONDS",
+    **{
+        key: "ORCAN_EXECUTOR_" + key.upper()
+        for key in (
+            "log_limit_mb",
+            "artifact_limit_mb",
+            "detail_budget_mb",
+            "worktree_budget_mb",
+        )
+    },
     "redis_memory_mb": "ORCAN_EXECUTOR_REDIS_MEMORY_MB",
     "visibility_timeout_seconds": "ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS",
 }
@@ -35,12 +57,15 @@ def resolve(value: dict) -> dict:
     if not isinstance(value, dict) or set(value) - DEFAULTS.keys():
         raise ValueError("executor supports: " + ", ".join(DEFAULTS))
     result = DEFAULTS | value
-    if result["split_lanes"] and "workers" not in value: result["workers"]=1
+    if result["split_lanes"] and "workers" not in value:
+        result["workers"] = 1
     if type(result["split_lanes"]) is not bool:
         raise ValueError("executor.split_lanes must be a boolean")
     for key, (minimum, maximum) in LIMITS.items():
         if type(result[key]) is not int or not minimum <= result[key] <= maximum:
-            raise ValueError(f"executor.{key} must be an integer from {minimum} to {maximum}")
+            raise ValueError(
+                f"executor.{key} must be an integer from {minimum} to {maximum}"
+            )
     if result["split_lanes"] and result["workers"] != 1:
         raise ValueError("executor.workers must be 1 when split_lanes is enabled")
     return result

@@ -91,6 +91,42 @@
       "env": "ORCAN_EXECUTOR_PORT",
       "legacy_key": "executor_port",
       "help": "Dashboard host port; choose a free port. It is separate from the browser terminal port."
+    },
+    "log_limit_mb": {
+      "type": "integer",
+      "default": 16,
+      "label": "Job log limit MiB",
+      "env": "ORCAN_EXECUTOR_LOG_LIMIT_MB",
+      "minimum": 1,
+      "maximum": 1048576,
+      "help": "Combined command output per job. Exceeding the limit stops the command with an error."
+    },
+    "artifact_limit_mb": {
+      "type": "integer",
+      "default": 64,
+      "label": "Job artifact limit MiB",
+      "env": "ORCAN_EXECUTOR_ARTIFACT_LIMIT_MB",
+      "minimum": 1,
+      "maximum": 1048576,
+      "help": "Maximum copied JUnit and declared artifact bytes per job; oversized evidence cannot pass."
+    },
+    "detail_budget_mb": {
+      "type": "integer",
+      "default": 1024,
+      "label": "Completed detail budget MiB",
+      "env": "ORCAN_EXECUTOR_DETAIL_BUDGET_MB",
+      "minimum": 1,
+      "maximum": 1048576,
+      "help": "Expire oldest completed logs/artifacts above this budget, even before their normal retention time. Active jobs are preserved."
+    },
+    "worktree_budget_mb": {
+      "type": "integer",
+      "default": 4096,
+      "label": "Worktree admission budget MiB",
+      "env": "ORCAN_EXECUTOR_WORKTREE_BUDGET_MB",
+      "minimum": 1,
+      "maximum": 1048576,
+      "help": "Pause new jobs above this worktree budget. Existing active or modified checkouts are preserved."
     }
   },
   "verifier": "executor",

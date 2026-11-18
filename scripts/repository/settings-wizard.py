@@ -132,6 +132,10 @@ def edit_executor(cfg: dict[str, Any]) -> None:
             ("max_pending", "Maximum queued plus running jobs (1..10000)"),
             ("timeout_seconds", "Default job timeout in seconds (1..21600)"),
             ("retention_seconds", "Detailed log retention in seconds (60..86400)"),
+            ("log_limit_mb", "Combined job output limit in MiB"),
+            ("artifact_limit_mb", "Copied job artifacts limit in MiB"),
+            ("detail_budget_mb", "Completed detail budget in MiB"),
+            ("worktree_budget_mb", "Worktree admission budget in MiB"),
             ("redis_memory_mb", "Redis memory budget in MiB (32..4096)"),
             (
                 "visibility_timeout_seconds",

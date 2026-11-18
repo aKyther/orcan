@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Expire completed executor artifacts independently of modified worktrees; add completed-detail and worktree admission budgets, bounded job output and artifact copies, and explicit cleanup of byte-identical archived JUnit copies.
+- Add Studio Cargo target storage preview/cleanup and a 2 GiB pre-build cleanup threshold for the supported Studio build entry points.
+
 - Resolve `owner:branch` worktrees on company GitHub Enterprise hosts using the origin hostname for API calls, while preserving the Git transport, SSH user and port.
 
 - Accept GitHub `owner:branch` worktree sources in workspace setup and the CLI; discover renamed forks, fetch and track the exact branch, and stop instead of falling back to HEAD when a fork source is unavailable.

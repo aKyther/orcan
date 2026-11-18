@@ -134,7 +134,14 @@ def parser():
     history.add_argument("--hours", type=int, default=3)
     storage = commands.add_parser("storage", help="Storage report and guarded TTL cleanup")
     storage.add_argument("action", nargs="?", choices=["report", "clean"], default="report")
-    storage.add_argument("--apply", action="store_true", help="Apply expired-job cleanup; default is preview")
+    storage.add_argument(
+        "--apply", action="store_true", help="Apply expired-job cleanup; default is preview"
+    )
+    storage.add_argument(
+        "--archived-reports",
+        action="store_true",
+        help="Remove untracked declared JUnit files only when identical archived evidence exists",
+    )
     commands.add_parser("maintenance", help="Local TTL cleanup and outbox recovery service")
     notify = commands.add_parser(
         "notify", help="Attach an explicit agent session to an existing job"
@@ -340,18 +347,29 @@ def main(argv=None):
         elif args.command == "storage":
             from .storage import report
 
-            if args.apply and args.action != "clean":
+            if (args.apply or args.archived_reports) and args.action != "clean":
                 raise ValueError("--apply requires storage clean")
             if args.action == "clean":
                 from .retention import prune
                 from .snapshots import prune_snapshots
 
                 candidates = []
-                jobs = prune(dry_run=not args.apply, candidates=candidates)
+                jobs = prune(
+                    dry_run=not args.apply,
+                    candidates=candidates,
+                    clean_reports=args.archived_reports,
+                )
                 snapshots = prune_snapshots(dry_run=not args.apply, candidates=candidates)
-                emit({"dry_run": not args.apply, "expired_jobs": jobs,
-                      "unused_snapshots": snapshots, "candidates": candidates,
-                      "candidates_truncated": not args.apply and jobs + snapshots > len(candidates)})
+                emit(
+                    {
+                        "dry_run": not args.apply,
+                        "expired_jobs": jobs,
+                        "unused_snapshots": snapshots,
+                        "candidates": candidates,
+                        "candidates_truncated": not args.apply
+                        and jobs + snapshots > len(candidates),
+                    }
+                )
             else:
                 emit(report())
         elif args.command == "settings":

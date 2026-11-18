@@ -338,14 +338,17 @@ def start(job_id: str, worktree: Path) -> bool:
             return False
         if _expire_queued(db, candidate) is not None:
             return False
-        from .storage import capacity
+        from .storage import capacity, worktree_capacity
 
         try:
-            disk_ready = capacity()["ready"]
+            disk_ready = capacity()["ready"] and worktree_capacity()["ready"]
         except OSError:
             disk_ready = False
         if not disk_ready:
-            db.execute("UPDATE jobs SET status='queued',admission_reason='disk_space' WHERE id=?", (job_id,))
+            db.execute(
+                "UPDATE jobs SET status='queued',admission_reason='disk_space' WHERE id=?",
+                (job_id,),
+            )
             return False
         running = db.execute(
             "SELECT COUNT(*) FROM jobs WHERE status='running' AND id<>?", (job_id,)
@@ -504,6 +507,7 @@ ATTENTION_PREDICATE = """(status IN ('passed','failed','error','timed_out','canc
         (status='queued' AND (publication_state IN ('uncertain','unknown','recovery_pending')
         OR admission_reason='disk_space'))"""
 
+
 def attention_count() -> int:
     """Lightweight count only; no board analytics, job payloads or filesystem scans."""
     with database() as db:
@@ -516,10 +520,14 @@ def attention_overview(limit: int = 20) -> dict:
     with database() as db:
         db.execute("BEGIN")
         count = db.execute(f"SELECT COUNT(*) FROM jobs WHERE {predicate}").fetchone()[0]
-        jobs = [dict(row) for row in db.execute(
-            f"SELECT id,repo,sha,task,status,acknowledged,publication_state,admission_reason FROM jobs "
-            f"WHERE {predicate} ORDER BY created DESC,id LIMIT ?", (limit,)
-        )]
+        jobs = [
+            dict(row)
+            for row in db.execute(
+                f"SELECT id,repo,sha,task,status,acknowledged,publication_state,admission_reason FROM jobs "
+                f"WHERE {predicate} ORDER BY created DESC,id LIMIT ?",
+                (limit,),
+            )
+        ]
     return {"count": count, "jobs": jobs}
 
 

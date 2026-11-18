@@ -93,8 +93,9 @@ def test_dirty_executor_tree_is_preserved_after_ttl(repo):
     retained = Path(result["summary"]["retained_worktree"])
     with store.database() as db:
         db.execute("UPDATE jobs SET finished='2000-01-01' WHERE id=?", (job["id"],))
-    assert retention.prune() == 0
+    assert retention.prune() == 1
     assert retained.exists()
+    assert store.get(job["id"])["details_expired"] == 1
     # Only restore our synthetic fixture change, never force cleanup.
     (retained / "marker").write_text("snapshot")
     assert retention.prune() == 1

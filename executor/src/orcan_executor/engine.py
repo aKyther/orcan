@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import resource
+import selectors
 import shutil
 import signal
 import subprocess
@@ -21,6 +22,7 @@ from .settings import (
     default_timeout,
     execution_lane,
     state_dir,
+    storage_limit_mb,
     worktree_root,
 )
 
@@ -132,20 +134,46 @@ def submit(
 commands = profiles.commands
 
 
-def execute(command: list[str], cwd: Path, log, timeout: float, lock_fd: int) -> int:
+def execute(
+    command: list[str],
+    cwd: Path,
+    log,
+    timeout: float,
+    lock_fd: int,
+    *,
+    max_bytes: int | None = None,
+) -> int:
     if timeout <= 0:
         raise subprocess.TimeoutExpired(command, timeout)
-    # Gradle and uv output goes straight to disk, never through an agent/model.
+    remaining = storage_limit_mb("log_limit_mb") * 1024**2 if max_bytes is None else max_bytes
+    deadline = time.monotonic() + timeout
+    # Drain a bounded pipe; passing a raw file to the child cannot bound its writes.
     with subprocess.Popen(
         command,
         cwd=cwd,
-        stdout=log,
+        stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         start_new_session=True,
         pass_fds=(lock_fd,),
     ) as process:
         try:
-            return process.wait(timeout=timeout)
+            with selectors.DefaultSelector() as selector:
+                selector.register(process.stdout, selectors.EVENT_READ)
+                while True:
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        raise subprocess.TimeoutExpired(command, timeout)
+                    if not selector.select(min(left, 0.2)):
+                        continue
+                    chunk = os.read(process.stdout.fileno(), 65536)
+                    if not chunk:
+                        return process.wait(timeout=max(0.001, deadline - time.monotonic()))
+                    log.write(chunk[:remaining])
+                    remaining -= len(chunk)
+                    if remaining < 0:
+                        raise ValueError(
+                            "Job output exceeded log_limit_mb; command stopped, output truncated"
+                        )
         except BaseException:
             try:
                 os.killpg(process.pid, signal.SIGTERM)
@@ -223,17 +251,42 @@ def run_job(job_id: str, on_started=None) -> dict | None:
         except OSError as error:
             # State may still be writable when the separate worktree disk is not.
             # Finish without requiring another artifact directory or report file.
-            return store.finish(job_id, "error", {
-                "phase": "setup", "tests": 0, "passed": 0, "failed": 0,
-                "errors": 1, "skipped": 0,
-                "error": f"Cannot prepare execution directories: {type(error).__name__}: {str(error)[:300]}",
-            }, None)
+            return store.finish(
+                job_id,
+                "error",
+                {
+                    "phase": "setup",
+                    "tests": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "errors": 1,
+                    "skipped": 0,
+                    "error": f"Cannot prepare execution directories: {type(error).__name__}: {str(error)[:300]}",
+                },
+                None,
+            )
         if on_started is not None:
             on_started()
         log_path = attempt / "output.log"
         began = time.monotonic()
         cpu_start = resource.getrusage(resource.RUSAGE_SELF)
         child_cpu_start = resource.getrusage(resource.RUSAGE_CHILDREN)
+        copied_artifact_bytes = 0
+        archived_targets = set()
+
+        def copy_artifact(source, target):
+            nonlocal copied_artifact_bytes
+            if target in archived_targets:
+                return
+            from .storage import bounded_copy
+
+            copied_artifact_bytes += bounded_copy(
+                source,
+                target,
+                storage_limit_mb("artifact_limit_mb") * 1024**2 - copied_artifact_bytes,
+            )
+            archived_targets.add(target)
+
         report = dict(
             job_id=job_id,
             sha=job["sha"],
@@ -316,6 +369,9 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                                 step_log,
                                 job["timeout"] - (time.monotonic() - began),
                                 lock.fileno(),
+                                max_bytes=max(
+                                    0, storage_limit_mb("log_limit_mb") * 1024**2 - log.tell()
+                                ),
                             )
                         record.update(exit_code=code, outcome="passed" if code == 0 else "failed")
                     except subprocess.TimeoutExpired:
@@ -354,13 +410,13 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                             continue  # A report shipped in the snapshot is not execution evidence.
                         matched = True
                         if source.resolve() not in copied:
-                            shutil.copyfile(source, junit_dir / f"TEST-{len(copied)}.xml")
+                            copy_artifact(source, junit_dir / f"TEST-{len(copied)}.xml")
                             copied.add(source.resolve())
                 if not matched:
                     missing_reports.append(pattern)
             automatic = attempt / "junit.xml"
             if automatic.is_file():
-                shutil.copyfile(automatic, junit_dir / "TEST-pytest.xml")
+                copy_artifact(automatic, junit_dir / "TEST-pytest.xml")
             elif any("{junit}" in step["argv"] for step in definition["steps"]):
                 missing_reports.append("{junit}")
             report.update(reports.junit(junit_dir))
@@ -394,14 +450,21 @@ def run_job(job_id: str, on_started=None) -> dict | None:
                             ):
                                 target = attempt / "artifacts" / source.relative_to(worktree)
                                 target.parent.mkdir(parents=True, exist_ok=True)
-                                shutil.copyfile(source, target)
-                except Exception:
+                                copy_artifact(source, target)
+                    if definition.get("cleanup_archived_reports"):
+                        worktree_cleanup.archived_reports(worktree, attempt / "junit", definition)
+                except Exception as error:
                     report["artifact_error"] = "Some project artifacts could not be archived"
+                    report.update(
+                        status="error", error=f"Artifact archival failed: {str(error)[:400]}"
+                    )
             # Never force-remove a dirty checkout. Keep it and report the path if cleanup is blocked.
             if added:
                 try:
                     if not worktree_cleanup.is_clean(worktree):
-                        raise OSError("Worktree contains changes, untracked or ignored files; preserved")
+                        raise OSError(
+                            "Worktree contains changes, untracked or ignored files; preserved"
+                        )
                     cleanup = subprocess.run(
                         ["git", "--git-dir", common, "worktree", "remove", str(worktree)],
                         check=False,

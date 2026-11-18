@@ -8,7 +8,9 @@
     "dev": "vite --host 127.0.0.1 --port 1420",
     "dev:preview": "vite --host 0.0.0.0 --port 1420",
     "build": "tsc --noEmit && vite build",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "python3 ../../scripts/repository/studio-build-storage.py --root ../.. --auto && tauri dev",
+    "tauri:build": "python3 ../../scripts/repository/studio-build-storage.py --root ../.. --auto && tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.0",

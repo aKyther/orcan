@@ -226,7 +226,7 @@ The helper discovers the host's first Tailscale IPv4 address and refuses a
 non-Tailscale bind. Set `ORCAN_STUDIO_PREVIEW_BIND=100.x.x.x` to choose another
 Tailscale address and `ORCAN_STUDIO_PREVIEW_PORT=1420` to change the port.
 Vite hot-reloads frontend edits; no `.exe`, `.app`, or Tauri bundle is built.
-Use `npm run tauri dev` for an integration check against the real native
+Use `npm run tauri:dev` for an integration check against the real native
 backend.
 
 To review the layout with this host's real workspaces, save a read-only probe

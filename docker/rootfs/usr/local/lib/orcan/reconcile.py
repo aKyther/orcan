@@ -595,7 +595,11 @@ session notification. Do not block the conversation waiting for a long task.
 4. Success contains counters, never stdout; report it briefly. Skips did not run.
    Failures contain at most three short errors. Use `logs JOB --offset 0 --limit 4000` only as needed;
    follow next_offset. `artifacts JOB` lists full JSON/XML for bounded `logs --artifact NAME` reading.
-5. Detailed results/artifacts expire after 1 hour by default, even unread. Compact history and measurements
+5. Detailed results/artifacts expire after 1 hour by default, even unread.
+   The detail budget may expire completed artifacts earlier; modified worktrees are retained
+   independently. Job output and copied artifacts have byte limits; exceeding them cannot pass.
+   Reviewed profiles may opt in to cleanup_archived_reports for untracked JUnit copies only
+   after byte-identical archival. Never delete arbitrary ignored files or force-remove worktrees. Compact history and measurements
    remain for 30 days (up to 10000 expired entries). Use history --hours 3 or stats --hours 3. Active jobs do not expire.
    Dirty executor worktrees are retained; never force-remove them. Keep the Git common directory available.
 

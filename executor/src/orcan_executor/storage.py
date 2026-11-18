@@ -1,10 +1,10 @@
-"""Instance storage accounting; never inspect file contents or follow symlinks."""
+"""Storage accounting and bounded copies; accounting never reads file contents."""
 
 import os
 import shutil
 from pathlib import Path
 
-from .settings import minimum_free_mb, state_dir, worktree_root
+from .settings import minimum_free_mb, state_dir, storage_limit_mb, worktree_root
 
 
 def filesystem(path: Path) -> dict:
@@ -25,6 +25,16 @@ def capacity() -> dict:
     # State and checkouts can be on different filesystems. Both need a reserve.
     disks = [filesystem(state_dir()), filesystem(worktree_root())]
     return {"ready": all(disk["ready"] for disk in disks), "filesystems": disks}
+
+
+def worktree_capacity() -> dict:
+    trees = size(worktree_root())
+    budget = storage_limit_mb("worktree_budget_mb") * 1024**2
+    return {
+        "ready": not trees["incomplete"] and trees["allocated_bytes"] <= budget,
+        **trees,
+        "budget_bytes": budget,
+    }
 
 
 def size(path: Path, *, limit: int = 100000) -> dict:
@@ -76,7 +86,12 @@ def report() -> dict:
             os.environ.get("GRADLE_USER_HOME", str(Path.home() / ".gradle"))
         ),
     }
-    return capacity() | {
+    disks = capacity()
+    trees = worktree_capacity()
+    return disks | {
+        "ready": disks["ready"] and trees["ready"],
+        "worktrees": trees,
+        "detail_budget_bytes": storage_limit_mb("detail_budget_mb") * 1024**2,
         "categories": [
             {
                 "name": name,
@@ -91,3 +106,26 @@ def report() -> dict:
             "Shared caches, Docker, user repositories and dirty worktrees are never deleted by storage clean.",
         ],
     }
+
+
+def bounded_copy(source: Path, target: Path, remaining: int) -> int:
+    """Never archive partial/oversized evidence, even when a source grows."""
+    written = 0
+    created = False
+    try:
+        with source.open("rb") as reader:
+            if os.fstat(reader.fileno()).st_size > remaining:
+                raise ValueError("Copied artifacts exceeded artifact_limit_mb")
+            with target.open("xb") as writer:
+                created = True
+                while chunk := reader.read(min(65536, max(1, remaining - written + 1))):
+                    if written + len(chunk) > remaining:
+                        raise ValueError("Copied artifacts exceeded artifact_limit_mb")
+                    writer.write(chunk)
+                    written += len(chunk)
+    except BaseException:
+        # Callers provide a fresh archive destination, never a source-project path.
+        if created:
+            target.unlink()
+        raise
+    return written

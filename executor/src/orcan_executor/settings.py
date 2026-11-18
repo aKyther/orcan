@@ -61,6 +61,19 @@ def minimum_free_mb() -> int:
     return value
 
 
+def storage_limit_mb(name: str) -> int:
+    defaults = {
+        "log_limit_mb": 16,
+        "artifact_limit_mb": 64,
+        "detail_budget_mb": 1024,
+        "worktree_budget_mb": 4096,
+    }
+    value = int(os.environ.get("ORCAN_EXECUTOR_" + name.upper(), str(defaults[name])))
+    if not 1 <= value <= 1048576:
+        raise ValueError(name + " must be between 1 and 1048576 MiB")
+    return value
+
+
 def max_pending() -> int:
     value = int(os.environ.get("ORCAN_EXECUTOR_MAX_PENDING", "100"))
     if not 1 <= value <= 10000:
@@ -123,6 +136,15 @@ def effective() -> dict:
         "queue_wait_timeout_seconds": QUEUE_WAIT_TIMEOUT_SECONDS,
         "retention_seconds": retention_seconds(),
         "minimum_free_mb": minimum_free_mb(),
+        **{
+            key: storage_limit_mb(key)
+            for key in (
+                "log_limit_mb",
+                "artifact_limit_mb",
+                "detail_budget_mb",
+                "worktree_budget_mb",
+            )
+        },
         "redis_memory_mb": redis_memory_mb(),
         "visibility_timeout_seconds": visibility_timeout(),
         "history_days": HISTORY_DAYS,
