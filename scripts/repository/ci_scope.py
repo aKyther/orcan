@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def scope(paths: list[str], *, full: bool = False) -> dict[str, bool]:
-    selected = dict.fromkeys(("studio", "image", "docs"), full)
+    selected = dict.fromkeys(("image", "docs"), full)
     for path in paths:
         if path.startswith(("docs/", "overrides/")) or path in {
             "mkdocs.yml",
@@ -18,17 +18,13 @@ def scope(paths: list[str], *, full: bool = False) -> dict[str, bool]:
             "CHANGELOG.md",
         }:
             selected["docs"] = True
-        elif path.startswith("studio/") or path.startswith("tests/browser/studio"):
-            selected["studio"] = True
         elif path.startswith(("docker/", "cockpit/")) or path in {
             "Dockerfile",
             ".dockerignore",
             "VERSION",
         }:
             selected["image"] = True
-            selected["studio"] = True  # runtime/report compatibility
         elif path.startswith(("cli/", "bin/", "scripts/repository/")):
-            selected["studio"] = True
             if path in {
                 "scripts/repository/generate-llms-txt.py",
                 "scripts/repository/check-product-name.sh",

@@ -338,8 +338,6 @@ resolve credentials. See [Settings TUI and startup plan](../guides/settings.md).
 - `orcan storage clean [--apply] [--archived-reports]` previews or applies completed
   artifact expiry. The optional report cleanup removes only declared untracked
   JUnit files with identical archived evidence.
-- `orcan storage studio [--apply] [--budget-mb N]` previews or cleans the local
-  generated Studio Cargo target. `--auto` cleans only when over budget.
 - `orcan storage docker` reports Docker storage without removing anything.
 
 See [Executor storage budgets](../guides/background-executor.md#disk-budgets-and-bounded-output)

@@ -5,28 +5,26 @@ from ci_scope import scope
 
 
 @pytest.mark.parametrize(
-    ("path", "studio", "image", "docs"),
+    ("path", "image", "docs"),
     [
-        ("studio/app/src/main.ts", True, False, False),
-        ("tests/browser/studio.spec.js", True, False, False),
-        ("scripts/repository/studio-probe.py", True, False, False),
-        ("scripts/repository/generate-llms-txt.py", True, False, True),
-        ("scripts/repository/check-product-name.sh", True, False, True),
-        ("Dockerfile", True, True, False),
-        ("docker/rootfs/usr/local/bin/ssh", True, True, False),
-        ("docs/en/development/testing.md", False, False, True),
-        ("AGENTS.md", False, False, True),
-        (".cursor/rules/agents.mdc", False, False, True),
-        ("tests/host/test_studio_probe.py", False, False, False),
-        (".github/workflows/ci.yml", True, True, True),
-        ("new-unknown-input", True, True, True),
+        ("scripts/repository/studio-probe.py", False, False),
+        ("scripts/repository/generate-llms-txt.py", False, True),
+        ("scripts/repository/check-product-name.sh", False, True),
+        ("Dockerfile", True, False),
+        ("docker/rootfs/usr/local/bin/ssh", True, False),
+        ("docs/en/development/testing.md", False, True),
+        ("AGENTS.md", False, True),
+        (".cursor/rules/agents.mdc", False, True),
+        ("tests/host/test_studio_probe.py", False, False),
+        (".github/workflows/ci.yml", True, True),
+        ("new-unknown-input", True, True),
     ],
 )
-def test_changed_paths_select_required_jobs(path, studio, image, docs):
-    assert scope([path]) == {"studio": studio, "image": image, "docs": docs}
+def test_changed_paths_select_required_jobs(path, image, docs):
+    assert scope([path]) == {"image": image, "docs": docs}
 
 
 def test_manual_and_scheduled_runs_are_full_even_without_changes():
     assert all(scope([], full=True).values())
     assert not any(scope([]).values())
-    assert scope(["docs/en/index.md", "studio/app/src/main.ts"])["image"] is False
+    assert scope(["docs/en/index.md", "cli/commands/studio.sh"])["image"] is False

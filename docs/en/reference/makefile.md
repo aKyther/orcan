@@ -19,7 +19,6 @@ This repository ships a Makefile only for **maintainers** working in a git check
 | `make test-integration` | Subprocess/external-boundary host tests |
 | `make test-coverage` | Full host suite with coverage in one run; supports `TEST_ARGS` |
 | `make format` / `make format-check` | Apply / verify Ruff formatting for Python code |
-| `make studio-test` | Test the Orcan Studio Rust transport core |
 | `make test` / `make test-path-parity` | Container tests (needs Docker) |
 | `make dev-test` | Isolated developer UX lifecycle (needs Docker + `orcan:dev-ux`) |
 | `make docs` / `docs-serve` / `docs-check` | MkDocs |

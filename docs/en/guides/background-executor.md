@@ -1318,14 +1318,8 @@ orcan storage clean --archived-reports --apply
 
 ### Studio build storage
 
-`orcan storage studio` previews the checkout's generated `studio/target` size.
-`orcan storage studio --apply` cleans that target through Cargo, which owns build
-locking. Source files, external `CARGO_TARGET_DIR` locations and shared package
-caches are preserved. A symlink target or a target containing tracked files is
-rejected.
-
-`make studio-test`, `npm run tauri:dev` and `npm run tauri:build` check this target before starting.
-When it exceeds 2048 MiB (or accounting exceeds its traversal bound), they clean
-it before building again. This is a pre-build budget, not background deletion of
-a running build. The Python helper also accepts `--budget-mb` for an explicit
-budget. Direct Cargo commands and `npm run tauri` bypass the Orcan pre-build check.
+Desktop build storage belongs to the separate
+[Orcan Studio repository](https://github.com/aKyther/orcan-studio).
+Use `make storage` there to preview its Cargo target, or
+`make storage STORAGE_ARGS=--apply` to clean through Cargo.
+The Orcan CLI manages runtime and executor storage.

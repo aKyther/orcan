@@ -1,5 +1,9 @@
 # Orcan
 
+The desktop application is developed in [Orcan Studio](https://github.com/aKyther/orcan-studio).
+This repository focuses on workspace/runtime management, the host bridge and the terminal.
+
+
 **Work-context orchestrator** for coding agents. Run **Cursor CLI** (`agent`), **Claude Code** (`claude`), and **Codex CLI** (`codex`) in Docker with path-parity mounts, workspaces (named sets of projects), and an optional browser tmux terminal.
 
 Models are out of scope — each CLI picks its own.
@@ -8,7 +12,7 @@ Models are out of scope — each CLI picks its own.
 
 ## Status
 
-Version **4.1.43**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
+Version **4.1.44**. Distributed as a **CLI** (`orcan`). `orcan build` pulls the image for this version when available, otherwise builds locally. Publishing images is **manual** (`orcan publish`) and not part of build. CI validates and publishes docs; it does **not** publish container images.
 
 ## Features
 

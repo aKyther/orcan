@@ -42,32 +42,14 @@ determine selection. These modes are developer shortcuts, not replacements
 for full CI. `TEST_ARGS` also accepts pytest paths, node IDs and `-k` filters;
 it applies to `test-host`, `test-fast`, `test-integration` and `test-coverage`.
 
-For Studio-only changes, use `npm test` and `npm run build` in `studio/app`,
-plus `cargo test --manifest-path studio/Cargo.toml` for native Rust changes.
-Run the full checks before handoff.
+Desktop UI, Tauri, Rust and fixture-browser checks run in the separate
+[Orcan Studio repository](https://github.com/aKyther/orcan-studio).
+Orcan retains tests for its `orcan studio …` host bridge.
 
-Container selection and refresh use `probe-requests.ts`: matching in-flight reads
-are shared, without caching completed reports. A new selection or disconnect
-expires older activations. Browser regressions hold an old refresh through a
-container switch and verify that both success and failure leave the new target
-active; activity still records the completed check on its original profile.
-
-CI runs UI behavior tests and native application tests as well as the Rust core.
-Full host checks always run. Changed-path selection skips Studio builds for
-docs/test-only changes and skips image builds/Trivy for Studio/host-only changes.
-Image/runtime changes run both image and Studio checks. Unknown paths, unavailable
-Git history, manual dispatch and the weekly schedule run the full scope. Trivy's
-severity policy is unchanged. Strict docs checks run for documentation and docs
-tool changes, and on full-scope runs. Docs deploy only after documentation changes.
-The classifier and its pure tests are `ci_scope.py` and `test_ci_scope.py`;
-update them when adding a new build input. Browser downloads use a pinned-version
-cache, separate from native build artifacts.
-
-Studio jobs cache npm/Cargo dependencies and compiled dependency directories, not
-installers, app executables or incremental output. Keys include the Rust compiler,
-platform and build mode. Linux CI omits development debug symbols and logs cache
-directory sizes; compare restore/save times with compile time before expanding
-the cache. Host checks share uv dependencies
+Full host checks always run. Changed-path selection controls image/Trivy and docs
+jobs. Unknown paths, unavailable Git history, manual dispatch and the weekly
+schedule run the full scope. The classifier and its tests are `ci_scope.py` and
+`test_ci_scope.py`. Host checks share uv dependencies
 instead of installing the test requirements into two Python environments.
 
 Pure worktree contracts live in `test_git_worktrees.py`; real Git operations
@@ -113,33 +95,8 @@ Probe Git facts use three local processes per unique path: common directory,
 porcelain-v2 status (branch, upstream, counts, dirtiness), and origin URL. Facts
 are reused only within the current report; updates still recheck live Git state.
 
-Studio has seven real browser smoke flows, independent of the cockpit suite:
-connection gating, map selection/resize anchors, drag/stage/discard, and a synthetic
-100-project/10-workspace map checking filters, both anchors and retained drafts,
-creator readiness/approval invalidation after changing its target, and on-demand
-inventory reads that ignore an expired report. A workspace approval regression
-also checks that refreshing its report sends no apply command after confirmation.
-They use fixture data, block host snapshots, and contact no SSH or Docker target.
-CI runs them after the UI tests. Locally:
-
-```bash
-npm install --no-save --no-package-lock --prefix .orcan-dev-ux/playwright-node @playwright/test@1.55.0
-.orcan-dev-ux/playwright-node/node_modules/.bin/playwright install chromium --with-deps
-make studio-test-browser
-```
-
-The browser check starts and stops its own Vite server on port 1438; do not point
-it at the daily Orcan runtime. Headless browser dependencies are needed only for
-this check, not `npm test`. Map geometry owns coalesced frame scheduling in
-`map-connections.ts`; project selection updates classes/edges, not all cards.
-Context rendering builds lookup maps once per render, without persisting a second
-source of truth alongside the probe report.
-Add `&measure=1` to the demo URL for in-memory render counters and timings, available
-as `window.__orcanRenderMetrics.snapshot()` in browser developer tools. Normal
-launches do not read the clock or collect samples. The large-map browser test
-attaches JSON measurements, saved in the browser `results.json` report and retained
-as a CI artifact for seven days; project selection asserts zero full map rebuilds.
-There is no wall-clock CI threshold: machine speed must not decide correctness.
+Studio browser tests and render measurements moved with the desktop application.
+See its README for the standalone browser test and preview commands.
 
 Default CI coverage measures the test process, not helper subprocesses. All tests
 still run, including real CLI operations. For an accurate extended diagnostic:
@@ -161,27 +118,6 @@ Git status is not clean and cannot authorize an update. Configuration writes use
 unique temporary files and atomic replacement. Host writers serialize commits
 with a bounded parent-directory lock, preserving configuration symlinks.
 
-Studio captures local, WSL and system-SSH commands with a deadline and drains
-stdout/stderr concurrently. Read-only probes have a 90-second limit and a Cancel
-check button; other captured commands allow up to 15 minutes. Native SSH connection
-setup has a 45-second limit. Host clone operations allow 14 minutes, other Studio
-mutations five minutes. A timeout or cancellation does not roll back remote work:
-refresh the host before retrying. Streaming image transfers retain their separate
-progress/resume workflow with a five-minute idle deadline; active transfers have
-no fixed total-duration limit. Provisioning and SSH preparation also bound stdin
-commands. These limits are policy, not performance benchmarks.
-Command responses and diagnostics have a 16 MiB limit per stream. Exceeding it
-is an explicit failure, never silently truncated JSON; image bytes use a separate
-streaming path and are not subject to this response limit.
-
-Worktree apply responses can have `ok: true` with `outcome: partial`: the request
-returned a usable result, but not every attachment succeeded. `completed` and
-`pending_workspaces` describe the steps. Studio's Retry attachments rechecks each
-remaining membership and never recreates the worktree. A failed queued creation
-becomes an attachment to the preserved checkout. No automatic rollback deletes
-project data. After restarting Studio, use the worktree inventory to attach or
-clean up preserved worktrees.
-
 `load_config` snapshots automatically check their revision before saving; Studio
 supplies its explicit read snapshot. A stale save is rejected, not merged or
 silently overwritten. This is not a transaction with arbitrary
@@ -194,7 +130,7 @@ persistent cache of mutable repository status or image tags.
 
 Validation scans source files once using Git's tracked/non-ignored file list,
 excluding build output, dependency folders, virtual environments and secrets.
-Keep `studio/target` as a build cache; validation does not need to inspect it.
+Generated build caches are excluded from validation.
 
 ## Smoke tests (Codex selection — local)
 
@@ -207,37 +143,6 @@ Runs `tests/smoke/test-container.sh` after `orcan build --agent codex`. It asser
 ## Maintainer previews (`scripts/dev/`)
 
 Checkout-local helpers under `scripts/dev/`. They are **not** the public `orcan` CLI. Prefer the thin `make dev-*` wrappers so the developer testing workflow is easy to discover without disturbing an installed daily Orcan stack.
-
-### Fast Studio UX preview — `orcan-studio-preview`
-
-This is a separate browser-only Vite container for reviewing the Studio layout,
-copy, loading states, and confirmation flow from another Tailscale device. It
-uses representative fixture data: it never opens SSH, Docker, the credential
-vault, or a real Orcan Sandbox.
-
-```bash
-make studio-preview-start
-# open the printed http://100.x.x.x:1420/?demo=1 URL from a Tailscale device
-make studio-preview-logs
-make studio-preview-stop
-```
-
-The helper discovers the host's first Tailscale IPv4 address and refuses a
-non-Tailscale bind. Set `ORCAN_STUDIO_PREVIEW_BIND=100.x.x.x` to choose another
-Tailscale address and `ORCAN_STUDIO_PREVIEW_PORT=1420` to change the port.
-Vite hot-reloads frontend edits; no `.exe`, `.app`, or Tauri bundle is built.
-Use `npm run tauri:dev` for an integration check against the real native
-backend.
-
-To review the layout with this host's real workspaces, save a read-only probe
-snapshot. The preview's "Demo workstation" Enclave then shows it; other
-Enclaves and every action stay simulated. The snapshot is served only by the
-Vite dev server (never bundled) and is visible to your tailnet.
-
-```bash
-make studio-preview-snapshot        # runs orcan studio probe --json on the host
-make studio-preview-snapshot-clear  # back to fixture data
-```
 
 ### Full developer browser environment — `orcan-preview`
 

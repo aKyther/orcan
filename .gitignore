@@ -10,7 +10,8 @@ orcan.config.yml
 .orcan/
 /mounts/
 /workspaces/
-studio/app/.preview/
+# Preserved local desktop artifacts after repository extraction
+/studio/
 
 # Leftover names from the former "cind" product (safe to ignore)
 cind.config.yaml

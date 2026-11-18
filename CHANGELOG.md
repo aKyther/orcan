@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Move the Tauri desktop application, frontend, desktop tests and installer CI to the separate `orcan-studio` repository; retain the host JSON bridge and terminal/runtime management here. Desktop build storage is now managed in Studio.
+
 - Expire completed executor artifacts independently of modified worktrees; add completed-detail and worktree admission budgets, bounded job output and artifact copies, and explicit cleanup of byte-identical archived JUnit copies.
 - Add Studio Cargo target storage preview/cleanup and a 2 GiB pre-build cleanup threshold for the supported Studio build entry points.
 
