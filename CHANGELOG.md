@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Omit all external-storage guidance from generated workspace instructions when the storage path is unset or cleared, including with the executor enabled.
+
 - Describe configured host storage, scratch paths and cautious usage in generated workspace agent instructions and manifests, including when the executor is disabled; allow clearing storage fields with `-` in the sequential wizard.
 
 - Snapshot module namespaces while fingerprinting loaded executor code so concurrent imports cannot interrupt reuse submissions.

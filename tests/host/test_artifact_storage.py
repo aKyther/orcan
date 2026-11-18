@@ -237,3 +237,40 @@ def test_host_reconcile_preserves_storage_configuration():
     }
     mapper = load_script("reconcile-host.py")
     assert mapper.host_cfg_from_runtime(runtime)["storage"] == runtime["storage"]
+
+
+@pytest.mark.parametrize("executor", ["0", "1"])
+@pytest.mark.parametrize(
+    "storage", [None, {}, {"path": "", "mount_path": "/mnt/old", "require_mount": True}]
+)
+def test_unconfigured_storage_has_no_sshfs_guidance_even_with_stale_environment(
+    tmp_path, monkeypatch, executor, storage
+):
+    from orcan.reconcile import apply_workspaces
+
+    monkeypatch.setenv("ORCAN_REDIS_ENABLED", executor)
+    monkeypatch.setenv("ORCAN_STORAGE_ROOT", "/mnt/stale-sshfs")
+    monkeypatch.setenv("ORCAN_SCRATCH_DIR", "/mnt/stale-sshfs/orcan/default/scratch")
+    parent = tmp_path / "workspaces"
+    workspace = parent / "demo"
+    config = {"workspaces": [{"name": "demo", "root": str(workspace), "projects": []}]}
+    if storage is not None:
+        config["storage"] = storage
+    apply_workspaces(
+        config,
+        defaults_root=tmp_path / "templates",
+        workspaces_parent=parent,
+        agents={"codex", "claude"},
+    )
+    text = (workspace / "AGENTS.md").read_text()
+    assert text == (workspace / "CLAUDE.md").read_text()
+    for marker in (
+        "Host artifact storage",
+        "SSHFS",
+        "ORCAN_SCRATCH_DIR",
+        "ORCAN_STORAGE",
+        "network storage",
+        "/mnt/stale-sshfs",
+    ):
+        assert marker not in text
+    assert "storage" not in json.loads((workspace / ".manifest.json").read_text())

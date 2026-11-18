@@ -193,3 +193,8 @@ worktrees, build/test working directories, databases, locks and caches local. Re
 bounded diagnostic fragments instead of scanning shared storage or loading whole
 logs into context. Remove only your own disposable scratch files when finished.
 The sequential wizard accepts `-` to clear the external path or optional mountpoint.
+
+External-storage instructions and manifest paths are generated only when
+`storage.path` is non-empty. With no storage configured, or after choosing local
+storage, workspace instructions contain no SSHFS/scratch-path guidance. This
+also applies when the executor is enabled or an old storage environment remains.
