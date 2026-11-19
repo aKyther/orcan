@@ -101,9 +101,9 @@ Do not use **Workspace**, **Context**, **Project**, **path parity**, **context p
 
 ## Version numbers
 
-- Source of truth: `cockpit/pyproject.toml` → `version = "X.Y.Z"`.
+- Source of truth: `plugins/cockpit/pyproject.toml` → `version = "X.Y.Z"`.
 - Root `VERSION` is a synced mirror for CLI/image scripts (`orcan build` tags).
-- `make bump-*` updates pyproject + `cockpit/uv.lock` package stanza + `VERSION` +
+- `make bump-*` updates pyproject + `plugins/cockpit/uv.lock` package stanza + `VERSION` +
   `mkdocs.yml` `extra.orcan_version`, README Status, and Home Status.
 - Enforced by `make test-host` (`tests/host/test_version.py`).
 

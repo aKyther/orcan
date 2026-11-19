@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Product version helpers (SemVer). Host-only — not copied into the image.
 #
-# Source of truth: cockpit/pyproject.toml → [project] version = "X.Y.Z"
+# Source of truth: plugins/cockpit/pyproject.toml → [project] version = "X.Y.Z"
 # Synced copies (written by bump): root VERSION (CLI/image hot path),
-# mkdocs.yml, README, Home docs, cockpit/uv.lock package stanza.
+# mkdocs.yml, README, Home docs, plugins/cockpit/uv.lock package stanza.
 #
 # Immutable SemVer tags identify changes. Publishing readiness is a separate
 # explicit workflow dispatch for an existing tag and its exact commit SHA.
@@ -13,8 +13,8 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-PYPROJECT="${ROOT_DIR}/cockpit/pyproject.toml"
-UV_LOCK="${ROOT_DIR}/cockpit/uv.lock"
+PYPROJECT="${ROOT_DIR}/plugins/cockpit/pyproject.toml"
+UV_LOCK="${ROOT_DIR}/plugins/cockpit/uv.lock"
 VERSION_FILE="${ROOT_DIR}/VERSION"
 CHANGELOG="${ROOT_DIR}/CHANGELOG.md"
 
@@ -23,12 +23,12 @@ die() {
     exit 1
 }
 
-# Read SemVer from cockpit/pyproject.toml (canonical).
+# Read SemVer from plugins/cockpit/pyproject.toml (canonical).
 read_version() {
     [[ -f "${PYPROJECT}" ]] || die "missing ${PYPROJECT}"
     local v
     v="$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p' "${PYPROJECT}" | head -n1)"
-    [[ "${v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "cockpit/pyproject.toml version must be SemVer X.Y.Z (got: ${v:-empty})"
+    [[ "${v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "plugins/cockpit/pyproject.toml version must be SemVer X.Y.Z (got: ${v:-empty})"
     printf '%s' "${v}"
 }
 
@@ -41,7 +41,7 @@ write_version() {
     if grep -qE '^version = "[0-9]+\.[0-9]+\.[0-9]+"' "${PYPROJECT}"; then
         sed -i -E "s/^version = \"[0-9]+\.[0-9]+\.[0-9]+\"/version = \"${new}\"/" "${PYPROJECT}"
     else
-        die "cockpit/pyproject.toml: missing version = \"X.Y.Z\" line"
+        die "plugins/cockpit/pyproject.toml: missing version = \"X.Y.Z\" line"
     fi
 
     if [[ -f "${UV_LOCK}" ]]; then
@@ -58,7 +58,7 @@ write_version() {
 cmd_show() {
     local v
     v="$(read_version)"
-    printf 'pyproject:   cockpit/pyproject.toml → %s\n' "${v}"
+    printf 'pyproject:   plugins/cockpit/pyproject.toml → %s\n' "${v}"
     printf 'VERSION:     %s (synced mirror for CLI/image)\n' "$(tr -d '[:space:]' <"${VERSION_FILE}" 2>/dev/null || echo missing)"
     printf 'Git tag:     v%s\n' "${v}"
     printf 'Local tags:  orcan:%s  orcan:latest\n' "${v}"
@@ -97,7 +97,7 @@ cmd_bump() {
     write_version "${new}"
     sync_version_displays "${old}" "${new}"
     printf 'Bumped (pyproject): %s → %s\n' "${old}" "${new}"
-    printf 'Synced: cockpit/uv.lock, VERSION, mkdocs.yml, README.md, docs/en/index.md\n'
+    printf 'Synced: plugins/cockpit/uv.lock, VERSION, mkdocs.yml, README.md, docs/en/index.md\n'
     printf '(Low-level — usually you want: make tag)\n'
 }
 
@@ -150,7 +150,7 @@ cmd_version() {
     sync_version_displays "${old}" "${new}"
     today="$(date +%F)"
     changelog_checkpoint "${new}" "${today}"
-    git add cockpit/pyproject.toml cockpit/uv.lock VERSION CHANGELOG.md \
+    git add plugins/cockpit/pyproject.toml plugins/cockpit/uv.lock VERSION CHANGELOG.md \
         mkdocs.yml README.md docs/en/index.md
     git commit -m "chore: version v${new}" >/dev/null
     git tag -a "v${new}" -m "orcan v${new}"
@@ -215,7 +215,7 @@ require_clean_tree() {
 cmd_check() {
     local v mirror
     v="$(read_version)"
-    printf 'VERSION OK: %s (from cockpit/pyproject.toml)\n' "${v}"
+    printf 'VERSION OK: %s (from plugins/cockpit/pyproject.toml)\n' "${v}"
     if [[ -f "${VERSION_FILE}" ]]; then
         mirror="$(tr -d '[:space:]' <"${VERSION_FILE}")"
         if [[ "${mirror}" != "${v}" ]]; then
@@ -241,8 +241,8 @@ cmd_tag() {
         die "tag v${v} already exists"
     fi
     local head_v
-    head_v="$(git show HEAD:cockpit/pyproject.toml 2>/dev/null | sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p' | head -n1 || true)"
-    [[ "${head_v}" == "${v}" ]] || die "HEAD:cockpit/pyproject.toml (${head_v:-missing}) != working tree (${v}); commit version bump first"
+    head_v="$(git show HEAD:plugins/cockpit/pyproject.toml 2>/dev/null | sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p' | head -n1 || true)"
+    [[ "${head_v}" == "${v}" ]] || die "HEAD:plugins/cockpit/pyproject.toml (${head_v:-missing}) != working tree (${v}); commit version bump first"
 
     git tag -a "v${v}" -m "orcan v${v}"
     printf 'Created annotated tag v%s\n' "${v}"
@@ -262,7 +262,7 @@ usage() {
     cat <<'EOF'
 Usage: release.sh <show|print|bump|check|version|checkpoint|release|retract|tag|push-tag>
 
-  show               Print version (from cockpit/pyproject.toml) and local image tags
+  show               Print version (from plugins/cockpit/pyproject.toml) and local image tags
   print              Print SemVer only (scripting)
   bump PART          Low-level: bump SemVer in pyproject (patch|minor|major) + sync copies
   check              Validate pyproject SemVer and VERSION mirror

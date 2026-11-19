@@ -18,7 +18,7 @@ def scope(paths: list[str], *, full: bool = False) -> dict[str, bool]:
             "CHANGELOG.md",
         }:
             selected["docs"] = True
-        elif path.startswith(("docker/", "cockpit/")) or path in {
+        elif path.startswith(("docker/", "plugins/cockpit/", "plugins/redis/")) or path in {
             "Dockerfile",
             ".dockerignore",
             "VERSION",

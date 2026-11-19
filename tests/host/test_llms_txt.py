@@ -26,7 +26,7 @@ REQUIRED = (
     "orcan.config.json",
     "Model selection",
     "make dev-",
-    "cockpit/pyproject.toml",
+    "plugins/cockpit/pyproject.toml",
     "context pack",
     "CLAUDE.md",
 )

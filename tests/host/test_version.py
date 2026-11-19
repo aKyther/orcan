@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sanity checks for product version (cockpit/pyproject.toml) / release helpers."""
+"""Sanity checks for product version (plugins/cockpit/pyproject.toml) / release helpers."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from pathlib import Path
 pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
-PYPROJECT = ROOT / "cockpit" / "pyproject.toml"
+PYPROJECT = ROOT / "plugins/cockpit" / "pyproject.toml"
 VERSION_FILE = ROOT / "VERSION"
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 PYPROJECT_VERSION = re.compile(r'^version = "([0-9]+\.[0-9]+\.[0-9]+)"\s*$', re.M)
@@ -24,7 +24,7 @@ def read_pyproject_version() -> str:
     text = PYPROJECT.read_text(encoding="utf-8")
     match = PYPROJECT_VERSION.search(text)
     if not match:
-        raise AssertionError('cockpit/pyproject.toml missing version = "X.Y.Z"')
+        raise AssertionError('plugins/cockpit/pyproject.toml missing version = "X.Y.Z"')
     return match.group(1)
 
 
@@ -85,7 +85,7 @@ class VersionTests(unittest.TestCase):
 
     def test_uv_lock_package_version_matches(self) -> None:
         ver = read_pyproject_version()
-        lock = (ROOT / "cockpit" / "uv.lock").read_text(encoding="utf-8")
+        lock = (ROOT / "plugins/cockpit" / "uv.lock").read_text(encoding="utf-8")
         self.assertRegex(
             lock,
             rf'name = "orcan-cockpit"\nversion = "{re.escape(ver)}"',

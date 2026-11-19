@@ -10,7 +10,7 @@ checkout's `.venv` or create a project lockfile.
 The root `pyproject.toml` contains tool settings only. Use `uv run --no-project`
 for ad hoc commands from the repository root. A root `uv.lock` produced by a
 plain `uv run` is a local artifact and is ignored. Dependency lockfiles remain
-tracked separately in `cockpit/uv.lock` and `executor/uv.lock`.
+tracked separately in `plugins/cockpit/uv.lock` and `plugins/redis/uv.lock`.
 
 ```bash
 make validate
@@ -259,7 +259,7 @@ Inside the preview: prefix **C-Space**; **C-Space r** reloads UI files from the 
 Prefer this for status-bar / keybinding / layout edits. Prefer `orcan-preview` when you need ttyd, launcher/cockpit, or a real image build.
 
 Host tests: `tests/host/test_orcan_preview.py`, `tests/host/test_terminal_ui_preview.py`.
-Cockpit smoke (inside preview): `tests/smoke/test-cockpit-tui.py` via `make dev-smoke`.
+Cockpit smoke (inside preview): `plugins/cockpit/smoke/test-cockpit-tui.py` via `make dev-smoke`.
 Browser: `tests/browser/dev-ux.spec.js` (`make dev-visual`), `tests/browser/dev-a11y.spec.js`
 (`make dev-a11y`). Lifecycle isolation: `tests/integration/test-dev-ux.sh` (`make dev-test`).
 
@@ -300,13 +300,13 @@ Versioned docs URLs: https://akyther.github.io/orcan/latest/ — see [Deployment
 
 ## Executor cockpit and chart checks
 
-`uv run --project cockpit --locked python tests/smoke/test-cockpit-jobs.py`
+`uv run --project plugins/cockpit --locked python plugins/cockpit/smoke/test-cockpit-jobs.py`
 checks the Jobs sheet with a fake executor, without touching a user tmux session.
-`uv run --project executor --locked pytest executor/tests` covers admission races,
+`uv run --project plugins/redis --locked pytest plugins/redis/tests` covers admission races,
 lane leases, timeouts, compact history and chart aggregations.
 
 With local Playwright/Chromium and its system libraries available, run
-`NODE_PATH="$PWD/.orcan-dev-ux/playwright-node/node_modules" node tests/smoke/executor-dashboard.js`.
+`NODE_PATH="$PWD/.orcan-dev-ux/playwright-node/node_modules" node plugins/redis/smoke/executor-dashboard.js`.
 It creates synthetic SQLite data and a temporary loopback server, checks chart
 rendering, tables, details, period changes and a narrow viewport, then removes its
 own fixtures. It does not connect to a live executor or Codex session. A screenshot
@@ -331,11 +331,11 @@ checking that input works, repeated refreshes share one read, obsolete results
 are ignored and Escape closes the brief. It never attaches to a user's tmux.
 
 ```bash
-./tests/host/run.sh tests/host/test_cockpit_probe.py tests/host/test_cockpit_paint_skip.py
-PYTHONPATH=docker/rootfs/usr/local/lib uv run --project cockpit --locked python tests/smoke/test-cockpit-responsiveness.py
+./tests/host/run.sh plugins/cockpit/tests/test_cockpit_probe.py plugins/cockpit/tests/test_cockpit_paint_skip.py
+PYTHONPATH=docker/rootfs/usr/local/lib uv run --project plugins/cockpit --locked python plugins/cockpit/smoke/test-cockpit-responsiveness.py
 ```
 
-`tests/smoke/cockpit-load.py` adds a finite real PTY/private-tmux benchmark.
+`plugins/cockpit/smoke/cockpit-load.py` adds a finite real PTY/private-tmux benchmark.
 It generates terminal output and synthetic slow metadata, then adds a busy child
 process. Each case runs for four seconds by default (`--seconds 1..30`). JSON
 reports sent/acknowledged/pending keys, nearest-rank p95/max key-to-ACK latency,
@@ -351,10 +351,10 @@ Docker socket or live tmux server is mounted; the image is not rebuilt or restar
 repo=$(pwd -P)
 docker run --rm --cpus=0.5 --memory=512m --pids-limit=128 --network=none \
   --tmpfs /tmp:rw,size=128m \
-  --entrypoint /opt/orcan-cockpit/venv/bin/python \
+  --entrypoint /opt/orcan/plugins/cockpit/.venv/bin/python \
   --mount "type=bind,source=$repo/cockpit/src,target=/source/cockpit/src,readonly" \
   --mount "type=bind,source=$repo/docker/rootfs/usr/local/lib/orcan,target=/source/orcan,readonly" \
-  --mount "type=bind,source=$repo/tests/smoke/cockpit-load.py,target=/load-test.py,readonly" \
+  --mount "type=bind,source=$repo/plugins/cockpit/smoke/cockpit-load.py,target=/load-test.py,readonly" \
   -e PYTHONPATH=/source/cockpit/src:/source -e HOME=/tmp \
   orcan:latest /load-test.py --seconds 4
 ```

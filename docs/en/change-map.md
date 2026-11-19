@@ -17,7 +17,7 @@ Short index for **finding the right place to edit** — and the doc that explain
 | Studio host bridge | `cli/commands/studio.sh`, `scripts/repository/studio-*.py`; host tests in `tests/host/` | [Testing](development/testing.md) |
 | Studio desktop application | Separate repository: `orcan-studio` (Tauri, frontend, native and browser tests) | [Studio](ideas/orcan-studio.md) |
 | Host context selection / presentation | `scripts/repository/context_selection.py`, `context_presenters.py`, `context_mutations.py`; `context_tui.py` for terminal interaction | [Testing](development/testing.md) |
-| Cockpit TUI (`agent-launcher`) | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `top_bar.py`, `rail.py`) | [Workflows — local terminal](guides/workflows.md#local-terminal), [Terminal UI](guides/terminal-ui.md) |
+| Cockpit TUI (`agent-launcher`) | `plugins/cockpit/src/orcan_cockpit/` (`shortcuts.py`, `top_bar.py`, `rail.py`) | [Workflows — local terminal](guides/workflows.md#local-terminal), [Terminal UI](guides/terminal-ui.md) |
 | Isolated UX / tmux preview (checkout) | `make dev-*`, `scripts/dev/` | [Testing](development/testing.md), [Makefile](reference/makefile.md) |
 | Config schema / wizard | `scripts/repository/config-*.py`, `apply-config.py` | [Config reference](reference/configuration.md), [Config guide](getting-started/configuration.md) |
 | Managed workspaces / worktrees | `scripts/repository/managed_workspace.py`, `git_worktrees.py` | [Workspaces](concepts/workspaces.md), [Runtime reconcile](ideas/runtime-reconcile.md) |

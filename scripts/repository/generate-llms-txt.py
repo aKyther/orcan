@@ -42,7 +42,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 | **API** | `orcan` CLI; Make is maintainer / `make dev-*` preview only |
 | **Ritual** | `orcan init` → `orcan sync` → `orcan build` (if needed) → `orcan up` (does **not** sync) |
 | **UX preview** | `make dev-restart` / `dev-doctor` / `dev-smoke` / `dev-visual` under isolated `orcan:dev-ux` |
-| **Where** | CLI `bin/orcan`+`cli/`; cockpit `cockpit/`; image `docker/rootfs/`; helpers `scripts/repository/`; previews `scripts/dev/` |
+| **Where** | CLI `bin/orcan`+`cli/`; cockpit `plugins/cockpit/`; image `docker/rootfs/`; helpers `scripts/repository/`; previews `scripts/dev/` |
 | **Done** | Surgical diff; English docs; `make validate` · `test-host` · `docs-check` |
 
 ## Pay attention to (core product)
@@ -58,7 +58,7 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 - **Default access** — local `orcan enter`; browser is optional (`orcan up --web-terminal`)
 - **Runtime stack** — cockpit (`agent-launcher`: About, Help, workspaces + glance | tmux; **F1**/? shortcuts; **F4** workspace toggle; **F5** session brief; **`lg`**, not F3) → tmux 3.6a → zsh; CMD `orcan-supervisord` (keepalive|ttyd)
 - **Known key limit** — under ttyd/xterm.js and some desktop terminals, **Alt+←/→/↑/↓** often arrives as Ctrl+arrow. Cockpit: Ctrl/Alt+arrows = focus pane, Ctrl+Shift+arrows = split (`pty_tmux_nav.py`, `BROWSER_KEY_LIMIT` in F1); raw `--tmux` keeps conf — see [Terminal UI — nav mix]({SITE}/guides/terminal-ui/#cockpit-nav-mix)
-- **Version SoT** — `cockpit/pyproject.toml` `version`; root `VERSION` is a CLI/image mirror
+- **Version SoT** — `plugins/cockpit/pyproject.toml` `version`; root `VERSION` is a CLI/image mirror
 - **Docs** — English, B1–B2; story before commands; [STYLE_GUIDE]({REPO}/docs/STYLE_GUIDE.md)
 
 ## Do not invent / out of scope (non-goals)

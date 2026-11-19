@@ -436,18 +436,18 @@ RUN /usr/local/libexec/orcan-install-jvm sbt "${INSTALL_SBT}" "${SBT_VERSION}" /
 
 # Dependency wheels are isolated from project source and optional SDK choices.
 FROM core AS cockpit-deps
-COPY cockpit/pyproject.toml cockpit/uv.lock /opt/orcan-cockpit-src/
+COPY plugins/cockpit/pyproject.toml plugins/cockpit/uv.lock /opt/orcan/plugins/cockpit/
 RUN --mount=type=cache,id=orcan-cockpit-wheels,target=/root/.cache/uv,sharing=locked \
-    cd /opt/orcan-cockpit-src \
-    && UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen --no-install-project --python /usr/bin/python3 \
-    && chmod -R a+rX /opt/orcan-cockpit/venv
+    cd /opt/orcan/plugins/cockpit \
+    && UV_PROJECT_ENVIRONMENT=/opt/orcan/plugins/cockpit/.venv uv sync --frozen --no-install-project --python /usr/bin/python3 \
+    && chmod -R a+rX /opt/orcan/plugins/cockpit/.venv
 
 FROM core AS executor-deps
-COPY executor/pyproject.toml executor/uv.lock /opt/orcan-executor-src/
+COPY plugins/redis/pyproject.toml plugins/redis/uv.lock /opt/orcan/plugins/redis/
 RUN --mount=type=cache,id=orcan-executor-wheels,target=/root/.cache/uv,sharing=locked \
-    cd /opt/orcan-executor-src \
-    && UV_PYTHON_INSTALL_DIR=/opt/python UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --frozen --no-dev --no-install-project --python 3.12 \
-    && chmod -R a+rX /opt/orcan-executor/venv /opt/python
+    cd /opt/orcan/plugins/redis \
+    && UV_PYTHON_INSTALL_DIR=/opt/python UV_PROJECT_ENVIRONMENT=/opt/orcan/plugins/redis/.venv uv sync --frozen --no-dev --no-install-project --python 3.12 \
+    && chmod -R a+rX /opt/orcan/plugins/redis/.venv /opt/python
 
 # Public image: core layers are inherited, never copied into a giant new layer.
 FROM jdk-tools AS runtime
@@ -577,20 +577,16 @@ RUN chmod 0755 \
     && chmod 0644 /etc/orcan/shell/aliases.sh
 
 
-COPY --link --from=cockpit-deps /opt/orcan-cockpit/venv /opt/orcan-cockpit/venv
-COPY --link --from=executor-deps /opt/orcan-executor/venv /opt/orcan-executor/venv
+COPY --link --from=cockpit-deps /opt/orcan/plugins/cockpit/.venv /opt/orcan/plugins/cockpit/.venv
+COPY --link --from=executor-deps /opt/orcan/plugins/redis/.venv /opt/orcan/plugins/redis/.venv
 COPY --link --from=executor-deps /opt/python /opt/python
-COPY cockpit/ /opt/orcan-cockpit-src/
-COPY executor/ /opt/orcan-executor-src/
-RUN cd /opt/orcan-cockpit-src \
-    && UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen --python /usr/bin/python3 \
-    && cd /opt/orcan-executor-src \
-    && ln -s /opt/orcan/plugins /opt/plugins \
-    && UV_PYTHON_INSTALL_DIR=/opt/python UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --frozen --no-dev --python 3.12 \
-    && rm /opt/plugins \
-    && chmod -R a+rX /opt/orcan-cockpit-src /opt/orcan-executor-src \
-    && /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles' \
-    && test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit
+RUN cd /opt/orcan/plugins/cockpit \
+    && UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan/plugins/cockpit/.venv uv sync --frozen --python /usr/bin/python3 \
+    && cd /opt/orcan/plugins/redis \
+    && UV_PYTHON_INSTALL_DIR=/opt/python UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan/plugins/redis/.venv uv sync --frozen --no-dev --python 3.12 \
+    && chmod -R a+rX /opt/orcan/plugins/cockpit /opt/orcan/plugins/redis \
+    && /opt/orcan/plugins/cockpit/.venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles' \
+    && test -x /opt/orcan/plugins/cockpit/.venv/bin/orcan-cockpit
 
 # Offline action classification has its own Python environment. Other context
 # helpers remain stdlib-only. Ollama is optional and is not installed here.
@@ -761,7 +757,7 @@ RUN set -eux; \
             codex) selected="${INSTALL_CODEX}" ;; gemini) selected="${INSTALL_GEMINI}" ;; copilot) selected="${INSTALL_COPILOT}" ;; \
         esac; \
         if [ "$selected" = "1" ] || [ "$selected" = "true" ]; then \
-            /opt/orcan-executor/venv/bin/python /usr/local/lib/orcan/install_agent.py "$name"; \
+            /opt/orcan/plugins/redis/.venv/bin/python /usr/local/lib/orcan/install_agent.py "$name"; \
         fi; \
     done; \
     npm cache clean --force

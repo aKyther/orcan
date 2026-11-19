@@ -61,7 +61,7 @@ def requirements(profile: dict | None, plugins: list[dict] = ()) -> dict:
         'omitted_toolchains': sorted(TOOLS-{entry['name'] for entry in effective_tools}),
         'tool_help': {entry['name']:TOOL_HELP[entry['name']] for entry in effective_tools},
         'build_policy': {'layers':'local runtime target; dependencies shared across stages', 'temporary_downloads':'cleaned in installation layer', 'docker_cache':'preserved; no automatic global prune'},
-        'python_locks': ['cockpit/uv.lock', 'executor/uv.lock'],
+        'python_locks': ['plugins/cockpit/uv.lock', 'plugins/redis/uv.lock'],
         'tool_dependencies': {entry['name']:TOOL_REQUIRES.get(entry['name'],[]) for entry in (profile or {}).get('tools',[])},
         'project_python': (profile or {}).get('python',[]),
         'core_python': 'System Python and private service runtimes are retained for Orcan itself.',

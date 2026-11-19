@@ -36,12 +36,12 @@ class ReleaseFixture:
             shutil.copytree(template.root.parent, tmp.parent, dirs_exist_ok=True)
             return
         (self.root / "scripts" / "repository").mkdir(parents=True)
-        (self.root / "cockpit").mkdir()
+        (self.root / "plugins/cockpit").mkdir(parents=True)
         (self.root / "docs" / "en").mkdir(parents=True)
 
         shutil.copy(RELEASE_SH, self.root / "scripts" / "repository" / "release.sh")
-        (self.root / "cockpit" / "pyproject.toml").write_text('version = "3.0.5"\n')
-        (self.root / "cockpit" / "uv.lock").write_text(
+        (self.root / "plugins/cockpit" / "pyproject.toml").write_text('version = "3.0.5"\n')
+        (self.root / "plugins/cockpit" / "uv.lock").write_text(
             'name = "orcan-cockpit"\nversion = "3.0.5"\n'
         )
         (self.root / "VERSION").write_text("3.0.5\n")

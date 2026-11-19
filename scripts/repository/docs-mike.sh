@@ -135,9 +135,9 @@ cmd_release() {
 
     local file_v
     file_v="$(./scripts/repository/release.sh print | tr -d '[:space:]')"
-    [[ -n "${file_v}" ]] || die "could not read version from cockpit/pyproject.toml"
+    [[ -n "${file_v}" ]] || die "could not read version from plugins/cockpit/pyproject.toml"
     if [[ "${file_v}" != "${ver}" ]]; then
-        die "cockpit/pyproject.toml (${file_v}) != release argument (${ver})"
+        die "plugins/cockpit/pyproject.toml (${file_v}) != release argument (${ver})"
     fi
 
     local aliases=()

@@ -25,7 +25,7 @@ require_file "plugins/redis/compose.yml"
 require_file "plugins/redis/supervisor.sh"
 require_file "plugins/redis/supervisor.py"
 require_file "plugins/redis/supervisor.d/executor-worker.conf"
-require_file "executor/uv.lock"
+require_file "plugins/redis/uv.lock"
 require_file "Makefile"
 require_file "install.sh"
 require_file "bin/orcan"
@@ -58,8 +58,8 @@ require_file "cli/commands/context.sh"
 require_file "cli/commands/enter.sh"
 require_file "cli/commands/attach.sh"
 require_file "VERSION"
-require_file "cockpit/pyproject.toml"
-require_file "cockpit/uv.lock"
+require_file "plugins/cockpit/pyproject.toml"
+require_file "plugins/cockpit/uv.lock"
 require_file "CHANGELOG.md"
 require_file "requirements-docs.txt"
 require_file "CONTRIBUTING.md"
@@ -160,7 +160,7 @@ require_file "tests/host/test_terminal_ui_preview.py"
 require_file "tests/host/test_llms_txt.py"
 require_file "tests/host/test_agents_claude_sync.py"
 require_file "tests/integration/test-dev-ux.sh"
-require_file "tests/smoke/test-cockpit-tui.py"
+require_file "plugins/cockpit/smoke/test-cockpit-tui.py"
 require_file "tests/browser/run-dev-ux.sh"
 require_file "tests/browser/dev-ux.spec.js"
 require_file "tests/browser/dev-a11y.spec.js"
@@ -194,24 +194,24 @@ require_file "docker/rootfs/usr/local/bin/orcan-supervisor-status"
 require_file "docker/rootfs/etc/orcan/supervisord.conf"
 require_file "docker/rootfs/etc/orcan/supervisor.d/keepalive.conf"
 require_file "docker/rootfs/etc/orcan/supervisor.d/ttyd.conf"
-require_file "cockpit/pyproject.toml"
-require_file "cockpit/uv.lock"
-require_file "cockpit/src/orcan_cockpit/__init__.py"
-require_file "cockpit/src/orcan_cockpit/cli.py"
-require_file "cockpit/src/orcan_cockpit/picker.py"
-require_file "cockpit/src/orcan_cockpit/pty_terminal.py"
-require_file "cockpit/src/orcan_cockpit/pty_colors.py"
-require_file "cockpit/src/orcan_cockpit/pty_keys.py"
-require_file "cockpit/src/orcan_cockpit/pty_mouse.py"
-require_file "cockpit/src/orcan_cockpit/app.py"
-require_file "cockpit/src/orcan_cockpit/rail.py"
-require_file "cockpit/src/orcan_cockpit/status.py"
-require_file "cockpit/src/orcan_cockpit/status_bar.py"
-require_file "cockpit/src/orcan_cockpit/top_bar.py"
-require_file "cockpit/src/orcan_cockpit/shortcuts.py"
-require_file "cockpit/src/orcan_cockpit/shortcuts_modal.py"
-require_file "cockpit/src/orcan_cockpit/shortcuts_cli.py"
-require_file "cockpit/src/orcan_cockpit/commands.py"
+require_file "plugins/cockpit/pyproject.toml"
+require_file "plugins/cockpit/uv.lock"
+require_file "plugins/cockpit/src/orcan_cockpit/__init__.py"
+require_file "plugins/cockpit/src/orcan_cockpit/cli.py"
+require_file "plugins/cockpit/src/orcan_cockpit/picker.py"
+require_file "plugins/cockpit/src/orcan_cockpit/pty_terminal.py"
+require_file "plugins/cockpit/src/orcan_cockpit/pty_colors.py"
+require_file "plugins/cockpit/src/orcan_cockpit/pty_keys.py"
+require_file "plugins/cockpit/src/orcan_cockpit/pty_mouse.py"
+require_file "plugins/cockpit/src/orcan_cockpit/app.py"
+require_file "plugins/cockpit/src/orcan_cockpit/rail.py"
+require_file "plugins/cockpit/src/orcan_cockpit/status.py"
+require_file "plugins/cockpit/src/orcan_cockpit/status_bar.py"
+require_file "plugins/cockpit/src/orcan_cockpit/top_bar.py"
+require_file "plugins/cockpit/src/orcan_cockpit/shortcuts.py"
+require_file "plugins/cockpit/src/orcan_cockpit/shortcuts_modal.py"
+require_file "plugins/cockpit/src/orcan_cockpit/shortcuts_cli.py"
+require_file "plugins/cockpit/src/orcan_cockpit/commands.py"
 require_file "docker/rootfs/usr/local/bin/orcan-inbox"
 require_file "docker/rootfs/etc/tmux/tmux.conf"
 require_file "docker/rootfs/etc/tmux/scripts/status-left.sh"
@@ -337,22 +337,22 @@ for script in \
     docker/rootfs/usr/local/lib/orcan/actions.py \
     docker/rootfs/usr/local/lib/orcan/agent_inbox.py \
     docker/rootfs/usr/local/lib/orcan/agent_executor.py \
-    cockpit/src/orcan_cockpit/__init__.py \
-    cockpit/src/orcan_cockpit/cli.py \
-    cockpit/src/orcan_cockpit/picker.py \
-    cockpit/src/orcan_cockpit/pty_terminal.py \
-    cockpit/src/orcan_cockpit/pty_colors.py \
-    cockpit/src/orcan_cockpit/pty_keys.py \
-    cockpit/src/orcan_cockpit/pty_mouse.py \
-    cockpit/src/orcan_cockpit/app.py \
-    cockpit/src/orcan_cockpit/rail.py \
-    cockpit/src/orcan_cockpit/status.py \
-    cockpit/src/orcan_cockpit/status_bar.py \
-    cockpit/src/orcan_cockpit/top_bar.py \
-    cockpit/src/orcan_cockpit/shortcuts.py \
-    cockpit/src/orcan_cockpit/shortcuts_modal.py \
-    cockpit/src/orcan_cockpit/shortcuts_cli.py \
-    cockpit/src/orcan_cockpit/commands.py \
+    plugins/cockpit/src/orcan_cockpit/__init__.py \
+    plugins/cockpit/src/orcan_cockpit/cli.py \
+    plugins/cockpit/src/orcan_cockpit/picker.py \
+    plugins/cockpit/src/orcan_cockpit/pty_terminal.py \
+    plugins/cockpit/src/orcan_cockpit/pty_colors.py \
+    plugins/cockpit/src/orcan_cockpit/pty_keys.py \
+    plugins/cockpit/src/orcan_cockpit/pty_mouse.py \
+    plugins/cockpit/src/orcan_cockpit/app.py \
+    plugins/cockpit/src/orcan_cockpit/rail.py \
+    plugins/cockpit/src/orcan_cockpit/status.py \
+    plugins/cockpit/src/orcan_cockpit/status_bar.py \
+    plugins/cockpit/src/orcan_cockpit/top_bar.py \
+    plugins/cockpit/src/orcan_cockpit/shortcuts.py \
+    plugins/cockpit/src/orcan_cockpit/shortcuts_modal.py \
+    plugins/cockpit/src/orcan_cockpit/shortcuts_cli.py \
+    plugins/cockpit/src/orcan_cockpit/commands.py \
     docker/rootfs/etc/tmux/scripts/ai-usage.sh \
     scripts/repository/config-scaffold.py \
     scripts/repository/config-show.py \
@@ -382,13 +382,13 @@ do
     fi
 done
 
-if [[ -f cockpit/pyproject.toml ]]; then
-    ver="$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p' cockpit/pyproject.toml | head -n1)"
+if [[ -f plugins/cockpit/pyproject.toml ]]; then
+    ver="$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p' plugins/cockpit/pyproject.toml | head -n1)"
     if [[ ! "${ver}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        printf 'cockpit/pyproject.toml version must be SemVer X.Y.Z (got: %s)\n' "${ver:-empty}" >&2
+        printf 'plugins/cockpit/pyproject.toml version must be SemVer X.Y.Z (got: %s)\n' "${ver:-empty}" >&2
         fail=1
     else
-        printf 'VERSION OK: %s (cockpit/pyproject.toml)\n' "${ver}"
+        printf 'VERSION OK: %s (plugins/cockpit/pyproject.toml)\n' "${ver}"
         if [[ -f VERSION ]]; then
             mirror="$(tr -d '[:space:]' < VERSION)"
             if [[ "${mirror}" != "${ver}" ]]; then

@@ -51,11 +51,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/executor-results.xml"
           ]
@@ -65,7 +65,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -79,7 +79,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
@@ -94,7 +94,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -116,10 +116,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/run.py"
+            "plugins/redis/smoke/run.py"
           ]
         }
       ],
@@ -145,11 +145,11 @@
         {
           "argv": [
             "env",
-            "PYTHONPATH=scripts/repository:docker/rootfs/usr/local/lib:cockpit/src",
+            "PYTHONPATH=scripts/repository:docker/rootfs/usr/local/lib:plugins/cockpit/src",
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "--with-requirements",
             "requirements-test.txt",
@@ -167,11 +167,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/executor-results.xml"
           ]
@@ -181,7 +181,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -190,7 +190,7 @@
             "docker/rootfs/usr/local/lib/orcan/agent_context.py",
             "docker/rootfs/usr/local/lib/orcan/reconcile.py",
             "scripts/repository/image-profile.py",
-            "executor/smoke/context.py",
+            "plugins/redis/smoke/context.py",
             "tests/host/test_agent_context.py",
             "tests/host/test_image_profile.py",
             "tests/host/test_image_agents.py",
@@ -207,8 +207,8 @@
             "tests/host/test_release_changelog.py",
             "tests/host/test_plugins.py",
             "tests/host/test_memory.py",
-            "tests/host/test_cockpit_limits.py",
-            "cockpit/src/orcan_cockpit/runtime_limits.py"
+            "plugins/cockpit/tests/test_cockpit_limits.py",
+            "plugins/cockpit/src/orcan_cockpit/runtime_limits.py"
           ]
         },
         {
@@ -216,7 +216,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
@@ -224,7 +224,7 @@
             "docker/rootfs/usr/local/lib/orcan/agent_context.py",
             "docker/rootfs/usr/local/lib/orcan/reconcile.py",
             "scripts/repository/image-profile.py",
-            "executor/smoke/context.py",
+            "plugins/redis/smoke/context.py",
             "tests/host/test_agent_context.py",
             "tests/host/test_image_profile.py",
             "tests/host/test_image_agents.py",
@@ -241,8 +241,8 @@
             "tests/host/test_release_changelog.py",
             "tests/host/test_plugins.py",
             "tests/host/test_memory.py",
-            "tests/host/test_cockpit_limits.py",
-            "cockpit/src/orcan_cockpit/runtime_limits.py"
+            "plugins/cockpit/tests/test_cockpit_limits.py",
+            "plugins/cockpit/src/orcan_cockpit/runtime_limits.py"
           ]
         },
         {
@@ -256,10 +256,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/context.py"
+            "plugins/redis/smoke/context.py"
           ]
         },
         {
@@ -267,7 +267,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -279,7 +279,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
@@ -292,10 +292,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/run.py"
+            "plugins/redis/smoke/run.py"
           ]
         }
       ],
@@ -341,11 +341,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/notification-executor-results.xml"
           ]
@@ -355,7 +355,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -371,7 +371,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
@@ -392,10 +392,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/run.py"
+            "plugins/redis/smoke/run.py"
           ]
         }
       ],
@@ -423,11 +423,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/history-executor-results.xml"
           ]
@@ -450,7 +450,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -482,11 +482,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/cockpit-executor-results.xml"
           ]
@@ -504,10 +504,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-jobs.py"
+            "plugins/cockpit/smoke/test-cockpit-jobs.py"
           ]
         },
         {
@@ -517,10 +517,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-responsiveness.py"
+            "plugins/cockpit/smoke/test-cockpit-responsiveness.py"
           ]
         },
         {
@@ -528,7 +528,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -536,22 +536,22 @@
             "E402",
             "--extend-ignore",
             "RUF012",
-            "cockpit/src/orcan_cockpit/probe.py",
-            "cockpit/src/orcan_cockpit/picker.py",
-            "cockpit/src/orcan_cockpit/commands.py",
-            "cockpit/src/orcan_cockpit/peek_modal.py",
-            "cockpit/src/orcan_cockpit/status_bar.py",
-            "cockpit/src/orcan_cockpit/top_bar.py",
-            "tests/host/test_cockpit_probe.py",
-            "tests/smoke/test-cockpit-responsiveness.py",
-            "tests/smoke/cockpit-load.py"
+            "plugins/cockpit/src/orcan_cockpit/probe.py",
+            "plugins/cockpit/src/orcan_cockpit/picker.py",
+            "plugins/cockpit/src/orcan_cockpit/commands.py",
+            "plugins/cockpit/src/orcan_cockpit/peek_modal.py",
+            "plugins/cockpit/src/orcan_cockpit/status_bar.py",
+            "plugins/cockpit/src/orcan_cockpit/top_bar.py",
+            "plugins/cockpit/tests/test_cockpit_probe.py",
+            "plugins/cockpit/smoke/test-cockpit-responsiveness.py",
+            "plugins/cockpit/smoke/cockpit-load.py"
           ]
         },
         {
           "argv": [
             "node",
             "--check",
-            "executor/src/orcan_executor/dashboard-charts.js"
+            "plugins/redis/src/orcan_executor/dashboard-charts.js"
           ]
         },
         {
@@ -559,14 +559,14 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
             "executor",
-            "cockpit/src/orcan_cockpit/jobs_modal.py",
+            "plugins/cockpit/src/orcan_cockpit/jobs_modal.py",
             "tests/host/test_executor_settings.py",
-            "tests/smoke/test-cockpit-jobs.py"
+            "plugins/cockpit/smoke/test-cockpit-jobs.py"
           ]
         },
         {
@@ -594,7 +594,7 @@
           "argv": [
             "node",
             "--test",
-            "tests/smoke/test-executor-charts.cjs"
+            "plugins/redis/smoke/test-executor-charts.cjs"
           ]
         },
         {
@@ -604,10 +604,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/dashboard.py"
+            "plugins/redis/smoke/dashboard.py"
           ]
         },
         {
@@ -615,11 +615,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/charts-executor-results.xml"
           ]
@@ -637,7 +637,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -649,7 +649,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
@@ -686,11 +686,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/worker-pool-executor.xml"
           ]
@@ -708,7 +708,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -720,7 +720,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
@@ -732,7 +732,7 @@
           "argv": [
             "node",
             "--test",
-            "tests/smoke/test-executor-charts.cjs"
+            "plugins/redis/smoke/test-executor-charts.cjs"
           ]
         },
         {
@@ -761,11 +761,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/result-contract-executor.xml"
           ]
@@ -783,7 +783,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -795,7 +795,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
@@ -807,7 +807,7 @@
           "argv": [
             "node",
             "--test",
-            "tests/smoke/test-executor-charts.cjs"
+            "plugins/redis/smoke/test-executor-charts.cjs"
           ]
         },
         {
@@ -909,10 +909,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/claude_installer.py"
+            "plugins/redis/smoke/claude_installer.py"
           ]
         }
       ],
@@ -947,7 +947,7 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         }
       ],
@@ -982,13 +982,13 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/plugin_runtime.py"
+            "plugins/redis/smoke/plugin_runtime.py"
           ]
         }
       ],
@@ -1023,13 +1023,13 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/plugin_runtime.py"
+            "plugins/redis/smoke/plugin_runtime.py"
           ]
         }
       ],
@@ -1064,13 +1064,13 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/plugin_runtime.py"
+            "plugins/redis/smoke/plugin_runtime.py"
           ]
         }
       ],
@@ -1105,13 +1105,13 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/plugin_runtime.py"
+            "plugins/redis/smoke/plugin_runtime.py"
           ]
         }
       ],
@@ -1146,13 +1146,13 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/plugin_runtime.py"
+            "plugins/redis/smoke/plugin_runtime.py"
           ]
         },
         {
@@ -1160,12 +1160,12 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests/test_worker_pool.py",
-            "executor/tests/test_controls.py",
+            "plugins/redis/tests/test_worker_pool.py",
+            "plugins/redis/tests/test_controls.py",
             "--junitxml",
             ".orcan/guidance-executor.xml"
           ]
@@ -1189,7 +1189,7 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/image_layers.py"
+            "plugins/redis/smoke/image_layers.py"
           ]
         },
         {
@@ -1209,13 +1209,13 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/plugin_runtime.py"
+            "plugins/redis/smoke/plugin_runtime.py"
           ]
         },
         {
@@ -1223,12 +1223,12 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests/test_worker_pool.py",
-            "executor/tests/test_controls.py",
+            "plugins/redis/tests/test_worker_pool.py",
+            "plugins/redis/tests/test_controls.py",
             "--junitxml",
             ".orcan/layered-image-executor.xml"
           ]
@@ -1304,19 +1304,19 @@
         {
           "argv": [
             "python3",
-            "executor/smoke/json_runtime.py"
+            "plugins/redis/smoke/json_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/plugin_runtime.py"
+            "plugins/redis/smoke/plugin_runtime.py"
           ]
         },
         {
           "argv": [
             "python3",
-            "executor/smoke/start_only_runtime.py"
+            "plugins/redis/smoke/start_only_runtime.py"
           ]
         }
       ],
@@ -1376,7 +1376,7 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "--with",
             "pytest",
@@ -1384,12 +1384,12 @@
             "-m",
             "pytest",
             "-q",
-            "tests/host/test_cockpit_pty_esc_coalesce.py",
-            "tests/host/test_cockpit_pty_links.py",
-            "tests/host/test_cockpit_pty_mouse.py",
-            "tests/host/test_cockpit_pty_tmux_nav.py",
-            "tests/host/test_cockpit_order_wide.py",
-            "tests/host/test_cockpit_idle_render.py",
+            "plugins/cockpit/tests/test_cockpit_pty_esc_coalesce.py",
+            "plugins/cockpit/tests/test_cockpit_pty_links.py",
+            "plugins/cockpit/tests/test_cockpit_pty_mouse.py",
+            "plugins/cockpit/tests/test_cockpit_pty_tmux_nav.py",
+            "plugins/cockpit/tests/test_cockpit_order_wide.py",
+            "plugins/cockpit/tests/test_cockpit_idle_render.py",
             "--junitxml",
             ".orcan/cockpit-io-junit.xml"
           ]
@@ -1401,10 +1401,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-io.py"
+            "plugins/cockpit/smoke/test-cockpit-io.py"
           ]
         },
         {
@@ -1414,10 +1414,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-responsiveness.py"
+            "plugins/cockpit/smoke/test-cockpit-responsiveness.py"
           ]
         },
         {
@@ -1454,11 +1454,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/executor-results.xml"
           ]
@@ -1468,12 +1468,12 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
-            "executor/src",
-            "executor/tests",
+            "plugins/redis/src",
+            "plugins/redis/tests",
             "tests/host/test_executor_module.py",
             "tests/host/test_up_github.py"
           ]
@@ -1483,20 +1483,20 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
             "--check",
-            "executor/src/orcan_executor/origin.py",
-            "executor/src/orcan_executor/tmux_adapter.py",
-            "executor/src/orcan_executor/cli.py",
-            "executor/src/orcan_executor/store.py",
-            "executor/src/orcan_executor/engine.py",
-            "executor/src/orcan_executor/notifications.py",
-            "executor/tests/test_tmux_origin.py",
-            "executor/smoke/run.py",
-            "executor/tests/test_smoke_paths.py"
+            "plugins/redis/src/orcan_executor/origin.py",
+            "plugins/redis/src/orcan_executor/tmux_adapter.py",
+            "plugins/redis/src/orcan_executor/cli.py",
+            "plugins/redis/src/orcan_executor/store.py",
+            "plugins/redis/src/orcan_executor/engine.py",
+            "plugins/redis/src/orcan_executor/notifications.py",
+            "plugins/redis/tests/test_tmux_origin.py",
+            "plugins/redis/smoke/run.py",
+            "plugins/redis/tests/test_smoke_paths.py"
           ]
         },
         {
@@ -1504,7 +1504,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -1526,10 +1526,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/run.py"
+            "plugins/redis/smoke/run.py"
           ]
         }
       ],
@@ -1567,7 +1567,7 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "--with",
             "pytest",
@@ -1575,12 +1575,12 @@
             "-m",
             "pytest",
             "-q",
-            "tests/host/test_cockpit_pty_esc_coalesce.py",
-            "tests/host/test_cockpit_pty_links.py",
-            "tests/host/test_cockpit_pty_mouse.py",
-            "tests/host/test_cockpit_pty_tmux_nav.py",
-            "tests/host/test_cockpit_order_wide.py",
-            "tests/host/test_cockpit_idle_render.py",
+            "plugins/cockpit/tests/test_cockpit_pty_esc_coalesce.py",
+            "plugins/cockpit/tests/test_cockpit_pty_links.py",
+            "plugins/cockpit/tests/test_cockpit_pty_mouse.py",
+            "plugins/cockpit/tests/test_cockpit_pty_tmux_nav.py",
+            "plugins/cockpit/tests/test_cockpit_order_wide.py",
+            "plugins/cockpit/tests/test_cockpit_idle_render.py",
             "--junitxml",
             ".orcan/cockpit-io-junit.xml"
           ]
@@ -1592,10 +1592,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-io.py"
+            "plugins/cockpit/smoke/test-cockpit-io.py"
           ]
         },
         {
@@ -1605,10 +1605,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-responsiveness.py"
+            "plugins/cockpit/smoke/test-cockpit-responsiveness.py"
           ]
         },
         {
@@ -1624,10 +1624,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/cockpit-load.py",
+            "plugins/cockpit/smoke/cockpit-load.py",
             "--seconds",
             "2",
             "--report",
@@ -1665,11 +1665,11 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "pytest",
             "-q",
-            "executor/tests",
+            "plugins/redis/tests",
             "--junitxml",
             ".orcan/executor-results.xml"
           ]
@@ -1679,12 +1679,12 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
-            "executor/src",
-            "executor/tests",
+            "plugins/redis/src",
+            "plugins/redis/tests",
             "tests/host/test_executor_module.py",
             "tests/host/test_up_github.py"
           ]
@@ -1694,20 +1694,20 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "format",
             "--check",
-            "executor/src/orcan_executor/origin.py",
-            "executor/src/orcan_executor/tmux_adapter.py",
-            "executor/src/orcan_executor/cli.py",
-            "executor/src/orcan_executor/store.py",
-            "executor/src/orcan_executor/engine.py",
-            "executor/src/orcan_executor/notifications.py",
-            "executor/tests/test_tmux_origin.py",
-            "executor/smoke/run.py",
-            "executor/tests/test_smoke_paths.py"
+            "plugins/redis/src/orcan_executor/origin.py",
+            "plugins/redis/src/orcan_executor/tmux_adapter.py",
+            "plugins/redis/src/orcan_executor/cli.py",
+            "plugins/redis/src/orcan_executor/store.py",
+            "plugins/redis/src/orcan_executor/engine.py",
+            "plugins/redis/src/orcan_executor/notifications.py",
+            "plugins/redis/tests/test_tmux_origin.py",
+            "plugins/redis/smoke/run.py",
+            "plugins/redis/tests/test_smoke_paths.py"
           ]
         },
         {
@@ -1715,7 +1715,7 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "ruff",
             "check",
@@ -1739,7 +1739,7 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "--with",
             "pytest",
@@ -1747,12 +1747,12 @@
             "-m",
             "pytest",
             "-q",
-            "tests/host/test_cockpit_pty_esc_coalesce.py",
-            "tests/host/test_cockpit_pty_links.py",
-            "tests/host/test_cockpit_pty_mouse.py",
-            "tests/host/test_cockpit_pty_tmux_nav.py",
-            "tests/host/test_cockpit_order_wide.py",
-            "tests/host/test_cockpit_idle_render.py",
+            "plugins/cockpit/tests/test_cockpit_pty_esc_coalesce.py",
+            "plugins/cockpit/tests/test_cockpit_pty_links.py",
+            "plugins/cockpit/tests/test_cockpit_pty_mouse.py",
+            "plugins/cockpit/tests/test_cockpit_pty_tmux_nav.py",
+            "plugins/cockpit/tests/test_cockpit_order_wide.py",
+            "plugins/cockpit/tests/test_cockpit_idle_render.py",
             "--junitxml",
             ".orcan/cockpit-io-junit.xml"
           ]
@@ -1764,10 +1764,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-io.py"
+            "plugins/cockpit/smoke/test-cockpit-io.py"
           ]
         },
         {
@@ -1777,10 +1777,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/test-cockpit-responsiveness.py"
+            "plugins/cockpit/smoke/test-cockpit-responsiveness.py"
           ]
         },
         {
@@ -1790,10 +1790,10 @@
             "uv",
             "run",
             "--project",
-            "cockpit",
+            "plugins/cockpit",
             "--locked",
             "python",
-            "tests/smoke/cockpit-load.py",
+            "plugins/cockpit/smoke/cockpit-load.py",
             "--seconds",
             "2",
             "--report",
@@ -1805,10 +1805,10 @@
             "uv",
             "run",
             "--project",
-            "executor",
+            "plugins/redis",
             "--locked",
             "python",
-            "executor/smoke/run.py"
+            "plugins/redis/smoke/run.py"
           ]
         }
       ],

@@ -808,7 +808,7 @@ be useful. Background execution itself does not promise faster test execution.
 
 ## Executor stress and resilience checks
 
-`uv run --project executor --locked python executor/smoke/run.py` runs an isolated
+`uv run --project plugins/redis --locked python plugins/redis/smoke/run.py` runs an isolated
 same-container Redis/Celery/Supervisor fixture, using the installed Orcan image as
 a base. It never changes the live Orcan container or its image tag. The fixture
 submits 50 actual pytest jobs through eight producers, with ten duplicate queue
@@ -1277,7 +1277,7 @@ runs Docker prune or a shared package-cache cleaner, never restarts Orcan, and
 may expire oldest completed artifacts early when the detail budget is exceeded.
 
 A reviewed procedure can declare `cleanup_ignored`, a list of literal relative
-output directories, for example `["executor/.venv", ".venv-docs", "site"]`.
+output directories, for example `["plugins/redis/.venv", ".venv-docs", "site"]`.
 Both completion and retention may remove an otherwise unchanged worktree when
 all remaining files are Git-ignored outputs under those directories. This uses
 ordinary `git worktree remove`, without force. Tracked changes, untracked files,
@@ -1438,14 +1438,18 @@ Code that writes to `/tmp` explicitly is unaffected by `TMPDIR`.
 
 ### Service package and runtime settings
 
-The `executor/` Python application owns job execution, reports and storage.
-The `plugins/redis/` package owns activation, settings metadata, the Compose
-overlay and Supervisor service templates. The shared container launcher calls
-bundled package hooks; the Redis hook validates worker settings before selecting
-its programs. When disabled, it installs no executor services.
+`plugins/redis/` contains the complete executor extension: `src/orcan_executor/`,
+`tests/`, `smoke/`, its Python project and lock, settings metadata, Compose overlay
+and Supervisor templates. The shared container launcher calls its bundled hook;
+the Redis hook validates worker settings before selecting programs. When disabled,
+it installs no executor services.
 
 Host configuration and runtime executor settings use the package's `plugin.json`
 for defaults and bounds. Standalone executor wheels bundle that descriptor.
 Compose requires settings resolved by `orcan up` and forwards all runtime fields,
-including the four storage budgets. Cockpit remains a separate application and
-reads task status through the executor CLI; it does not manage the queue database.
+including storage budgets. The runtime installs this package and its `.venv`
+under `/opt/orcan/plugins/redis/`.
+
+`plugins/cockpit/` contains the complete terminal extension. It reads task status
+through the executor CLI and does not manage the queue database. Both public
+console command names remain unchanged.

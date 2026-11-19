@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 addopts = "-p no:cacheprovider --strict-markers"
-testpaths = ["tests/host"]
+testpaths = ["tests/host", "plugins/cockpit/tests"]
 markers = ["integration: subprocess-backed or external-boundary host tests"]
 
 [tool.ruff]

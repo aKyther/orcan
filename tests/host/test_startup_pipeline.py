@@ -16,7 +16,7 @@ state = load_script('startup-state.py')
 
 def test_fingerprint_tracks_image_sources_and_modes_but_not_workspace_configuration(tmp_path):
     (tmp_path / 'Dockerfile').write_text('FROM fixture\n')
-    source = tmp_path / 'cockpit/src/app.py'
+    source = tmp_path / 'plugins/cockpit/src/app.py'
     source.parent.mkdir(parents=True)
     source.write_text('version = 1')
     first = state.fingerprint(tmp_path, '{}', '1:1:1')
@@ -169,3 +169,17 @@ else:raise SystemExit(98)
     assert 'sync' in result.stderr
     assert (config.read_bytes(),runtime.read_bytes(),compose.read_bytes())==before
     assert calls.read_text().splitlines()==['compose version']
+
+
+def test_plugin_environments_and_test_outputs_do_not_invalidate_runtime(tmp_path):
+    source = tmp_path / 'plugins/redis/src/app.py'
+    source.parent.mkdir(parents=True)
+    source.write_text('runtime source')
+    before = state.fingerprint(tmp_path, 'profile', 'identity')
+    for name in ['.venv/lib/dependency.py', 'tests/test_example.py', 'smoke/output.txt', '.ruff_cache/cache']:
+        output = tmp_path / 'plugins/redis' / name
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text('generated or test-only data')
+    assert state.fingerprint(tmp_path, 'profile', 'identity') == before
+    source.write_text('changed runtime source')
+    assert state.fingerprint(tmp_path, 'profile', 'identity') != before

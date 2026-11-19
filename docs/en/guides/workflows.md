@@ -74,7 +74,7 @@ Inside the center terminal, **tmux shortcuts still apply** (prefix **C-Space**;
 shortcuts popup). The cockpit must forward those keys and resize events to tmux —
 see [Terminal UI — Cockpit + browser](terminal-ui.md#cockpit-browser). Press **F1**
 for the in-app map when the terminal has focus (footer: embedded tmux ≠ native
-attach). Full map: `cockpit/…/shortcuts.py` (kept in sync with `keybindings.conf`
+attach). Full map: `plugins/cockpit/…/shortcuts.py` (kept in sync with `keybindings.conf`
 by host tests).
 
 !!! tip

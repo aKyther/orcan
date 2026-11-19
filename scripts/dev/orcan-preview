@@ -264,7 +264,7 @@ sync_fixture() {
 services:
   orcan:
     environment:
-      PYTHONPATH: ${ROOT_DIR}/cockpit/src:/usr/local/lib
+      PYTHONPATH: ${ROOT_DIR}/plugins/cockpit/src:/usr/local/lib
 EOF
 
 }
@@ -452,7 +452,7 @@ cmd_doctor() {
         fi
         local cockpit_source
         cockpit_source="$("${DOCKER_BIN}" exec "${PREVIEW_CONTAINER}" \
-            /opt/orcan-cockpit/venv/bin/python3 -c \
+            /opt/orcan/plugins/cockpit/.venv/bin/python3 -c \
             'import inspect, orcan_cockpit; print(inspect.getfile(orcan_cockpit))' 2>/dev/null || true)"
         if [[ "${cockpit_source}" == "${ROOT_DIR}"/cockpit/src/* ]]; then
             printf '[OK] cockpit runs directly from checkout source\n'
@@ -478,10 +478,10 @@ cmd_smoke() {
     "${DOCKER_BIN}" exec "${PREVIEW_CONTAINER}" \
         rm -f /tmp/orcan-cockpit-last-session
     "${DOCKER_BIN}" exec \
-        -e PYTHONPATH="${ROOT_DIR}/cockpit/src:/usr/local/lib" \
+        -e PYTHONPATH="${ROOT_DIR}/plugins/cockpit/src:/usr/local/lib" \
         "${PREVIEW_CONTAINER}" \
-        /opt/orcan-cockpit/venv/bin/python3 \
-        "${ROOT_DIR}/tests/smoke/test-cockpit-tui.py"
+        /opt/orcan/plugins/cockpit/.venv/bin/python3 \
+        "${ROOT_DIR}/plugins/cockpit/smoke/test-cockpit-tui.py"
 }
 
 cmd_stop() {

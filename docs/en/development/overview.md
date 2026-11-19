@@ -46,7 +46,7 @@ make dev-stop
 | `Dockerfile` | Image build |
 | `docker-compose*.yml` | Runtime overlays |
 | `docker/rootfs/` | Files copied into the image |
-| `cockpit/` | Cockpit TUI (agent-launcher) |
+| `plugins/cockpit/` | Cockpit TUI (agent-launcher) |
 | `scripts/repository/` | Host-only helpers (config, release, validate) |
 | `scripts/dev/` | Checkout-local previews; discover via `make dev-*` |
 | `Makefile` | Maintainer targets |
@@ -82,7 +82,7 @@ For a behaviour change, update as needed:
 3. Docs under `docs/` (and short README pointers)
 4. `AGENTS.md` / `.cursor/rules` if agent ritual or boundaries change
 5. `CHANGELOG.md` for user-visible changes
-6. `cockpit/pyproject.toml` version only when cutting a release
+6. `plugins/cockpit/pyproject.toml` version only when cutting a release
 
 ## Where to read next
 

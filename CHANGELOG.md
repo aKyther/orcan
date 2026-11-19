@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Keep each extension in one package: move Cockpit source, tests, smoke fixtures and Python dependencies under `plugins/cockpit`, and the executor application and its tooling under `plugins/redis`. Update image paths, build inputs and maintainer commands while preserving public CLI names.
+
 - Give the Redis plugin ownership of executor Supervisor programs and service selection. Share package-owned setting defaults and bounds with the runtime executor, bundle the contract in standalone wheels, and forward all storage budgets through Compose.
 
 - Ignore the empty root-level uv lockfile from ad hoc commands; keep Cockpit and executor dependency lockfiles tracked.

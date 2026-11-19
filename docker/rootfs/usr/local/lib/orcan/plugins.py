@@ -98,7 +98,7 @@ def check(name: str) -> dict:
         ready = enabled
         detail = "configured external network; host verifies attachment"
     elif name == "cockpit":
-        enabled = Path("/opt/orcan-cockpit/venv/bin/orcan-cockpit").is_file()
+        enabled = Path("/opt/orcan/plugins/cockpit/.venv/bin/orcan-cockpit").is_file()
         ready = enabled and shutil.which("tmux") is not None
         detail = "UI available; direct access: orcan enter --shell or --tmux"
     result = {

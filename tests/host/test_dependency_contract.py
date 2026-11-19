@@ -20,7 +20,7 @@ def test_required_runtimes_are_independent_of_optional_toolchains():
     assert report['agents']['codex'] == ['node', 'npm']
     assert set(report['agents']['claude']) <= BASE_COMPONENTS
     assert report['optional_toolchains'] == []
-    assert report['python_locks'] == ['cockpit/uv.lock', 'executor/uv.lock']
+    assert report['python_locks'] == ['plugins/cockpit/uv.lock', 'plugins/redis/uv.lock']
     assert all(set(entry.get('image_requires', [])) <= BASE_COMPONENTS for entry in catalog())
 
 

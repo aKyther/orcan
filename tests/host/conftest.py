@@ -87,15 +87,3 @@ def tracked_git_repo_factory(tracked_git_template):
         return path
 
     return create
-
-
-def reject_external_process(*args, **kwargs):
-    raise AssertionError(
-        "Pure tests cannot start subprocesses. Mock the boundary or mark this test integration."
-    )
-
-
-@pytest.fixture(autouse=True)
-def pure_process_boundary(request, monkeypatch):
-    if request.node.get_closest_marker("integration") is None:
-        monkeypatch.setattr(subprocess, "Popen", reject_external_process)

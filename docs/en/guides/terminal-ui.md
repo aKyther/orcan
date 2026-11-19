@@ -87,8 +87,8 @@ Presets in `cursor-ttyd`:
 | ttyd theme | `docker/rootfs/usr/local/bin/cursor-ttyd` | `orcan build` + recreate container |
 | tmux binary | `Dockerfile` (`ARG TMUX_VERSION=3.6a`) | build — static binary from `tmux/tmux-builds` |
 | tmux UI | `docker/rootfs/etc/tmux/` (`status.conf`, `options.conf`, `keybindings.conf`, `scripts/`) | build; or copy + `tmux source-file` for iteration |
-| Cockpit layout / chrome | `cockpit/src/orcan_cockpit/app.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (isolated); or `orcan build` + recreate |
-| Cockpit keys / help | `cockpit/…/shortcuts.py` (+ `keybindings.conf` for tmux tokens) | same; host test keeps tokens aligned |
+| Cockpit layout / chrome | `plugins/cockpit/src/orcan_cockpit/app.py`, `top_bar.py`, `rail.py`, `status_bar.py` | `make dev-restart` (isolated); or `orcan build` + recreate |
+| Cockpit keys / help | `plugins/cockpit/…/shortcuts.py` (+ `keybindings.conf` for tmux tokens) | same; host test keeps tokens aligned |
 | Cockpit PTY | `pty_terminal.py`, `pty_keys.py`, `pty_colors.py`, `pty_tmux_nav.py` | same — see [Cockpit + browser](#cockpit-browser) / [nav mix](#cockpit-nav-mix) |
 | zsh | `docker/rootfs/etc/skel/.zshrc`, `.zshrc.d/` | build (skel → home on new image); or copy into `~` for live test |
 | fzf / suggest colours | `docker/rootfs/etc/skel/.zshrc.d/70-plugins.zsh` | new shell after copy/build |
@@ -144,7 +144,7 @@ in that protocol, turning Alt+C and Alt+digits into ordinary text. This setting
 is local to the cockpit process; child applications keep their own keyboard
 configuration.
 
-When `agent-launcher` embeds tmux (`cockpit/…/pty_terminal.py`):
+When `agent-launcher` embeds tmux (`plugins/cockpit/…/pty_terminal.py`):
 
 #### Two terminals in one
 
@@ -255,8 +255,8 @@ and redraws the pane — the wheel must reach tmux as SGR.
 - Spawn size falls back to **80×24** when the widget is still `0×0` at mount (avoids a 1×1 dead terminal).
 - Colors: pyte per-cell render (status/prompt match native attach).
 
-Host tests (no Textual): `tests/host/test_cockpit_pty_{keys,mouse,colors,tmux_nav}.py`.
-Smoke: `tests/smoke/test-cockpit-tui.py`.
+Host tests (no Textual): `plugins/cockpit/tests/test_cockpit_pty_{keys,mouse,colors,tmux_nav}.py`.
+Smoke: `plugins/cockpit/smoke/test-cockpit-tui.py`.
 
 Browser ttyd (`cursor-ttyd`) sets **`macOptionIsMeta=true`** so macOS Option/Alt sends Meta (needed for `Alt+1`…), not `¡` / `™` composition. No effect on Windows/Linux.
 

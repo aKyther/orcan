@@ -1,6 +1,6 @@
 # Changelog
 
-Product releases use SemVer in `cockpit/pyproject.toml` and git tags `vX.Y.Z`.
+Product releases use SemVer in `plugins/cockpit/pyproject.toml` and git tags `vX.Y.Z`.
 Tags identify changes; an explicit release declaration marks an existing tag and
 its exact commit as ready. See [Release process](development/release.md).
 

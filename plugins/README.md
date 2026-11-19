@@ -26,7 +26,7 @@ stopping the current container. Dependencies and conflicts are checked after CLI
 selection, so an explicit disable can resolve a configured conflict.
 
 `orcan settings` groups startup plugins as access, services and interfaces. A
-reviewed save writes `plugins` and migrates the old executor/ttyd settings into
+reviewed save writes `plugins` and migrates the old plugins/redis/ttyd settings into
 these sections. Workspaces are preserved. `orcan up` starts the saved selection;
 existing flags and `--with NAME` / `--without NAME` override one start only.
 
@@ -52,16 +52,17 @@ fixtures live in `tests/host/_plugin_shell.py`; integration tests do not import
 another collected test module. Compatibility tests cover old inputs through the
 same resolver, rather than keeping unused editors alive.
 
-## Application code and container integration
+## Self-contained extension directories
 
-`cockpit/` and `executor/` are Python applications with independent dependency
-locks. Plugin packages own their integration with Orcan. `plugins/cockpit` is a
-built-in interface entry; it does not start a background service. `plugins/redis`
-owns the executor's service templates and worker selection. The common Supervisor
-launcher loads bundled package hooks without knowing Redis service names.
+`plugins/cockpit/` contains the terminal application, its Python project and lock,
+unit tests, smoke fixtures and interface metadata. `plugins/redis/` contains the
+executor application, its Python project and lock, tests and smoke fixtures,
+settings, Compose overlay, lifecycle hooks and Supervisor templates. Each package
+keeps its source under `src/`, tests under `tests/` and smoke tools under `smoke/`.
+Common host integration tests remain under `tests/host/`.
 
-The executor reads defaults, integer bounds and environment variable names from
-`plugins/redis/plugin.json`. Its wheel bundles that descriptor from the same
-source, so a standalone installation does not require a host checkout. Host
-configuration continues to use the shared plugin resolver. Both applications
-remain installed in the runtime image; service activation is a separate choice.
+Both applications are installed under `/opt/orcan/plugins/<id>/` in the runtime
+image, including their private `.venv` environments. Public console commands keep
+their names. Cockpit is a built-in interface; the Redis/executor service package
+is optional at startup. The executor reads defaults and bounds from its own
+`plugin.json` and bundles that same descriptor in standalone wheels.

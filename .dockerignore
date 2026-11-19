@@ -1,4 +1,4 @@
-# Closed build context: only inputs consumed by Dockerfile enter the daemon.
+# Closed build context: runtime inputs only, never plugin environments or tests.
 **
 !Dockerfile
 !.dockerignore
@@ -6,23 +6,18 @@
 !docker/**
 !plugins/
 !plugins/**
-!cockpit/
-cockpit/*
-!cockpit/pyproject.toml
-!cockpit/uv.lock
-!cockpit/src/
-!cockpit/src/**
-!executor/
-executor/*
-!executor/pyproject.toml
-!executor/uv.lock
-!executor/src/
-!executor/src/**
 !requirements-actions.txt
+plugins/cockpit/tests/
+plugins/cockpit/smoke/
+plugins/redis/tests/
+plugins/redis/smoke/
+**/.venv/
+**/.venv-docs/
 **/__pycache__/
 **/*.pyc
 **/.pytest_cache/
 **/.ruff_cache/
+**/.mypy_cache/
 **/.env
 **/.env.*
 **/.git/

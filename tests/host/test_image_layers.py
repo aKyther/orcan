@@ -16,19 +16,19 @@ def test_sdk_stages_are_independent_of_source_versions_and_host_ids():
         stage=recipe.split(' AS '+tool+'-tools',1)[1].split('\nFROM ',1)[0]
         assert 'ARG '+var+'_VERSION=' in stage
         assert '/usr/local/libexec/orcan-install-jvm '+tool in stage
-        assert 'COPY cockpit/' not in stage
+        assert 'COPY plugins/cockpit/' not in stage
     assert recipe.count('downloads/glab_')==1
     assert 'COPY --from=runtime / /' not in recipe
 
 
 def test_dependency_stages_install_locks_before_runtime_source():
     recipe=(ROOT/'Dockerfile').read_text()
-    for name in ('cockpit','executor'):
+    for name, source in [('cockpit', 'plugins/cockpit'), ('executor', 'plugins/redis')]:
         stage=recipe.split(' AS '+name+'-deps',1)[1].split('\nFROM ',1)[0]
-        assert f'COPY {name}/pyproject.toml {name}/uv.lock' in stage
+        assert f'COPY {source}/pyproject.toml {source}/uv.lock' in stage
         assert '--no-install-project' in stage
         assert 'type=cache,id=orcan-' in stage
-        assert f'COPY {name}/ /' not in stage
+        assert f'COPY {source}/ /' not in stage
 
 
 @pytest.mark.integration

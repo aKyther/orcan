@@ -3,9 +3,9 @@
 # entry point.
 #
 # Thin shim into the orcan-cockpit console script — a real uv-managed
-# Python project at ../../../../cockpit (repo root: cockpit/pyproject.toml),
+# Python project at plugins/cockpit/pyproject.toml,
 # installed at build time into its own isolated venv via `uv sync`
-# (Dockerfile), never the system Python. See cockpit/src/orcan_cockpit/cli.py
+# (Dockerfile), never the system Python. See plugins/cockpit/src/orcan_cockpit/cli.py
 # for the interactive-vs-non-tty-fallback logic.
 
 set -Eeuo pipefail
@@ -18,4 +18,4 @@ if [[ -z "${PYTHONPATH:-}" ]]; then
     export PYTHONPATH="/usr/local/lib"
 fi
 
-exec /opt/orcan-cockpit/venv/bin/orcan-cockpit "$@"
+exec /opt/orcan/plugins/cockpit/.venv/bin/orcan-cockpit "$@"

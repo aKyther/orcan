@@ -67,11 +67,11 @@ orcan enter → agent-launcher (cockpit) → tmux 3.6a → zsh
 container CMD → orcan-supervisord → keepalive|ttyd
 ```
 
-- Shortcut SoT: `cockpit/src/orcan_cockpit/shortcuts.py` (+ tmux `keybindings.conf`)
+- Shortcut SoT: `plugins/cockpit/src/orcan_cockpit/shortcuts.py` (+ tmux `keybindings.conf`)
 - First-run tip: `first_run.py` / `onboarding.py` (flag under `~/.local/share/orcan/`)
 - Chrome: `top_bar.py`, `rail.py`, `status_bar.py`, `tmux_chrome.py`, `session_glance.py`
 - Terminal UI guide: `docs/en/guides/terminal-ui.md`; rule `.cursor/rules/terminal-ui.mdc`
-- Version SoT: `cockpit/pyproject.toml` → `version`; root `VERSION` is a mirror
+- Version SoT: `plugins/cockpit/pyproject.toml` → `version`; root `VERSION` is a mirror
 - Docs: English; B1–B2; story before commands; `docs/STYLE_GUIDE.md`
 
 ### SSH inside the container
@@ -116,8 +116,8 @@ create CLAUDE.md only for Claude. See `docs/en/guides/image-profiles.md`.
 ### Optional background executor
 
 `orcan up --with-redis` enables Redis, Celery and a read-only dashboard inside Orcan.
-Implementation: `executor/` (locked Python 3.12); integration, settings metadata
-and Supervisor templates live in `plugins/redis/`. See `docs/en/guides/background-executor.md`.
+Implementation: the complete extension is in `plugins/redis/` (locked Python 3.12),
+including source, tests, smoke fixtures, settings and Supervisor templates. See `docs/en/guides/background-executor.md`.
 Workspace AGENTS/CLAUDE guidance is generated in `orcan.reconcile.executor_guidance`.
 Keep default execution unchanged when disabled; readiness is checked at runtime.
 Never send successful build output to agents. Completion JSON is bounded; long
@@ -172,7 +172,7 @@ poll or block on listeners. Prefer session notifications and return control.
 Dashboard charts compare measured log/result/detail bytes and elapsed times;
 bytes/4 token estimates and summed task duration are not actual model costs or time saved.
 Use isolated smoke fixtures, never restart the live Orcan for verification.
-`executor/src/orcan_executor/notifications.py` owns explicit Codex queue delivery
+`plugins/redis/src/orcan_executor/notifications.py` owns explicit Codex queue delivery
 and registered tmux delivery. Claude uses only `--notify-tmux` in Orcan: launch
 `claude-tmux` / `claude-tmux-yolo` in a dedicated pane, then submit with
 `--notify-tmux` and acknowledge with `--tmux-instance "$ORCAN_AGENT_INSTANCE_ID"`.
@@ -239,7 +239,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | Developer UX environment | `scripts/dev/`, `make dev-*` |
 | Image filesystem / binaries | `docker/rootfs/` |
 | Image packages / agents | `Dockerfile` |
-| Cockpit TUI | `cockpit/src/orcan_cockpit/` (`shortcuts.py`, `about_modal.py`, `session_glance.py`, `peek.py`, `peek_modal.py`, `first_run.py`, `onboarding.py`, `tmux_chrome.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`, `pty_mouse.py`) |
+| Cockpit TUI | `plugins/cockpit/src/orcan_cockpit/` (`shortcuts.py`, `about_modal.py`, `session_glance.py`, `peek.py`, `peek_modal.py`, `first_run.py`, `onboarding.py`, `tmux_chrome.py`, `top_bar.py`, `pty_keys.py`, `pty_tmux_nav.py`, `pty_colors.py`, `pty_mouse.py`) |
 | Terminal look | `docker/rootfs/etc/tmux/`, `cursor-ttyd`, `opt/orcan/*` |
 | Image agent defaults | `docker/rootfs/opt/cursor-defaults/` |
 | User docs / theme | `docs/`, `mkdocs.yml`, `overrides/` |
@@ -247,7 +247,7 @@ No `Co-Authored-By` (or similar AI-attribution) trailer. The human is the sole a
 | This guidance | `AGENTS.md` / `CLAUDE.md`, `.cursor/rules/` |
 
 **Layout (scan):** `bin/orcan`+`cli/` · `install.sh` · `Dockerfile`+compose ·
-`docker/rootfs/` · `cockpit/` (image venv `/opt/orcan-cockpit/venv`) ·
+`docker/rootfs/` · `plugins/cockpit/` (image venv `/opt/orcan/plugins/cockpit/.venv`) ·
 `scripts/repository/` · `scripts/dev/` · `Makefile` · `docs/` · `tests/`
 
 Versioning is explicit. Ordinary commits keep changes under `[Unreleased]`.

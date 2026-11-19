@@ -49,10 +49,10 @@ test-host: ## Host unit tests via uv (automatic test dependencies; no Docker ima
 	@./tests/host/run.sh $(TEST_ARGS)
 
 test-executor-queue: ## Queue safety regressions without Redis or Celery services
-	@ORCAN_EXECUTOR_BROKER_URL=redis://127.0.0.1:1/0 uv run --project executor --python 3.12 --locked --group dev \
-		python -m pytest -q executor/tests/test_admission.py executor/tests/test_queue_deadline.py \
-		executor/tests/test_fair_scheduling.py executor/tests/test_recovery_guard.py \
-		executor/tests/test_web.py executor/tests/test_reuse.py --junitxml .orcan/executor-queue-results.xml
+	@ORCAN_EXECUTOR_BROKER_URL=redis://127.0.0.1:1/0 uv run --project plugins/redis --python 3.12 --locked --group dev \
+		python -m pytest -q plugins/redis/tests/test_admission.py plugins/redis/tests/test_queue_deadline.py \
+		plugins/redis/tests/test_fair_scheduling.py plugins/redis/tests/test_recovery_guard.py \
+		plugins/redis/tests/test_web.py plugins/redis/tests/test_reuse.py --junitxml .orcan/executor-queue-results.xml
 
 test-fast: ## Fast in-process host tests for development
 	@ORCAN_TEST_MODE=fast ./tests/host/run.sh $(TEST_ARGS)
@@ -67,10 +67,10 @@ test-coverage-subprocess: ## Extended coverage including host-helper subprocesse
 	@ORCAN_SUBPROCESS_COVERAGE=1 ./tests/host/run.sh --coverage $(TEST_ARGS)
 
 format: ## Format host and cockpit Python with Ruff
-	@python3 -m ruff format scripts/repository cockpit/src tests/host
+	@python3 -m ruff format scripts/repository plugins/cockpit/src tests/host
 
 format-check: ## Verify host and cockpit Python is Ruff-formatted
-	@python3 -m ruff format --check scripts/repository cockpit/src tests/host
+	@python3 -m ruff format --check scripts/repository plugins/cockpit/src tests/host
 
 
 # Fixtures live under the checkout so Docker-from-Docker sees the same
@@ -198,7 +198,7 @@ docs-publish: ## Trigger CI docs deploy
 
 docs-deploy: docs-publish ## Alias for docs-publish
 
-version: ## Show product version (cockpit/pyproject.toml)
+version: ## Show product version (plugins/cockpit/pyproject.toml)
 	@./scripts/repository/release.sh show
 
 bump-patch: ## Low-level: bump product version patch (prefer `make tag`)

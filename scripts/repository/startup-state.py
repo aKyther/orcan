@@ -9,16 +9,32 @@ from pathlib import Path
 import tempfile
 
 # Explicit image inputs only: never walk a checkout/config root or client data.
-INPUTS = ('Dockerfile', '.dockerignore', 'docker/installers', 'docker/rootfs', 'plugins', 'cockpit/src',
-          'cockpit/pyproject.toml', 'cockpit/uv.lock', 'executor/src',
-          'executor/pyproject.toml', 'executor/uv.lock', 'requirements-actions.txt', 'VERSION')
+INPUTS = ('Dockerfile', '.dockerignore', 'docker/installers', 'docker/rootfs',
+          'plugins', 'requirements-actions.txt', 'VERSION')
+
+
+def input_files(root: Path, path: Path) -> list[Path]:
+    if not path.is_dir():
+        return [path]
+    result = []
+    generated = {'.venv', '.venv-docs', '__pycache__', '.pytest_cache', '.ruff_cache',
+                 '.mypy_cache', 'node_modules', '.git'}
+    for current, directories, files in os.walk(path, followlinks=False):
+        directory = Path(current)
+        relative = directory.relative_to(root).parts
+        excluded = generated | ({'tests', 'smoke'} if len(relative) == 2 and relative[0] == 'plugins' else set())
+        directories[:] = sorted(name for name in directories if name not in excluded)
+        result.extend(directory / name for name in directories if (directory / name).is_symlink())
+        result.extend(directory / name for name in files
+                      if not name.endswith('.pyc') and name != '.env' and not name.startswith('.env.'))
+    return sorted(result)
 
 
 def fingerprint(root: Path, profile: str, identity: str) -> str:
     digest = hashlib.sha256((profile + '\n' + identity).encode())
     for name in INPUTS:
         path = root / name
-        paths = sorted(path.rglob('*')) if path.is_dir() else [path]
+        paths = input_files(root, path)
         for entry in paths:
             if '__pycache__' in entry.parts or entry.suffix == '.pyc':
                 continue

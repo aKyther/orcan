@@ -1,7 +1,7 @@
 # Cockpit
 
 The built-in terminal interface over tmux. Its application code and Python
-dependencies live in `cockpit/`; this package describes the installed interface.
+dependencies, tests and smoke fixtures live together in this package.
 
 ## Configuration and activation
 
