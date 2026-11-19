@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Automatically recognize ignored Python environments/caches, Rust/Maven/Scala targets, Gradle outputs, Node dependencies and MkDocs builds when retiring executor worktrees, including legacy procedures. Preserve source changes and unidentified files.
+
 - Allow reviewed executor procedures to release worktrees containing declared ignored output directories. Close overdue abandoned attempts only under a free execution lock, without retrying or claiming success.
 
 - Deduplicate plugin settings in the host application: use package-owned defaults and validation, remove unused ttyd/executor editors, and exercise the active plugin editor with shared integration fixtures.

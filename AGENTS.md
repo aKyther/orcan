@@ -143,8 +143,10 @@ detailed-result retention is one hour; compact history/measurements remain for 3
 (up to 10000 expired entries). Prefer reviewed Orcan-managed executor profiles for approved heavy
 builds, analysis, code/report generation and docs, as well as tests. Quick reads and
 interactive edits stay direct. Preserve active/dirty worktrees. Reviewed profiles
-may declare literal `cleanup_ignored` output directories; only ignored files under
-those directories may remain when removing an otherwise clean executor checkout.
+may declare literal `cleanup_ignored` output directories. Recognized ignored Python,
+Rust/Maven/Scala, Gradle, Node and MkDocs outputs also permit removing an otherwise
+clean executor checkout, including its environments and builds. Unknown files,
+source changes and active execution locks remain protected.
 Maintenance closes overdue running attempts only after timeout plus 60 seconds
 and acquiring the execution lock; it records an error without automatic retry.
 Use `orcan-executor doctor --lane LANE` for the profile queue and inspect effective

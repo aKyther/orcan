@@ -259,3 +259,72 @@ def test_generated_profiles_declare_reviewable_output_paths(repo, kind):
     definitions = profiles.load(json.dumps(profiles.template(kind, repo)))
     assert definitions["full"]["cleanup_ignored"]
     assert definitions["docs"]["cleanup_ignored"]
+
+
+@pytest.mark.parametrize(
+    "output,marker",
+    [
+        (".venv", ".venv/pyvenv.cfg"),
+        (".venv-docs", ".venv-docs/pyvenv.cfg"),
+        ("pkg/__pycache__", None),
+        ("src-tauri/target", "src-tauri/Cargo.toml"),
+        ("target", "target/.rustc_info.json"),
+        ("java/build", "java/build.gradle"),
+        ("java/.build", "java/build.gradle.kts"),
+        ("java/.gradle", "java/settings.gradle"),
+        ("node_modules", "package.json"),
+        ("site", "mkdocs.yml"),
+        ("target", "pom.xml"),
+    ],
+)
+def test_tool_outputs_do_not_retain_completed_executor_worktree(repo, output, marker):
+    (repo / ".gitignore").write_text(output + "/\n")
+    if marker and not marker.startswith(output + "/"):
+        path = repo / marker
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("tool configuration")
+    script = (
+        "from pathlib import Path\n"
+        f"output = Path({output!r})\noutput.mkdir(parents=True)\n"
+        '(output / "generated").write_text("disposable")\n'
+    )
+    if marker and marker.startswith(output + "/"):
+        script += f'Path({marker!r}).write_text("tool marker")\n'
+    (repo / "check.py").write_text(script)
+    commit(repo)
+    job = submit(repo)
+    result = engine.run_job(job["id"])
+    assert result["status"] == "passed"
+    assert not Path(store.get(job["id"])["worktree"]).exists()
+
+
+@pytest.mark.parametrize("output", [".venv", "target", "build", "site", "node_modules"])
+def test_unidentified_ignored_directories_are_preserved(repo, output):
+    (repo / ".gitignore").write_text(output + "/\n")
+    commit(repo)
+    path = repo / output
+    path.mkdir()
+    (path / "keep").write_text("not identified as a tool output")
+    assert worktree_cleanup.generated_outputs(repo) == []
+    assert not worktree_cleanup.removable(repo, {})
+    assert (path / "keep").exists()
+
+
+def test_recognized_outputs_do_not_hide_user_changes_or_symlinks(repo):
+    (repo / ".gitignore").write_text(".venv/\n")
+    commit(repo)
+    path = repo / ".venv"
+    path.mkdir()
+    (path / "pyvenv.cfg").touch()
+    assert worktree_cleanup.removable(repo, {})
+    (repo / "marker").write_text("user changes")
+    assert not worktree_cleanup.removable(repo, {})
+    (repo / "marker").write_text("snapshot")
+    (repo / "notes").write_text("untracked user notes")
+    assert not worktree_cleanup.removable(repo, {})
+    (repo / "notes").unlink()
+    (path / "pyvenv.cfg").unlink()
+    path.rmdir()
+    path.symlink_to(repo.parent, target_is_directory=True)
+    assert worktree_cleanup.generated_outputs(repo) == []
+    assert not worktree_cleanup.removable(repo, {})

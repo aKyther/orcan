@@ -15,9 +15,76 @@ def is_clean(worktree: Path) -> bool:
     return result.returncode == 0 and not result.stdout
 
 
+def generated_outputs(worktree: Path) -> list[str]:
+    """Recognize disposable tool outputs, only when Git ignores the whole directory."""
+    result = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(worktree),
+            "status",
+            "--porcelain",
+            "-z",
+            "--ignored=matching",
+            "--untracked-files=normal",
+        ],
+        capture_output=True,
+        timeout=30,
+    )
+    if result.returncode:
+        return []
+    outputs = []
+    for entry in result.stdout.split(b"\0"):
+        if not entry.startswith(b"!! "):
+            continue
+        relative = Path(os.fsdecode(entry[3:]).rstrip("/"))
+        path = worktree / relative
+        if path.is_symlink() or not path.is_dir():
+            continue
+        name, parent = path.name, path.parent
+        known = (
+            (name in {".venv", "venv", ".venv-docs"} and (path / "pyvenv.cfg").is_file())
+            or name in {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"}
+            or (name == "node_modules" and (parent / "package.json").is_file())
+            or (
+                name == "site"
+                and any((parent / f).is_file() for f in ("mkdocs.yml", "mkdocs.yaml"))
+            )
+            or (
+                name == "target"
+                and (
+                    (path / ".rustc_info.json").is_file()
+                    or any((parent / f).is_file() for f in ("Cargo.toml", "pom.xml", "build.sbt"))
+                    or (parent.name == "project" and (parent.parent / "build.sbt").is_file())
+                )
+            )
+            or (
+                name in {"build", ".build", ".gradle"}
+                and any(
+                    (parent / f).is_file()
+                    for f in (
+                        "build.gradle",
+                        "build.gradle.kts",
+                        "settings.gradle",
+                        "settings.gradle.kts",
+                    )
+                )
+            )
+        )
+        if known:
+            tracked = subprocess.run(
+                ["git", "-C", str(worktree), "ls-files", "-z", "--", str(relative)],
+                capture_output=True,
+                timeout=30,
+            )
+            if tracked.returncode == 0 and not tracked.stdout:
+                outputs.append(str(relative))
+    return outputs
+
+
 def removable(worktree: Path, definition: dict) -> bool:
-    """Allow only reviewed ignored output directories in an otherwise clean tree."""
-    allowed = definition.get("cleanup_ignored", [])
+    """Allow recognized tool outputs and reviewed ignored directories in a clean tree."""
+    allowed = generated_outputs(worktree) + definition.get("cleanup_ignored", [])
     if not allowed:
         return is_clean(worktree)
     result = subprocess.run(
@@ -29,7 +96,7 @@ def removable(worktree: Path, definition: dict) -> bool:
             "--porcelain",
             "-z",
             "--untracked-files=normal",
-            "--ignored",
+            "--ignored=matching",
         ],
         capture_output=True,
         timeout=30,

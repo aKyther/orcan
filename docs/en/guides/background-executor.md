@@ -1302,6 +1302,22 @@ The open Tasks panel refreshes its overview every 5 seconds without overlapping
 requests. These display updates never acknowledge results or start procedures.
 
 
+### Generated environments in executor worktrees
+
+Completion and retention recognize standard ignored tool outputs even for older
+procedures: Python virtual environments with `pyvenv.cfg`, Python tool caches,
+Rust/Maven/Scala `target` directories, Gradle `build`/`.build`/`.gradle`, Node
+`node_modules`, and MkDocs `site`. Environment and build directories require the
+matching tool configuration or build marker. Git must ignore the output directory,
+and it must contain no tracked files. Symlink output roots are preserved.
+
+An otherwise unchanged executor worktree is removed together with those local
+environments and build outputs through ordinary `git worktree remove`. Source
+changes, untracked files and unidentified ignored outputs still preserve the
+checkout. Reviewed `cleanup_ignored` paths cover additional project-specific
+outputs. Active jobs and inherited execution locks remain protected; shared
+package caches and directories outside the worktree are unaffected.
+
 ### Disk budgets and bounded output
 
 All sizes below are MiB. Configure them under `plugins.redis` in Orcan settings:
