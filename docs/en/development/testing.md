@@ -7,6 +7,11 @@ Install `uv` before running host tests. `make test-host` automatically loads
 release checks. It does not need global Python packages and does not modify the
 checkout's `.venv` or create a project lockfile.
 
+The root `pyproject.toml` contains tool settings only. Use `uv run --no-project`
+for ad hoc commands from the repository root. A root `uv.lock` produced by a
+plain `uv run` is a local artifact and is ignored. Dependency lockfiles remain
+tracked separately in `cockpit/uv.lock` and `executor/uv.lock`.
+
 ```bash
 make validate
 make test-host

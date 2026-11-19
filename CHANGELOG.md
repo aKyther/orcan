@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Ignore the empty root-level uv lockfile from ad hoc commands; keep Cockpit and executor dependency lockfiles tracked.
+
 - Raise the category storage-report traversal limit to 150,000 entries; admission accounting remains independent of this limit.
 
 - Automatically recognize ignored Python environments/caches, Rust/Maven/Scala targets, Gradle outputs, Node dependencies and MkDocs builds when retiring executor worktrees, including legacy procedures. Preserve source changes and unidentified files.

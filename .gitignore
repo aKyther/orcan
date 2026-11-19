@@ -44,6 +44,8 @@ temp/
 *.tmp
 
 # Python
+# Root pyproject configures tools; dependency locks belong to subprojects.
+/uv.lock
 __pycache__/
 *.py[cod]
 .venv/
