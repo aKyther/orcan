@@ -38,7 +38,7 @@ def worktree_capacity() -> dict:
     }
 
 
-def size(path: Path, *, limit: int | None = 100000, stop_after_bytes: int | None = None) -> dict:
+def size(path: Path, *, limit: int | None = 150000, stop_after_bytes: int | None = None) -> dict:
     """Stream metadata without following links; hardlinked files count once.
 
     Reports bound their entry count. Admission scans until complete or over its

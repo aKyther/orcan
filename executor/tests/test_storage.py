@@ -226,19 +226,19 @@ def test_admission_counts_beyond_report_entry_limit(tmp_path, monkeypatch):
     entry = Mock()
     entry.stat.return_value = metadata
     def children(path):
-        yield from (entry for _ in range(100001))
+        yield from (entry for _ in range(150001))
     monkeypatch.setattr(storage.os, "scandir", children)
     assert storage.size(root)["incomplete"]
     capacity = storage.worktree_capacity()
     assert capacity["ready"]
-    assert capacity["entries"] == 100002
+    assert capacity["entries"] == 150002
     assert not capacity["incomplete"]
     # The same number of files now exceeds the byte budget: admission still stops.
     metadata.st_blocks = 8
     capacity = storage.worktree_capacity()
     assert not capacity["ready"]
     assert capacity["allocated_bytes"] > capacity["budget_bytes"]
-    assert capacity["entries"] < 100000
+    assert capacity["entries"] < 150000
 
 
 def test_streaming_accounting_deduplicates_hardlinks(tmp_path):

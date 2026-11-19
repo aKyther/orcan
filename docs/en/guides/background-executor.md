@@ -1322,7 +1322,7 @@ package caches and directories outside the worktree are unaffected.
 
 Worktree admission counts allocated bytes across the complete directory tree,
 without following symlinks or reading file contents. It stops early when the
-worktree byte budget is exceeded. The 100,000-entry limit used for category
+worktree byte budget is exceeded. The 150,000-entry limit used for category
 reports does not limit admission accounting: many small files alone do not
 block a job. Unreadable directories still pause admission. Queued jobs distinguish
 `disk_space` (filesystem reserve), `worktree_budget` (allocated byte budget),
