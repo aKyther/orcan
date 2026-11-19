@@ -85,7 +85,7 @@ wheels = [
 
 [[package]]
 name = "orcan-cockpit"
-version = "4.1.51"
+version = "4.1.53"
 source = { editable = "." }
 dependencies = [
     { name = "libtmux" },

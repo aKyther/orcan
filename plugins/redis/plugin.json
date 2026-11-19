@@ -121,7 +121,7 @@
     },
     "worktree_budget_mb": {
       "type": "integer",
-      "default": 4096,
+      "default": 8192,
       "label": "Worktree admission budget MiB",
       "env": "ORCAN_EXECUTOR_WORKTREE_BUDGET_MB",
       "minimum": 1,

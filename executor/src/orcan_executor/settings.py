@@ -112,7 +112,7 @@ def storage_limit_mb(name: str) -> int:
         "log_limit_mb": 16,
         "artifact_limit_mb": 64,
         "detail_budget_mb": 1024,
-        "worktree_budget_mb": 4096,
+        "worktree_budget_mb": 8192,
     }
     value = int(os.environ.get("ORCAN_EXECUTOR_" + name.upper(), str(defaults[name])))
     if not 1 <= value <= 1048576:

@@ -96,7 +96,7 @@ Use `orcan settings` to choose the Redis/executor plugin and edit its settings w
       "log_limit_mb": 16,
       "artifact_limit_mb": 64,
       "detail_budget_mb": 1024,
-      "worktree_budget_mb": 4096,
+      "worktree_budget_mb": 8192,
       "redis_memory_mb": 128,
       "visibility_timeout_seconds": 86400,
       "port": 8765
@@ -1320,6 +1320,14 @@ package caches and directories outside the worktree are unaffected.
 
 ### Disk budgets and bounded output
 
+Worktree admission counts allocated bytes across the complete directory tree,
+without following symlinks or reading file contents. It stops early when the
+worktree byte budget is exceeded. The 100,000-entry limit used for category
+reports does not limit admission accounting: many small files alone do not
+block a job. Unreadable directories still pause admission. Queued jobs distinguish
+`disk_space` (filesystem reserve), `worktree_budget` (allocated byte budget),
+and `worktree_accounting` (incomplete measurement).
+
 All sizes below are MiB. Configure them under `plugins.redis` in Orcan settings:
 
 | Setting | Default | Behavior |
@@ -1327,7 +1335,7 @@ All sizes below are MiB. Configure them under `plugins.redis` in Orcan settings:
 | `log_limit_mb` | 16 | Combined command output per job; overflow stops the command and returns an error. |
 | `artifact_limit_mb` | 64 | Total copied JUnit and declared artifact payload per job; oversized evidence cannot pass. |
 | `detail_budget_mb` | 1024 | Budget for completed log/report directories; maintenance expires oldest completed details first. |
-| `worktree_budget_mb` | 4096 | Admission budget for worktrees; new jobs wait when exceeded or accounting is incomplete. |
+| `worktree_budget_mb` | 8192 | Admission budget for worktrees; new jobs wait when exceeded or accounting is incomplete. |
 
 Workers also accept the corresponding `ORCAN_EXECUTOR_LOG_LIMIT_MB`,
 `ORCAN_EXECUTOR_ARTIFACT_LIMIT_MB`, `ORCAN_EXECUTOR_DETAIL_BUDGET_MB`, and

@@ -34,3 +34,14 @@ def test_linked_worktree_matches_main_project(tmp_path):
     (worktree / '.git').write_text(f'gitdir: {admin}\n')
     rows = [{'session': 'main', 'projects': [{'path': str(repo)}]}]
     assert matching_workspaces({'repo': str(worktree)}, rows) == rows
+
+
+def test_storage_blocks_have_distinct_attention_messages():
+    messages = {
+        reason: attention_reason({'status': 'queued', 'admission_reason': reason})
+        for reason in ('disk_space', 'worktree_budget', 'worktree_accounting')
+    }
+    assert all(messages.values())
+    assert len(set(messages.values())) == 3
+    assert 'budget' in messages['worktree_budget']
+    assert 'measured' in messages['worktree_accounting']

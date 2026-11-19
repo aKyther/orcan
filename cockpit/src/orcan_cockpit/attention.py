@@ -2,8 +2,14 @@
 
 def attention_reason(job: dict) -> str:
     """Only explicit executor state warrants attention; never infer agent readiness."""
-    if job.get("status") == "queued" and job.get("admission_reason") == "disk_space":
-        return "Low disk space; inspect storage before starting this job"
+    if job.get("status") == "queued":
+        reason = {
+            "disk_space": "Low disk space; inspect storage before starting this job",
+            "worktree_budget": "Worktree byte budget exceeded; inspect executor storage",
+            "worktree_accounting": "Worktree size could not be measured; inspect executor storage",
+        }.get(job.get("admission_reason"))
+        if reason:
+            return reason
     if job.get("status") == "queued" and job.get("publication_state") in {
         "uncertain", "unknown", "recovery_pending",
     }:

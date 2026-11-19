@@ -211,3 +211,64 @@ def test_pulse_uses_count_and_capacity_without_analytics_or_scanning(repo, monke
     monkeypatch.setattr(storage, 'capacity', Mock(side_effect=OSError('unavailable')))
     assert cli.main(['pulse']) == 0
     assert json.loads(capsys.readouterr().out)['storage']['ready'] is None
+
+
+def test_admission_counts_beyond_report_entry_limit(tmp_path, monkeypatch):
+    """Many small outputs must not look like a full disk or hide later bytes."""
+    import stat
+    from types import SimpleNamespace
+
+    root = tmp_path / "worktrees"
+    root.mkdir()
+    monkeypatch.setattr(storage, "worktree_root", lambda: root)
+    monkeypatch.setattr(storage, "storage_limit_mb", lambda key: 1)
+    metadata = SimpleNamespace(st_mode=stat.S_IFREG, st_nlink=1, st_blocks=0)
+    entry = Mock()
+    entry.stat.return_value = metadata
+    def children(path):
+        yield from (entry for _ in range(100001))
+    monkeypatch.setattr(storage.os, "scandir", children)
+    assert storage.size(root)["incomplete"]
+    capacity = storage.worktree_capacity()
+    assert capacity["ready"]
+    assert capacity["entries"] == 100002
+    assert not capacity["incomplete"]
+    # The same number of files now exceeds the byte budget: admission still stops.
+    metadata.st_blocks = 8
+    capacity = storage.worktree_capacity()
+    assert not capacity["ready"]
+    assert capacity["allocated_bytes"] > capacity["budget_bytes"]
+    assert capacity["entries"] < 100000
+
+
+def test_streaming_accounting_deduplicates_hardlinks(tmp_path):
+    root = tmp_path / "tree"
+    root.mkdir()
+    original = root / "original"
+    original.write_bytes(b"x" * 8192)
+    (root / "nested").mkdir()
+    (root / "nested" / "duplicate").hardlink_to(original)
+    assert storage.size(root, limit=None)["allocated_bytes"] == original.stat().st_blocks * 512
+
+
+def test_unreadable_worktree_still_blocks_admission(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage, "worktree_root", lambda: tmp_path)
+    def unreadable(path):
+        raise PermissionError("synthetic denied")
+    monkeypatch.setattr(storage.os, "scandir", unreadable)
+    assert not storage.worktree_capacity()["ready"]
+
+
+@pytest.mark.parametrize("over_budget", [False, True])
+def test_worktree_block_reason_is_distinct_from_low_disk(repo, monkeypatch, over_budget):
+    monkeypatch.setattr(storage, "capacity", lambda: {"ready": True})
+    monkeypatch.setattr(storage, "worktree_capacity", lambda: {
+        "ready": False, "allocated_bytes": 2 if over_budget else 0, "budget_bytes": 1,
+        "incomplete": not over_budget,
+    })
+    job = submit(repo)
+    assert engine.run_job(job["id"]) is None
+    reason = "worktree_budget" if over_budget else "worktree_accounting"
+    assert store.get(job["id"])["admission_reason"] == reason
+    assert store.get(job["id"])["attempts"] == 0
+    assert store.attention_overview()["jobs"][0]["admission_reason"] == reason

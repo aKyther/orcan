@@ -111,6 +111,8 @@ def format_overview(value: dict) -> str:
                 + {
                     "capacity": "parallel job limit",
                     "disk_space": "low disk space; inspect orcan-executor storage",
+                    "worktree_budget": "worktree byte budget exceeded; inspect orcan-executor storage",
+                    "worktree_accounting": "worktree size unknown; inspect orcan-executor storage",
                     "fair_turn": "another repository's turn",
                 }.get(job["admission_reason"], "admission")
             )

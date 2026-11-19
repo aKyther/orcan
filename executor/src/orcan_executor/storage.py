@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import stat as stat_mode
 from pathlib import Path
 
 from .settings import artifact_root, minimum_free_mb, state_dir, storage_limit_mb, worktree_root
@@ -28,8 +29,8 @@ def capacity() -> dict:
 
 
 def worktree_capacity() -> dict:
-    trees = size(worktree_root())
     budget = storage_limit_mb("worktree_budget_mb") * 1024**2
+    trees = size(worktree_root(), limit=None, stop_after_bytes=budget)
     return {
         "ready": not trees["incomplete"] and trees["allocated_bytes"] <= budget,
         **trees,
@@ -37,39 +38,60 @@ def worktree_capacity() -> dict:
     }
 
 
-def size(path: Path, *, limit: int = 100000) -> dict:
-    """Bound traversal and memory; hardlinks count once within each category."""
+def size(path: Path, *, limit: int | None = 100000, stop_after_bytes: int | None = None) -> dict:
+    """Stream metadata without following links; hardlinked files count once.
+
+    Reports bound their entry count. Admission scans until complete or over its
+    byte budget, so many small files cannot permanently block an under-budget tree.
+    Open directory iterators and pending paths scale with depth, not file count.
+    """
     total = entries = 0
     seen = set()
-    pending = [path]
+    pending = iter((path,))
+    parents = []
     incomplete = False
-    while pending:
-        current = pending.pop()
-        try:
-            stat = current.lstat()
-            entries += 1
-            if entries > limit:
+    try:
+        while True:
+            current = next(pending, None)
+            if current is None:
+                if hasattr(pending, "close"):
+                    pending.close()
+                if not parents:
+                    break
+                pending = parents.pop()
+                continue
+            if limit is not None and entries >= limit:
                 incomplete = True
                 break
-            if current.is_symlink():
+            try:
+                metadata = current.lstat() if isinstance(current, Path) else current.stat(
+                    follow_symlinks=False
+                )
+                entries += 1
+                if stat_mode.S_ISLNK(metadata.st_mode):
+                    continue
+                if stat_mode.S_ISDIR(metadata.st_mode):
+                    children = os.scandir(current)
+                    parents.append(pending)
+                    pending = children
+                else:
+                    if metadata.st_nlink > 1:
+                        identity = (metadata.st_dev, metadata.st_ino)
+                        if identity in seen:
+                            continue
+                        seen.add(identity)
+                    total += metadata.st_blocks * 512
+                    if stop_after_bytes is not None and total > stop_after_bytes:
+                        incomplete = True
+                        break
+            except FileNotFoundError:
                 continue
-            identity = (stat.st_dev, stat.st_ino)
-            if identity in seen:
-                continue
-            seen.add(identity)
-            if current.is_dir():
-                with os.scandir(current) as children:
-                    for child in children:
-                        if entries + len(pending) >= limit:
-                            incomplete = True
-                            break
-                        pending.append(Path(child.path))
-            else:
-                total += stat.st_blocks * 512
-        except FileNotFoundError:
-            continue
-        except OSError:
-            incomplete = True
+            except OSError:
+                incomplete = True
+    finally:
+        for iterator in [pending, *parents]:
+            if hasattr(iterator, "close"):
+                iterator.close()
     return {"allocated_bytes": total, "entries": entries, "incomplete": incomplete}
 
 

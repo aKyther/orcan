@@ -340,14 +340,27 @@ def start(job_id: str, worktree: Path) -> bool:
             return False
         from .storage import capacity, worktree_capacity
 
+        reason = None
         try:
-            disk_ready = capacity()["ready"] and worktree_capacity()["ready"]
+            if not capacity()["ready"]:
+                reason = "disk_space"
         except (OSError, ValueError):
-            disk_ready = False
-        if not disk_ready:
+            reason = "disk_space"
+        if reason is None:
+            try:
+                trees = worktree_capacity()
+                if not trees["ready"]:
+                    reason = (
+                        "worktree_budget"
+                        if trees["allocated_bytes"] > trees["budget_bytes"]
+                        else "worktree_accounting"
+                    )
+            except (OSError, ValueError):
+                reason = "worktree_accounting"
+        if reason:
             db.execute(
-                "UPDATE jobs SET status='queued',admission_reason='disk_space' WHERE id=?",
-                (job_id,),
+                "UPDATE jobs SET status='queued',admission_reason=? WHERE id=?",
+                (reason, job_id),
             )
             return False
         running = db.execute(
@@ -505,7 +518,7 @@ def mark_published(event_id: int) -> None:
 ATTENTION_PREDICATE = """(status IN ('passed','failed','error','timed_out','cancelled')
         AND acknowledged IS NULL) OR
         (status='queued' AND (publication_state IN ('uncertain','unknown','recovery_pending')
-        OR admission_reason='disk_space'))"""
+        OR admission_reason IN ('disk_space','worktree_budget','worktree_accounting')))"""
 
 
 def attention_count() -> int:
