@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Allow reviewed executor procedures to release worktrees containing declared ignored output directories. Close overdue abandoned attempts only under a free execution lock, without retrying or claiming success.
+
 - Deduplicate plugin settings in the host application: use package-owned defaults and validation, remove unused ttyd/executor editors, and exercise the active plugin editor with shared integration fixtures.
 
 - Omit all external-storage guidance from generated workspace instructions when the storage path is unset or cleared, including with the executor enabled.

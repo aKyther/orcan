@@ -463,9 +463,9 @@ def run_job(job_id: str, on_started=None) -> dict | None:
             # Never force-remove a dirty checkout. Keep it and report the path if cleanup is blocked.
             if added:
                 try:
-                    if not worktree_cleanup.is_clean(worktree):
+                    if not worktree_cleanup.removable(worktree, definition):
                         raise OSError(
-                            "Worktree contains changes, untracked or ignored files; preserved"
+                            "Worktree contains changes, untracked or undeclared ignored files; preserved"
                         )
                     cleanup = subprocess.run(
                         ["git", "--git-dir", common, "worktree", "remove", str(worktree)],

@@ -142,7 +142,11 @@ Default
 detailed-result retention is one hour; compact history/measurements remain for 30 days
 (up to 10000 expired entries). Prefer reviewed Orcan-managed executor profiles for approved heavy
 builds, analysis, code/report generation and docs, as well as tests. Quick reads and
-interactive edits stay direct. Preserve active/dirty worktrees.
+interactive edits stay direct. Preserve active/dirty worktrees. Reviewed profiles
+may declare literal `cleanup_ignored` output directories; only ignored files under
+those directories may remain when removing an otherwise clean executor checkout.
+Maintenance closes overdue running attempts only after timeout plus 60 seconds
+and acquiring the execution lock; it records an error without automatic retry.
 Use `orcan-executor doctor --lane LANE` for the profile queue and inspect effective
 `settings` before heavy submissions. The shared `max_running` cap limits jobs,
 not tool threads or per-job CPU/RAM. Keep Gradle/compiler parallelism explicit.

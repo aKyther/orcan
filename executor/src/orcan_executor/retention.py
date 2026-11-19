@@ -26,6 +26,8 @@ def prune(
 ) -> int:
     from .storage import size
 
+    if not dry_run:
+        expire_interrupted()
     cutoff = (datetime.now(UTC) - timedelta(seconds=retention_seconds())).isoformat()
     removed = 0
     with store.database() as db:
@@ -104,7 +106,7 @@ def prune(
                                 definition,
                                 dry_run=dry_run,
                             )
-                        clean = worktree_cleanup.is_clean(tree)
+                        clean = worktree_cleanup.removable(tree, definition)
                     except (OSError, ValueError, subprocess.SubprocessError):
                         pass
             changed = (
@@ -263,6 +265,44 @@ def prune(
         except OSError:
             pass
     return removed
+
+
+def expire_interrupted() -> int:
+    """Close overdue abandoned attempts without rerunning them or killing children."""
+    cutoff = datetime.now(UTC)
+    with store.database() as db:
+        jobs = list(db.execute("SELECT id FROM jobs WHERE status='running'"))
+    expired = 0
+    for row in jobs:
+        directory = state_dir() / "jobs" / row["id"]
+        if directory.is_symlink():
+            continue
+        try:
+            with os.fdopen(
+                os.open(directory / "run.lock", os.O_WRONLY | os.O_NOFOLLOW), "a"
+            ) as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                job = store.get(row["id"])
+                if job["status"] != "running" or not job["started"]:
+                    continue
+                deadline = datetime.fromisoformat(job["started"]) + timedelta(
+                    seconds=job["timeout"] + 60
+                )
+                if deadline > cutoff:
+                    continue
+                store.finish(
+                    job["id"],
+                    "error",
+                    {
+                        "error": "Interrupted execution: timeout elapsed and execution lock is free; "
+                        "no automatic retry. Inspect retained evidence before resubmitting."
+                    },
+                    None,
+                )
+                expired += 1
+        except (OSError, ValueError):
+            continue  # Missing/unreadable metadata is not proof that execution stopped.
+    return expired
 
 
 def maintain():

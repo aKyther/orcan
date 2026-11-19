@@ -191,3 +191,71 @@ def test_per_job_log_budget_is_shared_by_steps(repo, monkeypatch):
     assert result["status"] == "error"
     report = Path(result["report"])
     assert report.with_name("output.log").stat().st_size == 1024**2
+
+
+@pytest.mark.parametrize("extra", [None, "untracked", "ignored", "tracked", "link"])
+def test_reviewed_ignored_outputs_only_allow_disposable_directories(repo, extra):
+    (repo / ".gitignore").write_text("build/\nprivate/\n")
+    cfg = json.loads((repo / profiles.CONFIG).read_text())
+    cfg["profiles"]["quality"]["cleanup_ignored"] = ["build"]
+    (repo / profiles.CONFIG).write_text(json.dumps(cfg))
+    script = 'from pathlib import Path\nPath("build").mkdir()\nPath("build/result").write_text("generated")\n'
+    if extra == "untracked":
+        script += 'Path("notes").write_text("keep")\n'
+    elif extra == "ignored":
+        script += 'Path("private").mkdir()\nPath("private/notes").write_text("keep")\n'
+    elif extra == "tracked":
+        script += 'Path("marker").write_text("keep")\n'
+    elif extra == "link":
+        script += 'import shutil\nshutil.rmtree("build")\nPath("build").symlink_to("private", target_is_directory=True)\n'
+    (repo / "check.py").write_text(script)
+    commit(repo)
+    job = submit(repo)
+    result = engine.run_job(job["id"])
+    assert result["status"] == "passed"
+    tree = Path(store.get(job["id"])["worktree"])
+    assert tree.exists() == (extra is not None)
+    if extra is not None:
+        with store.database() as db:
+            db.execute("UPDATE jobs SET finished='2000-01-01' WHERE id=?", (job["id"],))
+        retention.prune()
+        assert tree.exists()
+
+
+def test_retention_removes_reviewed_outputs_after_tracked_changes_are_restored(repo):
+    (repo / ".gitignore").write_text("build/\n")
+    cfg = json.loads((repo / profiles.CONFIG).read_text())
+    cfg["profiles"]["quality"]["cleanup_ignored"] = ["build"]
+    (repo / profiles.CONFIG).write_text(json.dumps(cfg))
+    (repo / "check.py").write_text(
+        'from pathlib import Path\nPath("build").mkdir()\n'
+        'Path("build/output").write_text("generated")\nPath("marker").write_text("dirty")\n'
+    )
+    commit(repo)
+    job = submit(repo)
+    engine.run_job(job["id"])
+    tree = Path(store.get(job["id"])["worktree"])
+    (tree / "marker").write_text("snapshot")
+    with store.database() as db:
+        db.execute("UPDATE jobs SET finished='2000-01-01' WHERE id=?", (job["id"],))
+    assert retention.prune(dry_run=True) == 1
+    assert tree.exists()
+    assert retention.prune() == 1
+    assert not tree.exists()
+
+
+@pytest.mark.parametrize("output", [".", "../outside", "/tmp", ".git", "build/*", "build/../other"])
+def test_cleanup_directories_must_be_literal_and_inside_snapshot(output):
+    cfg = {
+        "version": 1,
+        "profiles": {"quality": {"steps": [{"argv": ["true"]}], "cleanup_ignored": [output]}},
+    }
+    with pytest.raises(ValueError):
+        profiles.load(json.dumps(cfg))
+
+
+@pytest.mark.parametrize("kind", ["python", "java", "scala"])
+def test_generated_profiles_declare_reviewable_output_paths(repo, kind):
+    definitions = profiles.load(json.dumps(profiles.template(kind, repo)))
+    assert definitions["full"]["cleanup_ignored"]
+    assert definitions["docs"]["cleanup_ignored"]

@@ -104,6 +104,13 @@ def load(text: str) -> dict:
             raise ValueError("Profile timeout_seconds must be an integer from 1 to 21600")
         if type(profile.get("cleanup_archived_reports", False)) is not bool:
             raise ValueError("cleanup_archived_reports must be a boolean")
+        outputs = profile.get("cleanup_ignored", [])
+        if not isinstance(outputs, list) or len(outputs) > 20:
+            raise ValueError("cleanup_ignored requires at most 20 relative directories")
+        for output in outputs:
+            path = relative(output)
+            if not path.parts or ".git" in path.parts or any(c in output for c in "*?[]\\"):
+                raise ValueError("cleanup_ignored requires literal relative directories")
         if type(profile.get("require_junit", False)) is not bool:
             raise ValueError("require_junit must be a boolean")
         if "reuse" in profile:
@@ -234,6 +241,14 @@ def template(kind: str, root: Path) -> dict:
     else:
         profiles = {"quality": profile(["git", "diff", "--check", "HEAD^", "HEAD"])}
     for name, definition in profiles.items():
+        if kind == "python":
+            definition["cleanup_ignored"] = [".venv", ".pytest_cache", ".ruff_cache", "__pycache__"]
+            if name == "docs":
+                definition["cleanup_ignored"].append("site")
+        elif kind == "java":
+            definition["cleanup_ignored"] = [str(Path(cwd) / "build"), str(Path(cwd) / ".gradle")]
+        elif kind == "scala":
+            definition["cleanup_ignored"] = ["target", "project/target"]
         if kind in {"python", "java", "scala"} and name in {"selected", "full"}:
             definition["require_junit"] = True
     return {"version": 1, "profiles": profiles}

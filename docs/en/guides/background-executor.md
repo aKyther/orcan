@@ -1259,6 +1259,14 @@ up to 50 candidate paths (`candidates_truncated` reports truncation). A preview
 reserves nothing; apply rechecks current locks and state. Normal maintenance
 continues to apply the existing retention age automatically.
 
+Maintenance also closes an abandoned `running` attempt as `error` once its
+configured execution timeout plus 60 seconds has elapsed and it can acquire the
+execution lock. It rechecks state under that lock. Held locks, including locks
+inherited by live children, and missing or unreadable lock files prevent this
+transition. No procedure is retried and no successful result is inferred. Existing
+evidence and worktrees then follow the normal retention rules. A cleanup preview
+does not change running jobs.
+
 Active jobs, execution locks, user repositories and shared caches are protected.
 Worktrees containing tracked changes, untracked files or ignored files are
 retained. Their completed artifacts expire independently, so a changed checkout
@@ -1268,8 +1276,20 @@ separately; do not use force removal to make a storage check pass. Cleanup never
 runs Docker prune or a shared package-cache cleaner, never restarts Orcan, and
 may expire oldest completed artifacts early when the detail budget is exceeded.
 
+A reviewed procedure can declare `cleanup_ignored`, a list of literal relative
+output directories, for example `["executor/.venv", ".venv-docs", "site"]`.
+Both completion and retention may remove an otherwise unchanged worktree when
+all remaining files are Git-ignored outputs under those directories. This uses
+ordinary `git worktree remove`, without force. Tracked changes, untracked files,
+undeclared ignored paths and output roots that are files or symlinks still keep
+the checkout. Archive required evidence before allowing its output directory.
+The submitted procedure freezes this list; editing a profile does not change
+cleanup permissions for older jobs. Review these paths with the procedure.
+New Python, Java and Scala profiles declare their usual environment, cache and
+build directories; additional project-specific outputs need explicit paths.
+
 Completion cleanup uses the same conservative worktree check as retention,
-including ignored outputs such as `site` and `.build`. A Git inspection timeout
+including undeclared ignored outputs such as `site` and `.build`. A Git inspection timeout
 retains the worktree and does not stop cleanup of other jobs. A directory-setup
 failure ends the job with an explicit setup error, even if no report file can
 be created; use the compact result for this failure.

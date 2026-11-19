@@ -1,6 +1,7 @@
 """Shared conservative check before removing an executor worktree."""
 
 import hashlib
+import os
 import subprocess
 from pathlib import Path
 
@@ -12,6 +13,43 @@ def is_clean(worktree: Path) -> bool:
         timeout=30,
     )
     return result.returncode == 0 and not result.stdout
+
+
+def removable(worktree: Path, definition: dict) -> bool:
+    """Allow only reviewed ignored output directories in an otherwise clean tree."""
+    allowed = definition.get("cleanup_ignored", [])
+    if not allowed:
+        return is_clean(worktree)
+    result = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(worktree),
+            "status",
+            "--porcelain",
+            "-z",
+            "--untracked-files=normal",
+            "--ignored",
+        ],
+        capture_output=True,
+        timeout=30,
+    )
+    if result.returncode:
+        return False
+    for record in result.stdout.split(b"\0"):
+        if not record:
+            continue
+        if not record.startswith(b"!! "):
+            return False
+        relative = Path(os.fsdecode(record[3:]).rstrip("/"))
+        if not any(relative.is_relative_to(Path(path)) for path in allowed):
+            return False
+        # An output root must be a real directory, never an ignored file/link.
+        for path in allowed:
+            root = worktree / path
+            if relative.is_relative_to(Path(path)) and (root.is_symlink() or not root.is_dir()):
+                return False
+    return True
 
 
 def archived_reports(
