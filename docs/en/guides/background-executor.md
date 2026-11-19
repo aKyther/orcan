@@ -1434,3 +1434,18 @@ TMPDIR="${ORCAN_SCRATCH_DIR:-/tmp}" your-dump-command
 ```
 
 Code that writes to `/tmp` explicitly is unaffected by `TMPDIR`.
+
+
+### Service package and runtime settings
+
+The `executor/` Python application owns job execution, reports and storage.
+The `plugins/redis/` package owns activation, settings metadata, the Compose
+overlay and Supervisor service templates. The shared container launcher calls
+bundled package hooks; the Redis hook validates worker settings before selecting
+its programs. When disabled, it installs no executor services.
+
+Host configuration and runtime executor settings use the package's `plugin.json`
+for defaults and bounds. Standalone executor wheels bundle that descriptor.
+Compose requires settings resolved by `orcan up` and forwards all runtime fields,
+including the four storage budgets. Cockpit remains a separate application and
+reads task status through the executor CLI; it does not manage the queue database.

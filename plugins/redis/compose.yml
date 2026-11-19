@@ -3,15 +3,19 @@ services:
   orcan:
     environment:
       ORCAN_REDIS_ENABLED: "1"
-      ORCAN_EXECUTOR_WORKERS: "${ORCAN_EXECUTOR_WORKERS:-3}"
-      ORCAN_EXECUTOR_SPLIT_LANES: "${ORCAN_EXECUTOR_SPLIT_LANES:-0}"
-      ORCAN_EXECUTOR_MAX_RUNNING: "${ORCAN_EXECUTOR_MAX_RUNNING:-3}"
-      ORCAN_EXECUTOR_TIMEOUT_SECONDS: "${ORCAN_EXECUTOR_TIMEOUT_SECONDS:-1800}"
-      ORCAN_EXECUTOR_REDIS_MEMORY_MB: "${ORCAN_EXECUTOR_REDIS_MEMORY_MB:-128}"
-      ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS: "${ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS:-86400}"
-      ORCAN_EXECUTOR_MAX_PENDING: "${ORCAN_EXECUTOR_MAX_PENDING:-100}"
+      ORCAN_EXECUTOR_SPLIT_LANES: "${ORCAN_EXECUTOR_SPLIT_LANES:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_WORKERS: "${ORCAN_EXECUTOR_WORKERS:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_MAX_PENDING: "${ORCAN_EXECUTOR_MAX_PENDING:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_MAX_RUNNING: "${ORCAN_EXECUTOR_MAX_RUNNING:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_TIMEOUT_SECONDS: "${ORCAN_EXECUTOR_TIMEOUT_SECONDS:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_RETENTION_SECONDS: "${ORCAN_EXECUTOR_RETENTION_SECONDS:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_REDIS_MEMORY_MB: "${ORCAN_EXECUTOR_REDIS_MEMORY_MB:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS: "${ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_LOG_LIMIT_MB: "${ORCAN_EXECUTOR_LOG_LIMIT_MB:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_ARTIFACT_LIMIT_MB: "${ORCAN_EXECUTOR_ARTIFACT_LIMIT_MB:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_DETAIL_BUDGET_MB: "${ORCAN_EXECUTOR_DETAIL_BUDGET_MB:?Run through orcan up to resolve Redis plugin settings}"
+      ORCAN_EXECUTOR_WORKTREE_BUDGET_MB: "${ORCAN_EXECUTOR_WORKTREE_BUDGET_MB:?Run through orcan up to resolve Redis plugin settings}"
       TTYD_CREDENTIAL: "${TTYD_CREDENTIAL:-}"
-      ORCAN_EXECUTOR_RETENTION_SECONDS: "${ORCAN_EXECUTOR_RETENTION_SECONDS:-3600}"
     ports:
-      - "${TTYD_BIND:-0.0.0.0}:${ORCAN_EXECUTOR_PORT:-8765}:8765"
+      - "${TTYD_BIND:-0.0.0.0}:${ORCAN_EXECUTOR_PORT:?Run through orcan up to resolve Redis plugin settings}:8765"
     stop_grace_period: 45s

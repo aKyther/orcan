@@ -144,3 +144,38 @@ def test_package_editor_rejects_invalid_field_and_preserves_previous_value(monke
     monkeypatch.setattr(wizard, 'ask_yes_no', lambda label, default=False: '(ttyd)' in label if label.startswith('Enable ') else label.startswith('Configure '))
     assert wizard.edit_plugins(cfg)
     assert cfg['plugins']['ttyd']['port'] == 8080
+
+
+@pytest.mark.integration
+def test_redis_compose_passes_all_resolved_settings_into_container(tmp_path):
+    import os
+    import shutil
+    import subprocess
+
+    if not shutil.which('docker'):
+        pytest.skip('Docker Compose is unavailable')
+    version = subprocess.run(['docker', 'compose', 'version'], check=False, capture_output=True)
+    if version.returncode:
+        pytest.skip('Docker Compose is unavailable')
+    root = Path(__file__).resolve().parents[2]
+    planner = load_script('plugin-plan.py')
+    configured = {'plugins': {'redis': {
+        'enabled': True, 'workers': 2, 'max_running': 1, 'max_pending': 17,
+        'log_limit_mb': 7, 'artifact_limit_mb': 8, 'detail_budget_mb': 9,
+        'worktree_budget_mb': 1234, 'timeout_seconds': 91, 'retention_seconds': 125,
+    }}}
+    resolved = planner.plan(configured, [])
+    base = tmp_path / 'base.yml'
+    base.write_text('services:\n  orcan:\n    image: fixture\n')
+    value = subprocess.run(
+        ['docker', 'compose', '-f', str(base), '-f', str(root / 'plugins/redis/compose.yml'),
+         'config', '--format', 'json'],
+        env={**os.environ, **{k: str(v) for k, v in resolved.items()}, 'TTYD_CREDENTIAL': ''},
+        check=True, capture_output=True, text=True,
+    )
+    container = json.loads(value.stdout)['services']['orcan']['environment']
+    for entry in catalog():
+        if entry['id'] == 'redis':
+            for name, rule in entry['fields'].items():
+                if name != 'port':
+                    assert container[rule['env']] == str(resolved[rule['env']])

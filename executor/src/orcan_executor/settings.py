@@ -4,6 +4,8 @@ import os
 import re
 from pathlib import Path
 
+from .plugin import fields
+
 HISTORY_DAYS = 30
 HISTORY_LIMIT = 10000
 QUEUE_WAIT_TIMEOUT_SECONDS = 30 * 60
@@ -93,11 +95,16 @@ def integer(key: str, default: int, maximum: int) -> int:
     return default
 
 
-def retention_seconds() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_RETENTION_SECONDS", "3600"))
-    if not 60 <= value <= 86400:
-        raise ValueError("Retention must be between 60 and 86400 seconds")
+def plugin_integer(name: str, label: str, *, default: int | None = None) -> int:
+    rule = fields()[name]
+    value = int(os.environ.get(rule["env"], str(rule["default"] if default is None else default)))
+    if not rule["minimum"] <= value <= rule["maximum"]:
+        raise ValueError(f"{label} must be between {rule['minimum']} and {rule['maximum']}")
     return value
+
+
+def retention_seconds() -> int:
+    return plugin_integer("retention_seconds", "Retention")
 
 
 def minimum_free_mb() -> int:
@@ -108,64 +115,42 @@ def minimum_free_mb() -> int:
 
 
 def storage_limit_mb(name: str) -> int:
-    defaults = {
-        "log_limit_mb": 16,
-        "artifact_limit_mb": 64,
-        "detail_budget_mb": 1024,
-        "worktree_budget_mb": 8192,
-    }
-    value = int(os.environ.get("ORCAN_EXECUTOR_" + name.upper(), str(defaults[name])))
-    if not 1 <= value <= 1048576:
-        raise ValueError(name + " must be between 1 and 1048576 MiB")
-    return value
+    if name not in {"log_limit_mb", "artifact_limit_mb", "detail_budget_mb", "worktree_budget_mb"}:
+        raise ValueError("Unknown executor storage limit: " + name)
+    return plugin_integer(name, name)
 
 
 def max_pending() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_MAX_PENDING", "100"))
-    if not 1 <= value <= 10000:
-        raise ValueError("Pending limit must be between 1 and 10000")
-    return value
+    return plugin_integer("max_pending", "Pending limit")
 
 
 def max_running() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_MAX_RUNNING", "3"))
-    if not 1 <= value <= 10:
-        raise ValueError("Running limit must be between 1 and 10")
-    return value
+    return plugin_integer("max_running", "Running limit")
 
 
 def default_timeout() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_TIMEOUT_SECONDS", "1800"))
-    if not 1 <= value <= 21600:
-        raise ValueError("Default timeout must be between 1 and 21600 seconds")
-    return value
+    return plugin_integer("timeout_seconds", "Default timeout")
 
 
 def redis_memory_mb() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_REDIS_MEMORY_MB", "128"))
-    if not 32 <= value <= 4096:
-        raise ValueError("Redis memory limit must be between 32 and 4096 MiB")
-    return value
+    return plugin_integer("redis_memory_mb", "Redis memory limit")
 
 
 def visibility_timeout() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_VISIBILITY_TIMEOUT_SECONDS", "86400"))
-    if not 22200 <= value <= 86400:
-        raise ValueError("Visibility timeout must be between 22200 and 86400 seconds")
-    return value
+    return plugin_integer("visibility_timeout_seconds", "Visibility timeout")
 
 
 def worker_count() -> int:
-    value = int(os.environ.get("ORCAN_EXECUTOR_WORKERS", "1" if split_lanes() else "3"))
-    if not 1 <= value <= 10:
-        raise ValueError("Worker count must be between 1 and 10")
+    default = 1 if split_lanes() else fields()["workers"]["default"]
+    value = plugin_integer("workers", "Worker count", default=default)
     if split_lanes() and value != 1:
         raise ValueError("Worker count must be 1 when split lanes are enabled")
     return value
 
 
 def split_lanes() -> bool:
-    return os.environ.get("ORCAN_EXECUTOR_SPLIT_LANES", "0") == "1"
+    rule = fields()["split_lanes"]
+    return os.environ.get(rule["env"], str(int(rule["default"]))) == "1"
 
 
 def execution_lane(lane: str) -> str:
@@ -196,5 +181,5 @@ def effective() -> dict:
         "history_days": HISTORY_DAYS,
         "history_limit": HISTORY_LIMIT,
         "scheduling": "repo_round_robin_per_lane",
-        "source": "process environment with built-in defaults; host launch resolves JSON settings",
+        "source": "process environment with bundled Redis plugin defaults; host launch resolves JSON settings",
     }

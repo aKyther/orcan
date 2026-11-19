@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -63,6 +64,8 @@ def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled, split, 
             "ORCAN_EXECUTOR_SPLIT_LANES": split,
             "ORCAN_EXECUTOR_WORKERS": workers,
             "ORCAN_SUPERVISOR_DRY_RUN": "1",
+            "ORCAN_SUPERVISOR_PLUGINS_D": str(ROOT / "plugins"),
+            "ORCAN_SUPERVISOR_PYTHON": sys.executable,
             "ORCAN_SUPERVISOR_STATE_D": str(tmp_path),
             "ORCAN_SUPERVISOR_CONF_D": str(
                 ROOT / "docker/rootfs/etc/orcan/supervisor.d"
@@ -119,3 +122,25 @@ def test_dashboard_url_inherits_ttyd_host_and_has_own_port():
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "http://100.64.0.9:8877"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("workers,split", [("0", "0"), ("11", "0"), ("2", "1")])
+def test_redis_package_rejects_invalid_pools_before_installing_programs(tmp_path, workers, split):
+    result = subprocess.run(
+        ["bash", str(ROOT / "docker/rootfs/usr/local/bin/orcan-supervisord")],
+        env={
+            **os.environ,
+            "ORCAN_REDIS_ENABLED": "1",
+            "ORCAN_EXECUTOR_SPLIT_LANES": split,
+            "ORCAN_EXECUTOR_WORKERS": workers,
+            "ORCAN_SUPERVISOR_DRY_RUN": "1",
+            "ORCAN_SUPERVISOR_STATE_D": str(tmp_path),
+            "ORCAN_SUPERVISOR_CONF_D": str(ROOT / "docker/rootfs/etc/orcan/supervisor.d"),
+            "ORCAN_SUPERVISOR_CONF_TEMPLATE": str(ROOT / "docker/rootfs/etc/orcan/supervisord.conf"),
+            "ORCAN_SUPERVISOR_PLUGINS_D": str(ROOT / "plugins"),
+            "ORCAN_SUPERVISOR_PYTHON": sys.executable,
+        }, check=False, capture_output=True, text=True,
+    )
+    assert result.returncode != 0
+    assert not list((tmp_path / "programs").glob("executor-*.conf"))

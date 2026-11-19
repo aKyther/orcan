@@ -585,7 +585,9 @@ COPY executor/ /opt/orcan-executor-src/
 RUN cd /opt/orcan-cockpit-src \
     && UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-cockpit/venv uv sync --frozen --python /usr/bin/python3 \
     && cd /opt/orcan-executor-src \
+    && ln -s /opt/orcan/plugins /opt/plugins \
     && UV_PYTHON_INSTALL_DIR=/opt/python UV_NO_CACHE=1 UV_PROJECT_ENVIRONMENT=/opt/orcan-executor/venv uv sync --frozen --no-dev --python 3.12 \
+    && rm /opt/plugins \
     && chmod -R a+rX /opt/orcan-cockpit-src /opt/orcan-executor-src \
     && /opt/orcan-cockpit/venv/bin/python3 -c 'import orcan_cockpit, textual, pyte, libtmux, watchfiles' \
     && test -x /opt/orcan-cockpit/venv/bin/orcan-cockpit

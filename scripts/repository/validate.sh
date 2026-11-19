@@ -22,6 +22,9 @@ require_file "docker-compose.yml"
 require_file "plugins/docker/compose.yml"
 require_file "plugins/ttyd/compose.yml"
 require_file "plugins/redis/compose.yml"
+require_file "plugins/redis/supervisor.sh"
+require_file "plugins/redis/supervisor.py"
+require_file "plugins/redis/supervisor.d/executor-worker.conf"
 require_file "executor/uv.lock"
 require_file "Makefile"
 require_file "install.sh"
@@ -288,6 +291,8 @@ bash_scripts=(
     tests/integration/test-runtime-reconcile.sh
 )
 
+bash_scripts+=(plugins/*/runtime.sh plugins/*/supervisor.sh)
+
 for script in "${bash_scripts[@]}"; do
     if [[ -f "${script}" ]]; then
         bash -n "${script}"
@@ -362,6 +367,7 @@ for script in \
     scripts/repository/git_worktrees.py \
     scripts/repository/fork_worktrees.py \
     docker/rootfs/usr/local/lib/orcan/storage_config.py \
+    plugins/redis/supervisor.py \
     scripts/repository/managed_workspace.py \
     scripts/repository/migrate_projects.py \
     scripts/repository/history.py \
