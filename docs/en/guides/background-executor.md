@@ -1234,7 +1234,7 @@ for JSON disk and category measurements. The host command requires a running
 container. Categories include job artifacts, executor worktrees, directory
 snapshots, and shared uv, pip and Gradle caches. These are allocated bytes,
 not an estimate of recoverable space. Overlapping paths and hardlinks can
-appear in several categories. Scans stop at 100,000 entries per category;
+appear in several categories. Scans stop at 150,000 entries per category;
 `incomplete: true` means the measurement is partial. File contents are not read.
 
 `orcan storage docker` reports Docker images, containers, volumes and builder
