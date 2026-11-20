@@ -71,6 +71,14 @@ arbitrary files elsewhere inside the container surviving its removal.
 To review configured folder paths, run `orcan context show` in the host terminal.
 Orcan's default configuration and saved tool data live under `~/.config/orcan/`.
 
+## Cache space
+
+Orcan checks supported tool caches hourly and lets each tool remove stale data
+safely. This keeps useful downloads available for later work. It does not delete
+all cache every hour or promise a fixed disk size.
+See [Automatic cache maintenance](orcan-flow.md#automatic-cache-maintenance)
+for retention periods, status and how to disable it.
+
 ## Get help
 
 | Need | Where to go |

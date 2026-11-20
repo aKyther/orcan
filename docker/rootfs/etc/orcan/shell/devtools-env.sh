@@ -23,6 +23,13 @@ export YARN_CACHE_FOLDER="${YARN_CACHE_FOLDER:-${XDG_CACHE_HOME}/yarn}"
 export npm_config_cache="${npm_config_cache:-${XDG_CACHE_HOME}/npm}"
 export PNPM_HOME="${PNPM_HOME:-${XDG_CACHE_HOME}/pnpm}"
 export CARGO_HOME="${CARGO_HOME:-${XDG_CACHE_HOME}/cargo}"
+# Stable Cargo >=1.88 checks its native age-based GC during normal tool use.
+# This changes check frequency, not the retention age or project target directories.
+if [[ -e "${XDG_CACHE_HOME}/orcan-maintenance.disabled" ]]; then
+    export CARGO_CACHE_AUTO_CLEAN_FREQUENCY="${CARGO_CACHE_AUTO_CLEAN_FREQUENCY:-never}"
+else
+    export CARGO_CACHE_AUTO_CLEAN_FREQUENCY="${CARGO_CACHE_AUTO_CLEAN_FREQUENCY:-1 hour}"
+fi
 export GOPATH="${GOPATH:-${XDG_CACHE_HOME}/go}"
 export GOCACHE="${GOCACHE:-${XDG_CACHE_HOME}/go-build}"
 export GOMODCACHE="${GOMODCACHE:-${GOPATH}/pkg/mod}"

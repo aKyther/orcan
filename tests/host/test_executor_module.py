@@ -88,6 +88,7 @@ def test_supervisor_only_installs_module_when_enabled(tmp_path, enabled, split, 
     assert ("executor-worker-light" in programs) == (enabled == "1" and split == "1")
     for slot in range(2,11):
         assert (f"executor-worker-{slot}" in programs) == (enabled == "1" and int(workers) >= slot)
+    assert "cache-maintenance" in programs
     assert "keepalive" in programs
 
 

@@ -148,3 +148,50 @@ exact committed SHA. Successful stdout never enters agent completion messages.
 Failure excerpts are bounded; full logs/XML are consumed in explicit chunks.
 Dashboard instrumentation stays out of agent results. A background process avoids
 blocking a turn, but does not itself make tests faster or prove token-cost savings.
+
+## Automatic cache maintenance
+
+Orcan checks shared tool caches once per hour, starting when the container starts.
+This service works without Redis or the background executor. One shared lock and
+last-run marker prevent containers using the same cache from pruning it together.
+
+The hourly interval is a check frequency, not a one-hour lifetime for packages.
+
+| Tool | What Orcan does | What stays |
+| --- | --- | --- |
+| uv | Runs native `uv cache prune` hourly, with a short lock wait; busy runs are deferred. | Useful cache entries remain according to uv's own rules. No `--force` or `--ci` is used. |
+| Gradle 8+ | Installs a native unused-entry policy: downloaded resources 14 days, generated resources and snapshot distributions 7 days, released distributions 30 days. Gradle 8.8+ build cache entries use 7 days. | Recently used entries remain. Gradle applies cleanup during its normal lifecycle, generally at most daily; Orcan does not launch builds just to clean caches. |
+| Cargo 1.88+ | Sets `CARGO_CACHE_AUTO_CLEAN_FREQUENCY` to `1 hour` unless already set. Cargo checks its native age-based cleanup during normal use. | Cargo's default retention ages stay unchanged. Installed programs and project `target/` directories are not removed by this service. |
+
+uv pruning is not an age-based or fixed-size cap. These policies reduce stale
+cache accumulation; they cannot guarantee a maximum cache size or reclaim space
+immediately. Older Gradle/Cargo versions retain their own supported behavior.
+See the native [uv cache](https://docs.astral.sh/uv/concepts/cache/),
+[Gradle retention](https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home)
+and [Cargo cleanup](https://doc.rust-lang.org/cargo/reference/config.html#cache)
+documentation.
+
+Orcan creates `gradle/init.d/orcan-cache-retention.gradle` only if it does not
+exist. Existing content is preserved. Custom Gradle/uv cache locations and
+symlinked cache roots are skipped by the hourly service. No recursive cache
+removal, `cargo clean`, or deletion of installed tools is performed.
+
+To disable Orcan's policy, run inside the container:
+
+```bash
+touch "$XDG_CACHE_HOME/orcan-maintenance.disabled"
+```
+
+uv skips its next hourly pass; the installed Gradle policy checks this marker on
+its next invocation. New Orcan shells default Cargo's cleanup frequency to
+`never` while the marker exists; an explicit frequency setting takes precedence.
+Remove the marker to allow the policy again. Existing shells retain their
+exported Cargo setting until reopened. Gradle and uv may still perform their
+own normal cache management independently of Orcan.
+
+Service results are in
+`~/.local/share/orcan/history/supervisor/childlog/cache-maintenance.err.log`.
+Busy or unavailable uv caches are reported as deferred rather than forcibly
+cleaned. Cache checks are separate from `orcan storage clean`, which manages
+executor-owned completed data. To activate this feature on an existing runtime,
+finish active work, rebuild the Orcan image and recreate the container.

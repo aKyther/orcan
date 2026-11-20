@@ -65,6 +65,11 @@ case "${MODE}" in
         ;;
 esac
 
+# Native shared-cache maintenance is also available without Redis/executor.
+if [[ -f "${CONF_SRC}/cache-maintenance.conf" ]]; then
+    install_program "${CONF_SRC}/cache-maintenance.conf"
+fi
+
 # Container hooks are bundled plugin code, never user-configured script paths.
 PLUGIN_ROOT="${ORCAN_SUPERVISOR_PLUGINS_D:-/opt/orcan/plugins}"
 for script in "${PLUGIN_ROOT}"/*/supervisor.sh; do
