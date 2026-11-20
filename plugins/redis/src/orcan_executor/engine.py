@@ -147,6 +147,10 @@ def execute(
     if timeout <= 0:
         raise subprocess.TimeoutExpired(command, timeout)
     remaining = storage_limit_mb("log_limit_mb") * 1024**2 if max_bytes is None else max_bytes
+    from .storage import require_capacity
+
+    require_capacity()
+    next_disk_check = time.monotonic() + 1
     deadline = time.monotonic() + timeout
     # Drain a bounded pipe; passing a raw file to the child cannot bound its writes.
     with subprocess.Popen(
@@ -161,6 +165,9 @@ def execute(
             with selectors.DefaultSelector() as selector:
                 selector.register(process.stdout, selectors.EVENT_READ)
                 while True:
+                    if time.monotonic() >= next_disk_check:
+                        require_capacity()
+                        next_disk_check = time.monotonic() + 1
                     left = deadline - time.monotonic()
                     if left <= 0:
                         raise subprocess.TimeoutExpired(command, timeout)
@@ -168,7 +175,15 @@ def execute(
                         continue
                     chunk = os.read(process.stdout.fileno(), 65536)
                     if not chunk:
-                        return process.wait(timeout=max(0.001, deadline - time.monotonic()))
+                        # A command may close stdout and keep running.
+                        while process.poll() is None:
+                            if time.monotonic() >= deadline:
+                                raise subprocess.TimeoutExpired(command, timeout)
+                            if time.monotonic() >= next_disk_check:
+                                require_capacity()
+                                next_disk_check = time.monotonic() + 1
+                            time.sleep(0.2)
+                        return process.returncode
                     log.write(chunk[:remaining])
                     remaining -= len(chunk)
                     if remaining < 0:

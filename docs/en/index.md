@@ -10,7 +10,7 @@ Orcan prepares an environment for coding agents and connects your project
 folders to it. You choose an agent, sign into your own account, and work with it
 in a terminal. Orcan uses Docker to run that environment.
 
-<span class="orcan-version">Version **4.1.60**</span>
+<span class="orcan-version">Version **4.1.61**</span>
 
 ## Start here
 

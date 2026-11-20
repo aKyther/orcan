@@ -24,7 +24,12 @@ from .settings import (
 def prune(
     *, dry_run: bool = False, candidates: list | None = None, clean_reports: bool = False
 ) -> int:
-    from .storage import size
+    from .storage import capacity, size
+
+    try:
+        low_space = not capacity()["ready"]
+    except (OSError, ValueError):
+        low_space = False  # Unknown/offline storage is not permission to reclaim data.
 
     if not dry_run:
         expire_interrupted()
@@ -53,9 +58,10 @@ def prune(
         if (
             job["id"] not in sizes
             or not job["finished"]
-            or (job["finished"] >= cutoff and total <= budget)
+            or (job["finished"] >= cutoff and total <= budget and not low_space)
         ):
             continue
+        expire_details = job["finished"] < cutoff or total > budget
         directory = state_dir() / "jobs" / job["id"]
         if directory.is_symlink():
             continue
@@ -115,6 +121,8 @@ def prune(
                 or (fresh.get("worktree") and not retained)
                 or (not retained and git_dir)
             )
+            if not expire_details and not (clean or (not retained and git_dir)):
+                continue
             if not changed:
                 continue
             if dry_run:
@@ -122,10 +130,11 @@ def prune(
                     candidates.append(
                         {
                             "job_id": job["id"],
-                            "artifacts": str(payload) if not fresh["details_expired"] else None,
+                            "artifacts": str(payload) if expire_details and not fresh["details_expired"] else None,
                             "worktree": retained if clean else None,
                             "retained_worktree": retained if not clean else None,
-                            "reason": "ttl" if job["finished"] < cutoff else "detail_budget",
+                            "reason": ("ttl" if job["finished"] < cutoff else "detail_budget")
+                            if expire_details else "disk_space",
                         }
                     )
                 total -= sizes[job["id"]]
@@ -171,6 +180,23 @@ def prune(
                         git_dir = None
                 except (OSError, subprocess.SubprocessError):
                     pass
+            if not expire_details:
+                # Reclaim disposable completed trees under pressure, preserving fresh evidence.
+                summary = dict(fresh["summary"] or {})
+                if not retained:
+                    summary.pop("retained_worktree", None)
+                with store.database() as db:
+                    db.execute(
+                        "UPDATE jobs SET worktree=?,git_dir=?,summary=? WHERE id=?",
+                        (retained, git_dir, json.dumps(summary), job["id"]),
+                    )
+                removed += int(not retained)
+                # Stop pressure cleanup once the reserve has been restored.
+                try:
+                    low_space = not capacity()["ready"]
+                except (OSError, ValueError):
+                    low_space = False
+                continue
             # Keep the lock stable while artifact removal and metadata expiry run.
             try:
                 for child in payload.iterdir() if payload.exists() else []:

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Use actual free disk space instead of a worktree size budget for executor admission. Monitor the reserve during commands, report low-space waits clearly, and reclaim only disposable completed worktrees under pressure while preserving fresh reports and active/modified work. Accept the old worktree-budget setting as ignored compatibility data.
+
 - Review beginner guidance against the CLI: use the sequential setup questions explicitly, explain project labels and folder navigation, lead configuration with file-free editing, and prioritize common project/agent problems in help.
 
 - Simplify README and organize user documentation around installation, a first agent session, daily use and symptom-based help. Keep detailed instructions in one place and Studio in its separate repository.

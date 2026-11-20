@@ -29,20 +29,31 @@ def capacity() -> dict:
 
 
 def worktree_capacity() -> dict:
-    budget = storage_limit_mb("worktree_budget_mb") * 1024**2
-    trees = size(worktree_root(), limit=None, stop_after_bytes=budget)
-    return {
-        "ready": not trees["incomplete"] and trees["allocated_bytes"] <= budget,
-        **trees,
-        "budget_bytes": budget,
-    }
+    """Bounded informational accounting; never used to admit or reject work."""
+    return size(worktree_root())
+
+
+def require_capacity() -> None:
+    """Check actual free space without scanning checkouts or reading file contents."""
+    result = capacity()
+    if result["ready"]:
+        return
+    for disk in result["filesystems"]:
+        if not disk["ready"]:
+            free = disk["free_bytes"] // 1024**2
+            reserve = disk["minimum_free_bytes"] // 1024**2
+            raise OSError(
+                f"Disk reserve reached at {disk['path']}: {free} MiB free; "
+                f"{reserve} MiB required. Free disk space or review executor storage clean. "
+                "Active or modified worktrees are preserved; no automatic procedure retry."
+            )
 
 
 def size(path: Path, *, limit: int | None = 150000, stop_after_bytes: int | None = None) -> dict:
     """Stream metadata without following links; hardlinked files count once.
 
-    Reports bound their entry count. Admission scans until complete or over its
-    byte budget, so many small files cannot permanently block an under-budget tree.
+    Reports bound their entry count. Neither report completeness nor checkout
+    size controls admission; admission uses actual filesystem free space.
     Open directory iterators and pending paths scale with depth, not file count.
     """
     total = entries = 0
@@ -112,7 +123,7 @@ def report() -> dict:
     disks = capacity()
     trees = worktree_capacity()
     return disks | {
-        "ready": disks["ready"] and trees["ready"],
+        "ready": disks["ready"],
         "worktrees": trees,
         "detail_budget_bytes": storage_limit_mb("detail_budget_mb") * 1024**2,
         "categories": [
@@ -125,6 +136,7 @@ def report() -> dict:
             for name, path in categories.items()
         ],
         "notes": [
+            "Worktree sizes are informational; incomplete accounting does not block jobs.",
             "Categories may overlap or share hardlinks; do not sum them as recoverable space.",
             "Shared caches, Docker, user repositories and dirty worktrees are never deleted by storage clean.",
         ],

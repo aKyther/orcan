@@ -122,11 +122,11 @@
     "worktree_budget_mb": {
       "type": "integer",
       "default": 8192,
-      "label": "Worktree admission budget MiB",
+      "label": "Legacy worktree budget MiB (ignored)",
       "env": "ORCAN_EXECUTOR_WORKTREE_BUDGET_MB",
       "minimum": 1,
       "maximum": 1048576,
-      "help": "Pause new jobs above this worktree budget. Existing active or modified checkouts are preserved."
+      "help": "Deprecated compatibility setting; ignored. Actual free disk space controls admission. Worktree size is informational."
     }
   },
   "verifier": "executor",

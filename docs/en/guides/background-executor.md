@@ -96,7 +96,6 @@ Use `orcan settings` to choose the Redis/executor plugin and edit its settings w
       "log_limit_mb": 16,
       "artifact_limit_mb": 64,
       "detail_budget_mb": 1024,
-      "worktree_budget_mb": 8192,
       "redis_memory_mb": 128,
       "visibility_timeout_seconds": 86400,
       "port": 8765
@@ -1242,11 +1241,13 @@ cache using the existing build storage diagnostic. It does not delete data and
 can run without a running Orcan container. Daemon free space can be unknown
 when Docker is remote; local free space is not a substitute.
 
-Before starting a procedure, the executor checks both the state filesystem and
-the worktree filesystem. Each must have at least 1 GiB free. The worker process
+Before starting a procedure, the executor checks the state, worktree and artifact
+filesystems. Each must have at least 1 GiB free. The worker process
 can set `ORCAN_EXECUTOR_MIN_FREE_MB` (1–1048576 MiB); effective executor settings
-show the selected value. This is a start reserve, not a per-job disk quota or a
-guarantee that a running build cannot exhaust disk space. Parallel builds share
+show the selected value. Workers check the reserve before each procedure command and about once per
+second while it runs. If free space drops below it, the command process group
+is stopped and the job returns an error, without automatic retry. This is not a
+per-job disk quota or a guarantee against sudden disk exhaustion. Parallel builds share
 the same disks. A blocked job stays queued with `admission_reason: disk_space`,
 does not consume an execution attempt, and is retried through normal admission.
 The existing 30-minute queue wait limit still applies. Cockpit Tasks highlights
@@ -1320,13 +1321,10 @@ package caches and directories outside the worktree are unaffected.
 
 ### Disk budgets and bounded output
 
-Worktree admission counts allocated bytes across the complete directory tree,
-without following symlinks or reading file contents. It stops early when the
-worktree byte budget is exceeded. The 150,000-entry limit used for category
-reports does not limit admission accounting: many small files alone do not
-block a job. Unreadable directories still pause admission. Queued jobs distinguish
-`disk_space` (filesystem reserve), `worktree_budget` (allocated byte budget),
-and `worktree_accounting` (incomplete measurement).
+New jobs are admitted using actual filesystem free space, not the total size or
+number of files in executor worktrees. Worktree sizes are informational: a
+partial category scan never blocks a job. The legacy `worktree_budget_mb` and
+`ORCAN_EXECUTOR_WORKTREE_BUDGET_MB` settings remain accepted but are ignored.
 
 All sizes below are MiB. Configure them under `plugins.redis` in Orcan settings:
 
@@ -1335,17 +1333,18 @@ All sizes below are MiB. Configure them under `plugins.redis` in Orcan settings:
 | `log_limit_mb` | 16 | Combined command output per job; overflow stops the command and returns an error. |
 | `artifact_limit_mb` | 64 | Total copied JUnit and declared artifact payload per job; oversized evidence cannot pass. |
 | `detail_budget_mb` | 1024 | Budget for completed log/report directories; maintenance expires oldest completed details first. |
-| `worktree_budget_mb` | 8192 | Admission budget for worktrees; new jobs wait when exceeded or accounting is incomplete. |
 
 Workers also accept the corresponding `ORCAN_EXECUTOR_LOG_LIMIT_MB`,
-`ORCAN_EXECUTOR_ARTIFACT_LIMIT_MB`, `ORCAN_EXECUTOR_DETAIL_BUDGET_MB`, and
-`ORCAN_EXECUTOR_WORKTREE_BUDGET_MB` variables. Each accepts 1..1048576 MiB.
+`ORCAN_EXECUTOR_ARTIFACT_LIMIT_MB` and `ORCAN_EXECUTOR_DETAIL_BUDGET_MB` variables. Each accepts 1..1048576 MiB.
 Service stdout/stderr already rotate at 2 MB per file with one backup per stream.
 The per-job log is kept both by step and as a combined log, so their disk payload
 can be about twice `log_limit_mb`. Budget cleanup runs about every 30 seconds;
 active jobs, temporary source reports, build outputs and protected modified
 worktrees can exceed these budgets. This is not a container filesystem quota.
-A worktree budget pauses new jobs instead of deleting preserved changes.
+Under low disk space, maintenance can remove clean completed worktrees before
+their normal retention time, under the execution lock. Fresh reports keep their
+normal retention and detail-budget rules. Active, modified and unidentified
+worktrees remain protected; cleanup cannot always recover enough space.
 
 A reviewed procedure can set `cleanup_archived_reports: true`. After archival,
 Orcan removes only untracked files matched by that procedure's `junit` globs

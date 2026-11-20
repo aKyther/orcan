@@ -74,14 +74,14 @@ def test_budget_expires_oldest_completed_before_ttl_and_preserves_dirty_tree(rep
     assert not tree.exists()
 
 
-def test_worktree_budget_pauses_new_work(repo, monkeypatch):
+def test_legacy_worktree_budget_does_not_pause_new_work(repo, monkeypatch):
     monkeypatch.setenv("ORCAN_EXECUTOR_WORKTREE_BUDGET_MB", "1")
     tree = settings.worktree_root()
     tree.mkdir(parents=True)
     (tree / "reserved").write_bytes(b"x" * 2 * 1024**2)
     job = submit(repo)
-    assert engine.run_job(job["id"]) is None
-    assert store.get(job["id"])["attempts"] == 0
+    assert engine.run_job(job["id"])["status"] == "passed"
+    assert store.get(job["id"])["attempts"] == 1
     assert (tree / "reserved").exists()
 
 
@@ -126,15 +126,15 @@ def test_opt_in_cleanup_allows_worktree_completion_without_retaining_duplicate_j
     assert (Path(result["report"]).parent / "junit/TEST-0.xml").exists()
 
 
-def test_incomplete_worktree_accounting_pauses_admission(repo, monkeypatch):
+def test_incomplete_worktree_accounting_does_not_pause_admission(repo, monkeypatch):
     monkeypatch.setattr(
         storage,
         "size",
         lambda *args, **kwargs: {"allocated_bytes": 0, "entries": 1, "incomplete": True},
     )
     job = submit(repo)
-    assert engine.run_job(job["id"]) is None
-    assert store.get(job["id"])["attempts"] == 0
+    assert engine.run_job(job["id"])["status"] == "passed"
+    assert store.get(job["id"])["attempts"] == 1
 
 
 def test_budget_preserves_locked_completed_artifacts(repo, monkeypatch):

@@ -338,7 +338,7 @@ def start(job_id: str, worktree: Path) -> bool:
             return False
         if _expire_queued(db, candidate) is not None:
             return False
-        from .storage import capacity, worktree_capacity
+        from .storage import capacity
 
         reason = None
         try:
@@ -346,17 +346,6 @@ def start(job_id: str, worktree: Path) -> bool:
                 reason = "disk_space"
         except (OSError, ValueError):
             reason = "disk_space"
-        if reason is None:
-            try:
-                trees = worktree_capacity()
-                if not trees["ready"]:
-                    reason = (
-                        "worktree_budget"
-                        if trees["allocated_bytes"] > trees["budget_bytes"]
-                        else "worktree_accounting"
-                    )
-            except (OSError, ValueError):
-                reason = "worktree_accounting"
         if reason:
             db.execute(
                 "UPDATE jobs SET status='queued',admission_reason=? WHERE id=?",
@@ -436,6 +425,12 @@ def _expire_queued(db, job) -> dict | None:
         "Queue wait exceeded 30 minutes; no procedure executed during this queue wait. "
         "Inspect executor health before submitting a new check."
     )
+    if job["admission_reason"] == "disk_space":
+        message += (
+            " Last admission block: insufficient free disk space. Run orcan-executor storage; "
+            "review storage clean to reclaim disposable completed worktrees. "
+            "Active and modified worktrees are preserved."
+        )
     directory = state_dir() / "jobs" / job["id"]
     directory.mkdir(parents=True, exist_ok=True)
     report = directory / "report.json"

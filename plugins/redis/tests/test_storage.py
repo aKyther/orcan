@@ -213,32 +213,20 @@ def test_pulse_uses_count_and_capacity_without_analytics_or_scanning(repo, monke
     assert json.loads(capsys.readouterr().out)['storage']['ready'] is None
 
 
-def test_admission_counts_beyond_report_entry_limit(tmp_path, monkeypatch):
-    """Many small outputs must not look like a full disk or hide later bytes."""
+def test_worktree_report_is_bounded_without_admission_budget(tmp_path, monkeypatch):
     import stat
     from types import SimpleNamespace
 
     root = tmp_path / "worktrees"
     root.mkdir()
     monkeypatch.setattr(storage, "worktree_root", lambda: root)
-    monkeypatch.setattr(storage, "storage_limit_mb", lambda key: 1)
-    metadata = SimpleNamespace(st_mode=stat.S_IFREG, st_nlink=1, st_blocks=0)
     entry = Mock()
-    entry.stat.return_value = metadata
-    def children(path):
-        yield from (entry for _ in range(150001))
-    monkeypatch.setattr(storage.os, "scandir", children)
-    assert storage.size(root)["incomplete"]
-    capacity = storage.worktree_capacity()
-    assert capacity["ready"]
-    assert capacity["entries"] == 150002
-    assert not capacity["incomplete"]
-    # The same number of files now exceeds the byte budget: admission still stops.
-    metadata.st_blocks = 8
-    capacity = storage.worktree_capacity()
-    assert not capacity["ready"]
-    assert capacity["allocated_bytes"] > capacity["budget_bytes"]
-    assert capacity["entries"] < 150000
+    entry.stat.return_value = SimpleNamespace(st_mode=stat.S_IFREG, st_nlink=1, st_blocks=8)
+    monkeypatch.setattr(storage.os, "scandir", lambda path: iter([entry] * 150001))
+    result = storage.worktree_capacity()
+    assert result["incomplete"]
+    assert result["entries"] == 150000
+    assert "budget_bytes" not in result
 
 
 def test_streaming_accounting_deduplicates_hardlinks(tmp_path):
@@ -251,24 +239,78 @@ def test_streaming_accounting_deduplicates_hardlinks(tmp_path):
     assert storage.size(root, limit=None)["allocated_bytes"] == original.stat().st_blocks * 512
 
 
-def test_unreadable_worktree_still_blocks_admission(tmp_path, monkeypatch):
-    monkeypatch.setattr(storage, "worktree_root", lambda: tmp_path)
-    def unreadable(path):
-        raise PermissionError("synthetic denied")
-    monkeypatch.setattr(storage.os, "scandir", unreadable)
-    assert not storage.worktree_capacity()["ready"]
-
-
-@pytest.mark.parametrize("over_budget", [False, True])
-def test_worktree_block_reason_is_distinct_from_low_disk(repo, monkeypatch, over_budget):
-    monkeypatch.setattr(storage, "capacity", lambda: {"ready": True})
-    monkeypatch.setattr(storage, "worktree_capacity", lambda: {
-        "ready": False, "allocated_bytes": 2 if over_budget else 0, "budget_bytes": 1,
-        "incomplete": not over_budget,
+def test_incomplete_worktree_report_does_not_change_storage_readiness(monkeypatch):
+    monkeypatch.setattr(storage, "capacity", lambda: {"ready": True, "filesystems": []})
+    monkeypatch.setattr(storage, "size", lambda *a, **k: {
+        "allocated_bytes": 100000000000, "entries": 150000, "incomplete": True,
     })
+    assert storage.report()["ready"]
+    assert storage.report()["worktrees"]["incomplete"]
+
+
+def test_admission_never_scans_worktree_contents(repo, monkeypatch):
+    monkeypatch.setattr(storage, "size", Mock(side_effect=AssertionError("no scans")))
     job = submit(repo)
-    assert engine.run_job(job["id"]) is None
-    reason = "worktree_budget" if over_budget else "worktree_accounting"
-    assert store.get(job["id"])["admission_reason"] == reason
-    assert store.get(job["id"])["attempts"] == 0
-    assert store.attention_overview()["jobs"][0]["admission_reason"] == reason
+    assert store.start(job["id"], storage.worktree_root() / job["id"])
+    assert store.get(job["id"])["admission_reason"] is None
+
+
+def test_low_space_during_execution_stops_process_and_preserves_changes(repo, monkeypatch):
+    from conftest import commit
+
+    (repo / "check.py").write_text(
+        'from pathlib import Path\nimport time\n'
+        'Path("marker").write_text("keep work")\ntime.sleep(30)\n'
+    )
+    commit(repo)
+    checks = 0
+    def capacity():
+        nonlocal checks
+        checks += 1
+        ready = checks < 3
+        return {"ready": ready, "filesystems": [{
+            "path": "/synthetic", "ready": ready, "free_bytes": 0,
+            "minimum_free_bytes": 1024**2,
+        }]}
+    monkeypatch.setattr(storage, "capacity", capacity)
+    result = engine.run_job(submit(repo)["id"])
+    assert result["status"] == "error"
+    assert "Disk reserve reached" in result["summary"]["error"]
+    tree = Path(store.get(result["job_id"])["worktree"])
+    assert (tree / "marker").read_text() == "keep work"
+
+
+@pytest.mark.parametrize("dirty", [False, True])
+@pytest.mark.parametrize("locked", [False, True])
+def test_low_space_maintenance_reclaims_only_clean_completed_tree_and_keeps_reports(repo, monkeypatch, dirty, locked):
+    result = engine.run_job(submit(repo)["id"])
+    job = store.get(result["job_id"])
+    # Engine normally removes a clean completed checkout. Recreate a retained one.
+    import subprocess
+    tree = storage.worktree_root() / job["id"] / "retained"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", "--detach", str(tree), job["sha"]],
+                   check=True, capture_output=True)
+    common = subprocess.run(["git", "-C", str(repo), "rev-parse", "--git-common-dir"],
+                            check=True, capture_output=True, text=True).stdout.strip()
+    git_dir = str((repo / common).resolve())
+    with store.database() as db:
+        db.execute("UPDATE jobs SET worktree=?,git_dir=? WHERE id=?", (str(tree), git_dir, job["id"]))
+    if dirty:
+        (tree / "marker").write_text("keep changes")
+    monkeypatch.setattr(storage, "capacity", lambda: {"ready": False})
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        if locked:
+            lock = stack.enter_context((Path(result["report"]).parent.parent / "run.lock").open("a"))
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        candidates = []
+        retention.prune(dry_run=True, candidates=candidates)
+        removable = not dirty and not locked
+        assert bool(candidates) is removable
+        if candidates:
+            assert candidates[0]["reason"] == "disk_space"
+            assert candidates[0]["artifacts"] is None
+        retention.prune()
+        assert tree.exists() is (not removable)
+    assert Path(result["report"]).exists()
+    assert store.get(job["id"])["details_expired"] == 0
