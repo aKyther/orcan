@@ -68,3 +68,46 @@ def lanes() -> dict:
     finally:
         connection.close()
     return result
+
+
+def admission(services_ready: bool) -> dict:
+    """Snapshot of start constraints; each job rechecks admission atomically."""
+    from . import store
+    from .settings import max_running
+    from .storage import capacity
+
+    reasons = []
+    if not services_ready:
+        reasons.append("services_unavailable")
+    try:
+        disks = capacity()
+        if not disks["ready"]:
+            reasons.append("disk_space")
+    except (OSError, ValueError):
+        disks = {"ready": False, "filesystems": []}
+        reasons.append("storage_unavailable")
+    with store.database() as db:
+        running = db.execute("SELECT COUNT(*) FROM jobs WHERE status='running'").fetchone()[0]
+    limit = max_running()
+    if running >= limit:
+        reasons.append("capacity")
+    messages = {
+        "services_unavailable": "Executor services are not ready; inspect doctor and diagnostics.",
+        "disk_space": "Insufficient free disk space; inspect executor storage and preview storage clean.",
+        "storage_unavailable": "Cannot inspect storage; check mounted storage availability and permissions.",
+        "capacity": "All execution slots are occupied; queued jobs wait for a free slot.",
+    }
+    details = [
+        f"{disk['path']}: {disk['free_bytes'] // 1024**2} MiB free; "
+        f"{disk['minimum_free_bytes'] // 1024**2} MiB required."
+        for disk in disks["filesystems"] if not disk["ready"]
+    ]
+    return {
+        "ready": not reasons,
+        "reasons": reasons,
+        "messages": [messages[reason] for reason in reasons] + details,
+        "filesystems": disks["filesystems"],
+        "running": running,
+        "max_running": limit,
+        "note": "Snapshot only; repository scheduling and each job's admission are rechecked at execution.",
+    }

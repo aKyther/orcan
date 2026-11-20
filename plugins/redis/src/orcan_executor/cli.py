@@ -524,7 +524,7 @@ def main(argv=None):
                     broker = bool(events.client().ping())
                 except Exception:
                     pass
-            from .readiness import lanes
+            from .readiness import admission, lanes
 
             lane_states = {}
             if enabled and broker:
@@ -538,12 +538,16 @@ def main(argv=None):
                 else any(value["ready"] for value in lane_states.values())
             )
             ready = enabled and broker and worker
+            start_state = admission(ready)
             emit(
                 {
                     "enabled": enabled,
                     "broker": broker,
                     "worker": worker,
                     "ready": ready,
+                    "services_ready": ready,
+                    "can_start": start_state["ready"],
+                    "admission": start_state,
                     "lane": args.lane,
                     "lanes": lane_states,
                     "settings": effective(),

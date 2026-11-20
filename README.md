@@ -41,7 +41,7 @@ select a project, prepare your agent and start working.
 
 ## Status
 
-Version **4.1.63**. Orcan is distributed as a CLI (`orcan`) with a terminal interface.
+Version **4.1.64**. Orcan is distributed as a CLI (`orcan`) with a terminal interface.
 [Orcan Studio](https://github.com/aKyther/orcan-studio) is a separate desktop
 application in development, with its own repository and documentation.
 

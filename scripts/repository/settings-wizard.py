@@ -84,6 +84,8 @@ def edit_plugins(cfg: dict[str, Any]) -> bool:
             if not configure and not ask_yes_no(f"Configure {entry['title']} settings?", default=False):
                 continue
             for key, rule in entry["fields"].items():
+                if rule.get("hidden"):
+                    continue
                 try:
                     if rule.get("help"): info(rule["help"])
                     if rule["type"] == "boolean":

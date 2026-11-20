@@ -179,3 +179,26 @@ def test_redis_compose_passes_all_resolved_settings_into_container(tmp_path):
             for name, rule in entry['fields'].items():
                 if name != 'port':
                     assert container[rule['env']] == str(resolved[rule['env']])
+
+
+
+def test_legacy_worktree_budget_is_hidden_but_preserved_in_both_editors(tmp_path, monkeypatch):
+    ui = load_script('settings_tui.py')
+    wizard = load_script('settings-wizard.py')
+    cfg = {'workspaces': [], 'plugins': {'redis': {'enabled': True, 'worktree_budget_mb': 1234}}}
+    path = tmp_path / 'config.json'
+    path.write_text(json.dumps(cfg))
+    model = ui.SettingsModel(path)
+    rows = ui.detail_rows(model, 'plugin:redis')
+    assert 'worktree_budget_mb' not in [row[0] for row in rows]
+    prompts = []
+    def ask(label, default):
+        prompts.append(label)
+        return default
+    monkeypatch.setattr(wizard, 'ask', ask)
+    monkeypatch.setattr(wizard, 'ask_yes_no', lambda label, default=False:
+                        '(redis)' in label if label.startswith('Enable ') else label.startswith('Configure '))
+    assert wizard.edit_plugins(cfg)
+    assert not any('worktree' in label.lower() for label in prompts)
+    assert cfg['plugins']['redis']['worktree_budget_mb'] == 1234
+    assert planner.plan(cfg, [])['ORCAN_EXECUTOR_WORKTREE_BUDGET_MB'] == 1234

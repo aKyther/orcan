@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Hide the ignored legacy worktree budget from settings and plugin help while preserving old configurations. Executor doctor now separates service readiness from admission, showing disk reserve, storage errors and occupied execution slots.
+
 - Add hourly native cache maintenance independent of Redis: safely prune uv, seed version-guarded Gradle retention and set Cargo automatic cleanup checks to hourly. Coordinate shared containers, preserve existing policies and installed tools, and document opt-out markers and native retention limits.
 
 - Use actual free disk space instead of a worktree size budget for executor admission. Monitor the reserve during commands, report low-space waits clearly, and reclaim only disposable completed worktrees under pressure while preserving fresh reports and active/modified work. Accept the old worktree-budget setting as ignored compatibility data.

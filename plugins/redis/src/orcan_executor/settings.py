@@ -173,7 +173,6 @@ def effective() -> dict:
                 "log_limit_mb",
                 "artifact_limit_mb",
                 "detail_budget_mb",
-                "worktree_budget_mb",
             )
         },
         "redis_memory_mb": redis_memory_mb(),

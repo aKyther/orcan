@@ -158,6 +158,7 @@ def main(argv=None):
             print(entry['title']+' — plugins.'+entry['id'])
             for hint in entry['help']: print(hint)
             for key,rule in entry['fields'].items():
+                if rule.get('hidden'): continue
                 print(key+': '+rule.get('help',rule['label']))
             for example in entry['examples']: print('Example JSON: '+example)
             print()

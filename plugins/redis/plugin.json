@@ -126,7 +126,8 @@
       "env": "ORCAN_EXECUTOR_WORKTREE_BUDGET_MB",
       "minimum": 1,
       "maximum": 1048576,
-      "help": "Deprecated compatibility setting; ignored. Actual free disk space controls admission. Worktree size is informational."
+      "help": "Deprecated compatibility setting; ignored. Actual free disk space controls admission. Worktree size is informational.",
+      "hidden": true
     }
   },
   "verifier": "executor",

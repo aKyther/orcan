@@ -1452,3 +1452,22 @@ under `/opt/orcan/plugins/redis/`.
 `plugins/cockpit/` contains the complete terminal extension. It reads task status
 through the executor CLI and does not manage the queue database. Both public
 console command names remain unchanged.
+
+### Service readiness and admission status
+
+`orcan-executor doctor` reports two different checks:
+
+- `services_ready` (also the compatibility field `ready`) means the broker and
+  selected worker lane are available. Its exit code keeps this meaning.
+- `can_start` means those services are ready, storage has the required free-space
+  reserve, and the global running-job limit has a free slot at this moment.
+
+`admission.reasons` and `admission.messages` explain low disk space, inaccessible
+storage or occupied execution slots. Filesystem details include available bytes
+and the required reserve; messages also show MiB. This is a snapshot, not a slot
+reservation. Repository scheduling and admission are checked again for each job.
+It does not scan checkout contents or require complete size accounting.
+
+The ignored legacy `worktree_budget_mb` is hidden from both settings editors,
+plugin help and effective executor settings. Existing configuration values remain
+accepted and preserved for compatibility; they do not limit worktree size.

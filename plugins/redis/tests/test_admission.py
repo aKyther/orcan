@@ -176,3 +176,40 @@ def test_cli_reports_local_queue_when_lane_is_missing(repo, monkeypatch, capsys)
     assert result["status"] == "queued_locally"
     assert "lane default" in result["error"]
     assert store.get(result["job_id"])["status"] == "queued"
+
+
+@pytest.mark.parametrize("disk_ready", [False, True])
+def test_doctor_separates_services_from_disk_admission(monkeypatch, capsys, disk_ready):
+    from orcan_executor import storage
+
+    monkeypatch.setattr(cli.events, "client", lambda: Mock(ping=lambda: True))
+    monkeypatch.setattr(readiness, "lanes", lambda: {"default": {"ready": True}})
+    monkeypatch.setattr(storage, "size", Mock(side_effect=AssertionError("No checkout scan")))
+    monkeypatch.setattr(storage, "capacity", lambda: {
+        "ready": disk_ready, "filesystems": [{
+            "path": "/synthetic", "ready": disk_ready,
+            "free_bytes": 512 * 1024**2, "minimum_free_bytes": 1024**3,
+        }],
+    })
+    assert cli.main(["doctor"]) == 0
+    value = json.loads(capsys.readouterr().out)
+    assert value["ready"] and value["services_ready"]
+    assert value["can_start"] is disk_ready
+    assert "worktree_budget_mb" not in value["settings"]
+    if not disk_ready:
+        assert value["admission"]["reasons"] == ["disk_space"]
+        assert "512 MiB free" in " ".join(value["admission"]["messages"])
+        assert "1024 MiB required" in " ".join(value["admission"]["messages"])
+
+
+def test_doctor_admission_reports_unavailable_storage_and_capacity(repo, monkeypatch):
+    from orcan_executor import storage
+
+    monkeypatch.setenv("ORCAN_EXECUTOR_MAX_RUNNING", "1")
+    job = engine.submit(repo, "HEAD", "occupy slot", "quality", [], 30)
+    assert store.start(job["id"], Path("fixture"))
+    monkeypatch.setattr(storage, "capacity", Mock(side_effect=OSError("unavailable")))
+    value = readiness.admission(True)
+    assert not value["ready"]
+    assert value["reasons"] == ["storage_unavailable", "capacity"]
+    assert value["running"] == value["max_running"] == 1

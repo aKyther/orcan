@@ -39,6 +39,8 @@ def detail_rows(model, page, width=100):
         values=model.plugins()[name]
         result=[('__enabled__','Enabled',str(values['enabled']))]
         for key,rule in entry['fields'].items():
+            if rule.get("hidden"):
+                continue
             result.append((key,rule['label'],str(values[key])))
             limits=[]
             if 'choices' in rule: limits.append('Choices: '+', '.join(map(str,rule['choices'])))
