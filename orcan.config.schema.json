@@ -173,7 +173,7 @@
               "default": 8192,
               "minimum": 1,
               "maximum": 1048576,
-              "description": "Worktree admission budget MiB"
+              "description": "Legacy worktree budget MiB (ignored)"
             }
           }
         },
@@ -272,7 +272,7 @@
               "default": 8192,
               "minimum": 1,
               "maximum": 1048576,
-              "description": "Worktree admission budget MiB"
+              "description": "Legacy worktree budget MiB (ignored)"
             }
           }
         },
