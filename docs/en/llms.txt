@@ -66,7 +66,9 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 - [Why Orcan?](https://akyther.github.io/orcan/latest/why-orcan/): Problem, when to use / not use, design non-goals
 - [Core Ideas](https://akyther.github.io/orcan/latest/ideas/core-ideas/): Project, Workspace, Context
 - [Mental Model](https://akyther.github.io/orcan/latest/ideas/mental-model/): How the pieces relate (incl. path parity)
-- [Quick Start](https://akyther.github.io/orcan/latest/getting-started/quickstart/): First successful run
+- [First session](https://akyther.github.io/orcan/latest/getting-started/quickstart/): Project selection through the first agent conversation
+- [Daily use](https://akyther.github.io/orcan/latest/guides/daily-use/): Return, switch workspaces, leave and stop
+- [Troubleshooting](https://akyther.github.io/orcan/latest/guides/troubleshooting/): Symptoms, next steps and requesting help
 - [Change map](https://akyther.github.io/orcan/latest/change-map/): What to edit → where in the repo → which doc
 
 ## Concepts (read before deep reference)

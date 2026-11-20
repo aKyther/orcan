@@ -87,7 +87,9 @@ Prefer this file over crawling the whole docs site. In a **live** Orcan workspac
 - [Why Orcan?]({SITE}/why-orcan/): Problem, when to use / not use, design non-goals
 - [Core Ideas]({SITE}/ideas/core-ideas/): Project, Workspace, Context
 - [Mental Model]({SITE}/ideas/mental-model/): How the pieces relate (incl. path parity)
-- [Quick Start]({SITE}/getting-started/quickstart/): First successful run
+- [First session]({SITE}/getting-started/quickstart/): Project selection through the first agent conversation
+- [Daily use]({SITE}/guides/daily-use/): Return, switch workspaces, leave and stop
+- [Troubleshooting]({SITE}/guides/troubleshooting/): Symptoms, next steps and requesting help
 - [Change map]({SITE}/change-map/): What to edit → where in the repo → which doc
 
 ## Concepts (read before deep reference)

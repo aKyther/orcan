@@ -1,20 +1,74 @@
 # Troubleshooting
 
-## What this does
+Start with the symptom below. Unless a section says otherwise, run commands in
+your computer's terminal, outside Orcan (the **host terminal**). Use Cockpit's
+**Exit** button to return there. On Windows, use your WSL2 Linux terminal.
 
-Lists common failures and how to diagnose them on the **host**.
-
-## Before you start
-
-From the Orcan install (or git checkout):
+## Start with a simple check
 
 ```bash
 orcan doctor
-orcan context show
-docker compose -f docker-compose.yml -f mounts/compose-projects.generated.yml config
+orcan status
 ```
 
-The `docker compose config` command prints the resolved Compose file (needs generated `mounts/` files from `orcan sync`).
+These reports help identify missing tools, configuration, images and runtime
+state. You can run them from any folder; no Orcan source checkout is needed.
+For an unfinished setup, return to the failed step in
+[Your first session](../getting-started/quickstart.md).
+
+## `orcan: command not found` { #orcan-command-not-found }
+
+After installation, open a new terminal and try `orcan doctor` again. If the
+command is still missing, try in that terminal:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+orcan doctor
+```
+
+If that works, your shell was not finding the install folder. If it still fails,
+review the installer result and follow [Installation](../getting-started/installation.md).
+
+## Docker is not running or access is denied
+
+Start Docker, then run `docker version` in the same terminal as Orcan.
+On Windows, check that Docker is available to the selected WSL2 distribution.
+
+An access-denied error means your user cannot use Docker. Follow your Docker
+installation's user-access instructions (rootless Docker or Docker group access
+on Linux). Ask the person who manages the computer if you cannot change this.
+
+## Orcan will not start
+
+If the error says configuration or generated files are missing, follow
+[First session, steps 1–2](../getting-started/quickstart.md#1-choose-your-project).
+If it says the image is missing, complete step 3. `orcan up` starts prepared
+files and an existing image; it does not configure or build them automatically.
+
+If Docker is ready and setup is complete, inspect `orcan logs` for the startup
+error. Share only the relevant error when requesting help.
+
+## The agent asks me to sign in
+
+Start the installed agent inside your project folder and follow its sign-in
+prompts. Your Orcan installation and agent account are separate. Account access,
+subscription and usage limits belong to that provider.
+
+If the agent needs a browser, use the link or code it provides. Never post
+sign-in codes, tokens or passwords in a bug report.
+
+## Ask for help
+
+If the sections below do not solve the problem, open an
+[Orcan issue](https://github.com/aKyther/orcan/issues). Include your operating
+system, the command you ran, what you expected, the relevant error and your
+Orcan version from `orcan status`. Mention whether you are on WSL2 or a remote host.
+Review diagnostic output before sharing it; omit credentials and private paths.
+
+## Additional problems
+
+The following sections cover project selection, optional browser access and
+advanced setups.
 
 ## Browser terminal will not open
 
@@ -93,9 +147,12 @@ See [Path parity](../concepts/path-parity.md). Confirm mounts with `orcan contex
 
 ## tmux keys do not work in the browser
 
+Press **F1** in Cockpit for supported shortcuts. Browser shortcuts can intercept
+terminal keys; see [Terminal UI](terminal-ui.md#cockpit-nav-mix) for alternatives.
+
 ## Embedded tmux does not resize with the browser
 
-The cockpit PTY must own a controlling tty so resize delivers SIGWINCH to tmux. Fixed in current cockpit (`TIOCSCTTY` + `on_resize`). If the pane stays at attach size after a browser resize: update the image (`orcan build --agent codex` / `make dev-restart`) and hard-refresh the tab. Details: [Terminal UI — cockpit](terminal-ui.md#cockpit-browser).
+The cockpit PTY must own a controlling tty so resize delivers SIGWINCH to tmux. Fixed in current cockpit (`TIOCSCTTY` + `on_resize`). If the pane stays at attach size after a browser resize: update the image (`orcan build --agent codex`, then recreate the container) and hard-refresh the tab. Details: [Terminal UI — cockpit](terminal-ui.md#cockpit-browser).
 
 ## Long URL wraps and is hard to click
 

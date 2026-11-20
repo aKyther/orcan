@@ -10,7 +10,9 @@ Short answers to common Orcan questions.
 
 Orcan is a **work-context orchestrator**. It runs Cursor CLI (`agent`) and Claude Code (`claude`) in Docker with workspaces (named sets of projects) and path-parity mounts. Enter locally with `orcan enter`, or optionally use a browser terminal (`orcan up --web-terminal`).
 
-Read [Why Orcan?](why-orcan.md) and [Core Ideas](ideas/core-ideas.md) before the rest of this FAQ.
+Start with [Installation](getting-started/installation.md) and
+[Your first session](getting-started/quickstart.md). For returning tomorrow, see
+[Daily use](guides/daily-use.md).
 
 ## Does Orcan choose AI models?
 
@@ -18,14 +20,8 @@ Read [Why Orcan?](why-orcan.md) and [Core Ideas](ideas/core-ideas.md) before the
 
 ## How do I switch projects?
 
-Edit `orcan.config.json` (or `orcan init`), then:
-
-```bash
-orcan sync
-orcan down && orcan up
-```
-
-Do **not** pass `PROJECT_DIR=…` to `orcan up`.
+Use **F4** for an existing workspace. To connect another project, follow
+[Daily use — switch projects](guides/daily-use.md#switch-workspaces-or-open-another-project).
 
 ## Why does `orcan up` ignore my config edits?
 
@@ -55,25 +51,10 @@ After reconnect, the launcher retries the last workspace while its list is becom
 
 ## Which agents are installed?
 
-Choose the clients explicitly when building. Every local build uses
-`orcan:latest` / `orcan:<VERSION>` and records its selection in
-`/etc/orcan/agents.json`.
-
-=== "Codex only"
-
-    ```bash
-    orcan build --agent codex
-    orcan up
-    ```
-
-=== "Claude Code + Codex"
-
-    ```bash
-    orcan build --agent claude --agent codex
-    orcan up
-    ```
-
-    `cursor`, Gemini and Copilot are not installed in this image.
+Choose an agent when preparing Orcan. Follow the choices in
+[Your first session](getting-started/quickstart.md#3-prepare-your-agent).
+For several agents or extra tools, see [Image profiles](guides/image-profiles.md).
+Run `orcan status` to inspect the installed selection.
 
 ## Is there a published Docker image?
 
@@ -102,34 +83,18 @@ Not as a supported switch. The launcher starts tmux. Use multiple tmux windows/p
 
 ## How do I update?
 
-```bash
-orcan upgrade                        # newest release tag vX.Y.Z
-orcan upgrade --to v0.2.0            # pin a specific release
-orcan downgrade                      # one SemVer step back
-orcan update                         # dev channel: fast-forward to origin/main instead
-orcan sync                           # when config schema changed
-orcan build --agent codex --force    # when Dockerfile/rootfs changed
-orcan down && orcan up
-```
+See [Upgrade / downgrade Orcan](guides/workflows.md#upgrade-downgrade-orcan)
+for the update procedure and when to rebuild your environment.
 
 ## How do I uninstall? { #uninstall }
 
-```bash
-orcan uninstall --purge-data --purge-images
-```
-
-`--purge-data` deletes config, logins, history, and caches, but preserves
-`ORCAN_PROJECTS_ROOT` (default `~/.config/orcan/sandbox`) and every configured
-project path. Without that flag, all data is kept. See the environment
-reference for [projects-root edge cases](reference/environment.md#host-locations-and-authentication).
-
-Details: [Workflows — uninstall](guides/workflows.md#uninstall).
+See [Uninstall](guides/workflows.md#uninstall) for removal options and which data
+each option preserves. Read that section before choosing to remove saved data.
 
 ## How do I report a bug?
 
-Open a GitHub Issue with OS, Docker version, the `orcan` command you ran, and relevant logs (`orcan logs`, `orcan doctor`, `orcan context show`):
-
-https://github.com/aKyther/orcan/issues
+Follow [Ask for help](guides/troubleshooting.md#ask-for-help) for what to include
+in an Orcan issue.
 
 ## How do I contribute / add code?
 

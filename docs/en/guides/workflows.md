@@ -2,30 +2,26 @@
 description: Typical Orcan workflows — day scenarios first, then the orcan CLI commands that support them.
 ---
 
-# Typical workflows
+# Advanced workflows
 
-These scenarios assume you already know [Core Ideas](../ideas/core-ideas.md). Commands run on the **host** unless marked **(container)**.
+For opening your project, returning tomorrow and stopping Orcan, start with
+[Daily use](daily-use.md). This page covers additional setups and maintenance.
+Commands run on your computer (the **host**) unless marked **container**.
+See [Core Ideas](../ideas/core-ideas.md) for workspace and context terms.
 
 ## Scenario: start the day in one context
 
-You already configured workspaces. You want a dev container with yesterday’s mounts.
-
-**Idea:** recreate the session without regenerating config.
-
-```bash
-cd /absolute/path/to/orcan
-orcan up              # local — orcan enter on the same machine
-# remote browser: orcan up --web-terminal && orcan url
-```
-
-!!! note
-    `orcan up` does **not** run `orcan sync`. If you changed `orcan.config.json`, apply config first.
+Follow [Daily use](daily-use.md#return-to-your-work) for the normal startup
+sequence. The sections below cover additional access methods.
 
 ## Scenario: local terminal (not only the browser) { #local-terminal }
 
 **When:** you are on the same machine as the container (laptop), and you want a native terminal — or a second client alongside `--web-terminal`.
 
 Plain `orcan up` is local-only (no published port). **`orcan enter`** is the default path on the same machine. Add **`--web-terminal`** when you need the browser (remote / phone).
+
+```bash
+orcan enter
 
 # equivalent low-level:
 docker exec -it orcan-1 tmux ls
@@ -48,8 +44,7 @@ ssh -tt my-enclave 'orcan attach orcan-dev'
 `orcan attach` creates the workspace's tmux session when needed, then resumes
 it. It uses the same session as local clients, so detach with the tmux prefix
 plus `d` without stopping agents. Configure `my-enclave` as an SSH host alias
-in `~/.ssh/config`; Orcan Studio can later use that profile to open this command
-in a native terminal. This needs SSH access to the **host** running Orcan — it
+in `~/.ssh/config`. This needs SSH access to the **host** running Orcan — it
 does not publish ttyd or add an SSH server to the container.
 
 If ttyd disconnects or the browser page is refreshed, the new cockpit process
@@ -163,7 +158,7 @@ orcan up --docker-socket --ssh
 ## Scenario: optional git worktree
 
 You can attach several worktrees of the same repository to one workspace.
-Existing linked worktrees added through Studio or `orcan context add` use
+Existing linked worktrees added through `orcan context add` use
 `repo--branch` as their workspace directory name (for example `api--feature-login`).
 Branch slashes become hyphens. If labels collide, a numeric suffix is added.
 Attaching the same checkout again preserves its existing name. The original
@@ -316,7 +311,6 @@ reported and kept.
 ## Upgrade / downgrade Orcan
 
 ```bash
-cd /absolute/path/to/orcan
 orcan upgrade                # newest GitHub Release tag (vX.Y.Z)
 # orcan upgrade --to v0.2.0  # pin a specific release (up or down)
 # orcan update               # dev channel: follow main instead

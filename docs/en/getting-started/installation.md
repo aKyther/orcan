@@ -1,122 +1,90 @@
 ---
-description: Host requirements for Orcan — Docker isolation is a product choice, not an accident.
+description: Prepare your computer, install Orcan and check that it is ready.
+tags:
+  - guide
 ---
 
 # Installation
 
-## Why these requirements
+Install Orcan once on the computer where your project files will live. After
+installation, [Your first session](quickstart.md) walks through selecting a
+project and starting your agent.
 
-Orcan isolates agent toolchains in Docker so the host stays thin. That choice needs Docker Compose, Git (clone this repo and your projects), Python 3 (config scripts on the host), and Bash (the `orcan` CLI).
+## 1. Prepare your computer
 
-If you do not want Docker, Orcan is not the right tool — see [Why Orcan?](../why-orcan.md).
+A **terminal** is the application where you type commands. A **host** is the
+computer running Orcan and Docker.
 
-## Before you start
+=== "Linux"
 
-Orcan runs on a machine with Docker. Most people use Linux or WSL2.
+    Open your Terminal application. Install Docker Engine with Compose v2, Git,
+    Python 3, Bash and curl using your distribution's installation instructions.
+    Start Docker before continuing.
 
-## Requirements
+=== "Windows (WSL2)"
 
-| Tool | Notes |
-| --- | --- |
-| Docker Engine | With Compose v2 (`docker compose`) |
-| Git | To clone installs and your projects |
-| Python 3 | Host config scripts — `orcan sync`, `init` (incl. wizard), `context`. Stdlib only; no pip. |
-| Bash | CLI launcher |
+    Use a WSL2 Linux distribution and a Docker setup available inside it, such as
+    Docker Desktop with WSL integration enabled for that distribution.
+    Open the Linux distribution's terminal and run all Orcan commands there.
+    Install Git, Python 3, Bash and curl inside that distribution too.
+    Use Linux project paths in Orcan, not `C:\…` paths.
 
-Optional:
+=== "macOS"
 
-| Tool | Notes |
-| --- | --- |
-| `gh` | Only for `make docs-publish` / `make release` helpers |
-| Tailscale | Optional private access to the browser terminal |
+    Open Terminal. Install and start Docker Desktop (with Compose v2), and make
+    sure Git, Python 3, Bash and curl are available in that terminal.
 
-Check versions:
+Official prerequisite instructions:
+[Docker Engine](https://docs.docker.com/engine/install/),
+[Docker Desktop](https://docs.docker.com/desktop/),
+[WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
+If setting up these tools is unfamiliar, ask someone to help prepare them before
+continuing. The Orcan installer does not install Docker for you.
+
+Check the tools, one command at a time:
 
 ```bash
 docker version
 docker compose version
+git --version
 python3 --version
 bash --version
+curl --version
 ```
 
-## Install the CLI
+**Expected result:** each command reports its version. `docker version` must
+reach the Docker server too. If it reports an error, see
+[Docker problems](../guides/troubleshooting.md#docker-is-not-running-or-access-is-denied).
+
+## 2. Install Orcan
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
 ```
 
-`install.sh` puts the launcher in `~/.local/bin` and adds that directory to
-`~/.profile` plus the active Bash or Zsh rc file (idempotent; skip with
-`ORCAN_SKIP_PATH=1`). A `curl | bash` install **cannot** change the parent
-shell’s `PATH`, so before `orcan doctor`:
+This downloads and runs Orcan's installer from its GitHub repository. It installs
+the `orcan` launcher under `~/.local/bin` and adds that folder to your shell's
+command search path. It does not configure your project or start a container.
 
-1. Confirm `~/.local/bin` is on `PATH` (`echo "$PATH"` or `command -v orcan`).
-2. If the installer added the rc line but this session still lacks it, reload the shell — e.g. `exec bash -l`, `exec zsh -l`, or open a new terminal. One-shot: `export PATH="$HOME/.local/bin:$PATH"`.
-3. If rc was not updated, add the export yourself, reload, then continue.
+When the installer finishes, **open a new terminal** (your Linux terminal on
+Windows). This lets it find the newly installed command.
+
+## 3. Check the installation
 
 ```bash
 orcan doctor
 ```
 
-From a git checkout of this repository you can also run `./bin/orcan` without installing.
+The report checks prerequisites and the current Orcan setup. Before your first
+session, configuration, image or runtime items may still be missing. The next
+guide creates them; fix prerequisite errors first.
 
-## First configure
+If `orcan` is not found, see
+[command not found](../guides/troubleshooting.md#orcan-command-not-found).
 
-Describe workspaces in `~/.config/orcan/orcan.config.json`, then **materialise** files Compose reads:
+## Next: open your project
 
-```bash
-orcan init /absolute/path/to/your/repo
-```
+Continue with **[Your first session](quickstart.md)**. It is the single guide for
+configuration, image preparation, startup and agent sign-in.
 
-`orcan init` scaffolds or edits the config without applying runtime changes. Run **`orcan sync`** separately (writes runtime JSON + `mounts/*` under `ORCAN_HOME`), both after init and after every later config edit — `orcan build` / `orcan up` only consume those files; they do not regenerate them.
-
-Or use the wizard:
-
-```bash
-orcan init
-orcan sync
-```
-
-## Build the image
-
-Choose the CLI clients baked into the standard Orcan image. Selection is
-explicit; there are no agent-specific image tags.
-
-```bash
-orcan build --agent codex
-orcan build --agent gemini --agent copilot
-orcan build --all-agents
-```
-
-Each command updates `orcan:latest` and `orcan:<VERSION>`. `orcan status` and
-`orcan doctor` show the image manifest. Gemini and Copilot keep their durable
-login/session data under `ORCAN_DATA/gemini` and `ORCAN_DATA/copilot`.
-
-## Expected result
-
-- Config and generated JSON exist under `~/.config/orcan/`
-- Local image `orcan:latest` exists
-- `orcan context show` prints workspace paths
-
-Git author identity is filled by `orcan sync`. To attach host SSH keys for push/pull, use `orcan up --ssh` (see [Quickstart](quickstart.md#git-inside-the-container)).
-
-## Uninstall
-
-```bash
-orcan uninstall              # remove launcher + install clone
-orcan uninstall --purge-data # also delete config/logins/cache; projects are preserved
-orcan uninstall --purge-images # also remove local orcan:* image tags
-```
-
-See [Workflows — uninstall](../guides/workflows.md#uninstall) or [FAQ](../faq.md#uninstall).
-
-## Common problems
-
-| Problem | What to try |
-| --- | --- |
-| Docker permission denied | Add your user to the `docker` group, or use rootless Docker |
-| `orcan sync` fails on `PROJECT_DIR` | Use an **absolute** path; do not use `/`, `/home`, or `/etc` as the project |
-| Slow first build | Normal — the image installs toolchains and CLIs |
-| `orcan: command not found` | Ensure `~/.local/bin` is on `PATH`, then reload the shell (`exec bash -l` / new terminal) or `export PATH="$HOME/.local/bin:$PATH"`; re-run `install.sh` if the rc line is missing |
-
-Next: [Quickstart](quickstart.md) · [CLI reference](../reference/cli.md).
+For removal instructions, see [Uninstall](../guides/workflows.md#uninstall).

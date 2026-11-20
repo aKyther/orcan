@@ -1,92 +1,41 @@
 ---
-description: Orcan — work-context orchestrator for coding agents across many repositories.
+description: Start using Orcan, return to your projects, or find help.
 tags:
-  - concept
+  - guide
 ---
 
 # Orcan
 
-<div class="orcan-hero" markdown>
+Orcan prepares an environment for coding agents and connects your project
+folders to it. You choose an agent, sign into your own account, and work with it
+in a terminal. Orcan uses Docker to run that environment.
 
-Orcan orchestrates **work context** for coding agents: which repositories belong together, how they are mounted, and how you enter that environment in Docker.
-
-It does **not** choose models — Cursor CLI (`agent`) and Claude Code (`claude`) keep their own accounts.
-
-<span class="orcan-version">Version **4.1.58**</span>
-
-</div>
+<span class="orcan-version">Version **4.1.59**</span>
 
 ## Start here
 
-<div class="grid cards" markdown>
+1. [Install Orcan](getting-started/installation.md) — prepare your computer and check it is ready.
+2. [Your first session](getting-started/quickstart.md) — select a project and talk to an agent.
+3. [Daily use](guides/daily-use.md) — return tomorrow, switch workspaces and stop Orcan.
 
--   :material-download-outline: __Install__
+You can follow this path without learning the advanced configuration options.
+If a step fails, open [Troubleshooting](guides/troubleshooting.md).
 
-    ---
+## Find more information
 
-    Put `orcan` on your PATH, then sync and build.
-
-    [:octicons-arrow-right-24: Installation](getting-started/installation.md)
-
-    [:octicons-arrow-right-24: Quick Start](getting-started/quickstart.md)
-
--   :material-lightbulb-outline: __Understand__
-
-    ---
-
-    Why Orcan exists, Project / Workspace / Context, and the mental model.
-
-    [:octicons-arrow-right-24: Why Orcan?](why-orcan.md)
-
-    [:octicons-arrow-right-24: Core Ideas](ideas/core-ideas.md)
-
--   :material-map-search-outline: __Find a change__
-
-    ---
-
-    Matrix of *what you want to change* → *where in the repo* → *which doc*.
-
-    [:octicons-arrow-right-24: Change map](change-map.md)
-
--   :material-book-search-outline: __Look up__
-
-    ---
-
-    CLI flags, env vars, Compose, security — after you know the story.
-
-    [:octicons-arrow-right-24: CLI reference](reference/cli.md)
-
-    [:octicons-arrow-right-24: FAQ](faq.md)
-
-</div>
-
-## Three words
-
-| Term | Meaning |
+| Need | Read |
 | --- | --- |
-| **Project** | One checkout — an absolute path on disk |
-| **Workspace** | A named set of projects that belong together + one tmux session |
-| **Context** | The reproducible environment: mounts, instructions, ignores, entry path |
+| Understand why Orcan exists | [Why Orcan?](why-orcan.md) |
+| Understand projects and workspaces | [Core Ideas](ideas/core-ideas.md) |
+| Change configuration | [Configuration guide](getting-started/configuration.md) |
+| Choose agents and tools | [Image profiles](guides/image-profiles.md) |
+| Use browser access, SSH or Git | [Advanced workflows](guides/workflows.md) |
+| Look up a command or option | [CLI reference](reference/cli.md) |
+| Find a short answer | [FAQ](faq.md) |
+| Contribute to Orcan | [Development overview](development/overview.md) |
 
-Configuration describes those relationships. `orcan sync` and Docker apply them. Agents and humans share the same layout.
+## Orcan Studio
 
-## Try it
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/aKyther/orcan/main/install.sh | bash
-orcan doctor
-orcan init /absolute/path/to/your-repo
-orcan sync && orcan build && orcan up
-# local: orcan enter
-```
-
-Full steps: [Installation](getting-started/installation.md) · [Quick Start](getting-started/quickstart.md).
-
-!!! note
-    Config changes always need `orcan sync` before recreate (`orcan down && orcan up`). Rebuild the image only when Dockerfile or agent install inputs change.
-
-## See also
-
-- [Mental Model](ideas/mental-model.md) — how the pieces relate  
-- [Architecture](architecture.md)  
-- [Changelog](changelog.md) · [GitHub](https://github.com/aKyther/orcan)
+[Orcan Studio](https://github.com/aKyther/orcan-studio) is a separate desktop
+application in development. Its documentation lives in that repository.
+The guides on this site cover Orcan's CLI and terminal interface.

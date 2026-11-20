@@ -14,7 +14,14 @@ Preferred public arc (nav tabs + order):
 Home → Get started (Installation first) → Understand → Guides → Reference → Develop
 ```
 
-Installation is a top-level Get started tab — do not bury it under a deeper section.
+Installation is the first page under Get started — do not bury it under a deeper section.
+Follow it with First session, Daily use and Get help.
+
+README is a short entry point: describe Orcan, show installation and the initial
+check, then link to the first-session guide. Keep each full procedure in one
+documentation page; FAQ and Home should link to it instead of copying it.
+Studio is a separate application in development; mention its repository briefly
+and keep its desktop documentation and roadmap outside the Orcan user journey.
 
 ## Site theme (MkDocs)
 
