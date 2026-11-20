@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Review beginner guidance against the CLI: use the sequential setup questions explicitly, explain project labels and folder navigation, lead configuration with file-free editing, and prioritize common project/agent problems in help.
+
 - Simplify README and organize user documentation around installation, a first agent session, daily use and symptom-based help. Keep detailed instructions in one place and Studio in its separate repository.
 
 - Keep each extension in one package: move Cockpit source, tests, smoke fixtures and Python dependencies under `plugins/cockpit`, and the executor application and its tooling under `plugins/redis`. Update image paths, build inputs and maintainer commands while preserving public CLI names.

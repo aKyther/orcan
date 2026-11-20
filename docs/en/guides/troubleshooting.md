@@ -57,6 +57,30 @@ subscription and usage limits belong to that provider.
 If the agent needs a browser, use the link or code it provides. Never post
 sign-in codes, tokens or passwords in a bug report.
 
+## Launcher is empty / wrong projects
+
+Run `orcan context show` in the host terminal. Check that your workspace lists
+the folder you intended to connect. To add or correct it, follow
+[Configuration](../getting-started/configuration.md#change-settings-without-editing-files),
+then run `orcan sync`.
+
+If Orcan reports that the folder is not visible in the container, finish active
+work, run `orcan down`, then `orcan up` and `orcan enter`.
+In Cockpit, press **F4** to choose the configured workspace.
+
+For existing installations with a misplaced checkout inside workspace metadata,
+see [Project folder locations](workflows.md#scenario-optional-git-worktree).
+
+## Agent or Claude missing
+
+Run `orcan status` in the host terminal to check which agents are installed.
+If yours is missing, prepare it using
+[First session, step 3](../getting-started/quickstart.md#3-prepare-your-agent).
+
+A running container still uses its previous image. Finish active work and stop
+it with `orcan down`, then run `orcan up` and `orcan enter`. Launch the agent
+inside your project folder. See [Daily use](daily-use.md) for stopping and returning.
+
 ## Ask for help
 
 If the sections below do not solve the problem, open an
@@ -104,16 +128,6 @@ Workarounds until upstream merges:
 - If the layout sticks after closing the keyboard, tap/focus the terminal
   once, or reload the page.
 
-## Launcher is empty / wrong projects
-
-1. Check `orcan.config.json` has `workspaces` with absolute `projects[].path`
-2. Run `orcan sync` (terminal targets do not refresh config). Sync reconciles workspace meta on the host even when the container is down; live reconcile runs when the container is up.
-3. `orcan down && orcan up` when `orcan doctor` reports a path not visible in the container.
-
-If a project lived directly under the workspace folder (real directory instead of a symlink), `orcan sync` relocates it to `*.orcan-reconcile-bak` and recreates the symlink when the container is running (live reconcile). Check sync output for `relocated stale checkout dirs`.
-
-Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing config + `orcan sync`.
-
 ## `orcan sync` / `require-generated` fails
 
 | Message | Fix |
@@ -121,12 +135,6 @@ Do **not** pass `PROJECT_DIR=…` on `orcan up`. Switch projects by editing conf
 | Runtime JSON missing | `orcan sync` (after saving configuration with `orcan init` if needed) |
 | Generated files stale | Config is newer than `mounts/*` — run `orcan sync` |
 | Invalid `PROJECT_DIR` | Absolute path; avoid `/`, `/home`, `/etc` |
-
-## Agent or Claude missing
-
-- Rebuild the needed selection, e.g. `orcan build --agent codex`, then recreate the container
-- For Claude, use `orcan build --agent claude`; installed clients are shown by `orcan status`
-- Auth lives under `$ORCAN_DATA` (`~/.config/orcan`)
 
 ## Docker socket errors inside the container
 

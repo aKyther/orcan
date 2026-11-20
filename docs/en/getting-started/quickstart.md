@@ -32,16 +32,24 @@ Commands in steps 1–4 run in this host terminal.
 ## 1. Choose your project
 
 ```bash
-orcan init
+orcan init --cli
 ```
 
-Follow the prompts to name a workspace and select your project folder. Enter the
+The `--cli` option asks questions one at a time. Without it, `orcan init` opens
+a keyboard-controlled folder picker. This guide uses the questions.
+
+Follow the prompts to name a workspace, enter the project folder path, and give
+the project a short name.
+Use simple names such as `my-app` (letters, numbers, hyphens or underscores,
+starting with a letter or number). The project name is the folder label you
+will see inside Orcan. Enter the
 full folder path, for example `/home/alex/projects/my-app`. Replace this example
 with your own path; keep quotes around paths containing spaces when using shell
 commands. A folder's Properties or your file manager can help you find its path.
 
-For your first session, use the existing folder. Leave the advanced **worktree**
-option off; it creates a separate checkout and is optional.
+For your first session, choose **No** for a separate **worktree**; that option
+creates another working copy of the project. Choose **No** when asked to add
+another project or workspace, then confirm saving your choices.
 
 **Expected result:** Orcan saves your choices. This step does not start anything.
 
@@ -102,17 +110,21 @@ and **F1** for keyboard help.
 ## 5. Open the project and talk to your agent
 
 You are now **inside Orcan**. The center terminal accepts shell commands.
-List the workspace folders:
+A returning terminal can already be inside a project folder. Check your current
+location and list its contents:
 
 ```bash
+pwd
 ls
 ```
 
-Open your project's folder using the name shown, for example:
+If you see your project's folder label, open it using that name, for example:
 
 ```bash
 cd my-app
 ```
+
+If you already see your project files, stay in that folder.
 
 Then type the command for the agent you prepared: `codex`, `claude`, or `agent`
 (Cursor CLI). Follow that agent's sign-in instructions. The agent may ask you to

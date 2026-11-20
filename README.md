@@ -1,12 +1,12 @@
 # Orcan
 
-Run a coding agent in a prepared environment, with your projects grouped into
-workspaces. Orcan manages the environment; you choose the agent and use your own
-agent account.
+Work on your project with an AI coding assistant in a separate environment.
+Orcan connects your project folders and starts the tools you need. You choose
+the assistant and sign into your own account.
 
 ## Start here
 
-You need Docker with Compose v2, Git, Python 3 and Bash on your computer.
+You need Docker with Compose v2, Git, Python 3, Bash and curl on your computer.
 On Windows, use WSL2. See [Installation](docs/en/getting-started/installation.md)
 for preparation and help.
 
@@ -41,7 +41,7 @@ select a project, prepare your agent and start working.
 
 ## Status
 
-Version **4.1.59**. Orcan is distributed as a CLI (`orcan`) with a terminal interface.
+Version **4.1.60**. Orcan is distributed as a CLI (`orcan`) with a terminal interface.
 [Orcan Studio](https://github.com/aKyther/orcan-studio) is a separate desktop
 application in development, with its own repository and documentation.
 

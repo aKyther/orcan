@@ -4,36 +4,45 @@ description: Describe workspaces and projects in orcan.config.json — the story
 
 # Configuration
 
-## Why a config file
+Use this page when you want to change connected project folders or Orcan's
+settings. For initial setup, follow [Your first session](quickstart.md) instead.
+A **workspace** is a named group of project folders.
 
-Your multi-repo job is a **story**: which projects form which workspace. `orcan.config.json` is that story in data. Make does not invent your layout; it applies what you describe.
+## Change settings without editing files
 
-If Project / Workspace / Context are unclear, read [Core Ideas](../ideas/core-ideas.md) first.
+Run these commands in your computer's terminal, outside Orcan:
 
-## Source of truth
+| What you want to change | Command |
+| --- | --- |
+| Workspace names and project folders, with questions one at a time | `orcan init --cli` |
+| Workspace names and project folders, with a keyboard-controlled picker | `orcan init` |
+| Installed agents, tools, memory limits or terminal settings | `orcan settings` |
+| See which folders are connected | `orcan context show` |
 
-Host config is **JSON only**:
-
-```text
-orcan.config.json
-```
-
-Template: `orcan.config.example.json`.
-
-After edits, always run:
+Save your choices, then apply them:
 
 ```bash
 orcan sync
 ```
 
-!!! note
-    `orcan up` does **not** run `orcan sync`. Apply config first, then recreate the container.
+Read the result before continuing. Changes to installed agents or tools need
+image preparation too; follow [Image profiles](../guides/image-profiles.md).
+Some changes need the container to be recreated. Finish active work before
+stopping it, and follow [Daily use](../guides/daily-use.md#stop-orcan).
 
-Then recreate the container if it is already running:
+## Why a config file
 
-```bash
-orcan down && orcan up
-```
+Orcan saves your choices in `orcan.config.json`, normally under
+`~/.config/orcan/`. You can use the tools above without editing that file.
+The sections below are for users who want to inspect or edit settings directly.
+
+## Source of truth
+
+The JSON configuration file is the saved source for Orcan settings.
+`orcan sync` prepares runtime files from it. `orcan up` starts the prepared
+setup; it does not apply configuration edits automatically.
+For every field and its accepted values, see the
+[Configuration reference](../reference/configuration.md).
 
 ## Shape (example)
 
@@ -123,7 +132,7 @@ orcan context show
 
 ## What `orcan sync` writes
 
-`orcan.config.json` is the story you edit (default under `~/.config/orcan/`). **`orcan sync`** is what Docker / Compose can swallow: it refreshes host runtime files from that JSON (+ UID/GID). Without it, workspace manifests and mounts stay stale or missing. Host settings are resolved directly from JSON when commands run.
+`orcan.config.json` is the story you edit (default under `~/.config/orcan/`). **`orcan sync`** prepares the files Docker needs from that JSON and your user/group IDs. Without it, workspace manifests and mounts stay stale or missing. Host settings are resolved directly from JSON when commands run.
 
 | Output | Role |
 | --- | --- |

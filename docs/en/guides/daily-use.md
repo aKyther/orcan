@@ -31,10 +31,13 @@ agent resumes a previous conversation.
 ## Switch workspaces or open another project
 
 Press **F4**, choose a workspace, then select it. To move into one of its project
-folders, use `ls` to see folder names and `cd folder-name` to open one.
+folders, use `pwd` to check where you are, `ls` to see folder names and
+`cd folder-name` to open one. Replace `folder-name` with the label you chose;
+if you are already in a project folder, `cd ..` returns to its parent folder.
 
 To connect an additional project, leave Cockpit using **Exit**. In the host
-terminal, run `orcan init` and follow the prompts, then `orcan sync`.
+terminal, run `orcan init --cli` and follow the questions to edit your workspace
+and add the folder. Save your choices, then run `orcan sync`.
 If Orcan reports that the new path needs a container recreation, finish active
 work before running `orcan down` followed by `orcan up` and `orcan enter`.
 See [Workspaces](../concepts/workspaces.md) for more choices.

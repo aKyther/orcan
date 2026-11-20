@@ -45,9 +45,8 @@ After reconnect, the launcher retries the last workspace while its list is becom
 
 **Commit author:** host `user.name` / `user.email` provide container Git defaults after sync and container creation. Repository settings can override them.
 
-**Push/pull over SSH:** start with `orcan up --ssh` (mounts `~/.ssh`, and the SSH agent when available). Combine with DinD: `orcan up --docker-socket --ssh`. Plain `orcan up` does not attach keys. See [Quickstart](getting-started/quickstart.md#git-inside-the-container) and [Security](reference/security.md).
-
-**Worktrees:** optional. Mount a normal clone path by default; use the wizard’s advanced help or `orcan context worktree` when you want a separate checkout under `$ORCAN_PROJECTS_ROOT/.worktrees` (default `~/.config/orcan/sandbox/.worktrees` — covered by the stable projects mount, so no container recreate). See [Workspaces](concepts/workspaces.md#git-worktrees).
+For SSH push/pull setup, see [Git access](guides/workflows.md#scenario-git-pushpull-from-inside-the-container).
+For optional separate working copies, see [Worktrees](concepts/workspaces.md#git-worktrees).
 
 ## Which agents are installed?
 
